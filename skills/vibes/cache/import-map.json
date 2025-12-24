@@ -1,16 +1,16 @@
 {
-  "lastUpdated": "2025-12-24T21:00:00.000Z",
+  "lastUpdated": "2025-12-24T22:45:00.000Z",
   "source": "https://vibes.diy (production)",
-  "note": "Using @0.18.9 + unpinned React to match deployed vibes.diy. The @0.19.4-dev-vibes-refactor version has a React context bug that causes page lockups.",
+  "note": "Using @0.18.9 + unpinned React + ?external=react,react-dom. The ?external parameter ensures import maps control React resolution, preventing duplicate instances.",
   "imports": {
     "react": "https://esm.sh/react",
     "react-dom": "https://esm.sh/react-dom",
     "react-dom/client": "https://esm.sh/react-dom/client",
     "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
-    "use-fireproof": "https://esm.sh/use-vibes@0.18.9",
-    "call-ai": "https://esm.sh/call-ai@0.18.9",
-    "use-vibes": "https://esm.sh/use-vibes@0.18.9",
-    "https://esm.sh/use-fireproof": "https://esm.sh/use-vibes@0.18.9",
-    "https://esm.sh/use-vibes": "https://esm.sh/use-vibes@0.18.9"
+    "use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
+    "call-ai": "https://esm.sh/call-ai@0.18.9?external=react,react-dom",
+    "use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
+    "https://esm.sh/use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
+    "https://esm.sh/use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom"
   }
 }

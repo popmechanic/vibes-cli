@@ -86,32 +86,41 @@ Run sync with: `/vibes:sync` or `node scripts/sync.js --force`
 Let the sync script update templates from cache:
 
 ```bash
-bun scripts/fetch-prompt.ts --force
+node scripts/sync.js --force
 ```
 
-### 2. NEVER Add Query Parameters
+### 2. Use `?external=` for React Singleton
 
-vibes.diy does not use `?external=` or other esm.sh query parameters. Adding them causes page lockups and infinite loops.
+When using `use-vibes` via esm.sh, you MUST add `?external=react,react-dom` to ensure a single React instance:
+
+```json
+"use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom"
+```
+
+**Why `?external=`:** This tells esm.sh to keep `react` and `react-dom` as bare specifiers instead of bundling them. The browser's import map then intercepts these bare specifiers, ensuring all code uses the same React instance.
+
+**Why NOT `?alias=`:** The `?alias` parameter rewrites imports at esm.sh build time, but doesn't prevent esm.sh from resolving its own React version for internal dependencies. `?external` is more reliable for no-build workflows.
 
 ### 3. Include ALL Import Entries
 
-The import map requires 9 entries including absolute URL remappings:
+The import map requires these entries:
 
 ```json
 {
-  "react": "https://esm.sh/react@...",
-  "react-dom": "https://esm.sh/react-dom@...",
-  "react-dom/client": "https://esm.sh/react-dom@.../client",
-  "react/jsx-runtime": "https://esm.sh/react@.../jsx-runtime",
-  "use-fireproof": "https://esm.sh/use-vibes@...",
-  "call-ai": "https://esm.sh/call-ai@...",
-  "use-vibes": "https://esm.sh/use-vibes@...",
-  "https://esm.sh/use-fireproof": "https://esm.sh/use-vibes@...",
-  "https://esm.sh/use-vibes": "https://esm.sh/use-vibes@..."
+  "react": "https://esm.sh/react",
+  "react-dom": "https://esm.sh/react-dom",
+  "react-dom/client": "https://esm.sh/react-dom/client",
+  "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
+  "use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
+  "call-ai": "https://esm.sh/call-ai@0.18.9?external=react,react-dom",
+  "use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom"
 }
 ```
 
-The last two entries (absolute URL remappings) are REQUIRED to prevent duplicate React instances.
+**Notes:**
+- Unpinned React (`https://esm.sh/react` without version) lets esm.sh resolve the latest compatible version
+- `?external=react,react-dom` is REQUIRED to prevent duplicate React instances
+- Version `0.18.9` is the stable production version (dev versions have known bugs)
 
 ### 4. NEVER Update Documentation Examples Manually
 
@@ -121,10 +130,11 @@ Import map examples in documentation become stale. Reference `cache/import-map.j
 
 | Mistake | Consequence | Fix |
 |---------|-------------|-----|
-| Hardcoded versions in docs | Docs become stale | Reference cache file |
+| Missing `?external=react,react-dom` on use-vibes URLs | Multiple React instances, context errors | Add `?external=react,react-dom` to all use-vibes/call-ai imports |
+| Using dev versions (0.19.x-dev) | Known bugs, page lockups | Use stable version 0.18.9 |
 | Missing `react/jsx-runtime` | Build errors | Run sync to get all entries |
-| Missing absolute URL remappings | Multiple React instances, context errors | Include all 9 import entries |
-| Adding `?external=react,react-dom` | Page lockup, infinite loops | Never add—vibes.diy doesn't use it |
+| Opening file:// directly | Module cache doesn't work | Serve via HTTP (`npx serve .`) |
+| Hardcoded versions in docs | Docs become stale | Reference cache file |
 | Editing templates without running sync | Versions out of date | Always run sync after edits |
 
 ## Testing Changes
@@ -173,35 +183,84 @@ There are two cache locations by design:
 
 The sync script updates `/cache/` and the template files. The `skills/vibes/cache/` provides fallback values for users who haven't run sync yet.
 
+## The React Singleton Problem
+
+### Understanding No-Build Architecture
+
+vibes.diy is a **no-build web application platform**. Users create apps that run directly in the browser without Node.js, npm, or build tools. This relies on **import maps** - a browser-native feature (since March 2023) that maps bare specifiers like `"react"` to CDN URLs.
+
+### The Core Problem
+
+**Import maps can only intercept bare specifiers**, not absolute URL paths:
+
+| Import Type | Example | Import Map Intercepts? |
+|-------------|---------|------------------------|
+| Bare specifier | `import "react"` | ✅ Yes |
+| Absolute path | `import "/react@19.2.1"` | ❌ No |
+
+When esm.sh bundles `use-vibes`, internal React imports become absolute paths:
+```javascript
+import "/react@>=19.1.0?target=es2022";  // Resolved relative to esm.sh origin
+```
+
+**Result**: Our import map provides React 19.2.1, but use-vibes loads React 19.2.3 → TWO React instances → context fails.
+
+### The Solution: `?external=`
+
+From Preact's no-build workflow guide and esm.sh documentation:
+
+> "By using `?external=preact`, we tell esm.sh that it shouldn't provide a copy of preact... the browser will use our importmap to resolve `preact`, using the same instance as the rest of our code."
+
+The `?external=` parameter tells esm.sh to keep specified dependencies as **bare specifiers** so our import map can intercept them.
+
+### esm.sh Query Parameters
+
+| Parameter | Syntax | Effect |
+|-----------|--------|--------|
+| `?external=` | `?external=react,react-dom` | **Recommended.** Keeps bare specifiers for import map resolution |
+| `?deps=` | `?deps=react@19.2.1` | Forces specific dependency versions at build time |
+| `?alias=` | `?alias=react:react@19.2.1` | Rewrites import specifiers at build time (less reliable for no-build) |
+| `*` prefix | `https://esm.sh/*pkg@ver` | Marks ALL deps as external (exposes internal deps) |
+
+### Correct Import Map
+
+```json
+{
+  "imports": {
+    "react": "https://esm.sh/react",
+    "react-dom": "https://esm.sh/react-dom",
+    "react-dom/client": "https://esm.sh/react-dom/client",
+    "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
+    "use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
+    "call-ai": "https://esm.sh/call-ai@0.18.9?external=react,react-dom",
+    "use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom"
+  }
+}
+```
+
+**Key points:**
+- Version `0.18.9` is stable (dev versions have bugs)
+- Unpinned React lets esm.sh resolve compatible version
+- `?external=react,react-dom` ensures import map controls React
+
+### Why HTTP Server Is Required
+
+Files opened via `file://` don't share the browser's module cache. HTTP serving enables proper module deduplication.
+
 ## Known Issues
 
-### use-vibes @0.19.4-dev-vibes-refactor Bug (Dec 2024)
+### React Context Error Symptoms
 
-The `@0.19.4-dev-vibes-refactor` version has a React context bug that causes page lockups when interacting with form inputs. Symptoms:
+If you see these errors, React is being duplicated:
+- `TypeError: Cannot read properties of null (reading 'useContext')`
 - Page becomes unresponsive after focusing text inputs
-- "Cannot read properties of null (reading 'useContext')" errors
 - Controlled inputs trigger infinite render loops
 
-**Current workaround:** Use `@0.18.9` (the version deployed on vibes.diy production).
+**Fix:** Ensure all `use-vibes` and `call-ai` imports have `?external=react,react-dom`
 
-**Root cause:** The dev version has internal React imports that conflict with the user's React instance, even with proper import maps.
+### VibeContextProvider NOT Required
 
-**TODO:** Once the dev version is fixed upstream, run `/vibes:sync` to update to the newer version.
-
-### Unpinned React Strategy
-
-vibes.diy uses **unpinned React URLs** (e.g., `https://esm.sh/react` without version):
-
-```json
-"react": "https://esm.sh/react"
-```
-
-NOT:
-```json
-"react": "https://esm.sh/react@19.2.1"
-```
-
-This lets esm.sh resolve React versions consistently between user code and use-vibes internals, preventing duplicate instances.
+`VibeContextProvider` is used internally by the vibes.diy platform for database naming. **Standalone apps do NOT need it** - just render your App component directly with the VibesSwitch toggle.
 
 ## Commit Messages
 
