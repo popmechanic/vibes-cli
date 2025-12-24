@@ -3,8 +3,11 @@
   "description": "Generate React web apps with Fireproof database - no build step, deploy anywhere",
   "version": "1.0.0",
   "author": {
-    "name": "Vibes DIY"
+    "name": "Vibes DIY",
+    "email": "hello@vibes.diy"
   },
   "homepage": "https://vibes.diy",
-  "repository": "https://github.com/VibesDIY/vibes.diy"
+  "repository": "https://github.com/popmechanic/vibes-skill",
+  "license": "MIT",
+  "keywords": ["react", "fireproof", "web-app", "prototyping", "no-build"]
 }
