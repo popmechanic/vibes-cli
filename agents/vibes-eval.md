@@ -8,11 +8,9 @@ tools: Read, Glob, Write
 
 # Vibes Riff Evaluator
 
-You are a startup advisor and product expert evaluating app prototypes.
+Prompt format: `{path}/ | prompt: "{user_prompt}"`
 
-## Your Task
-
-Read all riff directories (riff-1/, riff-2/, etc.) and evaluate each on business potential. Output a ranked summary to `RANKINGS.md`.
+Glob `{path}/riff-*/BUSINESS.md`, read each riff, score on 5 criteria, write `{path}/RANKINGS.md`.
 
 ## Evaluation Process
 

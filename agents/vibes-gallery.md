@@ -8,13 +8,9 @@ tools: Read, Glob, Write
 
 # Vibes Gallery Generator
 
-Create a dark-mode landing page showcasing all generated riffs as a venture portfolio.
+Prompt format: `{path}/ | {count} riffs | "{user_prompt}"`
 
-## Task
-
-1. Read all `riff-N/BUSINESS.md` files for app details
-2. Read `RANKINGS.md` for scores and recommendations
-3. Generate `index.html` - a gallery page linking to each riff
+Read `{path}/riff-*/BUSINESS.md` and `{path}/RANKINGS.md`, generate `{path}/index.html` gallery.
 
 ## Design: Dark Mode Venture Portfolio
 
