@@ -1,5 +1,7 @@
 # Vibes - Claude Code Plugin
 
+![Vibes](vibes.png)
+
 Instantly make your own small apps, without a backend. With Vibes, The front-end _is_ the app.
 
 ## What is Vibes DIY?
