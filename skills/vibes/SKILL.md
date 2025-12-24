@@ -254,5 +254,5 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for instructions on deploying to:
 
 Key points:
 - No build step required
-- Just upload `index.html` and `app.js`
+- Just upload `index.html` (single file contains everything)
 - Import map handles all dependencies via CDN

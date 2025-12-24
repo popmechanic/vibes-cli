@@ -140,7 +140,7 @@ Vibes apps work on any server that can serve static files:
 - **Railway**
 - **Your own nginx/Apache server**
 
-Just upload `index.html` and `app.js` to your hosting provider.
+Just upload `index.html` to your hosting provider.
 
 ---
 

@@ -11,26 +11,27 @@ Add the marketplace and install the plugin:
 /plugin install vibes@vibes-diy
 ```
 
+**Important**: Restart Claude Code after installation to load the new skills.
+
 ## Skills
 
-### `/vibes:vibes`
+Skills are **model-invoked** - Claude automatically uses them when your task matches the skill's purpose. Just describe what you want to build and Claude will use the appropriate skill.
+
+### `vibes`
 Generate a single Vibes app from a prompt. Creates a complete, working React app with:
 - React using `React.createElement` (no JSX, no build step)
 - Fireproof for local-first database
 - Tailwind CSS for styling
 - Hidden settings menu with database sync
 
-### `/vibes:riff`
+**Example prompt**: "Create a todo app with categories and due dates"
+
+### `riff`
 Generate multiple app variations in parallel. Perfect for exploring different interpretations of a broad objective.
 
-**Example:**
-```
-/vibes:riff
-> Prompt: "Make me an app that could make money"
-> Number of riffs: 5
-```
+**Example prompt**: "Generate 5 different app ideas that could make money"
 
-**Output:**
+**Output structure:**
 ```
 ./
 ├── index.html          # Riff Gallery - stunning dark mode portfolio
@@ -48,8 +49,10 @@ Each riff is a genuinely different **concept**, not just aesthetic variations. T
 
 ## Agents
 
+These agents are used internally by the skills:
+
 ### `vibes-gen`
-Generates a single Vibes app with business model. Used internally by `/vibes:riff`.
+Generates a single Vibes app with business model. Used by the `riff` skill to create parallel variations.
 
 ### `vibes-eval`
 Evaluates and ranks riffs on business potential:
@@ -70,7 +73,7 @@ Creates a stunning dark mode gallery page showcasing all riffs with:
 
 > "Create 10 businesses a week, not 1 every 6 months"
 
-Use `/vibes:riff` to rapidly explore the solution space. Generate 5-10 variations of a loose prompt, get them automatically ranked, and iterate on your favorites.
+Use the `riff` skill to rapidly explore the solution space. Generate 5-10 variations of a loose prompt, get them automatically ranked, and iterate on your favorites.
 
 ## Template Structure
 
