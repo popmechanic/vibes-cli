@@ -49,4 +49,16 @@ differentiator: Unique value
 </html>
 ```
 
-Style: bg-[#f1f5f9], border-4 border-[#0f172a], shadow-[6px_6px_0px_#0f172a]. Be CREATIVE and SPECIFIC.
+**Style**: bg-[#f1f5f9], border-4 border-[#0f172a], shadow-[6px_6px_0px_#0f172a]
+
+**useLiveQuery**: Always use static keys, filter in render. NEVER reference React state in query functions (causes infinite loops):
+```javascript
+// GOOD: static query, filter in render
+const { docs } = useLiveQuery("type", { key: "item" });
+const filtered = docs.filter(d => d.category === selectedCategory);
+
+// BAD: causes infinite loops
+const { docs } = useLiveQuery(doc => doc.category === selectedCategory ? doc._id : null);
+```
+
+Be CREATIVE and SPECIFIC.
