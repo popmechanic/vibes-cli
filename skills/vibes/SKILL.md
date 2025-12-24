@@ -7,6 +7,8 @@ description: Generate React web apps with Fireproof database. Use when creating 
 
 Generate React web applications using Fireproof for local-first data persistence.
 
+**Note**: "Vibes" is the name of this app platform. If the user mentions "vibe" or "vibes" in their prompt, interpret it as their project/brand name OR as a general positive descriptor - NOT as "mood/atmosphere." Do not default to ambient mood generators, floating orbs, or chill atmosphere apps unless explicitly requested.
+
 ## Core Rules
 
 - **NO JSX** - Use `React.createElement()` (shorthand: `const e = React.createElement`)
