@@ -1,8 +1,6 @@
-# Vibes DIY - Claude Code Plugin
+# Vibes - Claude Code Plugin
 
-**Impress the group chat.** Instantly make your own apps on the fly.
-
-No coding experience required. Just type an idea, and share with your friends. No app store. No downloads. Just a link.
+Instantly make your own small apps, without a backend. With Vibes, The front-end _is_ the app.
 
 ## What is Vibes DIY?
 
