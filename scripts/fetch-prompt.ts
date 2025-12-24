@@ -230,6 +230,74 @@ async function fetchImportMap(force: boolean): Promise<FetchResult> {
   }
 }
 
+/**
+ * Generate the import map JSON string for templates
+ */
+function generateImportMapJson(imports: Record<string, string>): string {
+  // Extract react version from react-dom URL
+  const reactDomUrl = imports["react-dom"] || "https://esm.sh/react-dom@19";
+  const reactVersion = reactDomUrl.match(/@(\d+\.\d+\.\d+)/)?.[1] || "19";
+
+  // Build the template import map with externals
+  const templateImports: Record<string, string> = {
+    "react": `https://esm.sh/react@${reactVersion}`,
+    "react-dom": imports["react-dom"],
+    "react-dom/client": imports["react-dom/client"],
+  };
+
+  // Add use-fireproof with externals
+  if (imports["use-fireproof"]) {
+    templateImports["use-fireproof"] = imports["use-fireproof"] + "?external=react,react-dom";
+  }
+
+  // Add call-ai with externals if present
+  if (imports["call-ai"]) {
+    templateImports["call-ai"] = imports["call-ai"] + "?external=react,react-dom";
+  }
+
+  return JSON.stringify({ imports: templateImports }, null, 6).replace(/^/gm, '  ').trim();
+}
+
+/**
+ * Update import maps in skill/agent files
+ */
+function updateSkillImportMaps(imports: Record<string, string>): { updated: string[], failed: string[] } {
+  const updated: string[] = [];
+  const failed: string[] = [];
+
+  const filesToUpdate = [
+    join(PLUGIN_ROOT, "skills/vibes/SKILL.md"),
+    join(PLUGIN_ROOT, "agents/vibes-gen.md"),
+  ];
+
+  // Regex to match import map script blocks
+  const importMapRegex = /<script type="importmap">\s*\{[\s\S]*?"imports":\s*\{[\s\S]*?\}\s*\}\s*<\/script>/g;
+
+  const newImportMap = `<script type="importmap">
+  ${generateImportMapJson(imports)}
+  </script>`;
+
+  for (const filePath of filesToUpdate) {
+    if (!existsSync(filePath)) {
+      continue;
+    }
+
+    try {
+      const content = readFileSync(filePath, "utf-8");
+      const newContent = content.replace(importMapRegex, newImportMap);
+
+      if (newContent !== content) {
+        writeFileSync(filePath, newContent, "utf-8");
+        updated.push(filePath.replace(PLUGIN_ROOT + "/", ""));
+      }
+    } catch (error) {
+      failed.push(filePath.replace(PLUGIN_ROOT + "/", ""));
+    }
+  }
+
+  return { updated, failed };
+}
+
 async function main() {
   const force = process.argv.includes("--force");
   const verbose = process.argv.includes("--verbose") || process.argv.includes("-v");
@@ -257,6 +325,26 @@ async function main() {
   // Fetch import map
   const importMapResult = await fetchImportMap(force);
   results.push(importMapResult);
+
+  // Update skill files with new import map
+  if (importMapResult.success && !importMapResult.cached) {
+    const cachePath = join(CACHE_DIR, "import-map.json");
+    const cache = JSON.parse(readFileSync(cachePath, "utf-8")) as ImportMapCache;
+    const { updated, failed } = updateSkillImportMaps(cache.imports);
+
+    if (updated.length > 0) {
+      console.log(`\nUpdated import maps in:`);
+      for (const file of updated) {
+        console.log(`  - ${file}`);
+      }
+    }
+    if (failed.length > 0) {
+      console.log(`\nFailed to update:`);
+      for (const file of failed) {
+        console.log(`  - ${file}`);
+      }
+    }
+  }
 
   // Summary
   console.log("\nSummary:");
