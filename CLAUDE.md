@@ -56,14 +56,17 @@ vibes.diy repo (GitHub)
 
 ### How Sync Works
 
-The `scripts/fetch-prompt.ts` script:
+The `scripts/sync.js` script (Node.js + esbuild):
 
 1. **Fetches** from vibes.diy GitHub raw URLs
 2. **Parses** TypeScript source to extract values (handles both quoted and unquoted keys)
-3. **Caches** parsed data in `/cache/` as JSON/text
-4. **Updates** template files by regex-replacing `<script type="importmap">` blocks
+3. **Transpiles** menu components (TSX → React.createElement) using esbuild
+4. **Caches** parsed data in `/cache/` as JSON/text/JS
+5. **Updates** template files by regex-replacing `<script type="importmap">` blocks
 
-Run sync with: `/vibes:sync` or `bun scripts/fetch-prompt.ts --force`
+Run sync with: `/vibes:sync` or `node scripts/sync.js --force`
+
+**Prerequisites:** Node.js 18+ (uses native fetch). Install deps: `cd scripts && npm install`
 
 ### What Gets Synced
 
@@ -72,6 +75,9 @@ Run sync with: `/vibes:sync` or `bun scripts/fetch-prompt.ts --force`
 | `import-map.ts` | `cache/import-map.json` | Import maps in SKILL.md, vibes-gen.md |
 | `style-prompts.ts` | `cache/style-prompt.txt` | UI style guidance |
 | `use-fireproof.com/llms-full.txt` | `cache/fireproof.txt` | Fireproof API docs |
+| `vibes-variables.css` | `cache/vibes-variables.css` | CSS variables for theming |
+| `VibesSwitch/*.tsx` | `cache/vibes-menu.js` | Menu toggle component |
+| `HiddenMenuWrapper/*.tsx` | `cache/vibes-menu.js` | Menu wrapper component |
 
 ## Critical Rules
 
@@ -147,13 +153,16 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 
 | File | Purpose |
 |------|---------|
-| `scripts/fetch-prompt.ts` | Sync script - fetches and updates |
-| `cache/import-map.json` | Working cache (gitignored) - updated by sync |
-| `cache/style-prompt.txt` | Working cache (gitignored) - updated by sync |
+| `scripts/sync.js` | Sync script - fetches, transpiles, and updates |
+| `scripts/package.json` | Node.js deps (esbuild) |
+| `cache/import-map.json` | Working cache - package versions |
+| `cache/style-prompt.txt` | Working cache - UI style guidance |
+| `cache/vibes-menu.js` | Working cache - transpiled menu components |
+| `cache/vibes-variables.css` | Working cache - CSS variables |
 | `skills/vibes/cache/` | Default cache (git-tracked) - ships with plugin |
 | `skills/vibes/SKILL.md` | Main vibes skill (has import map) |
 | `agents/vibes-gen.md` | Riff generator agent (has import map) |
-| `commands/sync.md` | User-facing sync command definition |
+| `skills/sync/SKILL.md` | User-facing sync skill definition |
 
 ### Cache Locations
 
