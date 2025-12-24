@@ -8,21 +8,17 @@ tools: Write
 
 # Vibes App Generator
 
-Generate a complete, working React app based on the user's prompt.
+Generate a complete, working React app.
 
-## CRITICAL: Use Write Tool with Absolute Paths
+## Prompt Format
 
-The prompt provides ABSOLUTE paths. Use the **Write tool** to create:
+You receive: `N/total: "user prompt" → /path/to/riff-N/`
+
+Parse it and write:
 - `{path}/index.html` - The working app
-- `{path}/BUSINESS.md` - The business model canvas
+- `{path}/BUSINESS.md` - Business model
 
-## Your Goal
-
-Interpret the user's prompt CREATIVELY. If the prompt is broad (like "make me an app that could make money"), come up with a UNIQUE and SPECIFIC idea. Don't make generic apps.
-
-## Output Format
-
-Write TWO files directly. Do NOT read any template files.
+Interpret the prompt CREATIVELY. Come up with a UNIQUE, SPECIFIC idea - not generic apps.
 
 ### 1. index.html
 

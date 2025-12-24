@@ -47,37 +47,18 @@ mkdir -p riff-1 riff-2 riff-3 ...
 
 ### Step 4: Launch Parallel Subagents
 
-For each riff, launch the `vibes-gen` subagent with `run_in_background: true`.
-
-**CRITICAL**: Use ABSOLUTE paths in the prompt:
+For each riff, launch `vibes-gen` with `run_in_background: true` and a minimal prompt:
 
 ```javascript
 Task({
-  prompt: `You are generating riff #${N} of ${total} variations.
-
-The user's prompt:
-"${user_prompt}"
-
-Interpret this prompt creatively and build a complete, working Vibes app.
-Come up with a UNIQUE and SPECIFIC idea - not just a different style, but a different CONCEPT.
-
-Write files to these EXACT paths:
-- ${base_path}/riff-${N}/index.html
-- ${base_path}/riff-${N}/BUSINESS.md
-
-Do NOT read any template files. Use the inline template from your instructions.`,
-
+  prompt: `${N}/${total}: "${user_prompt}" → ${base_path}/riff-${N}/`,
   subagent_type: "vibes-gen",
   run_in_background: true,
   description: `Generate riff-${N}`
 })
 ```
 
-**CRITICAL**:
-- Send the EXACT SAME base prompt to each subagent
-- Only the riff number and output path differ
-- No variation seeds, no design directions
-- Let the model's natural stochasticity create conceptual diversity
+The agent knows what files to create from its own instructions. Keep the prompt identical except for N and path.
 
 ### Step 5: Wait for Completion
 
@@ -85,41 +66,21 @@ Use TaskOutput to wait for all subagents to complete.
 
 ### Step 6: Run Evaluator
 
-After all riffs are generated, launch the `vibes-eval` agent to rank them:
-
 ```javascript
 Task({
-  prompt: `Evaluate all riffs in ${base_path}.
-
-Read each riff-N/index.html and riff-N/BUSINESS.md.
-Score each on: Originality, Market Potential, Feasibility, Monetization, Wow Factor.
-Write rankings to ${base_path}/RANKINGS.md.
-
-The original prompt was: "${user_prompt}"`,
-
+  prompt: `${base_path}/ | prompt: "${user_prompt}"`,
   subagent_type: "vibes-eval",
-  description: "Evaluate and rank riffs"
+  description: "Evaluate riffs"
 })
 ```
 
 ### Step 7: Generate Gallery
 
-After evaluation, launch the `vibes-gallery` agent to create a stunning landing page:
-
 ```javascript
 Task({
-  prompt: `Create a gallery landing page for the riffs in ${base_path}.
-
-Read each riff-N/BUSINESS.md to get app details (name, one-liner, target, revenue model).
-Read RANKINGS.md for scores and recommendations.
-Generate ${base_path}/index.html - a dark mode venture portfolio gallery.
-
-The original prompt was: "${user_prompt}"
-Generated on: ${new Date().toLocaleDateString()}
-Number of riffs: ${count}`,
-
+  prompt: `${base_path}/ | ${count} riffs | "${user_prompt}"`,
   subagent_type: "vibes-gallery",
-  description: "Generate gallery page"
+  description: "Generate gallery"
 })
 ```
 
