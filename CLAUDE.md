@@ -164,6 +164,36 @@ There are two cache locations by design:
 
 The sync script updates `/cache/` and the template files. The `skills/vibes/cache/` provides fallback values for users who haven't run sync yet.
 
+## Known Issues
+
+### use-vibes @0.19.4-dev-vibes-refactor Bug (Dec 2024)
+
+The `@0.19.4-dev-vibes-refactor` version has a React context bug that causes page lockups when interacting with form inputs. Symptoms:
+- Page becomes unresponsive after focusing text inputs
+- "Cannot read properties of null (reading 'useContext')" errors
+- Controlled inputs trigger infinite render loops
+
+**Current workaround:** Use `@0.18.9` (the version deployed on vibes.diy production).
+
+**Root cause:** The dev version has internal React imports that conflict with the user's React instance, even with proper import maps.
+
+**TODO:** Once the dev version is fixed upstream, run `/vibes:sync` to update to the newer version.
+
+### Unpinned React Strategy
+
+vibes.diy uses **unpinned React URLs** (e.g., `https://esm.sh/react` without version):
+
+```json
+"react": "https://esm.sh/react"
+```
+
+NOT:
+```json
+"react": "https://esm.sh/react@19.2.1"
+```
+
+This lets esm.sh resolve React versions consistently between user code and use-vibes internals, preventing duplicate instances.
+
 ## Commit Messages
 
 Do not credit Claude Code when making commit messages.
