@@ -118,29 +118,80 @@ e("input", {
 
 ---
 
-## Fireproof Patterns
+## Fireproof API
 
+### Setup
 ```javascript
 const { useLiveQuery, useDocument, database } = useFireproof("my-app-db");
+```
 
-// Form state with useDocument (NOT useState)
+### useDocument - Form State (NOT useState)
+```javascript
+// Create new documents (auto-generated _id)
 const { doc, merge, submit, reset } = useDocument({ text: "", type: "item" });
 
-// Handle input
-e("input", {
-  value: doc.text,
-  onChange: (ev) => merge({ text: ev.target.value })
-})
+// Edit existing document by _id
+const { doc, merge, save } = useDocument({ _id: "known-id" });
 
-// Handle submit
-e("form", { onSubmit: submit }, /* fields + button */)
+// Methods:
+// - merge(updates) - update fields: merge({ text: "new value" })
+// - submit(e) - save + reset (for forms creating new items)
+// - save() - save without reset (for editing existing items)
+// - reset() - discard changes
+```
 
-// Live query for real-time list
+### useLiveQuery - Real-time Lists
+```javascript
+// Query by field value
 const { docs } = useLiveQuery("type", { key: "item" });
-docs.map(item => e("div", { key: item._id }, item.text))
+
+// Recent items (descending by _id is roughly temporal)
+const { docs } = useLiveQuery("_id", { descending: true, limit: 20 });
+
+// Range query
+const { docs } = useLiveQuery("rating", { range: [3, 5] });
+
+// Custom index with array keys
+const { docs } = useLiveQuery(
+  (doc) => [doc.category, doc.priority],
+  { prefix: ["work"] }
+);
+```
+
+### Direct Database Operations
+```javascript
+// Create/update
+const { id } = await database.put({ text: "hello", type: "item" });
+
+// Update existing
+await database.put({ ...existingDoc, text: "updated" });
 
 // Delete
-e("button", { onClick: () => database.del(item._id) }, "Delete")
+await database.del(item._id);
+```
+
+### Common Pattern - Form + List
+```javascript
+function App() {
+  const { useLiveQuery, useDocument, database } = useFireproof("my-db");
+
+  // Form for new items
+  const { doc, merge, submit } = useDocument({ text: "", type: "item" });
+
+  // Live list
+  const { docs } = useLiveQuery("type", { key: "item" });
+
+  return e("div", null,
+    e("form", { onSubmit: submit },
+      e("input", { value: doc.text, onChange: (ev) => merge({ text: ev.target.value }) }),
+      e("button", { type: "submit" }, "Add")
+    ),
+    docs.map(item => e("div", { key: item._id },
+      item.text,
+      e("button", { onClick: () => database.del(item._id) }, "Delete")
+    ))
+  );
+}
 ```
 
 ---
@@ -168,8 +219,3 @@ e("button", { onClick: fn }, "Click")            // event handler
 - **DON'T** output the full HTML file - only output the App component
 - **DON'T** use white text on light backgrounds
 
----
-
-## Fireproof API Reference
-
-See `cache/fireproof.txt` for the full API reference.

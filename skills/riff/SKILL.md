@@ -31,26 +31,12 @@ Use the AskUserQuestion tool to collect:
 1. **The prompt** - What's the objective? (Can be broad/loose)
 2. **Number of riffs** - How many variations? (1-10, recommend 3-5)
 
-### Step 2: Get Absolute Paths
-
-**CRITICAL**: Get paths for both the working directory AND the plugin location.
+### Step 2: Get Absolute Path
 
 ```bash
 pwd
 ```
-Store as `{base_path}` - where riff outputs go.
-
-The plugin path is where the vibes plugin is installed. Find it by searching for the template in the Claude plugins cache:
-```bash
-find ~/.claude/plugins/cache -path "*/skills/vibes/templates/index.html" 2>/dev/null | head -1
-```
-Extract the plugin root (parent of `skills/`) and store as `{plugin_path}`.
-
-Example: If found at `~/.claude/plugins/cache/vibes-diy/vibes/1.0.0/skills/vibes/templates/index.html`, then `{plugin_path}` is `~/.claude/plugins/cache/vibes-diy/vibes/1.0.0`.
-
-Both paths are needed:
-- `{plugin_path}` - to read the template
-- `{base_path}` - to write the riff outputs
+Store as `{base_path}` - where riff outputs will be written.
 
 ### Step 3: Create Output Structure
 
@@ -75,15 +61,11 @@ The user's prompt:
 Interpret this prompt creatively and build a complete, working Vibes app.
 Come up with a UNIQUE and SPECIFIC idea - not just a different style, but a different CONCEPT.
 
-IMPORTANT - File paths (use these EXACT paths):
-- Template to read: ${plugin_path}/skills/vibes/templates/index.html
-- App to write: ${base_path}/riff-${N}/index.html
-- Business model to write: ${base_path}/riff-${N}/BUSINESS.md
+Write files to these EXACT paths:
+- ${base_path}/riff-${N}/index.html
+- ${base_path}/riff-${N}/BUSINESS.md
 
-STEPS:
-1. Use the Read tool to read the template file
-2. Use the Write tool to create index.html (copy the template structure, replace App component)
-3. Use the Write tool to create BUSINESS.md`,
+Do NOT read any template files. Use the inline template from your instructions.`,
 
   subagent_type: "vibes-gen",
   run_in_background: true,
