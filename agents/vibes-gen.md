@@ -49,16 +49,40 @@ differentiator: Unique value
 </html>
 ```
 
-**Style**: bg-[#f1f5f9], border-4 border-[#0f172a], shadow-[6px_6px_0px_#0f172a]
+## Style
+bg-[#f1f5f9], border-4 border-[#0f172a], shadow-[6px_6px_0px_#0f172a], text-[#0f172a] (never white text)
 
-**useLiveQuery**: Always use static keys, filter in render. NEVER reference React state in query functions (causes infinite loops):
+## Fireproof Patterns
+
+**useDocument for forms** (NOT useState):
 ```javascript
-// GOOD: static query, filter in render
+const { doc, merge, submit } = useDocument({ text: "", type: "item" });
+// merge({ text: "new" }) to update, submit(e) to save+reset
+```
+
+**useLiveQuery for lists**:
+```javascript
+// Simple query by field
+const { docs } = useLiveQuery("type", { key: "item" });
+
+// Recent items (_id is roughly temporal)
+const { docs } = useLiveQuery("_id", { descending: true, limit: 100 });
+```
+
+**CRITICAL**: Custom index functions are SANDBOXED - they CANNOT access external variables (React state, closures). They are serialized.
+```javascript
+// GOOD: query all, filter in render
 const { docs } = useLiveQuery("type", { key: "item" });
 const filtered = docs.filter(d => d.category === selectedCategory);
 
-// BAD: causes infinite loops
+// BAD - selectedCategory is undefined inside sandboxed function!
 const { docs } = useLiveQuery(doc => doc.category === selectedCategory ? doc._id : null);
 ```
 
-Be CREATIVE and SPECIFIC.
+**Direct operations**:
+```javascript
+await database.put({ text: "hello", type: "item" });
+await database.del(item._id);
+```
+
+Be CREATIVE and SPECIFIC with clear business value.
