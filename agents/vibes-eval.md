@@ -2,6 +2,8 @@
 name: vibes-eval
 description: Evaluates and ranks riff outputs on business potential. Use after generating multiple riffs to identify the best ideas.
 model: haiku
+permissionMode: bypassPermissions
+tools: Read, Glob, Write
 ---
 
 # Vibes Riff Evaluator
