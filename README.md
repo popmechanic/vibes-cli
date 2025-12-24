@@ -1,10 +1,18 @@
 # Vibes DIY - Claude Code Plugin
 
-Generate React web apps with Fireproof database. No build step, deploy anywhere.
+**Impress the group chat.** Instantly make your own apps on the fly.
+
+No coding experience required. Just type an idea, and share with your friends. No app store. No downloads. Just a link.
+
+## What is Vibes DIY?
+
+Vibes DIY is the vibe coding stack made for AI agents. It collapses application code and application state into a single HTML file that runs anywhere.
+
+**Why does this matter?** AI doesn't make apps - it makes *text*. By embedding the database in JavaScript (via [Fireproof](https://fireproof.storage)), your coding agent can describe an entire app - including its persistence layer - in one shot. No server setup, no schema imports. Just a working app.
+
+Your data lives locally in the browser, encrypted and portable. It syncs across users automatically. Share your creations with a simple link and friends can jump in immediately.
 
 ## Installation
-
-Add the marketplace and install the plugin:
 
 ```bash
 /plugin marketplace add popmechanic/vibes-skill
@@ -15,73 +23,58 @@ Add the marketplace and install the plugin:
 
 ## Skills
 
-Skills are **model-invoked** - Claude automatically uses them when your task matches the skill's purpose. Just describe what you want to build and Claude will use the appropriate skill.
+Skills are **model-invoked** - Claude automatically uses them when your task matches the skill's purpose. Just describe what you want to build.
 
 ### `vibes`
-Generate a single Vibes app from a prompt. Creates a complete, working React app with:
-- React using `React.createElement` (no JSX, no build step)
-- Fireproof for local-first database
-- Tailwind CSS for styling
-- Hidden settings menu with database sync
 
-**Example prompt**: "Create a todo app with categories and due dates"
+Generate a complete, working app from a prompt. Creates:
+- Single HTML file with inline JavaScript (no build step)
+- Fireproof for local-first database with real-time sync
+- Tailwind CSS for styling
+- Hidden settings menu for database sync configuration
+
+**Example prompts:**
+- "Make a chore chart for my roommates"
+- "Build a potluck sign-up for Friendsgiving"
+- "Create a trivia game about reality TV"
+- "Make a vacation planner for the group"
 
 ### `riff`
-Generate multiple app variations in parallel. Perfect for exploring different interpretations of a broad objective.
 
-**Example prompt**: "Generate 5 different app ideas that could make money"
+Generate multiple app variations in parallel. Perfect for exploring different concepts from a loose prompt.
 
-**Output structure:**
+**Example prompt:** "Make me an app that could make money"
+
+**Output:**
 ```
 ./
-├── index.html          # Riff Gallery - stunning dark mode portfolio
+├── index.html          # Gallery showcasing all variations
 ├── RANKINGS.md         # Scored rankings with recommendations
 ├── riff-1/
 │   ├── index.html      # App variation 1
 │   └── BUSINESS.md     # Business model canvas
 ├── riff-2/
-│   ├── index.html      # App variation 2
-│   └── BUSINESS.md
-└── ...
+│   └── ...
 ```
 
-Each riff is a genuinely different **concept**, not just aesthetic variations. The model's natural stochasticity creates conceptual diversity.
+Each riff is a genuinely different **concept**, not just aesthetic variations.
 
-## Agents
+## Why Vibes?
 
-These agents are used internally by the skills:
+Every vibe-coded project starts in the vibe zone - the AI understands you, progress is fast, each change moves the app forward.
 
-### `vibes-gen`
-Generates a single Vibes app with business model. Used by the `riff` skill to create parallel variations.
+Then something small goes wrong. A fix that mostly works. An edge case layered on top. You correct it, then correct the correction, and suddenly progress slows to a crawl.
 
-### `vibes-eval`
-Evaluates and ranks riffs on business potential:
-- Originality (1-10)
-- Market Potential (1-10)
-- Feasibility (1-10)
-- Monetization Clarity (1-10)
-- Wow Factor (1-10)
+You've drifted out of the vibe zone.
 
-### `vibes-gallery`
-Creates a stunning dark mode gallery page showcasing all riffs with:
-- Glass morphism cards
-- Score visualizations
-- Business summaries
-- Direct links to each app
+**Vibes DIY keeps things simple enough that you stay in the vibe zone.** Single-file apps. Local-first data. No server complexity. The AI can see and understand everything it needs to help you.
 
-## The Commercial Pitch
+## Links
 
-> "Create 10 businesses a week, not 1 every 6 months"
-
-Use the `riff` skill to rapidly explore the solution space. Generate 5-10 variations of a loose prompt, get them automatically ranked, and iterate on your favorites.
-
-## Template Structure
-
-Each generated app includes:
-- **HiddenMenuWrapper**: Triple-click menu for settings
-- **VibesSwitch**: Toggle for light/dark themes
-- **VibesPanel**: Database sync configuration
-- **Fireproof**: Local-first database with optional cloud sync
+- [vibes.diy](https://vibes.diy) - Try the web builder
+- [Discord](https://discord.gg/vnpWycj4Ta) - Join the community
+- [GitHub](https://github.com/VibesDIY) - Open source
+- [Substack](https://vibesdiy.substack.com/) - Updates and tutorials
 
 ## License
 
