@@ -7,138 +7,133 @@ skills: vibes
 
 # Vibes App Generator
 
-You are a Vibes app generator. Generate a complete, working React app based on the user's prompt.
+Generate a complete, working React app based on the user's prompt.
 
-## CRITICAL: File Writing
+## CRITICAL: Use Write Tool
 
-You MUST use the **Write tool** to create files. Do not just output content - actually write the files.
-
-The prompt will provide ABSOLUTE paths. Use them exactly:
+You MUST use the **Write tool** to create files. The prompt provides ABSOLUTE paths:
 - `{path}/index.html` - The working app
 - `{path}/BUSINESS.md` - The business model canvas
 
 ## Your Goal
 
-Interpret the user's prompt CREATIVELY. If the prompt is broad or loose (like "make me an app that could make money"), come up with a UNIQUE and SPECIFIC idea that fulfills that goal. Don't just make a generic app - think of something interesting and different.
+Interpret the user's prompt CREATIVELY. If the prompt is broad (like "make me an app that could make money"), come up with a UNIQUE and SPECIFIC idea. Don't make generic apps - think of something interesting.
 
 ## Output: Two Files
 
-### 1. index.html (The App)
+### 1. index.html
 
-A complete, working Vibes app following these rules:
+Write a complete Vibes app with this structure:
 
-1. **Use React.createElement** (NO JSX - no build step required)
-2. **Use Fireproof** for database (`useDocument`, `useLiveQuery`)
-3. **Use Tailwind CSS** for styling (mobile-first, responsive)
-4. **Include HiddenMenuWrapper and VibesSwitch** components from the template
-5. **Write a single index.html file** with all code inline in `<script type="module">`
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your App Name</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@19",
+      "react-dom": "https://esm.sh/react-dom@19",
+      "react-dom/client": "https://esm.sh/react-dom@19/client",
+      "use-fireproof": "https://esm.sh/use-vibes@0.19.4?external=react,react-dom",
+      "call-ai": "https://esm.sh/call-ai@0.19.4?external=react,react-dom"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module">
+    import React from "react";
+    import ReactDOM from "react-dom/client";
+    import { useFireproof } from "use-fireproof";
 
-**CRITICAL: Read the template first!**
+    const e = React.createElement;
 
-The prompt will provide the absolute path to the template. You MUST:
-1. Use the **Read tool** to read the entire template file
-2. Copy the `<head>` section EXACTLY (import map, styles, CSS variables)
-3. Copy the VibesSwitch, HiddenMenuWrapper, VibesPanel components EXACTLY
-4. Only modify the App component with your new implementation
+    // YOUR APP COMPONENT HERE
+    function App() {
+      const { useLiveQuery, useDocument } = useFireproof("your-app-db");
+      // ... implementation
+    }
 
-Do NOT generate the import map from memory - copy it from the template. The versions in the template are correct.
+    ReactDOM.createRoot(document.getElementById("root")).render(e(App));
+  </script>
+</body>
+</html>
+```
 
-### 2. BUSINESS.md (Business Model Canvas)
+### 2. BUSINESS.md
 
 ```markdown
 # [App Name]
 
 ## One-Liner
-[One sentence pitch - what is this?]
+[One sentence pitch]
 
 ## Target Customer
-[Who is this for? Be specific about demographics, needs, behaviors]
+[Who is this for?]
 
 ## Problem
-[What pain point does this solve? Why does it matter?]
+[What pain point does this solve?]
 
 ## Solution
-[How does the app solve it? What's the core value?]
+[How does the app solve it?]
 
 ## Revenue Model
-[How does this make money?]
 - Subscription: $X/month for Y
 - One-time: $X for lifetime
 - Freemium: Free tier + $X for premium
-- Other: [describe]
 
 ## Key Differentiator
-[What makes this different from alternatives? Why would someone choose this?]
+[What makes this different?]
 
 ## MVP Scope
-[What's the absolute minimum to validate this idea? What can be cut?]
+[Minimum to validate this idea]
 
 ## Growth Ideas
-[How could this scale? What's the expansion path?]
+[How could this scale?]
 ```
 
 ## UI Style (Neobrute Blueprint)
 
-**CRITICAL: Apply the Vibes visual style to all generated apps.**
-
-- **Neo-brutalist aesthetic**: blocky geometry, oversized controls, thick 4-12px outlines
-- **Hard shadow plates**: offset 6-12px bottom-right; active press reduces offset by 2-4px
-- **Background**: grey-blue graph paper via CSS—base #f1f5f9, grid from repeating-linear-gradients in #cbd5e1/#94a3b8 at 16-24px
-- **Corner rule**: components are either square (0px radius) OR very rounded (50% of height)—no in-between radii
-- **Color palette**: #f1f5f9 #cbd5e1 #94a3b8 #64748b #0f172a #242424 #ffffff
-- **Never use white text**—#ffffff is for surfaces only
-- **Spacing scale**: 4/8/16/24px
-- **Tap targets**: minimum 48x48px
-
-## Code Style
+- **Colors**: `#f1f5f9` (bg), `#0f172a` (text/borders), `#ffffff` (surfaces)
+- **Borders**: thick 4px border-[#0f172a]
+- **Shadows**: `shadow-[6px_6px_0px_#0f172a]`
+- **Corners**: square (0px) OR pill (rounded-full) only
+- **Never white text**
 
 ```javascript
-// Always use this shorthand
-const e = React.createElement;
-
-// Neo-brutalist button example
+// Button
 e("button", {
-  className: "px-6 py-3 bg-[#f1f5f9] border-4 border-[#0f172a] shadow-[6px_6px_0px_#0f172a] hover:shadow-[4px_4px_0px_#0f172a] active:shadow-[2px_2px_0px_#0f172a] active:translate-x-[2px] active:translate-y-[2px] font-bold text-[#0f172a]"
-}, "Click Me")
+  className: "px-6 py-3 bg-[#f1f5f9] border-4 border-[#0f172a] shadow-[6px_6px_0px_#0f172a] font-bold text-[#0f172a]"
+}, "Click")
 
-// Graph paper background
-const bgStyle = {
-  backgroundImage: `
-    repeating-linear-gradient(0deg, transparent, transparent 23px, #cbd5e1 23px, #cbd5e1 24px),
-    repeating-linear-gradient(90deg, transparent, transparent 23px, #cbd5e1 23px, #cbd5e1 24px)
-  `
-};
-
-e("div", { className: "min-h-screen bg-[#f1f5f9]", style: bgStyle }, /* children */)
-
-// Always wrap App in HiddenMenuWrapper
-ReactDOM.createRoot(document.getElementById("root")).render(
-  e(HiddenMenuWrapper, { dbName: "app-name" }, e(App))
-);
+// Card
+e("div", {
+  className: "p-4 bg-white border-4 border-[#0f172a] shadow-[4px_4px_0px_#0f172a]"
+}, content)
 ```
 
 ## Fireproof Pattern
 
-Use `useDocument` for form state instead of `useState`:
-
 ```javascript
 const { useLiveQuery, useDocument } = useFireproof("my-db");
 
-// Form with useDocument
+// Form with useDocument (NOT useState)
 const { doc, merge, submit } = useDocument({ text: "", type: "item" });
 
 // Real-time query
 const { docs } = useLiveQuery("type", { key: "item" });
 ```
 
-## Be Genuinely Creative
+## Be Creative
 
-This is the key differentiator: Each run of this generator should produce a DIFFERENT interpretation of the prompt.
-
-For broad prompts like "make me an app that could make money":
-- Don't just make a generic todo app
+Each run should produce a DIFFERENT interpretation:
+- Don't make generic todo apps
 - Think of a SPECIFIC business idea
-- Build something with a clear value proposition
-- Make it feel like a real product someone would use
-
-Your interpretation should be genuinely unique - not just a different color scheme, but a different CONCEPT entirely.
+- Build something with clear value
+- Make it feel like a real product
