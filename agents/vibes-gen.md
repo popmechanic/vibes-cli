@@ -49,7 +49,7 @@ differentiator: Unique value
   <title>App Name</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script type="importmap">
-  {"imports":{"react":"https://esm.sh/react@19.2.1","react-dom":"https://esm.sh/react-dom@19.2.1","react-dom/client":"https://esm.sh/react-dom@19.2.1/client","use-fireproof":"https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor?external=react,react-dom","call-ai":"https://esm.sh/call-ai@0.19.4-dev-vibes-refactor?external=react,react-dom"}}
+  {"imports":{"react":"https://esm.sh/react@19.2.1","react-dom":"https://esm.sh/react-dom@19.2.1","react-dom/client":"https://esm.sh/react-dom@19.2.1/client","use-fireproof":"https://esm.sh/use-fireproof?external=react,react-dom"}}
   </script>
 </head>
 <body>
