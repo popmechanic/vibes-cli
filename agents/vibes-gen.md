@@ -52,8 +52,9 @@ differentiator: Unique value
               "react": "https://esm.sh/react@19.2.1",
               "react-dom": "https://esm.sh/react-dom@19.2.1",
               "react-dom/client": "https://esm.sh/react-dom@19.2.1/client",
-              "use-fireproof": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor?external=react,react-dom",
-              "call-ai": "https://esm.sh/call-ai@0.19.4-dev-vibes-refactor?external=react,react-dom"
+              "react/jsx-runtime": "https://esm.sh/react@19.2.1/jsx-runtime",
+              "use-fireproof": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor",
+              "call-ai": "https://esm.sh/call-ai@0.19.4-dev-vibes-refactor"
         }
   }
   </script>
