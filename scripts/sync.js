@@ -360,12 +360,13 @@ async function fetchMenuComponents(force) {
         let code = result.code;
 
         // Remove imports (they'll be available globally)
+        // Functions are defined inline in order, so external imports are not needed
         code = code
-          .replace(/import\s+.*from\s+["']\.\/[^"']+["'];?\n?/g, "")
-          .replace(/import\s+React.*from\s+["']react["'];?\n?/g, "")
-          .replace(/import\s+\{[^}]+\}\s+from\s+["']react["'];?\n?/g, "")
-          .replace(/import\s+type\s+.*from\s+["'][^"']+["'];?\n?/g, "")
-          .replace(/^export\s+/gm, "");
+          .replace(/import\s+\w+\s*,\s*\{[^}]+\}\s+from\s+["'][^"']+["'];?\n?/g, "")  // import X, { y } from "..."
+          .replace(/import\s+\{[^}]+\}\s+from\s+["'][^"']+["'];?\n?/g, "")            // import { x } from "..."
+          .replace(/import\s+[\w]+\s+from\s+["'][^"']+["'];?\n?/g, "")                // import x from "..."
+          .replace(/import\s+type\s+.*from\s+["'][^"']+["'];?\n?/g, "")               // import type ...
+          .replace(/^export\s+/gm, "");                                       // export keyword
 
         // Add React. prefix to hooks if not already prefixed
         code = code
@@ -373,7 +374,8 @@ async function fetchMenuComponents(force) {
           .replace(/(?<!React\.)useEffect\(/g, "React.useEffect(")
           .replace(/(?<!React\.)useRef\(/g, "React.useRef(")
           .replace(/(?<!React\.)useCallback\(/g, "React.useCallback(")
-          .replace(/(?<!React\.)useMemo\(/g, "React.useMemo(");
+          .replace(/(?<!React\.)useMemo\(/g, "React.useMemo(")
+          .replace(/(?<!React\.)useLayoutEffect\b/g, "React.useLayoutEffect");
 
         combinedOutput += `// === ${name} ===\n${code}\n\n`;
       } catch (err) {
@@ -396,13 +398,29 @@ async function fetchMenuComponents(force) {
 }
 
 /**
+ * Add React alias to esm.sh URLs to ensure single React instance
+ * This prevents "Cannot read properties of null (reading 'useContext')" errors
+ */
+function addReactAlias(url, reactVersion) {
+  if (!url || !url.includes("esm.sh")) return url;
+  // Don't add alias to react/react-dom themselves
+  if (url.includes("/react@") || url.includes("/react-dom@")) return url;
+  // Add alias if not already present
+  if (url.includes("?")) {
+    if (!url.includes("alias=")) {
+      return url + `&alias=react:react@${reactVersion}`;
+    }
+    return url;
+  }
+  return url + `?alias=react:react@${reactVersion}`;
+}
+
+/**
  * Generate the import map JSON string for templates
  */
 function generateImportMapJson(imports) {
   const reactDomUrl = imports["react-dom"] || "https://esm.sh/react-dom@19";
   const reactVersion = reactDomUrl.match(/@(\d+\.\d+\.\d+)/)?.[1] || "19";
-
-  const useVibesUrl = imports["use-vibes"] || imports["use-fireproof"];
 
   const templateImports = {
     "react": `https://esm.sh/react@${reactVersion}`,
@@ -411,21 +429,17 @@ function generateImportMapJson(imports) {
     "react/jsx-runtime": `https://esm.sh/react@${reactVersion}/jsx-runtime`,
   };
 
+  // Add React alias to use-fireproof, use-vibes, call-ai to ensure single React instance
   if (imports["use-fireproof"]) {
-    templateImports["use-fireproof"] = imports["use-fireproof"];
+    templateImports["use-fireproof"] = addReactAlias(imports["use-fireproof"], reactVersion);
   }
 
   if (imports["call-ai"]) {
-    templateImports["call-ai"] = imports["call-ai"];
+    templateImports["call-ai"] = addReactAlias(imports["call-ai"], reactVersion);
   }
 
   if (imports["use-vibes"]) {
-    templateImports["use-vibes"] = imports["use-vibes"];
-  }
-
-  if (useVibesUrl) {
-    templateImports["https://esm.sh/use-fireproof"] = useVibesUrl;
-    templateImports["https://esm.sh/use-vibes"] = useVibesUrl;
+    templateImports["use-vibes"] = addReactAlias(imports["use-vibes"], reactVersion);
   }
 
   return JSON.stringify({ imports: templateImports }, null, 6).replace(/^/gm, '  ').trim();
