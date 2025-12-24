@@ -139,6 +139,23 @@ Fireproof is a local-first database - no loading or error states required, just 
 const { useLiveQuery, useDocument, database } = useFireproof("my-app-db");
 ```
 
+### Choosing Your Pattern
+
+**useDocument** = Form-like editing. Accumulate changes with `merge()`, then save with `submit()` or `save()`. Best for: text inputs, multi-field forms, editing workflows.
+
+**database.put() + useLiveQuery** = Immediate state changes. Each action writes directly. Best for: counters, toggles, buttons, any single-action updates.
+
+```javascript
+// FORM PATTERN: User types, then submits
+const { doc, merge, submit } = useDocument({ title: "", body: "", type: "post" });
+// merge({ title: "..." }) on each keystroke, submit() when done
+
+// IMMEDIATE PATTERN: Each click is a complete action
+const { docs } = useLiveQuery("_id", { key: "counter" });
+const count = docs[0]?.value || 0;
+const increment = () => database.put({ _id: "counter", value: count + 1 });
+```
+
 ### useDocument - Form State (NOT useState)
 
 **IMPORTANT**: Don't use `useState()` for form data. Use `merge()` and `submit()` from `useDocument`. Only use `useState` for ephemeral UI state (active tabs, open/closed panels).
