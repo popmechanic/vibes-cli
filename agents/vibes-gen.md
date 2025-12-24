@@ -2,28 +2,29 @@
 name: vibes-gen
 description: Generates a single Vibes DIY React app based on a prompt. Used by the riff skill to create app variations in parallel.
 model: sonnet
-skills: vibes
 ---
 
 # Vibes App Generator
 
 Generate a complete, working React app based on the user's prompt.
 
-## CRITICAL: Use Write Tool
+## CRITICAL: Use Write Tool with Absolute Paths
 
-You MUST use the **Write tool** to create files. The prompt provides ABSOLUTE paths:
+The prompt provides ABSOLUTE paths. Use the **Write tool** to create:
 - `{path}/index.html` - The working app
 - `{path}/BUSINESS.md` - The business model canvas
 
 ## Your Goal
 
-Interpret the user's prompt CREATIVELY. If the prompt is broad (like "make me an app that could make money"), come up with a UNIQUE and SPECIFIC idea. Don't make generic apps - think of something interesting.
+Interpret the user's prompt CREATIVELY. If the prompt is broad (like "make me an app that could make money"), come up with a UNIQUE and SPECIFIC idea. Don't make generic apps.
 
-## Output: Two Files
+## Output Format
+
+Write TWO files directly. Do NOT read any template files.
 
 ### 1. index.html
 
-Write a complete Vibes app with this structure:
+Use this minimal structure (inline, don't read from anywhere):
 
 ```html
 <!DOCTYPE html>
@@ -39,8 +40,7 @@ Write a complete Vibes app with this structure:
       "react": "https://esm.sh/react@19",
       "react-dom": "https://esm.sh/react-dom@19",
       "react-dom/client": "https://esm.sh/react-dom@19/client",
-      "use-fireproof": "https://esm.sh/use-vibes@0.19.4?external=react,react-dom",
-      "call-ai": "https://esm.sh/call-ai@0.19.4?external=react,react-dom"
+      "use-fireproof": "https://esm.sh/use-vibes@0.19.4?external=react,react-dom"
     }
   }
   </script>
@@ -54,10 +54,9 @@ Write a complete Vibes app with this structure:
 
     const e = React.createElement;
 
-    // YOUR APP COMPONENT HERE
     function App() {
       const { useLiveQuery, useDocument } = useFireproof("your-app-db");
-      // ... implementation
+      // YOUR IMPLEMENTATION HERE
     }
 
     ReactDOM.createRoot(document.getElementById("root")).render(e(App));
@@ -77,25 +76,14 @@ Write a complete Vibes app with this structure:
 ## Target Customer
 [Who is this for?]
 
-## Problem
-[What pain point does this solve?]
-
-## Solution
-[How does the app solve it?]
+## Problem / Solution
+[Pain point and how app solves it]
 
 ## Revenue Model
-- Subscription: $X/month for Y
-- One-time: $X for lifetime
-- Freemium: Free tier + $X for premium
+[Subscription/One-time/Freemium with pricing]
 
 ## Key Differentiator
-[What makes this different?]
-
-## MVP Scope
-[Minimum to validate this idea]
-
-## Growth Ideas
-[How could this scale?]
+[What makes this unique?]
 ```
 
 ## UI Style (Neobrute Blueprint)
@@ -132,8 +120,4 @@ const { docs } = useLiveQuery("type", { key: "item" });
 
 ## Be Creative
 
-Each run should produce a DIFFERENT interpretation:
-- Don't make generic todo apps
-- Think of a SPECIFIC business idea
-- Build something with clear value
-- Make it feel like a real product
+Each run should produce a DIFFERENT interpretation. Think of a SPECIFIC business idea with clear value.
