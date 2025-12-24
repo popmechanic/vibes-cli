@@ -8,10 +8,14 @@ This command syncs the cached documentation and import map from upstream Vibes D
 
 ## Instructions
 
-Run the sync script to get the latest configuration:
+First, find the plugin root directory, then run the sync script:
 
 ```bash
-bun scripts/fetch-prompt.ts --force
+# Find plugin location
+PLUGIN_ROOT=$(find ~/.claude/plugins/cache -name "fetch-prompt.ts" -path "*/vibes/*" 2>/dev/null | head -1 | xargs dirname | xargs dirname)
+
+# Run sync from plugin root
+cd "$PLUGIN_ROOT" && bun scripts/fetch-prompt.ts --force
 ```
 
 This updates:
