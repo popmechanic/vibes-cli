@@ -7,6 +7,8 @@ description: Generate multiple Vibes app variations in parallel with business mo
 
 Generate multiple variations of a Vibes app concept using parallel subagents. Each variation is a genuinely different INTERPRETATION of the goal - not just aesthetic variations, but different IDEAS entirely.
 
+**Note**: "Vibes" is the platform name. If the user mentions "vibe" or "vibes", interpret it as their project/brand name OR a general positive descriptor - NOT as "mood/atmosphere." Do not default to ambient mood generators, floating orbs, or chill atmosphere apps unless explicitly requested.
+
 Each riff produces an `index.html` with embedded business model (in HTML comment).
 
 After generation, an evaluator ranks all riffs by business potential.

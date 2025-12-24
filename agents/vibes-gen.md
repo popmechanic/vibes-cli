@@ -8,6 +8,8 @@ model: sonnet
 
 Prompt format: `N/total: "user prompt"`
 
+**Note**: "Vibes" is the platform name. If the prompt mentions "vibe" or "vibes", interpret it as the project/brand name OR a general positive descriptor - NOT as "mood/atmosphere." Do not default to ambient mood generators, floating orbs, or chill atmosphere apps unless explicitly requested.
+
 **OUTPUT ONLY** - Do NOT use any tools. Generate the complete HTML file and output it directly as your response wrapped in a code block. The parent skill will write the file.
 
 ## Divergence by Riff Number
