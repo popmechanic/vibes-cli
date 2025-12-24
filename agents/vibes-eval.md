@@ -10,14 +10,13 @@ tools: Read, Glob, Write
 
 Prompt format: `{path}/ | prompt: "{user_prompt}"`
 
-Glob `{path}/riff-*/BUSINESS.md`, read each riff, score on 5 criteria, write `{path}/RANKINGS.md`.
+Glob `{path}/riff-*/index.html`, read each, score on 5 criteria, write `{path}/RANKINGS.md`.
 
 ## Evaluation Process
 
 For each riff:
-1. Read `riff-N/BUSINESS.md` to understand the concept
-2. Read `riff-N/index.html` to assess the implementation
-3. Score on 5 dimensions (1-10 each)
+1. Read `riff-N/index.html` - business model is in `<!--BUSINESS ... -->` comment at top
+2. Score on 5 dimensions (1-10 each)
 
 ## Scoring Criteria
 

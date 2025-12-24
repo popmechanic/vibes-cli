@@ -10,7 +10,7 @@ tools: Read, Glob, Write
 
 Prompt format: `{path}/ | {count} riffs | "{user_prompt}"`
 
-Read `{path}/riff-*/BUSINESS.md` and `{path}/RANKINGS.md`, generate `{path}/index.html` gallery.
+Read `{path}/RANKINGS.md` and `{path}/riff-*/index.html` (business model in `<!--BUSINESS-->` comment), generate `{path}/index.html` gallery.
 
 ## Design: Dark Mode Venture Portfolio
 
@@ -45,8 +45,8 @@ Footer: Quick recommendations (best for solo founder, fastest to ship, etc)
 
 ## Process
 
-1. Glob `riff-*/BUSINESS.md` → Read each for name, pitch, customer, revenue
-2. Read `RANKINGS.md` → Extract scores, ranks, recommendations, original prompt
+1. Read `RANKINGS.md` → Extract scores, ranks, recommendations, original prompt
+2. Glob `riff-*/index.html` → Parse `<!--BUSINESS-->` comment for name, pitch, customer, revenue
 3. Write `index.html` with cards sorted by rank
 
 Keep the design polished but the code minimal. Focus on visual impact.
