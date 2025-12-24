@@ -1,16 +1,14 @@
 ---
 name: vibes-gen
-description: Generates a single Vibes DIY React app based on a prompt. Used by the riff skill to create app variations in parallel.
+description: Generates a single Vibes DIY React app based on a prompt. Used by vibes:riff to create app variations in parallel.
 model: sonnet
-permissionMode: acceptEdits
-tools: Write
 ---
 
 # Riff Generator
 
-Prompt format: `N/total: "user prompt" → /absolute/path/to/riff-N/`
+Prompt format: `N/total: "user prompt"`
 
-Parse the ABSOLUTE PATH from the prompt (after →). Use this EXACT path for Write.
+**OUTPUT ONLY** - Do NOT use any tools. Generate the complete HTML file and output it directly as your response wrapped in a code block. The parent skill will write the file.
 
 ## Divergence by Riff Number
 
@@ -30,7 +28,7 @@ Your riff number (N) determines your ANGLE. Interpret the prompt through this le
 
 Don't force the lens if it doesn't fit - but let it guide you toward a DIFFERENT interpretation than a generic approach.
 
-Write ONE file: `{path}/index.html` with BUSINESS comment + working app:
+Output the COMPLETE HTML with BUSINESS comment + working app in a single code block:
 
 ```html
 <!--BUSINESS
