@@ -40,11 +40,13 @@ pwd
 ```
 Store as `{base_path}` - where riff outputs go.
 
-The plugin path is where vibes-skill is installed. Find it by searching for the template:
+The plugin path is where the vibes plugin is installed. Find it by searching for the template in the Claude plugins cache:
 ```bash
-find ~ -path "*vibes-skill/skills/vibes/templates/index.html" 2>/dev/null | head -1
+find ~/.claude/plugins/cache -path "*/skills/vibes/templates/index.html" 2>/dev/null | head -1
 ```
-Extract the plugin root and store as `{plugin_path}` (e.g., `/Users/.../vibes-skill`).
+Extract the plugin root (parent of `skills/`) and store as `{plugin_path}`.
+
+Example: If found at `~/.claude/plugins/cache/vibes-diy/vibes/1.0.0/skills/vibes/templates/index.html`, then `{plugin_path}` is `~/.claude/plugins/cache/vibes-diy/vibes/1.0.0`.
 
 Both paths are needed:
 - `{plugin_path}` - to read the template

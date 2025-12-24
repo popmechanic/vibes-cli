@@ -1,8 +1,8 @@
 ---
 name: vibes-gen
-description: Generates a single Vibes DIY React app based on a prompt. Used by vibes:riff to create app variations in parallel.
+description: Generates a single Vibes DIY React app based on a prompt. Used by the riff skill to create app variations in parallel.
 model: sonnet
-skills: vibes:vibes
+skills: vibes
 ---
 
 # Vibes App Generator
