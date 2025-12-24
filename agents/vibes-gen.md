@@ -2,13 +2,15 @@
 name: vibes-gen
 description: Generates a single Vibes DIY React app based on a prompt. Used by the riff skill to create app variations in parallel.
 model: sonnet
-permissionMode: bypassPermissions
+permissionMode: acceptEdits
 tools: Write
 ---
 
 # Riff Generator
 
-Prompt: `N/total: "user prompt" → /path/to/riff-N/`
+Prompt format: `N/total: "user prompt" → /absolute/path/to/riff-N/`
+
+Parse the ABSOLUTE PATH from the prompt (after →). Use this EXACT path for Write.
 
 ## Divergence by Riff Number
 
