@@ -141,9 +141,16 @@ const { doc, merge, save } = useDocument({ _id: "known-id" });
 ```
 
 ### useLiveQuery - Real-time Lists
+
+**IMPORTANT**: Always use static keys. NEVER reference React state in query functions (causes infinite loops). Filter in render instead.
+
 ```javascript
 // Query by field value
 const { docs } = useLiveQuery("type", { key: "item" });
+
+// To filter by state, query all then filter:
+const { docs } = useLiveQuery("type", { key: "item" });
+const filtered = docs.filter(d => d.category === selectedCategory); // filter in render
 
 // Recent items (descending by _id is roughly temporal)
 const { docs } = useLiveQuery("_id", { descending: true, limit: 20 });
