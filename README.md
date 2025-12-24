@@ -1,6 +1,6 @@
 # Vibes - Claude Code Plugin
 
-![Vibes](vibes.png)
+![Vibes](assets/vibes.png)
 
 Instantly make your own small apps, without a backend. With Vibes, The front-end _is_ the app.
 
@@ -66,6 +66,8 @@ Every vibe-coded project starts in the vibe zone - the AI understands you, progr
 Then something small goes wrong. A fix that mostly works. An edge case layered on top. You correct it, then correct the correction, and suddenly progress slows to a crawl.
 
 You've drifted out of the vibe zone.
+
+![Vibe Zone](assets/vibezone.png)
 
 **Vibes DIY keeps things simple enough that you stay in the vibe zone.** Single-file apps. Local-first data. No server complexity. The AI can see and understand everything it needs to help you.
 
