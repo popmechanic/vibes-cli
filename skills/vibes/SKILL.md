@@ -7,282 +7,169 @@ description: Generate React web apps with Fireproof database. Use when creating 
 
 Generate React web applications using Fireproof for local-first data persistence.
 
-## NO BUILD Philosophy
+## Core Rules
 
-**Apps must run directly in the browser without any build step.** This means:
+- **NO JSX** - Use `React.createElement()` (shorthand: `const e = React.createElement`)
+- **Single HTML file** - All code inline in `<script type="module">`
+- **Fireproof for data** - Use `useFireproof`, `useLiveQuery`, `useDocument`
+- **Tailwind for styling** - Mobile-first, neo-brutalist aesthetic
 
-- **NO JSX** - JSX requires Babel transpilation
-- **Use React.createElement()** - Native JavaScript, no transpiler needed
-- **ES Modules via CDN** - Import maps point to esm.sh
-- **Open index.html directly** - No dev server needed
-- **Zero extra dependencies** - Just React, ReactDOM, and Fireproof
+## Output Format
 
-As DHH says: "You can't get faster than No Build."
+**CRITICAL: Only output the App component code, not the full HTML file.**
 
-## Workflow
-
-### 1. Project Detection
-
-First, check the current directory:
-
-1. **If `index.html` exists with Vibes imports** (use-fireproof, esm.sh):
-   - This is an existing Vibes project
-   - Modify the inline JavaScript in the existing `index.html`
-
-2. **If other files exist but no Vibes setup**:
-   - Ask the user: "Where should I create the Vibes app?"
-     - "Add index.html to current directory"
-     - "Create a `vibes/` subdirectory"
-
-3. **If directory is empty**:
-   - Create a single `index.html` file with all code inline
-
-### 2. Project Initialization
-
-**IMPORTANT: Generate a SINGLE HTML file with inline JavaScript.**
-
-Do NOT create separate app.js files - this causes CORS errors when opening locally. Put all code inline in the HTML file within a `<script type="module">` tag.
-
-When initializing a new project, **read and use the complete template** from `templates/index.html`. This template includes:
-
-- CSS variables for theming
-- Keyframe animations for the menu
-- VibesSwitch component (animated toggle button)
-- HiddenMenuWrapper component (slide-up menu panel)
-- VibesPanel component (menu content)
-- Placeholder App component
-
-**CRITICAL: Always wrap your App in HiddenMenuWrapper when rendering:**
+Your response should be:
+1. Brief explanation (1-2 sentences)
+2. The App component code in a code block
 
 ```javascript
-ReactDOM.createRoot(document.getElementById("root")).render(
-  e(HiddenMenuWrapper, { dbName: "your-app-db" }, e(App))
-);
+// Your App component
+function App() {
+  const { useLiveQuery, useDocument } = useFireproof("app-name-db");
+  // ... component logic
+  return e("div", { className: "..." }, /* children */);
+}
 ```
 
-The user can then simply open `index.html` directly in their browser - no server needed.
+The user will paste this into their existing template. Do NOT output the full HTML, import map, or boilerplate components.
 
 ---
 
-## Code Generation Guidelines
+## For New Projects Only
 
-When generating React components, follow these rules:
+If the user is starting fresh (no existing index.html), first create the template file, then provide the App component.
 
-### UI Style (Neobrute Blueprint)
+**Step 1: Create template** - Write this boilerplate to `index.html`:
 
-**CRITICAL: Apply the Vibes visual style to all generated apps.**
-
-Read the style prompt from `cache/style-prompt.txt` for the full styling specification. Key rules:
-
-- **Neo-brutalist aesthetic**: blocky geometry, oversized controls, thick 4-12px outlines
-- **Hard shadow plates**: offset 6-12px bottom-right; active press reduces offset by 2-4px
-- **Background**: grey-blue graph paper via CSS—base #f1f5f9, grid from repeating-linear-gradients in #cbd5e1/#94a3b8 at 16-24px
-- **Corner rule**: components are either square (0px radius) OR very rounded (50% of height)—no in-between radii
-- **Color palette**: #f1f5f9 #cbd5e1 #94a3b8 #64748b #0f172a #242424 #ffffff
-- **Never use white text**—#ffffff is for surfaces only
-- **Spacing scale**: 4/8/16/24px
-- **Tap targets**: minimum 48x48px
-- **Mobile-first**: single-column on phones, expand to 2-4 columns at breakpoints
-
-Example Tailwind classes for neo-brutalist buttons:
-```javascript
-e("button", {
-  className: "px-6 py-3 bg-[#f1f5f9] border-4 border-[#0f172a] rounded-none shadow-[6px_6px_0px_#0f172a] hover:shadow-[4px_4px_0px_#0f172a] active:shadow-[2px_2px_0px_#0f172a] active:translate-x-[2px] active:translate-y-[2px] font-bold text-[#0f172a]"
-}, "Click Me")
-```
-
-Example graph paper background:
-```javascript
-e("div", {
-  className: "min-h-screen bg-[#f1f5f9]",
-  style: {
-    backgroundImage: `
-      repeating-linear-gradient(0deg, transparent, transparent 23px, #cbd5e1 23px, #cbd5e1 24px),
-      repeating-linear-gradient(90deg, transparent, transparent 23px, #cbd5e1 23px, #cbd5e1 24px)
-    `
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vibes App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@19",
+      "react-dom": "https://esm.sh/react-dom@19",
+      "react-dom/client": "https://esm.sh/react-dom@19/client",
+      "use-fireproof": "https://esm.sh/use-vibes@0.19.4?external=react,react-dom",
+      "call-ai": "https://esm.sh/call-ai@0.19.4?external=react,react-dom"
+    }
   }
-}, /* children */)
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module">
+    import React from "react";
+    import ReactDOM from "react-dom/client";
+    import { useFireproof } from "use-fireproof";
+
+    const e = React.createElement;
+
+    // === APP COMPONENT (edit below) ===
+    function App() {
+      return e("div", { className: "min-h-screen bg-[#f1f5f9] p-4" },
+        e("h1", { className: "text-2xl font-bold" }, "Hello Vibes!")
+      );
+    }
+    // === END APP COMPONENT ===
+
+    ReactDOM.createRoot(document.getElementById("root")).render(e(App));
+  </script>
+</body>
+</html>
 ```
 
-### Language & Framework
-- Use **JavaScript only** (no TypeScript)
-- Use **modern React practices** with hooks
-- Use **Tailwind CSS** for mobile-first accessible styling
-- Keep everything in a **single HTML file** with inline `<script type="module">`
-- **NEVER create separate .js files** - causes CORS errors when opening locally
+**Step 2: Replace the App component** with the user's requested functionality.
 
-### React.createElement Syntax (CRITICAL - NO JSX)
+---
 
-**NEVER use JSX syntax** - it requires a build step. Use `React.createElement()` directly:
+## UI Style (Neobrute Blueprint)
+
+Apply this visual style:
+
+- **Colors**: `#f1f5f9` (bg), `#0f172a` (text/borders), `#ffffff` (surfaces)
+- **Borders**: thick 4px, color `#0f172a`
+- **Shadows**: hard offset `shadow-[6px_6px_0px_#0f172a]`
+- **Corners**: square (0px) OR pill (rounded-full) - no in-between
+- **Never white text** - use `#0f172a` for text
 
 ```javascript
-// Define shorthand at top of script
+// Button example
+e("button", {
+  className: "px-6 py-3 bg-[#f1f5f9] border-4 border-[#0f172a] shadow-[6px_6px_0px_#0f172a] hover:shadow-[4px_4px_0px_#0f172a] active:shadow-[2px_2px_0px_#0f172a] font-bold text-[#0f172a]"
+}, "Click Me")
+
+// Card example
+e("div", {
+  className: "p-4 bg-white border-4 border-[#0f172a] shadow-[4px_4px_0px_#0f172a]"
+}, /* content */)
+
+// Input example
+e("input", {
+  className: "w-full px-4 py-3 border-4 border-[#0f172a] bg-white text-[#0f172a]",
+  placeholder: "Enter text..."
+})
+```
+
+---
+
+## Fireproof Patterns
+
+```javascript
+const { useLiveQuery, useDocument, database } = useFireproof("my-app-db");
+
+// Form state with useDocument (NOT useState)
+const { doc, merge, submit, reset } = useDocument({ text: "", type: "item" });
+
+// Handle input
+e("input", {
+  value: doc.text,
+  onChange: (ev) => merge({ text: ev.target.value })
+})
+
+// Handle submit
+e("form", { onSubmit: submit }, /* fields + button */)
+
+// Live query for real-time list
+const { docs } = useLiveQuery("type", { key: "item" });
+docs.map(item => e("div", { key: item._id }, item.text))
+
+// Delete
+e("button", { onClick: () => database.del(item._id) }, "Delete")
+```
+
+---
+
+## React.createElement Quick Reference
+
+```javascript
 const e = React.createElement;
 
-// Syntax: e(type, props, ...children)
-e("div", { className: "p-4" }, "Hello")           // <div className="p-4">Hello</div>
-e("div", null, "Hello")                           // <div>Hello</div>
-e("input", { type: "text", value: val })          // <input type="text" value={val} />
-e(MyComponent, { prop: value })                   // <MyComponent prop={value} />
+e("div", { className: "p-4" }, "text")           // <div className="p-4">text</div>
+e("div", null, child1, child2)                   // multiple children
+e(MyComponent, { prop: value })                  // custom component
+condition && e("div", null, "shown")             // conditional
+items.map(i => e("li", { key: i.id }, i.name))   // list
+e("button", { onClick: fn }, "Click")            // event handler
 ```
-
-**Common patterns:**
-
-```javascript
-// Multiple children
-e("div", { className: "container" },
-  e("h1", null, "Title"),
-  e("p", null, "Paragraph")
-)
-
-// Event handlers
-e("button", { onClick: handleClick }, "Click me")
-e("input", { onChange: (ev) => setValue(ev.target.value) })
-
-// Conditional rendering
-condition && e("div", null, "Shows if true")
-condition ? e("span", null, "Yes") : e("span", null, "No")
-
-// Mapping arrays
-items.map(item => e("li", { key: item.id }, item.name))
-
-// Fragments (multiple root elements)
-e(React.Fragment, null,
-  e("div", null, "First"),
-  e("div", null, "Second")
-)
-```
-
-### Fireproof Database
-
-### Data Patterns
-- Create granular documents (one per user action)
-- Avoid patterns that require single documents to grow unbounded
-- List data items on the main page so users can find them
-- Make lists clickable for more details
-
-### AI Features (optional)
-- Use `callAI` for AI features with `stream: true` for streaming
-- Use structured JSON outputs:
-  ```js
-  callAI(prompt, {
-    schema: {
-      properties: {
-        items: { type: 'array', items: { type: 'string' } }
-      }
-    }
-  })
-  ```
-- Save AI responses as individual Fireproof documents
-
-### File Uploads
-- Use drag-and-drop for file uploads
-- Store files using `doc._files` API
-- Retrieve with `await meta.file()` method
-
-### Images
-- Use placeholder APIs like `https://picsum.photos/400`
-- Never generate base64 or PNG data inline
-
-### Code Output
-- Always output the **complete HTML file** including the template structure
-- Keep explanations short and concise
-- Never output partial snippets to change
-- Keep the inline script as short as possible
 
 ---
 
-## Example: App Component Only
+## Common Mistakes to Avoid
 
-When modifying an existing Vibes app, you only need to update the `App` function. The template already contains all the Vibes menu components.
-
-```javascript
-// Your App component - this is what you modify
-function App() {
-  const { useLiveQuery, useDocument } = useFireproof("my-app-db");
-
-  // Form state with useDocument (NOT useState)
-  const { doc, merge, submit } = useDocument({
-    text: "",
-    type: "item"
-  });
-
-  // Live query for real-time updates
-  const { docs } = useLiveQuery("type", {
-    key: "item",
-    descending: true
-  });
-
-  // Neo-brutalist graph paper background
-  const bgStyle = {
-    backgroundImage: `
-      repeating-linear-gradient(0deg, transparent, transparent 23px, #cbd5e1 23px, #cbd5e1 24px),
-      repeating-linear-gradient(90deg, transparent, transparent 23px, #cbd5e1 23px, #cbd5e1 24px)
-    `
-  };
-
-  return e("div", { className: "min-h-screen bg-[#f1f5f9] p-4", style: bgStyle },
-    e("div", { className: "max-w-md mx-auto" },
-      e("h1", { className: "text-2xl font-bold mb-4 text-[#0f172a]" }, "My App"),
-      e("form", { onSubmit: submit, className: "mb-4" },
-        e("input", {
-          type: "text",
-          value: doc.text,
-          onChange: (ev) => merge({ text: ev.target.value }),
-          className: "w-full border-4 border-[#0f172a] px-4 py-3 bg-white text-[#0f172a] placeholder-[#64748b]",
-          placeholder: "Enter text..."
-        }),
-        e("button", {
-          type: "submit",
-          className: "mt-4 px-6 py-3 bg-[#f1f5f9] border-4 border-[#0f172a] shadow-[6px_6px_0px_#0f172a] hover:shadow-[4px_4px_0px_#0f172a] active:shadow-[2px_2px_0px_#0f172a] active:translate-x-[2px] active:translate-y-[2px] font-bold text-[#0f172a]"
-        }, "Save")
-      ),
-      e("ul", { className: "space-y-4" },
-        docs.map((item) =>
-          e("li", {
-            key: item._id,
-            className: "p-4 bg-white border-4 border-[#0f172a] shadow-[4px_4px_0px_#0f172a] text-[#0f172a]"
-          }, item.text)
-        )
-      )
-    )
-  );
-}
-
-// IMPORTANT: Wrap App in HiddenMenuWrapper
-ReactDOM.createRoot(document.getElementById("root")).render(
-  e(HiddenMenuWrapper, { dbName: "my-app-db" }, e(App))
-);
-```
-
-**For new projects**: Read `templates/index.html` which contains the complete template with VibesSwitch, HiddenMenuWrapper, and all required CSS.
+- **DON'T** use JSX syntax (`<div>`) - use `e("div", ...)`
+- **DON'T** use `useState` for form fields - use `useDocument`
+- **DON'T** use `Fireproof.fireproof()` - use `useFireproof()` hook
+- **DON'T** output the full HTML file - only output the App component
+- **DON'T** use white text on light backgrounds
 
 ---
 
 ## Fireproof API Reference
 
-Read the cached documentation at `cache/fireproof.txt` for the full Fireproof API reference including:
-
-- `useFireproof(dbName)` - Create or access a database
-- `useLiveQuery(field, options)` - Real-time queries with automatic updates
-- `useDocument(initial)` - Form state management with `merge()`, `submit()`, `save()`, `reset()`
-- `database.put(doc)` - Save a document
-- `database.get(id)` - Get a document by ID
-- `database.del(id)` - Delete a document
-- `doc._files` - File attachment API
-
----
-
-## Deployment
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for instructions on deploying to:
-- Netlify
-- Vercel
-- GitHub Pages
-- Cloudflare Pages
-- Any static hosting
-
-Key points:
-- No build step required
-- Just upload `index.html` (single file contains everything)
-- Import map handles all dependencies via CDN
+See `cache/fireproof.txt` for the full API reference.
