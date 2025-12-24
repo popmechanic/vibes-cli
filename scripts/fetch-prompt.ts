@@ -24,8 +24,11 @@ const DOC_SOURCES: Record<string, string> = {
   // callai: "https://raw.githubusercontent.com/user/call-ai/main/llms.txt",
 };
 
+// Style prompt source
+const STYLE_PROMPT_URL = "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/prompts/pkg/style-prompts.ts";
+
 // Import map source
-const IMPORT_MAP_URL = "https://raw.githubusercontent.com/vibes-diy/vibes.diy/main/vibes.diy/pkg/app/config/import-map.ts";
+const IMPORT_MAP_URL = "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/vibes.diy/pkg/app/config/import-map.ts";
 
 interface FetchResult {
   name: string;
@@ -102,6 +105,87 @@ function parseImportMapTs(content: string): Record<string, string> {
   return imports;
 }
 
+/**
+ * Parse the style-prompts.ts file and extract the default style prompt
+ */
+function parseStylePromptsTs(content: string): string {
+  // Find the DEFAULT_STYLE_NAME
+  const defaultNameMatch = content.match(/DEFAULT_STYLE_NAME\s*=\s*["']([^"']+)["']/);
+  const defaultName = defaultNameMatch ? defaultNameMatch[1] : "brutalist web";
+
+  // Find the stylePrompts array and extract the prompt for the default style
+  // Match the style object with the matching name
+  const styleRegex = new RegExp(
+    `\\{\\s*name:\\s*["']${defaultName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']\\s*,\\s*prompt:\\s*(['"\`])((?:(?!\\1)[^\\\\]|\\\\.)*)\\1`,
+    's'
+  );
+
+  const match = content.match(styleRegex);
+  if (match) {
+    // Unescape the string
+    return match[2]
+      .replace(/\\n/g, '\n')
+      .replace(/\\"/g, '"')
+      .replace(/\\'/g, "'")
+      .replace(/\\\\/g, '\\');
+  }
+
+  // Fallback: try to extract any prompt that looks like the brutalist one
+  const fallbackMatch = content.match(/prompt:\s*['"`](Create a UI theme in a neo-brutalist style[^'"`]*)['"]/s);
+  if (fallbackMatch) {
+    return fallbackMatch[1];
+  }
+
+  return "";
+}
+
+async function fetchStylePrompt(force: boolean): Promise<FetchResult> {
+  const cachePath = join(CACHE_DIR, "style-prompt.txt");
+
+  // Check if cached version exists and we're not forcing refresh
+  if (!force && existsSync(cachePath)) {
+    return { name: "style-prompt", success: true, cached: true };
+  }
+
+  try {
+    console.log(`Fetching style-prompt from ${STYLE_PROMPT_URL}...`);
+    const response = await fetch(STYLE_PROMPT_URL);
+
+    if (!response.ok) {
+      return {
+        name: "style-prompt",
+        success: false,
+        cached: false,
+        error: `HTTP ${response.status}: ${response.statusText}`
+      };
+    }
+
+    const content = await response.text();
+    const stylePrompt = parseStylePromptsTs(content);
+
+    if (!stylePrompt) {
+      return {
+        name: "style-prompt",
+        success: false,
+        cached: false,
+        error: "Failed to parse default style prompt from source"
+      };
+    }
+
+    writeFileSync(cachePath, stylePrompt, "utf-8");
+    console.log(`  Cached style-prompt (${stylePrompt.length} bytes)`);
+
+    return { name: "style-prompt", success: true, cached: false };
+  } catch (error) {
+    return {
+      name: "style-prompt",
+      success: false,
+      cached: false,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+
 async function fetchImportMap(force: boolean): Promise<FetchResult> {
   const cachePath = join(CACHE_DIR, "import-map.json");
 
@@ -165,6 +249,10 @@ async function main() {
     const result = await fetchDoc(name, url, force);
     results.push(result);
   }
+
+  // Fetch style prompt
+  const stylePromptResult = await fetchStylePrompt(force);
+  results.push(stylePromptResult);
 
   // Fetch import map
   const importMapResult = await fetchImportMap(force);

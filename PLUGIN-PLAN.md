@@ -59,7 +59,8 @@ vibes-skill/
 │   │   ├── templates/
 │   │   │   └── index.html    # HTML template
 │   │   └── cache/
-│   │       ├── fireproof.txt # Cached Fireproof docs
+│   │       ├── fireproof.txt    # Cached Fireproof docs
+│   │       ├── style-prompt.txt # Default UI style (Neobrute Blueprint)
 │   │       └── import-map.json
 │   └── riff/
 │       └── SKILL.md          # Riff skill definition
@@ -138,6 +139,19 @@ Output structure:
 │   └── ...
 ```
 
+## UI Style (Neobrute Blueprint)
+
+Generated apps use the Vibes default visual style - "Neobrute Blueprint":
+
+- **Neo-brutalist aesthetic**: blocky geometry, oversized controls, thick 4-12px outlines
+- **Hard shadow plates**: offset 6-12px bottom-right; active press reduces offset
+- **Graph paper background**: grey-blue (#f1f5f9) with grid lines (#cbd5e1/#94a3b8)
+- **Corner rule**: square (0px) OR very rounded (50%)—no in-between
+- **Color palette**: #f1f5f9 #cbd5e1 #94a3b8 #64748b #0f172a #242424 #ffffff
+- **Never use white text**—#ffffff is for surfaces only
+
+The style prompt is cached at `cache/style-prompt.txt` and fetched from the vibes.diy repo.
+
 ## Sync Workflow
 
 The `sync` command updates cached documentation:
@@ -148,6 +162,7 @@ bun scripts/fetch-prompt.ts --force
 
 This fetches:
 - Fireproof docs from https://use-fireproof.com/llms-full.txt
+- Style prompt from https://github.com/VibesDIY/vibes.diy/blob/main/prompts/pkg/style-prompts.ts
 - Import map versions from vibes.diy repository
 
 ## Menu Component Sync
