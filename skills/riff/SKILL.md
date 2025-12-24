@@ -143,51 +143,6 @@ Which concept resonates? I can iterate on your favorite.
 
 ---
 
-## Example Session
+## Key Principle
 
-**User**: "Make me an app that could make me lots of money"
-**Count**: 5
-
-**Output**:
-```
-./
-├── index.html          # Riff Gallery - stunning dark mode portfolio
-├── RANKINGS.md         # Scored rankings with recommendations
-├── riff-1/
-│   ├── index.html      # Freelance invoice tracker
-│   └── BUSINESS.md
-├── riff-2/
-│   ├── index.html      # Local services marketplace
-│   └── BUSINESS.md
-├── riff-3/
-│   ├── index.html      # AI content generator
-│   └── BUSINESS.md
-├── riff-4/
-│   ├── index.html      # Habit tracking with coaching
-│   └── BUSINESS.md
-└── riff-5/
-    ├── index.html      # Team standup collector
-    └── BUSINESS.md
-```
-
----
-
-## Why No Design Seeds?
-
-The goal is **conceptual exploration**, not aesthetic variation.
-
-- ❌ 5 different color schemes of a todo app
-- ✅ 5 genuinely different apps that could "make money"
-
-Model stochasticity naturally produces different interpretations. By giving identical prompts, we get emergent diversity in IDEAS, which is far more valuable than diversity in styling.
-
----
-
-## After Generation
-
-Suggest next steps:
-- "Open index.html to browse your riff gallery"
-- "Read RANKINGS.md for detailed analysis"
-- "Which concept resonates most? I can iterate on that one"
-- "Want me to generate more variations of a specific concept?"
-- "Should I deploy your favorite to a live URL?"
+Send IDENTICAL prompts to all subagents. Model stochasticity creates conceptual diversity naturally - you get different IDEAS, not just different styling.
