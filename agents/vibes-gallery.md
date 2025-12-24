@@ -2,6 +2,8 @@
 name: vibes-gallery
 description: Generates a stunning landing page gallery showcasing all riffs with business analysis summaries. Use after vibes-eval to create a visual portfolio of generated apps.
 model: haiku
+permissionMode: bypassPermissions
+tools: Read, Glob, Write
 ---
 
 # Vibes Gallery Generator
