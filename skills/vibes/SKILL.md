@@ -54,15 +54,15 @@ If the user is starting fresh (no existing index.html), first create the templat
   <script type="importmap">
   {
         "imports": {
-              "react": "https://esm.sh/react@19.2.1",
-              "react-dom": "https://esm.sh/react-dom@19.2.1",
-              "react-dom/client": "https://esm.sh/react-dom@19.2.1/client",
-              "react/jsx-runtime": "https://esm.sh/react@19.2.1/jsx-runtime",
-              "use-fireproof": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor",
-              "call-ai": "https://esm.sh/call-ai@0.19.4-dev-vibes-refactor",
-              "use-vibes": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor",
-              "https://esm.sh/use-fireproof": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor",
-              "https://esm.sh/use-vibes": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor"
+              "react": "https://esm.sh/react",
+              "react-dom": "https://esm.sh/react-dom",
+              "react-dom/client": "https://esm.sh/react-dom/client",
+              "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
+              "use-fireproof": "https://esm.sh/use-vibes@0.18.9",
+              "call-ai": "https://esm.sh/call-ai@0.18.9",
+              "use-vibes": "https://esm.sh/use-vibes@0.18.9",
+              "https://esm.sh/use-fireproof": "https://esm.sh/use-vibes@0.18.9",
+              "https://esm.sh/use-vibes": "https://esm.sh/use-vibes@0.18.9"
         }
   }
   </script>

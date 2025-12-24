@@ -1,7 +1,7 @@
 {
   "name": "vibes",
   "description": "Generate React web apps with Fireproof database - no build step, deploy anywhere",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": {
     "name": "Vibes DIY",
     "email": "hello@vibes.diy"
