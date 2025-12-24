@@ -1,0 +1,15 @@
+# OS files
+.DS_Store
+
+# Claude config
+.claude/
+
+# Test outputs
+15/
+riff-*/
+
+# Cache
+cache/
+
+# Build artifacts
+bin/

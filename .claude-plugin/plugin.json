@@ -1,0 +1,10 @@
+{
+  "name": "vibes",
+  "description": "Generate React web apps with Fireproof database - no build step, deploy anywhere",
+  "version": "1.0.0",
+  "author": {
+    "name": "Vibes DIY"
+  },
+  "homepage": "https://vibes.diy",
+  "repository": "https://github.com/VibesDIY/vibes.diy"
+}
