@@ -118,6 +118,19 @@ e(React.Fragment, null,
 ```
 
 ### Fireproof Database
+
+**CRITICAL: Import and use hooks - NO global Fireproof object exists!**
+
+```javascript
+// CORRECT - use the hook
+import { useFireproof } from "use-fireproof";
+const { database, useLiveQuery, useDocument } = useFireproof("my-app-db");
+
+// WRONG - this will throw "Fireproof is not defined"
+// const db = Fireproof.fireproof("my-db");  // ❌ NO GLOBAL EXISTS
+// const db = new Fireproof("my-db");        // ❌ NO CONSTRUCTOR
+```
+
 - Use `useFireproof` hook for database access
 - Use `useLiveQuery` for real-time data queries
 - Use `useDocument` for form handling with `merge()` and `submit()`
