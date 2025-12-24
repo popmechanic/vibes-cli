@@ -1,7 +1,7 @@
 ---
 name: vibes-eval
 description: Evaluates and ranks riff outputs on business potential. Use after generating multiple riffs to identify the best ideas.
-model: sonnet
+model: haiku
 ---
 
 # Vibes Riff Evaluator
