@@ -106,4 +106,4 @@ Which concept resonates? I can iterate on your favorite.
 
 ## Key Principle
 
-Send IDENTICAL prompts to all subagents. Model stochasticity creates conceptual diversity naturally - you get different IDEAS, not just different styling.
+Each riff number (N) guides the subagent toward a DIFFERENT interpretation lens (minimalist, social, gamified, professional, etc.). This ensures genuine conceptual diversity - different IDEAS, not just styling variations.

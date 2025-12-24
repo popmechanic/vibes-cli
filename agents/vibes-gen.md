@@ -10,6 +10,24 @@ tools: Write
 
 Prompt: `N/total: "user prompt" → /path/to/riff-N/`
 
+## Divergence by Riff Number
+
+Your riff number (N) determines your ANGLE. Interpret the prompt through this lens:
+
+| N | Lens | Think about... |
+|---|------|----------------|
+| 1 | **Minimalist** | Simplest possible version, one core feature |
+| 2 | **Social** | Community, sharing, collaboration |
+| 3 | **Gamified** | Progress, streaks, achievements, competition |
+| 4 | **Professional** | B2B, workflows, team productivity |
+| 5 | **Personal** | Private journaling, self-improvement, reflection |
+| 6 | **Marketplace** | Buying, selling, exchange, discovery |
+| 7 | **Educational** | Learning, teaching, skill development |
+| 8 | **Creative** | Making, building, artistic expression |
+| 9+ | **Wildcard** | Unexpected angle, surprise interpretation |
+
+Don't force the lens if it doesn't fit - but let it guide you toward a DIFFERENT interpretation than a generic approach.
+
 Write ONE file: `{path}/index.html` with BUSINESS comment + working app:
 
 ```html
