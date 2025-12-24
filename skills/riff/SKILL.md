@@ -7,9 +7,7 @@ description: Generate multiple Vibes app variations in parallel with business mo
 
 Generate multiple variations of a Vibes app concept using parallel subagents. Each variation is a genuinely different INTERPRETATION of the goal - not just aesthetic variations, but different IDEAS entirely.
 
-Each riff produces:
-- `index.html` - A working app prototype
-- `BUSINESS.md` - A business model canvas
+Each riff produces an `index.html` with embedded business model (in HTML comment).
 
 After generation, an evaluator ranks all riffs by business potential.
 
@@ -31,40 +29,33 @@ Use the AskUserQuestion tool to collect:
 1. **The prompt** - What's the objective? (Can be broad/loose)
 2. **Number of riffs** - How many variations? (1-10, recommend 3-5)
 
-### Step 2: Get Absolute Path
+### Step 2: Launch Parallel Subagents
 
-```bash
-pwd
-```
-Store as `{base_path}` - where riff outputs will be written.
-
-### Step 3: Create Output Structure
-
-Create numbered directories for each riff:
-```bash
-mkdir -p riff-1 riff-2 riff-3 ...
-```
-
-### Step 4: Launch Parallel Subagents
-
-For each riff, launch `vibes-gen` with `run_in_background: true` and a minimal prompt:
+For each riff, launch `vibes-gen` with `run_in_background: true`:
 
 ```javascript
 Task({
-  prompt: `${N}/${total}: "${user_prompt}" → ${base_path}/riff-${N}/`,
+  prompt: `${N}/${total}: "${user_prompt}"`,
   subagent_type: "vibes-gen",
   run_in_background: true,
   description: `Generate riff-${N}`
 })
 ```
 
-The agent knows what files to create from its own instructions. Keep the prompt identical except for N and path.
+### Step 3: Wait and Collect Outputs
 
-### Step 5: Wait for Completion
+Use TaskOutput to wait for all subagents. Each returns HTML in a code block.
 
-Use TaskOutput to wait for all subagents to complete.
+### Step 4: Write Files
 
-### Step 6: Run Evaluator
+Get the current working directory with `pwd`, then for each completed task:
+1. Extract HTML from the code block in the output
+2. Create directory: `mkdir -p riff-N`
+3. Write: `riff-N/index.html`
+
+### Step 5: Run Evaluator
+
+Use `pwd` result as `${base_path}`:
 
 ```javascript
 Task({
@@ -74,7 +65,7 @@ Task({
 })
 ```
 
-### Step 7: Generate Gallery
+### Step 6: Generate Gallery
 
 ```javascript
 Task({
@@ -84,7 +75,7 @@ Task({
 })
 ```
 
-### Step 8: Present Results
+### Step 7: Present Results
 
 Summarize the results for the user:
 
