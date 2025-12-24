@@ -57,7 +57,10 @@ If the user is starting fresh (no existing index.html), first create the templat
               "react-dom/client": "https://esm.sh/react-dom@19.2.1/client",
               "react/jsx-runtime": "https://esm.sh/react@19.2.1/jsx-runtime",
               "use-fireproof": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor",
-              "call-ai": "https://esm.sh/call-ai@0.19.4-dev-vibes-refactor"
+              "call-ai": "https://esm.sh/call-ai@0.19.4-dev-vibes-refactor",
+              "use-vibes": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor",
+              "https://esm.sh/use-fireproof": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor",
+              "https://esm.sh/use-vibes": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor"
         }
   }
   </script>
@@ -86,6 +89,12 @@ If the user is starting fresh (no existing index.html), first create the templat
 ```
 
 **Step 2: Replace the App component** with the user's requested functionality.
+
+**Step 3: Serve via HTTP** (required - do not open file directly):
+```bash
+npx serve .
+# Open http://localhost:3000
+```
 
 ---
 

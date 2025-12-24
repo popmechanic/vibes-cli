@@ -90,15 +90,27 @@ function parseImportMapTs(content: string): Record<string, string> {
   const vibesVersion = versionMatch ? versionMatch[1] : "0.19";
 
   // Extract entries from getLibraryImportMap function
-  // Match patterns like: "react": "https://esm.sh/react@19.2.1"
-  const staticMatches = content.matchAll(/"([^"]+)":\s*"(https:\/\/[^"]+)"/g);
-  for (const match of staticMatches) {
+  // Match quoted keys: "react-dom": "https://esm.sh/react-dom@19.2.1"
+  const quotedStaticMatches = content.matchAll(/"([^"]+)":\s*"(https:\/\/[^"]+)"/g);
+  for (const match of quotedStaticMatches) {
     imports[match[1]] = match[2];
   }
 
-  // Match patterns with template literals: "use-fireproof": `https://esm.sh/use-vibes@${VIBES_VERSION}`
-  const templateMatches = content.matchAll(/"([^"]+)":\s*`(https:\/\/[^`]+)\$\{VIBES_VERSION\}`/g);
-  for (const match of templateMatches) {
+  // Match unquoted keys: react: "https://esm.sh/react@19.2.1"
+  const unquotedStaticMatches = content.matchAll(/(\w+):\s*"(https:\/\/[^"]+)"/g);
+  for (const match of unquotedStaticMatches) {
+    imports[match[1]] = match[2];
+  }
+
+  // Match quoted keys with template literals: "use-fireproof": `https://esm.sh/use-vibes@${VIBES_VERSION}`
+  const quotedTemplateMatches = content.matchAll(/"([^"]+)":\s*`(https:\/\/[^`]+)\$\{VIBES_VERSION\}`/g);
+  for (const match of quotedTemplateMatches) {
+    imports[match[1]] = match[2] + vibesVersion;
+  }
+
+  // Match unquoted keys with template literals: react: `https://esm.sh/react@${VIBES_VERSION}`
+  const unquotedTemplateMatches = content.matchAll(/(\w+):\s*`(https:\/\/[^`]+)\$\{VIBES_VERSION\}`/g);
+  for (const match of unquotedTemplateMatches) {
     imports[match[1]] = match[2] + vibesVersion;
   }
 
@@ -232,11 +244,15 @@ async function fetchImportMap(force: boolean): Promise<FetchResult> {
 
 /**
  * Generate the import map JSON string for templates
- * Must match vibes.diy import map EXACTLY
+ * Must match vibes.diy import map EXACTLY - including absolute URL mappings
+ * that prevent duplicate module instances
  */
 function generateImportMapJson(imports: Record<string, string>): string {
   const reactDomUrl = imports["react-dom"] || "https://esm.sh/react-dom@19";
   const reactVersion = reactDomUrl.match(/@(\d+\.\d+\.\d+)/)?.[1] || "19";
+
+  // Get the use-vibes URL for remapping
+  const useVibesUrl = imports["use-vibes"] || imports["use-fireproof"];
 
   const templateImports: Record<string, string> = {
     "react": `https://esm.sh/react@${reactVersion}`,
@@ -245,14 +261,26 @@ function generateImportMapJson(imports: Record<string, string>): string {
     "react/jsx-runtime": `https://esm.sh/react@${reactVersion}/jsx-runtime`,
   };
 
-  // Add use-fireproof WITHOUT ?external suffix (match vibes.diy)
+  // Add use-fireproof (match vibes.diy exactly)
   if (imports["use-fireproof"]) {
     templateImports["use-fireproof"] = imports["use-fireproof"];
   }
 
-  // Add call-ai WITHOUT ?external suffix (match vibes.diy)
+  // Add call-ai (match vibes.diy exactly)
   if (imports["call-ai"]) {
     templateImports["call-ai"] = imports["call-ai"];
+  }
+
+  // Add use-vibes direct mapping (match vibes.diy exactly)
+  if (imports["use-vibes"]) {
+    templateImports["use-vibes"] = imports["use-vibes"];
+  }
+
+  // Add absolute URL remappings - these prevent duplicate module instances
+  // by ensuring internal imports resolve to the same module
+  if (useVibesUrl) {
+    templateImports["https://esm.sh/use-fireproof"] = useVibesUrl;
+    templateImports["https://esm.sh/use-vibes"] = useVibesUrl;
   }
 
   return JSON.stringify({ imports: templateImports }, null, 6).replace(/^/gm, '  ').trim();

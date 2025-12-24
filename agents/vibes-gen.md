@@ -39,6 +39,7 @@ problem: Pain point solved
 revenue: Pricing model
 differentiator: Unique value
 -->
+<!-- IMPORTANT: Serve via HTTP (npx serve .), do not open file:// directly -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -54,7 +55,10 @@ differentiator: Unique value
               "react-dom/client": "https://esm.sh/react-dom@19.2.1/client",
               "react/jsx-runtime": "https://esm.sh/react@19.2.1/jsx-runtime",
               "use-fireproof": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor",
-              "call-ai": "https://esm.sh/call-ai@0.19.4-dev-vibes-refactor"
+              "call-ai": "https://esm.sh/call-ai@0.19.4-dev-vibes-refactor",
+              "use-vibes": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor",
+              "https://esm.sh/use-fireproof": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor",
+              "https://esm.sh/use-vibes": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor"
         }
   }
   </script>
@@ -113,3 +117,7 @@ await database.del(item._id);
 ```
 
 Be CREATIVE and SPECIFIC with clear business value.
+
+## Serving Requirement
+
+Generated files MUST be served via HTTP. Include the comment `<!-- IMPORTANT: Serve via HTTP (npx serve .), do not open file:// directly -->` in your output. This is required because esm.sh modules use internal absolute paths that only deduplicate properly when served from a web server.

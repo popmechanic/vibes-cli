@@ -103,19 +103,11 @@ All code lives inline in the HTML file:
 
 ### Import Map
 
-```json
-{
-  "imports": {
-    "react": "https://esm.sh/react@19",
-    "react-dom": "https://esm.sh/react-dom@19",
-    "react-dom/client": "https://esm.sh/react-dom@19/client",
-    "use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
-    "call-ai": "https://esm.sh/call-ai@0.18.9?external=react,react-dom"
-  }
-}
-```
+The import map is synced from the vibes.diy repository. Current values are cached in `cache/import-map.json`.
 
-The `?external=react,react-dom` prevents duplicate React instances.
+**Critical**: The import map must include 9 entries (including absolute URL remappings) to prevent duplicate React instances. Run `/vibes:sync` to update from upstream.
+
+See `CLAUDE.md` for detailed import map requirements.
 
 ## Riff Workflow
 

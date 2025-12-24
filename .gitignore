@@ -8,7 +8,8 @@
 riff-*/
 RANKINGS.md
 
-# Working cache (root level only - skills/vibes/cache is needed)
+# Working cache (gitignored - updated by sync script)
+# Note: skills/vibes/cache/ is git-tracked and ships with the plugin as default values
 /cache/
 
 # Plan files

@@ -1,10 +1,11 @@
 {
-  "lastUpdated": "2025-12-24T07:36:18.859Z",
+  "lastUpdated": "2025-12-24T19:38:34.752Z",
   "source": "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/vibes.diy/pkg/app/config/import-map.ts",
   "imports": {
     "react-dom": "https://esm.sh/react-dom@19.2.1",
     "react-dom/client": "https://esm.sh/react-dom@19.2.1/client",
     "react/jsx-runtime": "https://esm.sh/react@19.2.1/jsx-runtime",
+    "react": "https://esm.sh/react@19.2.1",
     "use-fireproof": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor",
     "call-ai": "https://esm.sh/call-ai@0.19.4-dev-vibes-refactor",
     "use-vibes": "https://esm.sh/use-vibes@0.19.4-dev-vibes-refactor",
