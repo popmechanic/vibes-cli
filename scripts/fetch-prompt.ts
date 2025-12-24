@@ -232,27 +232,27 @@ async function fetchImportMap(force: boolean): Promise<FetchResult> {
 
 /**
  * Generate the import map JSON string for templates
+ * Must match vibes.diy import map EXACTLY
  */
 function generateImportMapJson(imports: Record<string, string>): string {
-  // Extract react version from react-dom URL
   const reactDomUrl = imports["react-dom"] || "https://esm.sh/react-dom@19";
   const reactVersion = reactDomUrl.match(/@(\d+\.\d+\.\d+)/)?.[1] || "19";
 
-  // Build the template import map with externals
   const templateImports: Record<string, string> = {
     "react": `https://esm.sh/react@${reactVersion}`,
     "react-dom": imports["react-dom"],
     "react-dom/client": imports["react-dom/client"],
+    "react/jsx-runtime": `https://esm.sh/react@${reactVersion}/jsx-runtime`,
   };
 
-  // Add use-fireproof with externals
+  // Add use-fireproof WITHOUT ?external suffix (match vibes.diy)
   if (imports["use-fireproof"]) {
-    templateImports["use-fireproof"] = imports["use-fireproof"] + "?external=react,react-dom";
+    templateImports["use-fireproof"] = imports["use-fireproof"];
   }
 
-  // Add call-ai with externals if present
+  // Add call-ai WITHOUT ?external suffix (match vibes.diy)
   if (imports["call-ai"]) {
-    templateImports["call-ai"] = imports["call-ai"] + "?external=react,react-dom";
+    templateImports["call-ai"] = imports["call-ai"];
   }
 
   return JSON.stringify({ imports: templateImports }, null, 6).replace(/^/gm, '  ').trim();
