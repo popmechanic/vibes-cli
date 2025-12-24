@@ -77,19 +77,39 @@ Do NOT generate the import map from memory - copy it from the template. The vers
 [How could this scale? What's the expansion path?]
 ```
 
+## UI Style (Neobrute Blueprint)
+
+**CRITICAL: Apply the Vibes visual style to all generated apps.**
+
+- **Neo-brutalist aesthetic**: blocky geometry, oversized controls, thick 4-12px outlines
+- **Hard shadow plates**: offset 6-12px bottom-right; active press reduces offset by 2-4px
+- **Background**: grey-blue graph paper via CSS—base #f1f5f9, grid from repeating-linear-gradients in #cbd5e1/#94a3b8 at 16-24px
+- **Corner rule**: components are either square (0px radius) OR very rounded (50% of height)—no in-between radii
+- **Color palette**: #f1f5f9 #cbd5e1 #94a3b8 #64748b #0f172a #242424 #ffffff
+- **Never use white text**—#ffffff is for surfaces only
+- **Spacing scale**: 4/8/16/24px
+- **Tap targets**: minimum 48x48px
+
 ## Code Style
 
 ```javascript
 // Always use this shorthand
 const e = React.createElement;
 
-// Component syntax
-function MyComponent({ prop }) {
-  return e("div", { className: "p-4" },
-    e("h1", null, "Title"),
-    e("p", null, prop)
-  );
-}
+// Neo-brutalist button example
+e("button", {
+  className: "px-6 py-3 bg-[#f1f5f9] border-4 border-[#0f172a] shadow-[6px_6px_0px_#0f172a] hover:shadow-[4px_4px_0px_#0f172a] active:shadow-[2px_2px_0px_#0f172a] active:translate-x-[2px] active:translate-y-[2px] font-bold text-[#0f172a]"
+}, "Click Me")
+
+// Graph paper background
+const bgStyle = {
+  backgroundImage: `
+    repeating-linear-gradient(0deg, transparent, transparent 23px, #cbd5e1 23px, #cbd5e1 24px),
+    repeating-linear-gradient(90deg, transparent, transparent 23px, #cbd5e1 23px, #cbd5e1 24px)
+  `
+};
+
+e("div", { className: "min-h-screen bg-[#f1f5f9]", style: bgStyle }, /* children */)
 
 // Always wrap App in HiddenMenuWrapper
 ReactDOM.createRoot(document.getElementById("root")).render(

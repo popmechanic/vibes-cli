@@ -68,6 +68,42 @@ The user can then simply open `index.html` directly in their browser - no server
 
 When generating React components, follow these rules:
 
+### UI Style (Neobrute Blueprint)
+
+**CRITICAL: Apply the Vibes visual style to all generated apps.**
+
+Read the style prompt from `cache/style-prompt.txt` for the full styling specification. Key rules:
+
+- **Neo-brutalist aesthetic**: blocky geometry, oversized controls, thick 4-12px outlines
+- **Hard shadow plates**: offset 6-12px bottom-right; active press reduces offset by 2-4px
+- **Background**: grey-blue graph paper via CSS—base #f1f5f9, grid from repeating-linear-gradients in #cbd5e1/#94a3b8 at 16-24px
+- **Corner rule**: components are either square (0px radius) OR very rounded (50% of height)—no in-between radii
+- **Color palette**: #f1f5f9 #cbd5e1 #94a3b8 #64748b #0f172a #242424 #ffffff
+- **Never use white text**—#ffffff is for surfaces only
+- **Spacing scale**: 4/8/16/24px
+- **Tap targets**: minimum 48x48px
+- **Mobile-first**: single-column on phones, expand to 2-4 columns at breakpoints
+
+Example Tailwind classes for neo-brutalist buttons:
+```javascript
+e("button", {
+  className: "px-6 py-3 bg-[#f1f5f9] border-4 border-[#0f172a] rounded-none shadow-[6px_6px_0px_#0f172a] hover:shadow-[4px_4px_0px_#0f172a] active:shadow-[2px_2px_0px_#0f172a] active:translate-x-[2px] active:translate-y-[2px] font-bold text-[#0f172a]"
+}, "Click Me")
+```
+
+Example graph paper background:
+```javascript
+e("div", {
+  className: "min-h-screen bg-[#f1f5f9]",
+  style: {
+    backgroundImage: `
+      repeating-linear-gradient(0deg, transparent, transparent 23px, #cbd5e1 23px, #cbd5e1 24px),
+      repeating-linear-gradient(90deg, transparent, transparent 23px, #cbd5e1 23px, #cbd5e1 24px)
+    `
+  }
+}, /* children */)
+```
+
 ### Language & Framework
 - Use **JavaScript only** (no TypeScript)
 - Use **modern React practices** with hooks
@@ -177,24 +213,37 @@ function App() {
     descending: true
   });
 
-  return e("div", { className: "max-w-md mx-auto p-4" },
-    e("h1", { className: "text-2xl font-bold mb-4" }, "My App"),
-    e("form", { onSubmit: submit, className: "mb-4" },
-      e("input", {
-        type: "text",
-        value: doc.text,
-        onChange: (ev) => merge({ text: ev.target.value }),
-        className: "w-full border rounded px-3 py-2",
-        placeholder: "Enter text..."
-      }),
-      e("button", {
-        type: "submit",
-        className: "mt-2 px-4 py-2 bg-blue-500 text-white rounded"
-      }, "Save")
-    ),
-    e("ul", { className: "space-y-2" },
-      docs.map((item) =>
-        e("li", { key: item._id, className: "p-2 bg-gray-100 rounded" }, item.text)
+  // Neo-brutalist graph paper background
+  const bgStyle = {
+    backgroundImage: `
+      repeating-linear-gradient(0deg, transparent, transparent 23px, #cbd5e1 23px, #cbd5e1 24px),
+      repeating-linear-gradient(90deg, transparent, transparent 23px, #cbd5e1 23px, #cbd5e1 24px)
+    `
+  };
+
+  return e("div", { className: "min-h-screen bg-[#f1f5f9] p-4", style: bgStyle },
+    e("div", { className: "max-w-md mx-auto" },
+      e("h1", { className: "text-2xl font-bold mb-4 text-[#0f172a]" }, "My App"),
+      e("form", { onSubmit: submit, className: "mb-4" },
+        e("input", {
+          type: "text",
+          value: doc.text,
+          onChange: (ev) => merge({ text: ev.target.value }),
+          className: "w-full border-4 border-[#0f172a] px-4 py-3 bg-white text-[#0f172a] placeholder-[#64748b]",
+          placeholder: "Enter text..."
+        }),
+        e("button", {
+          type: "submit",
+          className: "mt-4 px-6 py-3 bg-[#f1f5f9] border-4 border-[#0f172a] shadow-[6px_6px_0px_#0f172a] hover:shadow-[4px_4px_0px_#0f172a] active:shadow-[2px_2px_0px_#0f172a] active:translate-x-[2px] active:translate-y-[2px] font-bold text-[#0f172a]"
+        }, "Save")
+      ),
+      e("ul", { className: "space-y-4" },
+        docs.map((item) =>
+          e("li", {
+            key: item._id,
+            className: "p-4 bg-white border-4 border-[#0f172a] shadow-[4px_4px_0px_#0f172a] text-[#0f172a]"
+          }, item.text)
+        )
       )
     )
   );
