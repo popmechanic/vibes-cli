@@ -120,18 +120,23 @@ e("input", {
 
 ## Fireproof API
 
+Fireproof is a local-first database - no loading or error states required, just empty data states. Data persists across sessions and can sync in real-time.
+
 ### Setup
 ```javascript
 const { useLiveQuery, useDocument, database } = useFireproof("my-app-db");
 ```
 
 ### useDocument - Form State (NOT useState)
+
+**IMPORTANT**: Don't use `useState()` for form data. Use `merge()` and `submit()` from `useDocument`. Only use `useState` for ephemeral UI state (active tabs, open/closed panels).
+
 ```javascript
-// Create new documents (auto-generated _id)
+// Create new documents (auto-generated _id recommended)
 const { doc, merge, submit, reset } = useDocument({ text: "", type: "item" });
 
-// Edit existing document by _id
-const { doc, merge, save } = useDocument({ _id: "known-id" });
+// Edit existing document by known _id
+const { doc, merge, save } = useDocument({ _id: "user-profile:abc@example.com" });
 
 // Methods:
 // - merge(updates) - update fields: merge({ text: "new value" })
@@ -142,26 +147,47 @@ const { doc, merge, save } = useDocument({ _id: "known-id" });
 
 ### useLiveQuery - Real-time Lists
 
-**IMPORTANT**: Always use static keys. NEVER reference React state in query functions (causes infinite loops). Filter in render instead.
+Data is queried by sorted indexes. Use strings, numbers, booleans, or arrays for grouping.
 
 ```javascript
-// Query by field value
+// Simple: query by field value
 const { docs } = useLiveQuery("type", { key: "item" });
 
-// To filter by state, query all then filter:
-const { docs } = useLiveQuery("type", { key: "item" });
-const filtered = docs.filter(d => d.category === selectedCategory); // filter in render
-
-// Recent items (descending by _id is roughly temporal)
-const { docs } = useLiveQuery("_id", { descending: true, limit: 20 });
+// Recent items (_id is roughly temporal - great for simple sorting)
+const { docs } = useLiveQuery("_id", { descending: true, limit: 100 });
 
 // Range query
 const { docs } = useLiveQuery("rating", { range: [3, 5] });
+```
 
-// Custom index with array keys
+#### Custom Index Functions
+
+**CRITICAL**: Custom index functions are SANDBOXED and CANNOT access external variables (including React state). They are serialized and run in isolation.
+
+```javascript
+// GOOD: Static index function with prefix query
 const { docs } = useLiveQuery(
-  (doc) => [doc.category, doc.priority],
-  { prefix: ["work"] }
+  (doc) => doc.type === "item" ? [doc.category, doc.createdAt] : null,
+  { prefix: ["work"] }  // prefix is static
+);
+
+// GOOD: Query all, filter in render (for dynamic filtering)
+const { docs: allItems } = useLiveQuery("type", { key: "item" });
+const filtered = allItems.filter(d => d.category === selectedCategory);
+
+// BAD - CAUSES INFINITE LOOPS (can't access selectedCategory inside function)
+const { docs } = useLiveQuery(
+  (doc) => doc.category === selectedCategory ? doc._id : null  // selectedCategory is undefined!
+);
+```
+
+#### Array Indexes for Grouping
+
+```javascript
+// Group by date parts
+const { docs } = useLiveQuery(
+  (doc) => [doc.year, doc.month, doc.day],
+  { prefix: [2024, 11] }  // all November 2024
 );
 ```
 
@@ -170,22 +196,28 @@ const { docs } = useLiveQuery(
 // Create/update
 const { id } = await database.put({ text: "hello", type: "item" });
 
-// Update existing
+// Update existing (must include _id)
 await database.put({ ...existingDoc, text: "updated" });
 
 // Delete
 await database.del(item._id);
 ```
 
+### Best Practices
+
+- **Granular documents**: One document per user action. Avoid documents that grow without bound.
+- **Use type field**: Add `type: "item"` to documents for easy querying by category.
+- **Auto-generated _id**: Let Fireproof generate IDs for uniqueness. Use explicit IDs only for known resources (user profiles, schedule slots).
+
 ### Common Pattern - Form + List
 ```javascript
 function App() {
   const { useLiveQuery, useDocument, database } = useFireproof("my-db");
 
-  // Form for new items
+  // Form for new items (submit resets for next entry)
   const { doc, merge, submit } = useDocument({ text: "", type: "item" });
 
-  // Live list
+  // Live list of all items of type "item"
   const { docs } = useLiveQuery("type", { key: "item" });
 
   return e("div", null,
