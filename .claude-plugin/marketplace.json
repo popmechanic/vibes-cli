@@ -11,10 +11,7 @@
   "plugins": [
     {
       "name": "vibes",
-      "source": {
-        "source": "github",
-        "repo": "popmechanic/vibes-skill"
-      },
+      "source": "./plugins/vibes",
       "description": "Generate React web apps with Fireproof database - no build step, deploy anywhere",
       "version": "1.0.0",
       "author": {
