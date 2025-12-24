@@ -1,5 +1,5 @@
 ---
-name: vibes:riff
+name: riff
 description: Generate multiple Vibes app variations in parallel with business models and rankings. Use when exploring different interpretations of a broad objective or loose creative prompt.
 ---
 
