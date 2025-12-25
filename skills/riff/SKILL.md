@@ -46,7 +46,7 @@ echo "All ${count} riffs generated!"
 
 Example for count=3:
 ```bash
-PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.43"
+PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.44"
 node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 1 riff-1/app.jsx &
 node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 2 riff-2/app.jsx &
 node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 3 riff-3/app.jsx &
@@ -106,7 +106,7 @@ Open index.html for gallery, RANKINGS.md for detailed analysis.
 To get the plugin directory path, use:
 ```bash
 # The plugin is installed at ~/.claude/plugins/cache/vibes-diy/vibes/VERSION/
-PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.43"
+PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.44"
 ```
 
 Or locate it dynamically if needed.
