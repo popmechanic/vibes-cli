@@ -19,41 +19,17 @@ description: Generate multiple Vibes app variations in parallel with business mo
 
 Generate multiple app variations in parallel. Each riff is a different INTERPRETATION - different ideas, not just styling.
 
-## Environment Detection
-
-Before starting, detect the environment:
-
-```bash
-# Check if in a GitHub repo
-GITHUB_REMOTE=$(git remote get-url origin 2>/dev/null | grep -o "github.com[:/][^/]*/[^/.]*" | sed 's/github.com[:/]//' || echo "")
-```
-
-| Environment | Behavior |
-|-------------|----------|
-| **No git / non-GitHub** | Generate locally, output `file://` paths |
-| **GitHub repo** | Generate, commit, push, output GitHub Pages URLs |
-
 ## Workflow
 
 ### Step 1: Gather Requirements
 Ask for: **prompt** (broad/loose is fine) and **count** (1-10, recommend 3-5)
 
-### Step 2: Create Session Folder
-
-Slugify the prompt for the folder name:
-```bash
-# Convert "Christmas Holiday Apps" → "christmas-holiday-apps"
-THEME_SLUG=$(echo "${prompt}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')
-mkdir -p "${THEME_SLUG}"
-cd "${THEME_SLUG}"
-```
-
-### Step 3: Create Riff Directories
+### Step 2: Create Riff Directories
 ```bash
 mkdir -p riff-1 riff-2 riff-3 ...
 ```
 
-### Step 4: Generate Riffs in Parallel
+### Step 3: Generate Riffs in Parallel
 
 **Use the bundled script to generate riffs in parallel.** Each script instance calls `claude -p` (uses subscription tokens) and writes directly to disk.
 
@@ -70,7 +46,7 @@ echo "All ${count} riffs generated!"
 
 Example for count=3:
 ```bash
-PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.52"
+PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.53"
 node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 1 riff-1/app.jsx &
 node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 2 riff-2/app.jsx &
 node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 3 riff-3/app.jsx &
@@ -83,7 +59,7 @@ wait
 - Background processes (`&`) run in parallel → true concurrency
 - Main agent only sees "✓ riff-N/app.jsx" output → minimal tokens
 
-### Step 5: Assemble HTML
+### Step 4: Assemble HTML
 
 Convert each app.jsx to a complete index.html:
 
@@ -91,7 +67,7 @@ Convert each app.jsx to a complete index.html:
 node ${PLUGIN_DIR}/scripts/assemble-all.js riff-1 riff-2 riff-3 ...
 ```
 
-### Step 6: Evaluate & Rank
+### Step 5: Evaluate & Rank
 
 Read the generated apps and create rankings:
 
@@ -105,7 +81,7 @@ Then create RANKINGS.md with:
 - Scores: Originality, Market Potential, Feasibility, Monetization, Wow Factor (1-10 each)
 - Recommendations: best for solo founder, fastest to ship, most innovative
 
-### Step 7: Generate Gallery
+### Step 6: Generate Gallery
 
 Create index.html gallery page with:
 - Dark theme (#0a0a0f background)
@@ -114,53 +90,54 @@ Create index.html gallery page with:
 - Responsive grid layout
 - Self-contained with inline styles
 
-### Step 8: Update Landing Page & Git (if in GitHub repo)
+### Step 7: Present Results
 
-If `GITHUB_REMOTE` was detected:
-
-```bash
-cd ..  # Back to repo root
-
-# Update the landing page
-node ${PLUGIN_DIR}/scripts/update-landing.js .
-
-# Commit and push
-git add "${THEME_SLUG}/" index.html
-git commit -m "Add ${THEME_SLUG} riffs"
-git push
-```
-
-### Step 9: Present Results
-
-**Local environment:**
 ```
 Generated ${count} riffs for "${prompt}":
 #1: riff-X - App Name (XX/50)
 #2: riff-Y - App Name (XX/50)
 ...
 
-Open ${THEME_SLUG}/index.html for gallery
+Open index.html for gallery, or browse riff-1/, riff-2/, etc.
 ```
 
-**GitHub Pages environment:**
-```
-Generated ${count} riffs for "${prompt}":
-#1: riff-X - App Name (XX/50)
-#2: riff-Y - App Name (XX/50)
-...
+### Step 8: Optional - Publish to GitHub Pages
 
-Pushed to GitHub! Your riffs will be live in ~2-5 minutes at:
-Gallery: https://${username}.github.io/${repo}/${THEME_SLUG}/
-Riff 1:  https://${username}.github.io/${repo}/${THEME_SLUG}/riff-1/
-...
-```
+After presenting results, ask the user:
+
+> "Would you like to publish these riffs to GitHub Pages for live URLs?"
+
+If yes:
+1. Ask for a session name (for the folder, e.g., "christmas-riffs")
+2. Create folder and move files:
+   ```bash
+   SESSION_SLUG=$(echo "${session_name}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')
+   mkdir -p "${SESSION_SLUG}"
+   mv riff-* index.html RANKINGS.md "${SESSION_SLUG}/"
+   ```
+3. Update landing page and push:
+   ```bash
+   node ${PLUGIN_DIR}/scripts/update-landing.js .
+   git add "${SESSION_SLUG}/" index.html
+   git commit -m "Add ${SESSION_SLUG} riffs"
+   git push
+   ```
+4. Output:
+   ```
+   Pushed! Your riffs will be live in ~2-5 minutes at:
+   Gallery: https://${username}.github.io/${repo}/${SESSION_SLUG}/
+   Riff 1:  https://${username}.github.io/${repo}/${SESSION_SLUG}/riff-1/
+   ...
+   ```
+
+If user declines, leave files in current directory.
 
 ## Plugin Directory
 
 To get the plugin directory path, use:
 ```bash
 # The plugin is installed at ~/.claude/plugins/cache/vibes-diy/vibes/VERSION/
-PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.52"
+PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.53"
 ```
 
 Or locate it dynamically if needed.
