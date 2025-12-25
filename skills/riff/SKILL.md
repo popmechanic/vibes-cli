@@ -39,7 +39,7 @@ Task({
   prompt: `
     # Riff ${N}/${total}: ${user_prompt}
 
-    Write a Vibes app to: riff-${N}/app.jsx
+    USE THE WRITE TOOL to create: riff-${N}/app.jsx
 
     ## Interpretation Lens
     ${N}=1: Minimalist | 2: Social | 3: Gamified | 4: Professional
@@ -86,7 +86,7 @@ Task({
     Read each riff-*/index.html (business model in <!--BUSINESS--> comment).
     Score each 1-10 on: Originality, Market Potential, Feasibility, Monetization, Wow Factor.
 
-    Write RANKINGS.md with:
+    USE THE WRITE TOOL to create RANKINGS.md with:
     - Summary table (rank, name, score/50)
     - Detailed scores per riff
     - Recommendations: best for solo founder, fastest to ship, most innovative
@@ -100,7 +100,7 @@ Task({
 Task({
   subagent_type: "general-purpose",
   prompt: `
-    Create gallery at ${base_path}/index.html
+    USE THE WRITE TOOL to create: ${base_path}/index.html
 
     Read RANKINGS.md and riff-*/index.html files.
     Dark theme (#0a0a0f), glass cards, purple/cyan accents.
