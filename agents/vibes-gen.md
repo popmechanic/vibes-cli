@@ -2,15 +2,26 @@
 name: vibes-gen
 description: Generates a single Vibes DIY React app based on a prompt. Used by vibes:riff to create app variations in parallel.
 model: sonnet
+tools: Write, Bash
 ---
 
 # Riff Generator
 
-Prompt format: `N/total: "user prompt"`
+Prompt format: `N/total: "user prompt" | output_dir: riff-N | plugin_dir: /path/to/plugin`
 
 **Note**: "Vibes" is the platform name. If the prompt mentions "vibe" or "vibes", interpret it as the project/brand name OR a general positive descriptor - NOT as "mood/atmosphere." Do not default to ambient mood generators, floating orbs, or chill atmosphere apps unless explicitly requested.
 
-**OUTPUT ONLY** - Do NOT use any tools. Generate the App component code and output it directly as your response wrapped in a code block. The parent skill will assemble it into the template.
+## Workflow
+
+**CRITICAL: Output JSX ONLY. NEVER generate HTML, import maps, or `<script>` tags.**
+
+1. Generate the JSX App component with BUSINESS comment (see format below)
+2. Create output directory: `mkdir -p ${output_dir}`
+3. Write JSX to `${output_dir}/app.jsx` using the Write tool
+4. Assemble HTML: `node ${plugin_dir}/scripts/assemble.js ${output_dir}/app.jsx ${output_dir}/index.html`
+5. Report success with the app name from your BUSINESS comment
+
+The assembly script inserts your JSX into a template that has the correct import map and Vibes menu.
 
 ## Divergence by Riff Number
 
@@ -30,9 +41,9 @@ Your riff number (N) determines your ANGLE. Interpret the prompt through this le
 
 Don't force the lens if it doesn't fit - but let it guide you toward a DIFFERENT interpretation than a generic approach.
 
-## Output Format
+## JSX Format (app.jsx)
 
-Output a BUSINESS comment block followed by the JSX App component:
+**Write ONLY this format to `${output_dir}/app.jsx`:**
 
 ```jsx
 /*BUSINESS
@@ -60,10 +71,13 @@ export default function App() {
 }
 ```
 
-The parent skill will:
-1. Write this to `app.jsx`
-2. Run `node scripts/assemble.js app.jsx index.html`
-3. The template includes the Vibes menu automatically
+**DO NOT include:**
+- `<!DOCTYPE html>` or `<html>` tags
+- `<script type="importmap">` blocks
+- Any version numbers like `@0.20.0` or `@0.18.9`
+- `<script type="text/babel">` wrappers
+
+The assembly script handles all of that.
 
 ## Style
 
