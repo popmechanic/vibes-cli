@@ -21,20 +21,6 @@ Generate React web applications using Fireproof for local-first data persistence
 
 **Note**: "Vibes" is the name of this app platform. If the user mentions "vibe" or "vibes" in their prompt, interpret it as their project/brand name OR as a general positive descriptor - NOT as "mood/atmosphere." Do not default to ambient mood generators, floating orbs, or chill atmosphere apps unless explicitly requested.
 
-## Environment Detection
-
-Before starting, detect the environment:
-
-```bash
-# Check if in a GitHub repo
-GITHUB_REMOTE=$(git remote get-url origin 2>/dev/null | grep -o "github.com[:/][^/]*/[^/.]*" | sed 's/github.com[:/]//' || echo "")
-```
-
-| Environment | Behavior |
-|-------------|----------|
-| **No git / non-GitHub** | Generate to current dir, output `file://` path |
-| **GitHub repo** | Ask for app name, generate to folder, commit, push, output Pages URL |
-
 ## Core Rules
 
 - **Use JSX** - Standard React syntax with Babel transpilation
@@ -64,41 +50,40 @@ export default function App() {
 
 ## Assembly Workflow
 
-### Local Environment (no GitHub)
-
 1. Write the App code to `app.jsx`
 2. Copy template: `cp ${PLUGIN_DIR}/skills/vibes/templates/index.html index.html`
 3. Run assembly: `node ${PLUGIN_DIR}/scripts/assemble.js app.jsx index.html`
-4. Open `index.html` in your browser
+4. Tell user: "Open `index.html` in your browser to view your app."
 
-### GitHub Pages Environment
+### Optional: Publish to GitHub Pages
 
-If in a GitHub repo, ask user for an app name, then:
+After the app is working locally, ask the user:
 
-```bash
-# Slugify app name: "My Todo App" → "my-todo-app"
-APP_SLUG=$(echo "${app_name}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')
-mkdir -p "${APP_SLUG}"
-```
+> "Would you like to publish this to GitHub Pages for a live URL?"
 
-1. Write the App code to `${APP_SLUG}/app.jsx`
-2. Copy template to `${APP_SLUG}/index.html`
-3. Run assembly: `node ${PLUGIN_DIR}/scripts/assemble.js ${APP_SLUG}/app.jsx ${APP_SLUG}/index.html`
-4. Update landing page:
+If yes:
+1. Ask for an app name (for the folder)
+2. Check if in a GitHub repo with Pages enabled
+3. Create folder and move files:
+   ```bash
+   APP_SLUG=$(echo "${app_name}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')
+   mkdir -p "${APP_SLUG}"
+   mv app.jsx index.html "${APP_SLUG}/"
+   ```
+4. Update landing page and push:
    ```bash
    node ${PLUGIN_DIR}/scripts/update-landing.js .
-   ```
-5. Commit and push:
-   ```bash
    git add "${APP_SLUG}/" index.html
    git commit -m "Add ${APP_SLUG}"
    git push
    ```
-6. Output GitHub Pages URL:
+5. Output:
    ```
    Pushed! Your app will be live in ~2-5 minutes at:
    https://${username}.github.io/${repo}/${APP_SLUG}/
    ```
+
+If user declines, just leave files in current directory.
 
 ---
 
