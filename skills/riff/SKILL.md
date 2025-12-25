@@ -46,7 +46,7 @@ echo "All ${count} riffs generated!"
 
 Example for count=3:
 ```bash
-PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.53"
+PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.54"
 node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 1 riff-1/app.jsx &
 node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 2 riff-2/app.jsx &
 node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 3 riff-3/app.jsx &
@@ -69,12 +69,18 @@ node ${PLUGIN_DIR}/scripts/assemble-all.js riff-1 riff-2 riff-3 ...
 
 ### Step 5: Evaluate & Rank
 
-Read the generated apps and create rankings:
+Read the **pitch.md** files (NOT the full code) for fast evaluation:
 
 ```bash
-# Read all the generated apps
-cat riff-*/index.html
+# Read pitch files - contains reasoning about theme, colors, functionality
+cat riff-*/pitch.md
+
+# Also read BUSINESS comments for app names (just first 10 lines of each)
+head -10 riff-*/app.jsx
 ```
+
+**pitch.md** contains the model's reasoning about theme, colors, and design choices.
+**BUSINESS comment** (top of app.jsx) contains: name, pitch, customer, revenue.
 
 Then create RANKINGS.md with:
 - Summary table (rank, name, score/50)
@@ -137,7 +143,7 @@ If user declines, leave files in current directory.
 To get the plugin directory path, use:
 ```bash
 # The plugin is installed at ~/.claude/plugins/cache/vibes-diy/vibes/VERSION/
-PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.53"
+PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.54"
 ```
 
 Or locate it dynamically if needed.
