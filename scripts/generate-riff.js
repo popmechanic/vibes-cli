@@ -86,8 +86,14 @@ Requirements:
 - Make it visually distinctive and immersive`;
 
 try {
-  // Escape the prompt for shell
-  const escapedPrompt = prompt.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+  // Escape the prompt for shell - handle backticks, dollars, double quotes, and parentheses
+  const escapedPrompt = prompt
+    .replace(/\\/g, '\\\\')     // Escape backslashes first
+    .replace(/`/g, '\\`')       // Escape backticks
+    .replace(/\$/g, '\\$')      // Escape dollar signs
+    .replace(/"/g, '\\"')       // Escape double quotes
+    .replace(/\(/g, '\\(')      // Escape open parens
+    .replace(/\)/g, '\\)');     // Escape close parens
 
   const output = execSync(`claude -p "${escapedPrompt}"`, {
     encoding: 'utf-8',
