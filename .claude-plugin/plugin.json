@@ -1,6 +1,6 @@
 {
   "name": "vibes",
-  "description": "Generate React web apps with Fireproof database - no build step, deploy anywhere",
+  "description": "Vibes is the vibe coding web stack made for AI agents.",
   "version": "1.0.7",
   "author": {
     "name": "Vibes DIY",
