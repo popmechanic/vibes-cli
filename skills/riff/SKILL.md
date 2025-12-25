@@ -71,17 +71,25 @@ Task({
 TaskOutput({ task_id: agent_id_1, block: true })
 TaskOutput({ task_id: agent_id_2, block: true })
 // ... for each agent
+```
 
-// Main agent writes all files (has Bash permission, subagents don't)
-Bash: cat > riff-1/app.jsx << 'EOF'
+**IMPORTANT: Use the Bash tool (NOT Write tool) for speed.**
+
+Write all files in parallel with multiple Bash tool calls in a single message:
+
+```bash
+cat > riff-1/app.jsx << 'EOF'
 ${result_1_code}
 EOF
+```
 
-Bash: cat > riff-2/app.jsx << 'EOF'
+```bash
+cat > riff-2/app.jsx << 'EOF'
 ${result_2_code}
 EOF
-// ... for each riff
 ```
+
+The Bash tool writes instantly. The Write tool is slow (waits for each file).
 
 ### Step 6: Assemble HTML
 ```bash
