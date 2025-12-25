@@ -70,7 +70,7 @@ echo "All ${count} riffs generated!"
 
 Example for count=3:
 ```bash
-PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.49"
+PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.50"
 node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 1 riff-1/app.jsx &
 node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 2 riff-2/app.jsx &
 node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 3 riff-3/app.jsx &
@@ -114,13 +114,18 @@ Create index.html gallery page with:
 - Responsive grid layout
 - Self-contained with inline styles
 
-### Step 8: Git Workflow (if in GitHub repo)
+### Step 8: Update Landing Page & Git (if in GitHub repo)
 
 If `GITHUB_REMOTE` was detected:
 
 ```bash
 cd ..  # Back to repo root
-git add "${THEME_SLUG}/"
+
+# Update the landing page
+node ${PLUGIN_DIR}/scripts/update-landing.js .
+
+# Commit and push
+git add "${THEME_SLUG}/" index.html
 git commit -m "Add ${THEME_SLUG} riffs"
 git push
 ```
@@ -155,7 +160,7 @@ Riff 1:  https://${username}.github.io/${repo}/${THEME_SLUG}/riff-1/
 To get the plugin directory path, use:
 ```bash
 # The plugin is installed at ~/.claude/plugins/cache/vibes-diy/vibes/VERSION/
-PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.49"
+PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.50"
 ```
 
 Or locate it dynamically if needed.
