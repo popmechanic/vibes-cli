@@ -125,10 +125,10 @@ try {
   // Write the generated code
   fs.writeFileSync(outputPath, cleanCode);
 
-  // Save reasoning for debugging if present
+  // Save reasoning as pitch for evaluator
   if (reasoningMatch) {
-    const reasoningPath = outputPath.replace(/\.jsx$/, '.reasoning.md');
-    fs.writeFileSync(reasoningPath, `# Reasoning for ${path.basename(outputPath)}\n\n${reasoningMatch[1].trim()}`);
+    const pitchPath = path.join(path.dirname(outputPath), 'pitch.md');
+    fs.writeFileSync(pitchPath, `# Pitch\n\n${reasoningMatch[1].trim()}`);
   }
 
   console.log(`✓ ${outputPath}`);
