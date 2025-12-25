@@ -55,3 +55,19 @@ The `general-purpose` subagent can then write files using normal Claude Code per
 Deleted the `agents/` directory entirely. All instructions are now inlined in `skills/riff/SKILL.md`.
 
 The skill uses `general-purpose` subagents with embedded prompts - no plugin agents needed.
+
+## The Bash Workaround
+
+Even `general-purpose` subagents couldn't use the Write tool ("I'm unable to create the file").
+However, **Bash works!** All file creation now uses heredoc:
+
+```bash
+cat > riff-1/app.jsx << 'ENDOFJSX'
+...jsx code...
+ENDOFJSX
+```
+
+This applies to:
+- Step 3: Generate Riffs (app.jsx files)
+- Step 5: Evaluate (RANKINGS.md)
+- Step 6: Gallery (index.html)
