@@ -43,55 +43,47 @@ Use the AskUserQuestion tool to collect:
 1. **The prompt** - What's the objective? (Can be broad/loose)
 2. **Number of riffs** - How many variations? (1-10, recommend 3-5)
 
-### Step 2: Launch Parallel Subagents
+### Step 2: Create Directories
 
-For each riff, launch `vibes:vibes-gen` with `run_in_background: true`:
+```javascript
+Bash({ command: "mkdir -p riff-1 riff-2 riff-3 ..." })
+```
+
+### Step 3: Launch Parallel Subagents
+
+Each subagent generates AND writes its own file. Include the output path in the prompt:
 
 ```javascript
 Task({
-  prompt: `${N}/${total}: "${user_prompt}"`,
+  prompt: `${N}/${total}: riff-${N}/app.jsx | "${user_prompt}"`,
   subagent_type: "vibes:vibes-gen",
   run_in_background: true,
   description: `Generate riff-${N}`
 })
 ```
 
-### Step 3: Collect JSX Outputs
+**Note**: Subagents write files directly. Users must enable this with:
+```json
+// ~/.claude/settings.json
+{ "permissions": { "allow": ["Write(riff-*/app.jsx)"] } }
+```
 
-Use TaskOutput to wait for all subagents. Each returns JSX in a code block. Extract the JSX from each response.
+### Step 4: Wait for Subagents
 
-### Step 4: Write and Assemble All Files
+Use TaskOutput to wait for all subagents. Each confirms: `Wrote riff-N/app.jsx`
 
-**This step requires only 2 permission prompts total.**
+### Step 5: Assemble All HTML Files
 
-1. Build a JSON object mapping file paths to JSX content
-2. Write the JSON to a temporary file (1 Write prompt)
-3. Run a single Bash command that writes all files AND assembles them (1 Bash prompt)
+Single Bash call to assemble all riffs:
 
 ```javascript
-// Build JSON: { "riff-1/app.jsx": jsxCode1, "riff-2/app.jsx": jsxCode2, ... }
-const files = {
-  "riff-1/app.jsx": jsx1,
-  "riff-2/app.jsx": jsx2,
-  // ... for each riff
-};
-
-// ONE Write call - writes JSON file (no shell escaping issues)
-Write({
-  file_path: "riffs.json",
-  content: JSON.stringify(files, null, 2)
-})
-
-// ONE Bash call - writes all JSX files AND assembles all HTML files
 Bash({
-  command: `node ${plugin_dir}/scripts/write-riffs.js < riffs.json && node ${plugin_dir}/scripts/assemble-all.js riff-1 riff-2 riff-3 ... && rm riffs.json`,
-  description: "Write and assemble all riffs"
+  command: `node ${plugin_dir}/scripts/assemble-all.js riff-1 riff-2 riff-3 ...`,
+  description: "Assemble all riffs"
 })
 ```
 
-Both scripts run operations in parallel internally.
-
-### Step 5: Run Evaluator
+### Step 6: Run Evaluator
 
 Use `pwd` result as `${base_path}`:
 
@@ -103,7 +95,7 @@ Task({
 })
 ```
 
-### Step 6: Generate Gallery
+### Step 7: Generate Gallery
 
 ```javascript
 Task({
@@ -113,7 +105,7 @@ Task({
 })
 ```
 
-### Step 7: Present Results
+### Step 8: Present Results
 
 Summarize the results for the user:
 
