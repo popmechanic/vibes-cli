@@ -33,29 +33,26 @@ Use the AskUserQuestion tool to collect:
 
 ### Step 2: Launch Parallel Subagents
 
-For each riff, launch `vibes-gen` with `run_in_background: true`:
+Get the plugin directory from your skill context (the base directory path). For each riff, launch `vibes-gen` with `run_in_background: true`:
 
 ```javascript
 Task({
-  prompt: `${N}/${total}: "${user_prompt}"`,
+  prompt: `${N}/${total}: "${user_prompt}" | output_dir: riff-${N} | plugin_dir: ${plugin_base_dir}`,
   subagent_type: "vibes-gen",
   run_in_background: true,
   description: `Generate riff-${N}`
 })
 ```
 
-### Step 3: Wait and Collect Outputs
+The `plugin_dir` should be the parent of the `skills/` directory (e.g., if your skill base is `.../vibes/1.0.0/skills/riff`, use `.../vibes/1.0.0`).
 
-Use TaskOutput to wait for all subagents. Each returns HTML in a code block.
+### Step 3: Wait for Completion
 
-### Step 4: Write Files
+Use TaskOutput to wait for all subagents. Each agent writes its own files:
+- `riff-N/app.jsx` - The JSX source
+- `riff-N/index.html` - The assembled HTML with Vibes menu
 
-Get the current working directory with `pwd`, then for each completed task:
-1. Extract HTML from the code block in the output
-2. Create directory: `mkdir -p riff-N`
-3. Write: `riff-N/index.html`
-
-### Step 5: Run Evaluator
+### Step 4: Run Evaluator
 
 Use `pwd` result as `${base_path}`:
 
@@ -67,7 +64,7 @@ Task({
 })
 ```
 
-### Step 6: Generate Gallery
+### Step 5: Generate Gallery
 
 ```javascript
 Task({
@@ -77,7 +74,7 @@ Task({
 })
 ```
 
-### Step 7: Present Results
+### Step 6: Present Results
 
 Summarize the results for the user:
 
