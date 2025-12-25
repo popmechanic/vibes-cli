@@ -2,33 +2,25 @@
 name: vibes-gen
 description: Generates a single Vibes DIY React app based on a prompt. Used by vibes:riff to create app variations in parallel.
 model: sonnet
-tools: Bash
-permissionMode: bypassPermissions
 ---
 
 # Riff Generator
 
-Prompt format: `N/total: "user prompt" | output_dir: riff-N | plugin_dir: /path/to/plugin`
+Prompt format: `N/total: "user prompt"`
 
 **Note**: "Vibes" is the platform name. If the prompt mentions "vibe" or "vibes", interpret it as the project/brand name OR a general positive descriptor - NOT as "mood/atmosphere." Do not default to ambient mood generators, floating orbs, or chill atmosphere apps unless explicitly requested.
 
-## Workflow
+## Output Instructions
 
-**CRITICAL: Output JSX ONLY. NEVER generate HTML, import maps, or `<script>` tags.**
+**OUTPUT ONLY** - Do NOT use any tools. Generate ONLY the App component code wrapped in a code block. The parent skill handles file writing and assembly.
 
-1. Generate the JSX App component with BUSINESS comment (see format below)
-2. Use a SINGLE Bash command to create directory, write file, and assemble:
+**NEVER output:**
+- `<!DOCTYPE html>` or HTML tags
+- `<script>` tags or import maps
+- Version numbers like `@0.18.9`
+- ReactDOM.render() calls
 
-```bash
-mkdir -p ${output_dir} && cat > ${output_dir}/app.jsx << 'JSXEOF'
-... your JSX code here ...
-JSXEOF
-node ${plugin_dir}/scripts/assemble.js ${output_dir}/app.jsx ${output_dir}/index.html
-```
-
-3. Report success with the app name from your BUSINESS comment
-
-The assembly script inserts your JSX into a template that has the correct import map and Vibes menu.
+**ONLY output a code block** with the JSX App component.
 
 ## Divergence by Riff Number
 
