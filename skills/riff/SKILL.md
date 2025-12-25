@@ -60,46 +60,38 @@ Task({
 
 Use TaskOutput to wait for all subagents. Each returns JSX in a code block. Extract the JSX from each response.
 
-### Step 4: Write All Files at Once
+### Step 4: Write and Assemble All Files
 
-Build a JSON object mapping file paths to content, then pipe to the write script:
+**This step requires only 2 permission prompts total.**
+
+1. Build a JSON object mapping file paths to JSX content
+2. Write the JSON to a temporary file (1 Write prompt)
+3. Run a single Bash command that writes all files AND assembles them (1 Bash prompt)
 
 ```javascript
 // Build JSON: { "riff-1/app.jsx": jsxCode1, "riff-2/app.jsx": jsxCode2, ... }
-const filesJson = JSON.stringify(filesObject);
+const files = {
+  "riff-1/app.jsx": jsx1,
+  "riff-2/app.jsx": jsx2,
+  // ... for each riff
+};
 
+// ONE Write call - writes JSON file (no shell escaping issues)
+Write({
+  file_path: "riffs.json",
+  content: JSON.stringify(files, null, 2)
+})
+
+// ONE Bash call - writes all JSX files AND assembles all HTML files
 Bash({
-  command: `echo '${filesJson.replace(/'/g, "'\\''")}' | node ${plugin_dir}/scripts/write-riffs.js`,
-  description: "Write all riff files"
+  command: `node ${plugin_dir}/scripts/write-riffs.js < riffs.json && node ${plugin_dir}/scripts/assemble-all.js riff-1 riff-2 riff-3 ... && rm riffs.json`,
+  description: "Write and assemble all riffs"
 })
 ```
 
-This is a SINGLE Bash call - one permission prompt writes all files.
+Both scripts run operations in parallel internally.
 
-### Step 5: Assemble in Parallel
-
-**⚠️ CRITICAL: Launch ALL assembly commands in a SINGLE message for true parallelism.**
-
-The plugin has PermissionRequest hooks that auto-approve `node` commands.
-
-```javascript
-// In a SINGLE message, launch ALL these Bash commands together:
-Bash({
-  command: `node ${plugin_dir}/scripts/assemble.js riff-1/app.jsx riff-1/index.html`,
-  run_in_background: true,
-  description: "Assemble riff-1"
-})
-Bash({
-  command: `node ${plugin_dir}/scripts/assemble.js riff-2/app.jsx riff-2/index.html`,
-  run_in_background: true,
-  description: "Assemble riff-2"
-})
-// ... all N riffs in ONE message
-```
-
-Wait for all assembly commands to complete before proceeding.
-
-### Step 6: Run Evaluator
+### Step 5: Run Evaluator
 
 Use `pwd` result as `${base_path}`:
 
@@ -111,7 +103,7 @@ Task({
 })
 ```
 
-### Step 7: Generate Gallery
+### Step 6: Generate Gallery
 
 ```javascript
 Task({
@@ -121,7 +113,7 @@ Task({
 })
 ```
 
-### Step 8: Present Results
+### Step 7: Present Results
 
 Summarize the results for the user:
 
