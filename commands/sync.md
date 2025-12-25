@@ -11,7 +11,7 @@ This command syncs the cached documentation and import map from upstream Vibes D
 Run the sync script from the plugin root:
 
 ```bash
-LATEST=`ls ~/.claude/plugins/cache/vibes-diy/vibes/ | sort -V | tail -1` && cd ~/.claude/plugins/cache/vibes-diy/vibes/$LATEST && node scripts/sync.js --force
+LATEST=`ls ~/.claude/plugins/cache/vibes-diy/vibes/ | sort -V | tail -1` && cd ~/.claude/plugins/cache/vibes-diy/vibes/$LATEST/scripts && npm install && cd .. && node scripts/sync.js --force
 ```
 
 This updates:
