@@ -73,30 +73,23 @@ TaskOutput({ task_id: agent_id_2, block: true })
 // ... for each agent
 ```
 
-**IMPORTANT: Use the Bash tool (NOT Write tool) for speed.**
+**CRITICAL: Write ALL files in ONE message with PARALLEL Bash calls.**
 
-Write all files in parallel with multiple Bash tool calls in a single message:
+These writes have NO dependencies - invoke ALL Bash tools in a SINGLE response.
+Do NOT wait for one write to finish before starting the next.
+Send one message containing N parallel Bash tool invocations.
 
-```bash
-cat > riff-1/app.jsx << 'EOF'
-${result_1_code}
-EOF
-```
+Example for 3 riffs - all in ONE message:
+- Bash: `cat > riff-1/app.jsx << 'EOF' ... EOF`
+- Bash: `cat > riff-2/app.jsx << 'EOF' ... EOF`
+- Bash: `cat > riff-3/app.jsx << 'EOF' ... EOF`
 
-```bash
-cat > riff-2/app.jsx << 'EOF'
-${result_2_code}
-EOF
-```
-
-The Bash tool writes instantly. The Write tool is slow (waits for each file).
-
-### Step 6: Assemble HTML
+### Step 5: Assemble HTML
 ```bash
 node ${plugin_dir}/scripts/assemble-all.js riff-1 riff-2 ...
 ```
 
-### Step 7: Evaluate & Rank
+### Step 6: Evaluate & Rank
 
 ```javascript
 // Subagent analyzes and returns markdown
@@ -122,7 +115,7 @@ ${result_markdown}
 EOF
 ```
 
-### Step 8: Generate Gallery
+### Step 7: Generate Gallery
 
 ```javascript
 // Subagent generates gallery HTML
@@ -144,7 +137,7 @@ ${result_html}
 EOF
 ```
 
-### Step 9: Present Results
+### Step 8: Present Results
 ```
 Generated ${count} riffs for "${prompt}":
 #1: riff-X - Name (XX/50)
