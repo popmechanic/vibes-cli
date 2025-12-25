@@ -163,6 +163,7 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 
 | File | Purpose |
 |------|---------|
+| `scripts/assemble.js` | Assembly script - inserts JSX into template |
 | `scripts/sync.js` | Sync script - fetches, transpiles, and updates |
 | `scripts/package.json` | Node.js deps (esbuild) |
 | `cache/import-map.json` | Working cache - package versions |
@@ -183,11 +184,21 @@ There are two cache locations by design:
 
 The sync script updates `/cache/` and the template files. The `skills/vibes/cache/` provides fallback values for users who haven't run sync yet.
 
+## Architecture: JSX + Babel
+
+The plugin now uses **JSX with Babel transpilation** (matching vibes.diy exactly):
+
+1. **Model outputs JSX** - Standard React syntax, faster to generate
+2. **Babel transpiles at runtime** - `<script type="text/babel">` in template
+3. **Assembly script** - `node scripts/assemble.js app.jsx index.html`
+
+This architecture matches vibes.diy and significantly improves generation speed.
+
 ## The React Singleton Problem
 
-### Understanding No-Build Architecture
+### Understanding the Architecture
 
-vibes.diy is a **no-build web application platform**. Users create apps that run directly in the browser without Node.js, npm, or build tools. This relies on **import maps** - a browser-native feature (since March 2023) that maps bare specifiers like `"react"` to CDN URLs.
+vibes.diy uses import maps - a browser-native feature (since March 2023) that maps bare specifiers like `"react"` to CDN URLs.
 
 ### The Core Problem
 
