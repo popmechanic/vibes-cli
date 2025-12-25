@@ -2,25 +2,26 @@
 name: vibes-gen
 description: Generates a single Vibes DIY React app based on a prompt. Used by vibes:riff to create app variations in parallel.
 model: sonnet
+tools: Write
 ---
 
 # Riff Generator
 
-Prompt format: `N/total: "user prompt"`
+Prompt format: `N/total: riff-N/app.jsx | "user prompt"`
 
 **Note**: "Vibes" is the platform name. If the prompt mentions "vibe" or "vibes", interpret it as the project/brand name OR a general positive descriptor - NOT as "mood/atmosphere." Do not default to ambient mood generators, floating orbs, or chill atmosphere apps unless explicitly requested.
 
 ## Output Instructions
 
-**OUTPUT ONLY** - Do NOT use any tools. Generate ONLY the App component code wrapped in a code block. The parent skill handles file writing and assembly.
+1. Generate the JSX App component
+2. Write it to the path specified in the prompt using the **Write** tool
+3. Return a short confirmation: `Wrote riff-N/app.jsx`
 
-**NEVER output:**
+**NEVER include in the file:**
 - `<!DOCTYPE html>` or HTML tags
 - `<script>` tags or import maps
 - Version numbers like `@0.18.9`
 - ReactDOM.render() calls
-
-**ONLY output a code block** with the JSX App component.
 
 ## Divergence by Riff Number
 
@@ -40,9 +41,9 @@ Your riff number (N) determines your ANGLE. Interpret the prompt through this le
 
 Don't force the lens if it doesn't fit - but let it guide you toward a DIFFERENT interpretation than a generic approach.
 
-## JSX Format (app.jsx)
+## JSX Format
 
-**Write ONLY this format to `${output_dir}/app.jsx`:**
+**Write this format to the specified path (e.g., `riff-1/app.jsx`):**
 
 ```jsx
 /*BUSINESS
