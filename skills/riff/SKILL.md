@@ -56,7 +56,7 @@ For each riff, launch `vibes-gen` with `run_in_background: true`. Include the ou
 ```javascript
 Task({
   prompt: `${N}/${total}: riff-${N}/app.jsx | "${user_prompt}"`,
-  subagent_type: "vibes-gen",
+  subagent_type: "vibes:vibes-gen",
   run_in_background: true,
   description: `Generate riff-${N}`
 })
@@ -98,7 +98,7 @@ Use `pwd` result as `${base_path}`:
 ```javascript
 Task({
   prompt: `${base_path}/ | prompt: "${user_prompt}"`,
-  subagent_type: "vibes-eval",
+  subagent_type: "vibes:vibes-eval",
   description: "Evaluate riffs"
 })
 ```
@@ -108,7 +108,7 @@ Task({
 ```javascript
 Task({
   prompt: `${base_path}/ | ${count} riffs | "${user_prompt}"`,
-  subagent_type: "vibes-gallery",
+  subagent_type: "vibes:vibes-gallery",
   description: "Generate gallery"
 })
 ```
