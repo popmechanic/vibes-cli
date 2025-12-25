@@ -36,6 +36,12 @@ const lensDesc = lensDescriptions[lens] || lensDescriptions['9'];
 
 const prompt = `OUTPUT ONLY CODE. NO EXPLANATIONS. NO MARKDOWN. NO CONVERSATION.
 
+CRITICAL: Use plain JavaScript. NEVER use TypeScript syntax:
+- NO generics: useState<T>, useDocument<T>, Array<T>
+- NO type annotations: const x: string, function(x: number)
+- NO interfaces or type aliases
+- NO "as" assertions: (x as any)
+
 Generate this exact structure with your implementation:
 /*BUSINESS
 name: [Creative App Name]
@@ -61,7 +67,6 @@ Lens: ${lensDesc}
 Style: Tailwind CSS with neo-brutalist aesthetic (bold borders, shadows, high contrast)
 
 Requirements:
-- Use JavaScript only. NO TypeScript syntax (no type annotations, no generics like useState<T>, no 'as' type assertions)
 - Use useFireproof for all data persistence
 - Use useLiveQuery for real-time data
 - Use useDocument for form state (NOT useState for form data)
