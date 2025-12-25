@@ -84,13 +84,17 @@ mkdir -p "${APP_SLUG}"
 1. Write the App code to `${APP_SLUG}/app.jsx`
 2. Copy template to `${APP_SLUG}/index.html`
 3. Run assembly: `node ${PLUGIN_DIR}/scripts/assemble.js ${APP_SLUG}/app.jsx ${APP_SLUG}/index.html`
-4. Commit and push:
+4. Update landing page:
    ```bash
-   git add "${APP_SLUG}/"
+   node ${PLUGIN_DIR}/scripts/update-landing.js .
+   ```
+5. Commit and push:
+   ```bash
+   git add "${APP_SLUG}/" index.html
    git commit -m "Add ${APP_SLUG}"
    git push
    ```
-5. Output GitHub Pages URL:
+6. Output GitHub Pages URL:
    ```
    Pushed! Your app will be live in ~2-5 minutes at:
    https://${username}.github.io/${repo}/${APP_SLUG}/
