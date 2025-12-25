@@ -1,7 +1,6 @@
 ---
 name: riff
 description: Generate multiple Vibes app variations in parallel with business models and rankings. Use when exploring different interpretations of a broad objective or loose creative prompt.
-allowed-tools: Bash
 ---
 
 **Display this ASCII art immediately when starting:**
@@ -61,51 +60,27 @@ Task({
 
 Use TaskOutput to wait for all subagents. Each returns JSX in a code block.
 
-### Step 4: Write Files in Parallel
+### Step 4: Write JSX Files
 
-**⚠️ CRITICAL: You MUST use Bash commands, NOT the Write tool.**
-
-The Write tool is SERIAL - each call blocks until complete. To achieve O(1) parallelism, you MUST:
-
-1. Use `Bash` with `run_in_background: true`
-2. Launch ALL write commands in a **SINGLE message** (multiple tool calls)
-
-**Why Bash instead of Write?**
-- Bash with `run_in_background: true` runs in parallel
-- Write tool runs serially (one at a time)
-- 10 parallel Bash commands = same time as 1
-- 10 serial Write calls = 10x the time
-
-Get the plugin directory from your skill context (parent of `skills/` directory).
-
-Use a **heredoc with single-quoted delimiter** to avoid ALL shell escaping issues:
+Use the **Write** tool for each riff's JSX file. This is reliable for JSX content containing template literals.
 
 ```javascript
-// In a SINGLE message, launch ALL these Bash commands together:
-Bash({
-  command: `mkdir -p riff-1 && cat > riff-1/app.jsx << 'VIBES_JSX_EOF'
-${jsxCode1}
-VIBES_JSX_EOF`,
-  run_in_background: true,
-  description: "Write riff-1"
-})
-Bash({
-  command: `mkdir -p riff-2 && cat > riff-2/app.jsx << 'VIBES_JSX_EOF'
-${jsxCode2}
-VIBES_JSX_EOF`,
-  run_in_background: true,
-  description: "Write riff-2"
-})
-// ... all N riffs in ONE message
+// Create directories first
+Bash({ command: "mkdir -p riff-1 riff-2 riff-3" })
+
+// Write JSX files
+Write({ file_path: "riff-1/app.jsx", content: jsxCode1 })
+Write({ file_path: "riff-2/app.jsx", content: jsxCode2 })
+// ... for each riff
 ```
 
-**Why single-quoted delimiter?** `<< 'VIBES_JSX_EOF'` (with quotes) prevents ALL shell expansion - no `${}`, backticks, or backslashes are interpreted. The JSX is written exactly as-is.
-
-**DO NOT** call Write tool. **DO NOT** call Bash commands one at a time.
+**Note:** Write is serial but reliable. The parallel speedup comes in the next step (assembly).
 
 ### Step 5: Assemble in Parallel
 
-**Same rule: Launch ALL assembly commands in a SINGLE message.**
+**⚠️ CRITICAL: Launch ALL assembly commands in a SINGLE message for true parallelism.**
+
+The plugin has PermissionRequest hooks that auto-approve `node` commands.
 
 ```javascript
 // In a SINGLE message, launch ALL these Bash commands together:

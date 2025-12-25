@@ -21,6 +21,19 @@ Your data lives locally in the browser, encrypted and portable. It syncs across 
 
 **Important**: Restart Claude Code after installation to load the new skills.
 
+### Parallel Riff Auto-Approval
+
+The `riff` skill assembles multiple apps in parallel. The plugin includes hooks to auto-approve these commands, but you can also configure your settings:
+
+```json
+// ~/.claude/settings.json
+{
+  "permissions": {
+    "allow": ["Bash(mkdir:*)", "Bash(node:*)"]
+  }
+}
+```
+
 ## Skills
 
 Skills are **model-invoked** - Claude automatically uses them when your task matches the skill's purpose. Just describe what you want to build.
