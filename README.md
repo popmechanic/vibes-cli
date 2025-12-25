@@ -21,21 +21,6 @@ Your data lives locally in the browser, encrypted and portable. It syncs across 
 
 **Important**: Restart Claude Code after installation to load the new skills.
 
-### Parallel Riff Permissions (Optional)
-
-The `riff` skill generates multiple apps in parallel. For maximum speed, you can enable direct file writes by adding this to your Claude Code settings:
-
-```json
-// ~/.claude/settings.json
-{
-  "permissions": {
-    "allow": ["Write(**/riff-*/**)"]
-  }
-}
-```
-
-This allows subagents to write files directly without individual permission prompts. Without this setting, riffs still work but require permission approval for each write.
-
 ## Skills
 
 Skills are **model-invoked** - Claude automatically uses them when your task matches the skill's purpose. Just describe what you want to build.

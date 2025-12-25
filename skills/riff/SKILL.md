@@ -62,12 +62,6 @@ Task({
 })
 ```
 
-**Note**: Subagents write files directly. Users must enable this with:
-```json
-// ~/.claude/settings.json
-{ "permissions": { "allow": ["Write(**/riff-*/**)"] } }
-```
-
 ### Step 4: Wait for Subagents
 
 Use TaskOutput to wait for all subagents. Each confirms: `Wrote riff-N/app.jsx`
