@@ -21,14 +21,20 @@ Your data lives locally in the browser, encrypted and portable. It syncs across 
 
 **Important**: Restart Claude Code after installation to load the new skills.
 
-### Parallel Riff Permissions
+### Parallel Riff Permissions (Optional)
 
-The `riff` skill generates and assembles multiple apps in parallel. The plugin uses a batch-permission hook that:
+The `riff` skill generates multiple apps in parallel. For maximum speed, you can enable direct file writes by adding this to your Claude Code settings:
 
-1. **Asks once** for permission when parallel operations start
-2. **Allows subsequent operations** for 60 seconds after approval
+```json
+// ~/.claude/settings.json
+{
+  "permissions": {
+    "allow": ["Write(riff-*/app.jsx)"]
+  }
+}
+```
 
-This means you approve once, then all parallel writes/commands execute without individual prompts.
+This allows subagents to write files directly without individual permission prompts. Without this setting, riffs still work but require permission approval for each write.
 
 ## Skills
 
