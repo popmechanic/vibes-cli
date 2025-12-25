@@ -13,7 +13,7 @@
       "name": "vibes",
       "source": "./",
       "description": "Generate React web apps with Fireproof database - no build step, deploy anywhere",
-      "version": "1.0.6",
+      "version": "1.0.7",
       "author": {
         "name": "Vibes DIY"
       },
