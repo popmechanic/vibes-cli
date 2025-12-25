@@ -262,6 +262,15 @@ If you see these errors, React is being duplicated:
 
 `VibeContextProvider` is used internally by the vibes.diy platform for database naming. **Standalone apps do NOT need it** - just render your App component directly with the VibesSwitch toggle.
 
+## Plugin Versioning
+
+When releasing a new version, update the version number in **both** files to comply with Claude Code plugin standards:
+
+1. `.claude-plugin/plugin.json` - The main plugin manifest
+2. `.claude-plugin/marketplace.json` - The marketplace metadata (in the `plugins` array)
+
+Both files must have matching version numbers.
+
 ## Commit Messages
 
 Do not credit Claude Code when making commit messages.
