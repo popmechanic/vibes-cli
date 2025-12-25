@@ -21,18 +21,14 @@ Your data lives locally in the browser, encrypted and portable. It syncs across 
 
 **Important**: Restart Claude Code after installation to load the new skills.
 
-### Parallel Riff Auto-Approval
+### Parallel Riff Permissions
 
-The `riff` skill assembles multiple apps in parallel. The plugin includes hooks to auto-approve these commands, but you can also configure your settings:
+The `riff` skill generates and assembles multiple apps in parallel. The plugin uses a batch-permission hook that:
 
-```json
-// ~/.claude/settings.json
-{
-  "permissions": {
-    "allow": ["Bash(mkdir:*)", "Bash(node:*)"]
-  }
-}
-```
+1. **Asks once** for permission when parallel operations start
+2. **Allows subsequent operations** for 60 seconds after approval
+
+This means you approve once, then all parallel writes/commands execute without individual prompts.
 
 ## Skills
 
