@@ -61,6 +61,7 @@ Lens: ${lensDesc}
 Style: Tailwind CSS with neo-brutalist aesthetic (bold borders, shadows, high contrast)
 
 Requirements:
+- Use JavaScript only. NO TypeScript syntax (no type annotations, no generics like useState<T>, no 'as' type assertions)
 - Use useFireproof for all data persistence
 - Use useLiveQuery for real-time data
 - Use useDocument for form state (NOT useState for form data)
