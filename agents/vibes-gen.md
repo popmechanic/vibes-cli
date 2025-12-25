@@ -113,7 +113,7 @@ differentiator: Unique value
 
     // Hidden menu wrapper (handles menu reveal animation)
     const hiddenMenuTheme = {
-      colors: { menuBg: "var(--vibes-gray-lightest, #f1f5f9)", menuText: "var(--vibes-white, #ffffff)", contentBg: "#1e1e1e", shadow: "rgba(0, 0, 0, 0.3)", gridLineColor: "rgba(255, 255, 255, 0.5)" },
+      colors: { menuBg: "#CCCDC8", menuText: "var(--vibes-white, #ffffff)", contentBg: "#1e1e1e", shadow: "rgba(0, 0, 0, 0.3)", gridLineColor: "rgba(255, 255, 255, 0.5)" },
       zIndex: { menu: 5, content: 10, toggle: 20 },
       dimensions: { gridSize: "40px", padding: "24px", bottomOffset: "16px" },
       animation: { duration: "0.4s", easing: "ease", blurAmount: "4px" }

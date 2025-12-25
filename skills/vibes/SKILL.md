@@ -120,7 +120,7 @@ If the user is starting fresh (no existing index.html), first create the templat
     // === HIDDEN MENU WRAPPER (handles menu reveal animation) ===
     const hiddenMenuTheme = {
       colors: {
-        menuBg: "var(--vibes-gray-lightest, #f1f5f9)",
+        menuBg: "#CCCDC8",
         menuText: "var(--vibes-white, #ffffff)",
         contentBg: "#1e1e1e",
         shadow: "rgba(0, 0, 0, 0.3)",
