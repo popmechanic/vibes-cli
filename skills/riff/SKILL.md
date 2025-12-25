@@ -48,17 +48,39 @@ Task({
 
 Use TaskOutput to wait for all subagents. Each returns JSX in a code block.
 
-### Step 4: Write Files
+### Step 4: Write Files in Parallel
 
 Get the plugin directory from your skill context (parent of `skills/` directory).
 
-For each completed task:
-1. Extract JSX from the code block in the output
-2. Create directory: `mkdir -p riff-N`
-3. Write JSX to `riff-N/app.jsx`
-4. Assemble: `node ${plugin_dir}/scripts/assemble.js riff-N/app.jsx riff-N/index.html`
+For each completed task, launch a **background Bash command** to write the file:
 
-### Step 5: Run Evaluator
+```javascript
+Bash({
+  command: `mkdir -p riff-${N} && cat > riff-${N}/app.jsx << 'JSXEOF'
+${jsxCode}
+JSXEOF`,
+  run_in_background: true,
+  description: `Write riff-${N}`
+})
+```
+
+Launch ALL write commands in a single message (parallel execution).
+
+### Step 5: Assemble in Parallel
+
+After all writes complete, launch parallel assembly commands:
+
+```javascript
+Bash({
+  command: `node ${plugin_dir}/scripts/assemble.js riff-${N}/app.jsx riff-${N}/index.html`,
+  run_in_background: true,
+  description: `Assemble riff-${N}`
+})
+```
+
+Wait for all assembly commands to complete before proceeding.
+
+### Step 6: Run Evaluator
 
 Use `pwd` result as `${base_path}`:
 
@@ -70,7 +92,7 @@ Task({
 })
 ```
 
-### Step 6: Generate Gallery
+### Step 7: Generate Gallery
 
 ```javascript
 Task({
@@ -80,7 +102,7 @@ Task({
 })
 ```
 
-### Step 7: Present Results
+### Step 8: Present Results
 
 Summarize the results for the user:
 
