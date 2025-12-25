@@ -32,16 +32,33 @@ const STYLE_PROMPT_URL = "https://raw.githubusercontent.com/VibesDIY/vibes.diy/m
 // Import map source
 const IMPORT_MAP_URL = "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/vibes.diy/pkg/app/config/import-map.ts";
 
-// CSS variables source
-const CSS_VARIABLES_URL = "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/vibes.diy/pkg/app/styles/vibes-variables.css";
+// CSS variables source (colors.css contains all button/card/theme variables)
+const CSS_VARIABLES_URL = "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/vibes.diy/pkg/app/styles/colors.css";
 
 // Menu component sources from vibes.diy
 const VIBES_COMPONENTS_BASE = "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/vibes.diy/pkg/app/components/vibes";
+const USE_VIBES_BASE = "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/use-vibes/base";
+
 const MENU_COMPONENT_SOURCES = {
+  // Order matters: dependencies before dependents
+
+  // Hooks (dependencies for components)
+  "useMobile": `${USE_VIBES_BASE}/hooks/useMobile.ts`,
+
+  // Icons (dependencies for VibesButton)
+  "BackIcon": `${VIBES_COMPONENTS_BASE}/icons/BackIcon.tsx`,
+  "InviteIcon": `${VIBES_COMPONENTS_BASE}/icons/InviteIcon.tsx`,
+  "LoginIcon": `${VIBES_COMPONENTS_BASE}/icons/LoginIcon.tsx`,
+  "RemixIcon": `${VIBES_COMPONENTS_BASE}/icons/RemixIcon.tsx`,
+  "SettingsIcon": `${VIBES_COMPONENTS_BASE}/icons/SettingsIcon.tsx`,
+
+  // Core components
   "VibesSwitch.styles": `${VIBES_COMPONENTS_BASE}/VibesSwitch/VibesSwitch.styles.ts`,
   "VibesSwitch": `${VIBES_COMPONENTS_BASE}/VibesSwitch/VibesSwitch.tsx`,
   "HiddenMenuWrapper.styles": `${VIBES_COMPONENTS_BASE}/HiddenMenuWrapper/HiddenMenuWrapper.styles.ts`,
   "HiddenMenuWrapper": `${VIBES_COMPONENTS_BASE}/HiddenMenuWrapper/HiddenMenuWrapper.tsx`,
+  "VibesButton.styles": `${VIBES_COMPONENTS_BASE}/VibesButton/VibesButton.styles.ts`,
+  "VibesButton": `${VIBES_COMPONENTS_BASE}/VibesButton/VibesButton.tsx`,
 };
 
 async function fetchDoc(name, url, force) {
@@ -383,6 +400,23 @@ async function fetchMenuComponents(force) {
       }
     }
 
+    // Add window exports for components that need to be accessed globally
+    combinedOutput += `// === Window Exports (for standalone apps) ===
+// Expose key components to window for use in inline scripts
+if (typeof window !== 'undefined') {
+  window.useMobile = useMobile;
+  window.VibesSwitch = VibesSwitch;
+  window.HiddenMenuWrapper = HiddenMenuWrapper;
+  window.VibesButton = VibesButton;
+  // Icons
+  window.BackIcon = BackIcon;
+  window.InviteIcon = InviteIcon;
+  window.LoginIcon = LoginIcon;
+  window.RemixIcon = RemixIcon;
+  window.SettingsIcon = SettingsIcon;
+}
+`;
+
     writeFileSync(cachePath, combinedOutput, "utf-8");
     console.log(`  Cached vibes-menu.js (${combinedOutput.length} bytes)`);
 
@@ -398,49 +432,47 @@ async function fetchMenuComponents(force) {
 }
 
 /**
- * Add React alias to esm.sh URLs to ensure single React instance
- * This prevents "Cannot read properties of null (reading 'useContext')" errors
+ * Add ?external=react,react-dom to esm.sh URLs to ensure single React instance
+ * This tells esm.sh to keep React as a bare specifier so our import map intercepts it.
+ * This prevents "Cannot read properties of null (reading 'useContext')" errors.
  */
-function addReactAlias(url, reactVersion) {
+function addReactExternal(url) {
   if (!url || !url.includes("esm.sh")) return url;
-  // Don't add alias to react/react-dom themselves
+  // Don't add external to react/react-dom themselves
   if (url.includes("/react@") || url.includes("/react-dom@")) return url;
-  // Add alias if not already present
-  if (url.includes("?")) {
-    if (!url.includes("alias=")) {
-      return url + `&alias=react:react@${reactVersion}`;
-    }
-    return url;
-  }
-  return url + `?alias=react:react@${reactVersion}`;
+  // Remove any existing alias/external params and add external
+  let cleanUrl = url.replace(/[?&](alias|external)=[^&]*/g, "");
+  // Clean up any trailing ? or &
+  cleanUrl = cleanUrl.replace(/[?&]$/, "");
+  // Add external parameter
+  const separator = cleanUrl.includes("?") ? "&" : "?";
+  return cleanUrl + separator + "external=react,react-dom";
 }
 
 /**
  * Generate the import map JSON string for templates
+ * Uses unpinned React (esm.sh resolves latest compatible) and ?external= for singleton
+ *
+ * NOTE: We use stable version 0.18.9 for use-vibes and call-ai, not the upstream
+ * dev version. The 0.19.x-dev versions have known React context bugs.
+ * See CLAUDE.md for details.
  */
-function generateImportMapJson(imports) {
-  const reactDomUrl = imports["react-dom"] || "https://esm.sh/react-dom@19";
-  const reactVersion = reactDomUrl.match(/@(\d+\.\d+\.\d+)/)?.[1] || "19";
+const STABLE_VIBES_VERSION = "0.18.9";
 
+function generateImportMapJson(imports) {
+  // Use unpinned React URLs - esm.sh will resolve compatible versions
   const templateImports = {
-    "react": `https://esm.sh/react@${reactVersion}`,
-    "react-dom": imports["react-dom"],
-    "react-dom/client": imports["react-dom/client"],
-    "react/jsx-runtime": `https://esm.sh/react@${reactVersion}/jsx-runtime`,
+    "react": "https://esm.sh/react",
+    "react-dom": "https://esm.sh/react-dom",
+    "react-dom/client": "https://esm.sh/react-dom/client",
+    "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
   };
 
-  // Add React alias to use-fireproof, use-vibes, call-ai to ensure single React instance
-  if (imports["use-fireproof"]) {
-    templateImports["use-fireproof"] = addReactAlias(imports["use-fireproof"], reactVersion);
-  }
-
-  if (imports["call-ai"]) {
-    templateImports["call-ai"] = addReactAlias(imports["call-ai"], reactVersion);
-  }
-
-  if (imports["use-vibes"]) {
-    templateImports["use-vibes"] = addReactAlias(imports["use-vibes"], reactVersion);
-  }
+  // Use stable version with ?external=react,react-dom for single React instance
+  // Override upstream version if it's a dev version (has known bugs)
+  templateImports["use-fireproof"] = `https://esm.sh/use-vibes@${STABLE_VIBES_VERSION}?external=react,react-dom`;
+  templateImports["call-ai"] = `https://esm.sh/call-ai@${STABLE_VIBES_VERSION}?external=react,react-dom`;
+  templateImports["use-vibes"] = `https://esm.sh/use-vibes@${STABLE_VIBES_VERSION}?external=react,react-dom`;
 
   return JSON.stringify({ imports: templateImports }, null, 6).replace(/^/gm, '  ').trim();
 }
