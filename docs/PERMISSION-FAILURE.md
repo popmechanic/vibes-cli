@@ -1,4 +1,4 @@
-# Plugin Subagent Write Permissions: Documented Failure
+# Plugin Subagent Write Permissions: SOLVED
 
 **Date**: 2024-12-25
 **Plugin**: vibes-diy v1.0.31
@@ -21,38 +21,37 @@ I attempted to write the minimalist "Wack" app to
 but the write operation was denied.
 ```
 
-## Conclusion
+## Solution Found
 
-**Plugin subagents cannot bypass write permissions.** This appears to be an intentional security boundary in Claude Code - plugins from the marketplace should not be able to silently write to the filesystem.
+**Use `general-purpose` subagent type instead of plugin-defined agents.**
 
-## Workaround Options
+Plugin agents (`vibes:vibes-gen`) are completely blocked from writing files.
+Built-in agents (`general-purpose`) can use normal permission flow.
 
-### Option A: Accept Permission Prompts
-- Subagents ask for permission per file
-- User clicks "allow" for each (7 clicks for 7 riffs)
-- Works but requires user interaction
+### The Fix
 
-### Option B: Main Skill Writes Files
-- Subagents return JSX content as output (not file writes)
-- Main riff skill collects all content
-- Single Write call with all files
-- Costs ~3 minutes extra token generation (re-outputting JSX)
+Instead of:
+```javascript
+Task({
+  subagent_type: "vibes:vibes-gen",  // BLOCKED
+  ...
+})
+```
 
-### Option C: Wait for Claude Code Update
-- File feature request via `/feedback`
-- Request: Allow plugins to configure `permissionMode` that actually works
-- Wait for fix
+Use:
+```javascript
+Task({
+  subagent_type: "general-purpose",  // WORKS - can ask permission
+  prompt: `${agent_instructions}\n\n${task_details}`,
+  ...
+})
+```
 
-## Files Involved
+The skill reads the agent instructions from the .md file and embeds them in the prompt.
+The `general-purpose` subagent can then write files using normal Claude Code permission flow.
 
-- `agents/vibes-gen.md` - Subagent that needs to write files
-- `agents/vibes-eval.md` - Has `bypassPermissions`, also likely doesn't work
-- `agents/vibes-gallery.md` - Has `bypassPermissions`, also likely doesn't work
-- `skills/riff/SKILL.md` - Orchestrates the subagents
+## Final Implementation
 
-## Next Steps
+Deleted the `agents/` directory entirely. All instructions are now inlined in `skills/riff/SKILL.md`.
 
-When resuming this work:
-1. Implement Option B (main skill writes files) as the reliable fallback
-2. Consider filing feedback to Claude Code team
-3. Keep `bypassPermissions` in place in case it starts working in future versions
+The skill uses `general-purpose` subagents with embedded prompts - no plugin agents needed.
