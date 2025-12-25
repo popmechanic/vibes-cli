@@ -65,7 +65,7 @@ Task({
 **Note**: Subagents write files directly. Users must enable this with:
 ```json
 // ~/.claude/settings.json
-{ "permissions": { "allow": ["Write(riff-*/**)"] } }
+{ "permissions": { "allow": ["Write(**/riff-*/**)"] } }
 ```
 
 ### Step 4: Wait for Subagents
