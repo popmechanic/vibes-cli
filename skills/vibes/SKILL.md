@@ -237,7 +237,7 @@ If the user is starting fresh (no existing index.html), first create the templat
       const buttonStyle = (color) => ({
         display: "block", width: "100%", maxWidth: "200px", margin: "8px auto",
         padding: "12px 24px", fontSize: "14px", fontWeight: "bold", textAlign: "center",
-        backgroundColor: "#fff", border: `3px solid ${color}`, borderRadius: "8px",
+        color: "#0f172a", backgroundColor: "#fff", border: "3px solid #0f172a", borderRadius: "8px",
         boxShadow: `4px 4px 0 ${color}`, cursor: "pointer"
       });
       const handleClearData = async () => {
