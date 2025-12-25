@@ -2,7 +2,7 @@
 name: vibes-gen
 description: Generates a single Vibes DIY React app based on a prompt. Used by vibes:riff to create app variations in parallel.
 model: sonnet
-tools: Write, Bash
+tools: Bash
 permissionMode: bypassPermissions
 ---
 
@@ -17,10 +17,16 @@ Prompt format: `N/total: "user prompt" | output_dir: riff-N | plugin_dir: /path/
 **CRITICAL: Output JSX ONLY. NEVER generate HTML, import maps, or `<script>` tags.**
 
 1. Generate the JSX App component with BUSINESS comment (see format below)
-2. Create output directory: `mkdir -p ${output_dir}`
-3. Write JSX to `${output_dir}/app.jsx` using the Write tool
-4. Assemble HTML: `node ${plugin_dir}/scripts/assemble.js ${output_dir}/app.jsx ${output_dir}/index.html`
-5. Report success with the app name from your BUSINESS comment
+2. Use a SINGLE Bash command to create directory, write file, and assemble:
+
+```bash
+mkdir -p ${output_dir} && cat > ${output_dir}/app.jsx << 'JSXEOF'
+... your JSX code here ...
+JSXEOF
+node ${plugin_dir}/scripts/assemble.js ${output_dir}/app.jsx ${output_dir}/index.html
+```
+
+3. Report success with the app name from your BUSINESS comment
 
 The assembly script inserts your JSX into a template that has the correct import map and Vibes menu.
 
