@@ -43,30 +43,38 @@ Use the AskUserQuestion tool to collect:
 1. **The prompt** - What's the objective? (Can be broad/loose)
 2. **Number of riffs** - How many variations? (1-10, recommend 3-5)
 
-### Step 2: Create Directories
+### Step 2: Launch Parallel Subagents
 
-```javascript
-Bash({ command: "mkdir -p riff-1 riff-2 riff-3 ..." })
-```
-
-### Step 3: Launch Parallel Subagents
-
-For each riff, launch `vibes-gen` with `run_in_background: true`. Include the output path in the prompt:
+For each riff, launch `vibes:vibes-gen` with `run_in_background: true`:
 
 ```javascript
 Task({
-  prompt: `${N}/${total}: riff-${N}/app.jsx | "${user_prompt}"`,
+  prompt: `${N}/${total}: "${user_prompt}"`,
   subagent_type: "vibes:vibes-gen",
   run_in_background: true,
   description: `Generate riff-${N}`
 })
 ```
 
-Each subagent writes its own file directly (parallel writes).
+### Step 3: Collect JSX Outputs
 
-### Step 4: Wait for Subagents
+Use TaskOutput to wait for all subagents. Each returns JSX in a code block. Extract the JSX from each response.
 
-Use TaskOutput to wait for all subagents. Each confirms: `Wrote riff-N/app.jsx`
+### Step 4: Write All Files at Once
+
+Build a JSON object mapping file paths to content, then pipe to the write script:
+
+```javascript
+// Build JSON: { "riff-1/app.jsx": jsxCode1, "riff-2/app.jsx": jsxCode2, ... }
+const filesJson = JSON.stringify(filesObject);
+
+Bash({
+  command: `echo '${filesJson.replace(/'/g, "'\\''")}' | node ${plugin_dir}/scripts/write-riffs.js`,
+  description: "Write all riff files"
+})
+```
+
+This is a SINGLE Bash call - one permission prompt writes all files.
 
 ### Step 5: Assemble in Parallel
 
