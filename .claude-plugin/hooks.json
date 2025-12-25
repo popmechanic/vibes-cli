@@ -1,13 +1,14 @@
 {
   "hooks": {
-    "PermissionRequest": [
+    "PreToolUse": [
       {
-        "matcher": "Bash(mkdir:*)",
-        "hooks": [{ "type": "command", "command": "exit 0" }]
-      },
-      {
-        "matcher": "Bash(node:*)",
-        "hooks": [{ "type": "command", "command": "exit 0" }]
+        "matcher": "Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ${CLAUDE_PLUGIN_ROOT}/scripts/batch-permission.js"
+          }
+        ]
       }
     ]
   }
