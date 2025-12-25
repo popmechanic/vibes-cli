@@ -40,7 +40,8 @@ Theme: ${theme}
 Lens: ${lensDesc}
 
 First, reason about the theme in <reasoning> tags:
-- What colors, gradients, and visual mood fit this theme?
+- What OKLCH colors fit this theme? (Use oklch(L C H) - L=lightness 0-1, C=chroma 0-0.4, H=hue 0-360)
+- What gradients would enhance it? (Use "linear-gradient(in oklch, ...)" for smooth transitions)
 - What icons, imagery, or decorative elements would enhance it?
 - What kind of app functionality matches this theme?
 - How can the UI feel immersive and thematic?
@@ -75,6 +76,8 @@ export default function App() {
 
 Requirements:
 - The theme should drive ALL visual choices (colors, backgrounds, icons, mood)
+- Use OKLCH colors for vibrant, predictable results: bg-[oklch(0.2_0.05_250)]
+- Use OKLCH gradients: bg-[linear-gradient(in_oklch,oklch(0.3_0.1_250),oklch(0.2_0.08_200))]
 - Use Tailwind CSS for styling
 - Use useFireproof for all data persistence
 - Use useLiveQuery for real-time data
