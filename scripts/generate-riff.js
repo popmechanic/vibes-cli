@@ -74,7 +74,7 @@ try {
   const code = execSync(`claude -p "${escapedPrompt}"`, {
     encoding: 'utf-8',
     maxBuffer: 10 * 1024 * 1024, // 10MB buffer
-    timeout: 120000 // 2 minute timeout
+    timeout: 300000 // 5 minute timeout
   });
 
   // Ensure directory exists
