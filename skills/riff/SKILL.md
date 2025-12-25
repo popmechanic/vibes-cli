@@ -43,38 +43,30 @@ Use the AskUserQuestion tool to collect:
 1. **The prompt** - What's the objective? (Can be broad/loose)
 2. **Number of riffs** - How many variations? (1-10, recommend 3-5)
 
-### Step 2: Launch Parallel Subagents
+### Step 2: Create Directories
 
-For each riff, launch `vibes-gen` with `run_in_background: true`:
+```javascript
+Bash({ command: "mkdir -p riff-1 riff-2 riff-3 ..." })
+```
+
+### Step 3: Launch Parallel Subagents
+
+For each riff, launch `vibes-gen` with `run_in_background: true`. Include the output path in the prompt:
 
 ```javascript
 Task({
-  prompt: `${N}/${total}: "${user_prompt}"`,
+  prompt: `${N}/${total}: riff-${N}/app.jsx | "${user_prompt}"`,
   subagent_type: "vibes-gen",
   run_in_background: true,
   description: `Generate riff-${N}`
 })
 ```
 
-### Step 3: Wait and Collect Outputs
+Each subagent writes its own file directly (parallel writes).
 
-Use TaskOutput to wait for all subagents. Each returns JSX in a code block.
+### Step 4: Wait for Subagents
 
-### Step 4: Write JSX Files
-
-Use the **Write** tool for each riff's JSX file. This is reliable for JSX content containing template literals.
-
-```javascript
-// Create directories first
-Bash({ command: "mkdir -p riff-1 riff-2 riff-3" })
-
-// Write JSX files
-Write({ file_path: "riff-1/app.jsx", content: jsxCode1 })
-Write({ file_path: "riff-2/app.jsx", content: jsxCode2 })
-// ... for each riff
-```
-
-**Note:** Write is serial but reliable. The parallel speedup comes in the next step (assembly).
+Use TaskOutput to wait for all subagents. Each confirms: `Wrote riff-N/app.jsx`
 
 ### Step 5: Assemble in Parallel
 
