@@ -31,116 +31,73 @@ mkdir -p riff-1 riff-2 riff-3 ...
 
 ### Step 3: Generate Riffs in Parallel
 
-Launch subagents to generate code (they return it, main agent writes):
+**Use the bundled script to generate riffs in parallel.** Each script instance calls `claude -p` (uses subscription tokens) and writes directly to disk.
 
-```javascript
-// Launch ALL subagents in parallel (single message with multiple Task calls)
-Task({
-  subagent_type: "general-purpose",
-  run_in_background: true,
-  description: `Generate riff-${N}`,
-  prompt: `
-    Generate a Vibes app. Return ONLY the complete JSX code, nothing else.
-
-    /*BUSINESS
-    name: [Creative App Name]
-    pitch: [One sentence value prop]
-    customer: [Target user]
-    revenue: [Pricing model]
-    */
-    import React, { useState } from "react";
-    import { useFireproof } from "use-fireproof";
-
-    export default function App() {
-      const { useLiveQuery, useDocument } = useFireproof("riff-${N}-db");
-      return <div className="min-h-screen bg-[#f1f5f9] p-4">...</div>;
-    }
-
-    Theme: ${user_prompt}
-    Lens: ${N}=1: Minimalist | 2: Social | 3: Gamified | 4: Professional | 5: Personal | 6: Marketplace | 7: Educational | 8: Creative | 9+: Wildcard
-    Style: Tailwind neo-brutalist
-  `
-})
-// Repeat for each riff in a SINGLE message to run in parallel
-```
-
-### Step 4: Collect Results & Write Files
-
-```javascript
-// Wait for each subagent to complete
-TaskOutput({ task_id: agent_id_1, block: true })
-TaskOutput({ task_id: agent_id_2, block: true })
-// ... for each agent
-```
-
-**CRITICAL: Write ALL files in ONE message with PARALLEL Bash calls.**
-
-These writes have NO dependencies - invoke ALL Bash tools in a SINGLE response.
-Do NOT wait for one write to finish before starting the next.
-Send one message containing N parallel Bash tool invocations.
-
-Example for 3 riffs - all in ONE message:
-- Bash: `cat > riff-1/app.jsx << 'EOF' ... EOF`
-- Bash: `cat > riff-2/app.jsx << 'EOF' ... EOF`
-- Bash: `cat > riff-3/app.jsx << 'EOF' ... EOF`
-
-### Step 5: Assemble HTML
 ```bash
-node ${plugin_dir}/scripts/assemble-all.js riff-1 riff-2 ...
+# Run all generations in parallel using background processes
+# Replace ${PLUGIN_DIR} with the actual plugin directory path
+node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" 1 riff-1/app.jsx &
+node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" 2 riff-2/app.jsx &
+node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" 3 riff-3/app.jsx &
+# ... add more for each riff count
+wait
+echo "All riffs generated!"
 ```
 
-### Step 6: Evaluate & Rank
+**Why this works:**
+- Each script calls `claude -p "..."` → uses subscription tokens
+- Script writes directly to disk → no tokens flow through main agent
+- Background processes (`&`) run in parallel → true concurrency
+- Main agent only sees "✓ riff-N/app.jsx" output → minimal tokens
 
-```javascript
-// Subagent analyzes and returns markdown
-Task({
-  subagent_type: "general-purpose",
-  prompt: `
-    Read each riff-*/index.html in ${base_path}/.
-    Score each 1-10 on: Originality, Market Potential, Feasibility, Monetization, Wow Factor.
+### Step 4: Assemble HTML
 
-    Return ONLY the markdown content for RANKINGS.md:
-    # Riff Rankings
-    | Rank | Name | Score |
-    |------|------|-------|
-    ...
+Convert each app.jsx to a complete index.html:
 
-    Include: summary table, detailed scores, recommendations.
-  `
-})
-
-// Main agent writes the file
-Bash: cat > RANKINGS.md << 'EOF'
-${result_markdown}
-EOF
+```bash
+node ${PLUGIN_DIR}/scripts/assemble-all.js riff-1 riff-2 riff-3 ...
 ```
 
-### Step 7: Generate Gallery
+### Step 5: Evaluate & Rank
 
-```javascript
-// Subagent generates gallery HTML
-Task({
-  subagent_type: "general-purpose",
-  prompt: `
-    Read RANKINGS.md and riff-*/index.html files in ${base_path}/.
+Read the generated apps and create rankings:
 
-    Return ONLY the complete HTML for a gallery page.
-    Style: Dark theme (#0a0a0f), glass cards, purple/cyan accents.
-    Each card: rank badge, name, pitch, score bar, "Launch →" link to riff-N/index.html.
-    Responsive grid, self-contained with inline styles.
-  `
-})
-
-// Main agent writes the file
-Bash: cat > index.html << 'EOF'
-${result_html}
-EOF
+```bash
+# Read all the generated apps
+cat riff-*/index.html
 ```
 
-### Step 8: Present Results
+Then create RANKINGS.md with:
+- Summary table (rank, name, score/50)
+- Scores: Originality, Market Potential, Feasibility, Monetization, Wow Factor (1-10 each)
+- Recommendations: best for solo founder, fastest to ship, most innovative
+
+### Step 6: Generate Gallery
+
+Create index.html gallery page with:
+- Dark theme (#0a0a0f background)
+- Glass-morphism cards with purple/cyan accents
+- Each card: rank badge, app name, pitch, score bar, "Launch →" link
+- Responsive grid layout
+- Self-contained with inline styles
+
+### Step 7: Present Results
+
 ```
 Generated ${count} riffs for "${prompt}":
-#1: riff-X - Name (XX/50)
+#1: riff-X - App Name (XX/50)
+#2: riff-Y - App Name (XX/50)
 ...
-Open index.html for gallery, RANKINGS.md for analysis.
+
+Open index.html for gallery, RANKINGS.md for detailed analysis.
 ```
+
+## Plugin Directory
+
+To get the plugin directory path, use:
+```bash
+# The plugin is installed at ~/.claude/plugins/cache/vibes-diy/vibes/VERSION/
+PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.41"
+```
+
+Or locate it dynamically if needed.
