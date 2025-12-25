@@ -64,20 +64,34 @@ Even `general-purpose` subagents couldn't use:
 
 Subagents spawned from plugin context have no file-writing capabilities.
 
-## The Solution: Subagents Return, Main Agent Writes
+## The Solution: Script Calls `claude -p`
 
 ```
-Subagent 1 ──┐
-Subagent 2 ──┼─→ Return JSX code ──→ Main Agent ──→ Bash writes files
-Subagent N ──┘     (parallel)           │
-                                        └─→ Has Bash permission!
+Main Agent
+    │
+    ├─► node generate-riff.js "theme" 1 riff-1/app.jsx &
+    ├─► node generate-riff.js "theme" 2 riff-2/app.jsx &
+    ├─► node generate-riff.js "theme" 3 riff-3/app.jsx &
+    └─► wait
+           │
+           └─► Each script:
+               ├─► claude -p "..." (uses subscription)
+               ├─► fs.writeFileSync()
+               └─► console.log("✓")
 ```
 
-1. Subagents generate code and return it (no file writing)
-2. Main agent collects all results
-3. Main agent writes files using Bash (main agent has user's permissions)
+1. Main agent runs script commands (minimal tokens: ~50 per riff)
+2. Script calls `claude -p` → uses subscription tokens
+3. Script writes directly to disk → no tokens flow through main agent
+4. Background processes (`&`) run in parallel → true concurrency
+
+**Token comparison (10 riffs):**
+- Old: 10 × 1500 tokens (code) = 15,000 tokens output
+- New: 10 × 50 tokens (commands) = 500 tokens output
+- **30x reduction = 30x faster**
 
 **Why this works:**
-- Generation is parallel (all subagents run at once)
-- Writing is instant (just Bash file I/O, no LLM tokens)
-- Main agent inherits user's permission settings
+- Scripts can invoke CLI tools (`claude -p`)
+- `claude -p` uses the logged-in user's subscription
+- Script writes to disk without main agent seeing the code
+- Only script output ("✓ riff-1/app.jsx") enters context
