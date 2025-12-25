@@ -31,20 +31,20 @@ mkdir -p riff-1 riff-2 riff-3 ...
 
 ### Step 3: Generate Riffs in Parallel
 
-Launch `general-purpose` subagents (NOT plugin agents - they can't write files):
+Launch subagents to generate code (they return it, main agent writes):
 
 ```javascript
+// Launch ALL subagents in parallel (single message with multiple Task calls)
 Task({
   subagent_type: "general-purpose",
   run_in_background: true,
   description: `Generate riff-${N}`,
   prompt: `
-    Run this Bash command with a complete Vibes app:
+    Generate a Vibes app. Return ONLY the complete JSX code, nothing else.
 
-    cat > riff-${N}/app.jsx << 'ENDOFJSX'
     /*BUSINESS
-    name: [App Name]
-    pitch: [One sentence]
+    name: [Creative App Name]
+    pitch: [One sentence value prop]
     customer: [Target user]
     revenue: [Pricing model]
     */
@@ -53,74 +53,90 @@ Task({
 
     export default function App() {
       const { useLiveQuery, useDocument } = useFireproof("riff-${N}-db");
-      // Your implementation here
       return <div className="min-h-screen bg-[#f1f5f9] p-4">...</div>;
     }
-    ENDOFJSX
 
     Theme: ${user_prompt}
     Lens: ${N}=1: Minimalist | 2: Social | 3: Gamified | 4: Professional | 5: Personal | 6: Marketplace | 7: Educational | 8: Creative | 9+: Wildcard
     Style: Tailwind neo-brutalist
   `
 })
+// Repeat for each riff in a SINGLE message to run in parallel
 ```
 
-### Step 4: Wait & Assemble
+### Step 4: Collect Results & Write Files
+
+```javascript
+// Wait for each subagent to complete
+TaskOutput({ task_id: agent_id_1, block: true })
+TaskOutput({ task_id: agent_id_2, block: true })
+// ... for each agent
+
+// Main agent writes all files (has Bash permission, subagents don't)
+Bash: cat > riff-1/app.jsx << 'EOF'
+${result_1_code}
+EOF
+
+Bash: cat > riff-2/app.jsx << 'EOF'
+${result_2_code}
+EOF
+// ... for each riff
+```
+
+### Step 6: Assemble HTML
 ```bash
 node ${plugin_dir}/scripts/assemble-all.js riff-1 riff-2 ...
 ```
 
-### Step 5: Evaluate
+### Step 7: Evaluate & Rank
 
 ```javascript
+// Subagent analyzes and returns markdown
 Task({
   subagent_type: "general-purpose",
   prompt: `
-    Read each riff-*/index.html in ${base_path}/ and score the business models.
+    Read each riff-*/index.html in ${base_path}/.
+    Score each 1-10 on: Originality, Market Potential, Feasibility, Monetization, Wow Factor.
 
-    Then run this Bash command with your analysis:
-
-    cat > RANKINGS.md << 'ENDOFMD'
+    Return ONLY the markdown content for RANKINGS.md:
     # Riff Rankings
     | Rank | Name | Score |
     |------|------|-------|
     ...
-    ENDOFMD
 
-    Score 1-10 on: Originality, Market Potential, Feasibility, Monetization, Wow Factor.
-    Include: summary table, detailed scores, recommendations (solo founder, fastest to ship, most innovative).
+    Include: summary table, detailed scores, recommendations.
   `
 })
+
+// Main agent writes the file
+Bash: cat > RANKINGS.md << 'EOF'
+${result_markdown}
+EOF
 ```
 
-### Step 6: Generate Gallery
+### Step 8: Generate Gallery
 
 ```javascript
+// Subagent generates gallery HTML
 Task({
   subagent_type: "general-purpose",
   prompt: `
     Read RANKINGS.md and riff-*/index.html files in ${base_path}/.
 
-    Then run this Bash command with a gallery page:
-
-    cat > index.html << 'ENDOFHTML'
-    <!DOCTYPE html>
-    <html>
-    <head><title>Riff Gallery</title></head>
-    <body style="background:#0a0a0f;color:#fff;font-family:system-ui">
-    ...your gallery cards here...
-    </body>
-    </html>
-    ENDOFHTML
-
-    Style: Dark theme, glass cards, purple/cyan accents.
+    Return ONLY the complete HTML for a gallery page.
+    Style: Dark theme (#0a0a0f), glass cards, purple/cyan accents.
     Each card: rank badge, name, pitch, score bar, "Launch →" link to riff-N/index.html.
-    Responsive grid, self-contained HTML with inline styles.
+    Responsive grid, self-contained with inline styles.
   `
 })
+
+// Main agent writes the file
+Bash: cat > index.html << 'EOF'
+${result_html}
+EOF
 ```
 
-### Step 7: Present Results
+### Step 9: Present Results
 ```
 Generated ${count} riffs for "${prompt}":
 #1: riff-X - Name (XX/50)
