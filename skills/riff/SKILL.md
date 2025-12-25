@@ -34,22 +34,15 @@ mkdir -p riff-1 riff-2 riff-3 ...
 **Use the bundled script to generate riffs in parallel.** Each script instance calls `claude -p` (uses subscription tokens) and writes directly to disk.
 
 ```bash
-# Run generations in batches of 3-4 to avoid rate limits
+# Run all generations in parallel
 # Replace ${PLUGIN_DIR} with the actual plugin directory path
-
-# Batch 1
 node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" 1 riff-1/app.jsx &
 node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" 2 riff-2/app.jsx &
 node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" 3 riff-3/app.jsx &
-wait
-
-# Batch 2 (if count > 3)
 node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" 4 riff-4/app.jsx &
 node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" 5 riff-5/app.jsx &
-node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" 6 riff-6/app.jsx &
+# ... add more for each riff count
 wait
-
-# Continue batching as needed...
 echo "All riffs generated!"
 ```
 
