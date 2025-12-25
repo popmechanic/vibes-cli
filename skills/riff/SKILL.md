@@ -50,33 +50,57 @@ Use TaskOutput to wait for all subagents. Each returns JSX in a code block.
 
 ### Step 4: Write Files in Parallel
 
+**⚠️ CRITICAL: You MUST use Bash commands, NOT the Write tool.**
+
+The Write tool is SERIAL - each call blocks until complete. To achieve O(1) parallelism, you MUST:
+
+1. Use `Bash` with `run_in_background: true`
+2. Launch ALL write commands in a **SINGLE message** (multiple tool calls)
+
+**Why Bash instead of Write?**
+- Bash with `run_in_background: true` runs in parallel
+- Write tool runs serially (one at a time)
+- 10 parallel Bash commands = same time as 1
+- 10 serial Write calls = 10x the time
+
 Get the plugin directory from your skill context (parent of `skills/` directory).
 
-For each completed task, **base64 encode the JSX** to avoid shell escaping issues, then launch a background Bash command:
+For each completed task, base64 encode the JSX to avoid shell escaping:
 
 ```javascript
-// Base64 encode to avoid shell escaping issues with ${} in JSX
-const encoded = btoa(jsxCode);
-
+// In a SINGLE message, launch ALL these Bash commands together:
 Bash({
-  command: `mkdir -p riff-${N} && echo '${encoded}' | base64 -d > riff-${N}/app.jsx`,
+  command: `mkdir -p riff-1 && echo '${encoded1}' | base64 -d > riff-1/app.jsx`,
   run_in_background: true,
-  description: `Write riff-${N}`
+  description: "Write riff-1"
 })
+Bash({
+  command: `mkdir -p riff-2 && echo '${encoded2}' | base64 -d > riff-2/app.jsx`,
+  run_in_background: true,
+  description: "Write riff-2"
+})
+// ... all N riffs in ONE message
 ```
 
-Launch ALL write commands in a single message (parallel execution).
+**DO NOT** call Write tool. **DO NOT** call Bash commands one at a time.
 
 ### Step 5: Assemble in Parallel
 
-After all writes complete, launch parallel assembly commands:
+**Same rule: Launch ALL assembly commands in a SINGLE message.**
 
 ```javascript
+// In a SINGLE message, launch ALL these Bash commands together:
 Bash({
-  command: `node ${plugin_dir}/scripts/assemble.js riff-${N}/app.jsx riff-${N}/index.html`,
+  command: `node ${plugin_dir}/scripts/assemble.js riff-1/app.jsx riff-1/index.html`,
   run_in_background: true,
-  description: `Assemble riff-${N}`
+  description: "Assemble riff-1"
 })
+Bash({
+  command: `node ${plugin_dir}/scripts/assemble.js riff-2/app.jsx riff-2/index.html`,
+  run_in_background: true,
+  description: "Assemble riff-2"
+})
+// ... all N riffs in ONE message
 ```
 
 Wait for all assembly commands to complete before proceeding.
