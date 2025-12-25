@@ -34,9 +34,9 @@ const lensDescriptions = {
 
 const lensDesc = lensDescriptions[lens] || lensDescriptions['9'];
 
-const prompt = `Generate a Vibes app. Return ONLY the complete JSX code, nothing else.
+const prompt = `OUTPUT ONLY CODE. NO EXPLANATIONS. NO MARKDOWN. NO CONVERSATION.
 
-Required format:
+Generate this exact structure with your implementation:
 /*BUSINESS
 name: [Creative App Name]
 pitch: [One sentence value proposition]
@@ -77,11 +77,33 @@ try {
     timeout: 300000 // 5 minute timeout
   });
 
+  // Extract code from markdown if wrapped in ```jsx or ```javascript blocks
+  let cleanCode = code.trim();
+
+  // Try to extract from code blocks
+  const codeBlockMatch = cleanCode.match(/```(?:jsx|javascript|js)?\s*([\s\S]*?)```/);
+  if (codeBlockMatch) {
+    cleanCode = codeBlockMatch[1].trim();
+  }
+
+  // If it starts with conversational text (no code), try to find where code starts
+  if (!cleanCode.startsWith('/*') && !cleanCode.startsWith('import') && !cleanCode.startsWith('//')) {
+    // Look for the BUSINESS comment or import statement
+    const businessMatch = cleanCode.match(/(\/\*BUSINESS[\s\S]*)/);
+    const importMatch = cleanCode.match(/(import\s+[\s\S]*)/);
+
+    if (businessMatch) {
+      cleanCode = businessMatch[1];
+    } else if (importMatch) {
+      cleanCode = importMatch[1];
+    }
+  }
+
   // Ensure directory exists
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 
   // Write the generated code
-  fs.writeFileSync(outputPath, code.trim());
+  fs.writeFileSync(outputPath, cleanCode);
 
   console.log(`✓ ${outputPath}`);
 } catch (err) {
