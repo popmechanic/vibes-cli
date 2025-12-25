@@ -33,17 +33,24 @@ mkdir -p riff-1 riff-2 riff-3 ...
 
 **Use the bundled script to generate riffs in parallel.** Each script instance calls `claude -p` (uses subscription tokens) and writes directly to disk.
 
+Generate one command per riff based on user's count:
+
 ```bash
-# Run all generations in parallel
-# Replace ${PLUGIN_DIR} with the actual plugin directory path
-node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" 1 riff-1/app.jsx &
-node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" 2 riff-2/app.jsx &
-node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" 3 riff-3/app.jsx &
-node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" 4 riff-4/app.jsx &
-node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" 5 riff-5/app.jsx &
-# ... add more for each riff count
+# For each N from 1 to ${count}:
+node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" N riff-N/app.jsx &
+
+# Then wait for all
 wait
-echo "All riffs generated!"
+echo "All ${count} riffs generated!"
+```
+
+Example for count=3:
+```bash
+PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.43"
+node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 1 riff-1/app.jsx &
+node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 2 riff-2/app.jsx &
+node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 3 riff-3/app.jsx &
+wait
 ```
 
 **Why this works:**
