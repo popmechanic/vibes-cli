@@ -3,6 +3,7 @@ name: vibes-gen
 description: Generates a single Vibes DIY React app based on a prompt. Used by vibes:riff to create app variations in parallel.
 model: sonnet
 tools: Write
+permissionMode: acceptEdits
 ---
 
 # Riff Generator
