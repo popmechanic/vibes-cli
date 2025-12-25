@@ -8,18 +8,30 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
       :root {
+        /* Core colors */
         --vibes-black: #0f172a;
         --vibes-white: #ffffff;
+        --vibes-near-black: #1a1a1a;
+        --vibes-cream: #fffff0;
+
+        /* Gray scale */
         --vibes-gray-lightest: #f1f5f9;
         --vibes-gray-ultralight: #f8fafc;
-        --vibes-near-black: #1a1a1a;
-        --vibes-variant-blue: #3b82f6;
-        --vibes-variant-red: #ef4444;
-        --vibes-variant-yellow: #eab308;
+
+        /* Menu colors */
+        --vibes-menu-bg: #CCCDC8;
+        --vibes-menu-grid: rgba(255, 255, 255, 0.5);
+
+        /* Button variant colors */
+        --vibes-variant-blue: #009ACE;
+        --vibes-variant-red: #DA291C;
+        --vibes-variant-yellow: #DA291C;
         --vibes-variant-gray: #6b7280;
-        --vibes-button-bg: #fefce8;
-        --vibes-button-text: #000;
-        --vibes-button-border: #000;
+
+        /* Button styling */
+        --vibes-button-bg: var(--vibes-cream);
+        --vibes-button-text: var(--vibes-near-black);
+        --vibes-button-border: var(--vibes-near-black);
         --vibes-button-icon-bg: #fff;
         --vibes-button-icon-fill: #2a2a2a;
       }
@@ -88,7 +100,7 @@
 
       // === HiddenMenuWrapper styles ===
       const hiddenMenuTheme = {
-        colors: { menuBg: "var(--vibes-gray-lightest)", menuText: "var(--vibes-white)", contentBg: "#1e1e1e", shadow: "rgba(0,0,0,0.3)", gridLineColor: "rgba(255,255,255,0.5)" },
+        colors: { menuBg: "var(--vibes-menu-bg)", menuText: "var(--vibes-black)", contentBg: "#1e1e1e", shadow: "rgba(0,0,0,0.3)", gridLineColor: "var(--vibes-menu-grid)" },
         zIndex: { menu: 5, content: 10, toggle: 20 },
         dimensions: { gridSize: "40px", padding: "24px", bottomOffset: "16px" },
         animation: { duration: "0.4s", easing: "ease", blurAmount: "4px" }
@@ -157,15 +169,42 @@
         );
       }
       window.HiddenMenuWrapper = HiddenMenuWrapper;
+
+      // === VibesButton (simplified for standalone apps) ===
+      const variantColors = { blue: "var(--vibes-variant-blue)", red: "var(--vibes-variant-red)", yellow: "var(--vibes-variant-yellow)", gray: "var(--vibes-variant-gray)" };
+      function VibesButton({ variant = "blue", children, onClick, href, style: customStyle }) {
+        const [isHovered, setHovered] = React.useState(false);
+        const [isActive, setActive] = React.useState(false);
+        const cssColor = variantColors[variant] || variant;
+        let transform = "translate(0px, 0px)";
+        let boxShadow = "8px 10px 0px 0px " + cssColor + ", 8px 10px 0px 2px var(--vibes-button-border)";
+        if (isHovered && !isActive) { transform = "translate(2px, 2px)"; boxShadow = "2px 3px 0px 0px " + cssColor + ", 2px 3px 0px 2px var(--vibes-button-border)"; }
+        if (isActive) { transform = "translate(4px, 5px)"; boxShadow = "none"; }
+        const baseStyle = { width: "100%", minHeight: "60px", padding: "0.75rem 1.5rem", borderRadius: "12px", fontSize: "1rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", transition: "all 0.15s ease", transform, boxShadow, background: "var(--vibes-button-bg)", color: "var(--vibes-button-text)", border: "2px solid var(--vibes-button-border)", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", ...customStyle };
+        const props = { style: baseStyle, onMouseEnter: () => setHovered(true), onMouseLeave: () => { setHovered(false); setActive(false); }, onMouseDown: () => setActive(true), onMouseUp: () => setActive(false) };
+        if (href) return React.createElement("a", { ...props, href, target: "_blank", rel: "noopener noreferrer" }, children);
+        return React.createElement("button", { ...props, onClick }, children);
+      }
+      window.VibesButton = VibesButton;
+
+      // === VibesPanel (default menu content) ===
+      function VibesPanel({ dbName }) {
+        return React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "12px", alignItems: "center", maxWidth: "400px", margin: "0 auto" } },
+          React.createElement(VibesButton, { variant: "blue", href: "https://vibes.diy" }, "VISIT VIBES.DIY"),
+          React.createElement(VibesButton, { variant: "yellow", href: "https://vibes.diy" }, "CREATE YOUR OWN")
+        );
+      }
+      window.VibesPanel = VibesPanel;
     </script>
     <script type="text/babel" data-type="module">
       import ReactDOMClient from "react-dom/client";
 
       // __VIBES_APP_CODE__
 
+      // Extract dbName from App's useFireproof call if possible
       const rootElement = document.getElementById("container");
       ReactDOMClient.createRoot(rootElement).render(
-        <HiddenMenuWrapper>
+        <HiddenMenuWrapper menuContent={<VibesPanel />}>
           <App />
         </HiddenMenuWrapper>
       );
