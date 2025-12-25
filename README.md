@@ -29,7 +29,7 @@ The `riff` skill generates multiple apps in parallel. For maximum speed, you can
 // ~/.claude/settings.json
 {
   "permissions": {
-    "allow": ["Write(riff-*/app.jsx)"]
+    "allow": ["Write(riff-*/**)"]
   }
 }
 ```
