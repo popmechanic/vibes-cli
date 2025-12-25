@@ -39,39 +39,28 @@ Task({
   run_in_background: true,
   description: `Generate riff-${N}`,
   prompt: `
-    # CRITICAL: File Writing Instructions
-
-    DO NOT use the Write tool - it will fail with permission denied.
-    You MUST use Bash with a heredoc to write the file:
+    Run this Bash command with a complete Vibes app:
 
     cat > riff-${N}/app.jsx << 'ENDOFJSX'
-    ...your complete jsx code...
-    ENDOFJSX
-
-    This is your ONLY task. Generate the JSX and write it using the Bash command above.
-
-    # Riff ${N}/${total}: ${user_prompt}
-
-    ## Interpretation Lens
-    ${N}=1: Minimalist | 2: Social | 3: Gamified | 4: Professional
-    5: Personal | 6: Marketplace | 7: Educational | 8: Creative | 9+: Wildcard
-
-    ## JSX Format
     /*BUSINESS
-    name: App Name
-    pitch: One sentence
-    customer: Target user
-    revenue: Pricing model
+    name: [App Name]
+    pitch: [One sentence]
+    customer: [Target user]
+    revenue: [Pricing model]
     */
     import React, { useState } from "react";
     import { useFireproof } from "use-fireproof";
 
     export default function App() {
-      const { useLiveQuery, useDocument } = useFireproof("app-db");
+      const { useLiveQuery, useDocument } = useFireproof("riff-${N}-db");
+      // Your implementation here
       return <div className="min-h-screen bg-[#f1f5f9] p-4">...</div>;
     }
+    ENDOFJSX
 
-    Style: Tailwind neo-brutalist. NO: HTML tags, script tags, version numbers.
+    Theme: ${user_prompt}
+    Lens: ${N}=1: Minimalist | 2: Social | 3: Gamified | 4: Professional | 5: Personal | 6: Marketplace | 7: Educational | 8: Creative | 9+: Wildcard
+    Style: Tailwind neo-brutalist
   `
 })
 ```
@@ -87,26 +76,19 @@ node ${plugin_dir}/scripts/assemble-all.js riff-1 riff-2 ...
 Task({
   subagent_type: "general-purpose",
   prompt: `
-    # CRITICAL: File Writing Instructions
+    Read each riff-*/index.html in ${base_path}/ and score the business models.
 
-    DO NOT use the Write tool - it will fail with permission denied.
-    You MUST use Bash with a heredoc to write RANKINGS.md:
+    Then run this Bash command with your analysis:
 
     cat > RANKINGS.md << 'ENDOFMD'
-    ...your markdown content...
+    # Riff Rankings
+    | Rank | Name | Score |
+    |------|------|-------|
+    ...
     ENDOFMD
 
-    # Your Task
-
-    Evaluate riffs in ${base_path}/
-
-    Read each riff-*/index.html (business model in <!--BUSINESS--> comment).
-    Score each 1-10 on: Originality, Market Potential, Feasibility, Monetization, Wow Factor.
-
-    Include in RANKINGS.md:
-    - Summary table (rank, name, score/50)
-    - Detailed scores per riff
-    - Recommendations: best for solo founder, fastest to ship, most innovative
+    Score 1-10 on: Originality, Market Potential, Feasibility, Monetization, Wow Factor.
+    Include: summary table, detailed scores, recommendations (solo founder, fastest to ship, most innovative).
   `
 })
 ```
@@ -117,22 +99,22 @@ Task({
 Task({
   subagent_type: "general-purpose",
   prompt: `
-    # CRITICAL: File Writing Instructions
+    Read RANKINGS.md and riff-*/index.html files in ${base_path}/.
 
-    DO NOT use the Write tool - it will fail with permission denied.
-    You MUST use Bash with a heredoc to write index.html:
+    Then run this Bash command with a gallery page:
 
     cat > index.html << 'ENDOFHTML'
-    ...your html content...
+    <!DOCTYPE html>
+    <html>
+    <head><title>Riff Gallery</title></head>
+    <body style="background:#0a0a0f;color:#fff;font-family:system-ui">
+    ...your gallery cards here...
+    </body>
+    </html>
     ENDOFHTML
 
-    # Your Task
-
-    Create a gallery page at ${base_path}/index.html
-
-    Read RANKINGS.md and riff-*/index.html files.
-    Dark theme (#0a0a0f), glass cards, purple/cyan accents.
-    Each card: rank badge, name, pitch, score bar, "Launch →" link.
+    Style: Dark theme, glass cards, purple/cyan accents.
+    Each card: rank badge, name, pitch, score bar, "Launch →" link to riff-N/index.html.
     Responsive grid, self-contained HTML with inline styles.
   `
 })
