@@ -52,13 +52,14 @@ Use TaskOutput to wait for all subagents. Each returns JSX in a code block.
 
 Get the plugin directory from your skill context (parent of `skills/` directory).
 
-For each completed task, launch a **background Bash command** to write the file:
+For each completed task, **base64 encode the JSX** to avoid shell escaping issues, then launch a background Bash command:
 
 ```javascript
+// Base64 encode to avoid shell escaping issues with ${} in JSX
+const encoded = btoa(jsxCode);
+
 Bash({
-  command: `mkdir -p riff-${N} && cat > riff-${N}/app.jsx << 'JSXEOF'
-${jsxCode}
-JSXEOF`,
+  command: `mkdir -p riff-${N} && echo '${encoded}' | base64 -d > riff-${N}/app.jsx`,
   run_in_background: true,
   description: `Write riff-${N}`
 })
