@@ -56,18 +56,28 @@ Deleted the `agents/` directory entirely. All instructions are now inlined in `s
 
 The skill uses `general-purpose` subagents with embedded prompts - no plugin agents needed.
 
-## The Bash Workaround
+## The Bash Workaround (Failed)
 
-Even `general-purpose` subagents couldn't use the Write tool ("I'm unable to create the file").
-However, **Bash works!** All file creation now uses heredoc:
+Even `general-purpose` subagents couldn't use:
+- Write tool: "I'm unable to create the file"
+- Bash tool: "I don't have permission to run Bash commands"
 
-```bash
-cat > riff-1/app.jsx << 'ENDOFJSX'
-...jsx code...
-ENDOFJSX
+Subagents spawned from plugin context have no file-writing capabilities.
+
+## The Solution: Subagents Return, Main Agent Writes
+
+```
+Subagent 1 ──┐
+Subagent 2 ──┼─→ Return JSX code ──→ Main Agent ──→ Bash writes files
+Subagent N ──┘     (parallel)           │
+                                        └─→ Has Bash permission!
 ```
 
-This applies to:
-- Step 3: Generate Riffs (app.jsx files)
-- Step 5: Evaluate (RANKINGS.md)
-- Step 6: Gallery (index.html)
+1. Subagents generate code and return it (no file writing)
+2. Main agent collects all results
+3. Main agent writes files using Bash (main agent has user's permissions)
+
+**Why this works:**
+- Generation is parallel (all subagents run at once)
+- Writing is instant (just Bash file I/O, no LLM tokens)
+- Main agent inherits user's permission settings
