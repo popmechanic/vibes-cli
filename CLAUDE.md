@@ -6,33 +6,6 @@
 
 This plugin generates React apps that are compatible with the vibes.diy ecosystem. All configuration—import maps, package versions, style prompts—MUST come from the upstream vibes.diy repository. Do not "improve" or "optimize" by changing values.
 
-## HTTP Server Required
-
-**Generated apps must be served via HTTP, not opened directly as files.**
-
-```bash
-# Serve the current directory
-npx serve .
-# Then open http://localhost:3000
-```
-
-### Why This Is Required
-
-When esm.sh builds `use-vibes`, it creates internal imports like:
-```javascript
-import "/react@>=19.1.0?target=es2022";
-```
-
-Import maps can only redirect **bare specifiers** (like `react`), not absolute URLs (like `/react@>=19.1.0`). This means:
-- User code imports `react` → redirected by import map
-- use-vibes imports `/react@>=19.1.0` → NOT redirected → different React instance
-
-**Result:** Multiple React instances cause "useContext is null" errors.
-
-vibes.diy avoids this because it runs on a single origin (https://vibes.diy) where the browser's module cache deduplicates at the network level. Standalone files via `file://` don't have this shared cache.
-
-**Solution:** Serve via HTTP so module caching works correctly.
-
 ## Architecture: The Sync Pattern
 
 ### Data Flow
@@ -60,9 +33,8 @@ The `scripts/sync.js` script (Node.js + esbuild):
 
 1. **Fetches** from vibes.diy GitHub raw URLs
 2. **Parses** TypeScript source to extract values (handles both quoted and unquoted keys)
-3. **Transpiles** menu components (TSX → React.createElement) using esbuild
-4. **Caches** parsed data in `/cache/` as JSON/text/JS
-5. **Updates** template files by regex-replacing `<script type="importmap">` blocks
+3. **Caches** parsed data in `/cache/` as JSON/text
+4. **Updates** template files by regex-replacing `<script type="importmap">` blocks
 
 Run sync with: `/vibes:sync` or `node scripts/sync.js --force`
 
@@ -75,9 +47,6 @@ Run sync with: `/vibes:sync` or `node scripts/sync.js --force`
 | `import-map.ts` | `cache/import-map.json` | Import maps in SKILL.md, vibes-gen.md |
 | `style-prompts.ts` | `cache/style-prompt.txt` | UI style guidance |
 | `use-fireproof.com/llms-full.txt` | `cache/fireproof.txt` | Fireproof API docs |
-| `vibes-variables.css` | `cache/vibes-variables.css` | CSS variables for theming |
-| `VibesSwitch/*.tsx` | `cache/vibes-menu.js` | Menu toggle component |
-| `HiddenMenuWrapper/*.tsx` | `cache/vibes-menu.js` | Menu wrapper component |
 
 ## Critical Rules
 
@@ -133,7 +102,6 @@ Import map examples in documentation become stale. Reference `cache/import-map.j
 | Missing `?external=react,react-dom` on use-vibes URLs | Multiple React instances, context errors | Add `?external=react,react-dom` to all use-vibes/call-ai imports |
 | Using dev versions (0.19.x-dev) | Known bugs, page lockups | Use stable version 0.18.9 |
 | Missing `react/jsx-runtime` | Build errors | Run sync to get all entries |
-| Opening file:// directly | Module cache doesn't work | Serve via HTTP (`npx serve .`) |
 | Hardcoded versions in docs | Docs become stale | Reference cache file |
 | Editing templates without running sync | Versions out of date | Always run sync after edits |
 
@@ -152,10 +120,8 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 ### Test Generated Apps
 
 1. Generate a simple app with `/vibes:vibes`
-2. Serve via HTTP: `npx serve .`
-3. Open http://localhost:3000 (NOT file://)
-4. Check console for errors:
-   - No "useContext" errors (React duplication)
+2. Open `index.html` in your browser
+3. Check console for errors:
    - No "Fireproof is not defined" errors
    - No infinite loops or page lockups
 
@@ -164,15 +130,15 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | File | Purpose |
 |------|---------|
 | `scripts/assemble.js` | Assembly script - inserts JSX into template |
-| `scripts/sync.js` | Sync script - fetches, transpiles, and updates |
-| `scripts/package.json` | Node.js deps (esbuild) |
+| `scripts/sync.js` | Sync script - fetches and updates cache |
+| `scripts/package.json` | Node.js deps |
 | `cache/import-map.json` | Working cache - package versions |
 | `cache/style-prompt.txt` | Working cache - UI style guidance |
-| `cache/vibes-menu.js` | Working cache - transpiled menu components |
-| `cache/vibes-variables.css` | Working cache - CSS variables |
+| `cache/fireproof.txt` | Working cache - Fireproof API docs |
 | `skills/vibes/cache/` | Default cache (git-tracked) - ships with plugin |
+| `skills/vibes/templates/index.html` | HTML template with menu components |
 | `skills/vibes/SKILL.md` | Main vibes skill (has import map) |
-| `agents/vibes-gen.md` | Riff generator agent (has import map) |
+| `agents/vibes-gen.md` | Riff generator agent |
 | `skills/sync/SKILL.md` | User-facing sync skill definition |
 
 ### Cache Locations
@@ -253,10 +219,6 @@ The `?external=` parameter tells esm.sh to keep specified dependencies as **bare
 - Version `0.18.9` is stable (dev versions have bugs)
 - Unpinned React lets esm.sh resolve compatible version
 - `?external=react,react-dom` ensures import map controls React
-
-### Why HTTP Server Is Required
-
-Files opened via `file://` don't share the browser's module cache. HTTP serving enables proper module deduplication.
 
 ## Known Issues
 

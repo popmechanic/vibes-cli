@@ -6,10 +6,10 @@
 
 This plugin enables Claude Code users to vibe code React applications. Apps are single HTML files with:
 
-- **React 19** using `React.createElement()` (no JSX, no build step)
+- **React 19** with JSX (Babel runtime transpilation)
 - **Fireproof** for local-first database with encrypted sync
 - **Tailwind CSS** for styling
-- **CDN imports** via import map
+- **ES modules** via import map (CDN)
 
 ## Installation
 
@@ -71,10 +71,8 @@ vibes-skill/
 ├── commands/
 │   └── sync.md               # Sync command
 ├── scripts/
-│   ├── fetch-prompt.ts       # Bun script for fetching docs
-│   └── transpile.ts          # JSX→createElement transpiler
-├── src/
-│   └── vibes-menu/           # TSX source for menu components
+│   ├── sync.js               # Node script for syncing docs
+│   └── assemble.js           # Template assembly script
 ├── vibes.png                 # Logo
 └── README.md
 ```
@@ -97,9 +95,9 @@ const db = Fireproof.fireproof("my-db");  // No global exists!
 ### Single HTML File
 
 All code lives inline in the HTML file:
-- No separate `.js` files (causes CORS errors when opening locally)
-- All components defined in `<script type="module">`
-- Template includes VibesSwitch, HiddenMenuWrapper, VibesPanel components
+- App code in `<script type="text/babel">` (runtime JSX transpilation)
+- Menu components in `<script type="module">` (React.createElement, no Babel needed)
+- Template includes VibesSwitch and HiddenMenuWrapper components
 
 ### Import Map
 
@@ -157,14 +155,19 @@ This fetches:
 - Style prompt from https://github.com/VibesDIY/vibes.diy/blob/main/prompts/pkg/style-prompts.ts
 - Import map versions from vibes.diy repository
 
-## Menu Component Sync
+## Assembly Workflow
 
-The Vibes menu (VibesSwitch + HiddenMenuWrapper) is ported from vibes.diy. To update:
+The `vibes` skill uses a post-processing pipeline for efficient generation:
 
-1. Copy TSX files from vibes.diy to `src/vibes-menu/`
-2. Run transpiler: `bun scripts/transpile.ts`
-3. Update `templates/index.html` with transpiled code
-4. Copy to `skills/vibes/templates/`
+1. LLM generates only the App component code (JSX)
+2. Code is written to `app.jsx`
+3. `scripts/assemble.js` inserts code into template
+4. Complete HTML with menu is output
+
+The template at `skills/vibes/templates/index.html` includes:
+- VibesSwitch and HiddenMenuWrapper menu components (React.createElement)
+- Babel runtime for JSX transpilation
+- Import map for ES module resolution
 
 ## Resources
 
