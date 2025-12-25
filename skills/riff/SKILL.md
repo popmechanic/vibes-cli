@@ -97,7 +97,7 @@ Open index.html for gallery, RANKINGS.md for detailed analysis.
 To get the plugin directory path, use:
 ```bash
 # The plugin is installed at ~/.claude/plugins/cache/vibes-diy/vibes/VERSION/
-PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.41"
+PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.42"
 ```
 
 Or locate it dynamically if needed.
