@@ -41,14 +41,19 @@ Task({
   prompt: `
     # Riff ${N}/${total}: ${user_prompt}
 
-    USE THE WRITE TOOL to create: riff-${N}/app.jsx
+    ## Your Task
+    Generate a Vibes app and USE BASH to write it to: riff-${N}/app.jsx
+
+    Use this Bash command pattern:
+    cat > riff-${N}/app.jsx << 'ENDOFJSX'
+    ...your jsx code here...
+    ENDOFJSX
 
     ## Interpretation Lens
     ${N}=1: Minimalist | 2: Social | 3: Gamified | 4: Professional
     5: Personal | 6: Marketplace | 7: Educational | 8: Creative | 9+: Wildcard
 
-    ## Output Format
-    \`\`\`jsx
+    ## JSX Format
     /*BUSINESS
     name: App Name
     pitch: One sentence
@@ -60,14 +65,10 @@ Task({
 
     export default function App() {
       const { useLiveQuery, useDocument } = useFireproof("app-db");
-      // Use useDocument for forms (NOT useState)
-      // Use useLiveQuery for lists
       return <div className="min-h-screen bg-[#f1f5f9] p-4">...</div>;
     }
-    \`\`\`
 
-    Style: Tailwind neo-brutalist (border-4, shadow-[6px_6px_0px_#0f172a])
-    NO: HTML tags, script tags, version numbers, ReactDOM
+    Style: Tailwind neo-brutalist. NO: HTML tags, script tags, version numbers.
   `
 })
 ```
@@ -88,7 +89,12 @@ Task({
     Read each riff-*/index.html (business model in <!--BUSINESS--> comment).
     Score each 1-10 on: Originality, Market Potential, Feasibility, Monetization, Wow Factor.
 
-    USE THE WRITE TOOL to create RANKINGS.md with:
+    USE BASH to create RANKINGS.md:
+    cat > RANKINGS.md << 'ENDOFMD'
+    ...your markdown content...
+    ENDOFMD
+
+    Include:
     - Summary table (rank, name, score/50)
     - Detailed scores per riff
     - Recommendations: best for solo founder, fastest to ship, most innovative
@@ -102,7 +108,11 @@ Task({
 Task({
   subagent_type: "general-purpose",
   prompt: `
-    USE THE WRITE TOOL to create: ${base_path}/index.html
+    USE BASH to create: ${base_path}/index.html
+
+    cat > index.html << 'ENDOFHTML'
+    ...your html content...
+    ENDOFHTML
 
     Read RANKINGS.md and riff-*/index.html files.
     Dark theme (#0a0a0f), glass cards, purple/cyan accents.
