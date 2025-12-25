@@ -39,15 +39,18 @@ Task({
   run_in_background: true,
   description: `Generate riff-${N}`,
   prompt: `
-    # Riff ${N}/${total}: ${user_prompt}
+    # CRITICAL: File Writing Instructions
 
-    ## Your Task
-    Generate a Vibes app and USE BASH to write it to: riff-${N}/app.jsx
+    DO NOT use the Write tool - it will fail with permission denied.
+    You MUST use Bash with a heredoc to write the file:
 
-    Use this Bash command pattern:
     cat > riff-${N}/app.jsx << 'ENDOFJSX'
-    ...your jsx code here...
+    ...your complete jsx code...
     ENDOFJSX
+
+    This is your ONLY task. Generate the JSX and write it using the Bash command above.
+
+    # Riff ${N}/${total}: ${user_prompt}
 
     ## Interpretation Lens
     ${N}=1: Minimalist | 2: Social | 3: Gamified | 4: Professional
@@ -84,17 +87,23 @@ node ${plugin_dir}/scripts/assemble-all.js riff-1 riff-2 ...
 Task({
   subagent_type: "general-purpose",
   prompt: `
+    # CRITICAL: File Writing Instructions
+
+    DO NOT use the Write tool - it will fail with permission denied.
+    You MUST use Bash with a heredoc to write RANKINGS.md:
+
+    cat > RANKINGS.md << 'ENDOFMD'
+    ...your markdown content...
+    ENDOFMD
+
+    # Your Task
+
     Evaluate riffs in ${base_path}/
 
     Read each riff-*/index.html (business model in <!--BUSINESS--> comment).
     Score each 1-10 on: Originality, Market Potential, Feasibility, Monetization, Wow Factor.
 
-    USE BASH to create RANKINGS.md:
-    cat > RANKINGS.md << 'ENDOFMD'
-    ...your markdown content...
-    ENDOFMD
-
-    Include:
+    Include in RANKINGS.md:
     - Summary table (rank, name, score/50)
     - Detailed scores per riff
     - Recommendations: best for solo founder, fastest to ship, most innovative
@@ -108,11 +117,18 @@ Task({
 Task({
   subagent_type: "general-purpose",
   prompt: `
-    USE BASH to create: ${base_path}/index.html
+    # CRITICAL: File Writing Instructions
+
+    DO NOT use the Write tool - it will fail with permission denied.
+    You MUST use Bash with a heredoc to write index.html:
 
     cat > index.html << 'ENDOFHTML'
     ...your html content...
     ENDOFHTML
+
+    # Your Task
+
+    Create a gallery page at ${base_path}/index.html
 
     Read RANKINGS.md and riff-*/index.html files.
     Dark theme (#0a0a0f), glass cards, purple/cyan accents.
