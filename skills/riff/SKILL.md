@@ -65,22 +65,28 @@ The Write tool is SERIAL - each call blocks until complete. To achieve O(1) para
 
 Get the plugin directory from your skill context (parent of `skills/` directory).
 
-For each completed task, base64 encode the JSX to avoid shell escaping:
+Use a **heredoc with single-quoted delimiter** to avoid ALL shell escaping issues:
 
 ```javascript
 // In a SINGLE message, launch ALL these Bash commands together:
 Bash({
-  command: `mkdir -p riff-1 && echo '${encoded1}' | base64 -d > riff-1/app.jsx`,
+  command: `mkdir -p riff-1 && cat > riff-1/app.jsx << 'VIBES_JSX_EOF'
+${jsxCode1}
+VIBES_JSX_EOF`,
   run_in_background: true,
   description: "Write riff-1"
 })
 Bash({
-  command: `mkdir -p riff-2 && echo '${encoded2}' | base64 -d > riff-2/app.jsx`,
+  command: `mkdir -p riff-2 && cat > riff-2/app.jsx << 'VIBES_JSX_EOF'
+${jsxCode2}
+VIBES_JSX_EOF`,
   run_in_background: true,
   description: "Write riff-2"
 })
 // ... all N riffs in ONE message
 ```
+
+**Why single-quoted delimiter?** `<< 'VIBES_JSX_EOF'` (with quotes) prevents ALL shell expansion - no `${}`, backticks, or backslashes are interpreted. The JSX is written exactly as-is.
 
 **DO NOT** call Write tool. **DO NOT** call Bash commands one at a time.
 
