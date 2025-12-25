@@ -5,14 +5,14 @@
     "email": "hello@vibes.diy"
   },
   "metadata": {
-    "description": "Generate React web apps with Fireproof database - no build step, deploy anywhere",
+    "description": "Vibes is the vibe coding web stack made for AI agents.",
     "version": "1.0.0"
   },
   "plugins": [
     {
       "name": "vibes",
       "source": "./",
-      "description": "Generate React web apps with Fireproof database - no build step, deploy anywhere",
+      "description": "Vibes is the vibe coding web stack made for AI agents.",
       "version": "1.0.7",
       "author": {
         "name": "Vibes DIY"
