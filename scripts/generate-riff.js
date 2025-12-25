@@ -34,17 +34,28 @@ const lensDescriptions = {
 
 const lensDesc = lensDescriptions[lens] || lensDescriptions['9'];
 
-const prompt = `OUTPUT ONLY CODE. NO EXPLANATIONS. NO MARKDOWN. NO CONVERSATION.
+const prompt = `You are generating a Vibes app. First, THINK about the theme and how to express it visually.
 
-CRITICAL: Use plain JavaScript. NEVER use TypeScript syntax:
+Theme: ${theme}
+Lens: ${lensDesc}
+
+First, reason about the theme in <reasoning> tags:
+- What colors, gradients, and visual mood fit this theme?
+- What icons, imagery, or decorative elements would enhance it?
+- What kind of app functionality matches this theme?
+- How can the UI feel immersive and thematic?
+
+Then output your complete code in <code> tags.
+
+CRITICAL: Use plain JavaScript only. NEVER use TypeScript syntax:
 - NO generics: useState<T>, useDocument<T>, Array<T>
 - NO type annotations: const x: string, function(x: number)
 - NO interfaces or type aliases
 - NO "as" assertions: (x as any)
 
-Generate this exact structure with your implementation:
+Your code must follow this structure:
 /*BUSINESS
-name: [Creative App Name]
+name: [Creative App Name that fits the theme]
 pitch: [One sentence value proposition]
 customer: [Target user persona]
 revenue: [Pricing/monetization model]
@@ -56,52 +67,55 @@ export default function App() {
   const { useLiveQuery, useDocument } = useFireproof("riff-db");
   // Your implementation
   return (
-    <div className="min-h-screen bg-[#f1f5f9] p-4">
-      {/* Neo-brutalist UI */}
+    <div className="min-h-screen [theme-appropriate-background] p-4">
+      {/* Theme-driven UI */}
     </div>
   );
 }
 
-Theme: ${theme}
-Lens: ${lensDesc}
-Style: Tailwind CSS with neo-brutalist aesthetic (bold borders, shadows, high contrast)
-
 Requirements:
+- The theme should drive ALL visual choices (colors, backgrounds, icons, mood)
+- Use Tailwind CSS for styling
 - Use useFireproof for all data persistence
 - Use useLiveQuery for real-time data
 - Use useDocument for form state (NOT useState for form data)
 - Include meaningful CRUD operations
-- Make it visually distinctive and functional`;
+- Make it visually distinctive and immersive`;
 
 try {
   // Escape the prompt for shell
   const escapedPrompt = prompt.replace(/`/g, '\\`').replace(/\$/g, '\\$');
 
-  const code = execSync(`claude -p "${escapedPrompt}"`, {
+  const output = execSync(`claude -p "${escapedPrompt}"`, {
     encoding: 'utf-8',
     maxBuffer: 10 * 1024 * 1024, // 10MB buffer
     timeout: 300000 // 5 minute timeout
   });
 
-  // Extract code from markdown if wrapped in ```jsx or ```javascript blocks
-  let cleanCode = code.trim();
+  // Extract reasoning if present
+  const reasoningMatch = output.match(/<reasoning>([\s\S]*?)<\/reasoning>/);
 
-  // Try to extract from code blocks
-  const codeBlockMatch = cleanCode.match(/```(?:jsx|javascript|js)?\s*([\s\S]*?)```/);
-  if (codeBlockMatch) {
-    cleanCode = codeBlockMatch[1].trim();
-  }
+  // Extract code from <code> tags
+  let cleanCode = '';
+  const codeMatch = output.match(/<code>([\s\S]*?)<\/code>/);
 
-  // If it starts with conversational text (no code), try to find where code starts
-  if (!cleanCode.startsWith('/*') && !cleanCode.startsWith('import') && !cleanCode.startsWith('//')) {
-    // Look for the BUSINESS comment or import statement
-    const businessMatch = cleanCode.match(/(\/\*BUSINESS[\s\S]*)/);
-    const importMatch = cleanCode.match(/(import\s+[\s\S]*)/);
-
-    if (businessMatch) {
-      cleanCode = businessMatch[1];
-    } else if (importMatch) {
-      cleanCode = importMatch[1];
+  if (codeMatch) {
+    cleanCode = codeMatch[1].trim();
+  } else {
+    // Fallback: try markdown code blocks
+    const markdownMatch = output.match(/```(?:jsx|javascript|js)?\s*([\s\S]*?)```/);
+    if (markdownMatch) {
+      cleanCode = markdownMatch[1].trim();
+    } else {
+      // Fallback: find code start
+      const trimmed = output.trim();
+      if (trimmed.startsWith('/*') || trimmed.startsWith('import')) {
+        cleanCode = trimmed;
+      } else {
+        const businessMatch = trimmed.match(/(\/\*BUSINESS[\s\S]*)/);
+        const importMatch = trimmed.match(/(import\s+[\s\S]*)/);
+        cleanCode = businessMatch ? businessMatch[1] : (importMatch ? importMatch[1] : trimmed);
+      }
     }
   }
 
@@ -110,6 +124,12 @@ try {
 
   // Write the generated code
   fs.writeFileSync(outputPath, cleanCode);
+
+  // Save reasoning for debugging if present
+  if (reasoningMatch) {
+    const reasoningPath = outputPath.replace(/\.jsx$/, '.reasoning.md');
+    fs.writeFileSync(reasoningPath, `# Reasoning for ${path.basename(outputPath)}\n\n${reasoningMatch[1].trim()}`);
+  }
 
   console.log(`✓ ${outputPath}`);
 } catch (err) {
