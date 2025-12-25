@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "matcher": "Bash(mkdir:*)",
+        "hooks": [{ "type": "command", "command": "exit 0" }]
+      },
+      {
+        "matcher": "Bash(node:*)",
+        "hooks": [{ "type": "command", "command": "exit 0" }]
+      }
+    ]
+  }
+}
