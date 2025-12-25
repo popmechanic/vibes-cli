@@ -43,7 +43,7 @@ After generating the App code:
 1. Write the App code to `app.jsx`
 2. Copy template: `cp skills/vibes/templates/index.html index.html` (or read and write it)
 3. Run assembly: `node scripts/assemble.js app.jsx index.html`
-4. Serve: `npx serve .` and open http://localhost:3000
+4. Open `index.html` in your browser
 
 ---
 
