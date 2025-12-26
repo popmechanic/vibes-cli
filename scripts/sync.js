@@ -486,7 +486,6 @@ function updateSkillImportMaps(imports) {
 
   const filesToUpdate = [
     join(PLUGIN_ROOT, "skills/vibes/SKILL.md"),
-    join(PLUGIN_ROOT, "agents/vibes-gen.md"),
   ];
 
   const importMapRegex = /<script type="importmap">\s*\{[\s\S]*?"imports":\s*\{[\s\S]*?\}\s*\}\s*<\/script>/g;

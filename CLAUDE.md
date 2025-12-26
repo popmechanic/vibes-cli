@@ -23,8 +23,7 @@ vibes.diy repo (GitHub)
         │ regex replacement
         ▼
   Template files updated
-   ├── skills/vibes/SKILL.md
-   └── agents/vibes-gen.md
+   └── skills/vibes/SKILL.md
 ```
 
 ### How Sync Works
@@ -44,7 +43,7 @@ Run sync with: `/vibes:sync` or `node scripts/sync.js --force`
 
 | Source | Cache File | Updates |
 |--------|------------|---------|
-| `import-map.ts` | `cache/import-map.json` | Import maps in SKILL.md, vibes-gen.md |
+| `import-map.ts` | `cache/import-map.json` | Import maps in SKILL.md |
 | `style-prompts.ts` | `cache/style-prompt.txt` | UI style guidance |
 | `use-fireproof.com/llms-full.txt` | `cache/fireproof.txt` | Fireproof API docs |
 
@@ -138,8 +137,8 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `skills/vibes/cache/` | Default cache (git-tracked) - ships with plugin |
 | `skills/vibes/templates/index.html` | HTML template with menu components |
 | `skills/vibes/SKILL.md` | Main vibes skill (has import map) |
-| `agents/vibes-gen.md` | Riff generator agent |
-| `skills/sync/SKILL.md` | User-facing sync skill definition |
+| `skills/riff/SKILL.md` | Riff skill for parallel app generation |
+| `commands/sync.md` | User-facing sync command definition |
 
 ### Cache Locations
 
