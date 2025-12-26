@@ -107,37 +107,6 @@ Generated ${count} riffs for "${prompt}":
 Open index.html for gallery, or browse riff-1/, riff-2/, etc.
 ```
 
-### Step 8: Optional - Publish to GitHub Pages
-
-After presenting results, ask the user:
-
-> "Would you like to publish these riffs to GitHub Pages for live URLs?"
-
-If yes:
-1. Ask for a session name (for the folder, e.g., "christmas-riffs")
-2. Create folder and move files:
-   ```bash
-   SESSION_SLUG=$(echo "${session_name}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')
-   mkdir -p "${SESSION_SLUG}"
-   mv riff-* index.html RANKINGS.md "${SESSION_SLUG}/"
-   ```
-3. Update landing page and push:
-   ```bash
-   node ${PLUGIN_DIR}/scripts/update-landing.js .
-   git add "${SESSION_SLUG}/" index.html
-   git commit -m "Add ${SESSION_SLUG} riffs"
-   git push
-   ```
-4. Output:
-   ```
-   Pushed! Your riffs will be live in ~2-5 minutes at:
-   Gallery: https://${username}.github.io/${repo}/${SESSION_SLUG}/
-   Riff 1:  https://${username}.github.io/${repo}/${SESSION_SLUG}/riff-1/
-   ...
-   ```
-
-If user declines, leave files in current directory.
-
 ## Plugin Directory
 
 To get the plugin directory path, use:

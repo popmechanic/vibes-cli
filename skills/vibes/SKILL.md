@@ -28,11 +28,28 @@ Generate React web applications using Fireproof for local-first data persistence
 - **Fireproof for data** - Use `useFireproof`, `useLiveQuery`, `useDocument`
 - **Tailwind for styling** - Mobile-first, responsive design
 
-## Output Format
+## Generation Process
 
-Output a complete JSX App component file with imports:
+### Step 1: Design Reasoning
 
-```jsx
+Before writing code, reason about the design in `<design>` tags:
+
+```
+<design>
+- What is the core functionality and user flow?
+- What OKLCH colors fit this theme? (dark/light, warm/cool, vibrant/muted)
+- What layout best serves the content? (cards, list, dashboard, single-focus)
+- What micro-interactions would feel satisfying? (hover states, transitions)
+- What visual style matches the purpose? (minimal, bold, playful, professional)
+</design>
+```
+
+### Step 2: Output Code
+
+After reasoning, output the complete JSX in `<code>` tags:
+
+```
+<code>
 import React, { useState } from "react";
 import { useFireproof } from "use-fireproof";
 
@@ -46,44 +63,15 @@ export default function App() {
     </div>
   );
 }
+</code>
 ```
 
 ## Assembly Workflow
 
-1. Write the App code to `app.jsx`
-2. Copy template: `cp ${PLUGIN_DIR}/skills/vibes/templates/index.html index.html`
+1. Extract the code from `<code>` tags and write to `app.jsx`
+2. Optionally save `<design>` content to `design.md` for documentation
 3. Run assembly: `node ${PLUGIN_DIR}/scripts/assemble.js app.jsx index.html`
 4. Tell user: "Open `index.html` in your browser to view your app."
-
-### Optional: Publish to GitHub Pages
-
-After the app is working locally, ask the user:
-
-> "Would you like to publish this to GitHub Pages for a live URL?"
-
-If yes:
-1. Ask for an app name (for the folder)
-2. Check if in a GitHub repo with Pages enabled
-3. Create folder and move files:
-   ```bash
-   APP_SLUG=$(echo "${app_name}" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd 'a-z0-9-')
-   mkdir -p "${APP_SLUG}"
-   mv app.jsx index.html "${APP_SLUG}/"
-   ```
-4. Update landing page and push:
-   ```bash
-   node ${PLUGIN_DIR}/scripts/update-landing.js .
-   git add "${APP_SLUG}/" index.html
-   git commit -m "Add ${APP_SLUG}"
-   git push
-   ```
-5. Output:
-   ```
-   Pushed! Your app will be live in ~2-5 minutes at:
-   https://${username}.github.io/${repo}/${APP_SLUG}/
-   ```
-
-If user declines, just leave files in current directory.
 
 ---
 
