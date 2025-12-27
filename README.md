@@ -66,7 +66,7 @@ Transform any Vibes app into a multi-tenant SaaS with subdomain-based tenancy, a
 **What it adds:**
 - Subdomain routing (alice.yourdomain.com, bob.yourdomain.com)
 - Clerk authentication with sign-in/sign-up
-- Stripe billing via Clerk Billing
+- Clerk Billing for subscriptions
 - Per-tenant Fireproof database isolation
 - Marketing landing page with pricing
 - Admin dashboard for tenant management
@@ -78,7 +78,7 @@ yourdomain.com          → Landing page with pricing
 admin.yourdomain.com    → Admin dashboard
 ```
 
-**Deployment:** Cloudflare Pages + Worker for wildcard subdomains. The skill includes step-by-step setup instructions for Clerk, Stripe, DNS, and Cloudflare.
+**Deployment:** Cloudflare Pages + Worker for wildcard subdomains. The skill includes step-by-step setup instructions for Clerk, DNS, and Cloudflare.
 
 **Example flow:**
 1. Build an app with `/vibes` (e.g., a photo sharing app)
