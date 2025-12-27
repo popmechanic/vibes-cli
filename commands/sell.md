@@ -22,27 +22,32 @@ Before running this command, you should have:
 
 ## What Gets Generated
 
-| File | Purpose | Deployment |
-|------|---------|------------|
-| `app.html` | Tenant app with auth | `*.yourdomain.com` |
-| `index.html` | Landing page with pricing | `yourdomain.com` |
-| `admin.html` | Admin dashboard | `admin.yourdomain.com` |
-| `SETUP.md` | Deployment guide | Reference only |
+A **single unified `index.html`** file that handles all routes via client-side subdomain detection:
+
+| Route | Purpose |
+|-------|---------|
+| `yourdomain.com` | Landing page with pricing |
+| `*.yourdomain.com` | Tenant app with auth |
+| `admin.yourdomain.com` | Admin dashboard |
 
 ## Configuration Required
 
 The skill will ask you for:
 
 - **App name**: Used for database naming (e.g., "wedding-photos")
+- **App title**: Display name (e.g., "Fantasy Wedding")
 - **Domain**: Your root domain (e.g., "fantasy.wedding")
 - **Pricing**: Monthly and yearly subscription prices
 - **Clerk publishable key**: From Clerk Dashboard → API Keys
+- **Admin user IDs**: Clerk user IDs for admin bypass
 
-## After Generation
+## Deployment
 
-1. Configure Clerk Billing with Stripe
-2. Set up wildcard DNS for your domain
-3. Deploy to a static host (Cloudflare Pages, Netlify, Vercel)
-4. Test the complete flow
+Deploy to **Cloudflare Pages** with a Worker for wildcard subdomains:
 
-See the generated `SETUP.md` for detailed instructions.
+1. Create a Pages project and upload `index.html`
+2. Add your custom domain
+3. Create a Worker to proxy `*.yourdomain.com` to Pages
+4. Add the Worker route trigger
+
+See the skill documentation for detailed Cloudflare deployment steps.
