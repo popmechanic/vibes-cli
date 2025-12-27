@@ -210,38 +210,38 @@ CLOUDFLARE PAGES DEPLOYMENT:
 2. Upload your ${resolvedOutputPath} file
 3. Add your custom domain in Pages settings
 
-WILDCARD SUBDOMAIN SETUP:
+API WORKER DEPLOYMENT:
 ─────────────────────────────
-Cloudflare Pages doesn't support wildcard custom domains directly.
-Create a Cloudflare Worker to proxy subdomains:
+The admin dashboard needs an API Worker. Deploy it with wrangler:
 
-1. Go to Workers & Pages → Create → Create Worker
-2. Replace the code with:
+1. Install wrangler: npm install -g wrangler
+2. Login: wrangler login
+3. Navigate to worker directory:
+   cd \${PLUGIN_DIR}/skills/sell/worker
+4. Update wrangler.toml:
+   - PAGES_DOMAIN = "YOUR-PROJECT.pages.dev"
+5. Deploy: wrangler deploy
+6. Set secret: wrangler secret put CLERK_SECRET_KEY
+   (Enter your Clerk secret key from Dashboard → API Keys)
 
-   export default {
-     async fetch(request) {
-       const url = new URL(request.url);
-       url.hostname = 'YOUR-PROJECT.pages.dev';
-       return fetch(url, request);
-     }
-   }
-
-3. Deploy the Worker
-4. Go to Worker Settings → Triggers → Add Route
-5. Add route: *.${options.domain || 'yourdomain.com'}/*
+WORKER ROUTES (IMPORTANT - need TWO routes):
+─────────────────────────────
+1. Go to Worker Settings → Triggers → Add Route
+2. Add BOTH routes:
+   • *.${options.domain || 'yourdomain.com'}/* (subdomains)
+   • ${options.domain || 'yourdomain.com'}/* (root domain for API)
 
 DNS RECORDS:
 ─────────────────────────────
-Add these DNS records in Cloudflare:
-  • A record: @ → 192.0.2.1 (proxied) - for root domain
-  • Worker route handles *.${options.domain || 'yourdomain.com'}/*
+  • A record: @ → 192.0.2.1 (proxied)
+  • Worker routes handle all traffic
 
 CLERK SETUP:
 ─────────────────────────────
 1. Create a Clerk application at clerk.com
-2. Enable Clerk Billing and connect Stripe
-3. Create subscription plans (pro, basic, etc.)
-4. Update the publishable key if using placeholder
+2. Enable Clerk Billing in Clerk Dashboard
+3. Create subscription plans (e.g., "pro")
+4. Copy your publishable key to the assembly command
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `);
