@@ -211,6 +211,12 @@
         useAuth
       } from "@clerk/clerk-react";
 
+      // === Menu Components from window (defined in module script above) ===
+      const HiddenMenuWrapper = window.HiddenMenuWrapper;
+      const VibesPanel = window.VibesPanel;
+      const VibesSwitch = window.VibesSwitch;
+      const VibesButton = window.VibesButton;
+
       // === Configuration ===
       const CLERK_PUBLISHABLE_KEY = "__CLERK_PUBLISHABLE_KEY__";
       const APP_NAME = "__APP_NAME__";
