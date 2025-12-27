@@ -51,13 +51,13 @@
     <script type="importmap">
       {
         "imports": {
-          "react": "https://esm.sh/react",
-          "react-dom": "https://esm.sh/react-dom",
-          "react-dom/client": "https://esm.sh/react-dom/client",
-          "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
-          "use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
-          "use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
-          "@clerk/clerk-react": "https://esm.sh/@clerk/clerk-react@latest?external=react,react-dom"
+          "react": "https://esm.sh/react@18.3.1",
+          "react-dom": "https://esm.sh/react-dom@18.3.1?deps=react@18.3.1",
+          "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1",
+          "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+          "use-fireproof": "https://esm.sh/use-fireproof@0.20.0-dev-preview-50?deps=react@18.3.1",
+          "use-vibes": "https://esm.sh/use-vibes@0.18.9?deps=react@18.3.1",
+          "@clerk/clerk-react": "https://esm.sh/@clerk/clerk-react@5?deps=react@18.3.1,react-dom@18.3.1"
         }
       }
     </script>
@@ -225,17 +225,24 @@
       function getRouteInfo() {
         const hostname = window.location.hostname;
         const parts = hostname.split('.');
+        const params = new URLSearchParams(window.location.search);
+        const testSubdomain = params.get('subdomain');
 
         // Handle localhost for testing
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
-          const params = new URLSearchParams(window.location.search);
-          const testSubdomain = params.get('subdomain');
           if (testSubdomain === 'admin') return { route: 'admin', subdomain: null };
           if (testSubdomain) return { route: 'tenant', subdomain: testSubdomain };
           return { route: 'landing', subdomain: null };
         }
 
-        // Production: detect subdomain
+        // Handle pages.dev for testing (before custom domain is set up)
+        if (hostname.endsWith('.pages.dev')) {
+          if (testSubdomain === 'admin') return { route: 'admin', subdomain: null };
+          if (testSubdomain) return { route: 'tenant', subdomain: testSubdomain };
+          return { route: 'landing', subdomain: null };
+        }
+
+        // Production: detect subdomain from hostname
         if (parts.length <= 2 || parts[0] === 'www') {
           return { route: 'landing', subdomain: null };
         }

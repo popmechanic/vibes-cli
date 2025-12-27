@@ -3,8 +3,10 @@
  * Sell App Assembler
  *
  * Assembles a unified SaaS app from the sell template and user's app code.
- * Creates a single index.html that handles landing, tenant, and admin routes
- * via client-side subdomain detection.
+ * Creates:
+ *   - index.html - Unified app handling landing, tenant, and admin routes
+ *   - worker.js - Cloudflare Worker for subdomain proxy + API
+ *   - wrangler.toml - Worker configuration template
  *
  * Usage:
  *   node scripts/assemble-sell.js <app.jsx> [output.html] [options]
@@ -19,6 +21,7 @@
  *   --features <json>     JSON array of feature strings
  *   --tagline <text>      App tagline for landing page
  *   --admin-ids <json>    JSON array of Clerk user IDs with admin access
+ *   --pages-project <name> Cloudflare Pages project name (for worker config)
  *
  * Example:
  *   node scripts/assemble-sell.js app.jsx index.html \
@@ -29,16 +32,8 @@
  *     --monthly-price "$9" \
  *     --yearly-price "$89" \
  *     --features '["Photo sharing","Guest uploads","Live gallery"]' \
- *     --admin-ids '["user_xxx"]'
- *
- * Deployment:
- *   The output file handles all routes via client-side subdomain detection:
- *   - Root domain (fantasy.wedding) → Landing page with pricing
- *   - Subdomains (alice.fantasy.wedding) → Tenant app with auth
- *   - Admin subdomain (admin.fantasy.wedding) → Admin dashboard
- *
- *   For Cloudflare Pages with wildcard subdomains, you'll need a Worker
- *   to proxy *.domain.com to your Pages deployment.
+ *     --admin-ids '["user_xxx"]' \
+ *     --pages-project my-saas
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
@@ -96,6 +91,7 @@ if (!existsSync(resolvedAppPath)) {
 
 // Default output path
 const resolvedOutputPath = resolve(outputPath || 'index.html');
+const outputDir = dirname(resolvedOutputPath);
 
 // Backup existing index.html if it exists
 if (existsSync(resolvedOutputPath)) {
@@ -118,12 +114,17 @@ if (!existsSync(templatePath)) {
 // Read template
 let output = readFileSync(templatePath, 'utf8');
 
+// Configuration
+const domain = options.domain || 'example.com';
+const appName = options.appName || 'my-app';
+const pagesProject = options.pagesProject || appName.replace(/[^a-z0-9-]/gi, '-');
+
 // Configuration replacements
 const replacements = {
   '__CLERK_PUBLISHABLE_KEY__': options.clerkKey || 'pk_test_YOUR_KEY_HERE',
-  '__APP_NAME__': options.appName || 'my-app',
-  '__APP_TITLE__': options.appTitle || options.appName || 'My App',
-  '__APP_DOMAIN__': options.domain || 'example.com',
+  '__APP_NAME__': appName,
+  '__APP_TITLE__': options.appTitle || appName,
+  '__APP_DOMAIN__': domain,
   '__MONTHLY_PRICE__': options.monthlyPrice || '$9',
   '__YEARLY_PRICE__': options.yearlyPrice || '$89',
   '__APP_TAGLINE__': options.tagline || 'Your own private workspace. Get started in seconds.'
@@ -189,59 +190,462 @@ if (output.includes(appPlaceholder)) {
   process.exit(1);
 }
 
-// Write output
+// Write main output
 writeFileSync(resolvedOutputPath, output);
 console.log(`\nCreated: ${resolvedOutputPath}`);
 
-// Print deployment guide
+// Generate worker.js
+const workerCode = `/**
+ * Cloudflare Worker for ${appName}
+ *
+ * Handles:
+ * - Wildcard subdomain proxying to Pages
+ * - /api/tenants - List all tenants
+ * - /api/stats - Get stats
+ * - /api/tenants/register - Register tenant subdomain
+ * - /webhooks/clerk - Clerk webhook handler
+ *
+ * Environment Variables (set in wrangler.toml or dashboard):
+ * - PAGES_HOSTNAME: Your Pages project hostname (e.g., "myapp.pages.dev")
+ * - CLERK_SECRET_KEY: Your Clerk secret key (set via wrangler secret)
+ *
+ * KV Namespace:
+ * - TENANTS: KV namespace for tenant data
+ */
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const pathname = url.pathname;
+
+    // Handle CORS preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: corsHeaders });
+    }
+
+    // Handle API routes
+    if (pathname.startsWith('/api/')) {
+      return handleAPI(request, env, pathname);
+    }
+
+    // Handle Clerk webhooks
+    if (pathname === '/webhooks/clerk') {
+      return handleClerkWebhook(request, env);
+    }
+
+    // Proxy to Pages
+    return proxyToPages(request, env, url.hostname);
+  }
+};
+
+async function handleAPI(request, env, pathname) {
+  // Get all tenants
+  if (pathname === '/api/tenants' && request.method === 'GET') {
+    try {
+      const listResult = await env.TENANTS.get('tenants:list');
+      const subdomains = listResult ? JSON.parse(listResult) : [];
+
+      const tenants = [];
+      for (const subdomain of subdomains) {
+        const tenant = await env.TENANTS.get(\`tenant:\${subdomain}\`);
+        if (tenant) {
+          tenants.push(JSON.parse(tenant));
+        }
+      }
+
+      return new Response(JSON.stringify({ tenants }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  // Get stats
+  if (pathname === '/api/stats' && request.method === 'GET') {
+    try {
+      const tenantCount = await env.TENANTS.get('stats:tenantCount') || '0';
+      const userCount = await env.TENANTS.get('stats:userCount') || '0';
+
+      return new Response(JSON.stringify({
+        tenantCount: parseInt(tenantCount),
+        userCount: parseInt(userCount),
+        monthlyRevenue: null // Could be calculated from Clerk billing
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  // Register tenant
+  if (pathname === '/api/tenants/register' && request.method === 'POST') {
+    try {
+      const body = await request.json();
+      const { subdomain, userId, email, plan } = body;
+
+      if (!subdomain || !userId) {
+        return new Response(JSON.stringify({ error: 'Missing subdomain or userId' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Check if subdomain is taken
+      const existing = await env.TENANTS.get(\`tenant:\${subdomain}\`);
+      if (existing) {
+        return new Response(JSON.stringify({ error: 'Subdomain already taken' }), {
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Create tenant
+      const tenant = {
+        subdomain,
+        userId,
+        email,
+        plan: plan || 'pro',
+        status: 'active',
+        createdAt: new Date().toISOString()
+      };
+
+      await env.TENANTS.put(\`tenant:\${subdomain}\`, JSON.stringify(tenant));
+
+      // Update tenant list
+      const listResult = await env.TENANTS.get('tenants:list');
+      const subdomains = listResult ? JSON.parse(listResult) : [];
+      if (!subdomains.includes(subdomain)) {
+        subdomains.push(subdomain);
+        await env.TENANTS.put('tenants:list', JSON.stringify(subdomains));
+
+        // Update count
+        await env.TENANTS.put('stats:tenantCount', String(subdomains.length));
+      }
+
+      return new Response(JSON.stringify({ success: true, tenant }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  return new Response(JSON.stringify({ error: 'Not found' }), {
+    status: 404,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+async function handleClerkWebhook(request, env) {
+  if (request.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 });
+  }
+
+  try {
+    const body = await request.json();
+    const eventType = body.type;
+    const data = body.data;
+
+    console.log(\`Clerk webhook: \${eventType}\`);
+
+    if (eventType === 'user.created') {
+      // Track new user
+      const user = {
+        id: data.id,
+        email: data.email_addresses?.[0]?.email_address,
+        firstName: data.first_name,
+        lastName: data.last_name,
+        createdAt: new Date().toISOString()
+      };
+
+      await env.TENANTS.put(\`user:\${data.id}\`, JSON.stringify(user));
+
+      // Increment user count
+      const count = parseInt(await env.TENANTS.get('stats:userCount') || '0');
+      await env.TENANTS.put('stats:userCount', String(count + 1));
+    }
+
+    if (eventType === 'user.deleted') {
+      // Remove user
+      await env.TENANTS.delete(\`user:\${data.id}\`);
+
+      // Decrement user count
+      const count = parseInt(await env.TENANTS.get('stats:userCount') || '0');
+      await env.TENANTS.put('stats:userCount', String(Math.max(0, count - 1)));
+    }
+
+    return new Response(JSON.stringify({ received: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } catch (err) {
+    console.error('Webhook error:', err);
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+async function proxyToPages(request, env, hostname) {
+  // Construct Pages URL
+  const pagesUrl = new URL(request.url);
+  pagesUrl.hostname = env.PAGES_HOSTNAME || '${pagesProject}.pages.dev';
+
+  // Clone request with new URL
+  const proxyRequest = new Request(pagesUrl.toString(), {
+    method: request.method,
+    headers: request.headers,
+    body: request.body,
+    redirect: 'manual'
+  });
+
+  const response = await fetch(proxyRequest);
+
+  // Clone response with CORS headers
+  const newHeaders = new Headers(response.headers);
+  // Don't override CORS on HTML pages
+  if (!newHeaders.get('Content-Type')?.includes('text/html')) {
+    Object.entries(corsHeaders).forEach(([k, v]) => newHeaders.set(k, v));
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    headers: newHeaders
+  });
+}
+`;
+
+const workerPath = join(outputDir, 'worker.js');
+writeFileSync(workerPath, workerCode);
+console.log(`Created: ${workerPath}`);
+
+// Generate wrangler.toml
+const wranglerConfig = `# Cloudflare Worker configuration for ${appName}
+#
+# Prerequisites:
+#   1. Create KV namespace: wrangler kv namespace create TENANTS
+#   2. Copy the namespace ID below
+#   3. Update PAGES_HOSTNAME with your Pages project URL
+#   4. Deploy: wrangler deploy
+#   5. Set secret: wrangler secret put CLERK_SECRET_KEY
+
+name = "${pagesProject}-wildcard"
+main = "worker.js"
+compatibility_date = "2024-12-01"
+
+[vars]
+PAGES_HOSTNAME = "${pagesProject}.pages.dev"
+
+# Create this KV namespace with: wrangler kv namespace create TENANTS
+# Then copy the ID below
+[[kv_namespaces]]
+binding = "TENANTS"
+id = "YOUR_KV_NAMESPACE_ID"
+
+# Worker routes - add these MANUALLY in Cloudflare Dashboard if they don't apply
+# Dashboard: Workers & Pages > ${pagesProject}-wildcard > Settings > Triggers > Routes
+routes = [
+  { pattern = "*.${domain}/*", zone_name = "${domain}" },
+  { pattern = "${domain}/api/*", zone_name = "${domain}" },
+  { pattern = "${domain}/webhooks/*", zone_name = "${domain}" }
+]
+`;
+
+const wranglerPath = join(outputDir, 'wrangler.toml');
+writeFileSync(wranglerPath, wranglerConfig);
+console.log(`Created: ${wranglerPath}`);
+
+// Print comprehensive deployment guide
 console.log(`
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  DEPLOYMENT GUIDE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${'━'.repeat(70)}
+  DEPLOYMENT GUIDE FOR ${appName.toUpperCase()}
+${'━'.repeat(70)}
 
-Your unified SaaS app is ready! This single file handles:
-  • Landing page at ${options.domain || 'yourdomain.com'}
-  • Tenant apps at *.${options.domain || 'yourdomain.com'}
-  • Admin dashboard at admin.${options.domain || 'yourdomain.com'}
+Your unified SaaS app is ready! Files created:
+  • index.html  - Unified app (landing + tenant + admin)
+  • worker.js   - Cloudflare Worker for subdomain routing + API
+  • wrangler.toml - Worker configuration
 
-CLOUDFLARE PAGES DEPLOYMENT:
-─────────────────────────────
-1. Create a Cloudflare Pages project (Direct Upload)
-2. Upload your ${resolvedOutputPath} file
-3. Add your custom domain in Pages settings
+${'─'.repeat(70)}
+  STEP 1: DEPLOY TO CLOUDFLARE PAGES
+${'─'.repeat(70)}
 
-API WORKER DEPLOYMENT:
-─────────────────────────────
-The admin dashboard needs an API Worker. Deploy it with wrangler:
+1. Go to Cloudflare Dashboard → Workers & Pages
+2. Create → Pages → Upload assets (Direct Upload)
+3. Name your project: "${pagesProject}"
+4. Upload index.html
+5. Deploy - note your *.pages.dev URL
 
-1. Install wrangler: npm install -g wrangler
-2. Login: wrangler login
-3. Navigate to worker directory:
-   cd \${PLUGIN_DIR}/skills/sell/worker
-4. Update wrangler.toml:
-   - PAGES_DOMAIN = "YOUR-PROJECT.pages.dev"
-5. Deploy: wrangler deploy
-6. Set secret: wrangler secret put CLERK_SECRET_KEY
-   (Enter your Clerk secret key from Dashboard → API Keys)
+Test your Pages deployment:
+  https://${pagesProject}.pages.dev           → Landing page
+  https://${pagesProject}.pages.dev?subdomain=test → Tenant app
+  https://${pagesProject}.pages.dev?subdomain=admin → Admin dashboard
 
-WORKER ROUTES (IMPORTANT - need TWO routes):
-─────────────────────────────
-1. Go to Worker Settings → Triggers → Add Route
-2. Add BOTH routes:
-   • *.${options.domain || 'yourdomain.com'}/* (subdomains)
-   • ${options.domain || 'yourdomain.com'}/* (root domain for API)
+${'─'.repeat(70)}
+  STEP 2: CREATE KV NAMESPACE
+${'─'.repeat(70)}
 
-DNS RECORDS:
-─────────────────────────────
-  • A record: @ → 192.0.2.1 (proxied)
-  • Worker routes handle all traffic
+Run this command to create a KV namespace for tenant data:
 
-CLERK SETUP:
-─────────────────────────────
-1. Create a Clerk application at clerk.com
-2. Enable Clerk Billing in Clerk Dashboard
-3. Create subscription plans (e.g., "pro")
-4. Copy your publishable key to the assembly command
+  wrangler kv namespace create TENANTS
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Copy the namespace ID and update wrangler.toml:
+
+  [[kv_namespaces]]
+  binding = "TENANTS"
+  id = "YOUR_KV_NAMESPACE_ID"  ← paste ID here
+
+${'─'.repeat(70)}
+  STEP 3: DEPLOY THE WORKER
+${'─'.repeat(70)}
+
+1. Ensure wrangler.toml has:
+   - Correct PAGES_HOSTNAME (${pagesProject}.pages.dev)
+   - KV namespace ID from step 2
+
+2. Deploy the worker:
+   wrangler deploy
+
+3. Set your Clerk secret key:
+   wrangler secret put CLERK_SECRET_KEY
+   (paste your sk_test_xxx or sk_live_xxx key)
+
+${'─'.repeat(70)}
+  STEP 4: CONFIGURE DNS
+${'─'.repeat(70)}
+
+In Cloudflare Dashboard → DNS → Records:
+
+1. DELETE any existing A/AAAA record for @ (root domain)
+   ⚠️  You cannot add CNAME if A record exists
+
+2. Add CNAME for root domain:
+   Type: CNAME
+   Name: @
+   Target: ${pagesProject}.pages.dev
+   Proxy: ON (orange cloud)
+
+3. Add CNAME for wildcard:
+   Type: CNAME
+   Name: *
+   Target: ${pagesProject}.pages.dev
+   Proxy: ON (orange cloud)
+
+${'─'.repeat(70)}
+  STEP 5: ADD CUSTOM DOMAIN TO PAGES
+${'─'.repeat(70)}
+
+1. Go to Workers & Pages → ${pagesProject} → Custom domains
+2. Click "Set up a custom domain"
+3. Enter: ${domain}
+4. Follow prompts (DNS may already be configured)
+
+${'─'.repeat(70)}
+  STEP 6: ADD WORKER ROUTES (MANUAL - IMPORTANT!)
+${'─'.repeat(70)}
+
+⚠️  Routes in wrangler.toml may not apply automatically.
+    Add them manually if subdomain routing doesn't work.
+
+1. Go to Workers & Pages → ${pagesProject}-wildcard
+2. Settings → Triggers → Routes → Add route
+
+Add these THREE routes:
+┌─────────────────────────────────────┬────────────────┐
+│ Pattern                             │ Zone           │
+├─────────────────────────────────────┼────────────────┤
+│ *.${domain}/*                       │ ${domain}      │
+│ ${domain}/api/*                     │ ${domain}      │
+│ ${domain}/webhooks/*                │ ${domain}      │
+└─────────────────────────────────────┴────────────────┘
+
+${'─'.repeat(70)}
+  STEP 7: CONFIGURE CLERK
+${'─'.repeat(70)}
+
+1. Go to Clerk Dashboard (clerk.com)
+2. Add authorized domains:
+   - ${domain}
+   - *.${domain} (if supported)
+   - ${pagesProject}.pages.dev
+
+3. Enable Clerk Billing:
+   - Dashboard → Billing → Connect Stripe
+   - Create plans: "pro", "monthly", "yearly" etc.
+
+4. Set up webhooks (for user tracking):
+   - Dashboard → Webhooks → Add Endpoint
+   - URL: https://${domain}/webhooks/clerk
+   - Events: user.created, user.deleted
+
+5. Get your Admin User ID:
+   - Sign up on your app
+   - Dashboard → Users → click your user → copy User ID
+   - Re-run assemble with: --admin-ids '["user_xxx"]'
+
+${'─'.repeat(70)}
+  TESTING CHECKLIST
+${'─'.repeat(70)}
+
+After deployment, verify these URLs work:
+
+Landing Page:
+  https://${domain}
+  → Shows pricing cards, signup flow
+
+Tenant App:
+  https://test.${domain}
+  → Shows sign-in screen, then your app after auth
+
+Admin Dashboard:
+  https://admin.${domain}
+  → Shows admin login, then tenant list
+
+API Endpoints:
+  curl https://${domain}/api/stats
+  → {"tenantCount":0,"userCount":0,"monthlyRevenue":null}
+
+  curl https://${domain}/api/tenants
+  → {"tenants":[]}
+
+${'─'.repeat(70)}
+  TROUBLESHOOTING
+${'─'.repeat(70)}
+
+"522 Connection Timed Out"
+  → DNS pointing to non-existent origin. Check CNAME targets.
+
+"Unexpected token '<'" in console
+  → Babel not loading. Check script type is "text/babel".
+
+"Cannot read properties of null (reading 'useEffect')"
+  → React version mismatch. Check import map uses React 18.
+
+Subdomains return 404
+  → Worker route not configured. Add *.${domain}/* route manually.
+
+API returns HTML instead of JSON
+  → Root domain API route missing. Add ${domain}/api/* route.
+
+Admin shows "Access Denied"
+  → User ID not in --admin-ids. Check Clerk user ID is correct.
+
+${'━'.repeat(70)}
 `);

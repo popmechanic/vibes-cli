@@ -150,8 +150,13 @@ node ~/.claude/plugins/cache/vibes-diy/vibes/*/scripts/assemble-sell.js app.jsx 
 
 Note: The `*` glob matches any installed version. If multiple versions exist, use the highest numbered directory.
 
+**The assembly script generates THREE files:**
+1. `index.html` - Unified app (landing + tenant + admin)
+2. `worker.js` - Cloudflare Worker for subdomain routing + API
+3. `wrangler.toml` - Worker configuration template
+
 **After running the assembly script**, tell the user:
-> "I've generated `index.html` - a unified file that handles the landing page, tenant apps, and admin dashboard. Deploy this single file to your host."
+> "I've generated three files: `index.html`, `worker.js`, and `wrangler.toml`. Follow the deployment guide printed by the script."
 
 **WARNING**: If the assembly script fails or isn't available, DO NOT attempt to write the HTML manually. The template is complex and contains critical security patterns. Ask the user to ensure the plugin is installed correctly.
 
@@ -159,7 +164,9 @@ Note: The `*` glob matches any installed version. If multiple versions exist, us
 
 ## Step 4: Cloudflare Deployment
 
-### 4.1 Cloudflare Pages Setup
+The assembly script prints a comprehensive deployment guide. Here's the summary:
+
+### 4.1 Deploy to Cloudflare Pages
 
 1. **Go to Cloudflare Dashboard** → Workers & Pages
 2. **Create** → Pages → **Upload assets** (Direct Upload)
@@ -167,90 +174,91 @@ Note: The `*` glob matches any installed version. If multiple versions exist, us
 4. **Upload** the generated `index.html`
 5. **Deploy** - note the `*.pages.dev` URL
 
-### 4.2 Add Custom Domain
+**Test your Pages deployment immediately:**
+```
+https://yourproject.pages.dev              → Landing page
+https://yourproject.pages.dev?subdomain=test → Tenant app
+https://yourproject.pages.dev?subdomain=admin → Admin dashboard
+```
 
-1. Go to your Pages project → **Custom domains**
-2. Click **Set up a custom domain**
-3. Enter your root domain (e.g., `fantasy.wedding`)
-4. Cloudflare will prompt for DNS changes if needed
+The `?subdomain=` parameter works on pages.dev before you configure custom domains.
 
-### 4.3 Deploy API Worker
+### 4.2 Create KV Namespace
 
-The sell skill includes a Cloudflare Worker that:
-1. Proxies wildcard subdomain requests to Pages
-2. Provides `/api/tenants` endpoint for the admin dashboard
+The worker needs KV storage for tenant data:
 
-**Deploy the Worker:**
+```bash
+wrangler kv namespace create TENANTS
+```
 
-1. **Install Wrangler** (if not already installed):
-   ```bash
-   npm install -g wrangler
-   wrangler login
-   ```
+Copy the namespace ID and update `wrangler.toml`:
 
-2. **Navigate to the worker directory:**
-   ```bash
-   cd ${PLUGIN_DIR}/skills/sell/worker
-   ```
+```toml
+[[kv_namespaces]]
+binding = "TENANTS"
+id = "YOUR_KV_NAMESPACE_ID"  # ← paste ID here
+```
 
-3. **Set environment variables:**
-   ```bash
-   # Set your Clerk secret key
-   wrangler secret put CLERK_SECRET_KEY
-   # Enter: sk_test_xxx or sk_live_xxx
-   ```
+### 4.3 Deploy the Worker
 
-4. **Update `wrangler.toml`** with your config:
-   ```toml
-   name = "your-app-api"
+1. **Ensure wrangler.toml has:**
+   - Correct `PAGES_HOSTNAME` (yourproject.pages.dev)
+   - KV namespace ID from step 4.2
 
-   [vars]
-   PAGES_DOMAIN = "your-project.pages.dev"
-   ALLOWED_ORIGIN = "*"
-   ```
-
-   Note: `ALLOWED_ORIGIN = "*"` is required so the admin subdomain can call the API.
-
-5. **Deploy:**
+2. **Deploy:**
    ```bash
    wrangler deploy
    ```
 
-**Alternative: Manual Worker Creation**
+3. **Set Clerk secret key:**
+   ```bash
+   wrangler secret put CLERK_SECRET_KEY
+   # paste your sk_test_xxx or sk_live_xxx key
+   ```
 
-If you prefer to create the Worker in the Cloudflare dashboard:
+### 4.4 Configure DNS (IMPORTANT - Order Matters!)
 
-1. **Go to** Workers & Pages → **Create** → **Create Worker**
-2. Give it a name (e.g., "fantasy-wedding-api")
-3. **Copy** the code from `${PLUGIN_DIR}/skills/sell/worker/index.js`
-4. **Add environment variables** in Worker Settings:
-   - `CLERK_SECRET_KEY` (encrypted) - Your Clerk secret key
-   - `PAGES_DOMAIN` - Your Pages URL (e.g., `fantasywedding.pages.dev`)
-   - `ALLOWED_ORIGIN` - Set to `*` (allows admin subdomain to call API)
-5. Click **Deploy**
+In Cloudflare Dashboard → DNS → Records:
 
-### 4.4 Add Worker Routes
+1. **DELETE any existing A/AAAA record for @ (root domain)**
+   - You cannot add CNAME if A record exists
 
-You need **two routes** - one for subdomains and one for the root domain:
+2. **Add CNAME for root domain:**
+   - Type: CNAME
+   - Name: @
+   - Target: yourproject.pages.dev
+   - Proxy: ON (orange cloud)
 
-1. Go to your Worker → **Settings** → **Triggers**
-2. Click **Add Route** and add:
-   - Route: `*.yourdomain.com/*` (for subdomains)
-   - Zone: `yourdomain.com`
-3. Click **Add Route** again and add:
-   - Route: `yourdomain.com/*` (for root domain API access)
-   - Zone: `yourdomain.com`
-4. **Save**
+3. **Add CNAME for wildcard:**
+   - Type: CNAME
+   - Name: *
+   - Target: yourproject.pages.dev
+   - Proxy: ON (orange cloud)
 
-Both routes are required so the API works from both the landing page and admin dashboard.
+### 4.5 Add Custom Domain to Pages
 
-### 4.5 DNS Configuration
+1. Go to Workers & Pages → [your project] → **Custom domains**
+2. Click **Set up a custom domain**
+3. Enter: `yourdomain.com`
+4. Follow prompts (DNS should already be configured)
 
-In Cloudflare DNS, you should have:
-- **A record**: `@` → `192.0.2.1` (proxied) - placeholder for root
-- The Worker route handles `*.yourdomain.com/*`
+### 4.6 Add Worker Routes (MANUAL - Routes May Not Apply Automatically!)
 
-The Pages custom domain handles the root domain, and the Worker proxies all subdomains to Pages.
+**IMPORTANT:** Routes in wrangler.toml often don't apply. Add them manually:
+
+1. Go to Workers & Pages → [your worker] → Settings → Domains & Routes
+2. Click **Add route** and add these THREE routes:
+
+| Pattern | Zone |
+|---------|------|
+| `*.yourdomain.com/*` | yourdomain.com |
+| `yourdomain.com/api/*` | yourdomain.com |
+| `yourdomain.com/webhooks/*` | yourdomain.com |
+
+All three routes are required:
+- Wildcard handles subdomain routing
+- /api/* handles admin dashboard API calls from root domain
+- /webhooks/* handles Clerk webhook events
 
 ---
 
@@ -289,6 +297,36 @@ Provide these instructions to the user:
 4. Copy the **User ID** (e.g., `user_xxx`)
 5. Add it to the `--admin-ids` array
 
+### 5.5 Configure Clerk Webhooks (Required for User Tracking)
+
+Set up webhooks so the admin dashboard can track users:
+
+1. Go to Clerk Dashboard → **Webhooks** → **Add Endpoint**
+2. Enter endpoint URL: `https://yourdomain.com/webhooks/clerk`
+3. Subscribe to events:
+   - `user.created` (required)
+   - `user.deleted` (required)
+4. Click **Create**
+
+**Optional: Verify Webhook Signatures (Production)**
+
+For production, verify webhook signatures:
+
+1. After creating the endpoint, copy the **Signing Secret** (whsec_...)
+2. Add to wrangler.toml:
+   ```toml
+   [vars]
+   CLERK_WEBHOOK_SECRET = "whsec_..."
+   ```
+
+**Test the webhook:**
+```bash
+curl -X POST https://yourdomain.com/webhooks/clerk \
+  -H "Content-Type: application/json" \
+  -d '{"type":"user.created","data":{"id":"test"}}'
+# Should return: {"received":true}
+```
+
 ---
 
 ## Key Components
@@ -301,17 +339,24 @@ The unified template uses `getRouteInfo()` to detect subdomain and route:
 function getRouteInfo() {
   const hostname = window.location.hostname;
   const parts = hostname.split('.');
+  const params = new URLSearchParams(window.location.search);
+  const testSubdomain = params.get('subdomain');
 
   // Handle localhost testing with ?subdomain= param
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    const params = new URLSearchParams(window.location.search);
-    const testSubdomain = params.get('subdomain');
     if (testSubdomain === 'admin') return { route: 'admin', subdomain: null };
     if (testSubdomain) return { route: 'tenant', subdomain: testSubdomain };
     return { route: 'landing', subdomain: null };
   }
 
-  // Production routing
+  // Handle pages.dev testing (before custom domain is set up)
+  if (hostname.endsWith('.pages.dev')) {
+    if (testSubdomain === 'admin') return { route: 'admin', subdomain: null };
+    if (testSubdomain) return { route: 'tenant', subdomain: testSubdomain };
+    return { route: 'landing', subdomain: null };
+  }
+
+  // Production: detect subdomain from hostname
   if (parts.length <= 2 || parts[0] === 'www') {
     return { route: 'landing', subdomain: null };
   }
@@ -377,36 +422,47 @@ function SubscriptionGate({ children }) {
 
 ---
 
-## Testing Locally
+## Testing
 
 Test different routes by adding `?subdomain=` parameter:
 
+**Localhost:**
 ```
 http://localhost:5500/index.html              → Landing page
 http://localhost:5500/index.html?subdomain=test → Tenant app
 http://localhost:5500/index.html?subdomain=admin → Admin dashboard
 ```
 
+**Pages.dev (before custom domain):**
+```
+https://yourproject.pages.dev              → Landing page
+https://yourproject.pages.dev?subdomain=test → Tenant app
+https://yourproject.pages.dev?subdomain=admin → Admin dashboard
+```
+
+The `?subdomain=` parameter works on both localhost and pages.dev, allowing you to test all routes before configuring DNS.
+
 ---
 
 ## Import Map
 
-The unified template includes these imports:
+The unified template uses pinned React 18 versions to prevent conflicts with Clerk:
 
 ```json
 {
   "imports": {
-    "react": "https://esm.sh/react",
-    "react-dom": "https://esm.sh/react-dom",
-    "react-dom/client": "https://esm.sh/react-dom/client",
-    "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
-    "use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
-    "call-ai": "https://esm.sh/call-ai@0.18.9?external=react,react-dom",
-    "use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
-    "@clerk/clerk-react": "https://esm.sh/@clerk/clerk-react@latest?external=react,react-dom"
+    "react": "https://esm.sh/react@18.3.1",
+    "react-dom": "https://esm.sh/react-dom@18.3.1?deps=react@18.3.1",
+    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1",
+    "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+    "use-fireproof": "https://esm.sh/use-fireproof@0.20.0-dev-preview-50?deps=react@18.3.1",
+    "use-vibes": "https://esm.sh/use-vibes@0.18.9?deps=react@18.3.1",
+    "@clerk/clerk-react": "https://esm.sh/@clerk/clerk-react@5?deps=react@18.3.1,react-dom@18.3.1"
   }
 }
 ```
+
+**IMPORTANT:** Clerk@5 defaults to React 19, which causes version conflicts. The `?deps=react@18.3.1` parameter pins React 18 for all packages.
 
 ---
 
@@ -439,36 +495,60 @@ The admin dashboard fetches this endpoint and refreshes every 30 seconds.
 
 ## Troubleshooting
 
+### "522 Connection Timed Out"
+- DNS pointing to non-existent origin
+- Check CNAME targets point to yourproject.pages.dev
+- Ensure DNS records are proxied (orange cloud)
+
+### "Unexpected token '<'" in console
+- JSX not being transpiled by Babel
+- Check that `<script type="text/babel" data-type="module">` is present
+- Verify Babel standalone is loading
+
+### "Cannot read properties of null (reading 'useEffect')"
+- React version mismatch between packages
+- Ensure import map uses pinned React 18 versions with `?deps=react@18.3.1`
+- Clerk@5 defaults to React 19 - must pin with deps parameter
+
 ### "Subscription Required" loop
 - Check that admin user ID is correct and in the `ADMIN_USER_IDS` array
 - Verify Clerk Billing is set up with matching plan names
 - Redeploy after updating the file
 
-### Subdomains not working
-- Ensure Worker route is `*.yourdomain.com/*`
-- Check Worker code has correct Pages URL
-- Verify DNS is proxied through Cloudflare (orange cloud)
+### Subdomains return 404
+- Worker route not configured
+- Add `*.yourdomain.com/*` route manually in Cloudflare Dashboard
+- Go to Workers & Pages → [worker] → Settings → Domains & Routes
+
+### API returns HTML instead of JSON
+- Root domain API route missing
+- Add `yourdomain.com/api/*` route manually (separate from wildcard route)
+- Add `yourdomain.com/webhooks/*` route for Clerk webhooks
 
 ### Clerk not loading
 - Add your domain to Clerk's authorized domains
 - Check publishable key is correct (not secret key)
 - Verify ClerkProvider wraps the app
 
-### Multiple React instances
-- Ensure all esm.sh imports have `?external=react,react-dom`
-- Don't mix different React versions
+### "A record with that host already exists" (DNS)
+- Cannot add CNAME while A record exists
+- DELETE the existing A record first, then add CNAME
 
-### Database not isolated
-- Verify `useTenant()` is used in the App component
-- Check `useFireproof(dbName)` uses the tenant database name
+### Admin shows "Access Denied"
+- User ID not in --admin-ids array
+- Check Clerk Dashboard → Users → click user → copy User ID
+- Re-run assembly with correct --admin-ids
 
 ### Admin dashboard shows 0 tenants
 - Ensure the Worker is deployed and running
-- Check `CLERK_SECRET_KEY` is set correctly in Worker settings
-- Verify the Worker route covers your domain
-- Open browser console to see API errors
-- Test endpoint directly: `curl https://yourdomain.com/api/tenants`
+- Check KV namespace is created and ID is in wrangler.toml
+- Verify webhook route is configured
+- Test endpoint: `curl https://yourdomain.com/api/tenants`
 
 ### API returns "CLERK_SECRET_KEY not configured"
 - Set the secret via `wrangler secret put CLERK_SECRET_KEY`
 - Or add it in Cloudflare dashboard under Worker Settings → Variables
+
+### Database not isolated
+- Verify `useTenant()` is used in the App component
+- Check `useFireproof(dbName)` uses the tenant database name
