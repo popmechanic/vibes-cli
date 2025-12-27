@@ -72,7 +72,7 @@ export default function App() {
 2. Optionally save `<design>` content to `design.md` for documentation
 3. Run assembly:
    ```bash
-   PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.61"
+   PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.62"
    node "$PLUGIN_DIR/scripts/assemble.js" app.jsx index.html
    ```
 4. Tell user: "Open `index.html` in your browser to view your app."
