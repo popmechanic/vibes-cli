@@ -1,0 +1,545 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>__APP_TITLE__</title>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+      :root {
+        --vibes-black: #0f172a;
+        --vibes-white: #ffffff;
+        --vibes-cream: #fffff0;
+        --vibes-gray-lightest: #f1f5f9;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      }
+      #container {
+        width: 100%;
+        min-height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container"></div>
+    <script type="importmap">
+      {
+        "imports": {
+          "react": "https://esm.sh/react",
+          "react-dom": "https://esm.sh/react-dom",
+          "react-dom/client": "https://esm.sh/react-dom/client",
+          "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
+          "use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
+          "use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
+          "@clerk/clerk-react": "https://esm.sh/@clerk/clerk-react@latest?external=react,react-dom"
+        }
+      }
+    </script>
+    <script type="text/babel" data-type="module">
+      import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, useReducer } from "react";
+      import ReactDOMClient from "react-dom/client";
+      import { useFireproof } from "use-fireproof";
+      import {
+        ClerkProvider,
+        SignedIn,
+        SignedOut,
+        SignInButton,
+        SignUpButton,
+        UserButton,
+        useUser,
+        useAuth
+      } from "@clerk/clerk-react";
+
+      // === Configuration ===
+      const CLERK_PUBLISHABLE_KEY = "__CLERK_PUBLISHABLE_KEY__";
+      const APP_NAME = "__APP_NAME__";
+      const APP_DOMAIN = "__APP_DOMAIN__";
+      const MONTHLY_PRICE = "__MONTHLY_PRICE__";
+      const YEARLY_PRICE = "__YEARLY_PRICE__";
+      const FEATURES = __FEATURES__;
+      const APP_TAGLINE = "__APP_TAGLINE__";
+      const ADMIN_USER_IDS = __ADMIN_USER_IDS__;
+
+      // === Route Detection ===
+      function getRouteInfo() {
+        const hostname = window.location.hostname;
+        const parts = hostname.split('.');
+
+        // Handle localhost for testing
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+          const params = new URLSearchParams(window.location.search);
+          const testSubdomain = params.get('subdomain');
+          if (testSubdomain === 'admin') return { route: 'admin', subdomain: null };
+          if (testSubdomain) return { route: 'tenant', subdomain: testSubdomain };
+          return { route: 'landing', subdomain: null };
+        }
+
+        // Production: detect subdomain
+        if (parts.length <= 2 || parts[0] === 'www') {
+          return { route: 'landing', subdomain: null };
+        }
+        if (parts[0] === 'admin') {
+          return { route: 'admin', subdomain: null };
+        }
+        return { route: 'tenant', subdomain: parts[0] };
+      }
+
+      const routeInfo = getRouteInfo();
+
+      // === Tenant Context ===
+      const TenantContext = createContext(null);
+
+      function useTenant() {
+        const context = useContext(TenantContext);
+        if (!context) throw new Error("useTenant must be used within TenantProvider");
+        return context;
+      }
+
+      // Make useTenant available globally for the embedded App
+      window.useTenant = useTenant;
+
+      function TenantProvider({ children, subdomain }) {
+        const dbName = `${APP_NAME}-${subdomain}`;
+        return (
+          <TenantContext.Provider value={{ subdomain, dbName, appName: APP_NAME, domain: APP_DOMAIN }}>
+            {children}
+          </TenantContext.Provider>
+        );
+      }
+
+      // === Subscription Gate ===
+      function SubscriptionRequired() {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-[oklch(0.95_0.02_250)] p-4">
+            <div className="max-w-md text-center p-8 bg-white border-4 border-[#0f172a] shadow-[8px_8px_0px_#0f172a]">
+              <h2 className="text-2xl font-bold mb-4">Subscription Required</h2>
+              <p className="mb-6">Please subscribe to access this app.</p>
+              <a
+                href={`https://${APP_DOMAIN}`}
+                className="inline-block px-6 py-3 bg-[oklch(0.6_0.2_145)] text-white font-bold border-4 border-[#0f172a] shadow-[4px_4px_0px_#0f172a] hover:shadow-[2px_2px_0px_#0f172a] transition-all"
+              >
+                View Plans
+              </a>
+            </div>
+          </div>
+        );
+      }
+
+      function SubscriptionGate({ children }) {
+        const { has, isLoaded, userId } = useAuth();
+
+        if (!isLoaded) {
+          return (
+            <div className="min-h-screen flex items-center justify-center bg-[oklch(0.95_0.02_250)]">
+              <div className="animate-pulse text-lg font-bold">Loading...</div>
+            </div>
+          );
+        }
+
+        // Allow admin users to bypass subscription check
+        const isAdmin = ADMIN_USER_IDS.includes(userId);
+        const hasSubscription = isAdmin || has({ plan: 'pro' }) || has({ plan: 'basic' }) || has({ plan: 'monthly' }) || has({ plan: 'yearly' }) || has({ plan: 'starter' });
+
+        if (!hasSubscription) {
+          return <SubscriptionRequired />;
+        }
+
+        return children;
+      }
+
+      // === Original App Code (embedded during assembly) ===
+      // __VIBES_APP_CODE__
+
+      // === Sign In Screen (for tenant) ===
+      function SignInScreen({ subdomain }) {
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-[oklch(0.95_0.02_250)] p-4">
+            <div className="max-w-md text-center p-8 bg-white border-4 border-[#0f172a] shadow-[8px_8px_0px_#0f172a]">
+              <h2 className="text-2xl font-bold mb-4">Welcome to {subdomain}</h2>
+              <p className="mb-6 text-gray-600">Sign in to access your workspace.</p>
+              <div className="flex gap-4 justify-center">
+                <SignInButton mode="modal">
+                  <button className="px-6 py-3 bg-[#0f172a] text-white font-bold border-4 border-[#0f172a] hover:bg-[#1e293b] transition-colors">
+                    Sign In
+                  </button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <button className="px-6 py-3 bg-white font-bold border-4 border-[#0f172a] hover:bg-gray-50 transition-colors">
+                    Sign Up
+                  </button>
+                </SignUpButton>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // === Tenant App Wrapper ===
+      function TenantApp({ subdomain }) {
+        return (
+          <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl={`https://${APP_DOMAIN}`}>
+            <TenantProvider subdomain={subdomain}>
+              <SignedIn>
+                <SubscriptionGate>
+                  <div className="relative">
+                    <div className="fixed top-4 right-4 z-50">
+                      <UserButton />
+                    </div>
+                    <App />
+                  </div>
+                </SubscriptionGate>
+              </SignedIn>
+              <SignedOut>
+                <SignInScreen subdomain={subdomain} />
+              </SignedOut>
+            </TenantProvider>
+          </ClerkProvider>
+        );
+      }
+
+      // === Admin Dashboard ===
+      function AdminDashboard() {
+        const { useLiveQuery } = useFireproof(`${APP_NAME}-admin`);
+        const { docs: tenants } = useLiveQuery('type', { key: 'tenant' });
+        const { user } = useUser();
+
+        const isAdmin = ADMIN_USER_IDS.includes(user?.id);
+
+        if (!isAdmin) {
+          return (
+            <div className="min-h-screen flex items-center justify-center bg-[oklch(0.95_0.02_250)] p-4">
+              <div className="max-w-md text-center p-8 bg-white border-4 border-[#0f172a] shadow-[8px_8px_0px_#0f172a]">
+                <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
+                <p className="text-gray-600 mb-4">You don't have admin permissions.</p>
+                <p className="text-sm text-gray-500">Your user ID: {user?.id}</p>
+              </div>
+            </div>
+          );
+        }
+
+        const activeTenants = tenants.filter(t => t.status === 'active').length;
+
+        return (
+          <div className="min-h-screen bg-[oklch(0.97_0.01_250)] p-4">
+            <div className="max-w-6xl mx-auto">
+              <header className="flex justify-between items-center mb-8">
+                <h1 className="text-3xl font-bold text-[#0f172a]">Admin Dashboard</h1>
+                <UserButton />
+              </header>
+
+              <div className="grid md:grid-cols-3 gap-6 mb-8">
+                <div className="p-6 bg-white border-4 border-[#0f172a] shadow-[6px_6px_0px_#0f172a]">
+                  <h3 className="text-sm font-bold text-gray-500 mb-2">TOTAL TENANTS</h3>
+                  <p className="text-4xl font-bold">{tenants.length}</p>
+                </div>
+                <div className="p-6 bg-white border-4 border-[#0f172a] shadow-[6px_6px_0px_oklch(0.6_0.2_145)]">
+                  <h3 className="text-sm font-bold text-gray-500 mb-2">ACTIVE</h3>
+                  <p className="text-4xl font-bold text-green-600">{activeTenants}</p>
+                </div>
+                <div className="p-6 bg-white border-4 border-[#0f172a] shadow-[6px_6px_0px_#0f172a]">
+                  <h3 className="text-sm font-bold text-gray-500 mb-2">PENDING</h3>
+                  <p className="text-4xl font-bold text-orange-500">{tenants.length - activeTenants}</p>
+                </div>
+              </div>
+
+              <div className="bg-white border-4 border-[#0f172a] shadow-[8px_8px_0px_#0f172a]">
+                <div className="p-4 border-b-4 border-[#0f172a] bg-[oklch(0.95_0.02_90)]">
+                  <h2 className="text-xl font-bold">Tenants</h2>
+                </div>
+                <div className="divide-y-2 divide-gray-200">
+                  {tenants.length === 0 ? (
+                    <div className="p-8 text-center text-gray-500">No tenants yet</div>
+                  ) : (
+                    tenants.map(tenant => (
+                      <div key={tenant._id} className="p-4 flex justify-between items-center hover:bg-gray-50">
+                        <div>
+                          <p className="font-bold">{tenant.subdomain}.{APP_DOMAIN}</p>
+                          <p className="text-sm text-gray-600">{tenant.email}</p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <span className={`px-3 py-1 text-sm font-bold ${
+                            tenant.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
+                          }`}>
+                            {tenant.status}
+                          </span>
+                          <span className="text-sm text-gray-500">{tenant.plan}</span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // === Admin App Wrapper ===
+      function AdminApp() {
+        return (
+          <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl={`https://${APP_DOMAIN}`}>
+            <SignedIn>
+              <AdminDashboard />
+            </SignedIn>
+            <SignedOut>
+              <div className="min-h-screen flex items-center justify-center bg-[oklch(0.95_0.02_250)] p-4">
+                <div className="max-w-md text-center p-8 bg-white border-4 border-[#0f172a] shadow-[8px_8px_0px_#0f172a]">
+                  <h2 className="text-2xl font-bold mb-4">Admin Login</h2>
+                  <p className="mb-6 text-gray-600">Sign in to access the admin dashboard.</p>
+                  <SignInButton mode="modal">
+                    <button className="px-6 py-3 bg-[#0f172a] text-white font-bold border-4 border-[#0f172a] hover:bg-[#1e293b] transition-colors">
+                      Sign In
+                    </button>
+                  </SignInButton>
+                </div>
+              </div>
+            </SignedOut>
+          </ClerkProvider>
+        );
+      }
+
+      // === Landing Page Components ===
+      function SubdomainPicker({ onSelect }) {
+        const [subdomain, setSubdomain] = useState('');
+        const [checking, setChecking] = useState(false);
+        const [available, setAvailable] = useState(null);
+        const { useLiveQuery } = useFireproof(`${APP_NAME}-admin`);
+        const { docs: tenants } = useLiveQuery('subdomain', { key: subdomain });
+
+        useEffect(() => {
+          if (subdomain.length >= 3) {
+            setChecking(true);
+            const timer = setTimeout(() => {
+              setAvailable(tenants.length === 0);
+              setChecking(false);
+            }, 300);
+            return () => clearTimeout(timer);
+          } else {
+            setAvailable(null);
+          }
+        }, [subdomain, tenants]);
+
+        const isValid = /^[a-z0-9-]+$/.test(subdomain) && subdomain.length >= 3 && !subdomain.startsWith('-') && !subdomain.endsWith('-');
+
+        return (
+          <div className="space-y-4">
+            <label className="block font-bold text-lg">Choose your subdomain:</label>
+            <div className="flex items-center gap-2 p-4 bg-[oklch(0.95_0.02_90)] border-4 border-[#0f172a]">
+              <input
+                type="text"
+                value={subdomain}
+                onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                placeholder="your-name"
+                className="flex-1 px-4 py-3 border-2 border-[#0f172a] bg-white font-mono text-lg focus:outline-none focus:ring-2 focus:ring-[oklch(0.6_0.2_145)]"
+                maxLength={32}
+              />
+              <span className="font-mono text-gray-600 text-lg">.{APP_DOMAIN}</span>
+            </div>
+
+            {subdomain.length > 0 && (
+              <div className="text-sm font-medium">
+                {checking && <span className="text-gray-500">Checking availability...</span>}
+                {!checking && available === true && isValid && (
+                  <span className="text-green-600">&#10003; {subdomain}.{APP_DOMAIN} is available!</span>
+                )}
+                {!checking && available === false && (
+                  <span className="text-red-600">&#10007; Already taken - try another name</span>
+                )}
+                {!isValid && subdomain.length > 0 && (
+                  <span className="text-orange-600">Use lowercase letters, numbers, and dashes (min 3 chars, no leading/trailing dashes)</span>
+                )}
+              </div>
+            )}
+
+            {available && isValid && (
+              <button
+                onClick={() => onSelect(subdomain)}
+                className="w-full px-6 py-4 bg-[oklch(0.6_0.2_145)] text-white text-lg font-bold border-4 border-[#0f172a] shadow-[6px_6px_0px_#0f172a] hover:shadow-[4px_4px_0px_#0f172a] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+              >
+                Claim {subdomain}.{APP_DOMAIN} &rarr;
+              </button>
+            )}
+          </div>
+        );
+      }
+
+      function PricingCard({ title, price, interval, features, popular, onSelect }) {
+        return (
+          <div className={`p-6 bg-white border-4 border-[#0f172a] transition-all ${
+            popular
+              ? 'shadow-[8px_8px_0px_oklch(0.6_0.2_145)] hover:shadow-[6px_6px_0px_oklch(0.6_0.2_145)]'
+              : 'shadow-[6px_6px_0px_#0f172a] hover:shadow-[4px_4px_0px_#0f172a]'
+          }`}>
+            {popular && (
+              <div className="mb-4 -mt-6 -mx-6 px-4 py-2 bg-[oklch(0.6_0.2_145)] text-white text-center font-bold border-b-4 border-[#0f172a]">
+                MOST POPULAR
+              </div>
+            )}
+            <h3 className="text-2xl font-bold mb-2">{title}</h3>
+            <div className="mb-6">
+              <span className="text-5xl font-bold">{price}</span>
+              <span className="text-gray-600 text-lg">/{interval}</span>
+            </div>
+            <ul className="mb-8 space-y-3">
+              {features.map((feature, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <span className="text-green-600 font-bold text-xl mt-0.5">&#10003;</span>
+                  <span className="text-gray-700">{feature}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={onSelect}
+              className={`w-full px-6 py-4 font-bold text-lg border-4 border-[#0f172a] transition-all ${
+                popular
+                  ? 'bg-[oklch(0.6_0.2_145)] text-white shadow-[4px_4px_0px_#0f172a] hover:shadow-[2px_2px_0px_#0f172a] hover:translate-x-[2px] hover:translate-y-[2px]'
+                  : 'bg-[oklch(0.95_0.02_90)] hover:bg-[oklch(0.9_0.02_90)]'
+              }`}
+            >
+              Get Started
+            </button>
+          </div>
+        );
+      }
+
+      function Hero() {
+        const formattedName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        return (
+          <div className="text-center py-20 px-4">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight text-[#0f172a]">
+              {formattedName}
+            </h1>
+            <p className="text-xl md:text-2xl text-gray-600 max-w-2xl mx-auto mb-8">
+              {APP_TAGLINE}
+            </p>
+            <a
+              href="#pricing"
+              className="inline-block px-8 py-4 bg-[#0f172a] text-white font-bold text-lg border-4 border-[#0f172a] shadow-[4px_4px_0px_oklch(0.6_0.2_145)] hover:shadow-[2px_2px_0px_oklch(0.6_0.2_145)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+            >
+              See Plans &rarr;
+            </a>
+          </div>
+        );
+      }
+
+      function CheckoutFlow({ plan, onBack }) {
+        const { database } = useFireproof(`${APP_NAME}-admin`);
+        const { user } = useUser();
+
+        const handleSubdomainSelect = async (subdomain) => {
+          if (user) {
+            await database.put({
+              _id: `tenant:${subdomain}`,
+              type: 'tenant',
+              subdomain,
+              clerkUserId: user.id,
+              email: user.primaryEmailAddress?.emailAddress,
+              createdAt: new Date().toISOString(),
+              status: 'pending',
+              plan
+            });
+            window.location.href = `https://${subdomain}.${APP_DOMAIN}`;
+          }
+        };
+
+        return (
+          <section className="py-16 px-4 max-w-xl mx-auto">
+            <div className="p-8 bg-white border-4 border-[#0f172a] shadow-[8px_8px_0px_#0f172a]">
+              <button onClick={onBack} className="mb-6 text-gray-600 hover:text-[#0f172a] font-medium">
+                &larr; Back to plans
+              </button>
+              <h3 className="text-2xl font-bold mb-2">{plan === 'yearly' ? 'Yearly' : 'Monthly'} Plan</h3>
+              <p className="text-gray-600 mb-6">{plan === 'yearly' ? YEARLY_PRICE : MONTHLY_PRICE}/{plan === 'yearly' ? 'year' : 'month'}</p>
+
+              <SignedOut>
+                <p className="mb-6 text-gray-700">Create an account to claim your subdomain:</p>
+                <div className="flex gap-4">
+                  <SignUpButton mode="modal">
+                    <button className="flex-1 px-6 py-3 bg-[#0f172a] text-white font-bold border-4 border-[#0f172a]">Create Account</button>
+                  </SignUpButton>
+                  <SignInButton mode="modal">
+                    <button className="flex-1 px-6 py-3 bg-white font-bold border-4 border-[#0f172a]">Sign In</button>
+                  </SignInButton>
+                </div>
+              </SignedOut>
+
+              <SignedIn>
+                <SubdomainPicker onSelect={handleSubdomainSelect} />
+              </SignedIn>
+            </div>
+          </section>
+        );
+      }
+
+      function LandingPage() {
+        const [selectedPlan, setSelectedPlan] = useState(null);
+
+        return (
+          <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
+            <div className="min-h-screen bg-[oklch(0.97_0.01_250)]">
+              <header className="flex justify-between items-center p-4 max-w-6xl mx-auto">
+                <div className="font-bold text-xl text-[#0f172a]">
+                  {APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                </div>
+                <nav>
+                  <SignedOut>
+                    <div className="flex gap-3">
+                      <SignInButton mode="modal">
+                        <button className="px-4 py-2 font-bold text-[#0f172a] hover:underline">Sign In</button>
+                      </SignInButton>
+                      <SignUpButton mode="modal">
+                        <button className="px-4 py-2 bg-[#0f172a] text-white font-bold border-2 border-[#0f172a] hover:bg-[#1e293b] transition-colors">Get Started</button>
+                      </SignUpButton>
+                    </div>
+                  </SignedOut>
+                  <SignedIn>
+                    <UserButton />
+                  </SignedIn>
+                </nav>
+              </header>
+
+              {!selectedPlan ? (
+                <>
+                  <Hero />
+                  <section id="pricing" className="py-16 px-4 max-w-4xl mx-auto">
+                    <h2 className="text-3xl font-bold text-center mb-4">Simple, Transparent Pricing</h2>
+                    <p className="text-center text-gray-600 mb-12 max-w-xl mx-auto">Choose the plan that works for you. Cancel anytime.</p>
+                    <div className="grid md:grid-cols-2 gap-8">
+                      <PricingCard title="Monthly" price={MONTHLY_PRICE} interval="month" features={FEATURES} onSelect={() => setSelectedPlan('monthly')} />
+                      <PricingCard title="Yearly" price={YEARLY_PRICE} interval="year" features={[...FEATURES, "2 months free!"]} popular={true} onSelect={() => setSelectedPlan('yearly')} />
+                    </div>
+                  </section>
+                </>
+              ) : (
+                <CheckoutFlow plan={selectedPlan} onBack={() => setSelectedPlan(null)} />
+              )}
+
+              <footer className="py-8 px-4 text-center text-gray-500 border-t border-gray-200 mt-16">
+                <p>Built with <a href="https://vibes.diy" className="text-[oklch(0.6_0.2_145)] hover:underline">Vibes DIY</a></p>
+              </footer>
+            </div>
+          </ClerkProvider>
+        );
+      }
+
+      // === Main Router ===
+      function AppRouter() {
+        if (routeInfo.route === 'admin') {
+          return <AdminApp />;
+        }
+        if (routeInfo.route === 'tenant') {
+          return <TenantApp subdomain={routeInfo.subdomain} />;
+        }
+        return <LandingPage />;
+      }
+
+      // Render
+      const rootElement = document.getElementById("container");
+      ReactDOMClient.createRoot(rootElement).render(<AppRouter />);
+    </script>
+  </body>
+</html>

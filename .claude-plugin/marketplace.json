@@ -1,8 +1,8 @@
 {
   "name": "vibes-diy",
   "owner": {
-    "name": "Vibes DIY",
-    "email": "hello@vibes.diy"
+    "name": "Marcus Estes",
+    "email": "marcus@vibes.diy"
   },
   "metadata": {
     "description": "Vibes is the vibe coding web stack made for AI agents.",
@@ -13,9 +13,9 @@
       "name": "vibes",
       "source": "./",
       "description": "Vibes is the vibe coding web stack made for AI agents.",
-      "version": "1.0.57",
+      "version": "1.0.58",
       "author": {
-        "name": "Vibes DIY"
+        "name": "Marcus Estes"
       },
       "homepage": "https://vibes.diy",
       "repository": "https://github.com/popmechanic/vibes-skill",
