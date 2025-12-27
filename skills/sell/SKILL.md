@@ -17,6 +17,8 @@ description: Transform a Vibes app into a multi-tenant SaaS with per-subdomain b
 
 # Sell - Transform Vibes to SaaS
 
+**IMPORTANT**: This skill uses `assemble-sell.js` to inject the user's app into a pre-built template. Do NOT generate code manually - always run the assembly script. The template contains security checks, API integration, and proper Clerk/Fireproof patterns that will break if you write your own code.
+
 Convert your Vibes app into a multi-tenant SaaS product with:
 - Subdomain-based tenancy (alice.yourdomain.com)
 - Clerk authentication + Clerk Billing (Stripe)
@@ -103,7 +105,9 @@ Ask the user for these details:
 
 ---
 
-## Step 3: Generate and Assemble
+## Step 3: Assemble (DO NOT GENERATE CODE)
+
+**CRITICAL**: You MUST use the assembly script. Do NOT generate your own HTML/JSX code. The template has been carefully designed with proper security, API endpoints, and Clerk integration that will break if you generate code manually.
 
 ### 3.1 Update App for Tenant Context
 
@@ -128,10 +132,11 @@ The template makes `useTenant` available globally via `window.useTenant`.
 
 ### 3.2 Assemble Unified App
 
-Run the assembly script to generate the unified index.html:
+Run the assembly script to generate the unified index.html. Use the path relative to the skill directory:
 
 ```bash
-node ${PLUGIN_DIR}/scripts/assemble-sell.js app.jsx index.html \
+# From the user's project directory, the script is at:
+node ~/.claude/plugins/cache/vibes-diy/vibes/*/scripts/assemble-sell.js app.jsx index.html \
   --clerk-key "pk_test_xxx" \
   --app-name "wedding-photos" \
   --app-title "Fantasy Wedding" \
@@ -143,8 +148,12 @@ node ${PLUGIN_DIR}/scripts/assemble-sell.js app.jsx index.html \
   --admin-ids '["user_xxx"]'
 ```
 
-Tell the user:
+Note: The `*` glob matches any installed version. If multiple versions exist, use the highest numbered directory.
+
+**After running the assembly script**, tell the user:
 > "I've generated `index.html` - a unified file that handles the landing page, tenant apps, and admin dashboard. Deploy this single file to your host."
+
+**WARNING**: If the assembly script fails or isn't available, DO NOT attempt to write the HTML manually. The template is complex and contains critical security patterns. Ask the user to ensure the plugin is installed correctly.
 
 ---
 

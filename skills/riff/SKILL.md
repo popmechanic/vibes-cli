@@ -36,8 +36,9 @@ mkdir -p riff-1 riff-2 riff-3 ...
 Generate one command per riff based on user's count:
 
 ```bash
+PLUGIN_DIR=~/.claude/plugins/cache/vibes-diy/vibes/*
 # For each N from 1 to ${count}:
-node ${PLUGIN_DIR}/scripts/generate-riff.js "${prompt}" N riff-N/app.jsx &
+node $PLUGIN_DIR/scripts/generate-riff.js "${prompt}" N riff-N/app.jsx &
 
 # Then wait for all
 wait
@@ -46,12 +47,13 @@ echo "All ${count} riffs generated!"
 
 Example for count=3:
 ```bash
-PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.63"
-node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 1 riff-1/app.jsx &
-node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 2 riff-2/app.jsx &
-node "$PLUGIN_DIR/scripts/generate-riff.js" "the theme" 3 riff-3/app.jsx &
+PLUGIN_DIR=~/.claude/plugins/cache/vibes-diy/vibes/*
+node $PLUGIN_DIR/scripts/generate-riff.js "the theme" 1 riff-1/app.jsx &
+node $PLUGIN_DIR/scripts/generate-riff.js "the theme" 2 riff-2/app.jsx &
+node $PLUGIN_DIR/scripts/generate-riff.js "the theme" 3 riff-3/app.jsx &
 wait
 ```
+Note: The `*` glob matches any installed version.
 
 **Why this works:**
 - Each script calls `claude -p "..."` → uses subscription tokens
@@ -64,7 +66,7 @@ wait
 Convert each app.jsx to a complete index.html:
 
 ```bash
-node ${PLUGIN_DIR}/scripts/assemble-all.js riff-1 riff-2 riff-3 ...
+node ~/.claude/plugins/cache/vibes-diy/vibes/*/scripts/assemble-all.js riff-1 riff-2 riff-3 ...
 ```
 
 ### Step 5: Evaluate & Rank
@@ -109,10 +111,10 @@ Open index.html for gallery, or browse riff-1/, riff-2/, etc.
 
 ## Plugin Directory
 
-To get the plugin directory path, use:
+To get the plugin directory path, use the glob pattern:
 ```bash
-# The plugin is installed at ~/.claude/plugins/cache/vibes-diy/vibes/VERSION/
-PLUGIN_DIR="$HOME/.claude/plugins/cache/vibes-diy/vibes/1.0.63"
+# The * glob matches any installed version
+PLUGIN_DIR=~/.claude/plugins/cache/vibes-diy/vibes/*
 ```
 
-Or locate it dynamically if needed.
+This works regardless of which version is installed.
