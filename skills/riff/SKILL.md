@@ -33,12 +33,15 @@ mkdir -p riff-1 riff-2 riff-3 ...
 
 **Use the bundled script to generate riffs in parallel.** Each script instance calls `claude -p` (uses subscription tokens) and writes directly to disk.
 
-Generate one command per riff based on user's count:
-
+First, find the latest plugin version (run once per session):
 ```bash
-PLUGIN_DIR=~/.claude/plugins/cache/vibes-diy/vibes/*
+VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
+```
+
+Then generate riffs in parallel based on user's count:
+```bash
 # For each N from 1 to ${count}:
-node $PLUGIN_DIR/scripts/generate-riff.js "${prompt}" N riff-N/app.jsx &
+node "${VIBES_DIR}scripts/generate-riff.js" "${prompt}" N riff-N/app.jsx &
 
 # Then wait for all
 wait
@@ -47,13 +50,12 @@ echo "All ${count} riffs generated!"
 
 Example for count=3:
 ```bash
-PLUGIN_DIR=~/.claude/plugins/cache/vibes-diy/vibes/*
-node $PLUGIN_DIR/scripts/generate-riff.js "the theme" 1 riff-1/app.jsx &
-node $PLUGIN_DIR/scripts/generate-riff.js "the theme" 2 riff-2/app.jsx &
-node $PLUGIN_DIR/scripts/generate-riff.js "the theme" 3 riff-3/app.jsx &
+VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
+node "${VIBES_DIR}scripts/generate-riff.js" "the theme" 1 riff-1/app.jsx &
+node "${VIBES_DIR}scripts/generate-riff.js" "the theme" 2 riff-2/app.jsx &
+node "${VIBES_DIR}scripts/generate-riff.js" "the theme" 3 riff-3/app.jsx &
 wait
 ```
-Note: The `*` glob matches any installed version.
 
 **Why this works:**
 - Each script calls `claude -p "..."` → uses subscription tokens
@@ -66,7 +68,7 @@ Note: The `*` glob matches any installed version.
 Convert each app.jsx to a complete index.html:
 
 ```bash
-node ~/.claude/plugins/cache/vibes-diy/vibes/*/scripts/assemble-all.js riff-1 riff-2 riff-3 ...
+node "${VIBES_DIR}scripts/assemble-all.js" riff-1 riff-2 riff-3 ...
 ```
 
 ### Step 5: Evaluate & Rank
@@ -111,10 +113,9 @@ Open index.html for gallery, or browse riff-1/, riff-2/, etc.
 
 ## Plugin Directory
 
-To get the plugin directory path, use the glob pattern:
+To get the latest plugin directory path:
 ```bash
-# The * glob matches any installed version
-PLUGIN_DIR=~/.claude/plugins/cache/vibes-diy/vibes/*
+VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
 ```
 
-This works regardless of which version is installed.
+This uses version sorting to find the highest installed version.

@@ -132,11 +132,14 @@ The template makes `useTenant` available globally via `window.useTenant`.
 
 ### 3.2 Assemble Unified App
 
-Run the assembly script to generate the unified index.html. Use the path relative to the skill directory:
+Run the assembly script to generate the unified files:
 
 ```bash
-# From the user's project directory, the script is at:
-node ~/.claude/plugins/cache/vibes-diy/vibes/*/scripts/assemble-sell.js app.jsx index.html \
+# Find latest plugin version
+VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
+
+# Run assembly
+node "${VIBES_DIR}scripts/assemble-sell.js" app.jsx index.html \
   --clerk-key "pk_test_xxx" \
   --app-name "wedding-photos" \
   --app-title "Fantasy Wedding" \
@@ -147,8 +150,6 @@ node ~/.claude/plugins/cache/vibes-diy/vibes/*/scripts/assemble-sell.js app.jsx 
   --features '["Photo sharing","Guest uploads","Live gallery"]' \
   --admin-ids '["user_xxx"]'
 ```
-
-Note: The `*` glob matches any installed version. If multiple versions exist, use the highest numbered directory.
 
 **The assembly script generates THREE files:**
 1. `index.html` - Unified app (landing + tenant + admin)
