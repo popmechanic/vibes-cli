@@ -165,34 +165,75 @@ Tell the user:
 3. Enter your root domain (e.g., `fantasy.wedding`)
 4. Cloudflare will prompt for DNS changes if needed
 
-### 4.3 Wildcard Subdomain Worker
+### 4.3 Deploy API Worker
 
-Cloudflare Pages doesn't support wildcard custom domains directly. Create a Worker to proxy subdomains:
+The sell skill includes a Cloudflare Worker that:
+1. Proxies wildcard subdomain requests to Pages
+2. Provides `/api/tenants` endpoint for the admin dashboard
+
+**Deploy the Worker:**
+
+1. **Install Wrangler** (if not already installed):
+   ```bash
+   npm install -g wrangler
+   wrangler login
+   ```
+
+2. **Navigate to the worker directory:**
+   ```bash
+   cd ${PLUGIN_DIR}/skills/sell/worker
+   ```
+
+3. **Set environment variables:**
+   ```bash
+   # Set your Clerk secret key
+   wrangler secret put CLERK_SECRET_KEY
+   # Enter: sk_test_xxx or sk_live_xxx
+   ```
+
+4. **Update `wrangler.toml`** with your config:
+   ```toml
+   name = "your-app-api"
+
+   [vars]
+   PAGES_DOMAIN = "your-project.pages.dev"
+   ALLOWED_ORIGIN = "*"
+   ```
+
+   Note: `ALLOWED_ORIGIN = "*"` is required so the admin subdomain can call the API.
+
+5. **Deploy:**
+   ```bash
+   wrangler deploy
+   ```
+
+**Alternative: Manual Worker Creation**
+
+If you prefer to create the Worker in the Cloudflare dashboard:
 
 1. **Go to** Workers & Pages → **Create** → **Create Worker**
-2. Give it a name (e.g., "fantasy-wedding-proxy")
-3. **Replace** the default code with:
-
-```javascript
-export default {
-  async fetch(request) {
-    const url = new URL(request.url);
-    url.hostname = 'YOUR-PROJECT.pages.dev';
-    return fetch(url, request);
-  }
-}
-```
-
-4. **Replace** `YOUR-PROJECT.pages.dev` with your actual Pages URL
+2. Give it a name (e.g., "fantasy-wedding-api")
+3. **Copy** the code from `${PLUGIN_DIR}/skills/sell/worker/index.js`
+4. **Add environment variables** in Worker Settings:
+   - `CLERK_SECRET_KEY` (encrypted) - Your Clerk secret key
+   - `PAGES_DOMAIN` - Your Pages URL (e.g., `fantasywedding.pages.dev`)
+   - `ALLOWED_ORIGIN` - Set to `*` (allows admin subdomain to call API)
 5. Click **Deploy**
 
-### 4.4 Add Worker Route
+### 4.4 Add Worker Routes
+
+You need **two routes** - one for subdomains and one for the root domain:
 
 1. Go to your Worker → **Settings** → **Triggers**
-2. Click **Add Route**
-3. Add route: `*.yourdomain.com/*`
-4. Select zone: `yourdomain.com`
-5. **Save**
+2. Click **Add Route** and add:
+   - Route: `*.yourdomain.com/*` (for subdomains)
+   - Zone: `yourdomain.com`
+3. Click **Add Route** again and add:
+   - Route: `yourdomain.com/*` (for root domain API access)
+   - Zone: `yourdomain.com`
+4. **Save**
+
+Both routes are required so the API works from both the landing page and admin dashboard.
 
 ### 4.5 DNS Configuration
 
@@ -358,6 +399,33 @@ The unified template includes these imports:
 
 ---
 
+## Data Flow
+
+### How Tenants are Tracked
+
+1. **User signs up** on landing page via Clerk
+2. **User picks subdomain** in CheckoutFlow
+3. **Subdomain saved** to user's `unsafeMetadata` in Clerk
+4. **Admin dashboard** calls `/api/tenants` (Worker endpoint)
+5. **Worker fetches** all Clerk users via Clerk Backend API
+6. **Worker filters** users with `subdomain` in metadata
+7. **Dashboard displays** tenant list with email, subdomain, plan
+
+This approach uses Clerk as the single source of truth - no separate database to sync.
+
+### API Endpoint
+
+The Worker provides:
+
+```
+GET /api/tenants
+→ Returns: { tenants: [{ id, subdomain, email, status, plan, imageUrl }] }
+```
+
+The admin dashboard fetches this endpoint and refreshes every 30 seconds.
+
+---
+
 ## Troubleshooting
 
 ### "Subscription Required" loop
@@ -382,3 +450,14 @@ The unified template includes these imports:
 ### Database not isolated
 - Verify `useTenant()` is used in the App component
 - Check `useFireproof(dbName)` uses the tenant database name
+
+### Admin dashboard shows 0 tenants
+- Ensure the Worker is deployed and running
+- Check `CLERK_SECRET_KEY` is set correctly in Worker settings
+- Verify the Worker route covers your domain
+- Open browser console to see API errors
+- Test endpoint directly: `curl https://yourdomain.com/api/tenants`
+
+### API returns "CLERK_SECRET_KEY not configured"
+- Set the secret via `wrangler secret put CLERK_SECRET_KEY`
+- Or add it in Cloudflare dashboard under Worker Settings → Variables
