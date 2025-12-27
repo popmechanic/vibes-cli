@@ -1,5 +1,5 @@
 ---
-description: Transform a Vibes app into a multi-tenant SaaS with Clerk auth and Stripe billing
+description: Transform a Vibes app into a multi-tenant SaaS with Clerk auth and Clerk Billing
 ---
 
 # Sell - Transform to SaaS
@@ -8,7 +8,7 @@ Transform your Vibes app into a multi-tenant SaaS product with:
 
 - **Subdomain-based tenancy** - Each customer gets their own subdomain (alice.yourdomain.com)
 - **Clerk authentication** - Secure sign-in/sign-up with Clerk
-- **Stripe billing** - Per-subdomain subscriptions via Clerk Billing
+- **Clerk Billing** - Per-subdomain subscriptions
 - **Landing page** - Marketing page with pricing and subdomain picker
 - **Admin dashboard** - View and manage all tenants
 
