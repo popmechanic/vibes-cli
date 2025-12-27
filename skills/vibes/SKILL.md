@@ -70,11 +70,10 @@ export default function App() {
 
 1. Extract the code from `<code>` tags and write to `app.jsx`
 2. Optionally save `<design>` content to `design.md` for documentation
-3. Run assembly:
+3. Run assembly (finds latest plugin version automatically):
    ```bash
-   node ~/.claude/plugins/cache/vibes-diy/vibes/*/scripts/assemble.js app.jsx index.html
+   node "$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)scripts/assemble.js" app.jsx index.html
    ```
-   Note: The `*` glob matches any installed version.
 4. Tell user: "Open `index.html` in your browser to view your app."
 
 ---
