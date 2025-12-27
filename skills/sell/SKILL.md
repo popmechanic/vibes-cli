@@ -337,7 +337,9 @@ function TenantProvider({ children }) {
 
 ### SubscriptionGate with Admin Bypass
 
-Admins can bypass subscription checks:
+Admins can bypass subscription checks.
+
+**SECURITY WARNING**: Do NOT add fallbacks like `|| ADMIN_USER_IDS.length === 0` to admin checks. An empty admin list means NO admin access, not "everyone is admin". The template is secure - do not modify the admin authorization logic.
 
 ```javascript
 function SubscriptionGate({ children }) {

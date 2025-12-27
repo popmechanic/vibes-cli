@@ -367,6 +367,8 @@
         const [error, setError] = useState(null);
         const { user } = useUser();
 
+        // SECURITY: Do NOT add fallbacks like "|| ADMIN_USER_IDS.length === 0"
+        // Empty admin list means NO admin access, not everyone is admin
         const isAdmin = ADMIN_USER_IDS.includes(user?.id);
 
         // Fetch tenants from worker API
