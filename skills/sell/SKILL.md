@@ -39,6 +39,18 @@ admin.yourdomain.com    → Admin dashboard
 
 This approach simplifies deployment - you upload one file and it handles everything.
 
+### Single Unified Worker
+
+**IMPORTANT:** The sell skill uses ONE Cloudflare Worker that handles ALL routes via path-based routing:
+
+```
+yourdomain.com/api/*       → API endpoints (same worker)
+yourdomain.com/webhooks/*  → Clerk webhooks (same worker)
+*.yourdomain.com/*         → Subdomain proxy (same worker)
+```
+
+Do NOT create separate workers or subdomains for webhooks/API. The webhook URL is `yourdomain.com/webhooks/clerk`, NOT `webhooks.yourdomain.com`.
+
 ---
 
 ## Workflow Overview
@@ -301,10 +313,23 @@ In Cloudflare Dashboard → DNS → Records:
 
 ### 4.6 Add Worker Routes (MANUAL - Routes May Not Apply Automatically!)
 
+**CRITICAL: ONE Worker, THREE Routes**
+
+The sell skill uses a **single unified worker** that handles ALL routes. Do NOT create separate workers or subdomains for webhooks/API. Everything runs through ONE worker with path-based routing:
+
+```
+yourdomain.com/api/*       → Same worker (API endpoints)
+yourdomain.com/webhooks/*  → Same worker (Clerk webhooks)
+*.yourdomain.com/*         → Same worker (subdomain proxy)
+```
+
+**WRONG:** Creating `webhooks.yourdomain.com` or `api.yourdomain.com`
+**RIGHT:** Using `yourdomain.com/webhooks/*` and `yourdomain.com/api/*`
+
 **IMPORTANT:** Routes in wrangler.toml often don't apply. Add them manually:
 
 1. Go to Workers & Pages → [your worker] → Settings → Domains & Routes
-2. Click **Add route** and add these THREE routes:
+2. Click **Add route** and add these THREE routes to the **SAME worker**:
 
 | Pattern | Zone |
 |---------|------|
@@ -312,10 +337,10 @@ In Cloudflare Dashboard → DNS → Records:
 | `yourdomain.com/api/*` | yourdomain.com |
 | `yourdomain.com/webhooks/*` | yourdomain.com |
 
-All three routes are required:
-- Wildcard handles subdomain routing
+All three routes point to the same worker:
+- Wildcard handles subdomain routing (alice.yourdomain.com)
 - /api/* handles admin dashboard API calls from root domain
-- /webhooks/* handles Clerk webhook events
+- /webhooks/* handles Clerk webhook events at yourdomain.com/webhooks/clerk
 
 ---
 
@@ -357,6 +382,10 @@ Provide these instructions to the user:
 ### 5.5 Configure Clerk Webhooks (Required for User Tracking)
 
 Set up webhooks so the admin dashboard can track users:
+
+**NOTE:** The webhook URL uses a **path** on your root domain, NOT a subdomain:
+- **CORRECT:** `https://yourdomain.com/webhooks/clerk`
+- **WRONG:** `https://webhooks.yourdomain.com/clerk`
 
 1. Go to Clerk Dashboard → **Webhooks** → **Add Endpoint**
 2. Enter endpoint URL: `https://yourdomain.com/webhooks/clerk`

@@ -316,13 +316,19 @@ ${'─'.repeat(70)}
   STEP 6: ADD WORKER ROUTES (MANUAL - IMPORTANT!)
 ${'─'.repeat(70)}
 
+⚠️  CRITICAL: ONE worker handles ALL routes.
+    Do NOT create separate workers or subdomains for webhooks/API.
+
+    CORRECT: ${domain}/webhooks/clerk (path on root domain)
+    WRONG:   webhooks.${domain}/clerk (separate subdomain)
+
 ⚠️  Routes in wrangler.toml may not apply automatically.
     Add them manually if subdomain routing doesn't work.
 
 1. Go to Workers & Pages → ${pagesProject}-wildcard
 2. Settings → Triggers → Routes → Add route
 
-Add these THREE routes:
+Add these THREE routes to the SAME worker:
 ┌─────────────────────────────────────┬────────────────┐
 │ Pattern                             │ Zone           │
 ├─────────────────────────────────────┼────────────────┤
@@ -348,6 +354,7 @@ ${'─'.repeat(70)}
 4. Set up webhooks (for user and billing tracking):
    - Dashboard → Webhooks → Add Endpoint
    - URL: https://${domain}/webhooks/clerk
+     (NOTE: This is a PATH on root domain, NOT a subdomain!)
    - User events: user.created, user.deleted
    - Billing events: subscription.created, subscription.updated,
      subscription.canceled, invoice.paid, invoice.payment_failed
