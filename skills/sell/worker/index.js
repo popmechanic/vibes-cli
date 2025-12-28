@@ -119,7 +119,7 @@ async function handleAPI(request, env, pathname, corsHeaders) {
     }
   }
 
-  // Register tenant
+  // Register tenant (upsert - allows same user to re-register, blocks different user)
   if (pathname === '/api/tenants/register' && request.method === 'POST') {
     try {
       const body = await request.json();
@@ -132,23 +132,35 @@ async function handleAPI(request, env, pathname, corsHeaders) {
         });
       }
 
-      // Check if subdomain is taken
-      const existing = await env.TENANTS.get(prefixKey(env, `tenant:${subdomain}`));
-      if (existing) {
-        return new Response(JSON.stringify({ error: 'Subdomain already taken' }), {
-          status: 409,
+      // Check if subdomain is taken by a DIFFERENT user
+      const existingStr = await env.TENANTS.get(prefixKey(env, `tenant:${subdomain}`));
+      if (existingStr) {
+        const existing = JSON.parse(existingStr);
+        if (existing.userId !== userId) {
+          // Different user trying to claim this subdomain
+          return new Response(JSON.stringify({ error: 'Subdomain already taken' }), {
+            status: 409,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        // Same user - update lastVisit and return success
+        existing.lastVisit = new Date().toISOString();
+        if (email && !existing.email) existing.email = email;
+        await env.TENANTS.put(prefixKey(env, `tenant:${subdomain}`), JSON.stringify(existing));
+        return new Response(JSON.stringify({ success: true, tenant: existing, updated: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      // Create tenant
+      // Create new tenant
       const tenant = {
         subdomain,
         userId,
         email,
         plan: plan || 'pro',
         status: 'active',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        lastVisit: new Date().toISOString()
       };
 
       await env.TENANTS.put(prefixKey(env, `tenant:${subdomain}`), JSON.stringify(tenant));
@@ -164,7 +176,7 @@ async function handleAPI(request, env, pathname, corsHeaders) {
         await env.TENANTS.put(prefixKey(env, 'stats:tenantCount'), String(subdomains.length));
       }
 
-      return new Response(JSON.stringify({ success: true, tenant }), {
+      return new Response(JSON.stringify({ success: true, tenant, created: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     } catch (err) {
