@@ -568,36 +568,105 @@
         );
       }
 
-      function Hero() {
+      function Hero({ onClaimSubdomain }) {
+        const [subdomain, setSubdomain] = useState('');
+        const [checking, setChecking] = useState(false);
+        const [available, setAvailable] = useState(null);
+        const [allTenants, setAllTenants] = useState([]);
+
+        // Fetch all tenants once on mount to check availability locally
+        useEffect(() => {
+          async function fetchTenants() {
+            try {
+              const response = await fetch(`https://${APP_DOMAIN}/api/tenants`);
+              if (response.ok) {
+                const data = await response.json();
+                setAllTenants(data.tenants || []);
+              }
+            } catch (err) {
+              console.error('Error fetching tenants:', err);
+            }
+          }
+          fetchTenants();
+        }, []);
+
+        // Check availability when subdomain changes
+        useEffect(() => {
+          if (subdomain.length >= 3) {
+            setChecking(true);
+            const timer = setTimeout(() => {
+              const taken = allTenants.some(t => t.subdomain === subdomain);
+              const reserved = ['admin', 'www', 'api', 'app', 'mail', 'smtp', 'ftp'];
+              setAvailable(!taken && !reserved.includes(subdomain));
+              setChecking(false);
+            }, 300);
+            return () => clearTimeout(timer);
+          } else {
+            setAvailable(null);
+          }
+        }, [subdomain, allTenants]);
+
+        const isValid = /^[a-z0-9-]+$/.test(subdomain) && subdomain.length >= 3 && !subdomain.startsWith('-') && !subdomain.endsWith('-');
+
+        const handleClaim = () => {
+          if (isValid && available) {
+            onClaimSubdomain(subdomain);
+          }
+        };
+
         const formattedName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         return (
-          <div className="text-center py-20 px-4">
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight text-[#0f172a]">
+          <div className="text-center py-16 md:py-24 px-4">
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 tracking-tight text-[#0f172a]">
               {formattedName}
             </h1>
-            <p className="text-xl md:text-2xl text-gray-600 max-w-2xl mx-auto mb-8">
+            <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-10">
               {APP_TAGLINE}
             </p>
-            <a
-              href="#pricing"
-              className="inline-block px-8 py-4 bg-[#0f172a] text-white font-bold text-lg border-4 border-[#0f172a] shadow-[4px_4px_0px_oklch(0.6_0.2_145)] hover:shadow-[2px_2px_0px_oklch(0.6_0.2_145)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
-            >
-              See Plans &rarr;
-            </a>
+
+            {/* Claim subdomain input */}
+            <div className="max-w-lg mx-auto">
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center bg-white border-4 border-[#0f172a] p-2 shadow-[6px_6px_0px_#0f172a]">
+                <div className="flex-1 flex items-center">
+                  <input
+                    type="text"
+                    value={subdomain}
+                    onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                    placeholder="yourname"
+                    className="w-full px-4 py-3 text-lg font-medium focus:outline-none"
+                  />
+                  <span className="text-gray-400 font-medium pr-2 whitespace-nowrap">.{APP_DOMAIN}</span>
+                </div>
+                <button
+                  onClick={handleClaim}
+                  disabled={!isValid || !available || checking}
+                  className="px-6 py-3 bg-[#0f172a] text-white font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#1e293b] transition-colors whitespace-nowrap"
+                >
+                  {checking ? 'Checking...' : 'Claim It'}
+                </button>
+              </div>
+              {subdomain.length >= 3 && (
+                <p className={`mt-3 text-sm font-medium ${available === true ? 'text-green-600' : available === false ? 'text-red-600' : 'text-gray-500'}`}>
+                  {checking ? 'Checking availability...' : available === true ? `${subdomain}.${APP_DOMAIN} is available!` : available === false ? 'Already taken. Try another name.' : ''}
+                </p>
+              )}
+            </div>
+
+            <p className="mt-8 text-sm text-gray-500">
+              Free to try • No credit card required • Cancel anytime
+            </p>
           </div>
         );
       }
 
-      function CheckoutFlow({ plan, onBack }) {
+      function ClaimCheckoutFlow({ subdomain, plan, onBack }) {
         const { user } = useUser();
         const [saving, setSaving] = useState(false);
 
-        const handleSubdomainSelect = async (subdomain) => {
-          if (user) {
+        const handleActivate = async () => {
+          if (user && subdomain) {
             setSaving(true);
             try {
-              // Store subdomain in Clerk user's unsafeMetadata (writable from frontend)
-              // Note: unsafeMetadata is readable by the user, use for non-sensitive data
               await user.update({
                 unsafeMetadata: {
                   ...user.unsafeMetadata,
@@ -607,15 +676,21 @@
                   claimedAt: new Date().toISOString()
                 }
               });
-              // Redirect to their new subdomain
               window.location.href = `https://${subdomain}.${APP_DOMAIN}`;
             } catch (err) {
-              console.error('Error saving subdomain:', err);
+              console.error('Error activating subdomain:', err);
               setSaving(false);
-              alert('Failed to claim subdomain. Please try again.');
+              alert('Failed to activate. Please try again.');
             }
           }
         };
+
+        // Auto-activate when user signs in and we have a subdomain
+        useEffect(() => {
+          if (user && subdomain && !saving) {
+            handleActivate();
+          }
+        }, [user, subdomain]);
 
         return (
           <section className="py-16 px-4 max-w-xl mx-auto">
@@ -623,11 +698,18 @@
               <button onClick={onBack} className="mb-6 text-gray-600 hover:text-[#0f172a] font-medium">
                 &larr; Back to plans
               </button>
+
+              <div className="mb-6 p-4 bg-green-50 border-2 border-green-200 rounded">
+                <p className="text-green-800 font-medium">
+                  Claiming: <strong>{subdomain}.{APP_DOMAIN}</strong>
+                </p>
+              </div>
+
               <h3 className="text-2xl font-bold mb-2">{plan === 'yearly' ? 'Yearly' : 'Monthly'} Plan</h3>
               <p className="text-gray-600 mb-6">{plan === 'yearly' ? YEARLY_PRICE : MONTHLY_PRICE}/{plan === 'yearly' ? 'year' : 'month'}</p>
 
               <SignedOut>
-                <p className="mb-6 text-gray-700">Create an account to claim your subdomain:</p>
+                <p className="mb-6 text-gray-700">Create an account to activate your subdomain:</p>
                 <div className="flex gap-4">
                   <SignUpButton mode="modal">
                     <button className="flex-1 px-6 py-3 bg-[#0f172a] text-white font-bold border-4 border-[#0f172a]">Create Account</button>
@@ -639,7 +721,18 @@
               </SignedOut>
 
               <SignedIn>
-                <SubdomainPicker onSelect={handleSubdomainSelect} />
+                <div className="text-center">
+                  {saving ? (
+                    <p className="text-gray-600">Activating your subdomain...</p>
+                  ) : (
+                    <button
+                      onClick={handleActivate}
+                      className="px-8 py-4 bg-[#0f172a] text-white font-bold text-lg border-4 border-[#0f172a] shadow-[4px_4px_0px_oklch(0.6_0.2_145)] hover:shadow-[2px_2px_0px_oklch(0.6_0.2_145)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+                    >
+                      Activate {subdomain}.{APP_DOMAIN}
+                    </button>
+                  )}
+                </div>
               </SignedIn>
             </div>
           </section>
@@ -647,7 +740,16 @@
       }
 
       function LandingPage() {
+        const [claimedSubdomain, setClaimedSubdomain] = useState(null);
         const [selectedPlan, setSelectedPlan] = useState(null);
+
+        const handleClaimSubdomain = (subdomain) => {
+          setClaimedSubdomain(subdomain);
+          // Scroll to pricing after claiming
+          setTimeout(() => {
+            document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        };
 
         return (
           <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
@@ -675,7 +777,14 @@
 
               {!selectedPlan ? (
                 <>
-                  <Hero />
+                  <Hero onClaimSubdomain={handleClaimSubdomain} />
+                  {claimedSubdomain && (
+                    <div className="text-center py-4 bg-green-50 border-y-2 border-green-200">
+                      <p className="text-green-800 font-medium">
+                        🎉 <strong>{claimedSubdomain}.{APP_DOMAIN}</strong> is reserved for you! Choose a plan below to activate it.
+                      </p>
+                    </div>
+                  )}
                   <section id="pricing" className="py-16 px-4 max-w-4xl mx-auto">
                     <h2 className="text-3xl font-bold text-center mb-4">Simple, Transparent Pricing</h2>
                     <p className="text-center text-gray-600 mb-12 max-w-xl mx-auto">Choose the plan that works for you. Cancel anytime.</p>
@@ -686,7 +795,7 @@
                   </section>
                 </>
               ) : (
-                <CheckoutFlow plan={selectedPlan} onBack={() => setSelectedPlan(null)} />
+                <ClaimCheckoutFlow subdomain={claimedSubdomain} plan={selectedPlan} onBack={() => setSelectedPlan(null)} />
               )}
 
               <footer className="py-8 px-4 text-center text-gray-500 border-t border-gray-200 mt-16">
