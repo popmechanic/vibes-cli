@@ -15,9 +15,40 @@ description: Transform a Vibes app into a multi-tenant SaaS with per-subdomain b
 ░▒▓███████▓▒░░▒▓████████▓▒░▒▓████████▓▒░▒▓████████▓▒░
 ```
 
+---
+
+## ⛔ CRITICAL RULES - READ FIRST ⛔
+
+**DO NOT generate code manually.** This skill uses pre-built scripts:
+
+| Step | Script | What it does |
+|------|--------|--------------|
+| Assembly | `assemble-sell.js` | Generates index.html, worker.js, wrangler.toml |
+| Deploy | `deploy-sell.js` | Creates KV, deploys worker, configures DNS/routes |
+
+**Script location:**
+```bash
+VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
+# Then use: node "${VIBES_DIR}scripts/assemble-sell.js" ...
+# And: node "${VIBES_DIR}scripts/deploy-sell.js" ...
+```
+
+**NEVER do these manually:**
+- ❌ Write HTML/JSX for landing page, tenant app, or admin dashboard
+- ❌ Give user manual Cloudflare dashboard instructions
+- ❌ Run individual wrangler commands (kv create, deploy, etc.)
+- ❌ Create separate workers or subdomains for webhooks/API
+
+**ALWAYS do these:**
+- ✅ Run `assemble-sell.js` to generate files
+- ✅ Run `deploy-sell.js` to deploy (it handles everything)
+- ✅ Only provide manual steps for Clerk configuration (no API available)
+
+---
+
 # Sell - Transform Vibes to SaaS
 
-**IMPORTANT**: This skill uses `assemble-sell.js` to inject the user's app into a pre-built template. Do NOT generate code manually - always run the assembly script. The template contains security checks, API integration, and proper Clerk/Fireproof patterns that will break if you write your own code.
+This skill uses `assemble-sell.js` to inject the user's app into a pre-built template. The template contains security checks, API integration, and proper Clerk/Fireproof patterns.
 
 Convert your Vibes app into a multi-tenant SaaS product with:
 - Subdomain-based tenancy (alice.yourdomain.com)
