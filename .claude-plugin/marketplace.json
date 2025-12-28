@@ -18,7 +18,7 @@
         "name": "Marcus Estes"
       },
       "homepage": "https://vibes.diy",
-      "repository": "https://github.com/popmechanic/vibes-skill",
+      "repository": "https://github.com/popmechanic/vibes-cli",
       "license": "MIT",
       "keywords": ["react", "fireproof", "web-app", "prototyping", "no-build"],
       "category": "development"
