@@ -39,6 +39,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
+import { stripForTemplate, stripImports } from './lib/strip-code.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -133,6 +134,10 @@ const domain = options.domain || 'example.com';
 const appName = options.appName || 'my-app';
 const pagesProject = options.pagesProject || appName.replace(/[^a-z0-9-]/gi, '-');
 
+// Parse numeric prices for worker env vars (strip $ and non-digits)
+const monthlyPriceNum = (options.monthlyPrice || '$9').replace(/\D/g, '') || '9';
+const yearlyPriceNum = (options.yearlyPrice || '$89').replace(/\D/g, '') || '89';
+
 // Configuration replacements
 const replacements = {
   '__CLERK_PUBLISHABLE_KEY__': options.clerkKey || 'pk_test_YOUR_KEY_HERE',
@@ -175,26 +180,9 @@ for (const [placeholder, value] of Object.entries(replacements)) {
   output = output.split(placeholder).join(value);
 }
 
-// Read and process app code
-let appCode = readFileSync(resolvedAppPath, 'utf8').trim();
-
-// Remove import statements - the unified template already imports React, useFireproof, etc.
-// This prevents "Identifier 'React' has already been declared" errors
-appCode = appCode.replace(/^import\s+.*?from\s+["'].*?["'];?\s*$/gm, '');
-appCode = appCode.replace(/^import\s+["'].*?["'];?\s*$/gm, ''); // Side-effect imports
-
-// Remove any existing export default - we'll use the App function directly
-appCode = appCode.replace(/^export\s+default\s+/m, '');
-
-// Remove CONFIG declarations - the template provides its own CONFIG
-// This prevents "Identifier 'CONFIG' has already been declared" errors
-appCode = appCode.replace(/^const\s+CONFIG\s*=\s*\{[\s\S]*?\n\};?\s*$/gm, '');
-
-// Remove legacy constant declarations that template provides
+// Read and process app code - strip imports, exports, and template-provided constants
 const templateConstants = ['CLERK_PUBLISHABLE_KEY', 'APP_NAME', 'APP_DOMAIN', 'MONTHLY_PRICE', 'YEARLY_PRICE', 'FEATURES', 'APP_TAGLINE', 'ADMIN_USER_IDS'];
-for (const constant of templateConstants) {
-  appCode = appCode.replace(new RegExp(`^const\\s+${constant}\\s*=.*$`, 'gm'), '');
-}
+let appCode = stripForTemplate(readFileSync(resolvedAppPath, 'utf8'), templateConstants);
 
 // Check if app uses hardcoded database name
 const firepoolMatch = appCode.match(/useFireproof\s*\(\s*["']([^"']+)["']\s*\)/);
@@ -214,12 +202,8 @@ if (output.includes(appPlaceholder)) {
   process.exit(1);
 }
 
-// Read and process admin component
-let adminCode = readFileSync(adminComponentPath, 'utf8').trim();
-
-// Remove any import statements from admin.jsx (template already imports dependencies)
-adminCode = adminCode.replace(/^import\s+.*?from\s+["'].*?["'];?\s*$/gm, '');
-adminCode = adminCode.replace(/^import\s+["'].*?["'];?\s*$/gm, ''); // Side-effect imports
+// Read and process admin component - strip imports (template already imports dependencies)
+let adminCode = stripImports(readFileSync(adminComponentPath, 'utf8').trim());
 
 // Insert admin code at placeholder
 const adminPlaceholder = '__ADMIN_CODE__';
@@ -251,7 +235,9 @@ wranglerConfig = wranglerConfig
   .split('__APP_NAME__').join(appName)
   .split('__WORKER_NAME__').join(workerName)
   .split('__PAGES_PROJECT__').join(pagesProject)
-  .split('__APP_DOMAIN__').join(domain);
+  .split('__APP_DOMAIN__').join(domain)
+  .split('__MONTHLY_PRICE_NUM__').join(monthlyPriceNum)
+  .split('__YEARLY_PRICE_NUM__').join(yearlyPriceNum);
 
 const wranglerPath = join(outputDir, 'wrangler.toml');
 writeFileSync(wranglerPath, wranglerConfig);

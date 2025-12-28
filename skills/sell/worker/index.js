@@ -390,9 +390,9 @@ async function updateMRR(env) {
   const subdomains = JSON.parse(listStr);
 
   let mrr = 0;
-  // Default prices - these should match your plan configuration
-  const monthlyPrice = 9;
-  const yearlyPrice = 89;
+  // Prices from wrangler.toml env vars (set during assembly)
+  const monthlyPrice = parseInt(env.MONTHLY_PRICE || '9', 10);
+  const yearlyPrice = parseInt(env.YEARLY_PRICE || '89', 10);
 
   for (const subdomain of subdomains) {
     const tenantStr = await env.TENANTS.get(prefixKey(env, `tenant:${subdomain}`));

@@ -278,7 +278,7 @@ wrangler login
 
 ### 4.2 Run Automated Deployment
 
-**USE `deploy-sell.js` (not `sell.js`)** - it works interactively without needing a config file:
+**USE `deploy-sell.js`** - it works interactively without needing a config file:
 
 ```bash
 # Find latest plugin version
@@ -287,8 +287,6 @@ VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -
 # Run automated deployment - prompts for everything interactively
 node "${VIBES_DIR}scripts/deploy-sell.js"
 ```
-
-**DO NOT use `sell.js deploy`** - it requires a config file created by `sell.js init`. Use `deploy-sell.js` instead.
 
 **NEVER run `wrangler deploy` directly** - it will cause route conflicts with existing workers.
 
@@ -313,25 +311,7 @@ Then provide the Step 5 instructions verbatim.
 
 ---
 
-## Alternative: Config-Based CLI (sell.js)
-
-**Only use if you need repeatable deployments.** For most cases, use `deploy-sell.js` instead.
-
-The `sell.js` script requires a config file - don't use it without running `init` first:
-
-```bash
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
-
-# REQUIRED FIRST: Create config file
-node "${VIBES_DIR}scripts/sell.js" init
-
-# Then deploy
-node "${VIBES_DIR}scripts/sell.js" deploy
-```
-
----
-
-## Legacy Deploy (Separate Scripts)
+## Deployment Details
 
 ```bash
 # Find latest plugin version
