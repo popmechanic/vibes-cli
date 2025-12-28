@@ -2,7 +2,7 @@
 
 ![Vibes](assets/vibes.png)
 
-Instantly make your own small apps, without a backend. With Vibes, The front-end _is_ the app.
+Instantly make your own small multi-user apps, without a backend. With Vibes, The front-end _is_ the app.
 
 ## What is Vibes CLI?
 
