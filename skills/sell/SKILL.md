@@ -471,6 +471,8 @@ All three routes point to the same worker:
 
 **IMPORTANT**: After Cloudflare deployment completes, provide these instructions to the user. Do NOT web search - everything needed is here.
 
+**NO REBUILD REQUIRED**: Clerk setup is done in the Clerk Dashboard only. The app already has Clerk integration built in - you just need to configure your Clerk account. Do NOT regenerate or reassemble the app.
+
 ### 5.1 Create Clerk Application
 
 1. Go to [clerk.com](https://clerk.com) and sign in
