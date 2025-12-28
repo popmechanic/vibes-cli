@@ -233,15 +233,24 @@ If you prefer manual deployment or need finer control, follow Step 4 below inste
 
 ## Step 4: Cloudflare Deployment (Manual)
 
-The assembly script prints a comprehensive deployment guide. Here's the summary:
+**IMPORTANT: Always use Wrangler CLI for Cloudflare operations.** Do not use the Cloudflare Dashboard unless Wrangler fails. Wrangler is faster, scriptable, and less error-prone.
+
+```bash
+# Ensure Wrangler is installed and authenticated
+npm install -g wrangler
+wrangler login
+```
 
 ### 4.1 Deploy to Cloudflare Pages
 
-1. **Go to Cloudflare Dashboard** → Workers & Pages
-2. **Create** → Pages → **Upload assets** (Direct Upload)
-3. **Name your project** (e.g., "fantasywedding")
-4. **Upload** the generated `index.html`
-5. **Deploy** - note the `*.pages.dev` URL
+Use Wrangler to deploy the Pages site:
+
+```bash
+# Deploy index.html to Pages (creates project if needed)
+wrangler pages deploy . --project-name yourproject
+```
+
+Note the `*.pages.dev` URL from the output.
 
 **Test your Pages deployment immediately:**
 ```
@@ -285,33 +294,47 @@ id = "YOUR_KV_NAMESPACE_ID"  # ← paste ID here
    # paste your sk_test_xxx or sk_live_xxx key
    ```
 
-### 4.4 Configure DNS (IMPORTANT - Order Matters!)
+### 4.4 Configure DNS (via Cloudflare API)
 
-In Cloudflare Dashboard → DNS → Records:
+Use the Cloudflare API to configure DNS. First, get your Zone ID and API token:
 
-1. **DELETE any existing A/AAAA record for @ (root domain)**
-   - You cannot add CNAME if A record exists
+```bash
+# Set your credentials
+export CF_API_TOKEN="your-api-token"
+export CF_ZONE_ID="your-zone-id"  # Find in Cloudflare Dashboard → Overview → right sidebar
 
-2. **Add CNAME for root domain:**
-   - Type: CNAME
-   - Name: @
-   - Target: yourproject.pages.dev
-   - Proxy: ON (orange cloud)
+# Delete any existing A/AAAA records for root (required before adding CNAME)
+# List records first to find IDs:
+curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records?type=A&name=yourdomain.com" \
+  -H "Authorization: Bearer $CF_API_TOKEN" | jq '.result[].id'
 
-3. **Add CNAME for wildcard:**
-   - Type: CNAME
-   - Name: *
-   - Target: yourproject.pages.dev
-   - Proxy: ON (orange cloud)
+# Delete each A record by ID:
+curl -X DELETE "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records/RECORD_ID" \
+  -H "Authorization: Bearer $CF_API_TOKEN"
+
+# Add CNAME for root domain
+curl -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records" \
+  -H "Authorization: Bearer $CF_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"type":"CNAME","name":"@","content":"yourproject.pages.dev","proxied":true}'
+
+# Add CNAME for wildcard
+curl -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records" \
+  -H "Authorization: Bearer $CF_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"type":"CNAME","name":"*","content":"yourproject.pages.dev","proxied":true}'
+```
 
 ### 4.5 Add Custom Domain to Pages
 
-1. Go to Workers & Pages → [your project] → **Custom domains**
-2. Click **Set up a custom domain**
-3. Enter: `yourdomain.com`
-4. Follow prompts (DNS should already be configured)
+```bash
+# Add custom domain to Pages project
+wrangler pages project list  # Find your project name
+# Custom domains must be added via dashboard for now:
+# Workers & Pages → [project] → Custom domains → Set up a custom domain
+```
 
-### 4.6 Add Worker Routes (MANUAL - Routes May Not Apply Automatically!)
+### 4.6 Add Worker Routes (via Cloudflare API)
 
 **CRITICAL: ONE Worker, THREE Routes**
 
@@ -326,16 +349,31 @@ yourdomain.com/webhooks/*  → Same worker (Clerk webhooks)
 **WRONG:** Creating `webhooks.yourdomain.com` or `api.yourdomain.com`
 **RIGHT:** Using `yourdomain.com/webhooks/*` and `yourdomain.com/api/*`
 
-**IMPORTANT:** Routes in wrangler.toml often don't apply. Add them manually:
+Use the Cloudflare API to add routes (wrangler.toml routes often don't apply):
 
-1. Go to Workers & Pages → [your worker] → Settings → Domains & Routes
-2. Click **Add route** and add these THREE routes to the **SAME worker**:
+```bash
+# Add all three routes to the SAME worker
+WORKER_NAME="yourproject-wildcard"
+DOMAIN="yourdomain.com"
 
-| Pattern | Zone |
-|---------|------|
-| `*.yourdomain.com/*` | yourdomain.com |
-| `yourdomain.com/api/*` | yourdomain.com |
-| `yourdomain.com/webhooks/*` | yourdomain.com |
+# Wildcard subdomain route
+curl -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/workers/routes" \
+  -H "Authorization: Bearer $CF_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data "{\"pattern\":\"*.$DOMAIN/*\",\"script\":\"$WORKER_NAME\"}"
+
+# API route (path-based, NOT subdomain)
+curl -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/workers/routes" \
+  -H "Authorization: Bearer $CF_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data "{\"pattern\":\"$DOMAIN/api/*\",\"script\":\"$WORKER_NAME\"}"
+
+# Webhooks route (path-based, NOT subdomain)
+curl -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/workers/routes" \
+  -H "Authorization: Bearer $CF_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data "{\"pattern\":\"$DOMAIN/webhooks/*\",\"script\":\"$WORKER_NAME\"}"
+```
 
 All three routes point to the same worker:
 - Wildcard handles subdomain routing (alice.yourdomain.com)
