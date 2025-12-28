@@ -10,11 +10,25 @@
  *
  * Environment Variables (set in wrangler.toml or dashboard):
  * - PAGES_HOSTNAME: Your Pages project hostname (e.g., "myapp.pages.dev")
+ * - APP_DOMAIN: Your app's root domain (e.g., "fantasy.wedding") - used as KV key prefix
  * - CLERK_SECRET_KEY: Your Clerk secret key (set via wrangler secret)
  *
  * KV Namespace:
- * - TENANTS: KV namespace for tenant data
+ * - TENANTS: KV namespace for tenant data (keys prefixed with APP_DOMAIN)
+ *
+ * IMPORTANT: Each deployment MUST create its own KV namespace to avoid data collision.
+ * KV keys are prefixed with APP_DOMAIN (e.g., "fantasy.wedding:tenant:alice")
  */
+
+// Get domain prefix for KV keys (isolates data per deployment)
+function getKeyPrefix(env) {
+  return env.APP_DOMAIN || '__APP_DOMAIN__';
+}
+
+// Prefix a key with the domain
+function prefixKey(env, key) {
+  return `${getKeyPrefix(env)}:${key}`;
+}
 
 // Dynamic CORS headers (reflect origin for credentials support)
 function getCorsHeaders(request) {
@@ -57,12 +71,12 @@ async function handleAPI(request, env, pathname, corsHeaders) {
   // Get all tenants
   if (pathname === '/api/tenants' && request.method === 'GET') {
     try {
-      const listResult = await env.TENANTS.get('tenants:list');
+      const listResult = await env.TENANTS.get(prefixKey(env, 'tenants:list'));
       const subdomains = listResult ? JSON.parse(listResult) : [];
 
       const tenants = [];
       for (const subdomain of subdomains) {
-        const tenant = await env.TENANTS.get(`tenant:${subdomain}`);
+        const tenant = await env.TENANTS.get(prefixKey(env, `tenant:${subdomain}`));
         if (tenant) {
           tenants.push(JSON.parse(tenant));
         }
@@ -83,10 +97,10 @@ async function handleAPI(request, env, pathname, corsHeaders) {
   if (pathname === '/api/stats' && request.method === 'GET') {
     try {
       const [tenantCount, userCount, subscriberCount, mrr] = await Promise.all([
-        env.TENANTS.get('stats:tenantCount'),
-        env.TENANTS.get('stats:userCount'),
-        env.TENANTS.get('stats:subscriberCount'),
-        env.TENANTS.get('stats:mrr')
+        env.TENANTS.get(prefixKey(env, 'stats:tenantCount')),
+        env.TENANTS.get(prefixKey(env, 'stats:userCount')),
+        env.TENANTS.get(prefixKey(env, 'stats:subscriberCount')),
+        env.TENANTS.get(prefixKey(env, 'stats:mrr'))
       ]);
 
       return new Response(JSON.stringify({
@@ -119,7 +133,7 @@ async function handleAPI(request, env, pathname, corsHeaders) {
       }
 
       // Check if subdomain is taken
-      const existing = await env.TENANTS.get(`tenant:${subdomain}`);
+      const existing = await env.TENANTS.get(prefixKey(env, `tenant:${subdomain}`));
       if (existing) {
         return new Response(JSON.stringify({ error: 'Subdomain already taken' }), {
           status: 409,
@@ -137,17 +151,17 @@ async function handleAPI(request, env, pathname, corsHeaders) {
         createdAt: new Date().toISOString()
       };
 
-      await env.TENANTS.put(`tenant:${subdomain}`, JSON.stringify(tenant));
+      await env.TENANTS.put(prefixKey(env, `tenant:${subdomain}`), JSON.stringify(tenant));
 
       // Update tenant list
-      const listResult = await env.TENANTS.get('tenants:list');
+      const listResult = await env.TENANTS.get(prefixKey(env, 'tenants:list'));
       const subdomains = listResult ? JSON.parse(listResult) : [];
       if (!subdomains.includes(subdomain)) {
         subdomains.push(subdomain);
-        await env.TENANTS.put('tenants:list', JSON.stringify(subdomains));
+        await env.TENANTS.put(prefixKey(env, 'tenants:list'), JSON.stringify(subdomains));
 
         // Update count
-        await env.TENANTS.put('stats:tenantCount', String(subdomains.length));
+        await env.TENANTS.put(prefixKey(env, 'stats:tenantCount'), String(subdomains.length));
       }
 
       return new Response(JSON.stringify({ success: true, tenant }), {
@@ -189,17 +203,17 @@ async function handleClerkWebhook(request, env) {
         createdAt: new Date().toISOString()
       };
 
-      await env.TENANTS.put(`user:${data.id}`, JSON.stringify(user));
+      await env.TENANTS.put(prefixKey(env, `user:${data.id}`), JSON.stringify(user));
 
-      const count = parseInt(await env.TENANTS.get('stats:userCount') || '0');
-      await env.TENANTS.put('stats:userCount', String(count + 1));
+      const count = parseInt(await env.TENANTS.get(prefixKey(env, 'stats:userCount')) || '0');
+      await env.TENANTS.put(prefixKey(env, 'stats:userCount'), String(count + 1));
     }
 
     if (eventType === 'user.deleted') {
-      await env.TENANTS.delete(`user:${data.id}`);
+      await env.TENANTS.delete(prefixKey(env, `user:${data.id}`));
 
-      const count = parseInt(await env.TENANTS.get('stats:userCount') || '0');
-      await env.TENANTS.put('stats:userCount', String(Math.max(0, count - 1)));
+      const count = parseInt(await env.TENANTS.get(prefixKey(env, 'stats:userCount')) || '0');
+      await env.TENANTS.put(prefixKey(env, 'stats:userCount'), String(Math.max(0, count - 1)));
     }
 
     // Billing events - Subscription lifecycle
@@ -251,14 +265,14 @@ async function handleSubscriptionCreated(env, subscriptionData) {
   };
 
   // Store subscription
-  await env.TENANTS.put(`subscription:${userId}`, JSON.stringify(subscription));
+  await env.TENANTS.put(prefixKey(env, `subscription:${userId}`), JSON.stringify(subscription));
 
   // Update tenant's subscription status
   await updateTenantSubscriptionStatus(env, userId, 'active', subscription.billingPeriod);
 
   // Update subscriber count
-  const countStr = await env.TENANTS.get('stats:subscriberCount') || '0';
-  await env.TENANTS.put('stats:subscriberCount', String(parseInt(countStr) + 1));
+  const countStr = await env.TENANTS.get(prefixKey(env, 'stats:subscriberCount')) || '0';
+  await env.TENANTS.put(prefixKey(env, 'stats:subscriberCount'), String(parseInt(countStr) + 1));
 
   // Update MRR
   await updateMRR(env);
@@ -266,7 +280,7 @@ async function handleSubscriptionCreated(env, subscriptionData) {
 
 async function handleSubscriptionUpdated(env, subscriptionData) {
   const userId = subscriptionData.user_id || subscriptionData.subscriber_id;
-  const existingStr = await env.TENANTS.get(`subscription:${userId}`);
+  const existingStr = await env.TENANTS.get(prefixKey(env, `subscription:${userId}`));
   const existing = existingStr ? JSON.parse(existingStr) : {};
 
   const subscription = {
@@ -280,7 +294,7 @@ async function handleSubscriptionUpdated(env, subscriptionData) {
     currentPeriodEnd: subscriptionData.current_period_end
   };
 
-  await env.TENANTS.put(`subscription:${userId}`, JSON.stringify(subscription));
+  await env.TENANTS.put(prefixKey(env, `subscription:${userId}`), JSON.stringify(subscription));
 
   // Update tenant status based on subscription status
   const tenantStatus = subscription.status === 'active' ? 'active' :
@@ -294,20 +308,20 @@ async function handleSubscriptionCanceled(env, subscriptionData) {
   const userId = subscriptionData.user_id || subscriptionData.subscriber_id;
 
   // Update subscription status
-  const existingStr = await env.TENANTS.get(`subscription:${userId}`);
+  const existingStr = await env.TENANTS.get(prefixKey(env, `subscription:${userId}`));
   if (existingStr) {
     const subscription = JSON.parse(existingStr);
     subscription.status = 'canceled';
     subscription.canceledAt = Date.now();
-    await env.TENANTS.put(`subscription:${userId}`, JSON.stringify(subscription));
+    await env.TENANTS.put(prefixKey(env, `subscription:${userId}`), JSON.stringify(subscription));
   }
 
   // Update tenant status
   await updateTenantSubscriptionStatus(env, userId, 'canceled');
 
   // Update subscriber count
-  const countStr = await env.TENANTS.get('stats:subscriberCount') || '1';
-  await env.TENANTS.put('stats:subscriberCount', String(Math.max(0, parseInt(countStr) - 1)));
+  const countStr = await env.TENANTS.get(prefixKey(env, 'stats:subscriberCount')) || '1';
+  await env.TENANTS.put(prefixKey(env, 'stats:subscriberCount'), String(Math.max(0, parseInt(countStr) - 1)));
 
   await updateMRR(env);
 }
@@ -324,13 +338,13 @@ async function handleInvoicePaid(env, invoiceData) {
     status: 'paid'
   };
 
-  await env.TENANTS.put(`invoice:${invoice.id}`, JSON.stringify(invoice));
+  await env.TENANTS.put(prefixKey(env, `invoice:${invoice.id}`), JSON.stringify(invoice));
 
   // Track monthly revenue
   const monthKey = new Date().toISOString().slice(0, 7); // YYYY-MM
-  const revenueStr = await env.TENANTS.get(`revenue:${monthKey}`) || '0';
+  const revenueStr = await env.TENANTS.get(prefixKey(env, `revenue:${monthKey}`)) || '0';
   const newRevenue = parseInt(revenueStr) + (invoice.amount || 0);
-  await env.TENANTS.put(`revenue:${monthKey}`, String(newRevenue));
+  await env.TENANTS.put(prefixKey(env, `revenue:${monthKey}`), String(newRevenue));
 }
 
 async function handleInvoicePaymentFailed(env, invoiceData) {
@@ -341,18 +355,18 @@ async function handleInvoicePaymentFailed(env, invoiceData) {
 // === Helper Functions ===
 
 async function updateTenantSubscriptionStatus(env, userId, status, billingPeriod = null) {
-  const listStr = await env.TENANTS.get('tenants:list') || '[]';
+  const listStr = await env.TENANTS.get(prefixKey(env, 'tenants:list')) || '[]';
   const subdomains = JSON.parse(listStr);
 
   for (const subdomain of subdomains) {
-    const tenantStr = await env.TENANTS.get(`tenant:${subdomain}`);
+    const tenantStr = await env.TENANTS.get(prefixKey(env, `tenant:${subdomain}`));
     if (tenantStr) {
       const tenant = JSON.parse(tenantStr);
       if (tenant.userId === userId) {
         tenant.subscriptionStatus = status;
         if (billingPeriod) tenant.billingPeriod = billingPeriod;
         tenant.subscriptionUpdatedAt = Date.now();
-        await env.TENANTS.put(`tenant:${subdomain}`, JSON.stringify(tenant));
+        await env.TENANTS.put(prefixKey(env, `tenant:${subdomain}`), JSON.stringify(tenant));
         break;
       }
     }
@@ -360,7 +374,7 @@ async function updateTenantSubscriptionStatus(env, userId, status, billingPeriod
 }
 
 async function updateMRR(env) {
-  const listStr = await env.TENANTS.get('tenants:list') || '[]';
+  const listStr = await env.TENANTS.get(prefixKey(env, 'tenants:list')) || '[]';
   const subdomains = JSON.parse(listStr);
 
   let mrr = 0;
@@ -369,7 +383,7 @@ async function updateMRR(env) {
   const yearlyPrice = 89;
 
   for (const subdomain of subdomains) {
-    const tenantStr = await env.TENANTS.get(`tenant:${subdomain}`);
+    const tenantStr = await env.TENANTS.get(prefixKey(env, `tenant:${subdomain}`));
     if (tenantStr) {
       const tenant = JSON.parse(tenantStr);
       if (tenant.subscriptionStatus === 'active') {
@@ -382,7 +396,7 @@ async function updateMRR(env) {
     }
   }
 
-  await env.TENANTS.put('stats:mrr', String(Math.round(mrr * 100) / 100));
+  await env.TENANTS.put(prefixKey(env, 'stats:mrr'), String(Math.round(mrr * 100) / 100));
 }
 
 async function proxyToPages(request, env, hostname, corsHeaders) {
