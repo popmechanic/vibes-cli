@@ -232,7 +232,12 @@ The script will prompt for Cloudflare API token if needed, then automate:
 
 ### 4.3 Clerk Configuration (Manual - No API Available)
 
-After deployment completes, provide the Clerk setup checklist (see Step 5 below). This is the ONLY manual step - everything else is automated.
+After deployment completes, **IMMEDIATELY provide the Clerk setup instructions from Step 5 below**. Do NOT web search for Clerk documentation - all instructions are in this file.
+
+Tell the user:
+> "Cloudflare deployment is complete. Now let's configure Clerk. Here are the steps:"
+
+Then provide the Step 5 instructions verbatim.
 
 ---
 
@@ -462,9 +467,9 @@ All three routes point to the same worker:
 
 ---
 
-## Step 5: Clerk Setup
+## Step 5: Clerk Setup (PROVIDE THESE INSTRUCTIONS AFTER DEPLOYMENT)
 
-Provide these instructions to the user:
+**IMPORTANT**: After Cloudflare deployment completes, provide these instructions to the user. Do NOT web search - everything needed is here.
 
 ### 5.1 Create Clerk Application
 
@@ -474,12 +479,16 @@ Provide these instructions to the user:
 
 ### 5.2 Enable Clerk Billing
 
+Clerk Billing handles payments through Stripe (no direct Stripe integration needed):
+
 1. In Clerk Dashboard, go to **Billing**
-2. Click **Connect Stripe**
-3. Complete Stripe onboarding
-4. Create subscription plans:
-   - **pro** - $9/month
-   - **yearly** - $89/year (or use plan names that match your `has()` checks)
+2. Click **Connect Stripe** (Clerk manages the Stripe integration for you)
+3. Complete the Stripe Connect onboarding
+4. Create subscription plans in Clerk Dashboard:
+   - **monthly** or **pro** - matches `has({ plan: 'monthly' })` or `has({ plan: 'pro' })`
+   - **yearly** - matches `has({ plan: 'yearly' })`
+
+   Plan names must match what your app checks with `has({ plan: 'planname' })`
 
 ### 5.3 Add Authorized Domains
 
