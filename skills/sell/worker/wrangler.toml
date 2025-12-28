@@ -23,13 +23,9 @@ APP_DOMAIN = "__APP_DOMAIN__"
 binding = "TENANTS"
 id = "YOUR_KV_NAMESPACE_ID"
 
-# Worker routes - ONE worker handles ALL routes (do NOT create separate workers)
-# Add these MANUALLY in Cloudflare Dashboard if they don't apply automatically
-# Dashboard: Workers & Pages > __WORKER_NAME__ > Settings > Triggers > Routes
-#
-# IMPORTANT: Webhooks use path-based routing, NOT subdomains
-# CORRECT: __APP_DOMAIN__/webhooks/clerk
-# WRONG:   webhooks.__APP_DOMAIN__/clerk
+# Routes for wildcard subdomains, API, and webhooks
+# NOTE: If routes don't apply after deploy, add manually in Cloudflare Dashboard:
+#   Workers & Pages > __WORKER_NAME__ > Settings > Triggers > Routes
 routes = [
   { pattern = "*.__APP_DOMAIN__/*", zone_name = "__APP_DOMAIN__" },
   { pattern = "__APP_DOMAIN__/api/*", zone_name = "__APP_DOMAIN__" },
