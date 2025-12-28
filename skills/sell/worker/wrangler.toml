@@ -24,19 +24,6 @@ binding = "TENANTS"
 id = "YOUR_KV_NAMESPACE_ID"
 
 # ============================================================
-# Routes for wildcard subdomains, API, and webhooks
-# NOTE: Routes often don't apply from wrangler.toml - the deploy
-# script configures them via Cloudflare API instead.
+# Routes are configured via Cloudflare API by deploy-sell.js
+# Do NOT add routes here - they cause conflicts with existing workers
 # ============================================================
-
-[[routes]]
-pattern = "*.__APP_DOMAIN__/*"
-zone_name = "__APP_DOMAIN__"
-
-[[routes]]
-pattern = "__APP_DOMAIN__/api/*"
-zone_name = "__APP_DOMAIN__"
-
-[[routes]]
-pattern = "__APP_DOMAIN__/webhooks/*"
-zone_name = "__APP_DOMAIN__"
