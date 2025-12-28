@@ -124,7 +124,20 @@ Ask the user for these details:
 
 **CRITICAL**: You MUST use the assembly script. Do NOT generate your own HTML/JSX code. The template has been carefully designed with proper security, API endpoints, and Clerk integration that will break if you generate code manually.
 
-### 3.1 Update App for Tenant Context
+### 3.1 What app.jsx Should Contain
+
+The app.jsx should contain ONLY the user's App component - not SaaS infrastructure. The template provides:
+- CONFIG, CLERK_PUBLISHABLE_KEY, APP_NAME, etc.
+- ClerkProvider, TenantProvider, SubscriptionGate
+- Landing page, admin dashboard, routing
+
+**The assembly script automatically strips:**
+- Import statements (template imports everything)
+- `export default` (template renders App directly)
+- `CONFIG` declarations (template provides its own)
+- Template constant declarations
+
+### 3.2 Update App for Tenant Context
 
 The user's app needs to use `useTenant()` for database scoping. Check if their app has a hardcoded database name:
 
@@ -145,7 +158,7 @@ If the app uses a hardcoded name, update it to use `useTenant()`:
 
 The template makes `useTenant` available globally via `window.useTenant`.
 
-### 3.2 Assemble Unified App
+### 3.3 Assemble Unified App
 
 Run the assembly script to generate the unified files:
 
