@@ -199,12 +199,13 @@ If wrangler is installed but not authenticated:
 wrangler login
 ```
 
-**NOTE**: Wrangler has LIMITED commands. Do NOT try:
-- `wrangler zones list` - doesn't exist (use Cloudflare API)
-- `wrangler pages project add-custom-domain` - doesn't exist (use Dashboard)
-- Any command not in `wrangler --help`
+**DO NOT run individual wrangler commands** like:
+- `wrangler kv namespace create` - deploy script handles this
+- `wrangler zones list` - doesn't exist
+- `wrangler pages project add-custom-domain` - doesn't exist
+- `wrangler deploy` directly - deploy script handles this
 
-The deploy script handles zone lookup, DNS, and routes via Cloudflare API. Custom domains for Pages must be added via Cloudflare Dashboard after deployment.
+**ONLY run the deploy script** - it handles KV creation, deployment, DNS, and routes automatically. The script gracefully handles "already exists" errors.
 
 ### 4.2 Run Automated Deployment
 
