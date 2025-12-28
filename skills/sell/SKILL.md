@@ -186,6 +186,31 @@ node "${VIBES_DIR}scripts/assemble-sell.js" app.jsx index.html \
 
 **WARNING**: If the assembly script fails or isn't available, DO NOT attempt to write the HTML manually. The template is complex and contains critical security patterns. Ask the user to ensure the plugin is installed correctly.
 
+### 3.4 Customize Landing Page Theme (Optional)
+
+The template uses neutral colors by default. To match the user's brand or prompt style, customize the CSS variables in the generated `index.html`:
+
+```css
+:root {
+  /* Landing page theming - customize these for brand */
+  --landing-accent: #0f172a;        /* Primary button/text color */
+  --landing-accent-hover: #1e293b;  /* Hover state */
+}
+```
+
+**Examples based on prompt style:**
+- Wedding app → `--landing-accent: #d4a574;` (warm gold)
+- Tech startup → `--landing-accent: #6366f1;` (vibrant indigo)
+- Health/wellness → `--landing-accent: #10b981;` (fresh green)
+- Creative agency → `--landing-accent: #f43f5e;` (bold rose)
+
+You can also customize the landing page JSX (Hero, PricingCard, LandingPage components) to add:
+- Background gradients or decorations
+- Custom headline styling
+- Brand-specific imagery
+
+The structure should remain: Hero with subdomain input → Pricing cards → Checkout flow.
+
 ---
 
 ## Step 4: Deploy (AUTOMATED)
