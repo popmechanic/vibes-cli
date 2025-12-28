@@ -186,6 +186,16 @@ appCode = appCode.replace(/^import\s+["'].*?["'];?\s*$/gm, ''); // Side-effect i
 // Remove any existing export default - we'll use the App function directly
 appCode = appCode.replace(/^export\s+default\s+/m, '');
 
+// Remove CONFIG declarations - the template provides its own CONFIG
+// This prevents "Identifier 'CONFIG' has already been declared" errors
+appCode = appCode.replace(/^const\s+CONFIG\s*=\s*\{[\s\S]*?\n\};?\s*$/gm, '');
+
+// Remove legacy constant declarations that template provides
+const templateConstants = ['CLERK_PUBLISHABLE_KEY', 'APP_NAME', 'APP_DOMAIN', 'MONTHLY_PRICE', 'YEARLY_PRICE', 'FEATURES', 'APP_TAGLINE', 'ADMIN_USER_IDS'];
+for (const constant of templateConstants) {
+  appCode = appCode.replace(new RegExp(`^const\\s+${constant}\\s*=.*$`, 'gm'), '');
+}
+
 // Check if app uses hardcoded database name
 const firepoolMatch = appCode.match(/useFireproof\s*\(\s*["']([^"']+)["']\s*\)/);
 if (firepoolMatch) {
