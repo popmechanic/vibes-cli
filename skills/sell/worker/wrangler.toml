@@ -23,11 +23,20 @@ APP_DOMAIN = "__APP_DOMAIN__"
 binding = "TENANTS"
 id = "YOUR_KV_NAMESPACE_ID"
 
+# ============================================================
 # Routes for wildcard subdomains, API, and webhooks
-# NOTE: If routes don't apply after deploy, add manually in Cloudflare Dashboard:
-#   Workers & Pages > __WORKER_NAME__ > Settings > Triggers > Routes
-routes = [
-  { pattern = "*.__APP_DOMAIN__/*", zone_name = "__APP_DOMAIN__" },
-  { pattern = "__APP_DOMAIN__/api/*", zone_name = "__APP_DOMAIN__" },
-  { pattern = "__APP_DOMAIN__/webhooks/*", zone_name = "__APP_DOMAIN__" }
-]
+# NOTE: Routes often don't apply from wrangler.toml - the deploy
+# script configures them via Cloudflare API instead.
+# ============================================================
+
+[[routes]]
+pattern = "*.__APP_DOMAIN__/*"
+zone_name = "__APP_DOMAIN__"
+
+[[routes]]
+pattern = "__APP_DOMAIN__/api/*"
+zone_name = "__APP_DOMAIN__"
+
+[[routes]]
+pattern = "__APP_DOMAIN__/webhooks/*"
+zone_name = "__APP_DOMAIN__"
