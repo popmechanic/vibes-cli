@@ -63,6 +63,24 @@ Each riff is a genuinely different **concept**, not just aesthetic variations.
 
 Transform any Vibes app into a multi-tenant SaaS with subdomain-based tenancy, authentication, and billing.
 
+**The philosophy:** Most SaaS turns every community into rows in one database. Sell turns every community into its own world.
+
+Instead of:
+```
+one app → millions of users → one giant DB
+```
+
+Vibes gives you:
+```
+many small apps → hundreds of users each → many small DBs
+```
+
+This is horizontal scaling, but the unit is the tenant database—not the server fleet. Scaling becomes multiplication of isolated cells instead of enlargement of a shared core. It just scales on autopilot.
+
+**What you can't do is interesting.** No global queries across the userbase. Some ideas won't work here. This is fundamentally about groupware—tools for communities, not platforms that own them. There can be no Zuckerberg over a Vibes CLI app.
+
+**Why it's fast:** Your core artifacts are still just 1-3 files. Less development complexity means higher velocity of ideas. Simpler for the model, simpler for you.
+
 **What it adds:**
 - Subdomain routing (alice.yourdomain.com, bob.yourdomain.com)
 - Clerk authentication with sign-in/sign-up
