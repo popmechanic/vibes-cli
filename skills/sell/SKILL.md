@@ -482,12 +482,8 @@ All three routes point to the same worker:
 
 ### 5.2 Enable Clerk Billing
 
-Clerk Billing handles payments through Stripe (no direct Stripe integration needed):
-
 1. In Clerk Dashboard, go to **Billing**
-2. Click **Connect Stripe** (Clerk manages the Stripe integration for you)
-3. Complete the Stripe Connect onboarding
-4. Create subscription plans in Clerk Dashboard:
+2. Create subscription plans:
    - **monthly** or **pro** - matches `has({ plan: 'monthly' })` or `has({ plan: 'pro' })`
    - **yearly** - matches `has({ plan: 'yearly' })`
 
