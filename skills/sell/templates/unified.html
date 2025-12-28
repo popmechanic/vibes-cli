@@ -34,6 +34,15 @@
         --vibes-button-border: var(--vibes-near-black);
         --vibes-button-icon-bg: #fff;
         --vibes-button-icon-fill: #2a2a2a;
+
+        /* Admin dashboard theming (inherits from app, override via CSS) */
+        --admin-bg: oklch(0.97 0.01 250);
+        --admin-card-bg: white;
+        --admin-text: #0f172a;
+        --admin-text-muted: #64748b;
+        --admin-accent: oklch(0.6 0.2 145);
+        --admin-border: #0f172a;
+        --admin-shadow: #0f172a;
       }
       body {
         margin: 0;
@@ -217,15 +226,30 @@
       const VibesSwitch = window.VibesSwitch;
       const VibesButton = window.VibesButton;
 
-      // === Configuration ===
-      const CLERK_PUBLISHABLE_KEY = "__CLERK_PUBLISHABLE_KEY__";
-      const APP_NAME = "__APP_NAME__";
-      const APP_DOMAIN = "__APP_DOMAIN__";
-      const MONTHLY_PRICE = "__MONTHLY_PRICE__";
-      const YEARLY_PRICE = "__YEARLY_PRICE__";
-      const FEATURES = __FEATURES__;
-      const APP_TAGLINE = "__APP_TAGLINE__";
-      const ADMIN_USER_IDS = __ADMIN_USER_IDS__;
+      // === Configuration (like mixtape pattern) ===
+      const CONFIG = {
+        clerkPublishableKey: "__CLERK_PUBLISHABLE_KEY__",
+        appName: "__APP_NAME__",
+        appTitle: "__APP_TITLE__",
+        domain: "__APP_DOMAIN__",
+        pricing: {
+          monthly: "__MONTHLY_PRICE__",
+          yearly: "__YEARLY_PRICE__"
+        },
+        features: __FEATURES__,
+        tagline: "__APP_TAGLINE__",
+        adminUserIds: __ADMIN_USER_IDS__
+      };
+
+      // Legacy aliases for backward compatibility
+      const CLERK_PUBLISHABLE_KEY = CONFIG.clerkPublishableKey;
+      const APP_NAME = CONFIG.appName;
+      const APP_DOMAIN = CONFIG.domain;
+      const MONTHLY_PRICE = CONFIG.pricing.monthly;
+      const YEARLY_PRICE = CONFIG.pricing.yearly;
+      const FEATURES = CONFIG.features;
+      const APP_TAGLINE = CONFIG.tagline;
+      const ADMIN_USER_IDS = CONFIG.adminUserIds;
 
       // === Route Detection ===
       function getRouteInfo() {
@@ -408,309 +432,8 @@
         );
       }
 
-      // === Subscription Badge Component ===
-      function SubscriptionBadge({ status }) {
-        const badges = {
-          active: { bg: 'bg-green-500/20', text: 'text-green-600', label: 'Subscribed' },
-          trial: { bg: 'bg-yellow-500/20', text: 'text-yellow-600', label: 'Trial' },
-          past_due: { bg: 'bg-red-500/20', text: 'text-red-600', label: 'Past Due' },
-          canceled: { bg: 'bg-gray-500/20', text: 'text-gray-600', label: 'Canceled' },
-        };
-        const badge = badges[status] || { bg: 'bg-blue-500/20', text: 'text-blue-600', label: 'Free' };
-
-        return (
-          <span className={`px-2 py-1 rounded text-xs font-bold ${badge.bg} ${badge.text}`}>
-            {badge.label}
-          </span>
-        );
-      }
-
-      // === Admin Dashboard ===
-      function AdminDashboard() {
-        const [tenants, setTenants] = useState([]);
-        const [stats, setStats] = useState({
-          tenantCount: 0,
-          userCount: 0,
-          subscriberCount: 0,
-          mrr: 0
-        });
-        const [loading, setLoading] = useState(true);
-        const [error, setError] = useState(null);
-        const [activeTab, setActiveTab] = useState('overview');
-        const { user } = useUser();
-
-        // SECURITY: Do NOT add fallbacks like "|| ADMIN_USER_IDS.length === 0"
-        // Empty admin list means NO admin access, not everyone is admin
-        const isAdmin = ADMIN_USER_IDS.includes(user?.id);
-
-        // Fetch tenants and stats from worker API
-        useEffect(() => {
-          if (!isAdmin) return;
-
-          async function fetchData() {
-            try {
-              // Fetch tenants and stats in parallel
-              const [tenantsRes, statsRes] = await Promise.all([
-                fetch(`https://${APP_DOMAIN}/api/tenants`),
-                fetch(`https://${APP_DOMAIN}/api/stats`)
-              ]);
-
-              if (!tenantsRes.ok) throw new Error('Failed to fetch tenants');
-              const tenantsData = await tenantsRes.json();
-              setTenants(tenantsData.tenants || []);
-
-              if (statsRes.ok) {
-                const statsData = await statsRes.json();
-                setStats(prev => ({ ...prev, ...statsData }));
-              }
-            } catch (err) {
-              console.error('Error fetching data:', err);
-              setError(err.message);
-            } finally {
-              setLoading(false);
-            }
-          }
-
-          fetchData();
-          // Refresh every 30 seconds
-          const interval = setInterval(fetchData, 30000);
-          return () => clearInterval(interval);
-        }, [isAdmin]);
-
-        if (!isAdmin) {
-          return (
-            <div className="min-h-screen flex items-center justify-center bg-[oklch(0.95_0.02_250)] p-4">
-              <div className="max-w-md text-center p-8 bg-white border-4 border-[#0f172a] shadow-[8px_8px_0px_#0f172a]">
-                <h2 className="text-2xl font-bold mb-4">Access Denied</h2>
-                <p className="text-gray-600 mb-4">You don't have admin permissions.</p>
-                <p className="text-sm text-gray-500">Your user ID: {user?.id}</p>
-              </div>
-            </div>
-          );
-        }
-
-        if (loading) {
-          return (
-            <div className="min-h-screen flex items-center justify-center bg-[oklch(0.97_0.01_250)]">
-              <div className="animate-pulse text-lg font-bold">Loading dashboard...</div>
-            </div>
-          );
-        }
-
-        // Filter tenants by subscription status
-        const subscribedTenants = tenants.filter(t => t.subscriptionStatus === 'active');
-        const trialTenants = tenants.filter(t => !t.subscriptionStatus || t.subscriptionStatus === 'trial');
-        const activeTenants = tenants.filter(t => t.status === 'active').length;
-
-        // Calculate MRR from tenants if not from stats
-        const calculatedMRR = stats.mrr || (subscribedTenants.length * parseInt(MONTHLY_PRICE.replace(/\D/g, '') || '9'));
-
-        return (
-          <div className="min-h-screen bg-[oklch(0.97_0.01_250)] p-4">
-            <div className="max-w-6xl mx-auto">
-              <header className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold text-[#0f172a]">Admin Dashboard</h1>
-                <UserButton />
-              </header>
-
-              {error && (
-                <div className="mb-6 p-4 bg-red-100 border-4 border-red-500 text-red-700">
-                  Error: {error}
-                </div>
-              )}
-
-              {/* Tab Navigation */}
-              <div className="flex gap-2 mb-6">
-                {['overview', 'tenants', 'billing'].map((tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-2 font-bold border-4 border-[#0f172a] transition-all capitalize ${
-                      activeTab === tab
-                        ? 'bg-[#0f172a] text-white shadow-none'
-                        : 'bg-white text-[#0f172a] shadow-[4px_4px_0px_#0f172a] hover:shadow-[2px_2px_0px_#0f172a] hover:translate-x-[2px] hover:translate-y-[2px]'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-
-              {/* Overview Tab */}
-              {activeTab === 'overview' && (
-                <>
-                  <div className="grid md:grid-cols-4 gap-6 mb-8">
-                    <div className="p-6 bg-white border-4 border-[#0f172a] shadow-[6px_6px_0px_#0f172a]">
-                      <h3 className="text-sm font-bold text-gray-500 mb-2">TOTAL TENANTS</h3>
-                      <p className="text-4xl font-bold">{tenants.length}</p>
-                    </div>
-                    <div className="p-6 bg-white border-4 border-[#0f172a] shadow-[6px_6px_0px_#3b82f6]">
-                      <h3 className="text-sm font-bold text-gray-500 mb-2">TOTAL USERS</h3>
-                      <p className="text-4xl font-bold text-blue-600">{stats.userCount}</p>
-                    </div>
-                    <div className="p-6 bg-white border-4 border-[#0f172a] shadow-[6px_6px_0px_oklch(0.6_0.2_145)]">
-                      <h3 className="text-sm font-bold text-gray-500 mb-2">SUBSCRIBERS</h3>
-                      <p className="text-4xl font-bold text-green-600">{stats.subscriberCount || subscribedTenants.length}</p>
-                    </div>
-                    <div className="p-6 bg-white border-4 border-[#0f172a] shadow-[6px_6px_0px_#f59e0b]">
-                      <h3 className="text-sm font-bold text-gray-500 mb-2">MONTHLY REVENUE</h3>
-                      <p className="text-4xl font-bold text-amber-600">${calculatedMRR}</p>
-                    </div>
-                  </div>
-
-                  {/* Quick Stats */}
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="bg-white border-4 border-[#0f172a] shadow-[6px_6px_0px_#0f172a] p-6">
-                      <h3 className="font-bold mb-4">Recent Activity</h3>
-                      <div className="space-y-3 text-sm text-gray-600">
-                        <p>• {activeTenants} active tenants</p>
-                        <p>• {tenants.length - activeTenants} pending setup</p>
-                        <p>• {trialTenants.length} on trial/free</p>
-                      </div>
-                    </div>
-                    <div className="bg-white border-4 border-[#0f172a] shadow-[6px_6px_0px_#0f172a] p-6">
-                      <h3 className="font-bold mb-4">Subscription Breakdown</h3>
-                      <div className="space-y-3 text-sm text-gray-600">
-                        <p>• {subscribedTenants.length} paid subscribers</p>
-                        <p>• {tenants.filter(t => t.subscriptionStatus === 'past_due').length} past due</p>
-                        <p>• {tenants.filter(t => t.subscriptionStatus === 'canceled').length} canceled</p>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {/* Tenants Tab */}
-              {activeTab === 'tenants' && (
-                <div className="bg-white border-4 border-[#0f172a] shadow-[8px_8px_0px_#0f172a]">
-                  <div className="p-4 border-b-4 border-[#0f172a] bg-[oklch(0.95_0.02_90)]">
-                    <h2 className="text-xl font-bold">All Tenants ({tenants.length})</h2>
-                  </div>
-                  <div className="divide-y-2 divide-gray-200">
-                    {tenants.length === 0 ? (
-                      <div className="p-8 text-center text-gray-500">No tenants yet</div>
-                    ) : (
-                      tenants.map(tenant => (
-                        <div key={tenant.subdomain || tenant.id} className="p-4 flex justify-between items-center hover:bg-gray-50">
-                          <div className="flex items-center gap-3">
-                            {tenant.imageUrl && (
-                              <img src={tenant.imageUrl} alt="" className="w-10 h-10 rounded-full border-2 border-[#0f172a]" />
-                            )}
-                            <div>
-                              <p className="font-bold">{tenant.subdomain}.{APP_DOMAIN}</p>
-                              <p className="text-sm text-gray-600">{tenant.email}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <SubscriptionBadge status={tenant.subscriptionStatus} />
-                            <span className={`px-3 py-1 text-sm font-bold ${
-                              tenant.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                            }`}>
-                              {tenant.status}
-                            </span>
-                            <span className="text-sm text-gray-500">{tenant.plan}</span>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Billing Tab */}
-              {activeTab === 'billing' && (
-                <>
-                  <div className="grid md:grid-cols-3 gap-6 mb-8">
-                    <div className="p-6 bg-white border-4 border-[#0f172a] shadow-[6px_6px_0px_oklch(0.6_0.2_145)]">
-                      <h3 className="text-sm font-bold text-gray-500 mb-2">ACTIVE SUBSCRIPTIONS</h3>
-                      <p className="text-4xl font-bold text-green-600">{subscribedTenants.length}</p>
-                    </div>
-                    <div className="p-6 bg-white border-4 border-[#0f172a] shadow-[6px_6px_0px_#f59e0b]">
-                      <h3 className="text-sm font-bold text-gray-500 mb-2">TRIAL/FREE</h3>
-                      <p className="text-4xl font-bold text-amber-600">{trialTenants.length}</p>
-                    </div>
-                    <div className="p-6 bg-white border-4 border-[#0f172a] shadow-[6px_6px_0px_#0f172a]">
-                      <h3 className="text-sm font-bold text-gray-500 mb-2">MRR</h3>
-                      <p className="text-4xl font-bold">${calculatedMRR}</p>
-                    </div>
-                  </div>
-
-                  {/* Plan Configuration */}
-                  <div className="bg-white border-4 border-[#0f172a] shadow-[6px_6px_0px_#0f172a] p-6 mb-6">
-                    <h3 className="font-bold mb-4">Plan Configuration</h3>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="p-4 bg-[oklch(0.95_0.02_90)] border-2 border-[#0f172a]">
-                        <p className="font-bold">Monthly Plan</p>
-                        <p className="text-2xl font-bold">{MONTHLY_PRICE}<span className="text-sm font-normal text-gray-600">/month</span></p>
-                      </div>
-                      <div className="p-4 bg-[oklch(0.95_0.02_90)] border-2 border-[#0f172a]">
-                        <p className="font-bold">Yearly Plan</p>
-                        <p className="text-2xl font-bold">{YEARLY_PRICE}<span className="text-sm font-normal text-gray-600">/year</span></p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Subscribers List */}
-                  <div className="bg-white border-4 border-[#0f172a] shadow-[8px_8px_0px_#0f172a]">
-                    <div className="p-4 border-b-4 border-[#0f172a] bg-[oklch(0.95_0.02_90)]">
-                      <h2 className="text-xl font-bold">Subscribers ({subscribedTenants.length})</h2>
-                    </div>
-                    <div className="divide-y-2 divide-gray-200">
-                      {subscribedTenants.length === 0 ? (
-                        <div className="p-8 text-center text-gray-500">
-                          <p className="mb-4">No subscribers yet</p>
-                          <p className="text-sm">
-                            Set up <a href="https://clerk.com/docs/billing" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Clerk Billing</a> to start accepting payments.
-                          </p>
-                        </div>
-                      ) : (
-                        subscribedTenants.map(tenant => (
-                          <div key={tenant.subdomain || tenant.id} className="p-4 flex justify-between items-center hover:bg-gray-50">
-                            <div>
-                              <p className="font-bold">{tenant.subdomain}.{APP_DOMAIN}</p>
-                              <p className="text-sm text-gray-600">{tenant.email}</p>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <span className="text-sm font-medium text-gray-600">
-                                {tenant.billingPeriod === 'yearly' ? 'Yearly' : 'Monthly'}
-                              </span>
-                              <SubscriptionBadge status={tenant.subscriptionStatus} />
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        );
-      }
-
-      // === Admin App Wrapper ===
-      function AdminApp() {
-        return (
-          <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl={`https://${APP_DOMAIN}`}>
-            <SignedIn>
-              <AdminDashboard />
-            </SignedIn>
-            <SignedOut>
-              <div className="min-h-screen flex items-center justify-center bg-[oklch(0.95_0.02_250)] p-4">
-                <div className="max-w-md text-center p-8 bg-white border-4 border-[#0f172a] shadow-[8px_8px_0px_#0f172a]">
-                  <h2 className="text-2xl font-bold mb-4">Admin Login</h2>
-                  <p className="mb-6 text-gray-600">Sign in to access the admin dashboard.</p>
-                  <SignInButton mode="modal">
-                    <button className="px-6 py-3 bg-[#0f172a] text-white font-bold border-4 border-[#0f172a] hover:bg-[#1e293b] transition-colors">
-                      Sign In
-                    </button>
-                  </SignInButton>
-                </div>
-              </div>
-            </SignedOut>
-          </ClerkProvider>
-        );
-      }
+      // === Admin Components (injected by assemble-sell.js) ===
+      __ADMIN_CODE__
 
       // === Landing Page Components ===
       function SubdomainPicker({ onSelect }) {
