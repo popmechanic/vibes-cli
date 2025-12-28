@@ -209,17 +209,17 @@ wrangler login
 
 ### 4.2 Run Automated Deployment
 
-Run the deploy script - it handles EVERYTHING via Cloudflare API:
+**THIS IS THE ONLY COMMAND YOU RUN FOR DEPLOYMENT:**
 
 ```bash
 # Find latest plugin version
 VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
 
-# Run automated deployment
+# Run automated deployment - THIS IS THE ONLY DEPLOY COMMAND
 node "${VIBES_DIR}scripts/deploy-sell.js"
 ```
 
-**DO NOT** try to look up zone IDs or run other wrangler commands first. The script handles it all.
+**NEVER run `wrangler deploy` directly** - it will cause route conflicts with existing workers. The deploy script handles everything correctly via API.
 
 The script will prompt for Cloudflare API token if needed, then automate:
 - KV namespace creation
