@@ -57,6 +57,8 @@
   </head>
   <body>
     <div id="container"></div>
+    <!-- NOTE: @clerk/clerk-react uses direct URL in import statement because
+         Babel standalone doesn't properly resolve import maps for bare specifiers -->
     <script type="importmap">
       {
         "imports": {
@@ -65,8 +67,7 @@
           "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1",
           "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
           "use-fireproof": "https://esm.sh/use-fireproof@0.20.0-dev-preview-50?deps=react@18.3.1",
-          "use-vibes": "https://esm.sh/use-vibes@0.18.9?deps=react@18.3.1",
-          "@clerk/clerk-react": "https://esm.sh/@clerk/clerk-react@5?deps=react@18.3.1,react-dom@18.3.1"
+          "use-vibes": "https://esm.sh/use-vibes@0.18.9?deps=react@18.3.1"
         }
       }
     </script>
@@ -209,6 +210,7 @@
       import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, useReducer } from "react";
       import ReactDOMClient from "react-dom/client";
       import { useFireproof } from "use-fireproof";
+      // NOTE: Using direct URL because Babel standalone doesn't properly use import maps for bare specifiers
       import {
         ClerkProvider,
         SignedIn,
@@ -218,7 +220,7 @@
         UserButton,
         useUser,
         useAuth
-      } from "@clerk/clerk-react";
+      } from "https://esm.sh/@clerk/clerk-react@5?deps=react@18.3.1,react-dom@18.3.1";
 
       // === Menu Components from window (defined in module script above) ===
       const HiddenMenuWrapper = window.HiddenMenuWrapper;
