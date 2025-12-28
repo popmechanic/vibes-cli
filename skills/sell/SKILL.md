@@ -46,7 +46,8 @@ This approach simplifies deployment - you upload one file and it handles everyth
 1. **Detect** existing app (app.jsx or riff selection)
 2. **Configure** domain, pricing, and Clerk keys
 3. **Generate** unified app with all routes
-4. **Guide** through Cloudflare deployment
+4. **Deploy** with automated script (recommended) or manual steps
+5. **Configure** Clerk (manual - no API available)
 
 ---
 
@@ -163,7 +164,62 @@ node "${VIBES_DIR}scripts/assemble-sell.js" app.jsx index.html \
 
 ---
 
-## Step 4: Cloudflare Deployment
+## Quick Deploy (Recommended)
+
+After `assemble-sell.js` generates the files, use the automated deployment script:
+
+```bash
+# Find latest plugin version
+VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
+
+# Run automated deployment
+node "${VIBES_DIR}scripts/deploy-sell.js"
+```
+
+This script automates:
+- **KV namespace creation** (parses ID automatically)
+- **wrangler.toml update** (inserts namespace ID)
+- **Worker deployment** (runs `wrangler deploy`)
+- **Secret configuration** (sets CLERK_SECRET_KEY)
+- **DNS configuration** (creates CNAME records via Cloudflare API)
+- **Worker routes** (configures all 3 routes via API)
+- **Verification** (tests endpoints after deployment)
+
+### Requirements
+
+1. **Wrangler CLI** installed: `npm install -g wrangler`
+2. **Cloudflare API Token** with permissions:
+   - Zone:DNS:Edit
+   - Zone:Zone:Read
+   - Account:Workers KV Storage:Edit
+   - Account:Workers Scripts:Edit
+3. **Domain** already added to Cloudflare
+
+### Usage Options
+
+```bash
+# First deployment (interactive prompts)
+node scripts/deploy-sell.js
+
+# Redeploy existing project
+node scripts/deploy-sell.js --project fantasy-wedding
+
+# Skip specific phases
+node scripts/deploy-sell.js --skip-dns --skip-routes
+
+# Verify deployment status
+node scripts/deploy-sell.js --project fantasy-wedding --verify-only
+```
+
+The script saves configuration to `~/.vibes-deploy.json` for subsequent deployments.
+
+**After automated deployment**, you still need to configure Clerk manually (see Step 5 below).
+
+If you prefer manual deployment or need finer control, follow Step 4 below instead.
+
+---
+
+## Step 4: Cloudflare Deployment (Manual)
 
 The assembly script prints a comprehensive deployment guide. Here's the summary:
 
