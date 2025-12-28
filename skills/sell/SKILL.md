@@ -605,11 +605,6 @@ The admin dashboard fetches this endpoint and refreshes every 30 seconds.
 - The worker now reflects the requesting origin dynamically
 - If you see CORS errors, redeploy the worker with the latest generated code
 
-### "createPortal is not defined"
-- Missing import in your app code
-- The template imports `createPortal` from react-dom automatically
-- Use `createPortal(content, document.body)` for modals/lightboxes
-
 ### Secrets set incorrectly
 - Common mistake: `wrangler secret put sk_test_xxx` (passing secret as name)
 - Correct: `wrangler secret put CLERK_SECRET_KEY` (then paste value when prompted)
