@@ -72,7 +72,7 @@ export default function App() {
 2. Optionally save `<design>` content to `design.md` for documentation
 3. Run assembly (finds latest plugin version automatically):
    ```bash
-   node "$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)scripts/assemble.js" app.jsx index.html
+   node "$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)scripts/assemble.js" app.jsx index.html
    ```
 4. Tell user: "Open `index.html` in your browser to view your app."
 

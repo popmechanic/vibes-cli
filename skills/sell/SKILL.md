@@ -28,7 +28,7 @@ description: Transform a Vibes app into a multi-tenant SaaS with per-subdomain b
 
 **Script location:**
 ```bash
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
+VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)"
 # Then use: node "${VIBES_DIR}scripts/assemble-sell.js" ...
 # And: node "${VIBES_DIR}scripts/deploy-sell.js" ...
 ```
@@ -195,7 +195,7 @@ Run the assembly script to generate the unified files:
 
 ```bash
 # Find latest plugin version
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
+VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)"
 
 # Run assembly
 node "${VIBES_DIR}scripts/assemble-sell.js" app.jsx index.html \
@@ -282,7 +282,7 @@ wrangler login
 
 ```bash
 # Find latest plugin version
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
+VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)"
 
 # Run automated deployment - prompts for everything interactively
 node "${VIBES_DIR}scripts/deploy-sell.js"
@@ -315,7 +315,7 @@ Then provide the Step 5 instructions verbatim.
 
 ```bash
 # Find latest plugin version
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
+VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)"
 
 # Run automated deployment
 node "${VIBES_DIR}scripts/deploy-sell.js"
