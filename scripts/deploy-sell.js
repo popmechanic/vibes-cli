@@ -43,6 +43,7 @@ import * as readline from 'readline';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = join(homedir(), '.vibes-deploy.json');
+const CLERK_CHECKLIST_PATH = join(__dirname, '../skills/sell/templates/clerk-checklist.txt');
 
 // ============== Argument Parsing ==============
 
@@ -651,74 +652,26 @@ async function verifyDeployment(domain) {
 // ============== Clerk Checklist ==============
 
 function printClerkChecklist(domain, pagesProject) {
-  console.log(`
-${'━'.repeat(70)}
-  MANUAL STEPS REQUIRED: CLERK CONFIGURATION
-${'━'.repeat(70)}
+  if (existsSync(CLERK_CHECKLIST_PATH)) {
+    let checklist = readFileSync(CLERK_CHECKLIST_PATH, 'utf8');
+    checklist = checklist
+      .split('__APP_DOMAIN__').join(domain)
+      .split('__PAGES_PROJECT__').join(pagesProject);
+    console.log(checklist);
+  } else {
+    // Fallback if template not found
+    console.log(`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  MANUAL STEPS: Configure Clerk at https://dashboard.clerk.com
 
-The following steps cannot be automated and must be done in Clerk Dashboard:
-
-□ 1. Create or select your Clerk application
-     https://dashboard.clerk.com
-
-□ 2. Copy your Clerk Secret Key (sk_test_... or sk_live_...)
-     This was already set during deployment, but verify it's correct.
-
-□ 3. Add authorized domains:
-     • ${domain}
-     • *.${domain}
-     • ${pagesProject}.pages.dev
-
-□ 4. Enable Clerk Billing:
-     • Go to Billing → Connect Stripe
-     • Complete Stripe onboarding
-
-□ 5. Create subscription plans:
-     • Plan name: "pro" or "monthly"
-     • Plan name: "yearly"
-     (Plan names must match those checked in your app's SubscriptionGate)
-
-□ 6. Set up webhook endpoint:
-     • URL: https://${domain}/webhooks/clerk
-     • Events to subscribe:
-       ✓ user.created
-       ✓ user.deleted
-       ✓ subscription.created (if using Clerk Billing)
-       ✓ subscription.updated
-       ✓ subscription.canceled
-       ✓ invoice.paid
-       ✓ invoice.payment_failed
-
-□ 7. Get your Admin User ID:
-     • Sign up on your app: https://${domain}
-     • Go to Clerk Dashboard → Users
-     • Click your user → Copy User ID
-     • Re-run assemble-sell.js with: --admin-ids '["user_xxx"]'
-
-${'━'.repeat(70)}
-  TESTING YOUR DEPLOYMENT
-${'━'.repeat(70)}
-
-After completing the above steps, test these URLs:
-
-Landing Page:
-  https://${domain}
-  → Should show pricing cards and signup flow
-
-Tenant App:
-  https://test.${domain}
-  → Should show sign-in screen, then your app after auth
-
-Admin Dashboard:
-  https://admin.${domain}
-  → Should show admin login, then tenant list (if you're an admin)
-
-API Endpoints:
-  curl https://${domain}/api/stats
-  → Should return JSON: {"tenantCount":0,"userCount":0,...}
-
-${'━'.repeat(70)}
+  1. Add authorized domains: ${domain}, *.${domain}, ${pagesProject}.pages.dev
+  2. Enable Clerk Billing and connect Stripe
+  3. Create subscription plans: "pro", "monthly", "yearly"
+  4. Set up webhook: https://${domain}/webhooks/clerk
+  5. Get your Admin User ID from Clerk Dashboard → Users
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `);
+  }
 }
 
 // ============== Main Execution ==============
