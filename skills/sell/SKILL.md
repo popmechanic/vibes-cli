@@ -692,13 +692,14 @@ The unified template uses pinned React 18 versions to prevent conflicts with Cle
     "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1",
     "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
     "use-fireproof": "https://esm.sh/use-fireproof@0.20.0-dev-preview-50?deps=react@18.3.1",
-    "use-vibes": "https://esm.sh/use-vibes@0.18.9?deps=react@18.3.1",
-    "@clerk/clerk-react": "https://esm.sh/@clerk/clerk-react@5?deps=react@18.3.1,react-dom@18.3.1"
+    "use-vibes": "https://esm.sh/use-vibes@0.18.9?deps=react@18.3.1"
   }
 }
 ```
 
-**IMPORTANT:** Clerk@5 defaults to React 19, which causes version conflicts. The `?deps=react@18.3.1` parameter pins React 18 for all packages.
+**IMPORTANT:**
+- Clerk@5 defaults to React 19, which causes version conflicts. The `?deps=react@18.3.1` parameter pins React 18 for all packages.
+- `@clerk/clerk-react` is imported directly via URL in the code (not via import map) because Babel standalone doesn't properly resolve bare specifiers from import maps.
 
 ---
 
