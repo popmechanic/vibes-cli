@@ -355,9 +355,11 @@
 
           const register = async () => {
             try {
-              await fetch(`https://${APP_DOMAIN}/api/tenants/register`, {
+              console.log(`[TenantRegistration] Registering ${subdomain} for user ${user.id}`);
+              const response = await fetch(`https://${APP_DOMAIN}/api/tenants/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({
                   subdomain,
                   userId: user.id,
@@ -365,9 +367,15 @@
                   plan: 'pro'
                 })
               });
+              const data = await response.json();
+              if (response.ok) {
+                console.log(`[TenantRegistration] Success:`, data);
+              } else {
+                console.warn(`[TenantRegistration] API returned ${response.status}:`, data);
+              }
               setRegistered(true);
             } catch (err) {
-              console.error('Failed to register tenant:', err);
+              console.error('[TenantRegistration] Failed to register tenant:', err);
               setRegistered(true); // Don't block app on registration failure
             }
           };
