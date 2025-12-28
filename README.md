@@ -15,7 +15,7 @@ Your data lives locally in the browser, encrypted and portable. It syncs across 
 ## Installation
 
 ```bash
-/plugin marketplace add popmechanic/vibes-skill
+/plugin marketplace add popmechanic/vibes-cli
 /plugin install vibes@vibes-diy
 ```
 
