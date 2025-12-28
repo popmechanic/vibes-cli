@@ -1,18 +1,29 @@
-# Cloudflare Worker configuration for Vibes Sell
-# See: https://developers.cloudflare.com/workers/wrangler/configuration/
+# Cloudflare Worker configuration for __APP_NAME__
+#
+# Prerequisites:
+#   1. Create KV namespace: wrangler kv namespace create TENANTS
+#   2. Copy the namespace ID below
+#   3. Update PAGES_HOSTNAME with your Pages project URL
+#   4. Deploy: wrangler deploy
+#   5. Set secret: wrangler secret put CLERK_SECRET_KEY
 
-name = "vibes-sell-api"
-main = "index.js"
-compatibility_date = "2024-01-01"
+name = "__WORKER_NAME__"
+main = "worker.js"
+compatibility_date = "2024-12-01"
 
-# Environment variables - update these for your app
 [vars]
-PAGES_DOMAIN = "your-project.pages.dev"
-ALLOWED_ORIGIN = "*"
+PAGES_HOSTNAME = "__PAGES_PROJECT__.pages.dev"
 
-# Secret variables (set via `wrangler secret put CLERK_SECRET_KEY`)
-# - CLERK_SECRET_KEY
+# Create this KV namespace with: wrangler kv namespace create TENANTS
+# Then copy the ID below
+[[kv_namespaces]]
+binding = "TENANTS"
+id = "YOUR_KV_NAMESPACE_ID"
 
-# Routes - add TWO routes after deploying via Cloudflare dashboard:
-# 1. *.yourdomain.com/* (subdomains)
-# 2. yourdomain.com/* (root domain for API access)
+# Worker routes - add these MANUALLY in Cloudflare Dashboard if they don't apply
+# Dashboard: Workers & Pages > __WORKER_NAME__ > Settings > Triggers > Routes
+routes = [
+  { pattern = "*.__APP_DOMAIN__/*", zone_name = "__APP_DOMAIN__" },
+  { pattern = "__APP_DOMAIN__/api/*", zone_name = "__APP_DOMAIN__" },
+  { pattern = "__APP_DOMAIN__/webhooks/*", zone_name = "__APP_DOMAIN__" }
+]

@@ -1,165 +1,414 @@
 /**
- * Cloudflare Worker for Vibes Sell
+ * Cloudflare Worker for __APP_NAME__
  *
- * This worker serves two purposes:
- * 1. Proxies wildcard subdomain requests to Cloudflare Pages
- * 2. Provides an API endpoint to list tenants from Clerk
+ * Handles:
+ * - Wildcard subdomain proxying to Pages
+ * - /api/tenants - List all tenants
+ * - /api/stats - Get stats
+ * - /api/tenants/register - Register tenant subdomain
+ * - /webhooks/clerk - Clerk webhook handler
  *
- * Environment Variables (set in Cloudflare dashboard):
- * - CLERK_SECRET_KEY: Your Clerk secret key (sk_live_xxx or sk_test_xxx)
- * - PAGES_DOMAIN: Your Cloudflare Pages domain (e.g., my-app.pages.dev)
- * - ALLOWED_ORIGIN: Your root domain for CORS (e.g., https://fantasy.wedding)
+ * Environment Variables (set in wrangler.toml or dashboard):
+ * - PAGES_HOSTNAME: Your Pages project hostname (e.g., "myapp.pages.dev")
+ * - CLERK_SECRET_KEY: Your Clerk secret key (set via wrangler secret)
+ *
+ * KV Namespace:
+ * - TENANTS: KV namespace for tenant data
  */
 
-export default {
-  async fetch(request, env) {
-    const url = new URL(request.url);
+// Dynamic CORS headers (reflect origin for credentials support)
+function getCorsHeaders(request) {
+  const origin = request.headers.get('Origin') || '*';
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+}
 
-    // Handle API routes
-    if (url.pathname.startsWith('/api/')) {
-      return handleApiRequest(request, env, url);
+export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const pathname = url.pathname;
+    const corsHeaders = getCorsHeaders(request);
+
+    // Handle CORS preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    // Proxy all other requests to Cloudflare Pages
-    return proxyToPages(request, env);
+    // Handle API routes
+    if (pathname.startsWith('/api/')) {
+      return handleAPI(request, env, pathname, corsHeaders);
+    }
+
+    // Handle Clerk webhooks
+    if (pathname === '/webhooks/clerk') {
+      return handleClerkWebhook(request, env);
+    }
+
+    // Proxy to Pages
+    return proxyToPages(request, env, url.hostname, corsHeaders);
   }
 };
 
-/**
- * Handle API requests
- */
-async function handleApiRequest(request, env, url) {
-  // CORS preflight
-  if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: getCorsHeaders(env)
-    });
+async function handleAPI(request, env, pathname, corsHeaders) {
+  // Get all tenants
+  if (pathname === '/api/tenants' && request.method === 'GET') {
+    try {
+      const listResult = await env.TENANTS.get('tenants:list');
+      const subdomains = listResult ? JSON.parse(listResult) : [];
+
+      const tenants = [];
+      for (const subdomain of subdomains) {
+        const tenant = await env.TENANTS.get(`tenant:${subdomain}`);
+        if (tenant) {
+          tenants.push(JSON.parse(tenant));
+        }
+      }
+
+      return new Response(JSON.stringify({ tenants }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
   }
 
-  // Route API endpoints
-  if (url.pathname === '/api/tenants') {
-    return handleGetTenants(request, env);
+  // Get stats (includes billing metrics)
+  if (pathname === '/api/stats' && request.method === 'GET') {
+    try {
+      const [tenantCount, userCount, subscriberCount, mrr] = await Promise.all([
+        env.TENANTS.get('stats:tenantCount'),
+        env.TENANTS.get('stats:userCount'),
+        env.TENANTS.get('stats:subscriberCount'),
+        env.TENANTS.get('stats:mrr')
+      ]);
+
+      return new Response(JSON.stringify({
+        tenantCount: parseInt(tenantCount || '0'),
+        userCount: parseInt(userCount || '0'),
+        subscriberCount: parseInt(subscriberCount || '0'),
+        mrr: parseFloat(mrr || '0')
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  // Register tenant
+  if (pathname === '/api/tenants/register' && request.method === 'POST') {
+    try {
+      const body = await request.json();
+      const { subdomain, userId, email, plan } = body;
+
+      if (!subdomain || !userId) {
+        return new Response(JSON.stringify({ error: 'Missing subdomain or userId' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Check if subdomain is taken
+      const existing = await env.TENANTS.get(`tenant:${subdomain}`);
+      if (existing) {
+        return new Response(JSON.stringify({ error: 'Subdomain already taken' }), {
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Create tenant
+      const tenant = {
+        subdomain,
+        userId,
+        email,
+        plan: plan || 'pro',
+        status: 'active',
+        createdAt: new Date().toISOString()
+      };
+
+      await env.TENANTS.put(`tenant:${subdomain}`, JSON.stringify(tenant));
+
+      // Update tenant list
+      const listResult = await env.TENANTS.get('tenants:list');
+      const subdomains = listResult ? JSON.parse(listResult) : [];
+      if (!subdomains.includes(subdomain)) {
+        subdomains.push(subdomain);
+        await env.TENANTS.put('tenants:list', JSON.stringify(subdomains));
+
+        // Update count
+        await env.TENANTS.put('stats:tenantCount', String(subdomains.length));
+      }
+
+      return new Response(JSON.stringify({ success: true, tenant }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
   }
 
   return new Response(JSON.stringify({ error: 'Not found' }), {
     status: 404,
-    headers: { ...getCorsHeaders(env), 'Content-Type': 'application/json' }
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
   });
 }
 
-/**
- * GET /api/tenants - List all tenants with subscriptions
- *
- * Optional query params:
- * - status: Filter by subscription status ('active', 'all')
- */
-async function handleGetTenants(request, env) {
-  const headers = { ...getCorsHeaders(env), 'Content-Type': 'application/json' };
-
-  // Verify Clerk secret key is configured
-  if (!env.CLERK_SECRET_KEY) {
-    return new Response(JSON.stringify({ error: 'CLERK_SECRET_KEY not configured' }), {
-      status: 500,
-      headers
-    });
+async function handleClerkWebhook(request, env) {
+  if (request.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 });
   }
 
   try {
-    // Fetch all users from Clerk with pagination
-    const users = await fetchAllClerkUsers(env.CLERK_SECRET_KEY);
+    const body = await request.json();
+    const eventType = body.type;
+    const data = body.data;
 
-    // Transform to tenant format
-    // Note: subdomain is stored in unsafe_metadata (writable from frontend)
-    const tenants = users
-      .filter(user => user.unsafe_metadata?.subdomain) // Only users with subdomains
-      .map(user => ({
-        id: user.id,
-        subdomain: user.unsafe_metadata.subdomain,
-        email: user.email_addresses?.[0]?.email_address,
-        createdAt: user.unsafe_metadata.claimedAt || new Date(user.created_at).toISOString(),
-        status: user.unsafe_metadata.subscriptionStatus || 'active',
-        plan: user.unsafe_metadata.plan || 'unknown',
-        imageUrl: user.image_url
-      }));
+    console.log(`Clerk webhook: ${eventType}`);
 
-    return new Response(JSON.stringify({ tenants }), {
-      status: 200,
-      headers
+    // User events
+    if (eventType === 'user.created') {
+      const user = {
+        id: data.id,
+        email: data.email_addresses?.[0]?.email_address,
+        firstName: data.first_name,
+        lastName: data.last_name,
+        createdAt: new Date().toISOString()
+      };
+
+      await env.TENANTS.put(`user:${data.id}`, JSON.stringify(user));
+
+      const count = parseInt(await env.TENANTS.get('stats:userCount') || '0');
+      await env.TENANTS.put('stats:userCount', String(count + 1));
+    }
+
+    if (eventType === 'user.deleted') {
+      await env.TENANTS.delete(`user:${data.id}`);
+
+      const count = parseInt(await env.TENANTS.get('stats:userCount') || '0');
+      await env.TENANTS.put('stats:userCount', String(Math.max(0, count - 1)));
+    }
+
+    // Billing events - Subscription lifecycle
+    if (eventType === 'subscription.created') {
+      await handleSubscriptionCreated(env, data);
+    }
+
+    if (eventType === 'subscription.updated') {
+      await handleSubscriptionUpdated(env, data);
+    }
+
+    if (eventType === 'subscription.canceled') {
+      await handleSubscriptionCanceled(env, data);
+    }
+
+    // Billing events - Invoices
+    if (eventType === 'invoice.paid') {
+      await handleInvoicePaid(env, data);
+    }
+
+    if (eventType === 'invoice.payment_failed') {
+      await handleInvoicePaymentFailed(env, data);
+    }
+
+    return new Response(JSON.stringify({ received: true }), {
+      headers: { 'Content-Type': 'application/json' }
     });
-  } catch (error) {
-    console.error('Error fetching tenants:', error);
-    return new Response(JSON.stringify({ error: 'Failed to fetch tenants', details: error.message }), {
+  } catch (err) {
+    console.error('Webhook error:', err);
+    return new Response(JSON.stringify({ error: err.message }), {
       status: 500,
-      headers
+      headers: { 'Content-Type': 'application/json' }
     });
   }
 }
 
-/**
- * Fetch all users from Clerk with pagination
- */
-async function fetchAllClerkUsers(secretKey) {
-  const users = [];
-  let offset = 0;
-  const limit = 100;
+// === Billing Event Handlers ===
 
-  while (true) {
-    const response = await fetch(
-      `https://api.clerk.com/v1/users?limit=${limit}&offset=${offset}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${secretKey}`,
-          'Content-Type': 'application/json'
+async function handleSubscriptionCreated(env, subscriptionData) {
+  const userId = subscriptionData.user_id || subscriptionData.subscriber_id;
+  const subscription = {
+    id: subscriptionData.id,
+    status: subscriptionData.status || 'active',
+    planId: subscriptionData.plan_id,
+    billingPeriod: subscriptionData.billing_period || 'monthly',
+    amount: subscriptionData.amount,
+    createdAt: subscriptionData.created_at || Date.now(),
+    currentPeriodEnd: subscriptionData.current_period_end
+  };
+
+  // Store subscription
+  await env.TENANTS.put(`subscription:${userId}`, JSON.stringify(subscription));
+
+  // Update tenant's subscription status
+  await updateTenantSubscriptionStatus(env, userId, 'active', subscription.billingPeriod);
+
+  // Update subscriber count
+  const countStr = await env.TENANTS.get('stats:subscriberCount') || '0';
+  await env.TENANTS.put('stats:subscriberCount', String(parseInt(countStr) + 1));
+
+  // Update MRR
+  await updateMRR(env);
+}
+
+async function handleSubscriptionUpdated(env, subscriptionData) {
+  const userId = subscriptionData.user_id || subscriptionData.subscriber_id;
+  const existingStr = await env.TENANTS.get(`subscription:${userId}`);
+  const existing = existingStr ? JSON.parse(existingStr) : {};
+
+  const subscription = {
+    ...existing,
+    id: subscriptionData.id,
+    status: subscriptionData.status,
+    planId: subscriptionData.plan_id,
+    billingPeriod: subscriptionData.billing_period || existing.billingPeriod,
+    amount: subscriptionData.amount,
+    updatedAt: Date.now(),
+    currentPeriodEnd: subscriptionData.current_period_end
+  };
+
+  await env.TENANTS.put(`subscription:${userId}`, JSON.stringify(subscription));
+
+  // Update tenant status based on subscription status
+  const tenantStatus = subscription.status === 'active' ? 'active' :
+                       subscription.status === 'past_due' ? 'past_due' : 'canceled';
+  await updateTenantSubscriptionStatus(env, userId, tenantStatus, subscription.billingPeriod);
+
+  await updateMRR(env);
+}
+
+async function handleSubscriptionCanceled(env, subscriptionData) {
+  const userId = subscriptionData.user_id || subscriptionData.subscriber_id;
+
+  // Update subscription status
+  const existingStr = await env.TENANTS.get(`subscription:${userId}`);
+  if (existingStr) {
+    const subscription = JSON.parse(existingStr);
+    subscription.status = 'canceled';
+    subscription.canceledAt = Date.now();
+    await env.TENANTS.put(`subscription:${userId}`, JSON.stringify(subscription));
+  }
+
+  // Update tenant status
+  await updateTenantSubscriptionStatus(env, userId, 'canceled');
+
+  // Update subscriber count
+  const countStr = await env.TENANTS.get('stats:subscriberCount') || '1';
+  await env.TENANTS.put('stats:subscriberCount', String(Math.max(0, parseInt(countStr) - 1)));
+
+  await updateMRR(env);
+}
+
+async function handleInvoicePaid(env, invoiceData) {
+  const userId = invoiceData.user_id || invoiceData.subscriber_id;
+
+  const invoice = {
+    id: invoiceData.id,
+    userId,
+    amount: invoiceData.amount_paid || invoiceData.total,
+    currency: invoiceData.currency || 'usd',
+    paidAt: invoiceData.paid_at || Date.now(),
+    status: 'paid'
+  };
+
+  await env.TENANTS.put(`invoice:${invoice.id}`, JSON.stringify(invoice));
+
+  // Track monthly revenue
+  const monthKey = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const revenueStr = await env.TENANTS.get(`revenue:${monthKey}`) || '0';
+  const newRevenue = parseInt(revenueStr) + (invoice.amount || 0);
+  await env.TENANTS.put(`revenue:${monthKey}`, String(newRevenue));
+}
+
+async function handleInvoicePaymentFailed(env, invoiceData) {
+  const userId = invoiceData.user_id || invoiceData.subscriber_id;
+  await updateTenantSubscriptionStatus(env, userId, 'past_due');
+}
+
+// === Helper Functions ===
+
+async function updateTenantSubscriptionStatus(env, userId, status, billingPeriod = null) {
+  const listStr = await env.TENANTS.get('tenants:list') || '[]';
+  const subdomains = JSON.parse(listStr);
+
+  for (const subdomain of subdomains) {
+    const tenantStr = await env.TENANTS.get(`tenant:${subdomain}`);
+    if (tenantStr) {
+      const tenant = JSON.parse(tenantStr);
+      if (tenant.userId === userId) {
+        tenant.subscriptionStatus = status;
+        if (billingPeriod) tenant.billingPeriod = billingPeriod;
+        tenant.subscriptionUpdatedAt = Date.now();
+        await env.TENANTS.put(`tenant:${subdomain}`, JSON.stringify(tenant));
+        break;
+      }
+    }
+  }
+}
+
+async function updateMRR(env) {
+  const listStr = await env.TENANTS.get('tenants:list') || '[]';
+  const subdomains = JSON.parse(listStr);
+
+  let mrr = 0;
+  // Default prices - these should match your plan configuration
+  const monthlyPrice = 9;
+  const yearlyPrice = 89;
+
+  for (const subdomain of subdomains) {
+    const tenantStr = await env.TENANTS.get(`tenant:${subdomain}`);
+    if (tenantStr) {
+      const tenant = JSON.parse(tenantStr);
+      if (tenant.subscriptionStatus === 'active') {
+        if (tenant.billingPeriod === 'yearly') {
+          mrr += yearlyPrice / 12;
+        } else {
+          mrr += monthlyPrice;
         }
       }
-    );
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Clerk API error: ${response.status} - ${error}`);
     }
-
-    const data = await response.json();
-    users.push(...data);
-
-    // If we got fewer than limit, we've reached the end
-    if (data.length < limit) {
-      break;
-    }
-
-    offset += limit;
   }
 
-  return users;
+  await env.TENANTS.put('stats:mrr', String(Math.round(mrr * 100) / 100));
 }
 
-/**
- * Proxy requests to Cloudflare Pages
- */
-async function proxyToPages(request, env) {
-  const url = new URL(request.url);
-
-  // Replace hostname with Pages domain
+async function proxyToPages(request, env, hostname, corsHeaders) {
+  // Construct Pages URL
   const pagesUrl = new URL(request.url);
-  pagesUrl.hostname = env.PAGES_DOMAIN || 'your-project.pages.dev';
+  pagesUrl.hostname = env.PAGES_HOSTNAME || '__PAGES_PROJECT__.pages.dev';
 
-  // Forward the request
-  return fetch(pagesUrl.toString(), {
+  // Clone request with new URL
+  const proxyRequest = new Request(pagesUrl.toString(), {
     method: request.method,
     headers: request.headers,
-    body: request.body
+    body: request.body,
+    redirect: 'manual'
   });
-}
 
-/**
- * Get CORS headers
- */
-function getCorsHeaders(env) {
-  const origin = env.ALLOWED_ORIGIN || '*';
-  return {
-    'Access-Control-Allow-Origin': origin,
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    'Access-Control-Max-Age': '86400'
-  };
+  const response = await fetch(proxyRequest);
+
+  // Clone response with CORS headers
+  const newHeaders = new Headers(response.headers);
+  // Don't override CORS on HTML pages
+  if (!newHeaders.get('Content-Type')?.includes('text/html')) {
+    Object.entries(corsHeaders).forEach(([k, v]) => newHeaders.set(k, v));
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    headers: newHeaders
+  });
 }
