@@ -13,7 +13,7 @@
       "name": "vibes",
       "source": "./",
       "description": "Vibes is the vibe coding web stack made for AI agents.",
-      "version": "1.0.71",
+      "version": "1.0.72",
       "author": {
         "name": "Marcus Estes"
       },

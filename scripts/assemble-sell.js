@@ -105,12 +105,14 @@ if (existsSync(resolvedOutputPath)) {
 const templatePath = join(__dirname, '../skills/sell/templates/unified.html');
 const workerTemplatePath = join(__dirname, '../skills/sell/worker/index.js');
 const wranglerTemplatePath = join(__dirname, '../skills/sell/worker/wrangler.toml');
+const adminComponentPath = join(__dirname, '../skills/sell/components/admin.jsx');
 
 // Check templates exist
 const templates = [
   { path: templatePath, name: 'unified.html' },
   { path: workerTemplatePath, name: 'worker/index.js' },
-  { path: wranglerTemplatePath, name: 'worker/wrangler.toml' }
+  { path: wranglerTemplatePath, name: 'worker/wrangler.toml' },
+  { path: adminComponentPath, name: 'components/admin.jsx' }
 ];
 
 for (const t of templates) {
@@ -197,6 +199,22 @@ if (output.includes(appPlaceholder)) {
   output = output.replace(appPlaceholder, appCode);
 } else {
   console.error(`Template missing placeholder: ${appPlaceholder}`);
+  process.exit(1);
+}
+
+// Read and process admin component
+let adminCode = readFileSync(adminComponentPath, 'utf8').trim();
+
+// Remove any import statements from admin.jsx (template already imports dependencies)
+adminCode = adminCode.replace(/^import\s+.*?from\s+["'].*?["'];?\s*$/gm, '');
+adminCode = adminCode.replace(/^import\s+["'].*?["'];?\s*$/gm, ''); // Side-effect imports
+
+// Insert admin code at placeholder
+const adminPlaceholder = '__ADMIN_CODE__';
+if (output.includes(adminPlaceholder)) {
+  output = output.replace(adminPlaceholder, adminCode);
+} else {
+  console.error(`Template missing placeholder: ${adminPlaceholder}`);
   process.exit(1);
 }
 
