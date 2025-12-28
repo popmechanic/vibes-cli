@@ -176,9 +176,72 @@ node "${VIBES_DIR}scripts/assemble-sell.js" app.jsx index.html \
 
 ---
 
-## Quick Deploy (Recommended)
+## Quick Start (New Unified CLI)
 
-After `assemble-sell.js` generates the files, use the automated deployment script:
+The new `sell.js` combines assembly and deployment into one tool:
+
+```bash
+# Find latest plugin version
+VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
+
+# 1. Create configuration file
+node "${VIBES_DIR}scripts/sell.js" init
+
+# 2. Deploy (assembles and deploys automatically)
+node "${VIBES_DIR}scripts/sell.js" deploy
+
+# 3. Verify deployment
+node "${VIBES_DIR}scripts/sell.js" verify
+```
+
+### Configuration File: `sell.config.json`
+
+The `init` command creates a `sell.config.json` file with all settings:
+
+```json
+{
+  "app": {
+    "source": "app.jsx",
+    "name": "wedding-photos",
+    "title": "Wedding Photos",
+    "tagline": "Share your special moments"
+  },
+  "domain": "fantasy.wedding",
+  "pricing": { "monthly": "$9", "yearly": "$89" },
+  "features": ["Photo sharing", "Guest uploads"],
+  "clerk": { "publishableKey": "pk_test_xxx" },
+  "admin": { "userIds": [] },
+  "cloudflare": { "pagesProject": "wedding-photos" }
+}
+```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `sell.js init` | Create sell.config.json interactively |
+| `sell.js assemble` | Generate index.html, worker.js, wrangler.toml |
+| `sell.js deploy` | Assemble (if changed) and deploy to Cloudflare |
+| `sell.js verify` | Test deployed endpoints |
+| `sell.js config` | Show current configuration |
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--force` | Force operation even if unchanged |
+| `--skip-dns` | Skip DNS configuration |
+| `--skip-routes` | Skip worker route configuration |
+| `--worker-only` | Only deploy worker |
+| `--pages-only` | Only deploy pages |
+| `--dry-run` | Preview without executing |
+| `--from-wrangler` | Init from existing wrangler.toml |
+
+---
+
+## Legacy Deploy (Alternative)
+
+If you prefer the separate scripts, use `assemble-sell.js` then `deploy-sell.js`:
 
 ```bash
 # Find latest plugin version
