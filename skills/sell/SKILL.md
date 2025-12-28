@@ -57,9 +57,11 @@ Do NOT create separate workers or subdomains for webhooks/API. The webhook URL i
 
 1. **Detect** existing app (app.jsx or riff selection)
 2. **Configure** domain, pricing, and Clerk keys
-3. **Generate** unified app with all routes
-4. **Deploy** with automated script (recommended) or manual steps
+3. **Assemble** unified app with all routes (run assembly script)
+4. **Deploy** automatically (check wrangler, run deploy script)
 5. **Configure** Clerk (manual - no API available)
+
+**IMPORTANT**: Steps 3 and 4 are automated. After gathering configuration, run the scripts immediately. Do NOT give manual Cloudflare instructions.
 
 ---
 
@@ -169,79 +171,82 @@ node "${VIBES_DIR}scripts/assemble-sell.js" app.jsx index.html \
 2. `worker.js` - Cloudflare Worker for subdomain routing + API
 3. `wrangler.toml` - Worker configuration template
 
-**After running the assembly script**, tell the user:
-> "I've generated three files: `index.html`, `worker.js`, and `wrangler.toml`. Follow the deployment guide printed by the script."
-
 **WARNING**: If the assembly script fails or isn't available, DO NOT attempt to write the HTML manually. The template is complex and contains critical security patterns. Ask the user to ensure the plugin is installed correctly.
 
 ---
 
-## Quick Start (New Unified CLI)
+## Step 4: Deploy (AUTOMATED)
 
-The new `sell.js` combines assembly and deployment into one tool:
+**IMPORTANT**: After assembly, IMMEDIATELY proceed with automated deployment. Do NOT give the user manual Cloudflare steps. The deploy script handles everything.
+
+### 4.1 Check for Wrangler
+
+First, check if wrangler is installed:
+
+```bash
+which wrangler || echo "not installed"
+```
+
+If wrangler is not installed, install it:
+
+```bash
+npm install -g wrangler
+```
+
+If wrangler is installed but not authenticated:
+
+```bash
+wrangler login
+```
+
+### 4.2 Run Automated Deployment
+
+Run the deploy script - it handles KV, worker, DNS, routes, and Pages:
 
 ```bash
 # Find latest plugin version
 VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
 
-# 1. Create configuration file
-node "${VIBES_DIR}scripts/sell.js" init
-
-# 2. Deploy (assembles and deploys automatically)
-node "${VIBES_DIR}scripts/sell.js" deploy
-
-# 3. Verify deployment
-node "${VIBES_DIR}scripts/sell.js" verify
+# Run automated deployment
+node "${VIBES_DIR}scripts/deploy-sell.js"
 ```
 
-### Configuration File: `sell.config.json`
+The script will prompt for any missing information (Cloudflare API token, domain zone ID, etc.) and automate:
+- KV namespace creation
+- wrangler.toml update with namespace ID
+- Worker deployment
+- Clerk secret configuration
+- DNS record creation (CNAME for @ and *)
+- Worker route configuration
+- Pages deployment
+- Endpoint verification
 
-The `init` command creates a `sell.config.json` file with all settings:
+### 4.3 Clerk Configuration (Manual - No API Available)
 
-```json
-{
-  "app": {
-    "source": "app.jsx",
-    "name": "wedding-photos",
-    "title": "Wedding Photos",
-    "tagline": "Share your special moments"
-  },
-  "domain": "fantasy.wedding",
-  "pricing": { "monthly": "$9", "yearly": "$89" },
-  "features": ["Photo sharing", "Guest uploads"],
-  "clerk": { "publishableKey": "pk_test_xxx" },
-  "admin": { "userIds": [] },
-  "cloudflare": { "pagesProject": "wedding-photos" }
-}
-```
-
-### Commands
-
-| Command | Description |
-|---------|-------------|
-| `sell.js init` | Create sell.config.json interactively |
-| `sell.js assemble` | Generate index.html, worker.js, wrangler.toml |
-| `sell.js deploy` | Assemble (if changed) and deploy to Cloudflare |
-| `sell.js verify` | Test deployed endpoints |
-| `sell.js config` | Show current configuration |
-
-### Options
-
-| Option | Description |
-|--------|-------------|
-| `--force` | Force operation even if unchanged |
-| `--skip-dns` | Skip DNS configuration |
-| `--skip-routes` | Skip worker route configuration |
-| `--worker-only` | Only deploy worker |
-| `--pages-only` | Only deploy pages |
-| `--dry-run` | Preview without executing |
-| `--from-wrangler` | Init from existing wrangler.toml |
+After deployment completes, provide the Clerk setup checklist (see Step 5 below). This is the ONLY manual step - everything else is automated.
 
 ---
 
-## Legacy Deploy (Alternative)
+## Alternative: Unified CLI
 
-If you prefer the separate scripts, use `assemble-sell.js` then `deploy-sell.js`:
+The `sell.js` script combines assembly and deployment with a config file:
+
+```bash
+VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
+
+# Create config file
+node "${VIBES_DIR}scripts/sell.js" init
+
+# Deploy (assembles + deploys)
+node "${VIBES_DIR}scripts/sell.js" deploy
+
+# Verify
+node "${VIBES_DIR}scripts/sell.js" verify
+```
+
+---
+
+## Legacy Deploy (Separate Scripts)
 
 ```bash
 # Find latest plugin version
