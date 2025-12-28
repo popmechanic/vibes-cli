@@ -276,16 +276,21 @@ async function handleAPI(request, env, pathname, corsHeaders) {
     }
   }
 
-  // Get stats
+  // Get stats (includes billing metrics)
   if (pathname === '/api/stats' && request.method === 'GET') {
     try {
-      const tenantCount = await env.TENANTS.get('stats:tenantCount') || '0';
-      const userCount = await env.TENANTS.get('stats:userCount') || '0';
+      const [tenantCount, userCount, subscriberCount, mrr] = await Promise.all([
+        env.TENANTS.get('stats:tenantCount'),
+        env.TENANTS.get('stats:userCount'),
+        env.TENANTS.get('stats:subscriberCount'),
+        env.TENANTS.get('stats:mrr')
+      ]);
 
       return new Response(JSON.stringify({
-        tenantCount: parseInt(tenantCount),
-        userCount: parseInt(userCount),
-        monthlyRevenue: null // Could be calculated from Clerk billing
+        tenantCount: parseInt(tenantCount || '0'),
+        userCount: parseInt(userCount || '0'),
+        subscriberCount: parseInt(subscriberCount || '0'),
+        mrr: parseFloat(mrr || '0')
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -371,8 +376,8 @@ async function handleClerkWebhook(request, env) {
 
     console.log(\`Clerk webhook: \${eventType}\`);
 
+    // User events
     if (eventType === 'user.created') {
-      // Track new user
       const user = {
         id: data.id,
         email: data.email_addresses?.[0]?.email_address,
@@ -383,18 +388,37 @@ async function handleClerkWebhook(request, env) {
 
       await env.TENANTS.put(\`user:\${data.id}\`, JSON.stringify(user));
 
-      // Increment user count
       const count = parseInt(await env.TENANTS.get('stats:userCount') || '0');
       await env.TENANTS.put('stats:userCount', String(count + 1));
     }
 
     if (eventType === 'user.deleted') {
-      // Remove user
       await env.TENANTS.delete(\`user:\${data.id}\`);
 
-      // Decrement user count
       const count = parseInt(await env.TENANTS.get('stats:userCount') || '0');
       await env.TENANTS.put('stats:userCount', String(Math.max(0, count - 1)));
+    }
+
+    // Billing events - Subscription lifecycle
+    if (eventType === 'subscription.created') {
+      await handleSubscriptionCreated(env, data);
+    }
+
+    if (eventType === 'subscription.updated') {
+      await handleSubscriptionUpdated(env, data);
+    }
+
+    if (eventType === 'subscription.canceled') {
+      await handleSubscriptionCanceled(env, data);
+    }
+
+    // Billing events - Invoices
+    if (eventType === 'invoice.paid') {
+      await handleInvoicePaid(env, data);
+    }
+
+    if (eventType === 'invoice.payment_failed') {
+      await handleInvoicePaymentFailed(env, data);
     }
 
     return new Response(JSON.stringify({ received: true }), {
@@ -407,6 +431,155 @@ async function handleClerkWebhook(request, env) {
       headers: { 'Content-Type': 'application/json' }
     });
   }
+}
+
+// === Billing Event Handlers ===
+
+async function handleSubscriptionCreated(env, subscriptionData) {
+  const userId = subscriptionData.user_id || subscriptionData.subscriber_id;
+  const subscription = {
+    id: subscriptionData.id,
+    status: subscriptionData.status || 'active',
+    planId: subscriptionData.plan_id,
+    billingPeriod: subscriptionData.billing_period || 'monthly',
+    amount: subscriptionData.amount,
+    createdAt: subscriptionData.created_at || Date.now(),
+    currentPeriodEnd: subscriptionData.current_period_end
+  };
+
+  // Store subscription
+  await env.TENANTS.put(\`subscription:\${userId}\`, JSON.stringify(subscription));
+
+  // Update tenant's subscription status
+  await updateTenantSubscriptionStatus(env, userId, 'active', subscription.billingPeriod);
+
+  // Update subscriber count
+  const countStr = await env.TENANTS.get('stats:subscriberCount') || '0';
+  await env.TENANTS.put('stats:subscriberCount', String(parseInt(countStr) + 1));
+
+  // Update MRR
+  await updateMRR(env);
+}
+
+async function handleSubscriptionUpdated(env, subscriptionData) {
+  const userId = subscriptionData.user_id || subscriptionData.subscriber_id;
+  const existingStr = await env.TENANTS.get(\`subscription:\${userId}\`);
+  const existing = existingStr ? JSON.parse(existingStr) : {};
+
+  const subscription = {
+    ...existing,
+    id: subscriptionData.id,
+    status: subscriptionData.status,
+    planId: subscriptionData.plan_id,
+    billingPeriod: subscriptionData.billing_period || existing.billingPeriod,
+    amount: subscriptionData.amount,
+    updatedAt: Date.now(),
+    currentPeriodEnd: subscriptionData.current_period_end
+  };
+
+  await env.TENANTS.put(\`subscription:\${userId}\`, JSON.stringify(subscription));
+
+  // Update tenant status based on subscription status
+  const tenantStatus = subscription.status === 'active' ? 'active' :
+                       subscription.status === 'past_due' ? 'past_due' : 'canceled';
+  await updateTenantSubscriptionStatus(env, userId, tenantStatus, subscription.billingPeriod);
+
+  await updateMRR(env);
+}
+
+async function handleSubscriptionCanceled(env, subscriptionData) {
+  const userId = subscriptionData.user_id || subscriptionData.subscriber_id;
+
+  // Update subscription status
+  const existingStr = await env.TENANTS.get(\`subscription:\${userId}\`);
+  if (existingStr) {
+    const subscription = JSON.parse(existingStr);
+    subscription.status = 'canceled';
+    subscription.canceledAt = Date.now();
+    await env.TENANTS.put(\`subscription:\${userId}\`, JSON.stringify(subscription));
+  }
+
+  // Update tenant status
+  await updateTenantSubscriptionStatus(env, userId, 'canceled');
+
+  // Update subscriber count
+  const countStr = await env.TENANTS.get('stats:subscriberCount') || '1';
+  await env.TENANTS.put('stats:subscriberCount', String(Math.max(0, parseInt(countStr) - 1)));
+
+  await updateMRR(env);
+}
+
+async function handleInvoicePaid(env, invoiceData) {
+  const userId = invoiceData.user_id || invoiceData.subscriber_id;
+
+  const invoice = {
+    id: invoiceData.id,
+    userId,
+    amount: invoiceData.amount_paid || invoiceData.total,
+    currency: invoiceData.currency || 'usd',
+    paidAt: invoiceData.paid_at || Date.now(),
+    status: 'paid'
+  };
+
+  await env.TENANTS.put(\`invoice:\${invoice.id}\`, JSON.stringify(invoice));
+
+  // Track monthly revenue
+  const monthKey = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const revenueStr = await env.TENANTS.get(\`revenue:\${monthKey}\`) || '0';
+  const newRevenue = parseInt(revenueStr) + (invoice.amount || 0);
+  await env.TENANTS.put(\`revenue:\${monthKey}\`, String(newRevenue));
+}
+
+async function handleInvoicePaymentFailed(env, invoiceData) {
+  const userId = invoiceData.user_id || invoiceData.subscriber_id;
+  await updateTenantSubscriptionStatus(env, userId, 'past_due');
+}
+
+// === Helper Functions ===
+
+async function updateTenantSubscriptionStatus(env, userId, status, billingPeriod = null) {
+  const listStr = await env.TENANTS.get('tenants:list') || '[]';
+  const subdomains = JSON.parse(listStr);
+
+  for (const subdomain of subdomains) {
+    const tenantStr = await env.TENANTS.get(\`tenant:\${subdomain}\`);
+    if (tenantStr) {
+      const tenant = JSON.parse(tenantStr);
+      if (tenant.userId === userId) {
+        tenant.subscriptionStatus = status;
+        if (billingPeriod) tenant.billingPeriod = billingPeriod;
+        tenant.subscriptionUpdatedAt = Date.now();
+        await env.TENANTS.put(\`tenant:\${subdomain}\`, JSON.stringify(tenant));
+        break;
+      }
+    }
+  }
+}
+
+async function updateMRR(env) {
+  const listStr = await env.TENANTS.get('tenants:list') || '[]';
+  const subdomains = JSON.parse(listStr);
+
+  let mrr = 0;
+  // Default prices - these should match your plan configuration
+  const monthlyPrice = 9;
+  const yearlyPrice = 89;
+
+  for (const subdomain of subdomains) {
+    const tenantStr = await env.TENANTS.get(\`tenant:\${subdomain}\`);
+    if (tenantStr) {
+      const tenant = JSON.parse(tenantStr);
+      if (tenant.subscriptionStatus === 'active') {
+        if (tenant.billingPeriod === 'yearly') {
+          mrr += yearlyPrice / 12;
+        } else {
+          mrr += monthlyPrice;
+        }
+      }
+    }
+  }
+
+  await env.TENANTS.put('stats:mrr', String(Math.round(mrr * 100) / 100));
 }
 
 async function proxyToPages(request, env, hostname, corsHeaders) {
@@ -596,10 +769,12 @@ ${'─'.repeat(70)}
    - Dashboard → Billing → Connect Stripe
    - Create plans: "pro", "monthly", "yearly" etc.
 
-4. Set up webhooks (for user tracking):
+4. Set up webhooks (for user and billing tracking):
    - Dashboard → Webhooks → Add Endpoint
    - URL: https://${domain}/webhooks/clerk
-   - Events: user.created, user.deleted
+   - User events: user.created, user.deleted
+   - Billing events: subscription.created, subscription.updated,
+     subscription.canceled, invoice.paid, invoice.payment_failed
 
 5. Get your Admin User ID:
    - Sign up on your app
