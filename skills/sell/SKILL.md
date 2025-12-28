@@ -489,15 +489,7 @@ All three routes point to the same worker:
 
    Plan names must match what your app checks with `has({ plan: 'planname' })`
 
-### 5.3 Add Authorized Domains
-
-1. Go to **Domains** in Clerk settings
-2. Add your production domains:
-   - `yourdomain.com`
-   - `*.yourdomain.com` (if supported)
-   - `yourproject.pages.dev`
-
-### 5.4 Get Your Admin User ID
+### 5.3 Get Your Admin User ID
 
 1. Sign up on your app
 2. Go to Clerk Dashboard → **Users**
@@ -505,7 +497,7 @@ All three routes point to the same worker:
 4. Copy the **User ID** (e.g., `user_xxx`)
 5. Add it to the `--admin-ids` array
 
-### 5.5 Configure Clerk Webhooks (Required for User Tracking)
+### 5.4 Configure Clerk Webhooks (Required for User Tracking)
 
 Set up webhooks so the admin dashboard can track users:
 
