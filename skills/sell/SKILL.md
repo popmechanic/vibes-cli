@@ -199,9 +199,11 @@ If wrangler is installed but not authenticated:
 wrangler login
 ```
 
+**NOTE**: Wrangler does NOT have `zones` commands. Do not try `wrangler zones list` or similar - zone lookup is handled by the deploy script via Cloudflare API.
+
 ### 4.2 Run Automated Deployment
 
-Run the deploy script - it handles KV, worker, DNS, routes, and Pages:
+Run the deploy script - it handles EVERYTHING via Cloudflare API:
 
 ```bash
 # Find latest plugin version
@@ -211,7 +213,9 @@ VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -
 node "${VIBES_DIR}scripts/deploy-sell.js"
 ```
 
-The script will prompt for any missing information (Cloudflare API token, domain zone ID, etc.) and automate:
+**DO NOT** try to look up zone IDs or run other wrangler commands first. The script handles it all.
+
+The script will prompt for Cloudflare API token if needed, then automate:
 - KV namespace creation
 - wrangler.toml update with namespace ID
 - Worker deployment
