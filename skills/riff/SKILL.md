@@ -35,7 +35,7 @@ mkdir -p riff-1 riff-2 riff-3 ...
 
 First, find the latest plugin version (run once per session):
 ```bash
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
+VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)"
 ```
 
 Then generate riffs in parallel based on user's count:
@@ -50,7 +50,7 @@ echo "All ${count} riffs generated!"
 
 Example for count=3:
 ```bash
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
+VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)"
 node "${VIBES_DIR}scripts/generate-riff.js" "the theme" 1 riff-1/app.jsx &
 node "${VIBES_DIR}scripts/generate-riff.js" "the theme" 2 riff-2/app.jsx &
 node "${VIBES_DIR}scripts/generate-riff.js" "the theme" 3 riff-3/app.jsx &
@@ -115,7 +115,7 @@ Open index.html for gallery, or browse riff-1/, riff-2/, etc.
 
 To get the latest plugin directory path:
 ```bash
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
+VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)"
 ```
 
 This uses version sorting to find the highest installed version.
