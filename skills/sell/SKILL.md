@@ -494,8 +494,9 @@ All three routes point to the same worker:
 1. Sign up on your app
 2. Go to Clerk Dashboard → **Users**
 3. Click your user
-4. Copy the **User ID** (e.g., `user_xxx`)
-5. Add it to the `--admin-ids` array
+4. Copy the **User ID** (e.g., `user_2abc123xyz`)
+
+Then paste the User ID here and I'll update the app configuration.
 
 ### 5.4 Configure Clerk Webhooks (Required for User Tracking)
 
