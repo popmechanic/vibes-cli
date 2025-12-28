@@ -328,6 +328,52 @@ curl -X POST https://yourdomain.com/webhooks/clerk \
 # Should return: {"received":true}
 ```
 
+**IMPORTANT: Webhook Behavior**
+
+The `user.created` event **only fires for NEW Clerk account signups** - users who just created their Clerk account for the first time. It does NOT fire when:
+- An existing Clerk user signs into your app for the first time
+- A user creates a new subdomain/tenant
+
+This means your user count in the admin dashboard may not reflect all active users. To track actual subdomain usage, the template includes a `TenantRegistration` component that calls `/api/tenants/register` when a user visits their subdomain.
+
+---
+
+## Deployment Checklist
+
+Use this checklist to ensure complete deployment:
+
+### Pre-Deployment
+- [ ] Have Clerk account with publishable key
+- [ ] Have custom domain DNS pointed to Cloudflare
+- [ ] Know your Clerk admin user ID(s)
+
+### Cloudflare Setup
+- [ ] Create KV namespace: `wrangler kv namespace create TENANTS`
+- [ ] Update wrangler.toml with KV namespace ID
+- [ ] Set secrets: `wrangler secret put CLERK_SECRET_KEY`
+- [ ] Deploy worker: `wrangler deploy`
+- [ ] **Verify routes in Dashboard** (add manually if needed)
+
+### Clerk Setup
+- [ ] Create webhook endpoint for `https://yourdomain.com/webhooks/clerk`
+- [ ] Subscribe to `user.created` and `user.deleted` events
+- [ ] Test webhook with curl
+- [ ] Add authorized domains in Clerk settings
+
+### Pages Setup
+- [ ] Create Pages project
+- [ ] Upload index.html
+- [ ] Configure custom domain
+- [ ] Verify Pages hostname matches `PAGES_HOSTNAME` in wrangler.toml
+
+### Verification
+- [ ] Root domain shows landing page
+- [ ] Subdomain shows app with Clerk auth
+- [ ] Admin subdomain shows dashboard (for admin users)
+- [ ] API endpoints return JSON (test with curl)
+- [ ] Tenant registration works on first subdomain visit
+- [ ] Stats update after new signups
+
 ---
 
 ## Key Components
@@ -553,3 +599,24 @@ The admin dashboard fetches this endpoint and refreshes every 30 seconds.
 ### Database not isolated
 - Verify `useTenant()` is used in the App component
 - Check `useFireproof(dbName)` uses the tenant database name
+
+### CORS errors on API calls
+- Static `Access-Control-Allow-Origin: *` doesn't work with credentials
+- The worker now reflects the requesting origin dynamically
+- If you see CORS errors, redeploy the worker with the latest generated code
+
+### "createPortal is not defined"
+- Missing import in your app code
+- The template imports `createPortal` from react-dom automatically
+- Use `createPortal(content, document.body)` for modals/lightboxes
+
+### Secrets set incorrectly
+- Common mistake: `wrangler secret put sk_test_xxx` (passing secret as name)
+- Correct: `wrangler secret put CLERK_SECRET_KEY` (then paste value when prompted)
+- The command prompts for the value, don't pass it as an argument
+
+### Tenant count shows 0 but users exist
+- `user.created` webhook only fires for NEW Clerk signups
+- Existing Clerk users don't trigger the webhook
+- Tenant registration (via `/api/tenants/register`) tracks actual subdomain visits
+- Check if TenantRegistration component is working in browser dev tools

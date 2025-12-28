@@ -213,16 +213,22 @@ const workerCode = `/**
  * - TENANTS: KV namespace for tenant data
  */
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-};
+// Dynamic CORS headers (reflect origin for credentials support)
+function getCorsHeaders(request) {
+  const origin = request.headers.get('Origin') || '*';
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+}
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const pathname = url.pathname;
+    const corsHeaders = getCorsHeaders(request);
 
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
@@ -231,7 +237,7 @@ export default {
 
     // Handle API routes
     if (pathname.startsWith('/api/')) {
-      return handleAPI(request, env, pathname);
+      return handleAPI(request, env, pathname, corsHeaders);
     }
 
     // Handle Clerk webhooks
@@ -240,11 +246,11 @@ export default {
     }
 
     // Proxy to Pages
-    return proxyToPages(request, env, url.hostname);
+    return proxyToPages(request, env, url.hostname, corsHeaders);
   }
 };
 
-async function handleAPI(request, env, pathname) {
+async function handleAPI(request, env, pathname, corsHeaders) {
   // Get all tenants
   if (pathname === '/api/tenants' && request.method === 'GET') {
     try {
@@ -403,7 +409,7 @@ async function handleClerkWebhook(request, env) {
   }
 }
 
-async function proxyToPages(request, env, hostname) {
+async function proxyToPages(request, env, hostname, corsHeaders) {
   // Construct Pages URL
   const pagesUrl = new URL(request.url);
   pagesUrl.hostname = env.PAGES_HOSTNAME || '${pagesProject}.pages.dev';
