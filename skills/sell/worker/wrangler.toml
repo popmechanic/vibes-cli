@@ -13,8 +13,11 @@ compatibility_date = "2024-12-01"
 
 [vars]
 PAGES_HOSTNAME = "__PAGES_PROJECT__.pages.dev"
+APP_DOMAIN = "__APP_DOMAIN__"
 
-# Create this KV namespace with: wrangler kv namespace create TENANTS
+# IMPORTANT: Create a NEW KV namespace for EACH deployment!
+# Do NOT reuse KV namespaces across different domains.
+# Create with: wrangler kv namespace create TENANTS
 # Then copy the ID below
 [[kv_namespaces]]
 binding = "TENANTS"

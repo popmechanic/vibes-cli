@@ -263,9 +263,10 @@ The `?subdomain=` parameter works on pages.dev before you configure custom domai
 
 ### 4.2 Create KV Namespace
 
-The worker needs KV storage for tenant data:
+**IMPORTANT: Create a NEW KV namespace for EACH deployment.** Do NOT reuse a KV namespace from another project - this will cause tenant data to mix between domains.
 
 ```bash
+# Create a NEW namespace for this project
 wrangler kv namespace create TENANTS
 ```
 
@@ -274,8 +275,10 @@ Copy the namespace ID and update `wrangler.toml`:
 ```toml
 [[kv_namespaces]]
 binding = "TENANTS"
-id = "YOUR_KV_NAMESPACE_ID"  # ← paste ID here
+id = "YOUR_KV_NAMESPACE_ID"  # ← paste the NEW ID here
 ```
+
+KV keys are prefixed with APP_DOMAIN (e.g., `fantasy.wedding:tenant:alice`) to isolate data, but using separate namespaces per project is still recommended.
 
 ### 4.3 Deploy the Worker
 
