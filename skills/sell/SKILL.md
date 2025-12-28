@@ -222,17 +222,19 @@ wrangler login
 
 ### 4.2 Run Automated Deployment
 
-**THIS IS THE ONLY COMMAND YOU RUN FOR DEPLOYMENT:**
+**USE `deploy-sell.js` (not `sell.js`)** - it works interactively without needing a config file:
 
 ```bash
 # Find latest plugin version
 VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
 
-# Run automated deployment - THIS IS THE ONLY DEPLOY COMMAND
+# Run automated deployment - prompts for everything interactively
 node "${VIBES_DIR}scripts/deploy-sell.js"
 ```
 
-**NEVER run `wrangler deploy` directly** - it will cause route conflicts with existing workers. The deploy script handles everything correctly via API.
+**DO NOT use `sell.js deploy`** - it requires a config file created by `sell.js init`. Use `deploy-sell.js` instead.
+
+**NEVER run `wrangler deploy` directly** - it will cause route conflicts with existing workers.
 
 The script will prompt for Cloudflare API token if needed, then automate:
 - KV namespace creation
@@ -255,21 +257,20 @@ Then provide the Step 5 instructions verbatim.
 
 ---
 
-## Alternative: Unified CLI
+## Alternative: Config-Based CLI (sell.js)
 
-The `sell.js` script combines assembly and deployment with a config file:
+**Only use if you need repeatable deployments.** For most cases, use `deploy-sell.js` instead.
+
+The `sell.js` script requires a config file - don't use it without running `init` first:
 
 ```bash
 VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-diy/vibes/*/ | sort -V | tail -1)"
 
-# Create config file
+# REQUIRED FIRST: Create config file
 node "${VIBES_DIR}scripts/sell.js" init
 
-# Deploy (assembles + deploys)
+# Then deploy
 node "${VIBES_DIR}scripts/sell.js" deploy
-
-# Verify
-node "${VIBES_DIR}scripts/sell.js" verify
 ```
 
 ---
