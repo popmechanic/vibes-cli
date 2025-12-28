@@ -199,6 +199,7 @@
     <script type="text/babel" data-type="module">
       import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, useReducer } from "react";
       import ReactDOMClient from "react-dom/client";
+      import { createPortal } from "react-dom";
       import { useFireproof } from "use-fireproof";
       import {
         ClerkProvider,
@@ -321,6 +322,39 @@
         return children;
       }
 
+      // === Tenant Registration (tracks subdomain visits in Worker KV) ===
+      function TenantRegistration({ subdomain, children }) {
+        const { user, isLoaded } = useUser();
+        const [registered, setRegistered] = useState(false);
+
+        useEffect(() => {
+          if (!isLoaded || !user || registered) return;
+
+          const register = async () => {
+            try {
+              await fetch(`https://${APP_DOMAIN}/api/tenants/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  subdomain,
+                  userId: user.id,
+                  email: user.primaryEmailAddress?.emailAddress,
+                  plan: 'pro'
+                })
+              });
+              setRegistered(true);
+            } catch (err) {
+              console.error('Failed to register tenant:', err);
+              setRegistered(true); // Don't block app on registration failure
+            }
+          };
+
+          register();
+        }, [isLoaded, user, subdomain, registered]);
+
+        return children;
+      }
+
       // === Original App Code (embedded during assembly) ===
       // __VIBES_APP_CODE__
 
@@ -354,16 +388,18 @@
           <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl={`https://${APP_DOMAIN}`}>
             <TenantProvider subdomain={subdomain}>
               <SignedIn>
-                <SubscriptionGate>
-                  <HiddenMenuWrapper menuContent={<VibesPanel />}>
-                    <div className="relative">
-                      <div className="fixed top-4 right-4 z-50">
-                        <UserButton />
+                <TenantRegistration subdomain={subdomain}>
+                  <SubscriptionGate>
+                    <HiddenMenuWrapper menuContent={<VibesPanel />}>
+                      <div className="relative">
+                        <div className="fixed top-4 right-4 z-50">
+                          <UserButton />
+                        </div>
+                        <App />
                       </div>
-                      <App />
-                    </div>
-                  </HiddenMenuWrapper>
-                </SubscriptionGate>
+                    </HiddenMenuWrapper>
+                  </SubscriptionGate>
+                </TenantRegistration>
               </SignedIn>
               <SignedOut>
                 <SignInScreen subdomain={subdomain} />
