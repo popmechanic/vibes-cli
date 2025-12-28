@@ -199,7 +199,12 @@ If wrangler is installed but not authenticated:
 wrangler login
 ```
 
-**NOTE**: Wrangler does NOT have `zones` commands. Do not try `wrangler zones list` or similar - zone lookup is handled by the deploy script via Cloudflare API.
+**NOTE**: Wrangler has LIMITED commands. Do NOT try:
+- `wrangler zones list` - doesn't exist (use Cloudflare API)
+- `wrangler pages project add-custom-domain` - doesn't exist (use Dashboard)
+- Any command not in `wrangler --help`
+
+The deploy script handles zone lookup, DNS, and routes via Cloudflare API. Custom domains for Pages must be added via Cloudflare Dashboard after deployment.
 
 ### 4.2 Run Automated Deployment
 
