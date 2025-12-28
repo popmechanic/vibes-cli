@@ -16,7 +16,7 @@ Your data lives locally in the browser, encrypted and portable. It syncs across 
 
 ```bash
 /plugin marketplace add popmechanic/vibes-cli
-/plugin install vibes@vibes-diy
+/plugin install vibes@vibes-cli
 ```
 
 **Important**: Restart Claude Code after installation to load the new skills.
