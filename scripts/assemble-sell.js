@@ -106,13 +106,15 @@ const templatePath = join(__dirname, '../skills/sell/templates/unified.html');
 const workerTemplatePath = join(__dirname, '../skills/sell/worker/index.js');
 const wranglerTemplatePath = join(__dirname, '../skills/sell/worker/wrangler.toml');
 const adminComponentPath = join(__dirname, '../skills/sell/components/admin.jsx');
+const deploymentGuidePath = join(__dirname, '../skills/sell/templates/deployment-guide.txt');
 
 // Check templates exist
 const templates = [
   { path: templatePath, name: 'unified.html' },
   { path: workerTemplatePath, name: 'worker/index.js' },
   { path: wranglerTemplatePath, name: 'worker/wrangler.toml' },
-  { path: adminComponentPath, name: 'components/admin.jsx' }
+  { path: adminComponentPath, name: 'components/admin.jsx' },
+  { path: deploymentGuidePath, name: 'deployment-guide.txt' }
 ];
 
 for (const t of templates) {
@@ -245,189 +247,11 @@ const wranglerPath = join(outputDir, 'wrangler.toml');
 writeFileSync(wranglerPath, wranglerConfig);
 console.log(`Created: ${wranglerPath}`);
 
-// Print comprehensive deployment guide
-console.log(`
-${'━'.repeat(70)}
-  DEPLOYMENT GUIDE FOR ${appName.toUpperCase()}
-${'━'.repeat(70)}
-
-Your unified SaaS app is ready! Files created:
-  • index.html  - Unified app (landing + tenant + admin)
-  • worker.js   - Cloudflare Worker for subdomain routing + API
-  • wrangler.toml - Worker configuration
-
-${'─'.repeat(70)}
-  STEP 1: DEPLOY TO CLOUDFLARE PAGES
-${'─'.repeat(70)}
-
-1. Go to Cloudflare Dashboard → Workers & Pages
-2. Create → Pages → Upload assets (Direct Upload)
-3. Name your project: "${pagesProject}"
-4. Upload index.html
-5. Deploy - note your *.pages.dev URL
-
-Test your Pages deployment:
-  https://${pagesProject}.pages.dev           → Landing page
-  https://${pagesProject}.pages.dev?subdomain=test → Tenant app
-  https://${pagesProject}.pages.dev?subdomain=admin → Admin dashboard
-
-${'─'.repeat(70)}
-  STEP 2: CREATE KV NAMESPACE
-${'─'.repeat(70)}
-
-Run this command to create a KV namespace for tenant data:
-
-  wrangler kv namespace create TENANTS
-
-Copy the namespace ID and update wrangler.toml:
-
-  [[kv_namespaces]]
-  binding = "TENANTS"
-  id = "YOUR_KV_NAMESPACE_ID"  ← paste ID here
-
-${'─'.repeat(70)}
-  STEP 3: DEPLOY THE WORKER
-${'─'.repeat(70)}
-
-1. Ensure wrangler.toml has:
-   - Correct PAGES_HOSTNAME (${pagesProject}.pages.dev)
-   - KV namespace ID from step 2
-
-2. Deploy the worker:
-   wrangler deploy
-
-3. Set your Clerk secret key:
-   wrangler secret put CLERK_SECRET_KEY
-   (paste your sk_test_xxx or sk_live_xxx key)
-
-${'─'.repeat(70)}
-  STEP 4: CONFIGURE DNS
-${'─'.repeat(70)}
-
-In Cloudflare Dashboard → DNS → Records:
-
-1. DELETE any existing A/AAAA record for @ (root domain)
-   ⚠️  You cannot add CNAME if A record exists
-
-2. Add CNAME for root domain:
-   Type: CNAME
-   Name: @
-   Target: ${pagesProject}.pages.dev
-   Proxy: ON (orange cloud)
-
-3. Add CNAME for wildcard:
-   Type: CNAME
-   Name: *
-   Target: ${pagesProject}.pages.dev
-   Proxy: ON (orange cloud)
-
-${'─'.repeat(70)}
-  STEP 5: ADD CUSTOM DOMAIN TO PAGES
-${'─'.repeat(70)}
-
-1. Go to Workers & Pages → ${pagesProject} → Custom domains
-2. Click "Set up a custom domain"
-3. Enter: ${domain}
-4. Follow prompts (DNS may already be configured)
-
-${'─'.repeat(70)}
-  STEP 6: ADD WORKER ROUTES (MANUAL - IMPORTANT!)
-${'─'.repeat(70)}
-
-⚠️  CRITICAL: ONE worker handles ALL routes.
-    Do NOT create separate workers or subdomains for webhooks/API.
-
-    CORRECT: ${domain}/webhooks/clerk (path on root domain)
-    WRONG:   webhooks.${domain}/clerk (separate subdomain)
-
-⚠️  Routes in wrangler.toml may not apply automatically.
-    Add them manually if subdomain routing doesn't work.
-
-1. Go to Workers & Pages → ${pagesProject}-wildcard
-2. Settings → Triggers → Routes → Add route
-
-Add these THREE routes to the SAME worker:
-┌─────────────────────────────────────┬────────────────┐
-│ Pattern                             │ Zone           │
-├─────────────────────────────────────┼────────────────┤
-│ *.${domain}/*                       │ ${domain}      │
-│ ${domain}/api/*                     │ ${domain}      │
-│ ${domain}/webhooks/*                │ ${domain}      │
-└─────────────────────────────────────┴────────────────┘
-
-${'─'.repeat(70)}
-  STEP 7: CONFIGURE CLERK
-${'─'.repeat(70)}
-
-1. Go to Clerk Dashboard (clerk.com)
-2. Add authorized domains:
-   - ${domain}
-   - *.${domain} (if supported)
-   - ${pagesProject}.pages.dev
-
-3. Enable Clerk Billing:
-   - Dashboard → Billing → Connect Stripe
-   - Create plans: "pro", "monthly", "yearly" etc.
-
-4. Set up webhooks (for user and billing tracking):
-   - Dashboard → Webhooks → Add Endpoint
-   - URL: https://${domain}/webhooks/clerk
-     (NOTE: This is a PATH on root domain, NOT a subdomain!)
-   - User events: user.created, user.deleted
-   - Billing events: subscription.created, subscription.updated,
-     subscription.canceled, invoice.paid, invoice.payment_failed
-
-5. Get your Admin User ID:
-   - Sign up on your app
-   - Dashboard → Users → click your user → copy User ID
-   - Re-run assemble with: --admin-ids '["user_xxx"]'
-
-${'─'.repeat(70)}
-  TESTING CHECKLIST
-${'─'.repeat(70)}
-
-After deployment, verify these URLs work:
-
-Landing Page:
-  https://${domain}
-  → Shows pricing cards, signup flow
-
-Tenant App:
-  https://test.${domain}
-  → Shows sign-in screen, then your app after auth
-
-Admin Dashboard:
-  https://admin.${domain}
-  → Shows admin login, then tenant list
-
-API Endpoints:
-  curl https://${domain}/api/stats
-  → {"tenantCount":0,"userCount":0,"monthlyRevenue":null}
-
-  curl https://${domain}/api/tenants
-  → {"tenants":[]}
-
-${'─'.repeat(70)}
-  TROUBLESHOOTING
-${'─'.repeat(70)}
-
-"522 Connection Timed Out"
-  → DNS pointing to non-existent origin. Check CNAME targets.
-
-"Unexpected token '<'" in console
-  → Babel not loading. Check script type is "text/babel".
-
-"Cannot read properties of null (reading 'useEffect')"
-  → React version mismatch. Check import map uses React 18.
-
-Subdomains return 404
-  → Worker route not configured. Add *.${domain}/* route manually.
-
-API returns HTML instead of JSON
-  → Root domain API route missing. Add ${domain}/api/* route.
-
-Admin shows "Access Denied"
-  → User ID not in --admin-ids. Check Clerk user ID is correct.
-
-${'━'.repeat(70)}
-`);
+// Print comprehensive deployment guide from template
+let deploymentGuide = readFileSync(deploymentGuidePath, 'utf8');
+deploymentGuide = deploymentGuide
+  .split('__APP_NAME_UPPER__').join(appName.toUpperCase())
+  .split('__APP_NAME__').join(appName)
+  .split('__APP_DOMAIN__').join(domain)
+  .split('__PAGES_PROJECT__').join(pagesProject);
+console.log(deploymentGuide);
