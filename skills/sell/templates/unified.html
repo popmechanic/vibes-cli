@@ -331,6 +331,7 @@
 
       function SubscriptionGate({ children }) {
         const { has, isLoaded, userId } = useAuth();
+        const { user } = useUser();
 
         if (!isLoaded) {
           return (
@@ -342,7 +343,14 @@
 
         // Allow admin users to bypass subscription check
         const isAdmin = ADMIN_USER_IDS.includes(userId);
-        const hasSubscription = isAdmin || has({ plan: 'pro' }) || has({ plan: 'basic' }) || has({ plan: 'monthly' }) || has({ plan: 'yearly' }) || has({ plan: 'starter' });
+
+        // Check Clerk Billing subscriptions (including free plan)
+        const hasClerkSubscription = has({ plan: 'pro' }) || has({ plan: 'basic' }) || has({ plan: 'monthly' }) || has({ plan: 'yearly' }) || has({ plan: 'starter' }) || has({ plan: 'free' });
+
+        // Fallback: check user metadata for plan (set during registration)
+        const hasMetadataPlan = user?.unsafeMetadata?.plan && ['free', 'pro', 'basic', 'monthly', 'yearly', 'starter'].includes(user.unsafeMetadata.plan);
+
+        const hasSubscription = isAdmin || hasClerkSubscription || hasMetadataPlan;
 
         if (!hasSubscription) {
           return <SubscriptionRequired />;
@@ -354,14 +362,34 @@
       // === Tenant Registration (tracks subdomain visits in Worker KV) ===
       function TenantRegistration({ subdomain, children }) {
         const { user, isLoaded } = useUser();
-        const [registered, setRegistered] = useState(false);
+        const [registrationState, setRegistrationState] = useState('checking'); // 'checking' | 'registering' | 'done'
 
         useEffect(() => {
-          if (!isLoaded || !user || registered) return;
+          if (!isLoaded || !user) return;
 
+          // If user already has a plan in metadata, they're already registered
+          if (user.unsafeMetadata?.plan) {
+            setRegistrationState('done');
+            return;
+          }
+
+          // New user - needs registration
           const register = async () => {
+            setRegistrationState('registering');
             try {
               console.log(`[TenantRegistration] Registering ${subdomain} for user ${user.id}`);
+
+              // First, update Clerk user metadata with the free plan
+              await user.update({
+                unsafeMetadata: {
+                  ...user.unsafeMetadata,
+                  plan: 'free',
+                  subdomain: subdomain,
+                  registeredAt: new Date().toISOString()
+                }
+              });
+
+              // Then register with the Worker API
               const response = await fetch(`https://${APP_DOMAIN}/api/tenants/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -370,7 +398,7 @@
                   subdomain,
                   userId: user.id,
                   email: user.primaryEmailAddress?.emailAddress,
-                  plan: 'pro'
+                  plan: 'free'
                 })
               });
               const data = await response.json();
@@ -379,15 +407,29 @@
               } else {
                 console.warn(`[TenantRegistration] API returned ${response.status}:`, data);
               }
-              setRegistered(true);
+              setRegistrationState('done');
             } catch (err) {
               console.error('[TenantRegistration] Failed to register tenant:', err);
-              setRegistered(true); // Don't block app on registration failure
+              setRegistrationState('done'); // Don't block app on registration failure
             }
           };
 
           register();
-        }, [isLoaded, user, subdomain, registered]);
+        }, [isLoaded, user, subdomain]);
+
+        // Show loading state while registering new users
+        if (registrationState === 'checking' || registrationState === 'registering') {
+          return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+              <div className="text-center">
+                <div className="animate-pulse text-lg font-medium text-gray-600 mb-2">
+                  Setting up your studio...
+                </div>
+                <p className="text-sm text-gray-400">This will only take a moment</p>
+              </div>
+            </div>
+          );
+        }
 
         return children;
       }
@@ -401,19 +443,18 @@
           <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
             <div className="max-w-md text-center p-8 bg-white rounded-2xl border border-gray-200 shadow-lg">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to {subdomain}</h2>
-              <p className="mb-6 text-gray-500">Sign in to access your workspace.</p>
-              <div className="flex gap-3 justify-center">
-                <SignInButton mode="modal">
-                  <button className="px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] transition-colors">
-                    Sign In
-                  </button>
-                </SignInButton>
-                <SignUpButton mode="modal">
-                  <button className="px-6 py-3 bg-white text-gray-900 font-medium rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
-                    Sign Up
-                  </button>
-                </SignUpButton>
-              </div>
+              <p className="mb-6 text-gray-500">Sign in with your passkey to continue</p>
+              <SignInButton mode="modal">
+                <button className="w-full px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] transition-colors">
+                  Sign In with Passkey
+                </button>
+              </SignInButton>
+              <p className="mt-4 text-sm text-gray-500">
+                Don't have an account?{' '}
+                <a href={`https://${APP_DOMAIN}`} className="text-[var(--landing-accent)] hover:underline font-medium">
+                  Create one
+                </a>
+              </p>
             </div>
           </div>
         );
@@ -450,132 +491,6 @@
       __ADMIN_CODE__
 
       // === Landing Page Components ===
-      function SubdomainPicker({ onSelect }) {
-        const [subdomain, setSubdomain] = useState('');
-        const [checking, setChecking] = useState(false);
-        const [available, setAvailable] = useState(null);
-        const [allTenants, setAllTenants] = useState([]);
-
-        // Fetch all tenants once on mount to check availability locally
-        useEffect(() => {
-          async function fetchTenants() {
-            try {
-              const response = await fetch(`https://${APP_DOMAIN}/api/tenants`);
-              if (response.ok) {
-                const data = await response.json();
-                setAllTenants(data.tenants || []);
-              }
-            } catch (err) {
-              console.error('Error fetching tenants:', err);
-            }
-          }
-          fetchTenants();
-        }, []);
-
-        // Check availability when subdomain changes
-        useEffect(() => {
-          if (subdomain.length >= 3) {
-            setChecking(true);
-            const timer = setTimeout(() => {
-              const taken = allTenants.some(t => t.subdomain === subdomain);
-              // Also check reserved subdomains
-              const reserved = ['admin', 'www', 'api', 'app', 'mail', 'smtp', 'ftp'];
-              setAvailable(!taken && !reserved.includes(subdomain));
-              setChecking(false);
-            }, 300);
-            return () => clearTimeout(timer);
-          } else {
-            setAvailable(null);
-          }
-        }, [subdomain, allTenants]);
-
-        const isValid = /^[a-z0-9-]+$/.test(subdomain) && subdomain.length >= 3 && !subdomain.startsWith('-') && !subdomain.endsWith('-');
-
-        return (
-          <div className="space-y-4">
-            <label className="block font-bold text-lg text-gray-900">Choose your subdomain:</label>
-            <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
-              <input
-                type="text"
-                value={subdomain}
-                onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                placeholder="your-name"
-                className="flex-1 px-4 py-3 bg-transparent text-gray-800 placeholder-gray-400 font-mono text-lg focus:outline-none"
-                maxLength={32}
-              />
-              <span className="pr-4 text-gray-400 text-sm">.{APP_DOMAIN}</span>
-            </div>
-
-            {subdomain.length > 0 && (
-              <div className="text-sm font-medium">
-                {checking && <span className="text-gray-500">Checking availability...</span>}
-                {!checking && available === true && isValid && (
-                  <span className="text-green-600">&#10003; {subdomain}.{APP_DOMAIN} is available!</span>
-                )}
-                {!checking && available === false && (
-                  <span className="text-red-600">&#10007; Already taken - try another name</span>
-                )}
-                {!isValid && subdomain.length > 0 && (
-                  <span className="text-amber-600">Use lowercase letters, numbers, and dashes (min 3 chars)</span>
-                )}
-              </div>
-            )}
-
-            {available && isValid && (
-              <button
-                onClick={() => onSelect(subdomain)}
-                className="w-full px-6 py-3.5 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] transition-all"
-              >
-                Claim {subdomain}.{APP_DOMAIN}
-              </button>
-            )}
-          </div>
-        );
-      }
-
-      function PricingCard({ title, price, interval, features, popular, onSelect }) {
-        return (
-          <div className={`relative p-8 bg-white rounded-2xl border transition-all hover:shadow-lg ${
-            popular
-              ? 'border-gray-300 shadow-md ring-2 ring-gray-900/10'
-              : 'border-gray-200 shadow-sm'
-          }`}>
-            {popular && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-[var(--landing-accent)] text-white text-xs font-semibold rounded-full uppercase tracking-wide">
-                Most Popular
-              </div>
-            )}
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">{title}</h3>
-            <div className="mb-6">
-              <span className="text-4xl font-bold text-gray-900">{price}</span>
-              <span className="text-gray-500">/{interval}</span>
-            </div>
-            <ul className="mb-8 space-y-3">
-              {features.map((feature, i) => (
-                <li key={i} className="flex items-start gap-3">
-                  <span className="text-[var(--landing-accent)] mt-0.5">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </span>
-                  <span className="text-gray-600">{feature}</span>
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={onSelect}
-              className={`w-full px-6 py-3.5 font-medium rounded-xl transition-all ${
-                popular
-                  ? 'bg-[var(--landing-accent)] text-white hover:bg-[var(--landing-accent-hover)]'
-                  : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-              }`}
-            >
-              Get Started
-            </button>
-          </div>
-        );
-      }
-
       function Hero({ onGetStarted }) {
         const [subdomain, setSubdomain] = useState('');
 
@@ -620,38 +535,105 @@
         );
       }
 
-      function CheckoutFlow({ plan, subdomain: preClaimedSubdomain, onBack }) {
-        const { user } = useUser();
-        const [saving, setSaving] = useState(false);
+      // === localStorage helpers for pending subdomain ===
+      const PENDING_SUBDOMAIN_KEY = `${APP_NAME}_pending_subdomain`;
+
+      function savePendingSubdomain(subdomain) {
+        if (subdomain) localStorage.setItem(PENDING_SUBDOMAIN_KEY, subdomain);
+      }
+
+      function getPendingSubdomain() {
+        return localStorage.getItem(PENDING_SUBDOMAIN_KEY);
+      }
+
+      function clearPendingSubdomain() {
+        localStorage.removeItem(PENDING_SUBDOMAIN_KEY);
+      }
+
+      // === Cookie helpers for cross-session "welcome back" ===
+      const LAST_SUBDOMAIN_COOKIE = `${APP_NAME}_last_subdomain`;
+
+      function setLastSubdomainCookie(subdomain) {
+        if (subdomain) {
+          // Cookie lasts 1 year, accessible on root domain
+          document.cookie = `${LAST_SUBDOMAIN_COOKIE}=${subdomain}; max-age=31536000; path=/; domain=.${APP_DOMAIN}`;
+        }
+      }
+
+      function getLastSubdomainCookie() {
+        const cookie = document.cookie.split('; ').find(c => c.startsWith(`${LAST_SUBDOMAIN_COOKIE}=`));
+        return cookie ? cookie.split('=')[1] : null;
+      }
+
+      // === OnboardingFlow (replaces CheckoutFlow) ===
+      function OnboardingFlow({ subdomain: preClaimedSubdomain, onBack }) {
+        const { user, isLoaded } = useUser();
+        const [activating, setActivating] = useState(false);
         const [localSubdomain, setLocalSubdomain] = useState(preClaimedSubdomain || '');
 
-        const handleSubdomainSelect = async (subdomain) => {
-          setLocalSubdomain(subdomain);
-        };
+        // Save subdomain to localStorage whenever it changes
+        useEffect(() => {
+          if (localSubdomain) {
+            savePendingSubdomain(localSubdomain);
+          }
+        }, [localSubdomain]);
 
-        const handleActivate = async () => {
-          if (!user || !localSubdomain) return;
+        // Restore from localStorage if not provided
+        useEffect(() => {
+          if (!localSubdomain) {
+            const pending = getPendingSubdomain();
+            if (pending) setLocalSubdomain(pending);
+          }
+        }, []);
 
-          setSaving(true);
+        const activateSubdomain = useCallback(async (subdomain) => {
+          if (!user || !subdomain || activating) return;
+
+          setActivating(true);
           try {
-            // Store subdomain in Clerk user's unsafeMetadata (writable from frontend)
             await user.update({
               unsafeMetadata: {
                 ...user.unsafeMetadata,
-                subdomain: localSubdomain,
-                plan,
-                subscriptionStatus: 'active',
-                claimedAt: new Date().toISOString()
+                subdomain: subdomain,
+                plan: 'free',
+                registeredAt: new Date().toISOString()
               }
             });
-            // Redirect to their new subdomain
-            window.location.href = `https://${localSubdomain}.${APP_DOMAIN}`;
+            clearPendingSubdomain();
+            // Set cookie for "welcome back" on future visits
+            setLastSubdomainCookie(subdomain);
+            window.location.href = `https://${subdomain}.${APP_DOMAIN}`;
           } catch (err) {
-            console.error('Error saving subdomain:', err);
-            setSaving(false);
-            alert('Failed to claim subdomain. Please try again.');
+            console.error('Error activating subdomain:', err);
+            setActivating(false);
+            alert('Failed to activate. Please try again.');
           }
-        };
+        }, [user, activating]);
+
+        // Auto-activate when user signs in with a pending subdomain
+        // Note: Pending subdomain takes precedence - user explicitly claimed a new one
+        useEffect(() => {
+          if (!isLoaded || !user || activating) return;
+
+          const pendingSubdomain = localSubdomain || getPendingSubdomain();
+          if (pendingSubdomain) {
+            activateSubdomain(pendingSubdomain);
+          }
+        }, [isLoaded, user, localSubdomain, activating, activateSubdomain]);
+
+        // Show loading state while activating
+        if (activating) {
+          return (
+            <section className="py-16 px-6 max-w-lg mx-auto">
+              <div className="p-8 bg-white rounded-2xl border border-gray-200 shadow-lg text-center">
+                <div className="animate-pulse text-lg font-medium text-gray-600 mb-2">
+                  Setting up your studio...
+                </div>
+                <p className="text-sm text-gray-400">Preparing {localSubdomain || getPendingSubdomain()}.{APP_DOMAIN}</p>
+              </div>
+            </section>
+          );
+        }
 
         return (
           <section className="py-16 px-6 max-w-lg mx-auto">
@@ -660,47 +642,31 @@
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
-                Back to plans
+                Back
               </button>
 
-              <div className="mb-6 pb-6 border-b border-gray-100">
-                <h3 className="text-2xl font-bold text-gray-900 mb-1">{plan === 'yearly' ? 'Yearly' : 'Monthly'} Plan</h3>
-                <p className="text-gray-500">{plan === 'yearly' ? YEARLY_PRICE : MONTHLY_PRICE}/{plan === 'yearly' ? 'year' : 'month'}</p>
+              {/* Subdomain display */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <p className="text-sm text-gray-600 font-medium mb-1">Your subdomain</p>
+                <p className="text-lg font-bold text-gray-900">{localSubdomain}.{APP_DOMAIN}</p>
               </div>
 
-              {/* Show pre-claimed subdomain or picker */}
-              {preClaimedSubdomain ? (
-                <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <p className="text-sm text-gray-600 font-medium mb-1">Your subdomain</p>
-                  <p className="text-lg font-bold text-gray-900">{preClaimedSubdomain}.{APP_DOMAIN}</p>
-                </div>
-              ) : (
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Choose your subdomain</label>
-                  <div className="flex items-center bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
-                    <input
-                      type="text"
-                      value={localSubdomain}
-                      onChange={(e) => setLocalSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                      placeholder="yourname"
-                      className="flex-1 px-4 py-3 bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none"
-                    />
-                    <span className="pr-4 text-gray-400 text-sm">.{APP_DOMAIN}</span>
-                  </div>
-                </div>
-              )}
+              <div className="mb-6 pb-6 border-b border-gray-100">
+                <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full mb-2">Free Forever</span>
+                <p className="text-gray-500">Your own subdomain, unlimited hosting</p>
+              </div>
 
               <SignedOut>
-                <p className="mb-4 text-gray-600">Create an account to activate your subdomain:</p>
-                <div className="flex gap-3">
+                <p className="mb-4 text-gray-600 text-center">Create your account with passkey:</p>
+                <div className="space-y-3">
                   <SignUpButton mode="modal">
-                    <button className="flex-1 px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] transition-colors">
-                      Create Account
+                    <button className="w-full px-6 py-3.5 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] transition-colors">
+                      Create Account with Passkey
                     </button>
                   </SignUpButton>
                   <SignInButton mode="modal">
-                    <button className="flex-1 px-6 py-3 bg-white text-gray-900 font-medium rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
-                      Sign In
+                    <button className="w-full px-6 py-3 bg-white text-gray-900 font-medium rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
+                      Already have an account? Sign In
                     </button>
                   </SignInButton>
                 </div>
@@ -708,11 +674,11 @@
 
               <SignedIn>
                 <button
-                  onClick={handleActivate}
-                  disabled={saving || !localSubdomain}
+                  onClick={() => activateSubdomain(localSubdomain)}
+                  disabled={activating || !localSubdomain}
                   className="w-full px-6 py-3.5 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  {saving ? 'Activating...' : `Activate ${localSubdomain}.${APP_DOMAIN}`}
+                  Enter Your Studio
                 </button>
               </SignedIn>
             </div>
@@ -720,74 +686,158 @@
         );
       }
 
-      function LandingPage() {
+      // === Features Section ===
+      function FeaturesSection() {
+        return (
+          <section className="py-16 px-6 max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-center text-gray-900 mb-10">Everything you need</h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              {FEATURES.slice(0, 6).map((feature, i) => (
+                <div key={i} className="p-5 bg-white rounded-xl border border-gray-200">
+                  <div className="w-10 h-10 bg-[var(--landing-accent)]/10 rounded-lg flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5 text-[var(--landing-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-700 font-medium">{feature}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        );
+      }
+
+      // === Landing Page Content (inside ClerkProvider) ===
+      function LandingPageContent() {
+        const { user, isLoaded } = useUser();
+        const [showOnboarding, setShowOnboarding] = useState(false);
         const [claimedSubdomain, setClaimedSubdomain] = useState(null);
-        const [selectedPlan, setSelectedPlan] = useState(null);
+        const [redirecting, setRedirecting] = useState(false);
+
+        // Check for pending subdomain on load
+        useEffect(() => {
+          if (!isLoaded) return;
+
+          const pending = getPendingSubdomain();
+          // If there's a pending subdomain and user is signed in, show onboarding
+          // (pending subdomain takes precedence - user explicitly claimed a new one)
+          if (user && pending) {
+            setClaimedSubdomain(pending);
+            setShowOnboarding(true);
+          }
+        }, [isLoaded, user]);
 
         const handleGetStarted = (subdomain) => {
+          savePendingSubdomain(subdomain);
           setClaimedSubdomain(subdomain);
-          // Scroll to pricing section
-          document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+          setShowOnboarding(true);
         };
 
-        const handlePlanSelect = (plan) => {
-          setSelectedPlan(plan);
+        const handleBack = () => {
+          setShowOnboarding(false);
+          clearPendingSubdomain();
+          setClaimedSubdomain(null);
         };
+
+        // Get subdomain from metadata or cookie
+        const userSubdomain = user?.unsafeMetadata?.subdomain || getLastSubdomainCookie();
+
+        const handleGoToStudio = () => {
+          if (userSubdomain) {
+            setRedirecting(true);
+            window.location.href = `https://${userSubdomain}.${APP_DOMAIN}`;
+          }
+        };
+
+        // Show redirecting state
+        if (redirecting) {
+          return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+              <div className="text-center">
+                <div className="animate-pulse text-lg font-medium text-gray-600 mb-2">
+                  Taking you to your studio...
+                </div>
+              </div>
+            </div>
+          );
+        }
 
         return (
-          <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
-            <div className="min-h-screen bg-gray-50">
-              <header className="flex justify-between items-center px-6 py-4 max-w-6xl mx-auto">
-                <div className="font-semibold text-lg text-gray-900">
-                  {APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                </div>
-                <nav>
-                  <SignedOut>
-                    <div className="flex gap-3 items-center">
-                      <SignInButton mode="modal">
-                        <button className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium transition-colors">Sign In</button>
-                      </SignInButton>
-                      <SignUpButton mode="modal">
-                        <button className="px-4 py-2 bg-[var(--landing-accent)] text-white font-medium rounded-lg hover:bg-[var(--landing-accent-hover)] transition-colors">Get Started</button>
-                      </SignUpButton>
-                    </div>
-                  </SignedOut>
-                  <SignedIn>
+          <div className="min-h-screen bg-gray-50">
+            <header className="flex justify-between items-center px-6 py-4 max-w-6xl mx-auto">
+              <div className="font-semibold text-lg text-gray-900">
+                {APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+              </div>
+              <nav>
+                <SignedOut>
+                  <div className="flex gap-3 items-center">
+                    <SignInButton mode="modal">
+                      <button className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium transition-colors">Sign In with Passkey</button>
+                    </SignInButton>
+                  </div>
+                </SignedOut>
+                <SignedIn>
+                  <div className="flex gap-3 items-center">
+                    {userSubdomain && (
+                      <button
+                        onClick={handleGoToStudio}
+                        className="px-4 py-2 bg-[var(--landing-accent)] text-white font-medium rounded-lg hover:bg-[var(--landing-accent-hover)] transition-colors"
+                      >
+                        My Studio
+                      </button>
+                    )}
                     <UserButton />
-                  </SignedIn>
-                </nav>
-              </header>
+                  </div>
+                </SignedIn>
+              </nav>
+            </header>
 
-              {!selectedPlan ? (
-                <>
-                  <Hero onGetStarted={handleGetStarted} />
-
-                  {/* Reserved subdomain banner */}
-                  {claimedSubdomain && (
-                    <div className="text-center py-4 px-6 bg-gray-100 border-y border-gray-200">
-                      <p className="text-gray-800 font-medium">
-                        <span className="font-bold">{claimedSubdomain}.{APP_DOMAIN}</span> is reserved for you! Choose a plan below to activate it.
-                      </p>
+            {!showOnboarding ? (
+              <>
+                {/* Welcome back banner - shows ABOVE hero for returning users */}
+                {userSubdomain && (
+                  <div className="bg-gradient-to-r from-[var(--landing-accent)] to-[var(--landing-accent-hover)] text-white">
+                    <div className="max-w-4xl mx-auto px-6 py-4">
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="text-center sm:text-left">
+                          <h2 className="text-lg font-semibold">Welcome back!</h2>
+                          <p className="text-white/80">
+                            <strong className="text-white">{userSubdomain}.{APP_DOMAIN}</strong> is ready for you
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleGoToStudio}
+                          className="px-6 py-2.5 bg-white text-[var(--landing-accent)] font-medium rounded-xl hover:bg-gray-100 transition-colors whitespace-nowrap"
+                        >
+                          Enter Your Studio
+                        </button>
+                      </div>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  <section id="pricing" className="py-20 px-6 max-w-4xl mx-auto">
-                    <h2 className="text-3xl font-bold text-center text-gray-900 mb-3">Simple, Transparent Pricing</h2>
-                    <p className="text-center text-gray-500 mb-12 max-w-xl mx-auto">Choose the plan that works for you. Cancel anytime.</p>
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <PricingCard title="Monthly" price={MONTHLY_PRICE} interval="month" features={FEATURES} onSelect={() => handlePlanSelect('monthly')} />
-                      <PricingCard title="Yearly" price={YEARLY_PRICE} interval="year" features={[...FEATURES, "2 months free!"]} popular={true} onSelect={() => handlePlanSelect('yearly')} />
-                    </div>
-                  </section>
-                </>
-              ) : (
-                <CheckoutFlow plan={selectedPlan} subdomain={claimedSubdomain} onBack={() => setSelectedPlan(null)} />
-              )}
+                {/* Hero ALWAYS shows - allows claiming additional subdomains */}
+                <Hero onGetStarted={handleGetStarted} />
 
-              <footer className="py-8 px-6 text-center text-gray-400 border-t border-gray-200 mt-16">
-                <p>Built with <a href="https://vibes.diy" className="text-[var(--landing-accent)] hover:underline">Vibes DIY</a></p>
-              </footer>
-            </div>
+                {/* Features grid */}
+                <FeaturesSection />
+              </>
+            ) : (
+              <OnboardingFlow subdomain={claimedSubdomain} onBack={handleBack} />
+            )}
+
+            <footer className="py-8 px-6 text-center text-gray-400 border-t border-gray-200 mt-16">
+              <p>Built with <a href="https://vibes.diy" className="text-[var(--landing-accent)] hover:underline">Vibes DIY</a></p>
+            </footer>
+          </div>
+        );
+      }
+
+      // === Landing Page Wrapper ===
+      function LandingPage() {
+        return (
+          <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
+            <LandingPageContent />
           </ClerkProvider>
         );
       }
