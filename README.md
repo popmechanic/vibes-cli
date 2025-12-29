@@ -14,12 +14,35 @@ Your data lives locally in the browser, encrypted and portable. It syncs across 
 
 ## Installation
 
-```bash
+In Claude Code, run:
+
+```
 /plugin marketplace add popmechanic/vibes-cli
 /plugin install vibes@vibes-cli
 ```
 
 **Important**: Restart Claude Code after installation to load the new skills.
+
+### Updating
+
+To update to the latest version:
+
+```
+/plugin update vibes@vibes-cli
+```
+
+### Troubleshooting
+
+If updates aren't working or you're stuck on an old version:
+
+```
+/plugin marketplace remove vibes-cli
+/plugin uninstall vibes@vibes-cli
+/plugin marketplace add popmechanic/vibes-cli
+/plugin install vibes@vibes-cli
+```
+
+Then restart Claude Code.
 
 ## Skills
 
@@ -103,6 +126,31 @@ admin.yourdomain.com    → Admin dashboard
 2. Run `/sell` to transform it into a SaaS
 3. Configure domain, pricing, Clerk keys
 4. Deploy to Cloudflare and start selling
+
+## Commands
+
+Commands are **user-invoked** - run them explicitly when needed.
+
+### `sync`
+
+Update the cached documentation and import maps from upstream Vibes DIY sources.
+
+### `update`
+
+Deterministically update an existing Vibes app's infrastructure (import maps, library versions, components) without regenerating your code.
+
+```bash
+# Analyze an app (dry-run)
+node scripts/update.js path/to/app.html
+
+# Apply updates
+node scripts/update.js path/to/app.html --apply
+
+# Batch update a directory
+node scripts/update.js ./apps/
+```
+
+Useful when you have production apps that need library updates but you don't want to regenerate from scratch.
 
 ## Why Vibes?
 
