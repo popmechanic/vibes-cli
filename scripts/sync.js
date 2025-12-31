@@ -20,24 +20,66 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const PLUGIN_ROOT = dirname(__dirname);
 const CACHE_DIR = join(PLUGIN_ROOT, "cache");
+const CONFIG_FILE = join(PLUGIN_ROOT, "config", "sources.json");
+
+// Default upstream sources (can be overridden via config file or env vars)
+const DEFAULT_SOURCES = {
+  fireproof: "https://use-fireproof.com/llms-full.txt",
+  stylePrompt: "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/prompts/pkg/style-prompts.ts",
+  importMap: "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/vibes.diy/pkg/app/config/import-map.ts",
+  cssVariables: "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/vibes.diy/pkg/app/styles/colors.css",
+  vibesComponentsBase: "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/vibes.diy/pkg/app/components/vibes",
+  useVibesBase: "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/use-vibes/base"
+};
+
+/**
+ * Load source configuration from file or environment
+ * Priority: env vars > config file > defaults
+ */
+function loadSourceConfig() {
+  let fileConfig = {};
+
+  // Try loading config file
+  if (existsSync(CONFIG_FILE)) {
+    try {
+      fileConfig = JSON.parse(readFileSync(CONFIG_FILE, 'utf-8'));
+      console.log('Loaded source config from', CONFIG_FILE);
+    } catch (e) {
+      console.warn('Warning: Could not parse config file, using defaults');
+    }
+  }
+
+  // Merge with env vars taking priority
+  return {
+    fireproof: process.env.VIBES_FIREPROOF_URL || fileConfig.fireproof || DEFAULT_SOURCES.fireproof,
+    stylePrompt: process.env.VIBES_STYLE_PROMPT_URL || fileConfig.stylePrompt || DEFAULT_SOURCES.stylePrompt,
+    importMap: process.env.VIBES_IMPORT_MAP_URL || fileConfig.importMap || DEFAULT_SOURCES.importMap,
+    cssVariables: process.env.VIBES_CSS_VARIABLES_URL || fileConfig.cssVariables || DEFAULT_SOURCES.cssVariables,
+    vibesComponentsBase: process.env.VIBES_COMPONENTS_BASE_URL || fileConfig.vibesComponentsBase || DEFAULT_SOURCES.vibesComponentsBase,
+    useVibesBase: process.env.VIBES_USE_VIBES_BASE_URL || fileConfig.useVibesBase || DEFAULT_SOURCES.useVibesBase
+  };
+}
+
+// Load configuration
+const SOURCE_CONFIG = loadSourceConfig();
 
 // Documentation sources
 const DOC_SOURCES = {
-  fireproof: "https://use-fireproof.com/llms-full.txt",
+  fireproof: SOURCE_CONFIG.fireproof,
 };
 
 // Style prompt source
-const STYLE_PROMPT_URL = "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/prompts/pkg/style-prompts.ts";
+const STYLE_PROMPT_URL = SOURCE_CONFIG.stylePrompt;
 
 // Import map source
-const IMPORT_MAP_URL = "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/vibes.diy/pkg/app/config/import-map.ts";
+const IMPORT_MAP_URL = SOURCE_CONFIG.importMap;
 
 // CSS variables source (colors.css contains all button/card/theme variables)
-const CSS_VARIABLES_URL = "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/vibes.diy/pkg/app/styles/colors.css";
+const CSS_VARIABLES_URL = SOURCE_CONFIG.cssVariables;
 
 // Menu component sources from vibes.diy
-const VIBES_COMPONENTS_BASE = "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/vibes.diy/pkg/app/components/vibes";
-const USE_VIBES_BASE = "https://raw.githubusercontent.com/VibesDIY/vibes.diy/main/use-vibes/base";
+const VIBES_COMPONENTS_BASE = SOURCE_CONFIG.vibesComponentsBase;
+const USE_VIBES_BASE = SOURCE_CONFIG.useVibesBase;
 
 const MENU_COMPONENT_SOURCES = {
   // Order matters: dependencies before dependents
@@ -61,6 +103,32 @@ const MENU_COMPONENT_SOURCES = {
   "VibesButton": `${VIBES_COMPONENTS_BASE}/VibesButton/VibesButton.tsx`,
 };
 
+// Default timeout for fetch requests (60 seconds)
+const FETCH_TIMEOUT_MS = 60000;
+
+/**
+ * Fetch with timeout protection
+ * @param {string} url - URL to fetch
+ * @param {number} timeoutMs - Timeout in milliseconds (default: FETCH_TIMEOUT_MS)
+ * @returns {Promise<Response>} - Fetch response
+ */
+async function fetchWithTimeout(url, timeoutMs = FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timed out after ${timeoutMs / 1000}s`);
+    }
+    throw error;
+  }
+}
+
 async function fetchDoc(name, url, force) {
   const cachePath = join(CACHE_DIR, `${name}.txt`);
 
@@ -70,7 +138,7 @@ async function fetchDoc(name, url, force) {
 
   try {
     console.log(`Fetching ${name} from ${url}...`);
-    const response = await fetch(url);
+    const response = await fetchWithTimeout(url);
 
     if (!response.ok) {
       return {
@@ -97,7 +165,18 @@ async function fetchDoc(name, url, force) {
 }
 
 /**
- * Parse the import-map.ts file from vibes.diy and extract the import map
+ * Parse the import-map.ts file from vibes.diy and extract the import map.
+ *
+ * Handles multiple syntax patterns:
+ * - Quoted keys: "react-dom": "https://esm.sh/react-dom@19.2.1"
+ * - Unquoted keys: react: "https://esm.sh/react@19.2.1"
+ * - Template literals with VIBES_VERSION: "use-vibes": `https://esm.sh/use-vibes@${VIBES_VERSION}`
+ *
+ * @param {string} content - Raw TypeScript content from import-map.ts
+ * @returns {Object.<string, string>} - Object mapping package names to CDN URLs
+ * @example
+ * const imports = parseImportMapTs(tsContent);
+ * // { "react": "https://esm.sh/react@19.2.1", "use-vibes": "https://esm.sh/use-vibes@0.19" }
  */
 function parseImportMapTs(content) {
   const imports = {};
@@ -135,7 +214,14 @@ function parseImportMapTs(content) {
 }
 
 /**
- * Parse the style-prompts.ts file and extract the default style prompt
+ * Parse the style-prompts.ts file and extract the default style prompt.
+ *
+ * Looks for DEFAULT_STYLE_NAME and then extracts the corresponding prompt
+ * from the stylePrompts array. Falls back to searching for a brutalist-style
+ * prompt if the default cannot be found.
+ *
+ * @param {string} content - Raw TypeScript content from style-prompts.ts
+ * @returns {string} The extracted style prompt text, or empty string if not found
  */
 function parseStylePromptsTs(content) {
   // Find the DEFAULT_STYLE_NAME
@@ -175,7 +261,7 @@ async function fetchStylePrompt(force) {
 
   try {
     console.log(`Fetching style-prompt from ${STYLE_PROMPT_URL}...`);
-    const response = await fetch(STYLE_PROMPT_URL);
+    const response = await fetchWithTimeout(STYLE_PROMPT_URL);
 
     if (!response.ok) {
       return {
@@ -221,7 +307,7 @@ async function fetchImportMap(force) {
 
   try {
     console.log(`Fetching import-map from ${IMPORT_MAP_URL}...`);
-    const response = await fetch(IMPORT_MAP_URL);
+    const response = await fetchWithTimeout(IMPORT_MAP_URL);
 
     if (!response.ok) {
       return {
@@ -267,7 +353,7 @@ async function fetchCssVariables(force) {
 
   try {
     console.log(`Fetching CSS variables from ${CSS_VARIABLES_URL}...`);
-    const response = await fetch(CSS_VARIABLES_URL);
+    const response = await fetchWithTimeout(CSS_VARIABLES_URL);
 
     if (!response.ok) {
       // If the CSS file doesn't exist, generate minimal CSS variables
@@ -328,17 +414,31 @@ async function fetchMenuComponents(force) {
   }
 
   try {
-    console.log("Fetching menu components from vibes.diy...");
+    console.log("Fetching menu components from vibes.diy (parallel)...");
 
-    const sources = {};
-    for (const [name, url] of Object.entries(MENU_COMPONENT_SOURCES)) {
-      console.log(`  Fetching ${name}...`);
-      const response = await fetch(url);
-      if (!response.ok) {
-        console.log(`  Warning: Failed to fetch ${name} (${response.status})`);
-        continue;
+    // Fetch all components in parallel
+    const fetchPromises = Object.entries(MENU_COMPONENT_SOURCES).map(async ([name, url]) => {
+      try {
+        const response = await fetchWithTimeout(url);
+        if (!response.ok) {
+          console.warn(`  Warning: Failed to fetch ${name} (${response.status})`);
+          return { name, source: null };
+        }
+        const source = await response.text();
+        console.log(`  Fetched ${name}`);
+        return { name, source };
+      } catch (err) {
+        console.warn(`  Warning: Failed to fetch ${name}: ${err.message}`);
+        return { name, source: null };
       }
-      sources[name] = await response.text();
+    });
+
+    const fetchResults = await Promise.all(fetchPromises);
+    const sources = {};
+    for (const { name, source } of fetchResults) {
+      if (source !== null) {
+        sources[name] = source;
+      }
     }
 
     if (Object.keys(sources).length === 0) {
@@ -350,17 +450,10 @@ async function fetchMenuComponents(force) {
       };
     }
 
-    console.log("  Transpiling components with esbuild...");
+    console.log("  Transpiling components with esbuild (parallel)...");
 
-    let combinedOutput = `// Auto-generated vibes menu components
-// Run: node scripts/sync.js --force to regenerate
-// Source: ${VIBES_COMPONENTS_BASE}
-// Generated: ${new Date().toISOString()}
-
-`;
-
-    // Process each source file
-    for (const [name, source] of Object.entries(sources)) {
+    // Transpile all components in parallel
+    const transpilePromises = Object.entries(sources).map(async ([name, source]) => {
       const isTS = name.includes(".styles");
       const loader = isTS ? "ts" : "tsx";
 
@@ -376,14 +469,15 @@ async function fetchMenuComponents(force) {
         // Process the transpiled code
         let code = result.code;
 
-        // Remove imports (they'll be available globally)
-        // Functions are defined inline in order, so external imports are not needed
+        // Remove imports (they'll be available globally via the template)
+        // Patterns are anchored to line start (^) to avoid matching inside comments
+        // Note: esbuild's transform strips most comments, but we anchor defensively
         code = code
-          .replace(/import\s+\w+\s*,\s*\{[^}]+\}\s+from\s+["'][^"']+["'];?\n?/g, "")  // import X, { y } from "..."
-          .replace(/import\s+\{[^}]+\}\s+from\s+["'][^"']+["'];?\n?/g, "")            // import { x } from "..."
-          .replace(/import\s+[\w]+\s+from\s+["'][^"']+["'];?\n?/g, "")                // import x from "..."
-          .replace(/import\s+type\s+.*from\s+["'][^"']+["'];?\n?/g, "")               // import type ...
-          .replace(/^export\s+/gm, "");                                       // export keyword
+          .replace(/^import\s+\w+\s*,\s*\{[^}]+\}\s+from\s+["'][^"']+["'];?\n?/gm, "")  // import X, { y } from "..."
+          .replace(/^import\s+\{[^}]+\}\s+from\s+["'][^"']+["'];?\n?/gm, "")            // import { x } from "..."
+          .replace(/^import\s+[\w]+\s+from\s+["'][^"']+["'];?\n?/gm, "")                // import x from "..."
+          .replace(/^import\s+type\s+[^\n]+\n?/gm, "")                                  // import type ... (anchored, non-greedy)
+          .replace(/^export\s+/gm, "");                                                 // export keyword
 
         // Add React. prefix to hooks if not already prefixed
         code = code
@@ -394,9 +488,26 @@ async function fetchMenuComponents(force) {
           .replace(/(?<!React\.)useMemo\(/g, "React.useMemo(")
           .replace(/(?<!React\.)useLayoutEffect\b/g, "React.useLayoutEffect");
 
-        combinedOutput += `// === ${name} ===\n${code}\n\n`;
+        return { name, code, success: true };
       } catch (err) {
-        console.log(`  Warning: Failed to transpile ${name}: ${err.message}`);
+        console.warn(`  Warning: Failed to transpile ${name}: ${err.message}`);
+        return { name, code: null, success: false };
+      }
+    });
+
+    const transpileResults = await Promise.all(transpilePromises);
+
+    let combinedOutput = `// Auto-generated vibes menu components
+// Run: node scripts/sync.js --force to regenerate
+// Source: ${VIBES_COMPONENTS_BASE}
+// Generated: ${new Date().toISOString()}
+
+`;
+
+    // Combine results in order
+    for (const { name, code, success } of transpileResults) {
+      if (success && code) {
+        combinedOutput += `// === ${name} ===\n${code}\n\n`;
       }
     }
 
@@ -621,7 +732,7 @@ async function main() {
     const daysSinceUpdate = Math.floor((Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24));
 
     if (daysSinceUpdate > 30) {
-      console.log(`\nWarning: Cache is ${daysSinceUpdate} days old. Consider running with --force to update.`);
+      console.warn(`\nWarning: Cache is ${daysSinceUpdate} days old. Consider running with --force to update.`);
     }
   }
 

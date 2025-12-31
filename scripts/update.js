@@ -13,7 +13,7 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, renameSync, copyFileSync } from 'fs';
-import { resolve, join, basename, extname } from 'path';
+import { resolve, join, basename, dirname, extname } from 'path';
 import { fileURLToPath } from 'url';
 import { analyze, analyzeMultiple } from './lib/analyze.js';
 import { compare } from './lib/compare.js';
@@ -109,8 +109,8 @@ function findHtmlFiles(dirPath) {
     const stat = statSync(fullPath);
 
     if (stat.isFile() && extname(entry).toLowerCase() === '.html') {
-      // Skip backup files
-      if (!entry.endsWith('.bak.html')) {
+      // Skip backup files (both legacy .bak.html and timestamped .YYYYMMDD-HHMMSS.bak.html)
+      if (!entry.endsWith('.bak.html') && !entry.match(/\.\d{8}-\d{6}\.bak\.html$/)) {
         files.push(fullPath);
       }
     } else if (stat.isDirectory() && !entry.startsWith('.') && entry !== 'node_modules') {
@@ -123,24 +123,66 @@ function findHtmlFiles(dirPath) {
 }
 
 /**
- * Create backup of file
+ * Generate timestamp string for backup filenames
+ * Format: YYYYMMDD-HHMMSS
+ */
+function getBackupTimestamp() {
+  const now = new Date();
+  const pad = (n) => n.toString().padStart(2, '0');
+  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+}
+
+/**
+ * Create backup of file with timestamp
+ * Creates: app.20251231-120000.bak.html
  */
 function createBackup(filePath) {
-  const backupPath = filePath.replace(/\.html$/, '.bak.html');
+  const timestamp = getBackupTimestamp();
+  const backupPath = filePath.replace(/\.html$/, `.${timestamp}.bak.html`);
   copyFileSync(filePath, backupPath);
   return backupPath;
 }
 
 /**
- * Restore file from backup
+ * Find the most recent backup for a file
+ */
+function findLatestBackup(filePath) {
+  const dir = dirname(filePath);
+  const baseName = basename(filePath, '.html');
+  const pattern = new RegExp(`^${baseName}\\.\\d{8}-\\d{6}\\.bak\\.html$`);
+
+  try {
+    const entries = readdirSync(dir);
+    const backups = entries
+      .filter(e => pattern.test(e))
+      .sort()
+      .reverse(); // Most recent first
+
+    if (backups.length === 0) {
+      // Fall back to legacy .bak.html format
+      const legacyBackup = `${baseName}.bak.html`;
+      if (entries.includes(legacyBackup)) {
+        return join(dir, legacyBackup);
+      }
+      return null;
+    }
+
+    return join(dir, backups[0]);
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Restore file from backup (uses most recent backup)
  */
 function restoreFromBackup(filePath) {
-  const backupPath = filePath.replace(/\.html$/, '.bak.html');
+  const backupPath = findLatestBackup(filePath);
 
-  if (!existsSync(backupPath)) {
+  if (!backupPath) {
     return {
       success: false,
-      error: `Backup file not found: ${backupPath}`
+      error: `No backup file found for: ${filePath}`
     };
   }
 
@@ -150,6 +192,53 @@ function restoreFromBackup(filePath) {
     backupPath
   };
 }
+
+/**
+ * Validate that HTML output is well-formed and contains required elements
+ * @param {string} html - The HTML content to validate
+ * @returns {object} - { valid: boolean, errors: string[] }
+ */
+function validateOutput(html) {
+  const errors = [];
+
+  // Check for import map
+  if (!/<script\s+type=["']importmap["']/i.test(html)) {
+    errors.push('Missing import map (<script type="importmap">)');
+  }
+
+  // Check for Babel script
+  if (!/<script\s+type=["']text\/babel["']/i.test(html)) {
+    errors.push('Missing Babel script (<script type="text/babel">)');
+  }
+
+  // Check for App component
+  if (!/export\s+default\s+function\s+App/i.test(html)) {
+    errors.push('Missing App component (export default function App)');
+  }
+
+  // Check for basic HTML structure
+  if (!/<html/i.test(html)) {
+    errors.push('Missing <html> tag');
+  }
+  if (!/<\/html>/i.test(html)) {
+    errors.push('Missing closing </html> tag');
+  }
+
+  // Check for unclosed script tags (simple heuristic)
+  const scriptOpens = (html.match(/<script/gi) || []).length;
+  const scriptCloses = (html.match(/<\/script>/gi) || []).length;
+  if (scriptOpens !== scriptCloses) {
+    errors.push(`Mismatched script tags (${scriptOpens} opens, ${scriptCloses} closes)`);
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+// Maximum file size before warning (10MB)
+const LARGE_FILE_THRESHOLD = 10 * 1024 * 1024;
 
 /**
  * Process a single file
@@ -163,6 +252,13 @@ function processFile(filePath, options) {
       success: false,
       error: `File not found: ${resolvedPath}`
     };
+  }
+
+  // Check file size and warn if large
+  const stat = statSync(resolvedPath);
+  if (stat.size > LARGE_FILE_THRESHOLD) {
+    const sizeMB = (stat.size / (1024 * 1024)).toFixed(1);
+    console.warn(`${colors.yellow}Warning: Large file (${sizeMB}MB). Processing may be slow.${colors.reset}`);
   }
 
   // Read file
@@ -249,9 +345,16 @@ function processFile(filePath, options) {
     }
   }
 
-  // Write updated file
+  // Write updated file and validate
+  let validationWarnings = [];
   if (applied.length > 0) {
     writeFileSync(resolvedPath, currentHtml, 'utf-8');
+
+    // Validate output
+    const validation = validateOutput(currentHtml);
+    if (!validation.valid) {
+      validationWarnings = validation.errors;
+    }
   }
 
   // Format output
@@ -279,6 +382,14 @@ function processFile(filePath, options) {
     lines.push('');
   }
 
+  if (validationWarnings.length > 0) {
+    lines.push(`${colors.yellow}⚠ Validation warnings:${colors.reset}`);
+    for (const w of validationWarnings) {
+      lines.push(`    ${w}`);
+    }
+    lines.push('');
+  }
+
   lines.push(`${colors.dim}Backup: ${backupPath}${colors.reset}`);
   lines.push(`${colors.dim}Use --rollback to restore${colors.reset}`);
   lines.push('');
@@ -288,6 +399,7 @@ function processFile(filePath, options) {
     mode: 'apply',
     applied,
     failed,
+    validationWarnings,
     backupPath,
     output: lines.join('\n')
   };

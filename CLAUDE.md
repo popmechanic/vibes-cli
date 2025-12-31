@@ -47,6 +47,27 @@ Run sync with: `/vibes:sync` or `node scripts/sync.js --force`
 | `style-prompts.ts` | `cache/style-prompt.txt` | UI style guidance |
 | `use-fireproof.com/llms-full.txt` | `cache/fireproof.txt` | Fireproof API docs |
 
+### Configuring Upstream Sources
+
+The sync script supports custom upstream URLs via config file or environment variables.
+
+**Priority:** Environment variables > `config/sources.json` > defaults
+
+**Config file:** Copy `config/sources.example.json` to `config/sources.json` and modify URLs.
+
+**Environment variables:**
+- `VIBES_FIREPROOF_URL` - Fireproof documentation URL
+- `VIBES_STYLE_PROMPT_URL` - Style prompts source
+- `VIBES_IMPORT_MAP_URL` - Import map source
+- `VIBES_CSS_VARIABLES_URL` - CSS variables source
+- `VIBES_COMPONENTS_BASE_URL` - Vibes components base URL
+- `VIBES_USE_VIBES_BASE_URL` - use-vibes base URL
+
+Example:
+```bash
+VIBES_IMPORT_MAP_URL="https://example.com/my-import-map.ts" node scripts/sync.js --force
+```
+
 ## Critical Rules
 
 ### 1. NEVER Hardcode Import Map Values
@@ -130,7 +151,10 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 |------|---------|
 | `scripts/assemble.js` | Assembly script - inserts JSX into template |
 | `scripts/sync.js` | Sync script - fetches and updates cache |
+| `scripts/find-plugin.js` | Plugin directory lookup with validation |
+| `scripts/update.js` | Deterministic app updater |
 | `scripts/package.json` | Node.js deps |
+| `config/sources.example.json` | Example config for upstream URL overrides |
 | `cache/import-map.json` | Working cache - package versions |
 | `cache/style-prompt.txt` | Working cache - UI style guidance |
 | `cache/fireproof.txt` | Working cache - Fireproof API docs |
@@ -138,7 +162,10 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `skills/vibes/templates/index.html` | HTML template with menu components |
 | `skills/vibes/SKILL.md` | Main vibes skill (has import map) |
 | `skills/riff/SKILL.md` | Riff skill for parallel app generation |
+| `skills/sell/SKILL.md` | Sell skill for SaaS transformation |
 | `commands/sync.md` | User-facing sync command definition |
+| `commands/update.md` | User-facing update command definition |
+| `commands/sell.md` | User-facing sell command definition |
 
 ### Cache Locations
 
@@ -218,6 +245,36 @@ The `?external=` parameter tells esm.sh to keep specified dependencies as **bare
 - Version `0.18.9` is stable (dev versions have bugs)
 - Unpinned React lets esm.sh resolve compatible version
 - `?external=react,react-dom` ensures import map controls React
+
+## Skills vs Commands
+
+This plugin provides both skills and commands. Understanding when each is used:
+
+### Skills (Auto-triggered by Claude)
+
+| Skill | Triggered When | Description |
+|-------|----------------|-------------|
+| `/vibes:vibes` | User asks to "build an app", "create a todo list", etc. | Generates a single Vibes app |
+| `/vibes:riff` | User asks to "explore ideas", "generate variations", "riff on X" | Generates multiple app variations in parallel |
+| `/vibes:sell` | User asks to "monetize", "add billing", "make it SaaS" | Transforms app into multi-tenant SaaS |
+
+Claude automatically selects the appropriate skill based on user intent. The skill description in the YAML frontmatter guides this selection.
+
+### Commands (User-invoked)
+
+| Command | When to Use | Description |
+|---------|-------------|-------------|
+| `/vibes:sync` | Periodically (every 30 days) or when docs seem stale | Updates cached documentation and import maps |
+| `/vibes:update` | When existing app has outdated imports or patterns | Deterministic updater for existing apps |
+
+Commands are explicitly invoked by the user with the `/` prefix.
+
+### Selection Logic
+
+- **vibes vs riff**: "Make me an app" → vibes (single). "Give me 5 variations" → riff (multiple).
+- **vibes vs sell**: "Build X" → vibes. "Build X with billing" or "monetize my app" → sell.
+- **sync**: Only when user explicitly runs `/vibes:sync` or skill warns about stale cache.
+- **update**: Only when user explicitly runs `/vibes:update` on existing HTML files.
 
 ## Known Issues
 

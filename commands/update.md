@@ -1,4 +1,5 @@
 ---
+name: update
 description: Update an existing Vibes app to the latest plugin version without regenerating code
 ---
 
@@ -17,8 +18,8 @@ Use this command when you have:
 ## Usage
 
 ```bash
-# Find the plugin directory
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)"
+# Find the plugin directory (with validation)
+VIBES_DIR="$(node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js)"
 
 # Analyze an app (dry-run, no changes made)
 node "${VIBES_DIR}scripts/update.js" path/to/app.html
