@@ -1,53 +1,32 @@
 ---
+name: sell
 description: Transform a Vibes app into a multi-tenant SaaS with Clerk auth and Clerk Billing
 ---
 
 # Sell - Transform to SaaS
 
-Transform your Vibes app into a multi-tenant SaaS product with:
+This command invokes the `/vibes:sell` skill to transform your Vibes app into a multi-tenant SaaS product.
 
-- **Subdomain-based tenancy** - Each customer gets their own subdomain (alice.yourdomain.com)
-- **Clerk authentication** - Secure sign-in/sign-up with Clerk
-- **Clerk Billing** - Per-subdomain subscriptions
-- **Landing page** - Marketing page with pricing and subdomain picker
-- **Admin dashboard** - View and manage all tenants
+## What You Get
+
+- Subdomain-based tenancy (alice.yourdomain.com)
+- Clerk authentication and billing
+- Landing page with pricing
+- Admin dashboard
 
 ## Prerequisites
 
-Before running this command, you should have:
-
-1. An existing Vibes app (`app.jsx`) generated with `/vibes:vibes`
-2. A Clerk account (create free at [clerk.com](https://clerk.com))
+1. An existing Vibes app (`app.jsx`) from `/vibes:vibes`
+2. A Clerk account ([clerk.com](https://clerk.com))
 3. A domain name you control
 
-## What Gets Generated
+## Usage
 
-A **single unified `index.html`** file that handles all routes via client-side subdomain detection:
+Run `/vibes:sell` and provide when prompted:
+- App name and title
+- Your domain
+- Pricing (monthly/yearly)
+- Clerk publishable key
+- Admin user IDs
 
-| Route | Purpose |
-|-------|---------|
-| `yourdomain.com` | Landing page with pricing |
-| `*.yourdomain.com` | Tenant app with auth |
-| `admin.yourdomain.com` | Admin dashboard |
-
-## Configuration Required
-
-The skill will ask you for:
-
-- **App name**: Used for database naming (e.g., "wedding-photos")
-- **App title**: Display name (e.g., "Fantasy Wedding")
-- **Domain**: Your root domain (e.g., "fantasy.wedding")
-- **Pricing**: Monthly and yearly subscription prices
-- **Clerk publishable key**: From Clerk Dashboard → API Keys
-- **Admin user IDs**: Clerk user IDs for admin bypass
-
-## Deployment
-
-Deploy to **Cloudflare Pages** with a Worker for wildcard subdomains:
-
-1. Create a Pages project and upload `index.html`
-2. Add your custom domain
-3. Create a Worker to proxy `*.yourdomain.com` to Pages
-4. Add the Worker route trigger
-
-See the skill documentation for detailed Cloudflare deployment steps.
+The skill handles code generation, assembly, and deployment guidance.

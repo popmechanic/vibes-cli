@@ -19,6 +19,8 @@ description: Transform a Vibes app into a multi-tenant SaaS with per-subdomain b
 
 ## ⛔ CRITICAL RULES - READ FIRST ⛔
 
+**Known Limitation:** Clerk's `user.created` webhook only fires for NEW account signups, not when existing Clerk users sign into your app. See "Webhook Tracking Limitation" section for details and workarounds.
+
 **DO NOT generate code manually.** This skill uses pre-built scripts:
 
 | Step | Script | What it does |
@@ -28,7 +30,7 @@ description: Transform a Vibes app into a multi-tenant SaaS with per-subdomain b
 
 **Script location:**
 ```bash
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)"
+VIBES_DIR="$(node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js)"
 # Then use: node "${VIBES_DIR}scripts/assemble-sell.js" ...
 # And: node "${VIBES_DIR}scripts/deploy-sell.js" ...
 ```
@@ -195,7 +197,7 @@ Run the assembly script to generate the unified files:
 
 ```bash
 # Find latest plugin version
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)"
+VIBES_DIR="$(node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js)"
 
 # Run assembly
 node "${VIBES_DIR}scripts/assemble-sell.js" app.jsx index.html \
@@ -282,7 +284,7 @@ wrangler login
 
 ```bash
 # Find latest plugin version
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)"
+VIBES_DIR="$(node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js)"
 
 # Run automated deployment - prompts for everything interactively
 node "${VIBES_DIR}scripts/deploy-sell.js"
@@ -315,7 +317,7 @@ Then provide the Step 5 instructions verbatim.
 
 ```bash
 # Find latest plugin version
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)"
+VIBES_DIR="$(node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js)"
 
 # Run automated deployment
 node "${VIBES_DIR}scripts/deploy-sell.js"
@@ -520,75 +522,19 @@ All three routes point to the same worker:
 
 ## Step 5: Clerk Setup (PROVIDE THESE INSTRUCTIONS AFTER DEPLOYMENT)
 
-**IMPORTANT**: After Cloudflare deployment completes, provide these instructions to the user. Do NOT web search - everything needed is here.
+**IMPORTANT**: After Cloudflare deployment completes, provide the Clerk setup instructions to the user.
 
-**NO REBUILD REQUIRED**: Clerk setup is done in the Clerk Dashboard only. The app already has Clerk integration built in - you just need to configure your Clerk account. Do NOT regenerate or reassemble the app.
+**Read the complete setup guide:** [CLERK-SETUP.md](./CLERK-SETUP.md)
 
-### 5.1 Create Clerk Application
+**Quick summary of steps:**
+1. Create Clerk application at [clerk.com](https://clerk.com), copy Publishable Key
+2. Enable Clerk Billing, create subscription plans (names must match `has({ plan: 'planname' })`)
+3. Get admin user ID from Clerk Dashboard → Users
+4. Configure webhooks at `https://yourdomain.com/webhooks/clerk` (NOT a subdomain)
 
-1. Go to [clerk.com](https://clerk.com) and sign in
-2. Create a new application
-3. Copy the **Publishable Key**
+**NO REBUILD REQUIRED**: Clerk setup is done in the Clerk Dashboard only. The app already has Clerk integration built in.
 
-### 5.2 Enable Clerk Billing
-
-1. In Clerk Dashboard, go to **Billing**
-2. Create subscription plans:
-   - **monthly** or **pro** - matches `has({ plan: 'monthly' })` or `has({ plan: 'pro' })`
-   - **yearly** - matches `has({ plan: 'yearly' })`
-
-   Plan names must match what your app checks with `has({ plan: 'planname' })`
-
-### 5.3 Get Your Admin User ID
-
-1. Sign up on your app
-2. Go to Clerk Dashboard → **Users**
-3. Click your user
-4. Copy the **User ID** (e.g., `user_2abc123xyz`)
-
-Then paste the User ID here and I'll update the app configuration.
-
-### 5.4 Configure Clerk Webhooks (Required for User Tracking)
-
-Set up webhooks so the admin dashboard can track users:
-
-**NOTE:** The webhook URL uses a **path** on your root domain, NOT a subdomain:
-- **CORRECT:** `https://yourdomain.com/webhooks/clerk`
-- **WRONG:** `https://webhooks.yourdomain.com/clerk`
-
-1. Go to Clerk Dashboard → **Webhooks** → **Add Endpoint**
-2. Enter endpoint URL: `https://yourdomain.com/webhooks/clerk`
-3. Subscribe to events:
-   - `user.created` (required)
-   - `user.deleted` (required)
-4. Click **Create**
-
-**Optional: Verify Webhook Signatures (Production)**
-
-For production, verify webhook signatures:
-
-1. After creating the endpoint, copy the **Signing Secret** (whsec_...)
-2. Add to wrangler.toml:
-   ```toml
-   [vars]
-   CLERK_WEBHOOK_SECRET = "whsec_..."
-   ```
-
-**Test the webhook:**
-```bash
-curl -X POST https://yourdomain.com/webhooks/clerk \
-  -H "Content-Type: application/json" \
-  -d '{"type":"user.created","data":{"id":"test"}}'
-# Should return: {"received":true}
-```
-
-**IMPORTANT: Webhook Behavior**
-
-The `user.created` event **only fires for NEW Clerk account signups** - users who just created their Clerk account for the first time. It does NOT fire when:
-- An existing Clerk user signs into your app for the first time
-- A user creates a new subdomain/tenant
-
-This means your user count in the admin dashboard may not reflect all active users. To track actual subdomain usage, the template includes a `TenantRegistration` component that calls `/api/tenants/register` when a user visits their subdomain.
+> **⚠️ CRITICAL:** The `user.created` webhook only fires for NEW Clerk signups, not when existing users sign into your app. See CLERK-SETUP.md for workarounds.
 
 ---
 
@@ -756,11 +702,13 @@ The unified template uses pinned React 18 versions to prevent conflicts with Cle
     "react-dom": "https://esm.sh/react-dom@18.3.1?deps=react@18.3.1",
     "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1",
     "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
-    "use-fireproof": "https://esm.sh/use-fireproof@0.20.0-dev-preview-50?deps=react@18.3.1",
+    "use-fireproof": "https://esm.sh/use-vibes@0.18.9?deps=react@18.3.1",
     "use-vibes": "https://esm.sh/use-vibes@0.18.9?deps=react@18.3.1"
   }
 }
 ```
+
+**Note:** `use-fireproof` is aliased to `use-vibes` for compatibility. The stable version 0.18.9 is used instead of dev versions which have known bugs.
 
 **IMPORTANT:**
 - Clerk@5 defaults to React 19, which causes version conflicts. The `?deps=react@18.3.1` parameter pins React 18 for all packages.

@@ -11,12 +11,29 @@
  *   node scripts/assemble.js app.jsx index.html
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { dirname, join, resolve } from 'path';
+import { readFileSync, writeFileSync, existsSync, copyFileSync } from 'fs';
+import { dirname, join, resolve, basename } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PLACEHOLDER = '// __VIBES_APP_CODE__';
+
+/**
+ * Create a timestamped backup of an existing file
+ * @param {string} filePath - Path to the file to backup
+ * @returns {string|null} - Backup path if created, null otherwise
+ */
+function createBackup(filePath) {
+  if (!existsSync(filePath)) {
+    return null;
+  }
+  const now = new Date();
+  const pad = (n) => n.toString().padStart(2, '0');
+  const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const backupPath = filePath.replace(/\.html$/, `.${timestamp}.bak.html`);
+  copyFileSync(filePath, backupPath);
+  return backupPath;
+}
 
 // Parse args
 const appPath = process.argv[2];
@@ -54,6 +71,12 @@ if (!template.includes(PLACEHOLDER)) {
 
 // Assemble: insert app code at placeholder
 const output = template.replace(PLACEHOLDER, appCode);
+
+// Backup existing file if present
+const backupPath = createBackup(resolvedOutputPath);
+if (backupPath) {
+  console.log(`Backed up: ${backupPath}`);
+}
 
 // Write output
 writeFileSync(resolvedOutputPath, output);

@@ -33,9 +33,9 @@ mkdir -p riff-1 riff-2 riff-3 ...
 
 **Use the bundled script to generate riffs in parallel.** Each script instance calls `claude -p` (uses subscription tokens) and writes directly to disk.
 
-First, find the latest plugin version (run once per session):
+First, find the plugin directory (uses centralized helper with validation):
 ```bash
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)"
+VIBES_DIR="$(node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js)"
 ```
 
 Then generate riffs in parallel based on user's count:
@@ -50,7 +50,7 @@ echo "All ${count} riffs generated!"
 
 Example for count=3:
 ```bash
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)"
+VIBES_DIR="$(node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js)"
 node "${VIBES_DIR}scripts/generate-riff.js" "the theme" 1 riff-1/app.jsx &
 node "${VIBES_DIR}scripts/generate-riff.js" "the theme" 2 riff-2/app.jsx &
 node "${VIBES_DIR}scripts/generate-riff.js" "the theme" 3 riff-3/app.jsx &
@@ -86,10 +86,47 @@ head -10 riff-*/app.jsx
 **pitch.md** contains the model's reasoning about theme, colors, and design choices.
 **BUSINESS comment** (top of app.jsx) contains: name, pitch, customer, revenue.
 
-Then create RANKINGS.md with:
-- Summary table (rank, name, score/50)
-- Scores: Originality, Market Potential, Feasibility, Monetization, Wow Factor (1-10 each)
-- Recommendations: best for solo founder, fastest to ship, most innovative
+Then create RANKINGS.md using this format:
+
+```markdown
+# Riff Rankings: [Theme]
+
+## Summary
+
+| Rank | App Name | Score | Best For |
+|------|----------|-------|----------|
+| 1 | [Name] | XX/50 | [one-liner] |
+| 2 | [Name] | XX/50 | [one-liner] |
+| ... | ... | ... | ... |
+
+## Detailed Scores
+
+### #1: [App Name] (riff-N)
+| Criterion | Score | Notes |
+|-----------|-------|-------|
+| Originality | X/10 | [Why unique or derivative] |
+| Market Potential | X/10 | [Target audience size, demand] |
+| Feasibility | X/10 | [Technical complexity, time to build] |
+| Monetization | X/10 | [Revenue model viability] |
+| Wow Factor | X/10 | [First impression, engagement] |
+| **Total** | **XX/50** | |
+
+[Repeat for each riff]
+
+## Recommendations
+
+- **Best for solo founder:** [riff-N] - [reason]
+- **Fastest to ship:** [riff-N] - [reason]
+- **Most innovative:** [riff-N] - [reason]
+- **Best monetization:** [riff-N] - [reason]
+```
+
+**Scoring Guidelines:**
+- 1-3: Poor - significant issues
+- 4-5: Below average - notable weaknesses
+- 6-7: Average - meets expectations
+- 8-9: Good - stands out positively
+- 10: Excellent - exceptional in this criterion
 
 ### Step 6: Generate Gallery
 
@@ -113,9 +150,9 @@ Open index.html for gallery, or browse riff-1/, riff-2/, etc.
 
 ## Plugin Directory
 
-To get the latest plugin directory path:
+To get the latest plugin directory path (with validation):
 ```bash
-VIBES_DIR="$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)"
+VIBES_DIR="$(node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js)"
 ```
 
-This uses version sorting to find the highest installed version.
+This uses the centralized helper which validates the installation and provides helpful error messages.

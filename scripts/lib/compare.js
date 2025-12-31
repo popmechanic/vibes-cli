@@ -26,6 +26,32 @@ function findPluginRoot() {
 }
 
 /**
+ * Validate import map cache structure
+ * @param {object} cache - Parsed cache object
+ * @returns {boolean} - True if valid
+ */
+function validateCacheSchema(cache) {
+  if (!cache || typeof cache !== 'object') {
+    return false;
+  }
+  if (!cache.imports || typeof cache.imports !== 'object') {
+    return false;
+  }
+  // Check that imports is not empty and has valid URL values
+  const importKeys = Object.keys(cache.imports);
+  if (importKeys.length === 0) {
+    return false;
+  }
+  // Verify at least one required key exists
+  const requiredKeys = ['react', 'use-vibes'];
+  const hasRequiredKey = requiredKeys.some(key => key in cache.imports);
+  if (!hasRequiredKey) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Load import map from cache
  * @param {string} pluginRoot - Plugin root directory
  * @returns {object|null} - Cached import map or null
@@ -36,11 +62,15 @@ function loadCachedImportMap(pluginRoot) {
   if (existsSync(workingCachePath)) {
     try {
       const cache = JSON.parse(readFileSync(workingCachePath, 'utf-8'));
-      return {
-        imports: cache.imports,
-        source: 'working-cache',
-        lastUpdated: cache.lastUpdated
-      };
+      if (!validateCacheSchema(cache)) {
+        console.warn('Warning: Working cache import map has invalid structure');
+      } else {
+        return {
+          imports: cache.imports,
+          source: 'working-cache',
+          lastUpdated: cache.lastUpdated
+        };
+      }
     } catch (e) {
       console.warn('Warning: Could not parse working cache import map');
     }
@@ -51,11 +81,15 @@ function loadCachedImportMap(pluginRoot) {
   if (existsSync(shippedCachePath)) {
     try {
       const cache = JSON.parse(readFileSync(shippedCachePath, 'utf-8'));
-      return {
-        imports: cache.imports,
-        source: 'shipped-cache',
-        lastUpdated: cache.lastUpdated
-      };
+      if (!validateCacheSchema(cache)) {
+        console.warn('Warning: Shipped cache import map has invalid structure');
+      } else {
+        return {
+          imports: cache.imports,
+          source: 'shipped-cache',
+          lastUpdated: cache.lastUpdated
+        };
+      }
     } catch (e) {
       console.warn('Warning: Could not parse shipped cache import map');
     }
@@ -76,10 +110,22 @@ function extractVersion(url) {
 }
 
 /**
- * Compare two semantic versions
- * @param {string} v1 - First version
- * @param {string} v2 - Second version
- * @returns {number} - -1 if v1 < v2, 0 if equal, 1 if v1 > v2
+ * Compare two semantic versions for ordering.
+ *
+ * Handles standard semver (1.2.3) and dev/preview versions (0.19.0-dev-preview-50).
+ * Dev versions are considered "newer" than their base version for upgrade detection,
+ * meaning we want to upgrade FROM dev TO stable.
+ *
+ * @param {string} v1 - First version string (e.g., "0.18.9" or "0.19.0-dev-preview-50")
+ * @param {string} v2 - Second version string
+ * @returns {number} Comparison result:
+ *   - -1 if v1 < v2 (v1 is older, should upgrade to v2)
+ *   - 0 if versions are equivalent
+ *   - 1 if v1 > v2 (v1 is newer)
+ * @example
+ * compareVersions("0.18.9", "0.19.0")  // -1 (0.18.9 is older)
+ * compareVersions("0.19.0", "0.19.0")  // 0 (equal)
+ * compareVersions("0.19.0-dev", "0.19.0")  // 1 (dev > stable for downgrade detection)
  */
 function compareVersions(v1, v2) {
   if (!v1 || !v2) return 0;
@@ -279,5 +325,6 @@ export {
   compare,
   loadCachedImportMap,
   compareVersions,
-  findPluginRoot
+  findPluginRoot,
+  validateCacheSchema
 };

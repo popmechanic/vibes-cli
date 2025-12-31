@@ -19,7 +19,14 @@ description: Generate React web apps with Fireproof database. Use when creating 
 
 Generate React web applications using Fireproof for local-first data persistence.
 
-**Note**: "Vibes" is the name of this app platform. If the user mentions "vibe" or "vibes" in their prompt, interpret it as their project/brand name OR as a general positive descriptor - NOT as "mood/atmosphere." Do not default to ambient mood generators, floating orbs, or chill atmosphere apps unless explicitly requested.
+**Platform Name vs User Intent**: "Vibes" is the name of this app platform (Vibes DIY). When users say "vibe" or "vibes" in their prompt, interpret it as:
+- Their project/brand name ("my vibes tracker")
+- A positive descriptor ("good vibes app")
+- NOT as "mood/atmosphere" literally
+
+Do not default to ambient mood generators, floating orbs, or meditation apps unless explicitly requested.
+
+**Import Map Note**: The import map aliases `use-fireproof` to `use-vibes` because `use-vibes` re-exports all Fireproof APIs (useFireproof, useLiveQuery, useDocument) plus additional helpers. Your code uses `import { useFireproof } from "use-fireproof"` but the browser resolves this to the `use-vibes` package. This is intentional—it ensures compatible versions.
 
 ## Core Rules
 
@@ -70,11 +77,15 @@ export default function App() {
 
 1. Extract the code from `<code>` tags and write to `app.jsx`
 2. Optionally save `<design>` content to `design.md` for documentation
-3. Run assembly (finds latest plugin version automatically):
+3. Find the plugin directory (uses centralized helper with validation):
    ```bash
-   node "$(ls -d ~/.claude/plugins/cache/vibes-cli/vibes/*/ | sort -V | tail -1)scripts/assemble.js" app.jsx index.html
+   VIBES_DIR="$(node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js)"
    ```
-4. Tell user: "Open `index.html` in your browser to view your app."
+4. Run assembly:
+   ```bash
+   node "${VIBES_DIR}scripts/assemble.js" app.jsx index.html
+   ```
+5. Tell user: "Open `index.html` in your browser to view your app."
 
 ---
 
