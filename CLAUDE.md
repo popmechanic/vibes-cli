@@ -125,7 +125,77 @@ Import map examples in documentation become stale. Reference `cache/import-map.j
 | Hardcoded versions in docs | Docs become stale | Reference cache file |
 | Editing templates without running sync | Versions out of date | Always run sync after edits |
 
-## Testing Changes
+## Testing
+
+The plugin includes a comprehensive test suite using Vitest. Tests are organized into three tiers:
+
+### Running Tests
+
+```bash
+cd scripts
+
+# Install dependencies (first time)
+npm install
+
+# Run all tests
+npm test
+
+# Run only unit tests (fastest, <1 second)
+npm run test:unit
+
+# Run integration tests (mocked external services)
+npm run test:integration
+
+# Start E2E local server for manual testing
+npm run test:e2e:server
+```
+
+### Test Structure
+
+```
+scripts/__tests__/
+├── unit/                    # Pure logic, no I/O
+│   ├── config-parsing.test.js
+│   ├── worker-utils.test.js
+│   └── webhook-signature.test.js
+├── integration/             # Mocked external services
+│   └── worker-webhooks.test.js
+├── e2e/                     # Local server for manual testing
+│   └── local-server.js
+└── mocks/                   # Shared test doubles
+    ├── kv-storage.js
+    ├── cloudflare-api.js
+    ├── wrangler-cli.js
+    └── clerk-webhooks.js
+```
+
+### E2E Testing with /etc/hosts
+
+For full subdomain routing tests without real DNS:
+
+1. Add to `/etc/hosts`:
+```
+127.0.0.1  test-app.local
+127.0.0.1  tenant1.test-app.local
+127.0.0.1  admin.test-app.local
+```
+
+2. Start the local server:
+```bash
+npm run test:e2e:server
+```
+
+3. Open in browser:
+   - `http://test-app.local:3000` - Landing page
+   - `http://tenant1.test-app.local:3000` - Tenant app
+   - `http://admin.test-app.local:3000` - Admin dashboard
+
+4. Test webhooks via curl:
+```bash
+curl -X POST http://test-app.local:3000/webhooks/clerk \
+  -H "Content-Type: application/json" \
+  -d '{"type": "user.created", "data": {"id": "test_user"}}'
+```
 
 ### Verify Sync Worked
 
@@ -144,6 +214,12 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 3. Check console for errors:
    - No "Fireproof is not defined" errors
    - No infinite loops or page lockups
+
+### Adding New Tests
+
+- **Unit tests** go in `scripts/__tests__/unit/` - for pure functions with no I/O
+- **Integration tests** go in `scripts/__tests__/integration/` - use mocks from `mocks/`
+- **Mocks** go in `scripts/__tests__/mocks/` - shared test doubles for external services
 
 ## File Reference
 
