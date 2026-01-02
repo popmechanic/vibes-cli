@@ -19,7 +19,7 @@ Use this command when you have:
 
 ```bash
 # Find the plugin directory (with validation)
-VIBES_DIR="$(node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js)"
+VIBES_DIR=`node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js`
 
 # Analyze an app (dry-run, no changes made)
 node "${VIBES_DIR}scripts/update.js" path/to/app.html

@@ -16,7 +16,7 @@ Deploy your Vibes app to exe.dev, a VM hosting platform with persistent storage 
 ## Quick Deploy
 
 ```bash
-VIBES_DIR="$(node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js)"
+VIBES_DIR=`node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js`
 cd "${VIBES_DIR}scripts" && [ -d node_modules ] || npm install
 node "${VIBES_DIR}scripts/deploy-exe.js" --name myapp --file index.html
 ```

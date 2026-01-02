@@ -12,7 +12,7 @@ This command syncs the cached documentation and import map from upstream Vibes D
 Run the sync script from the plugin root:
 
 ```bash
-VIBES_DIR="$(node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js)"
+VIBES_DIR=`node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js`
 cd "${VIBES_DIR}scripts" && [ -d node_modules/esbuild ] || npm install
 cd "$VIBES_DIR" && node scripts/sync.js --force
 ```
