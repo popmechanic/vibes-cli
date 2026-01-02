@@ -10,8 +10,12 @@
  */
 export function stripImports(code) {
   return code
-    .replace(/^import\s+.*?from\s+["'].*?["'];?\s*$/gm, '')  // Named/default imports
-    .replace(/^import\s+["'].*?["'];?\s*$/gm, '');           // Side-effect imports
+    // Multi-line imports: import { ... } from "..."
+    .replace(/^import\s+\{[\s\S]*?\}\s+from\s+["'].*?["'];?\s*$/gm, '')
+    // Single-line named/default imports: import X from "..."
+    .replace(/^import\s+.*?from\s+["'].*?["'];?\s*$/gm, '')
+    // Side-effect imports: import "..."
+    .replace(/^import\s+["'].*?["'];?\s*$/gm, '');
 }
 
 /**
