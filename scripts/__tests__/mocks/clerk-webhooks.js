@@ -38,7 +38,7 @@ function generateSvixHeaders(payload, secret = DEFAULT_SECRET) {
 }
 
 /**
- * Create a mock Request object for Cloudflare Workers
+ * Create a mock Request object for webhook testing
  */
 function createMockRequest(body, headers = {}, method = 'POST') {
   const bodyString = typeof body === 'string' ? body : JSON.stringify(body);
