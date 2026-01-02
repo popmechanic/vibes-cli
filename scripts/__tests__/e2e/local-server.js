@@ -2,8 +2,8 @@
 /**
  * Local E2E Test Server
  *
- * Runs the worker logic locally for testing subdomain routing,
- * API endpoints, and webhook handling without Cloudflare.
+ * Simulates the multi-tenant SaaS backend locally for testing subdomain routing,
+ * API endpoints, and webhook handling.
  *
  * Setup:
  * 1. Add to /etc/hosts:

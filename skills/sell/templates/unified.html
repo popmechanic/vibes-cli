@@ -271,8 +271,8 @@
           return { route: 'landing', subdomain: null };
         }
 
-        // Handle pages.dev for testing (before custom domain is set up)
-        if (hostname.endsWith('.pages.dev')) {
+        // Handle exe.xyz for testing (before custom domain is set up)
+        if (hostname.endsWith('.exe.xyz')) {
           if (testSubdomain === 'admin') return { route: 'admin', subdomain: null };
           if (testSubdomain) return { route: 'tenant', subdomain: testSubdomain };
           return { route: 'landing', subdomain: null };
@@ -359,7 +359,8 @@
         return children;
       }
 
-      // === Tenant Registration (tracks subdomain visits in Worker KV) ===
+      // === Tenant Registration (CLIENT-SIDE ONLY - no backend API) ===
+      // exe.dev version: Uses only Clerk metadata, no Worker API calls
       function TenantRegistration({ subdomain, children }) {
         const { user, isLoaded } = useUser();
         const [registrationState, setRegistrationState] = useState('checking'); // 'checking' | 'registering' | 'done'
@@ -373,13 +374,14 @@
             return;
           }
 
-          // New user - needs registration
+          // New user - register via Clerk metadata only (no backend API)
           const register = async () => {
             setRegistrationState('registering');
             try {
-              console.log(`[TenantRegistration] Registering ${subdomain} for user ${user.id}`);
+              console.log(`[TenantRegistration] Registering ${subdomain} for user ${user.id} (client-side only)`);
 
-              // First, update Clerk user metadata with the free plan
+              // Update Clerk user metadata with the free plan
+              // This is the source of truth for exe.dev deployments
               await user.update({
                 unsafeMetadata: {
                   ...user.unsafeMetadata,
@@ -389,24 +391,7 @@
                 }
               });
 
-              // Then register with the Worker API
-              const response = await fetch(`https://${APP_DOMAIN}/api/tenants/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({
-                  subdomain,
-                  userId: user.id,
-                  email: user.primaryEmailAddress?.emailAddress,
-                  plan: 'free'
-                })
-              });
-              const data = await response.json();
-              if (response.ok) {
-                console.log(`[TenantRegistration] Success:`, data);
-              } else {
-                console.warn(`[TenantRegistration] API returned ${response.status}:`, data);
-              }
+              console.log(`[TenantRegistration] Success: Clerk metadata updated`);
               setRegistrationState('done');
             } catch (err) {
               console.error('[TenantRegistration] Failed to register tenant:', err);
@@ -487,7 +472,7 @@
         );
       }
 
-      // === Admin Components (injected by assemble-sell.js) ===
+      // === Admin Components (CLIENT-SIDE ONLY - no backend API) ===
       __ADMIN_CODE__
 
       // === Landing Page Components ===

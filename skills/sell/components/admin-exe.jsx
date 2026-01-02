@@ -51,10 +51,10 @@ function AdminDashboard() {
 
         {/* Client-Side Only Notice */}
         <div className="mb-6 p-4 bg-blue-100 border-4 border-blue-500 text-blue-700">
-          <p className="font-bold mb-1">exe.dev Deployment (Client-Side Only)</p>
+          <p className="font-bold mb-1">Client-Side Admin Dashboard</p>
           <p className="text-sm">
             This admin dashboard runs without a backend server. Tenant data is stored in Clerk user metadata.
-            For full analytics, use the Cloudflare version or integrate with Clerk's dashboard.
+            For full analytics, use Clerk's dashboard.
           </p>
         </div>
 

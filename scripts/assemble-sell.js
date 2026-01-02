@@ -2,11 +2,11 @@
 /**
  * Sell App Assembler
  *
- * Assembles a unified SaaS app from the sell template and user's app code.
+ * Assembles a SaaS app from the sell template and user's app code.
+ * Creates a client-side only app - no backend server needed.
+ *
  * Creates:
  *   - index.html - Unified app handling landing, tenant, and admin routes
- *   - worker.js - Cloudflare Worker for subdomain proxy + API
- *   - wrangler.toml - Worker configuration template
  *
  * Usage:
  *   node scripts/assemble-sell.js <app.jsx> [output.html] [options]
@@ -15,25 +15,20 @@
  *   --clerk-key <key>     Clerk publishable key (required)
  *   --app-name <name>     App name for database naming (e.g., "wedding-photos")
  *   --app-title <title>   Display title (e.g., "Wedding Photos")
- *   --domain <domain>     Root domain (e.g., "fantasy.wedding")
+ *   --domain <domain>     Root domain (e.g., "myapp.exe.xyz")
  *   --monthly-price <$>   Monthly price (e.g., "$9")
  *   --yearly-price <$>    Yearly price (e.g., "$89")
  *   --features <json>     JSON array of feature strings
  *   --tagline <text>      App tagline for landing page
  *   --admin-ids <json>    JSON array of Clerk user IDs with admin access
- *   --pages-project <name> Cloudflare Pages project name (for worker config)
  *
  * Example:
  *   node scripts/assemble-sell.js app.jsx index.html \
  *     --clerk-key pk_test_xxx \
  *     --app-name wedding-photos \
  *     --app-title "Wedding Photos" \
- *     --domain fantasy.wedding \
- *     --monthly-price "$9" \
- *     --yearly-price "$89" \
- *     --features '["Photo sharing","Guest uploads","Live gallery"]' \
- *     --admin-ids '["user_xxx"]' \
- *     --pages-project my-saas
+ *     --domain myapp.exe.xyz \
+ *     --admin-ids '["user_xxx"]'
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
@@ -92,7 +87,6 @@ if (!existsSync(resolvedAppPath)) {
 
 // Default output path
 const resolvedOutputPath = resolve(outputPath || 'index.html');
-const outputDir = dirname(resolvedOutputPath);
 
 // Backup existing index.html if it exists
 if (existsSync(resolvedOutputPath)) {
@@ -104,18 +98,12 @@ if (existsSync(resolvedOutputPath)) {
 
 // Template paths
 const templatePath = join(__dirname, '../skills/sell/templates/unified.html');
-const workerTemplatePath = join(__dirname, '../skills/sell/worker/index.js');
-const wranglerTemplatePath = join(__dirname, '../skills/sell/worker/wrangler.toml');
-const adminComponentPath = join(__dirname, '../skills/sell/components/admin.jsx');
-const deploymentGuidePath = join(__dirname, '../skills/sell/templates/deployment-guide.txt');
+const adminComponentPath = join(__dirname, '../skills/sell/components/admin-exe.jsx');
 
 // Check templates exist
 const templates = [
   { path: templatePath, name: 'unified.html' },
-  { path: workerTemplatePath, name: 'worker/index.js' },
-  { path: wranglerTemplatePath, name: 'worker/wrangler.toml' },
-  { path: adminComponentPath, name: 'components/admin.jsx' },
-  { path: deploymentGuidePath, name: 'deployment-guide.txt' }
+  { path: adminComponentPath, name: 'components/admin-exe.jsx' }
 ];
 
 for (const t of templates) {
@@ -130,13 +118,8 @@ for (const t of templates) {
 let output = readFileSync(templatePath, 'utf8');
 
 // Configuration
-const domain = options.domain || 'example.com';
+const domain = options.domain || 'example.exe.xyz';
 const appName = options.appName || 'my-app';
-const pagesProject = options.pagesProject || appName.replace(/[^a-z0-9-]/gi, '-');
-
-// Parse numeric prices for worker env vars (strip $ and non-digits)
-const monthlyPriceNum = (options.monthlyPrice || '$9').replace(/\D/g, '') || '9';
-const yearlyPriceNum = (options.yearlyPrice || '$89').replace(/\D/g, '') || '89';
 
 // Configuration replacements
 const replacements = {
@@ -216,38 +199,63 @@ if (output.includes(adminPlaceholder)) {
 
 // Write main output
 writeFileSync(resolvedOutputPath, output);
-console.log(`\nCreated: ${resolvedOutputPath}`);
+console.log(`\n✓ Created: ${resolvedOutputPath}`);
 
-// Generate worker.js from template
-const workerName = `${pagesProject}-wildcard`;
-let workerCode = readFileSync(workerTemplatePath, 'utf8');
-workerCode = workerCode
-  .split('__APP_NAME__').join(appName)
-  .split('__PAGES_PROJECT__').join(pagesProject);
+// Print deployment guide
+console.log(`
+══════════════════════════════════════════════════════════════════
+  ${appName.toUpperCase()} - DEPLOYMENT GUIDE
+══════════════════════════════════════════════════════════════════
 
-const workerPath = join(outputDir, 'worker.js');
-writeFileSync(workerPath, workerCode);
-console.log(`Created: ${workerPath}`);
+This is a client-side only SaaS app. No backend server required.
 
-// Generate wrangler.toml from template
-let wranglerConfig = readFileSync(wranglerTemplatePath, 'utf8');
-wranglerConfig = wranglerConfig
-  .split('__APP_NAME__').join(appName)
-  .split('__WORKER_NAME__').join(workerName)
-  .split('__PAGES_PROJECT__').join(pagesProject)
-  .split('__APP_DOMAIN__').join(domain)
-  .split('__MONTHLY_PRICE_NUM__').join(monthlyPriceNum)
-  .split('__YEARLY_PRICE_NUM__').join(yearlyPriceNum);
+STEP 1: DEPLOY TO exe.dev
+─────────────────────────
 
-const wranglerPath = join(outputDir, 'wrangler.toml');
-writeFileSync(wranglerPath, wranglerConfig);
-console.log(`Created: ${wranglerPath}`);
+  Run /vibes:exe to deploy to exe.dev, or manually:
 
-// Print comprehensive deployment guide from template
-let deploymentGuide = readFileSync(deploymentGuidePath, 'utf8');
-deploymentGuide = deploymentGuide
-  .split('__APP_NAME_UPPER__').join(appName.toUpperCase())
-  .split('__APP_NAME__').join(appName)
-  .split('__APP_DOMAIN__').join(domain)
-  .split('__PAGES_PROJECT__').join(pagesProject);
-console.log(deploymentGuide);
+  node "\${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name ${appName} --file index.html
+
+  Your app will be live at: https://${appName}.exe.xyz
+
+STEP 2: SET UP CLERK
+────────────────────
+
+  1. Go to https://dashboard.clerk.com
+  2. Create a new application (or use existing)
+  3. Enable "Passkey" authentication
+  4. Get your Publishable Key
+  5. Re-run assembly with your key:
+
+     node assemble-sell.js app.jsx index.html \\
+       --clerk-key pk_live_YOUR_KEY \\
+       --app-name ${appName} \\
+       --domain ${domain}
+
+STEP 3: SET UP WILDCARD DNS (Optional - for subdomains)
+───────────────────────────────────────────────────────
+
+  For tenant subdomains (e.g., alice.${domain}), you need:
+
+  1. Custom domain pointing to your exe.dev VM
+  2. Wildcard DNS: *.${domain} → VM IP
+  3. Wildcard SSL certificate (via certbot DNS-01)
+
+  See exe.dev docs for wildcard SSL setup.
+
+STEP 4: CONFIGURE BILLING (Optional)
+────────────────────────────────────
+
+  Set up Clerk Billing for paid subscriptions:
+  https://clerk.com/docs/billing
+
+WHAT WORKS
+──────────
+  ✓ Landing page with subdomain claim
+  ✓ Clerk authentication (passkeys)
+  ✓ Tenant app with database isolation
+  ✓ Admin dashboard (config view only)
+  ✓ Subscription gating via Clerk Billing
+
+══════════════════════════════════════════════════════════════════
+`);

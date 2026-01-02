@@ -119,13 +119,13 @@ yourdomain.com          → Landing page with pricing
 admin.yourdomain.com    → Admin dashboard
 ```
 
-**Deployment:** Cloudflare Pages + Worker for wildcard subdomains. The skill includes step-by-step setup instructions for Clerk, DNS, and Cloudflare.
+**Deployment:** Deploy to exe.dev with `/vibes:exe`. The skill includes step-by-step setup instructions for Clerk and custom domains.
 
 **Example flow:**
 1. Build an app with `/vibes` (e.g., a photo sharing app)
 2. Run `/sell` to transform it into a SaaS
 3. Configure domain, pricing, Clerk keys
-4. Deploy to Cloudflare and start selling
+4. Deploy with `/exe` and start selling
 
 ## Commands
 

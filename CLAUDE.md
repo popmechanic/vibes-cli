@@ -156,16 +156,10 @@ npm run test:e2e:server
 scripts/__tests__/
 ├── unit/                    # Pure logic, no I/O
 │   ├── config-parsing.test.js
-│   ├── worker-utils.test.js
 │   └── webhook-signature.test.js
-├── integration/             # Mocked external services
-│   └── worker-webhooks.test.js
 ├── e2e/                     # Local server for manual testing
 │   └── local-server.js
 └── mocks/                   # Shared test doubles
-    ├── kv-storage.js
-    ├── cloudflare-api.js
-    ├── wrangler-cli.js
     └── clerk-webhooks.js
 ```
 
@@ -189,13 +183,6 @@ npm run test:e2e:server
    - `http://test-app.local:3000` - Landing page
    - `http://tenant1.test-app.local:3000` - Tenant app
    - `http://admin.test-app.local:3000` - Admin dashboard
-
-4. Test webhooks via curl:
-```bash
-curl -X POST http://test-app.local:3000/webhooks/clerk \
-  -H "Content-Type: application/json" \
-  -d '{"type": "user.created", "data": {"id": "test_user"}}'
-```
 
 ### Verify Sync Worked
 
@@ -226,9 +213,12 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | File | Purpose |
 |------|---------|
 | `scripts/assemble.js` | Assembly script - inserts JSX into template |
+| `scripts/assemble-sell.js` | SaaS assembly script - generates multi-tenant app |
 | `scripts/sync.js` | Sync script - fetches and updates cache |
 | `scripts/find-plugin.js` | Plugin directory lookup with validation |
 | `scripts/update.js` | Deterministic app updater |
+| `scripts/deploy-exe.js` | exe.dev deployment automation |
+| `scripts/lib/exe-ssh.js` | SSH automation for exe.dev |
 | `scripts/package.json` | Node.js deps |
 | `config/sources.example.json` | Example config for upstream URL overrides |
 | `cache/import-map.json` | Working cache - package versions |
@@ -239,13 +229,11 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `skills/vibes/SKILL.md` | Main vibes skill (has import map) |
 | `skills/riff/SKILL.md` | Riff skill for parallel app generation |
 | `skills/sell/SKILL.md` | Sell skill for SaaS transformation |
+| `skills/sell/templates/unified.html` | SaaS template with multi-tenant routing |
+| `skills/exe/SKILL.md` | exe.dev deployment skill |
 | `commands/sync.md` | User-facing sync command definition |
 | `commands/update.md` | User-facing update command definition |
-| `commands/sell.md` | User-facing sell command definition |
 | `commands/deploy-exe.md` | User-facing exe.dev deployment command |
-| `scripts/deploy-exe.js` | exe.dev deployment automation |
-| `scripts/lib/exe-ssh.js` | SSH automation for exe.dev |
-| `skills/exe/SKILL.md` | exe.dev deployment skill |
 
 ### Cache Locations
 
