@@ -476,7 +476,8 @@
       __ADMIN_CODE__
 
       // === Landing Page Components ===
-      function Hero({ onGetStarted }) {
+      // NOTE: Prefixed with underscore to avoid conflicts with user's app.jsx components
+      function _SellHero({ onGetStarted }) {
         const [subdomain, setSubdomain] = useState('');
 
         const handleGetStarted = () => {
@@ -551,7 +552,7 @@
       }
 
       // === OnboardingFlow (replaces CheckoutFlow) ===
-      function OnboardingFlow({ subdomain: preClaimedSubdomain, onBack }) {
+      function _SellOnboardingFlow({ subdomain: preClaimedSubdomain, onBack }) {
         const { user, isLoaded } = useUser();
         const [activating, setActivating] = useState(false);
         const [localSubdomain, setLocalSubdomain] = useState(preClaimedSubdomain || '');
@@ -672,7 +673,7 @@
       }
 
       // === Features Section ===
-      function FeaturesSection() {
+      function _SellFeaturesSection() {
         return (
           <section className="py-16 px-6 max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-center text-gray-900 mb-10">Everything you need</h2>
@@ -693,7 +694,7 @@
       }
 
       // === Landing Page Content (inside ClerkProvider) ===
-      function LandingPageContent() {
+      function _SellLandingPageContent() {
         const { user, isLoaded } = useUser();
         const [showOnboarding, setShowOnboarding] = useState(false);
         const [claimedSubdomain, setClaimedSubdomain] = useState(null);
@@ -802,13 +803,13 @@
                 )}
 
                 {/* Hero ALWAYS shows - allows claiming additional subdomains */}
-                <Hero onGetStarted={handleGetStarted} />
+                <_SellHero onGetStarted={handleGetStarted} />
 
                 {/* Features grid */}
-                <FeaturesSection />
+                <_SellFeaturesSection />
               </>
             ) : (
-              <OnboardingFlow subdomain={claimedSubdomain} onBack={handleBack} />
+              <_SellOnboardingFlow subdomain={claimedSubdomain} onBack={handleBack} />
             )}
 
             <footer className="py-8 px-6 text-center text-gray-400 border-t border-gray-200 mt-16">
@@ -819,10 +820,10 @@
       }
 
       // === Landing Page Wrapper ===
-      function LandingPage() {
+      function _SellLandingPage() {
         return (
           <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
-            <LandingPageContent />
+            <_SellLandingPageContent />
           </ClerkProvider>
         );
       }
@@ -835,7 +836,7 @@
         if (routeInfo.route === 'tenant') {
           return <TenantApp subdomain={routeInfo.subdomain} />;
         }
-        return <LandingPage />;
+        return <_SellLandingPage />;
       }
 
       // Render
