@@ -242,6 +242,10 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `commands/sync.md` | User-facing sync command definition |
 | `commands/update.md` | User-facing update command definition |
 | `commands/sell.md` | User-facing sell command definition |
+| `commands/deploy-exe.md` | User-facing exe.dev deployment command |
+| `scripts/deploy-exe.js` | exe.dev deployment automation |
+| `scripts/lib/exe-ssh.js` | SSH automation for exe.dev |
+| `skills/exe/SKILL.md` | exe.dev deployment skill |
 
 ### Cache Locations
 
@@ -351,6 +355,44 @@ Commands are explicitly invoked by the user with the `/` prefix.
 - **vibes vs sell**: "Build X" → vibes. "Build X with billing" or "monetize my app" → sell.
 - **sync**: Only when user explicitly runs `/vibes:sync` or skill warns about stale cache.
 - **update**: Only when user explicitly runs `/vibes:update` on existing HTML files.
+
+## exe.dev Deployment
+
+Deploy static Vibes apps to exe.dev VM hosting. Uses pre-installed nginx on persistent VMs.
+
+### Quick Start
+
+```bash
+# Deploy to exe.dev
+node scripts/deploy-exe.js --name myapp --file index.html
+```
+
+### Architecture
+
+```
+exe.dev VM (exeuntu image)
+├── nginx (serves all subdomains)
+└── /var/www/html/index.html
+```
+
+### Multi-Tenant Support
+
+For apps needing tenant isolation, use client-side subdomain parsing:
+- Configure wildcard DNS: `*.myapp.com` → VM IP
+- Set up wildcard SSL via certbot
+- JavaScript reads `window.location.hostname` and uses subdomain as Fireproof database prefix
+
+### Prerequisites
+
+- SSH key in `~/.ssh/`
+- exe.dev account (run `ssh exe.dev` to create)
+
+### Related Files
+
+- `scripts/deploy-exe.js` - Deployment automation
+- `scripts/lib/exe-ssh.js` - SSH helpers
+- `skills/exe/SKILL.md` - Deployment skill
+- `commands/deploy-exe.md` - User command
 
 ## Known Issues
 
