@@ -284,3 +284,12 @@ export default function App() {
 - **DON'T** use `useState` for form fields - use `useDocument`
 - **DON'T** use `Fireproof.fireproof()` - use `useFireproof()` hook
 - **DON'T** use white text on light backgrounds
+
+---
+
+## Deployment Options
+
+After generating your app, you can deploy it:
+
+- **exe.dev** - VM hosting with nginx. Run `/vibes:deploy-exe` or use the `exe` skill.
+- **Local** - Just open `index.html` in your browser. Works offline with Fireproof.
