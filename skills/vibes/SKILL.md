@@ -79,7 +79,7 @@ export default function App() {
 2. Optionally save `<design>` content to `design.md` for documentation
 3. Find the plugin directory (uses centralized helper with validation):
    ```bash
-   VIBES_DIR="$(node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js)"
+   VIBES_DIR=`node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js`
    ```
 4. Run assembly:
    ```bash
