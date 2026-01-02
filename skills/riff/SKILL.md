@@ -33,15 +33,10 @@ mkdir -p riff-1 riff-2 riff-3 ...
 
 **Use the bundled script to generate riffs in parallel.** Each script instance calls `claude -p` (uses subscription tokens) and writes directly to disk.
 
-First, find the plugin directory (uses centralized helper with validation):
-```bash
-VIBES_DIR=`node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js`
-```
-
-Then generate riffs in parallel based on user's count:
+Generate riffs in parallel based on user's count:
 ```bash
 # For each N from 1 to ${count}:
-node "${VIBES_DIR}scripts/generate-riff.js" "${prompt}" N riff-N/app.jsx &
+node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "${prompt}" N riff-N/app.jsx &
 
 # Then wait for all
 wait
@@ -50,10 +45,9 @@ echo "All ${count} riffs generated!"
 
 Example for count=3:
 ```bash
-VIBES_DIR=`node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js`
-node "${VIBES_DIR}scripts/generate-riff.js" "the theme" 1 riff-1/app.jsx &
-node "${VIBES_DIR}scripts/generate-riff.js" "the theme" 2 riff-2/app.jsx &
-node "${VIBES_DIR}scripts/generate-riff.js" "the theme" 3 riff-3/app.jsx &
+node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "the theme" 1 riff-1/app.jsx &
+node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "the theme" 2 riff-2/app.jsx &
+node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "the theme" 3 riff-3/app.jsx &
 wait
 ```
 
@@ -68,7 +62,7 @@ wait
 Convert each app.jsx to a complete index.html:
 
 ```bash
-node "${VIBES_DIR}scripts/assemble-all.js" riff-1 riff-2 riff-3 ...
+node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-all.js" riff-1 riff-2 riff-3 ...
 ```
 
 ### Step 5: Evaluate & Rank
@@ -150,9 +144,4 @@ Open index.html for gallery, or browse riff-1/, riff-2/, etc.
 
 ## Plugin Directory
 
-To get the latest plugin directory path (with validation):
-```bash
-VIBES_DIR=`node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js`
-```
-
-This uses the centralized helper which validates the installation and provides helpful error messages.
+The plugin root is available via `${CLAUDE_PLUGIN_ROOT}` which Claude Code resolves at runtime.

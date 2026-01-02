@@ -30,9 +30,8 @@ description: Transform a Vibes app into a multi-tenant SaaS with per-subdomain b
 
 **Script location:**
 ```bash
-VIBES_DIR=`node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js`
-# Then use: node "${VIBES_DIR}scripts/assemble-sell.js" ...
-# And: node "${VIBES_DIR}scripts/deploy-sell.js" ...
+# Use: node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" ...
+# And: node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-sell.js" ...
 ```
 
 **NEVER do these manually:**
@@ -196,11 +195,7 @@ The template makes `useTenant` available globally via `window.useTenant`.
 Run the assembly script to generate the unified files:
 
 ```bash
-# Find latest plugin version
-VIBES_DIR=`node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js`
-
-# Run assembly
-node "${VIBES_DIR}scripts/assemble-sell.js" app.jsx index.html \
+node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
   --clerk-key "pk_test_xxx" \
   --app-name "wedding-photos" \
   --app-title "Fantasy Wedding" \
@@ -283,11 +278,7 @@ wrangler login
 **USE `deploy-sell.js`** - it works interactively without needing a config file:
 
 ```bash
-# Find latest plugin version
-VIBES_DIR=`node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js`
-
-# Run automated deployment - prompts for everything interactively
-node "${VIBES_DIR}scripts/deploy-sell.js"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-sell.js"
 ```
 
 **NEVER run `wrangler deploy` directly** - it will cause route conflicts with existing workers.
@@ -316,11 +307,7 @@ Then provide the Step 5 instructions verbatim.
 ## Deployment Details
 
 ```bash
-# Find latest plugin version
-VIBES_DIR=`node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js`
-
-# Run automated deployment
-node "${VIBES_DIR}scripts/deploy-sell.js"
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-sell.js"
 ```
 
 This script automates:

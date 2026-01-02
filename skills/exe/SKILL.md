@@ -16,9 +16,8 @@ Deploy your Vibes app to exe.dev, a VM hosting platform with persistent storage 
 ## Quick Deploy
 
 ```bash
-VIBES_DIR=`node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js`
-cd "${VIBES_DIR}scripts" && [ -d node_modules ] || npm install
-node "${VIBES_DIR}scripts/deploy-exe.js" --name myapp --file index.html
+cd "${CLAUDE_PLUGIN_ROOT}/scripts" && [ -d node_modules ] || npm install
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.html
 ```
 
 ## What It Does
@@ -50,7 +49,7 @@ const { database } = useFireproof(dbName);
 
 1. **Add `--domain` flag:**
    ```bash
-   node "${VIBES_DIR}scripts/deploy-exe.js" --name myapp --domain myapp.com
+   node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --domain myapp.com
    ```
 
 2. **Configure wildcard DNS** at your DNS provider:
@@ -82,7 +81,7 @@ const { database } = useFireproof(dbName);
 After making changes, redeploy with:
 
 ```bash
-node "${VIBES_DIR}scripts/deploy-exe.js" --name myapp
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp
 ```
 
 ## SSH Access

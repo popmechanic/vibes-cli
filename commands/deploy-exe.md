@@ -10,9 +10,8 @@ Deploys your Vibes app to exe.dev using the automated deployment script.
 ## Instructions
 
 ```bash
-VIBES_DIR=`node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js`
-cd "${VIBES_DIR}scripts" && [ -d node_modules ] || npm install
-node "${VIBES_DIR}scripts/deploy-exe.js" --name <vmname> [--file index.html] [--domain example.com]
+cd "${CLAUDE_PLUGIN_ROOT}/scripts" && [ -d node_modules ] || npm install
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name <vmname> [--file index.html] [--domain example.com]
 ```
 
 ## Prerequisites

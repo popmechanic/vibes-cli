@@ -18,26 +18,23 @@ Use this command when you have:
 ## Usage
 
 ```bash
-# Find the plugin directory (with validation)
-VIBES_DIR=`node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js`
-
 # Analyze an app (dry-run, no changes made)
-node "${VIBES_DIR}scripts/update.js" path/to/app.html
+node "${CLAUDE_PLUGIN_ROOT}/scripts/update.js" path/to/app.html
 
 # Apply all recommended updates
-node "${VIBES_DIR}scripts/update.js" path/to/app.html --apply
+node "${CLAUDE_PLUGIN_ROOT}/scripts/update.js" path/to/app.html --apply
 
 # Apply specific updates by number
-node "${VIBES_DIR}scripts/update.js" path/to/app.html --apply=1,2
+node "${CLAUDE_PLUGIN_ROOT}/scripts/update.js" path/to/app.html --apply=1,2
 
 # Batch analyze a directory
-node "${VIBES_DIR}scripts/update.js" ./apps/
+node "${CLAUDE_PLUGIN_ROOT}/scripts/update.js" ./apps/
 
 # Restore from backup
-node "${VIBES_DIR}scripts/update.js" --rollback path/to/app.html
+node "${CLAUDE_PLUGIN_ROOT}/scripts/update.js" --rollback path/to/app.html
 
 # Show detailed diffs
-node "${VIBES_DIR}scripts/update.js" path/to/app.html --verbose
+node "${CLAUDE_PLUGIN_ROOT}/scripts/update.js" path/to/app.html --verbose
 ```
 
 ## What Gets Updated
