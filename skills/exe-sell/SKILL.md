@@ -58,11 +58,7 @@ Ask the user for:
 ### Step 2: Assemble the App
 
 ```bash
-# Find the plugin directory
-VIBES_DIR=`node ~/.claude/plugins/cache/vibes-cli/vibes/*/scripts/find-plugin.js`
-
-# Assemble the SaaS app (client-side only)
-node "${VIBES_DIR}scripts/assemble-sell-exe.js" app.jsx index.html \
+node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell-exe.js" app.jsx index.html \
   --clerk-key pk_test_YOUR_KEY \
   --app-name wedding-photos \
   --app-title "Wedding Photos" \
@@ -75,8 +71,7 @@ node "${VIBES_DIR}scripts/assemble-sell-exe.js" app.jsx index.html \
 ### Step 3: Deploy to exe.dev
 
 ```bash
-# Deploy using the existing exe.dev deployment script
-node "${VIBES_DIR}scripts/deploy-exe.js" --name wedding-photos --file index.html
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name wedding-photos --file index.html
 ```
 
 Your app will be live at `https://wedding-photos.exe.xyz`
