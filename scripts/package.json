@@ -12,7 +12,8 @@
     "test:e2e:server": "node __tests__/e2e/local-server.js"
   },
   "dependencies": {
-    "esbuild": "^0.24.0"
+    "esbuild": "^0.24.0",
+    "ssh2": "^1.15.0"
   },
   "devDependencies": {
     "vitest": "^3.0.0"
