@@ -589,6 +589,132 @@ function generateImportMapJson(imports) {
 }
 
 /**
+ * Extract a component's code from the cached vibes-menu.js
+ * Components are delimited by `// === ComponentName ===` comments
+ *
+ * @param {string} cacheContent - Content of vibes-menu.js
+ * @param {string} componentName - Name of component (e.g., "VibesSwitch")
+ * @returns {string|null} - Component code or null if not found
+ */
+function extractComponentFromCache(cacheContent, componentName) {
+  // For main components (VibesSwitch, HiddenMenuWrapper, VibesButton),
+  // we need both the .styles section and the component itself
+  const stylesName = `${componentName}.styles`;
+
+  // Pattern to extract section: starts at `// === Name ===` and goes until next `// ===` or end
+  const extractSection = (name) => {
+    const startMarker = `// === ${name} ===`;
+    const startIdx = cacheContent.indexOf(startMarker);
+    if (startIdx === -1) return null;
+
+    // Find the end (next `// ===` marker or end of file)
+    const contentStart = startIdx + startMarker.length;
+    const nextMarkerMatch = cacheContent.slice(contentStart).match(/\n\/\/ === /);
+    const endIdx = nextMarkerMatch
+      ? contentStart + nextMarkerMatch.index
+      : cacheContent.length;
+
+    return cacheContent.slice(contentStart, endIdx).trim();
+  };
+
+  // Get styles (if they exist) and component
+  const stylesCode = extractSection(stylesName);
+  const componentCode = extractSection(componentName);
+
+  if (!componentCode) return null;
+
+  // Combine styles + component if styles exist
+  if (stylesCode) {
+    return `${stylesCode}\n\n${componentCode}`;
+  }
+  return componentCode;
+}
+
+/**
+ * Update template files with components from the cached vibes-menu.js
+ * Replaces content between `// === START ComponentName ===` and `// === END ComponentName ===` markers
+ */
+function updateTemplateComponents() {
+  const cachePath = join(CACHE_DIR, "vibes-menu.js");
+
+  if (!existsSync(cachePath)) {
+    console.log("  Skipping template update: vibes-menu.js not cached");
+    return { updated: [], failed: [], skipped: ["vibes-menu.js not cached"] };
+  }
+
+  const cacheContent = readFileSync(cachePath, "utf-8");
+
+  // Templates and their components
+  // Note: VibesPanel is a local component (not in upstream), so not synced
+  const templates = [
+    {
+      path: join(PLUGIN_ROOT, "skills/vibes/templates/index.html"),
+      components: ["VibesSwitch", "HiddenMenuWrapper", "VibesButton"]
+    },
+    {
+      path: join(PLUGIN_ROOT, "skills/sell/templates/unified.html"),
+      components: ["VibesSwitch", "HiddenMenuWrapper", "VibesButton"]
+    }
+  ];
+
+  const updated = [];
+  const failed = [];
+  const skipped = [];
+
+  for (const template of templates) {
+    if (!existsSync(template.path)) {
+      skipped.push(template.path.replace(PLUGIN_ROOT + "/", ""));
+      continue;
+    }
+
+    let content = readFileSync(template.path, "utf-8");
+    let modified = false;
+
+    for (const componentName of template.components) {
+      // Extract component from cache
+      const newCode = extractComponentFromCache(cacheContent, componentName);
+      if (!newCode) {
+        console.warn(`  Warning: Could not extract ${componentName} from cache`);
+        continue;
+      }
+
+      // Build regex to find marker block
+      const startMarker = `// === START ${componentName} ===`;
+      const endMarker = `// === END ${componentName} ===`;
+
+      const startIdx = content.indexOf(startMarker);
+      const endIdx = content.indexOf(endMarker);
+
+      if (startIdx === -1 || endIdx === -1) {
+        console.warn(`  Warning: Missing markers for ${componentName} in ${template.path.replace(PLUGIN_ROOT + "/", "")}`);
+        continue;
+      }
+
+      // Replace content between markers (preserving markers)
+      const before = content.slice(0, startIdx + startMarker.length);
+      const after = content.slice(endIdx);
+      const newContent = `${before}\n${newCode}\n${after}`;
+
+      if (newContent !== content) {
+        content = newContent;
+        modified = true;
+      }
+    }
+
+    if (modified) {
+      try {
+        writeFileSync(template.path, content, "utf-8");
+        updated.push(template.path.replace(PLUGIN_ROOT + "/", ""));
+      } catch (err) {
+        failed.push(template.path.replace(PLUGIN_ROOT + "/", ""));
+      }
+    }
+  }
+
+  return { updated, failed, skipped };
+}
+
+/**
  * Update import maps in skill/agent files
  */
 function updateSkillImportMaps(imports) {
@@ -677,6 +803,30 @@ async function main() {
       console.log("\nFailed to update:");
       for (const file of failed) {
         console.log(`  - ${file}`);
+      }
+    }
+  }
+
+  // Update template files with menu components
+  if (menuResult.success && !menuResult.cached) {
+    const { updated, failed, skipped } = updateTemplateComponents();
+
+    if (updated.length > 0) {
+      console.log("\nUpdated template components in:");
+      for (const file of updated) {
+        console.log(`  - ${file}`);
+      }
+    }
+    if (failed.length > 0) {
+      console.log("\nFailed to update templates:");
+      for (const file of failed) {
+        console.log(`  - ${file}`);
+      }
+    }
+    if (skipped.length > 0 && verbose) {
+      console.log("\nSkipped templates:");
+      for (const reason of skipped) {
+        console.log(`  - ${reason}`);
       }
     }
   }
