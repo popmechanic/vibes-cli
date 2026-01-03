@@ -218,6 +218,8 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `scripts/find-plugin.js` | Plugin directory lookup with validation |
 | `scripts/update.js` | Deterministic app updater |
 | `scripts/deploy-exe.js` | exe.dev deployment automation |
+| `scripts/generate-riff.js` | Parallel riff generator - spawns claude -p for variations |
+| `scripts/assemble-all.js` | Batch assembler for riff directories |
 | `scripts/lib/exe-ssh.js` | SSH automation for exe.dev |
 | `scripts/package.json` | Node.js deps |
 | `config/sources.example.json` | Example config for upstream URL overrides |
@@ -227,13 +229,13 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `skills/vibes/cache/` | Default cache (git-tracked) - ships with plugin |
 | `skills/vibes/templates/index.html` | HTML template with menu components |
 | `skills/vibes/SKILL.md` | Main vibes skill (has import map) |
+| `skills/riff/templates/index.html` | Riff gallery template |
 | `skills/riff/SKILL.md` | Riff skill for parallel app generation |
 | `skills/sell/SKILL.md` | Sell skill for SaaS transformation |
 | `skills/sell/templates/unified.html` | SaaS template with multi-tenant routing |
 | `skills/exe/SKILL.md` | exe.dev deployment skill |
 | `commands/sync.md` | User-facing sync command definition |
 | `commands/update.md` | User-facing update command definition |
-| `commands/deploy-exe.md` | User-facing exe.dev deployment command |
 
 ### Cache Locations
 

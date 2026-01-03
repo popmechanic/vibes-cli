@@ -287,5 +287,5 @@ export default function App() {
 
 After generating your app, you can deploy it:
 
-- **exe.dev** - VM hosting with nginx. Run `/vibes:deploy-exe` or use the `exe` skill.
+- **exe.dev** - VM hosting with nginx. Use `/vibes:exe` to deploy.
 - **Local** - Just open `index.html` in your browser. Works offline with Fireproof.
