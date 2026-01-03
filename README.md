@@ -105,6 +105,8 @@ Transform any Vibes app into a multi-tenant SaaS with subdomain-based tenancy, a
 
 **The philosophy:** Most SaaS turns every community into rows in one database. Sell turns every community into its own world.
 
+![Sell: Multi-Tenant SaaS Philosophy](assets/sell-philosophy.png)
+
 Instead of:
 ```
 one app → millions of users → one giant DB
