@@ -46,6 +46,10 @@ Run sync with: `/vibes:sync` or `node scripts/sync.js --force`
 | `import-map.ts` | `cache/import-map.json` | Import maps in SKILL.md |
 | `style-prompts.ts` | `cache/style-prompt.txt` | UI style guidance |
 | `use-fireproof.com/llms-full.txt` | `cache/fireproof.txt` | Fireproof API docs |
+| `css-variables.ts` | `cache/vibes-variables.css` | CSS theme variables |
+| Menu components | `cache/vibes-menu.js` | Assembled VibesSwitch/VibesMenu components |
+
+**Note on Upstream Versions:** The vibes.diy main branch may use development versions (e.g., `0.19.x-dev`). This plugin pins to stable version `0.18.9` because dev versions have known bugs. The git-tracked `skills/vibes/cache/` contains the stable versions and serves as the authoritative source.
 
 ### Configuring Upstream Sources
 
@@ -226,7 +230,9 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `cache/import-map.json` | Working cache - package versions |
 | `cache/style-prompt.txt` | Working cache - UI style guidance |
 | `cache/fireproof.txt` | Working cache - Fireproof API docs |
-| `skills/vibes/cache/` | Default cache (git-tracked) - ships with plugin |
+| `cache/vibes-menu.js` | Working cache - assembled menu components |
+| `cache/vibes-variables.css` | Working cache - CSS theme variables |
+| `skills/vibes/cache/` | Default cache (git-tracked) - ships with plugin, stable 0.18.9 |
 | `skills/vibes/templates/index.html` | HTML template with menu components |
 | `skills/vibes/SKILL.md` | Main vibes skill (has import map) |
 | `skills/riff/templates/index.html` | Riff gallery template |
@@ -242,9 +248,18 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 There are two cache locations by design:
 
 1. **`/cache/`** (gitignored) - Working cache updated by the sync script
-2. **`skills/vibes/cache/`** (git-tracked) - Default values shipped with the plugin
+   - `import-map.json` - Package versions and CDN URLs
+   - `style-prompt.txt` - UI style guidance for generation
+   - `fireproof.txt` - Fireproof API documentation
+   - `vibes-menu.js` - Assembled VibesSwitch and VibesMenu components
+   - `vibes-variables.css` - CSS theme variables (OKLCH colors)
 
-The sync script updates `/cache/` and the template files. The `skills/vibes/cache/` provides fallback values for users who haven't run sync yet.
+2. **`skills/vibes/cache/`** (git-tracked) - Default values shipped with the plugin
+   - Contains stable `0.18.9` versions with `?external=react,react-dom`
+   - Serves as fallback for users who haven't run sync yet
+   - **This is the authoritative source for stable versions**
+
+The sync script updates `/cache/` and the template files. When upstream has dev versions, the git-tracked cache ensures users get stable versions by default.
 
 ## Architecture: JSX + Babel
 
