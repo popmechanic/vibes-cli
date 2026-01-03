@@ -107,16 +107,6 @@ Transform any Vibes app into a multi-tenant SaaS with subdomain-based tenancy, a
 
 ![Sell: Multi-Tenant SaaS Philosophy](assets/sell-philosophy.png)
 
-Instead of:
-```
-one app → millions of users → one giant DB
-```
-
-Vibes gives you:
-```
-many small apps → hundreds of users each → many small DBs
-```
-
 This is horizontal scaling, but the unit is the tenant database—not the server fleet. Scaling becomes multiplication of isolated cells instead of enlargement of a shared core. It just scales on autopilot.
 
 **What you can't do is interesting.** No global queries across the userbase. Some ideas won't work here. This is fundamentally about groupware—tools for communities, not platforms that own them. There can be no Zuckerberg over a Vibes CLI app.
