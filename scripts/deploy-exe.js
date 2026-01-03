@@ -284,12 +284,31 @@ async function phase5PublicAccess(args) {
   }
 
   console.log(`  Setting public access for ${args.name}...`);
-  const result = await setPublic(args.name);
+  let result = await setPublic(args.name);
+
+  // Retry once if failed
+  if (!result.success) {
+    console.log(`  First attempt failed: ${result.message}`);
+    console.log('  Retrying in 2 seconds...');
+    await new Promise(r => setTimeout(r, 2000));
+    result = await setPublic(args.name);
+  }
 
   if (result.success) {
     console.log('  ✓ Public access enabled');
   } else {
-    console.log(`  ⚠ Warning: ${result.message}`);
+    console.log(`
+  ╔════════════════════════════════════════════════════════════╗
+  ║  ⚠️  ACTION REQUIRED: Public access not enabled            ║
+  ╠════════════════════════════════════════════════════════════╣
+  ║  The VM was created but is not publicly accessible.        ║
+  ║  Run this command manually:                                ║
+  ║                                                            ║
+  ║    ssh exe.dev share set-public ${args.name.padEnd(26)}    ║
+  ║                                                            ║
+  ║  Error: ${result.message.substring(0, 48).padEnd(48)}      ║
+  ╚════════════════════════════════════════════════════════════╝
+`);
   }
 }
 
