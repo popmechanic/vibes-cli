@@ -40,6 +40,8 @@ import {
   testConnection
 } from './lib/exe-ssh.js';
 
+import { generateHandoff, extractContextFromEnv } from './generate-handoff.js';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = join(homedir(), '.vibes-deploy-exe.json');
 
@@ -275,8 +277,47 @@ async function phase4FileUpload(args) {
   }
 }
 
-async function phase5PublicAccess(args) {
-  console.log('\nPhase 5: Public Access...');
+async function phase5Handoff(args) {
+  console.log('\nPhase 5: Context Handoff...');
+
+  const vmHost = `${args.name}.runvm.dev`;
+
+  if (args.dryRun) {
+    console.log('  [DRY RUN] Would generate and upload HANDOFF.md');
+    return;
+  }
+
+  try {
+    // Extract context from environment (set by vibes skill) or use defaults
+    const context = extractContextFromEnv();
+    context.files = [args.file];
+    context.vmName = args.name;
+
+    // Generate handoff document
+    const handoffContent = generateHandoff(context);
+
+    // Write to temp file
+    const tmpHandoff = '/tmp/vibes-handoff.md';
+    writeFileSync(tmpHandoff, handoffContent);
+
+    // Upload to VM
+    console.log('  Generating HANDOFF.md...');
+    await uploadFile(tmpHandoff, vmHost, '/tmp/HANDOFF.md');
+
+    const client = await connect(vmHost);
+    await runCommand(client, 'sudo mv /tmp/HANDOFF.md /var/www/html/HANDOFF.md');
+    await runCommand(client, 'sudo chown www-data:www-data /var/www/html/HANDOFF.md');
+    client.end();
+
+    console.log('  ✓ HANDOFF.md uploaded for remote Claude context');
+  } catch (err) {
+    // Non-fatal: handoff is optional
+    console.log(`  ⚠ Could not upload HANDOFF.md: ${err.message}`);
+  }
+}
+
+async function phase6PublicAccess(args) {
+  console.log('\nPhase 6: Public Access...');
 
   if (args.dryRun) {
     console.log(`  [DRY RUN] Would run: share set-public ${args.name}`);
@@ -312,13 +353,13 @@ async function phase5PublicAccess(args) {
   }
 }
 
-async function phase6CustomDomain(args) {
+async function phase7CustomDomain(args) {
   if (!args.domain) {
-    console.log('\nPhase 6: Custom Domain... SKIPPED (no --domain provided)');
+    console.log('\nPhase 7: Custom Domain... SKIPPED (no --domain provided)');
     return;
   }
 
-  console.log('\nPhase 6: Custom Domain Setup...');
+  console.log('\nPhase 7: Custom Domain Setup...');
   console.log(`
   To set up your custom domain (${args.domain}), follow these steps:
 
@@ -430,8 +471,9 @@ ${'━'.repeat(60)}
     await phase2CreateVM(args);
     await phase3ServerSetup(args);
     await phase4FileUpload(args);
-    await phase5PublicAccess(args);
-    await phase6CustomDomain(args);
+    await phase5Handoff(args);
+    await phase6PublicAccess(args);
+    await phase7CustomDomain(args);
 
     // Verification
     if (!args.skipVerify && !args.dryRun) {
@@ -454,16 +496,16 @@ ${'━'.repeat(60)}
   DEPLOYMENT COMPLETE
 ${'━'.repeat(60)}
 
-  Your Vibes app is now live at:
+  Your app is live at:
     https://${args.name}.exe.xyz
 
-  ${args.domain ? `Custom domain: https://${args.domain} (after DNS setup)` : ''}
+  To continue development on the VM (Claude is pre-installed):
+    ssh ${args.name}.runvm.dev -t "cd /var/www/html && claude"
+${args.domain ? `
+  Custom domain: https://${args.domain} (after DNS setup)` : ''}
 
   To redeploy after changes:
     node scripts/deploy-exe.js --name ${args.name} --file ${args.file}
-
-  To SSH into your VM:
-    ssh ${args.name}.runvm.dev
 `);
 
   } catch (err) {

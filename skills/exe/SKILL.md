@@ -23,10 +23,21 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.htm
 ## What It Does
 
 1. **Creates VM** on exe.dev via SSH CLI
-2. **Makes VM public** via `ssh exe.dev share set-public <vmname>`
-3. **Starts nginx** (pre-installed on exeuntu image)
-4. **Uploads** your index.html to `/var/www/html/`
-5. **Verifies** public access at `https://myapp.exe.xyz`
+2. **Starts nginx** (pre-installed on exeuntu image)
+3. **Uploads** your index.html to `/var/www/html/`
+4. **Generates HANDOFF.md** - context document for remote Claude
+5. **Makes VM public** via `ssh exe.dev share set-public <vmname>`
+6. **Verifies** public access at `https://myapp.exe.xyz`
+
+## Continue Development on the VM
+
+Claude is pre-installed on exe.dev VMs. After deployment, you can continue development remotely:
+
+```bash
+ssh myapp.runvm.dev -t "cd /var/www/html && claude"
+```
+
+The HANDOFF.md file provides context about what was built, so Claude can continue meaningfully.
 
 ### Manual Public Access
 
@@ -106,10 +117,13 @@ ssh myapp.runvm.dev
 ```
 exe.dev VM (exeuntu image)
 ├── nginx (serves all subdomains via server_name _)
+├── claude (pre-installed CLI)
 └── /var/www/html/
-    └── index.html  ← Your Vibes app
+    ├── index.html   ← Your Vibes app
+    └── HANDOFF.md   ← Context for remote Claude
 ```
 
 - **No server-side logic** - pure static hosting
 - **Persistent disk** - survives restarts
 - **HTTPS by default** - exe.dev handles SSL for *.exe.xyz
+- **Claude pre-installed** - continue development on the VM
