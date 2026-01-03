@@ -23,9 +23,18 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.htm
 ## What It Does
 
 1. **Creates VM** on exe.dev via SSH CLI
-2. **Starts nginx** (pre-installed on exeuntu image)
-3. **Uploads** your index.html to `/var/www/html/`
-4. **Enables public access** at `https://myapp.exe.xyz`
+2. **Makes VM public** via `ssh exe.dev share set-public <vmname>`
+3. **Starts nginx** (pre-installed on exeuntu image)
+4. **Uploads** your index.html to `/var/www/html/`
+5. **Verifies** public access at `https://myapp.exe.xyz`
+
+### Manual Public Access
+
+If the deploy script doesn't make the VM public automatically, run:
+
+```bash
+ssh exe.dev share set-public myapp
+```
 
 ## Multi-Tenant Apps
 
