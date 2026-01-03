@@ -268,6 +268,19 @@ export async function createVM(vmName) {
 export async function setPublic(vmName) {
   try {
     const output = await runExeCommand(`share set-public ${vmName}`, { timeout: 30000 });
+
+    // Check for success indicators in output
+    const lowerOutput = output.toLowerCase();
+    if (lowerOutput.includes('public') || lowerOutput.includes('success') || lowerOutput.includes('ok')) {
+      return { success: true, message: output };
+    }
+
+    // Check for error indicators
+    if (lowerOutput.includes('error') || lowerOutput.includes('fail') || lowerOutput.includes('not found')) {
+      return { success: false, message: output.trim() };
+    }
+
+    // If no clear indicator, assume success (command completed without error)
     return { success: true, message: output };
   } catch (err) {
     return { success: false, message: err.message };
