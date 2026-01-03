@@ -12,6 +12,23 @@ Vibes is the vibe coding stack made for AI agents. It collapses application code
 
 Your data lives locally in the browser, encrypted and portable. It syncs across users automatically. Share your creations with a simple link and friends can jump in immediately.
 
+## Quick Start
+
+1. Install the plugin:
+   ```
+   /plugin marketplace add popmechanic/vibes-cli
+   /plugin install vibes@vibes-cli
+   ```
+
+2. Restart Claude Code
+
+3. Try it:
+   ```
+   Make me a todo vibe
+   ```
+
+That's it. Claude generates a single HTML file with a working app.
+
 ## Installation
 
 In Claude Code, run:
@@ -164,12 +181,54 @@ You've drifted out of the vibe zone.
 
 **Vibes DIY keeps things simple enough that you stay in the vibe zone.** Single-file apps. Local-first data. No server complexity. The AI can see and understand everything it needs to help you.
 
+## How Data Works
+
+Vibes apps use [Fireproof](https://fireproof.storage), a local-first database:
+
+- **Offline-first**: Apps work without internet, sync when connected
+- **Encrypted**: Data is encrypted before leaving the browser
+- **Shareable**: Real-time sync across users via cloud relay
+- **Portable**: Export your data anytime
+
+The hidden settings menu (gear icon) lets you configure sync for collaboration.
+
+## Client-Side Multi-Tenancy
+
+Traditional SaaS multi-tenancy requires backend code, database configuration, tenant isolation logic, and DevOps expertise. Setup takes weeks.
+
+Vibes eliminates these categories of work entirely.
+
+Each subdomain creates a separate database namespace. Tenant isolation happens automatically—tenant A cannot query tenant B's data because the databases are physically separate. Data leaks become architecturally impossible.
+
+The implementation:
+
+```javascript
+const subdomain = window.location.hostname.split('.')[0];
+const { database } = useFireproof(`app-${subdomain}`);
+```
+
+Three lines. No backend. No database configuration. No tenant middleware.
+
+### What This Enables
+
+- **Indie hackers**: Ship commercial apps in hours, not weeks
+- **Designers who code**: Build SaaS without learning DevOps
+- **Domain experts**: Package expertise as subscription software
+- **Rapid validation**: Deploy real infrastructure for customer pilots
+
+The architecture works best for per-user tools, white-label dashboards, customer portals, and micro-SaaS with independent tenants. Each tenant gets their own world.
+
+### The Constraint Is the Feature
+
+You cannot run global queries across all tenants. Some ideas won't fit. This is groupware—tools for communities, not platforms that own them. No one can be Zuckerberg over a Vibes app. That's the point.
+
 ## Links
 
 - [vibes.diy](https://vibes.diy) - Try the web builder
 - [Discord](https://discord.gg/vnpWycj4Ta) - Join the community
 - [GitHub](https://github.com/VibesDIY) - Open source
 - [Substack](https://vibesdiy.substack.com/) - Updates and tutorials
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Development guide
 
 ## License
 
