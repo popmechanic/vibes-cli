@@ -5,18 +5,18 @@
  * Calls `claude -p` to generate a Vibes app using subscription tokens,
  * then writes directly to disk. Main agent only sees "✓ filename".
  *
- * Usage: node generate-riff.js <theme> <lens> <output-path>
- * Example: node generate-riff.js "existential apps" 1 riff-1/app.jsx
+ * Usage: node generate-riff.js <theme> <lens> <output-path> <visual>
+ * Example: node generate-riff.js "productivity apps" 1 riff-1/app.jsx "warm sunset tones"
  */
 
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-const [,, theme, lens, outputPath] = process.argv;
+const [,, theme, lens, outputPath, visual] = process.argv;
 
 if (!theme || !lens || !outputPath) {
-  console.error('Usage: node generate-riff.js <theme> <lens> <output-path>');
+  console.error('Usage: node generate-riff.js <theme> <lens> <output-path> <visual>');
   process.exit(1);
 }
 
@@ -34,17 +34,19 @@ const lensDescriptions = {
 
 const lensDesc = lensDescriptions[lens] || lensDescriptions['9'];
 
-const prompt = `You are generating a Vibes app. First, THINK about the theme and how to express it visually.
+const visualDirection = visual || 'your choice based on the theme';
+
+const prompt = `You are generating a Vibes app.
 
 Theme: ${theme}
 Lens: ${lensDesc}
+Visual Direction: ${visualDirection}
 
-First, reason about the theme in <reasoning> tags:
-- What OKLCH colors fit this theme? (Use oklch(L C H) - L=lightness 0-1, C=chroma 0-0.4, H=hue 0-360)
-- What gradients would enhance it? (Use "linear-gradient(in oklch, ...)" for smooth transitions)
-- What icons, imagery, or decorative elements would enhance it?
-- What kind of app functionality matches this theme?
-- How can the UI feel immersive and thematic?
+First, reason about the design in <reasoning> tags:
+- How will you interpret the visual direction into specific colors?
+- Use OKLCH for colors: oklch(L C H) where L=lightness 0-1, C=chroma 0-0.4, H=hue 0-360
+- What gradients, icons, or decorative elements fit the mood?
+- What app functionality matches this theme + lens?
 
 Then output your complete code in <code> tags.
 
@@ -68,16 +70,16 @@ export default function App() {
   const { useLiveQuery, useDocument } = useFireproof("riff-db");
   // Your implementation
   return (
-    <div className="min-h-screen [theme-appropriate-background] p-4">
+    <div className="min-h-screen [background from visual direction] p-4">
       {/* Theme-driven UI */}
     </div>
   );
 }
 
 Requirements:
-- The theme should drive ALL visual choices (colors, backgrounds, icons, mood)
-- Use OKLCH colors for vibrant, predictable results: bg-[oklch(0.2_0.05_250)]
-- Use OKLCH gradients: bg-[linear-gradient(in_oklch,oklch(0.3_0.1_250),oklch(0.2_0.08_200))]
+- Follow the visual direction closely - it defines colors, mood, aesthetic
+- Use OKLCH colors for vibrant results: bg-[oklch(L_C_H)]
+- Use OKLCH gradients: bg-[linear-gradient(in_oklch,oklch(...),oklch(...))]
 - Use Tailwind CSS for styling
 - Use useFireproof for all data persistence
 - Use useLiveQuery for real-time data

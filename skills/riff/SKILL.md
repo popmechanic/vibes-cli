@@ -22,7 +22,16 @@ Generate multiple app variations in parallel. Each riff is a different INTERPRET
 ## Workflow
 
 ### Step 1: Gather Requirements
-Ask for: **prompt** (broad/loose is fine) and **count** (1-10, recommend 3-5)
+
+Ask for these separately:
+
+1. **Prompt** - What kind of app? (broad/loose is fine)
+2. **Visual direction** - What should it look like? Ask: "Describe the visual style - colors, mood, aesthetic (e.g., 'warm sunset tones', 'neon cyberpunk', 'clean minimal white', 'earthy natural greens')"
+3. **Count** - How many variations? (1-10, recommend 3-5)
+
+If user skips visual direction, prompt them: "What visual style? Give me colors, mood, or aesthetic references."
+
+**Note:** If the `frontend-design` skill is available, use it for enhanced visual design quality.
 
 ### Step 2: Create Riff Directories
 ```bash
@@ -36,7 +45,7 @@ mkdir -p riff-1 riff-2 riff-3 ...
 Generate riffs in parallel based on user's count:
 ```bash
 # For each N from 1 to ${count}:
-node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "${prompt}" N riff-N/app.jsx &
+node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "${prompt}" N riff-N/app.jsx "${visual}" &
 
 # Then wait for all
 wait
@@ -45,9 +54,9 @@ echo "All ${count} riffs generated!"
 
 Example for count=3:
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "the theme" 1 riff-1/app.jsx &
-node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "the theme" 2 riff-2/app.jsx &
-node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "the theme" 3 riff-3/app.jsx &
+node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "productivity apps" 1 riff-1/app.jsx "warm sunset oranges and soft creams" &
+node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "productivity apps" 2 riff-2/app.jsx "warm sunset oranges and soft creams" &
+node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "productivity apps" 3 riff-3/app.jsx "warm sunset oranges and soft creams" &
 wait
 ```
 
