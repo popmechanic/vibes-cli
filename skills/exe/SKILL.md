@@ -53,6 +53,32 @@ For SaaS apps with per-tenant AI:
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.html --ai-key "sk-or-v1-..." --multi-tenant
 ```
 
+## Registry Server
+
+For SaaS apps using subdomain claiming (from `/vibes:sell`), deploy with Clerk credentials:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.html \
+  --clerk-key "$(cat clerk-public-key.pem)" \
+  --clerk-webhook-secret "whsec_xxx" \
+  --reserved "admin,api,billing"
+```
+
+This sets up a **subdomain registry server**:
+1. Installs Bun runtime to `/usr/local/bin/bun`
+2. Creates `/var/www/registry-server.ts` with Clerk JWT verification
+3. Configures systemd service (port 3002)
+4. Adds nginx proxy for `/registry.json`, `/check/*`, `/claim`, `/webhook`
+
+### Registry Endpoints
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/registry.json` | GET | None | Public read of all claims |
+| `/check/{subdomain}` | GET | None | Check availability |
+| `/claim` | POST | Bearer JWT | Claim subdomain for user |
+| `/webhook` | POST | Svix sig | Clerk subscription events |
+
 ## Continue Development on the VM
 
 Claude is pre-installed on exe.dev VMs. After deployment, you can continue development remotely:
@@ -119,6 +145,11 @@ const { database } = useFireproof(dbName);
 | `--domain <domain>` | Custom domain for wildcard setup |
 | `--ai-key <key>` | OpenRouter API key for AI features |
 | `--multi-tenant` | Enable subdomain-based multi-tenancy |
+| `--tenant-limit <$>` | Credit limit per tenant in dollars (default: 5) |
+| `--clerk-key <pem>` | Clerk PEM public key for JWT verification |
+| `--clerk-webhook-secret <secret>` | Clerk webhook signing secret |
+| `--reserved <list>` | Comma-separated reserved subdomain names |
+| `--preallocated <list>` | Pre-claimed subdomains (format: `sub:user_id`) |
 | `--dry-run` | Show commands without executing |
 | `--skip-verify` | Skip deployment verification |
 
@@ -144,14 +175,25 @@ ssh myapp.exe.dev
 exe.dev VM (exeuntu image)
 ├── nginx (serves all subdomains via server_name _)
 ├── claude (pre-installed CLI)
+├── /usr/local/bin/bun  ← Bun runtime (system-wide)
 ├── /var/www/html/
 │   ├── index.html   ← Your Vibes app
 │   └── HANDOFF.md   ← Context for remote Claude
-└── (with --ai-key)
-    ├── bun           ← JavaScript runtime
-    ├── proxy.js      ← AI proxy service (port 3001)
-    └── systemd       ← Manages proxy.js as a service
+├── (with --ai-key)
+│   ├── /opt/vibes/proxy.js  ← AI proxy service (port 3001)
+│   └── vibes-proxy.service  ← systemd unit
+└── (with --clerk-key)
+    ├── /var/www/registry-server.ts  ← Registry service (port 3002)
+    ├── /var/www/html/registry.json  ← Subdomain claims data
+    └── vibes-registry.service       ← systemd unit
 ```
+
+### Port Assignments
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| AI Proxy | 3001 | OpenRouter proxy for `useAI` hook |
+| Registry | 3002 | Subdomain claim/check API |
 
 - **No server-side logic** - pure static hosting (unless using AI proxy)
 - **Persistent disk** - survives restarts
