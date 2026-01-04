@@ -103,12 +103,25 @@ export function runCommand(client, command) {
 }
 
 /**
+ * Create an error with a code for programmatic handling
+ * @param {string} message - Error message
+ * @param {string} code - Error code
+ * @returns {Error}
+ */
+function createError(message, code) {
+  const err = new Error(message);
+  err.code = code;
+  return err;
+}
+
+/**
  * Run an interactive session with the exe.dev CLI
  * This handles the interactive prompts from `ssh exe.dev`
  * @param {string} command - Command to run (e.g., 'new myvm')
  * @param {object} [options] - Options
  * @param {number} [options.timeout] - Timeout in ms (default: 30000)
  * @returns {Promise<string>} Command output
+ * @throws {Error} With code property: NO_SSH_KEY, CONNECTION_REFUSED, TIMEOUT, AUTH_FAILED, SSH_ERROR
  */
 export function runExeCommand(command, options = {}) {
   return new Promise((resolve, reject) => {
@@ -117,12 +130,13 @@ export function runExeCommand(command, options = {}) {
 
     const privateKeyPath = findSSHKey();
     if (!privateKeyPath) {
-      reject(new Error('No SSH key found'));
+      reject(createError('No SSH key found. Create one with: ssh-keygen -t ed25519', 'NO_SSH_KEY'));
       return;
     }
 
     let output = '';
     let timeoutId;
+    let resolved = false;
 
     const config = {
       host: 'exe.dev',
@@ -136,20 +150,26 @@ export function runExeCommand(command, options = {}) {
       client.shell((err, stream) => {
         if (err) {
           client.end();
-          reject(err);
+          reject(createError(`SSH shell failed: ${err.message}`, 'SSH_ERROR'));
           return;
         }
 
         timeoutId = setTimeout(() => {
-          stream.end();
-          client.end();
-          reject(new Error(`Command timed out after ${timeout}ms`));
+          if (!resolved) {
+            resolved = true;
+            stream.end();
+            client.end();
+            reject(createError(`Command timed out after ${timeout / 1000}s. Check network or try: ssh exe.dev`, 'TIMEOUT'));
+          }
         }, timeout);
 
         stream.on('close', () => {
-          clearTimeout(timeoutId);
-          client.end();
-          resolve(output);
+          if (!resolved) {
+            resolved = true;
+            clearTimeout(timeoutId);
+            client.end();
+            resolve(output);
+          }
         });
 
         stream.on('data', (data) => {
@@ -170,8 +190,27 @@ export function runExeCommand(command, options = {}) {
     });
 
     client.on('error', (err) => {
-      clearTimeout(timeoutId);
-      reject(err);
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeoutId);
+
+        // Map common SSH errors to user-friendly messages
+        let message = err.message;
+        let code = 'SSH_ERROR';
+
+        if (err.message.includes('ECONNREFUSED')) {
+          message = 'Connection refused. Is exe.dev reachable?';
+          code = 'CONNECTION_REFUSED';
+        } else if (err.message.includes('ETIMEDOUT')) {
+          message = 'Connection timed out. Check your network.';
+          code = 'CONNECTION_TIMEOUT';
+        } else if (err.message.includes('authentication') || err.message.includes('publickey')) {
+          message = 'SSH authentication failed. Run: ssh exe.dev';
+          code = 'AUTH_FAILED';
+        }
+
+        reject(createError(message, code));
+      }
     });
 
     client.connect(config);
@@ -249,23 +288,47 @@ export async function testConnection() {
 /**
  * Create a new VM on exe.dev
  * @param {string} vmName - Name for the new VM
- * @returns {Promise<{success: boolean, message: string}>}
+ * @returns {Promise<{success: boolean, message: string, code?: string}>}
  */
 export async function createVM(vmName) {
   try {
     const output = await runExeCommand(`new ${vmName}`, { timeout: 60000 });
+    const lowerOutput = output.toLowerCase();
 
-    if (output.includes('created') || output.includes('ready')) {
-      return { success: true, message: `VM ${vmName} created successfully` };
+    // Success patterns
+    if (lowerOutput.includes('created') || lowerOutput.includes('ready')) {
+      return { success: true, message: `VM ${vmName} created` };
     }
 
-    if (output.includes('already exists')) {
+    if (lowerOutput.includes('already exists')) {
       return { success: true, message: `VM ${vmName} already exists` };
     }
 
-    return { success: false, message: output };
+    // Error patterns - detect specific issues
+    if (lowerOutput.includes('quota') || lowerOutput.includes('limit')) {
+      return {
+        success: false,
+        message: `VM quota exceeded. Delete unused VMs with: ssh exe.dev rm <vmname>`,
+        code: 'QUOTA_EXCEEDED'
+      };
+    }
+
+    if (lowerOutput.includes('invalid') || lowerOutput.includes('not allowed')) {
+      return {
+        success: false,
+        message: `Invalid VM name "${vmName}". Use lowercase letters, numbers, hyphens only.`,
+        code: 'INVALID_NAME'
+      };
+    }
+
+    // Unknown response
+    return {
+      success: false,
+      message: `Unexpected response. Run manually: ssh exe.dev new ${vmName}`,
+      code: 'UNKNOWN'
+    };
   } catch (err) {
-    return { success: false, message: err.message };
+    return { success: false, message: err.message, code: err.code || 'SSH_ERROR' };
   }
 }
 

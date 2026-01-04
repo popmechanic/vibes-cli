@@ -543,24 +543,6 @@ if (typeof window !== 'undefined') {
 }
 
 /**
- * Add ?external=react,react-dom to esm.sh URLs to ensure single React instance
- * This tells esm.sh to keep React as a bare specifier so our import map intercepts it.
- * This prevents "Cannot read properties of null (reading 'useContext')" errors.
- */
-function addReactExternal(url) {
-  if (!url || !url.includes("esm.sh")) return url;
-  // Don't add external to react/react-dom themselves
-  if (url.includes("/react@") || url.includes("/react-dom@")) return url;
-  // Remove any existing alias/external params and add external
-  let cleanUrl = url.replace(/[?&](alias|external)=[^&]*/g, "");
-  // Clean up any trailing ? or &
-  cleanUrl = cleanUrl.replace(/[?&]$/, "");
-  // Add external parameter
-  const separator = cleanUrl.includes("?") ? "&" : "?";
-  return cleanUrl + separator + "external=react,react-dom";
-}
-
-/**
  * Generate the import map JSON string for templates
  * Uses unpinned React (esm.sh resolves latest compatible) and ?external= for singleton
  *

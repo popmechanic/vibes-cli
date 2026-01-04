@@ -197,6 +197,39 @@ if (output.includes(adminPlaceholder)) {
   process.exit(1);
 }
 
+// Validate output
+function validateSellAssembly(html, app, admin) {
+  const errors = [];
+
+  if (!app || app.trim().length === 0) {
+    errors.push('App code is empty');
+  }
+
+  if (!admin || admin.trim().length === 0) {
+    errors.push('Admin code is empty');
+  }
+
+  // Check for unreplaced placeholders
+  const unreplaced = html.match(/__[A-Z_]+__/g) || [];
+  if (unreplaced.length > 0) {
+    errors.push(`Unreplaced placeholders: ${[...new Set(unreplaced)].join(', ')}`);
+  }
+
+  if (!html.includes('export default function') && !html.includes('function App')) {
+    errors.push('No App component found');
+  }
+
+  return errors;
+}
+
+const validationErrors = validateSellAssembly(output, appCode, adminCode);
+if (validationErrors.length > 0) {
+  console.error('Sell assembly failed:');
+  validationErrors.forEach(e => console.error(`  - ${e}`));
+  console.error('\nFix: Check your app.jsx and admin component for errors');
+  process.exit(1);
+}
+
 // Write main output
 writeFileSync(resolvedOutputPath, output);
 console.log(`\n✓ Created: ${resolvedOutputPath}`);
