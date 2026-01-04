@@ -1323,7 +1323,46 @@ function VibesButton({
 
       // === Custom Passkey Auth Components ===
 
-      // SubdomainChecker: Real-time availability check with debouncing
+      // useSubdomainChecker: Hook for availability checking (returns { available, checking, error })
+      function useSubdomainChecker(subdomain) {
+        const [available, setAvailable] = useState(null);
+        const [checking, setChecking] = useState(false);
+        const [error, setError] = useState(null);
+        const debounceRef = useRef(null);
+
+        useEffect(() => {
+          if (debounceRef.current) clearTimeout(debounceRef.current);
+
+          if (!subdomain || subdomain.length < 3) {
+            setAvailable(null);
+            setChecking(false);
+            setError(null);
+            return;
+          }
+
+          setChecking(true);
+          setError(null);
+          debounceRef.current = setTimeout(async () => {
+            try {
+              const result = await checkSubdomainAvailability(subdomain);
+              setAvailable(result.available);
+              setError(result.available ? null : result.reason);
+            } catch (err) {
+              setAvailable(null);
+              setError('Failed to check availability');
+            }
+            setChecking(false);
+          }, 300);
+
+          return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+          };
+        }, [subdomain]);
+
+        return { available, checking, error };
+      }
+
+      // SubdomainChecker: Real-time availability check component with debouncing
       function SubdomainChecker({ value, onChange, onAvailabilityChange }) {
         const [availability, setAvailability] = useState(null);
         const [checking, setChecking] = useState(false);
@@ -1959,7 +1998,7 @@ function VibesButton({
       // NOTE: Prefixed with underscore to avoid conflicts with user's app.jsx components
       function _SellHero({ onGetStarted }) {
         const [subdomain, setSubdomain] = useState('');
-        const { available, checking, error } = SubdomainChecker({ subdomain });
+        const { available, checking, error } = useSubdomainChecker(subdomain);
 
         const handleGetStarted = () => {
           if (subdomain && available) {
