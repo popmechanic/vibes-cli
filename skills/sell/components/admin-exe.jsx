@@ -170,21 +170,28 @@ function AdminDashboard() {
               </div>
             </div>
 
-            {/* Pricing Configuration */}
+            {/* Billing Configuration */}
             <div className="bg-[var(--admin-card-bg)] border-4 border-[var(--admin-border)] shadow-[6px_6px_0px_var(--admin-shadow)] p-6 mb-6">
-              <h3 className="font-bold mb-4 text-[var(--admin-text)]">Pricing Configuration</h3>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="p-4 bg-[var(--admin-bg)] border-2 border-[var(--admin-border)]">
-                  <p className="font-bold text-[var(--admin-text)]">Monthly Plan</p>
-                  <p className="text-2xl font-bold text-[var(--admin-text)]">{CONFIG.pricing.monthly}<span className="text-sm font-normal text-[var(--admin-text-muted)]">/month</span></p>
-                </div>
-                <div className="p-4 bg-[var(--admin-bg)] border-2 border-[var(--admin-border)]">
-                  <p className="font-bold text-[var(--admin-text)]">Yearly Plan</p>
-                  <p className="text-2xl font-bold text-[var(--admin-text)]">{CONFIG.pricing.yearly}<span className="text-sm font-normal text-[var(--admin-text-muted)]">/year</span></p>
-                </div>
+              <h3 className="font-bold mb-4 text-[var(--admin-text)]">Billing Configuration</h3>
+              <div className="p-4 bg-[var(--admin-bg)] border-2 border-[var(--admin-border)]">
+                <p className="text-sm font-bold text-[var(--admin-text-muted)]">Billing Mode</p>
+                <p className="text-xl font-bold text-[var(--admin-text)] capitalize">{CONFIG.billingMode || 'off'}</p>
+                <p className="text-sm text-[var(--admin-text-muted)] mt-2">
+                  {CONFIG.billingMode === 'required'
+                    ? 'Users must subscribe via Clerk Billing to access the app.'
+                    : 'All users have free access after signing in.'}
+                </p>
               </div>
               <p className="text-sm text-[var(--admin-text-muted)] mt-4">
-                To change pricing, update the CONFIG values in the template and redeploy, or configure plans in Clerk Billing.
+                Manage subscription plans in{' '}
+                <a
+                  href="https://dashboard.clerk.com/last-active?path=billing"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >
+                  Clerk Billing Dashboard
+                </a>.
               </p>
             </div>
 

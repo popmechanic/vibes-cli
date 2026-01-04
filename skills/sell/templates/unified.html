@@ -1002,7 +1002,8 @@ function VibesButton({
         SignUpButton,
         UserButton,
         useUser,
-        useAuth
+        useAuth,
+        PricingTable
       } from "https://esm.sh/@clerk/clerk-react@5?deps=react@18.3.1,react-dom@18.3.1";
 
       // === Menu Components from window (defined in module script above) ===
@@ -1017,10 +1018,7 @@ function VibesButton({
         appName: "__APP_NAME__",
         appTitle: "__APP_TITLE__",
         domain: "__APP_DOMAIN__",
-        pricing: {
-          monthly: "__MONTHLY_PRICE__",
-          yearly: "__YEARLY_PRICE__"
-        },
+        billingMode: "__BILLING_MODE__",
         features: __FEATURES__,
         tagline: "__APP_TAGLINE__",
         adminUserIds: __ADMIN_USER_IDS__
@@ -1030,8 +1028,7 @@ function VibesButton({
       const CLERK_PUBLISHABLE_KEY = CONFIG.clerkPublishableKey;
       const APP_NAME = CONFIG.appName;
       const APP_DOMAIN = CONFIG.domain;
-      const MONTHLY_PRICE = CONFIG.pricing.monthly;
-      const YEARLY_PRICE = CONFIG.pricing.yearly;
+      const BILLING_MODE = CONFIG.billingMode;
       const FEATURES = CONFIG.features;
       const APP_TAGLINE = CONFIG.tagline;
       const ADMIN_USER_IDS = CONFIG.adminUserIds;
@@ -1092,17 +1089,38 @@ function VibesButton({
 
       // === Subscription Gate ===
       function SubscriptionRequired() {
+        const { subdomain } = useTenant();
+
         return (
-          <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-            <div className="max-w-md text-center p-8 bg-white rounded-2xl border border-gray-200 shadow-lg">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Subscription Required</h2>
-              <p className="mb-6 text-gray-500">Please subscribe to access this app.</p>
-              <a
-                href={`https://${APP_DOMAIN}`}
-                className="inline-block px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] transition-colors"
-              >
-                View Plans
-              </a>
+          <div className="min-h-screen bg-[var(--vibes-gray-lightest,#f9fafb)] p-4">
+            <div className="max-w-4xl mx-auto pt-8">
+              {/* Header */}
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-[var(--vibes-black,#111)] mb-2">
+                  {CONFIG.appTitle || CONFIG.appName.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                </h1>
+                <p className="text-lg text-[var(--vibes-black,#111)]/60 mb-2">
+                  Subscribe to access <span className="font-semibold">{subdomain}.{APP_DOMAIN}</span>
+                </p>
+                <p className="text-[var(--vibes-black,#111)]/50">
+                  {APP_TAGLINE}
+                </p>
+              </div>
+
+              {/* Clerk PricingTable */}
+              <div className="bg-[var(--vibes-white,#fff)] rounded-2xl border border-[var(--landing-accent)]/20 shadow-lg p-6">
+                <PricingTable />
+              </div>
+
+              {/* Back to landing link */}
+              <div className="text-center mt-6">
+                <a
+                  href={`https://${APP_DOMAIN}`}
+                  className="text-[var(--landing-accent)] hover:underline text-sm"
+                >
+                  Back to {APP_DOMAIN}
+                </a>
+              </div>
             </div>
           </div>
         );
@@ -1110,7 +1128,6 @@ function VibesButton({
 
       function SubscriptionGate({ children }) {
         const { has, isLoaded, userId } = useAuth();
-        const { user } = useUser();
 
         if (!isLoaded) {
           return (
@@ -1120,16 +1137,23 @@ function VibesButton({
           );
         }
 
-        // Allow admin users to bypass subscription check
-        const isAdmin = ADMIN_USER_IDS.includes(userId);
+        // Billing mode "off" = everyone gets free access
+        if (BILLING_MODE === 'off') {
+          return children;
+        }
 
-        // Check Clerk Billing subscriptions (including free plan)
-        const hasClerkSubscription = has({ plan: 'pro' }) || has({ plan: 'basic' }) || has({ plan: 'monthly' }) || has({ plan: 'yearly' }) || has({ plan: 'starter' }) || has({ plan: 'free' });
+        // Admins always bypass billing gate
+        if (ADMIN_USER_IDS.includes(userId)) {
+          return children;
+        }
 
-        // Fallback: check user metadata for plan (set during registration)
-        const hasMetadataPlan = user?.unsafeMetadata?.plan && ['free', 'pro', 'basic', 'monthly', 'yearly', 'starter'].includes(user.unsafeMetadata.plan);
-
-        const hasSubscription = isAdmin || hasClerkSubscription || hasMetadataPlan;
+        // Check Clerk Billing subscriptions
+        const hasSubscription = has({ plan: 'pro' }) ||
+                                has({ plan: 'basic' }) ||
+                                has({ plan: 'monthly' }) ||
+                                has({ plan: 'yearly' }) ||
+                                has({ plan: 'starter' }) ||
+                                has({ plan: 'free' });
 
         if (!hasSubscription) {
           return <SubscriptionRequired />;
@@ -1153,7 +1177,28 @@ function VibesButton({
             return;
           }
 
-          // New user - register via Clerk metadata only (no backend API)
+          // When billing is required, don't auto-set free plan - user must subscribe via Clerk
+          if (BILLING_MODE === 'required') {
+            // Just record subdomain, no plan - SubscriptionGate will show paywall
+            const recordSubdomain = async () => {
+              try {
+                await user.update({
+                  unsafeMetadata: {
+                    ...user.unsafeMetadata,
+                    subdomain: subdomain,
+                    registeredAt: new Date().toISOString()
+                  }
+                });
+              } catch (err) {
+                console.error('[TenantRegistration] Failed to record subdomain:', err);
+              }
+              setRegistrationState('done');
+            };
+            recordSubdomain();
+            return;
+          }
+
+          // Billing mode "off" - register via Clerk metadata with free plan
           const register = async () => {
             setRegistrationState('registering');
             try {
@@ -1411,6 +1456,18 @@ function VibesButton({
 
             {/* Features grid */}
             <_SellFeaturesSection />
+
+            {/* Pricing Section - Only show when billing is required */}
+            {BILLING_MODE === 'required' && (
+              <section className="py-16 px-6 max-w-4xl mx-auto">
+                <h2 className="text-2xl font-bold text-center text-gray-900 mb-10">Choose Your Plan</h2>
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-lg p-6">
+                  <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
+                    <PricingTable />
+                  </ClerkProvider>
+                </div>
+              </section>
+            )}
 
             <footer className="py-8 px-6 text-center text-gray-400 border-t border-gray-200 mt-16">
               <p>Built with <a href="https://vibes.diy" className="text-[var(--landing-accent)] hover:underline">Vibes DIY</a></p>

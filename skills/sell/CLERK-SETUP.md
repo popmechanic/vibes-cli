@@ -41,17 +41,86 @@ Use this ID in the `--admin-ids` flag when running the assembly script.
 
 ---
 
-## 5. Enable Clerk Billing (Optional)
+## 5. Enable Clerk Billing (Required for `--billing-mode required`)
 
-For subscription gating:
+If your app uses `--billing-mode required`, you must configure Clerk Billing:
 
+### 5.1 Navigate to Billing
 1. In Clerk Dashboard, go to **Billing**
-2. Create subscription plans:
-   - **monthly** or **pro** - matches `has({ plan: 'monthly' })` or `has({ plan: 'pro' })`
-   - **yearly** - matches `has({ plan: 'yearly' })`
-   - **free** or **starter** - for free tier access
+2. Click **Get Started** if this is your first time
 
-   Plan names must match what your app checks with `has({ plan: 'planname' })`
+### 5.2 Create Subscription Plans
+1. Go to **Billing** → **Plans**
+2. Create plans with names that match what your app checks:
+   - `pro` - Premium tier
+   - `basic` - Entry tier
+   - `monthly` - Monthly subscription
+   - `yearly` - Annual subscription
+   - `starter` - Starter tier
+   - `free` - Free tier with limited features
+
+   **Important:** Plan names are case-sensitive and must match exactly.
+
+### 5.3 Configure Plan Details
+For each plan:
+1. Set the price (e.g., $9/month, $89/year)
+2. Add features that will display in the PricingTable
+3. Configure trial period if desired (e.g., 14 days free)
+
+### 5.4 Connect Stripe
+1. Go to **Billing** → **Stripe**
+2. Click **Connect Stripe Account**
+3. Complete the Stripe onboarding flow
+4. For testing, use Stripe test mode
+
+---
+
+## 6. Understanding Billing Modes
+
+Your app supports two billing modes set during assembly:
+
+### billing-mode: off (default)
+- Everyone gets free access after signing in
+- No subscription required
+- Good for testing or free apps
+- PricingTable not shown on landing page
+
+### billing-mode: required
+- Users must subscribe to access tenant app
+- PricingTable shown on landing page
+- Non-subscribed users see paywall with PricingTable
+- Admins always bypass billing gate
+- Trial periods configured in Clerk Dashboard
+
+To change billing mode:
+```bash
+node assemble-sell.js app.jsx index.html \
+  --clerk-key pk_live_xxx \
+  --billing-mode required \
+  ... (other options)
+```
+
+---
+
+## 7. Testing Billing
+
+### Test Mode
+1. Use Clerk test keys (`pk_test_xxx`)
+2. Enable Stripe test mode in Clerk Dashboard
+3. Use Stripe test cards: `4242 4242 4242 4242`
+
+### Verify Billing Flow
+1. Visit your landing page
+2. Click a plan in the PricingTable
+3. Complete checkout with test card
+4. Visit your subdomain - should have access
+
+### Verify Paywall
+1. Create new user without subscription
+2. Visit subdomain
+3. Should see paywall with PricingTable
+4. Subscribe via paywall
+5. Should redirect to app with access
 
 ---
 
@@ -61,7 +130,9 @@ For subscription gating:
 - [ ] Enable Passkey authentication
 - [ ] Add your domain to authorized domains
 - [ ] Get admin user ID
-- [ ] (Optional) Enable Clerk Billing with subscription plans
+- [ ] (If using `--billing-mode required`) Enable Clerk Billing
+- [ ] (If using `--billing-mode required`) Create subscription plans
+- [ ] (If using `--billing-mode required`) Connect Stripe account
 
 ---
 
