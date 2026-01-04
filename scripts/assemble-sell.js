@@ -16,8 +16,7 @@
  *   --app-name <name>     App name for database naming (e.g., "wedding-photos")
  *   --app-title <title>   Display title (e.g., "Wedding Photos")
  *   --domain <domain>     Root domain (e.g., "myapp.exe.xyz")
- *   --monthly-price <$>   Monthly price (e.g., "$9")
- *   --yearly-price <$>    Yearly price (e.g., "$89")
+ *   --billing-mode <mode> Billing mode: "off" (free) or "required" (subscription required)
  *   --features <json>     JSON array of feature strings
  *   --tagline <text>      App tagline for landing page
  *   --admin-ids <json>    JSON array of Clerk user IDs with admin access
@@ -127,8 +126,7 @@ const replacements = {
   '__APP_NAME__': appName,
   '__APP_TITLE__': options.appTitle || appName,
   '__APP_DOMAIN__': domain,
-  '__MONTHLY_PRICE__': options.monthlyPrice || '$9',
-  '__YEARLY_PRICE__': options.yearlyPrice || '$89',
+  '__BILLING_MODE__': options.billingMode || 'off',
   '__APP_TAGLINE__': options.tagline || 'Your own private workspace. Get started in seconds.'
 };
 
@@ -164,7 +162,7 @@ for (const [placeholder, value] of Object.entries(replacements)) {
 }
 
 // Read and process app code - strip imports, exports, and template-provided constants
-const templateConstants = ['CLERK_PUBLISHABLE_KEY', 'APP_NAME', 'APP_DOMAIN', 'MONTHLY_PRICE', 'YEARLY_PRICE', 'FEATURES', 'APP_TAGLINE', 'ADMIN_USER_IDS'];
+const templateConstants = ['CLERK_PUBLISHABLE_KEY', 'APP_NAME', 'APP_DOMAIN', 'BILLING_MODE', 'FEATURES', 'APP_TAGLINE', 'ADMIN_USER_IDS'];
 let appCode = stripForTemplate(readFileSync(resolvedAppPath, 'utf8'), templateConstants);
 
 // Check if app uses hardcoded database name
@@ -276,11 +274,19 @@ STEP 3: SET UP WILDCARD DNS (Optional - for subdomains)
 
   See exe.dev docs for wildcard SSL setup.
 
-STEP 4: CONFIGURE BILLING (Optional)
-────────────────────────────────────
+STEP 4: CONFIGURE BILLING (if --billing-mode required)
+───────────────────────────────────────────────────────
 
-  Set up Clerk Billing for paid subscriptions:
-  https://clerk.com/docs/billing
+  1. Go to Clerk Dashboard → Billing → Get Started
+  2. Create subscription plans (pro, basic, monthly, yearly, starter, free)
+  3. Connect your Stripe account
+  4. Re-run assembly with --billing-mode required:
+
+     node assemble-sell.js app.jsx index.html \\
+       --billing-mode required \\
+       ... other options
+
+  See CLERK-SETUP.md for detailed billing configuration.
 
 WHAT WORKS
 ──────────
