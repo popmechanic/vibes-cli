@@ -282,9 +282,9 @@ export function uploadFile(localPath, host, remotePath, options = {}) {
  */
 export async function uploadFileWithSudo(localPath, host, remotePath, options = {}) {
   const filename = require('path').basename(localPath);
-  const tempPath = `/tmp/${filename}`;
+  const tempPath = `/home/exedev/${filename}`;
 
-  // Upload to temp location first
+  // Upload to home directory first (guaranteed writable)
   await uploadFile(localPath, host, tempPath, options);
 
   // Move to final location with sudo
