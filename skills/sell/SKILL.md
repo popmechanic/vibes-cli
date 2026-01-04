@@ -116,19 +116,24 @@ Ask the user for these details:
 4. **Tagline** (for landing page)
    - Example: "Share your wedding photos with guests"
 
-5. **Pricing** (monthly/yearly)
-   - Example: $9/month, $89/year
-   - Feature list for pricing cards
+5. **Billing Mode**
+   - Ask: "Do you want to require paid subscriptions? (Y/n)"
+   - If yes: `--billing-mode required`
+   - If no: `--billing-mode off` (default, everyone gets free access)
+   - Explain: "Pricing plans are configured in Clerk Dashboard → Billing → Plans"
 
-6. **Clerk Publishable Key**
+6. **Features** (for landing page display)
+   - Example: ["Photo sharing", "Guest uploads", "Live gallery"]
+
+7. **Clerk Publishable Key**
    - From Clerk Dashboard → API Keys
    - Format: `pk_test_...` or `pk_live_...`
 
-7. **Admin User IDs** (array of Clerk user IDs)
+8. **Admin User IDs** (array of Clerk user IDs)
    - From Clerk Dashboard → Users → click user → copy ID
    - Admins bypass subscription gate
 
-8. **AI Features** (optional)
+9. **AI Features** (optional)
    - Ask: "Do you want to enable AI features for your tenants? (Y/n)"
    - If yes:
      - **OpenRouter Provisioning Key**: Get from https://openrouter.ai/keys
@@ -186,11 +191,14 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
   --app-title "Fantasy Wedding" \
   --domain "myapp.exe.xyz" \
   --tagline "Share your wedding photos with guests" \
-  --monthly-price "$9" \
-  --yearly-price "$89" \
+  --billing-mode "required" \
   --features '["Photo sharing","Guest uploads","Live gallery"]' \
   --admin-ids '["user_xxx"]'
 ```
+
+**Billing Modes:**
+- `off` (default): Everyone gets free access after signing in
+- `required`: Users must subscribe via Clerk Billing to access the app
 
 **The assembly script generates:**
 - `index.html` - Unified app (landing + tenant + admin)
@@ -255,10 +263,15 @@ For custom domains with wildcard subdomains, see the exe.dev deployment guide.
 1. Create Clerk application at [clerk.com](https://clerk.com), copy Publishable Key
 2. Enable Passkey authentication
 3. Get admin user ID from Clerk Dashboard → Users
-4. Enable Clerk Billing and create subscription plans (names must match `has({ plan: 'planname' })`)
-5. Add your production domain to Clerk's allowed origins
+4. Add your production domain to Clerk's allowed origins
 
-**NO REBUILD REQUIRED**: Clerk setup is done in the Clerk Dashboard only. The app already has Clerk integration built in.
+**If using `--billing-mode required`:**
+5. Go to Clerk Dashboard → Billing → Get Started
+6. Create subscription plans (names must match: `pro`, `basic`, `monthly`, `yearly`, `starter`, `free`)
+7. Set prices and trial periods for each plan
+8. Connect your Stripe account
+
+**NO REBUILD REQUIRED**: Clerk setup is done in the Clerk Dashboard only. Change billing mode by re-running assembly with `--billing-mode required` or `--billing-mode off`.
 
 ---
 
@@ -317,9 +330,14 @@ function TenantProvider({ children, subdomain }) {
 }
 ```
 
-### SubscriptionGate with Admin Bypass
+### SubscriptionGate with Billing Mode
 
-Admins can bypass subscription checks.
+The subscription gate respects the billing mode setting:
+
+- **`off`**: Everyone gets free access after signing in
+- **`required`**: Users must subscribe via Clerk Billing
+
+Admins always bypass the subscription check.
 
 **SECURITY WARNING**: Do NOT add fallbacks like `|| ADMIN_USER_IDS.length === 0` to admin checks. An empty admin list means NO admin access, not "everyone is admin". The template is secure - do not modify the admin authorization logic.
 
@@ -331,14 +349,23 @@ function SubscriptionGate({ children }) {
     return <div>Loading...</div>;
   }
 
+  // Billing mode "off" = everyone gets free access
+  if (BILLING_MODE === 'off') {
+    return children;
+  }
+
   // Admin bypass
-  const isAdmin = ADMIN_USER_IDS.includes(userId);
-  const hasSubscription = isAdmin ||
-    has({ plan: 'pro' }) ||
+  if (ADMIN_USER_IDS.includes(userId)) {
+    return children;
+  }
+
+  // Check Clerk Billing subscriptions
+  const hasSubscription = has({ plan: 'pro' }) ||
     has({ plan: 'basic' }) ||
     has({ plan: 'monthly' }) ||
     has({ plan: 'yearly' }) ||
-    has({ plan: 'starter' });
+    has({ plan: 'starter' }) ||
+    has({ plan: 'free' });
 
   if (!hasSubscription) {
     return <SubscriptionRequired />;
