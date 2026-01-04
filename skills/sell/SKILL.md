@@ -152,6 +152,14 @@ The app.jsx should contain ONLY the user's App component - not SaaS infrastructu
 - CONFIG, CLERK_PUBLISHABLE_KEY, APP_NAME, etc.
 - ClerkProvider, TenantProvider, SubscriptionGate
 - Landing page, admin dashboard, routing
+- **Pricing UI via Clerk's `<PricingTable />`** - DO NOT generate pricing components
+
+**⛔ DO NOT generate in app.jsx:**
+- Pricing tiers, plans, or subscription UI
+- Landing page sections (hero, features, etc.)
+- Authentication UI (sign in, sign up buttons)
+
+The template handles all of this. Pricing is configured in Clerk Dashboard → Billing → Plans, and displayed via Clerk's PricingTable component.
 
 **The assembly script automatically strips:**
 - Import statements (template imports everything)
