@@ -3,9 +3,18 @@
  *
  * Provides helpers for connecting to exe.dev VMs, running commands,
  * and uploading files via SCP.
+ *
+ * IMPORTANT: exe.dev VMs
+ * - Home directory is /home/exedev (not ~ expansion)
+ * - Use explicit paths or /tmp for staging files
+ * - Default user is 'exedev'
  */
 
 import { Client } from 'ssh2';
+
+// exe.dev VM constants
+export const EXE_HOME_DIR = '/home/exedev';
+export const EXE_DEFAULT_USER = 'exedev';
 import { readFileSync, createReadStream, statSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
