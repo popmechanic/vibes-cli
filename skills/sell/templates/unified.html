@@ -1453,11 +1453,17 @@ function VibesButton({
 
           try {
             const result = await signUp.attemptEmailAddressVerification({ code: verificationCode });
+            // With passkey-first auth, status may be 'missing_requirements' until passkey is created
+            // Proceed to passkey step if email is verified (not rejected)
             if (result.status === 'complete') {
               await setActive({ session: result.createdSessionId });
               setStep('passkey');
+            } else if (result.status === 'missing_requirements') {
+              // Email verified but passkey required - proceed to passkey creation
+              setStep('passkey');
             } else {
-              setError('Verification incomplete. Please try again.');
+              console.log('Unexpected signup status:', result.status, result);
+              setError(`Verification status: ${result.status}. Please try again.`);
             }
           } catch (err) {
             setError(err.errors?.[0]?.message || 'Invalid verification code');
@@ -1471,12 +1477,21 @@ function VibesButton({
           setLoading(true);
 
           try {
-            // Create passkey with root domain as RP ID for cross-subdomain portability
-            await signUp.createPasskey();
+            // Create passkey on signUp object (completes the signup flow)
+            const result = await signUp.createPasskey();
+
+            // After passkey creation, signup should be complete - activate the session
+            if (result.status === 'complete' && result.createdSessionId) {
+              await setActive({ session: result.createdSessionId });
+            }
+
             setStep('claiming');
 
             // Claim the subdomain
-            const session = await window.Clerk.session;
+            const session = window.Clerk.session;
+            if (!session) {
+              throw new Error('No active session after signup');
+            }
             const token = await session.getToken();
             const claimResult = await claimSubdomain(subdomain, token);
 
@@ -1487,20 +1502,8 @@ function VibesButton({
             }
           } catch (err) {
             if (err.message?.includes('cancelled') || err.message?.includes('aborted')) {
-              // User cancelled passkey creation - still proceed with claim
-              setStep('claiming');
-              try {
-                const session = await window.Clerk.session;
-                const token = await session.getToken();
-                const claimResult = await claimSubdomain(subdomain, token);
-                if (claimResult.success) {
-                  onSuccess?.(subdomain);
-                } else {
-                  setError(claimResult.error || 'Failed to claim subdomain');
-                }
-              } catch (claimErr) {
-                setError('Failed to claim subdomain');
-              }
+              // User cancelled passkey creation - can't proceed without it in passkey-first mode
+              setError('Passkey is required to complete signup. Please try again.');
             } else {
               setError(err.errors?.[0]?.message || 'Failed to create passkey');
             }
@@ -1510,10 +1513,16 @@ function VibesButton({
         };
 
         const handleSkipPasskey = async () => {
+          // Check if we have an active session (only possible if signup was already complete)
+          const session = window.Clerk.session;
+          if (!session) {
+            setError('Passkey is required to complete signup.');
+            return;
+          }
+
           setStep('claiming');
           setLoading(true);
           try {
-            const session = await window.Clerk.session;
             const token = await session.getToken();
             const claimResult = await claimSubdomain(subdomain, token);
             if (claimResult.success) {
