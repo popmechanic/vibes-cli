@@ -31,6 +31,33 @@ import { homedir } from 'os';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import * as readline from 'readline';
+import { execSync } from 'child_process';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirnameEarly = dirname(__filename);
+
+// Auto-install dependencies if missing (needed when running from plugin cache)
+async function ensureDependencies() {
+  try {
+    await import('ssh2');
+  } catch (e) {
+    if (e.code === 'ERR_MODULE_NOT_FOUND') {
+      console.log('Installing dependencies...');
+      try {
+        execSync('npm install', { cwd: __dirnameEarly, stdio: 'inherit' });
+        console.log('Dependencies installed.\n');
+      } catch (installErr) {
+        console.error('Failed to install dependencies:', installErr.message);
+        console.error('Try running: cd ' + __dirnameEarly + ' && npm install');
+        process.exit(1);
+      }
+    } else {
+      throw e;
+    }
+  }
+}
+
+await ensureDependencies();
 
 import {
   findSSHKey,
