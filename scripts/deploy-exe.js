@@ -65,6 +65,7 @@ import {
   runCommand,
   runExeCommand,
   uploadFile,
+  uploadFileWithSudo,
   createVM,
   setPublic,
   testConnection
@@ -358,7 +359,7 @@ async function phase5AIProxy(args) {
     if (!existsSync(proxyPath)) {
       throw new Error(`AI proxy script not found at ${proxyPath}`);
     }
-    await uploadFile(proxyPath, vmHost, '/opt/vibes/proxy.js');
+    await uploadFileWithSudo(proxyPath, vmHost, '/opt/vibes/proxy.js');
 
     // Set environment variables
     console.log('  Configuring environment...');
