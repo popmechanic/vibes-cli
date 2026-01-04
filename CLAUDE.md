@@ -105,7 +105,6 @@ The import map requires these entries:
   "react-dom/client": "https://esm.sh/react-dom/client",
   "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
   "use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
-  "call-ai": "https://esm.sh/call-ai@0.18.9?external=react,react-dom",
   "use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom"
 }
 ```
@@ -123,7 +122,7 @@ Import map examples in documentation become stale. Reference `cache/import-map.j
 
 | Mistake | Consequence | Fix |
 |---------|-------------|-----|
-| Missing `?external=react,react-dom` on use-vibes URLs | Multiple React instances, context errors | Add `?external=react,react-dom` to all use-vibes/call-ai imports |
+| Missing `?external=react,react-dom` on use-vibes URLs | Multiple React instances, context errors | Add `?external=react,react-dom` to use-vibes imports |
 | Using dev versions (0.19.x-dev) | Known bugs, page lockups | Use stable version 0.18.9 |
 | Missing `react/jsx-runtime` | Build errors | Run sync to get all entries |
 | Hardcoded versions in docs | Docs become stale | Reference cache file |
@@ -320,7 +319,6 @@ The `?external=` parameter tells esm.sh to keep specified dependencies as **bare
     "react-dom/client": "https://esm.sh/react-dom/client",
     "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
     "use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
-    "call-ai": "https://esm.sh/call-ai@0.18.9?external=react,react-dom",
     "use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom"
   }
 }
@@ -408,7 +406,7 @@ If you see these errors, React is being duplicated:
 - Page becomes unresponsive after focusing text inputs
 - Controlled inputs trigger infinite render loops
 
-**Fix:** Ensure all `use-vibes` and `call-ai` imports have `?external=react,react-dom`
+**Fix:** Ensure `use-vibes` imports have `?external=react,react-dom`
 
 ### VibeContextProvider NOT Required
 

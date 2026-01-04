@@ -185,7 +185,6 @@ function compare(analysis) {
     react: extractVersion(cachedImportMap.imports['react']),
     reactDom: extractVersion(cachedImportMap.imports['react-dom']),
     useVibes: extractVersion(cachedImportMap.imports['use-vibes']),
-    callAi: extractVersion(cachedImportMap.imports['call-ai']),
     useFireproof: extractVersion(cachedImportMap.imports['use-fireproof'])
   };
 

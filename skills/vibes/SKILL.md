@@ -275,11 +275,109 @@ export default function App() {
 
 ---
 
+## AI Features (Optional)
+
+If the user's prompt suggests AI-powered features (chatbot, summarization, content generation, etc.), the app needs AI capabilities via the `useAI` hook.
+
+### Detecting AI Requirements
+
+Look for these patterns in the user's prompt:
+- "chatbot", "chat with AI", "ask AI"
+- "summarize", "generate", "write", "create content"
+- "analyze", "classify", "recommend"
+- "AI-powered", "intelligent", "smart" (in context of features)
+
+### Collecting OpenRouter Key
+
+When AI is needed, ask the user:
+
+> This app needs AI capabilities. Please provide your OpenRouter API key.
+> Get one at: https://openrouter.ai/keys
+
+Store the key for use with the `--ai-key` flag during deployment.
+
+### Using the useAI Hook
+
+The `useAI` hook is automatically included in the template when AI features are detected:
+
+```jsx
+import React from "react";
+import { useFireproof } from "use-fireproof";
+
+export default function App() {
+  const { database, useLiveQuery } = useFireproof("ai-chat-db");
+  const { callAI, loading, error } = useAI();
+
+  const handleSend = async (message) => {
+    // Save user message
+    await database.put({ role: "user", content: message, type: "message" });
+
+    // Call AI
+    const response = await callAI({
+      model: "anthropic/claude-sonnet-4",
+      messages: [{ role: "user", content: message }]
+    });
+
+    // Save AI response
+    const aiMessage = response.choices[0].message.content;
+    await database.put({ role: "assistant", content: aiMessage, type: "message" });
+  };
+
+  // Handle limit exceeded
+  if (error?.code === 'LIMIT_EXCEEDED') {
+    return (
+      <div className="p-4 bg-amber-100 text-amber-800 rounded">
+        AI usage limit reached. Please wait for monthly reset or upgrade your plan.
+      </div>
+    );
+  }
+
+  // ... rest of UI
+}
+```
+
+### useAI API
+
+```jsx
+const { callAI, loading, error, clearError } = useAI();
+
+// callAI options
+await callAI({
+  model: "anthropic/claude-sonnet-4",  // or other OpenRouter models
+  messages: [
+    { role: "system", content: "You are a helpful assistant." },
+    { role: "user", content: "Hello!" }
+  ],
+  temperature: 0.7,  // optional
+  max_tokens: 1000   // optional
+});
+
+// error structure
+error = {
+  code: "LIMIT_EXCEEDED" | "API_ERROR" | "NETWORK_ERROR",
+  message: "Human-readable error message"
+}
+```
+
+### Deployment with AI
+
+When deploying AI-enabled apps, include the OpenRouter key:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
+  --name myapp \
+  --file index.html \
+  --ai-key "sk-or-v1-your-key"
+```
+
+---
+
 ## Common Mistakes to Avoid
 
 - **DON'T** use `useState` for form fields - use `useDocument`
 - **DON'T** use `Fireproof.fireproof()` - use `useFireproof()` hook
 - **DON'T** use white text on light backgrounds
+- **DON'T** use `call-ai` directly - use `useAI` hook instead (it handles proxying and limits)
 
 ---
 

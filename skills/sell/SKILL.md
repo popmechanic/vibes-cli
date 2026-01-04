@@ -128,6 +128,13 @@ Ask the user for these details:
    - From Clerk Dashboard → Users → click user → copy ID
    - Admins bypass subscription gate
 
+8. **AI Features** (optional)
+   - Ask: "Do you want to enable AI features for your tenants? (Y/n)"
+   - If yes:
+     - **OpenRouter Provisioning Key**: Get from https://openrouter.ai/keys
+     - **Tenant Credit Limit**: Monthly AI credit limit per tenant in dollars (default: $5)
+   - The proxy handles per-tenant key provisioning and usage limits automatically
+
 ---
 
 ## Step 3: Assemble (DO NOT GENERATE CODE)
@@ -215,10 +222,26 @@ The template uses neutral colors by default. To match the user's brand or prompt
 After assembly, deploy with `/vibes:exe`:
 
 ```bash
+# Basic deployment (no AI)
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name wedding-photos --file index.html
+
+# With AI features enabled
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
+  --name wedding-photos \
+  --file index.html \
+  --ai-key "sk-or-v1-your-provisioning-key" \
+  --multi-tenant \
+  --tenant-limit 5
 ```
 
+**AI Deployment Flags:**
+- `--ai-key` - Your OpenRouter provisioning API key
+- `--multi-tenant` - Enable per-tenant key provisioning and limits
+- `--tenant-limit` - Monthly credit limit per tenant in dollars (default: $5)
+
 Your app will be live at `https://wedding-photos.exe.xyz`
+
+If AI is enabled, tenants can use the `useAI` hook and their usage is automatically metered.
 
 For custom domains with wildcard subdomains, see the exe.dev deployment guide.
 

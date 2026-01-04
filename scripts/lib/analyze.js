@@ -149,7 +149,6 @@ function extractLibraryVersions(imports) {
     react: extractVersion(imports['react']),
     reactDom: extractVersion(imports['react-dom']),
     useVibes: extractVersion(imports['use-vibes']),
-    callAi: extractVersion(imports['call-ai']),
     useFireproof: extractVersion(imports['use-fireproof']),
     clerk: extractVersion(imports['@clerk/clerk-react'])
   };

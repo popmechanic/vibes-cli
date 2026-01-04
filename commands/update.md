@@ -40,7 +40,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/update.js" path/to/app.html --verbose
 ## What Gets Updated
 
 ### Import Maps
-- Library version upgrades (use-vibes, call-ai, use-fireproof)
+- Library version upgrades (use-vibes, use-fireproof)
 - React singleton fixes (`?deps=` → `?external=`)
 - Missing `?external=` parameters
 
