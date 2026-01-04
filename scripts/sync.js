@@ -564,7 +564,7 @@ function addReactExternal(url) {
  * Generate the import map JSON string for templates
  * Uses unpinned React (esm.sh resolves latest compatible) and ?external= for singleton
  *
- * NOTE: We use stable version 0.18.9 for use-vibes and call-ai, not the upstream
+ * NOTE: We use stable version 0.18.9 for use-vibes, not the upstream
  * dev version. The 0.19.x-dev versions have known React context bugs.
  * See CLAUDE.md for details.
  */
@@ -582,7 +582,6 @@ function generateImportMapJson(imports) {
   // Use stable version with ?external=react,react-dom for single React instance
   // Override upstream version if it's a dev version (has known bugs)
   templateImports["use-fireproof"] = `https://esm.sh/use-vibes@${STABLE_VIBES_VERSION}?external=react,react-dom`;
-  templateImports["call-ai"] = `https://esm.sh/call-ai@${STABLE_VIBES_VERSION}?external=react,react-dom`;
   templateImports["use-vibes"] = `https://esm.sh/use-vibes@${STABLE_VIBES_VERSION}?external=react,react-dom`;
 
   return JSON.stringify({ imports: templateImports }, null, 6).replace(/^/gm, '  ').trim();
