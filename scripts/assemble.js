@@ -72,6 +72,39 @@ if (!template.includes(PLACEHOLDER)) {
 // Assemble: insert app code at placeholder
 const output = template.replace(PLACEHOLDER, appCode);
 
+// Validate output
+function validateAssembly(html, code) {
+  const errors = [];
+
+  if (!code || code.trim().length === 0) {
+    errors.push('App code is empty');
+  }
+
+  if (html.includes(PLACEHOLDER)) {
+    errors.push('Placeholder was not replaced');
+  }
+
+  if (!html.includes('export default function') && !html.includes('function App')) {
+    errors.push('No App component found');
+  }
+
+  const scriptOpens = (html.match(/<script/gi) || []).length;
+  const scriptCloses = (html.match(/<\/script>/gi) || []).length;
+  if (scriptOpens !== scriptCloses) {
+    errors.push(`Mismatched script tags: ${scriptOpens} opens, ${scriptCloses} closes`);
+  }
+
+  return errors;
+}
+
+const validationErrors = validateAssembly(output, appCode);
+if (validationErrors.length > 0) {
+  console.error('Assembly failed:');
+  validationErrors.forEach(e => console.error(`  - ${e}`));
+  console.error('\nFix: Check your app.jsx for syntax errors');
+  process.exit(1);
+}
+
 // Backup existing file if present
 const backupPath = createBackup(resolvedOutputPath);
 if (backupPath) {
