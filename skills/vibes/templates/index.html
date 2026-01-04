@@ -645,7 +645,7 @@ function getIconStyle(isMobile, isHovered, isActive) {
     animation: isHovered && !isActive ? "vibes-button-bounce 0.8s ease-in-out infinite" : "none"
   };
 }
-function getContentWrapperStyle(isMobile, hasIcon) {
+function getButtonContentWrapperStyle(isMobile, hasIcon) {
   if (!hasIcon) return {};
   return {
     display: "flex",
@@ -709,7 +709,7 @@ function VibesButton({
     !!IconComponent
   );
   const iconStyle = getIconStyle(isMobile, isHovered, isActive);
-  const contentWrapperStyle = getContentWrapperStyle(isMobile, !!IconComponent);
+  const contentWrapperStyle = getButtonContentWrapperStyle(isMobile, !!IconComponent);
   return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("style", null, bounceKeyframes), /* @__PURE__ */ React.createElement(
     "button",
     {
