@@ -29,6 +29,30 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.htm
 5. **Makes VM public** via `ssh exe.dev share set-public <vmname>`
 6. **Verifies** public access at `https://myapp.exe.xyz`
 
+## AI-Enabled Apps
+
+For apps using the `useAI` hook, deploy with the `--ai-key` flag:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.html --ai-key "sk-or-v1-..."
+```
+
+This sets up a **secure AI proxy**:
+1. Installs Bun runtime
+2. Creates `/home/exedev/proxy.js` - proxies `/api/ai/*` to OpenRouter
+3. Configures systemd service for the proxy
+4. Adds nginx reverse proxy from port 80/443 to Bun (port 3001)
+
+**IMPORTANT:** Do not manually set up AI proxying. Manual nginx config changes can overwrite SSL settings and miss the Bun/proxy.js service. Always use the deploy script with `--ai-key`.
+
+### Multi-Tenant AI Apps
+
+For SaaS apps with per-tenant AI:
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.html --ai-key "sk-or-v1-..." --multi-tenant
+```
+
 ## Continue Development on the VM
 
 Claude is pre-installed on exe.dev VMs. After deployment, you can continue development remotely:
@@ -93,6 +117,8 @@ const { database } = useFireproof(dbName);
 | `--name <vm>` | VM name (required) |
 | `--file <path>` | HTML file to deploy (default: index.html) |
 | `--domain <domain>` | Custom domain for wildcard setup |
+| `--ai-key <key>` | OpenRouter API key for AI features |
+| `--multi-tenant` | Enable subdomain-based multi-tenancy |
 | `--dry-run` | Show commands without executing |
 | `--skip-verify` | Skip deployment verification |
 
@@ -118,12 +144,52 @@ ssh myapp.runvm.dev
 exe.dev VM (exeuntu image)
 ├── nginx (serves all subdomains via server_name _)
 ├── claude (pre-installed CLI)
-└── /var/www/html/
-    ├── index.html   ← Your Vibes app
-    └── HANDOFF.md   ← Context for remote Claude
+├── /var/www/html/
+│   ├── index.html   ← Your Vibes app
+│   └── HANDOFF.md   ← Context for remote Claude
+└── (with --ai-key)
+    ├── bun           ← JavaScript runtime
+    ├── proxy.js      ← AI proxy service (port 3001)
+    └── systemd       ← Manages proxy.js as a service
 ```
 
-- **No server-side logic** - pure static hosting
+- **No server-side logic** - pure static hosting (unless using AI proxy)
 - **Persistent disk** - survives restarts
 - **HTTPS by default** - exe.dev handles SSL for *.exe.xyz
 - **Claude pre-installed** - continue development on the VM
+
+## Post-Deploy Debugging
+
+After deployment, **always work with local files** - they are the source of truth. SSHing to read deployed files is slow and wastes tokens.
+
+| Task | Use Local | Use SSH |
+|------|-----------|---------|
+| Editing/debugging code | ✅ Always | ❌ Never |
+| Checking console errors | ✅ Local file | ❌ No need |
+| Verifying deploy | ❌ | ✅ `curl https://vm.exe.xyz` |
+| Server-specific issues | ❌ | ✅ Only if local works but remote doesn't |
+
+**To redeploy after local fixes:**
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name <vmname> --file index.html
+```
+
+## SSL Configuration
+
+The deploy script preserves existing SSL by using include files for AI proxy config. When manually editing nginx:
+
+1. **Never replace the entire config** - only add/modify specific blocks
+2. **Check for SSL first:** Look for `listen 443 ssl` in the config
+3. **Use includes:** Put new configs in `/etc/nginx/conf.d/` or separate files
+4. **Test before reload:** `sudo nginx -t`
+
+### exe.dev Home Directory
+
+The home directory on exe.dev VMs is `/home/exedev` (not `~` expansion). For manual file operations:
+
+```bash
+# Use explicit path or /tmp for staging
+scp file.html vmname.exe.xyz:/home/exedev/
+# or
+scp file.html vmname.exe.xyz:/tmp/
+```
