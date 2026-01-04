@@ -273,6 +273,20 @@ For custom domains with wildcard subdomains, see the exe.dev deployment guide.
 3. Get admin user ID from Clerk Dashboard → Users
 4. Add your production domain to Clerk's allowed origins
 
+**⚠️ IMPORTANT: Passkeys require Production Mode**
+
+Passkey authentication **only works in Clerk production mode**. Development instances (`pk_test_*`) will fail at passkey creation with errors like "operation not allowed."
+
+**To enable passkeys:**
+1. Go to Clerk Dashboard → Settings → Instance
+2. Switch from Development to Production
+3. Use the production publishable key (`pk_live_*`)
+4. Add your production domain to allowed origins
+
+**For development testing without passkeys:**
+- Use Clerk's built-in email link or email code authentication
+- The template falls back to email-only signup if passkeys fail
+
 **If using `--billing-mode required`:**
 5. Go to Clerk Dashboard → Billing → Get Started
 6. Create subscription plans (names must match: `pro`, `basic`, `monthly`, `yearly`, `starter`, `free`)
@@ -462,3 +476,14 @@ The unified template uses pinned React 18 versions to prevent conflicts with Cle
 ### Database not isolated
 - Verify `useTenant()` is used in the App component
 - Check `useFireproof(dbName)` uses the tenant database name
+
+### Passkey creation fails
+- **Passkeys require Clerk production mode** - they don't work with `pk_test_*` keys
+- Go to Clerk Dashboard → Settings → switch to Production
+- Use the production publishable key (`pk_live_*`)
+- Add your production domain to Clerk's allowed origins
+
+### "Verification incomplete" after email code
+- This happens when passkeys are required but you're in development mode
+- Switch to Clerk production mode, or
+- Disable passkey requirement in Clerk Dashboard temporarily for testing
