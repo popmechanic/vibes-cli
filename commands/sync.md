@@ -30,7 +30,7 @@ Run this command when:
 
 ## What Gets Synced
 
-- **Import map** from vibes.diy repository (React, use-vibes, call-ai versions)
+- **Import map** from vibes.diy repository (React, use-vibes versions)
 - **Fireproof docs** from https://use-fireproof.com/llms-full.txt
 - Additional module documentation as configured
 

@@ -180,9 +180,9 @@ function addExternalParams(html) {
   let importMapContent = match[1];
   const originalContent = importMapContent;
 
-  // Find use-vibes, call-ai, use-fireproof URLs without ?external=
+  // Find use-vibes, use-fireproof URLs without ?external=
   // Add ?external=react,react-dom to them
-  const packagesToFix = ['use-vibes', 'call-ai', 'use-fireproof'];
+  const packagesToFix = ['use-vibes', 'use-fireproof'];
 
   for (const pkg of packagesToFix) {
     // Match package URL without query params or with non-external params

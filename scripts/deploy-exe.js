@@ -11,6 +11,9 @@
  *   --name <vmname>    VM name (required)
  *   --domain <domain>  Custom domain for wildcard SSL setup
  *   --file <path>      HTML file to deploy (default: index.html)
+ *   --ai-key <key>     OpenRouter API key for AI features
+ *   --multi-tenant     Enable multi-tenant mode (for sell apps)
+ *   --tenant-limit <$> Credit limit per tenant in dollars (default: 5)
  *   --dry-run          Show what would be done without executing
  *   --skip-verify      Skip verification step
  *   --help             Show this help message
@@ -52,6 +55,9 @@ function parseArgs(argv) {
     name: null,
     domain: null,
     file: 'index.html',
+    aiKey: null,
+    multiTenant: false,
+    tenantLimit: 5,
     dryRun: false,
     skipVerify: false,
     help: false
@@ -65,6 +71,12 @@ function parseArgs(argv) {
       args.domain = argv[++i];
     } else if (arg === '--file' && argv[i + 1]) {
       args.file = argv[++i];
+    } else if (arg === '--ai-key' && argv[i + 1]) {
+      args.aiKey = argv[++i];
+    } else if (arg === '--multi-tenant') {
+      args.multiTenant = true;
+    } else if (arg === '--tenant-limit' && argv[i + 1]) {
+      args.tenantLimit = parseFloat(argv[++i]) || 5;
     } else if (arg === '--dry-run') {
       args.dryRun = true;
     } else if (arg === '--skip-verify') {
@@ -277,8 +289,136 @@ async function phase4FileUpload(args) {
   }
 }
 
-async function phase5Handoff(args) {
-  console.log('\nPhase 5: Context Handoff...');
+async function phase5AIProxy(args) {
+  // Skip if no AI key provided
+  if (!args.aiKey) {
+    console.log('\nPhase 5: AI Proxy... SKIPPED (no --ai-key provided)');
+    return;
+  }
+
+  console.log('\nPhase 5: AI Proxy Setup...');
+
+  const vmHost = `${args.name}.runvm.dev`;
+
+  if (args.dryRun) {
+    console.log('  [DRY RUN] Would install Bun and deploy AI proxy');
+    console.log(`  [DRY RUN] Multi-tenant: ${args.multiTenant}`);
+    console.log(`  [DRY RUN] Tenant limit: $${args.tenantLimit}`);
+    return;
+  }
+
+  try {
+    const client = await connect(vmHost);
+
+    // Install Bun if needed
+    console.log('  Checking/installing Bun...');
+    const bunCheck = await runCommand(client, 'which bun || echo "NOT_FOUND"');
+    if (bunCheck.stdout.includes('NOT_FOUND')) {
+      console.log('  Installing Bun...');
+      await runCommand(client, 'curl -fsSL https://bun.sh/install | bash');
+      // Source the updated PATH
+      await runCommand(client, 'echo "export PATH=$HOME/.bun/bin:$PATH" >> ~/.bashrc');
+    }
+    console.log('  ✓ Bun installed');
+
+    // Create vibes directory
+    await runCommand(client, 'sudo mkdir -p /opt/vibes /var/lib/vibes');
+    await runCommand(client, 'sudo chown $USER:$USER /opt/vibes /var/lib/vibes');
+
+    // Read and upload proxy script
+    console.log('  Uploading AI proxy...');
+    const proxyPath = join(__dirname, 'lib', 'ai-proxy.js');
+    if (!existsSync(proxyPath)) {
+      throw new Error(`AI proxy script not found at ${proxyPath}`);
+    }
+    await uploadFile(proxyPath, vmHost, '/opt/vibes/proxy.js');
+
+    // Set environment variables
+    console.log('  Configuring environment...');
+    const envVars = [
+      `OPENROUTER_API_KEY=${args.aiKey}`,
+      `VIBES_MULTI_TENANT=${args.multiTenant}`,
+      `VIBES_TENANT_LIMIT=${args.tenantLimit}`
+    ];
+
+    for (const envVar of envVars) {
+      // Check if already set, if not add it
+      const varName = envVar.split('=')[0];
+      await runCommand(client, `grep -q "^${varName}=" /etc/environment || echo '${envVar}' | sudo tee -a /etc/environment`);
+    }
+
+    // Create systemd service
+    console.log('  Creating systemd service...');
+    const serviceFile = `[Unit]
+Description=Vibes AI Proxy
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/vibes
+ExecStart=/root/.bun/bin/bun run /opt/vibes/proxy.js
+Restart=always
+RestartSec=5
+EnvironmentFile=/etc/environment
+
+[Install]
+WantedBy=multi-user.target`;
+
+    await runCommand(client, `echo '${serviceFile}' | sudo tee /etc/systemd/system/vibes-proxy.service`);
+    await runCommand(client, 'sudo systemctl daemon-reload');
+    await runCommand(client, 'sudo systemctl enable vibes-proxy');
+    await runCommand(client, 'sudo systemctl restart vibes-proxy');
+
+    // Verify service is running
+    const serviceStatus = await runCommand(client, 'systemctl is-active vibes-proxy');
+    if (serviceStatus.stdout.trim() !== 'active') {
+      console.log('  ⚠ Service may not be running. Check logs with: journalctl -u vibes-proxy');
+    } else {
+      console.log('  ✓ AI proxy service running');
+    }
+
+    // Configure nginx proxy
+    console.log('  Configuring nginx...');
+    const nginxConf = `
+# AI Proxy configuration
+location /api/ai/ {
+    proxy_pass http://127.0.0.1:3001/;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}`;
+
+    // Add to nginx default config (inside server block)
+    // First check if already configured
+    const nginxCheck = await runCommand(client, 'grep -q "location /api/ai/" /etc/nginx/sites-available/default && echo "EXISTS" || echo "NOT_FOUND"');
+    if (nginxCheck.stdout.includes('NOT_FOUND')) {
+      // Insert before the closing brace of server block
+      await runCommand(client, `sudo sed -i '/^}/i ${nginxConf.replace(/\n/g, '\\n').replace(/\$/g, '\\$')}' /etc/nginx/sites-available/default`);
+    }
+
+    // Test and reload nginx
+    const nginxTest = await runCommand(client, 'sudo nginx -t 2>&1');
+    if (nginxTest.code === 0) {
+      await runCommand(client, 'sudo systemctl reload nginx');
+      console.log('  ✓ nginx configured for AI proxy');
+    } else {
+      console.log('  ⚠ nginx config test failed. Manual configuration may be needed.');
+      console.log(`     Error: ${nginxTest.stderr || nginxTest.stdout}`);
+    }
+
+    client.end();
+    console.log('  ✓ AI proxy setup complete');
+
+  } catch (err) {
+    throw new Error(`AI proxy setup failed: ${err.message}`);
+  }
+}
+
+async function phase6Handoff(args) {
+  console.log('\nPhase 6: Context Handoff...');
 
   const vmHost = `${args.name}.runvm.dev`;
 
@@ -316,8 +456,8 @@ async function phase5Handoff(args) {
   }
 }
 
-async function phase6PublicAccess(args) {
-  console.log('\nPhase 6: Public Access...');
+async function phase7PublicAccess(args) {
+  console.log('\nPhase 7: Public Access...');
 
   if (args.dryRun) {
     console.log(`  [DRY RUN] Would run: share set-public ${args.name}`);
@@ -353,13 +493,13 @@ async function phase6PublicAccess(args) {
   }
 }
 
-async function phase7CustomDomain(args) {
+async function phase8CustomDomain(args) {
   if (!args.domain) {
-    console.log('\nPhase 7: Custom Domain... SKIPPED (no --domain provided)');
+    console.log('\nPhase 8: Custom Domain... SKIPPED (no --domain provided)');
     return;
   }
 
-  console.log('\nPhase 7: Custom Domain Setup...');
+  console.log('\nPhase 8: Custom Domain Setup...');
   console.log(`
   To set up your custom domain (${args.domain}), follow these steps:
 
@@ -463,6 +603,11 @@ ${'━'.repeat(60)}
   console.log(`  VM Name: ${args.name}`);
   console.log(`  File: ${args.file}`);
   if (args.domain) console.log(`  Domain: ${args.domain}`);
+  if (args.aiKey) {
+    console.log(`  AI Proxy: Enabled`);
+    console.log(`  Multi-tenant: ${args.multiTenant}`);
+    if (args.multiTenant) console.log(`  Tenant Limit: $${args.tenantLimit}/month`);
+  }
   if (args.dryRun) console.log(`  Mode: DRY RUN`);
 
   try {
@@ -471,9 +616,10 @@ ${'━'.repeat(60)}
     await phase2CreateVM(args);
     await phase3ServerSetup(args);
     await phase4FileUpload(args);
-    await phase5Handoff(args);
-    await phase6PublicAccess(args);
-    await phase7CustomDomain(args);
+    await phase5AIProxy(args);
+    await phase6Handoff(args);
+    await phase7PublicAccess(args);
+    await phase8CustomDomain(args);
 
     // Verification
     if (!args.skipVerify && !args.dryRun) {
@@ -487,6 +633,8 @@ ${'━'.repeat(60)}
     config.deployments[args.name] = {
       file: args.file,
       domain: args.domain,
+      aiEnabled: !!args.aiKey,
+      multiTenant: args.multiTenant,
       deployedAt: new Date().toISOString()
     };
     saveConfig(config);
@@ -498,6 +646,10 @@ ${'━'.repeat(60)}
 
   Your app is live at:
     https://${args.name}.exe.xyz
+${args.aiKey ? `
+  AI Proxy:
+    Endpoint: https://${args.name}.exe.xyz/api/ai/chat
+    Mode: ${args.multiTenant ? `Multi-tenant ($${args.tenantLimit}/month per tenant)` : 'Single-user'}` : ''}
 
   To continue development on the VM (Claude is pre-installed):
     ssh ${args.name}.runvm.dev -t "cd /var/www/html && claude"
@@ -505,7 +657,7 @@ ${args.domain ? `
   Custom domain: https://${args.domain} (after DNS setup)` : ''}
 
   To redeploy after changes:
-    node scripts/deploy-exe.js --name ${args.name} --file ${args.file}
+    node scripts/deploy-exe.js --name ${args.name} --file ${args.file}${args.aiKey ? ` --ai-key <key>${args.multiTenant ? ' --multi-tenant' : ''}` : ''}
 `);
 
   } catch (err) {

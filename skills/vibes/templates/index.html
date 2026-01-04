@@ -56,7 +56,6 @@
           "react-dom/client": "https://esm.sh/react-dom/client",
           "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
           "use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
-          "call-ai": "https://esm.sh/call-ai@0.18.9?external=react,react-dom",
           "use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom"
         }
       }
@@ -747,6 +746,71 @@ function VibesButton({
       }
       window.VibesPanel = VibesPanel;
       // === END VibesPanel ===
+
+      // === START useAI ===
+      // AI hook for proxied OpenRouter calls with metering
+      function useAI() {
+        const [loading, setLoading] = React.useState(false);
+        const [error, setError] = React.useState(null);
+
+        const callAI = React.useCallback(async (options) => {
+          setLoading(true);
+          setError(null);
+
+          try {
+            // Get auth token if Clerk is available (sell apps)
+            let authHeader = {};
+            if (typeof window !== 'undefined' && window.Clerk?.session) {
+              const token = await window.Clerk.session.getToken();
+              if (token) {
+                authHeader = { 'Authorization': 'Bearer ' + token };
+              }
+            }
+
+            const response = await fetch('/api/ai/chat', {
+              method: 'POST',
+              headers: Object.assign({ 'Content-Type': 'application/json' }, authHeader),
+              body: JSON.stringify(Object.assign({
+                model: options.model || 'anthropic/claude-sonnet-4',
+                messages: options.messages
+              }, options))
+            });
+
+            // Handle limit exceeded (402 from OpenRouter)
+            if (response.status === 402) {
+              const err = { code: 'LIMIT_EXCEEDED', message: 'AI usage limit reached for this month.' };
+              setError(err);
+              throw err;
+            }
+
+            // Handle other errors
+            if (!response.ok) {
+              const errorData = await response.json().catch(function() { return {}; });
+              const err = {
+                code: 'API_ERROR',
+                message: (errorData.error && errorData.error.message) || ('API error: ' + response.status),
+                status: response.status
+              };
+              setError(err);
+              throw err;
+            }
+
+            return await response.json();
+
+          } catch (err) {
+            if (!error) {
+              setError({ code: 'NETWORK_ERROR', message: err.message || 'Network error' });
+            }
+            throw err;
+          } finally {
+            setLoading(false);
+          }
+        }, [error]);
+
+        return { callAI: callAI, loading: loading, error: error, clearError: function() { setError(null); } };
+      }
+      window.useAI = useAI;
+      // === END useAI ===
     </script>
     <script type="text/babel" data-type="module">
       import ReactDOMClient from "react-dom/client";
