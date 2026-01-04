@@ -273,6 +273,25 @@ export function uploadFile(localPath, host, remotePath, options = {}) {
 }
 
 /**
+ * Upload a file via SCP to a privileged location (uses temp + sudo)
+ * @param {string} localPath - Local file path
+ * @param {string} host - Remote hostname
+ * @param {string} remotePath - Remote file path (e.g., /var/www/html/index.html)
+ * @param {object} [options] - Options
+ * @returns {Promise<void>}
+ */
+export async function uploadFileWithSudo(localPath, host, remotePath, options = {}) {
+  const filename = require('path').basename(localPath);
+  const tempPath = `/tmp/${filename}`;
+
+  // Upload to temp location first
+  await uploadFile(localPath, host, tempPath, options);
+
+  // Move to final location with sudo
+  await runCommand(host, `sudo cp ${tempPath} ${remotePath} && sudo chown www-data:www-data ${remotePath} && rm ${tempPath}`, options);
+}
+
+/**
  * Test SSH connectivity to exe.dev
  * @returns {Promise<boolean>} True if connection successful
  */
