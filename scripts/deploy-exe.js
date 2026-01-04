@@ -301,8 +301,8 @@ async function phase4FileUpload(args) {
   console.log(`  Uploading ${args.file} to ${vmHost}...`);
 
   try {
-    // First upload to tmp, then move with sudo (in case of permission issues)
-    const tmpPath = '/tmp/vibes-index.html';
+    // First upload to home directory, then move with sudo (in case of permission issues)
+    const tmpPath = '/home/exedev/vibes-index.html';
 
     await uploadFile(args.file, vmHost, tmpPath);
 
