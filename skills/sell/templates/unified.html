@@ -1184,12 +1184,12 @@ function VibesButton({
         // Show loading state while registering new users
         if (registrationState === 'checking' || registrationState === 'registering') {
           return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div className="min-h-screen flex items-center justify-center bg-[var(--vibes-gray-lightest)]">
               <div className="text-center">
-                <div className="animate-pulse text-lg font-medium text-gray-600 mb-2">
-                  Setting up your studio...
+                <div className="animate-pulse text-lg font-medium text-[var(--vibes-black)]/70 mb-2">
+                  Setting up your app...
                 </div>
-                <p className="text-sm text-gray-400">This will only take a moment</p>
+                <p className="text-sm text-[var(--vibes-black)]/50">This will only take a moment</p>
               </div>
             </div>
           );
@@ -1204,19 +1204,19 @@ function VibesButton({
       // === Sign In Screen (for tenant) ===
       function SignInScreen({ subdomain }) {
         return (
-          <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-            <div className="max-w-md text-center p-8 bg-white rounded-2xl border border-gray-200 shadow-lg">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to {subdomain}</h2>
-              <p className="mb-6 text-gray-500">Sign in with your passkey to continue</p>
+          <div className="min-h-screen flex items-center justify-center bg-[var(--vibes-gray-lightest)] p-4">
+            <div className="max-w-md text-center p-8 bg-[var(--vibes-white)] rounded-2xl border border-[var(--landing-accent)]/20 shadow-lg">
+              <h2 className="text-2xl font-bold text-[var(--vibes-black)] mb-2">Welcome to {subdomain}</h2>
+              <p className="mb-6 text-[var(--vibes-black)]/60">Sign in to continue</p>
               <SignInButton mode="modal">
                 <button className="w-full px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] transition-colors">
-                  Sign In with Passkey
+                  Sign In
                 </button>
               </SignInButton>
-              <p className="mt-4 text-sm text-gray-500">
-                Don't have an account?{' '}
+              <p className="mt-4 text-sm text-[var(--vibes-black)]/60">
+                New here?{' '}
                 <a href={`https://${APP_DOMAIN}`} className="text-[var(--landing-accent)] hover:underline font-medium">
-                  Create one
+                  Sign up
                 </a>
               </p>
             </div>
@@ -1330,127 +1330,6 @@ function VibesButton({
         return cookie ? cookie.split('=')[1] : null;
       }
 
-      // === OnboardingFlow (replaces CheckoutFlow) ===
-      function _SellOnboardingFlow({ subdomain: preClaimedSubdomain, onBack }) {
-        const { user, isLoaded } = useUser();
-        const [activating, setActivating] = useState(false);
-        const [localSubdomain, setLocalSubdomain] = useState(preClaimedSubdomain || '');
-
-        // Save subdomain to localStorage whenever it changes
-        useEffect(() => {
-          if (localSubdomain) {
-            savePendingSubdomain(localSubdomain);
-          }
-        }, [localSubdomain]);
-
-        // Restore from localStorage if not provided
-        useEffect(() => {
-          if (!localSubdomain) {
-            const pending = getPendingSubdomain();
-            if (pending) setLocalSubdomain(pending);
-          }
-        }, []);
-
-        const activateSubdomain = useCallback(async (subdomain) => {
-          if (!user || !subdomain || activating) return;
-
-          setActivating(true);
-          try {
-            await user.update({
-              unsafeMetadata: {
-                ...user.unsafeMetadata,
-                subdomain: subdomain,
-                plan: 'free',
-                registeredAt: new Date().toISOString()
-              }
-            });
-            clearPendingSubdomain();
-            // Set cookie for "welcome back" on future visits
-            setLastSubdomainCookie(subdomain);
-            window.location.href = `https://${subdomain}.${APP_DOMAIN}`;
-          } catch (err) {
-            console.error('Error activating subdomain:', err);
-            setActivating(false);
-            alert('Failed to activate. Please try again.');
-          }
-        }, [user, activating]);
-
-        // Auto-activate when user signs in with a pending subdomain
-        // Note: Pending subdomain takes precedence - user explicitly claimed a new one
-        useEffect(() => {
-          if (!isLoaded || !user || activating) return;
-
-          const pendingSubdomain = localSubdomain || getPendingSubdomain();
-          if (pendingSubdomain) {
-            activateSubdomain(pendingSubdomain);
-          }
-        }, [isLoaded, user, localSubdomain, activating, activateSubdomain]);
-
-        // Show loading state while activating
-        if (activating) {
-          return (
-            <section className="py-16 px-6 max-w-lg mx-auto">
-              <div className="p-8 bg-white rounded-2xl border border-gray-200 shadow-lg text-center">
-                <div className="animate-pulse text-lg font-medium text-gray-600 mb-2">
-                  Setting up your studio...
-                </div>
-                <p className="text-sm text-gray-400">Preparing {localSubdomain || getPendingSubdomain()}.{APP_DOMAIN}</p>
-              </div>
-            </section>
-          );
-        }
-
-        return (
-          <section className="py-16 px-6 max-w-lg mx-auto">
-            <div className="p-8 bg-white rounded-2xl border border-gray-200 shadow-lg">
-              <button onClick={onBack} className="mb-6 text-gray-500 hover:text-gray-900 font-medium flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-                Back
-              </button>
-
-              {/* Subdomain display */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
-                <p className="text-sm text-gray-600 font-medium mb-1">Your subdomain</p>
-                <p className="text-lg font-bold text-gray-900">{localSubdomain}.{APP_DOMAIN}</p>
-              </div>
-
-              <div className="mb-6 pb-6 border-b border-gray-100">
-                <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full mb-2">Free Forever</span>
-                <p className="text-gray-500">Your own subdomain, unlimited hosting</p>
-              </div>
-
-              <SignedOut>
-                <p className="mb-4 text-gray-600 text-center">Create your account with passkey:</p>
-                <div className="space-y-3">
-                  <SignUpButton mode="modal">
-                    <button className="w-full px-6 py-3.5 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] transition-colors">
-                      Create Account with Passkey
-                    </button>
-                  </SignUpButton>
-                  <SignInButton mode="modal">
-                    <button className="w-full px-6 py-3 bg-white text-gray-900 font-medium rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
-                      Already have an account? Sign In
-                    </button>
-                  </SignInButton>
-                </div>
-              </SignedOut>
-
-              <SignedIn>
-                <button
-                  onClick={() => activateSubdomain(localSubdomain)}
-                  disabled={activating || !localSubdomain}
-                  className="w-full px-6 py-3.5 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  Enter Your Studio
-                </button>
-              </SignedIn>
-            </div>
-          </section>
-        );
-      }
-
       // === Features Section ===
       function _SellFeaturesSection() {
         return (
@@ -1472,60 +1351,21 @@ function VibesButton({
         );
       }
 
-      // === Landing Page Content (inside ClerkProvider) ===
+      // === Landing Page Content (no auth - users authenticate on subdomain) ===
       function _SellLandingPageContent() {
-        const { user, isLoaded } = useUser();
-        const [showOnboarding, setShowOnboarding] = useState(false);
-        const [claimedSubdomain, setClaimedSubdomain] = useState(null);
-        const [redirecting, setRedirecting] = useState(false);
-
-        // Check for pending subdomain on load
-        useEffect(() => {
-          if (!isLoaded) return;
-
-          const pending = getPendingSubdomain();
-          // If there's a pending subdomain and user is signed in, show onboarding
-          // (pending subdomain takes precedence - user explicitly claimed a new one)
-          if (user && pending) {
-            setClaimedSubdomain(pending);
-            setShowOnboarding(true);
-          }
-        }, [isLoaded, user]);
+        // Get subdomain from cookie for returning users
+        const userSubdomain = getLastSubdomainCookie();
 
         const handleGetStarted = (subdomain) => {
-          savePendingSubdomain(subdomain);
-          setClaimedSubdomain(subdomain);
-          setShowOnboarding(true);
+          // Direct redirect to subdomain - auth happens there
+          window.location.href = `https://${subdomain}.${APP_DOMAIN}`;
         };
 
-        const handleBack = () => {
-          setShowOnboarding(false);
-          clearPendingSubdomain();
-          setClaimedSubdomain(null);
-        };
-
-        // Get subdomain from metadata or cookie
-        const userSubdomain = user?.unsafeMetadata?.subdomain || getLastSubdomainCookie();
-
-        const handleGoToStudio = () => {
+        const handleGoToApp = () => {
           if (userSubdomain) {
-            setRedirecting(true);
             window.location.href = `https://${userSubdomain}.${APP_DOMAIN}`;
           }
         };
-
-        // Show redirecting state
-        if (redirecting) {
-          return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-              <div className="text-center">
-                <div className="animate-pulse text-lg font-medium text-gray-600 mb-2">
-                  Taking you to your studio...
-                </div>
-              </div>
-            </div>
-          );
-        }
 
         return (
           <div className="min-h-screen bg-gray-50">
@@ -1533,63 +1373,44 @@ function VibesButton({
               <div className="font-semibold text-lg text-gray-900">
                 {APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
               </div>
-              <nav>
-                <SignedOut>
-                  <div className="flex gap-3 items-center">
-                    <SignInButton mode="modal">
-                      <button className="px-4 py-2 text-gray-600 hover:text-gray-900 font-medium transition-colors">Sign In with Passkey</button>
-                    </SignInButton>
-                  </div>
-                </SignedOut>
-                <SignedIn>
-                  <div className="flex gap-3 items-center">
-                    {userSubdomain && (
-                      <button
-                        onClick={handleGoToStudio}
-                        className="px-4 py-2 bg-[var(--landing-accent)] text-white font-medium rounded-lg hover:bg-[var(--landing-accent-hover)] transition-colors"
-                      >
-                        My Studio
-                      </button>
-                    )}
-                    <UserButton />
-                  </div>
-                </SignedIn>
-              </nav>
+              {/* Show app link for returning users */}
+              {userSubdomain && (
+                <button
+                  onClick={handleGoToApp}
+                  className="px-4 py-2 bg-[var(--landing-accent)] text-white font-medium rounded-lg hover:bg-[var(--landing-accent-hover)] transition-colors"
+                >
+                  Open App
+                </button>
+              )}
             </header>
 
-            {!showOnboarding ? (
-              <>
-                {/* Welcome back banner - shows ABOVE hero for returning users */}
-                {userSubdomain && (
-                  <div className="bg-gradient-to-r from-[var(--landing-accent)] to-[var(--landing-accent-hover)] text-white">
-                    <div className="max-w-4xl mx-auto px-6 py-4">
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div className="text-center sm:text-left">
-                          <h2 className="text-lg font-semibold">Welcome back!</h2>
-                          <p className="text-white/80">
-                            <strong className="text-white">{userSubdomain}.{APP_DOMAIN}</strong> is ready for you
-                          </p>
-                        </div>
-                        <button
-                          onClick={handleGoToStudio}
-                          className="px-6 py-2.5 bg-white text-[var(--landing-accent)] font-medium rounded-xl hover:bg-gray-100 transition-colors whitespace-nowrap"
-                        >
-                          Enter Your Studio
-                        </button>
-                      </div>
+            {/* Welcome back banner - shows ABOVE hero for returning users */}
+            {userSubdomain && (
+              <div className="bg-gradient-to-r from-[var(--landing-accent)] to-[var(--landing-accent-hover)] text-white">
+                <div className="max-w-4xl mx-auto px-6 py-4">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-center sm:text-left">
+                      <h2 className="text-lg font-semibold">Welcome back!</h2>
+                      <p className="text-white/80">
+                        <strong className="text-white">{userSubdomain}.{APP_DOMAIN}</strong> is ready for you
+                      </p>
                     </div>
+                    <button
+                      onClick={handleGoToApp}
+                      className="px-6 py-2.5 bg-white text-[var(--landing-accent)] font-medium rounded-xl hover:bg-gray-100 transition-colors whitespace-nowrap"
+                    >
+                      Open Dashboard
+                    </button>
                   </div>
-                )}
-
-                {/* Hero ALWAYS shows - allows claiming additional subdomains */}
-                <_SellHero onGetStarted={handleGetStarted} />
-
-                {/* Features grid */}
-                <_SellFeaturesSection />
-              </>
-            ) : (
-              <_SellOnboardingFlow subdomain={claimedSubdomain} onBack={handleBack} />
+                </div>
+              </div>
             )}
+
+            {/* Hero ALWAYS shows - allows claiming subdomains */}
+            <_SellHero onGetStarted={handleGetStarted} />
+
+            {/* Features grid */}
+            <_SellFeaturesSection />
 
             <footer className="py-8 px-6 text-center text-gray-400 border-t border-gray-200 mt-16">
               <p>Built with <a href="https://vibes.diy" className="text-[var(--landing-accent)] hover:underline">Vibes DIY</a></p>
@@ -1600,11 +1421,7 @@ function VibesButton({
 
       // === Landing Page Wrapper ===
       function _SellLandingPage() {
-        return (
-          <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl="/">
-            <_SellLandingPageContent />
-          </ClerkProvider>
-        );
+        return <_SellLandingPageContent />;
       }
 
       // === Main Router ===
