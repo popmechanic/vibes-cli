@@ -233,20 +233,20 @@ describe('SSH upload simulation', () => {
     writeFileSync(tmpPath, handoff);
 
     // Simulate upload (mocked)
-    await uploadFile(tmpPath, 'uploadtest.runvm.dev', '/tmp/HANDOFF.md');
+    await uploadFile(tmpPath, 'uploadtest.exe.dev', '/tmp/HANDOFF.md');
 
     // Verify upload was called
     expect(uploadFile).toHaveBeenCalledWith(
       tmpPath,
-      'uploadtest.runvm.dev',
+      'uploadtest.exe.dev',
       '/tmp/HANDOFF.md'
     );
 
     // Simulate move command (mocked)
-    const client = await connect('uploadtest.runvm.dev');
+    const client = await connect('uploadtest.exe.dev');
     await runCommand(client, 'sudo mv /tmp/HANDOFF.md /var/www/html/HANDOFF.md');
 
-    expect(connect).toHaveBeenCalledWith('uploadtest.runvm.dev');
+    expect(connect).toHaveBeenCalledWith('uploadtest.exe.dev');
     expect(runCommand).toHaveBeenCalled();
 
     // Cleanup

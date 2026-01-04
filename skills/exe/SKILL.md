@@ -58,7 +58,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.htm
 Claude is pre-installed on exe.dev VMs. After deployment, you can continue development remotely:
 
 ```bash
-ssh myapp.runvm.dev -t "cd /var/www/html && claude"
+ssh myapp.exe.dev -t "cd /var/www/html && claude"
 ```
 
 The HANDOFF.md file provides context about what was built, so Claude can continue meaningfully.
@@ -104,7 +104,7 @@ const { database } = useFireproof(dbName);
 
 3. **Set up wildcard SSL** on the VM:
    ```bash
-   ssh myapp.runvm.dev
+   ssh myapp.exe.dev
    sudo apt install certbot
    sudo certbot certonly --manual --preferred-challenges dns \
      -d "myapp.com" -d "*.myapp.com"
@@ -135,7 +135,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp
 Access your VM directly:
 
 ```bash
-ssh myapp.runvm.dev
+ssh myapp.exe.dev
 ```
 
 ## Architecture
