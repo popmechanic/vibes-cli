@@ -248,7 +248,7 @@ async function phase2CreateVM(args) {
 async function phase3ServerSetup(args) {
   console.log('\nPhase 3: Server Setup...');
 
-  const vmHost = `${args.name}.runvm.dev`;
+  const vmHost = `${args.name}.exe.dev`;
 
   if (args.dryRun) {
     console.log(`  [DRY RUN] Would connect to ${vmHost}`);
@@ -290,7 +290,7 @@ async function phase3ServerSetup(args) {
 async function phase4FileUpload(args) {
   console.log('\nPhase 4: File Upload...');
 
-  const vmHost = `${args.name}.runvm.dev`;
+  const vmHost = `${args.name}.exe.dev`;
   const remotePath = '/var/www/html/index.html';
 
   if (args.dryRun) {
@@ -326,7 +326,7 @@ async function phase5AIProxy(args) {
 
   console.log('\nPhase 5: AI Proxy Setup...');
 
-  const vmHost = `${args.name}.runvm.dev`;
+  const vmHost = `${args.name}.exe.dev`;
 
   if (args.dryRun) {
     console.log('  [DRY RUN] Would install Bun and deploy AI proxy');
@@ -450,7 +450,7 @@ location /api/ai/ {
 async function phase6Handoff(args) {
   console.log('\nPhase 6: Context Handoff...');
 
-  const vmHost = `${args.name}.runvm.dev`;
+  const vmHost = `${args.name}.exe.dev`;
 
   if (args.dryRun) {
     console.log('  [DRY RUN] Would generate and upload HANDOFF.md');
@@ -553,7 +553,7 @@ async function phase8CustomDomain(args) {
   2. WILDCARD SSL CERTIFICATE
      SSH into your VM and run certbot with DNS challenge:
 
-     ssh ${args.name}.runvm.dev
+     ssh ${args.name}.exe.dev
      sudo apt install certbot
      sudo certbot certonly --manual --preferred-challenges dns \\
        -d "${args.domain}" -d "*.${args.domain}"
@@ -682,7 +682,7 @@ ${args.aiKey ? `
     Mode: ${args.multiTenant ? `Multi-tenant ($${args.tenantLimit}/month per tenant)` : 'Single-user'}` : ''}
 
   To continue development on the VM (Claude is pre-installed):
-    ssh ${args.name}.runvm.dev -t "cd /var/www/html && claude"
+    ssh ${args.name}.exe.dev -t "cd /var/www/html && claude"
 ${args.domain ? `
   Custom domain: https://${args.domain} (after DNS setup)` : ''}
 
