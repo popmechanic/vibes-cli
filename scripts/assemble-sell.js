@@ -207,8 +207,9 @@ function validateSellAssembly(html, app, admin) {
     errors.push('Admin code is empty');
   }
 
-  // Check for unreplaced placeholders
-  const unreplaced = html.match(/__[A-Z_]+__/g) || [];
+  // Check for unreplaced placeholders (exclude __PURE__ which is a tree-shaking comment)
+  const allMatches = html.match(/__[A-Z_]+__/g) || [];
+  const unreplaced = allMatches.filter(m => m !== '__PURE__');
   if (unreplaced.length > 0) {
     errors.push(`Unreplaced placeholders: ${[...new Set(unreplaced)].join(', ')}`);
   }
