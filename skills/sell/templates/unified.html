@@ -1547,6 +1547,8 @@ function VibesButton({
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-[var(--landing-accent)]"
                     required
                   />
+                  {/* Clerk CAPTCHA element for bot protection */}
+                  <div id="clerk-captcha" className="mb-4" />
                   {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
                   <button
                     type="submit"
