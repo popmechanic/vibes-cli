@@ -596,10 +596,6 @@ function generateImportMapJson(imports) {
  * @returns {string|null} - Component code or null if not found
  */
 function extractComponentFromCache(cacheContent, componentName) {
-  // For main components (VibesSwitch, HiddenMenuWrapper, VibesButton),
-  // we need both the .styles section and the component itself
-  const stylesName = `${componentName}.styles`;
-
   // Pattern to extract section: starts at `// === Name ===` and goes until next `// ===` or end
   const extractSection = (name) => {
     const startMarker = `// === ${name} ===`;
@@ -615,6 +611,19 @@ function extractComponentFromCache(cacheContent, componentName) {
 
     return cacheContent.slice(contentStart, endIdx).trim();
   };
+
+  // Special case: "Icons" extracts all icon components as a group
+  if (componentName === "Icons") {
+    const iconNames = ["BackIcon", "LoginIcon", "RemixIcon", "InviteIcon", "SettingsIcon"];
+    const iconCodes = iconNames
+      .map(name => extractSection(name))
+      .filter(Boolean);
+    return iconCodes.length > 0 ? iconCodes.join("\n\n") : null;
+  }
+
+  // For main components (VibesSwitch, HiddenMenuWrapper, VibesButton),
+  // we need both the .styles section and the component itself
+  const stylesName = `${componentName}.styles`;
 
   // Get styles (if they exist) and component
   const stylesCode = extractSection(stylesName);
@@ -645,14 +654,15 @@ function updateTemplateComponents() {
 
   // Templates and their components
   // Note: VibesPanel is a local component (not in upstream), so not synced
+  // Icons = all icon components (BackIcon, LoginIcon, etc.) as a group
   const templates = [
     {
       path: join(PLUGIN_ROOT, "skills/vibes/templates/index.html"),
-      components: ["VibesSwitch", "HiddenMenuWrapper", "VibesButton"]
+      components: ["useMobile", "Icons", "VibesSwitch", "HiddenMenuWrapper", "VibesButton"]
     },
     {
       path: join(PLUGIN_ROOT, "skills/sell/templates/unified.html"),
-      components: ["VibesSwitch", "HiddenMenuWrapper", "VibesButton"]
+      components: ["useMobile", "Icons", "VibesSwitch", "HiddenMenuWrapper", "VibesButton"]
     }
   ];
 
@@ -701,6 +711,12 @@ function updateTemplateComponents() {
     }
 
     if (modified) {
+      // Post-process: Fix duplicate function name issue
+      // HiddenMenuWrapper has getContentWrapperStyle(menuHeight, menuOpen, isBouncing)
+      // VibesButton has getContentWrapperStyle(isMobile, hasIcon) - rename to getButtonContentWrapperStyle
+      // This fixes: "Identifier 'getContentWrapperStyle' has already been declared"
+      content = fixDuplicateFunctionNames(content);
+
       try {
         writeFileSync(template.path, content, "utf-8");
         updated.push(template.path.replace(PLUGIN_ROOT + "/", ""));
@@ -711,6 +727,32 @@ function updateTemplateComponents() {
   }
 
   return { updated, failed, skipped };
+}
+
+/**
+ * Fix duplicate function names that come from upstream components.
+ * Both HiddenMenuWrapper and VibesButton define getContentWrapperStyle with different signatures.
+ * This renames the VibesButton version to getButtonContentWrapperStyle to avoid conflicts.
+ */
+function fixDuplicateFunctionNames(content) {
+  // Find the VibesButton block and rename getContentWrapperStyle within it
+  const vibesButtonStart = content.indexOf('// === START VibesButton ===');
+  const vibesButtonEnd = content.indexOf('// === END VibesButton ===');
+
+  if (vibesButtonStart === -1 || vibesButtonEnd === -1) {
+    return content;
+  }
+
+  const before = content.slice(0, vibesButtonStart);
+  const vibesButtonBlock = content.slice(vibesButtonStart, vibesButtonEnd);
+  const after = content.slice(vibesButtonEnd);
+
+  // Rename the function definition and all uses within VibesButton block
+  const fixedBlock = vibesButtonBlock
+    .replace(/function getContentWrapperStyle\(isMobile, hasIcon\)/g, 'function getButtonContentWrapperStyle(isMobile, hasIcon)')
+    .replace(/const contentWrapperStyle = getContentWrapperStyle\(isMobile/g, 'const contentWrapperStyle = getButtonContentWrapperStyle(isMobile');
+
+  return before + fixedBlock + after;
 }
 
 /**
