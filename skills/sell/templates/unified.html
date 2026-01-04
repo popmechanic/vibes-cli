@@ -1003,6 +1003,8 @@ function VibesButton({
         UserButton,
         useUser,
         useAuth,
+        useSignUp,
+        useSignIn,
         PricingTable
       } from "https://esm.sh/@clerk/clerk-react@5?deps=react@18.3.1,react-dom@18.3.1";
 
@@ -1021,7 +1023,8 @@ function VibesButton({
         billingMode: "__BILLING_MODE__",
         features: __FEATURES__,
         tagline: "__APP_TAGLINE__",
-        adminUserIds: __ADMIN_USER_IDS__
+        adminUserIds: __ADMIN_USER_IDS__,
+        reservedSubdomains: __RESERVED_SUBDOMAINS__
       };
 
       // Legacy aliases for backward compatibility
@@ -1032,6 +1035,78 @@ function VibesButton({
       const FEATURES = CONFIG.features;
       const APP_TAGLINE = CONFIG.tagline;
       const ADMIN_USER_IDS = CONFIG.adminUserIds;
+      const RESERVED_SUBDOMAINS = CONFIG.reservedSubdomains;
+
+      // === Registry API Helpers ===
+      const registryCache = { data: null, fetchedAt: 0 };
+      const REGISTRY_CACHE_TTL = 5000; // 5 seconds
+
+      async function fetchRegistry() {
+        const now = Date.now();
+        if (registryCache.data && (now - registryCache.fetchedAt) < REGISTRY_CACHE_TTL) {
+          return registryCache.data;
+        }
+        try {
+          const res = await fetch('/registry.json');
+          if (!res.ok) throw new Error('Failed to fetch registry');
+          registryCache.data = await res.json();
+          registryCache.fetchedAt = now;
+          return registryCache.data;
+        } catch (e) {
+          console.warn('Registry fetch failed, using empty defaults:', e);
+          return { claims: {}, reserved: RESERVED_SUBDOMAINS, preallocated: {} };
+        }
+      }
+
+      async function checkSubdomainAvailability(subdomain) {
+        if (!subdomain || subdomain.length < 3) {
+          return { available: false, reason: 'too_short' };
+        }
+        const normalized = subdomain.toLowerCase().trim();
+
+        // Check client-side reserved list first (fast)
+        if (RESERVED_SUBDOMAINS.includes(normalized)) {
+          return { available: false, reason: 'reserved' };
+        }
+
+        // Check server registry
+        try {
+          const res = await fetch(`/check/${normalized}`);
+          if (!res.ok) throw new Error('Check failed');
+          return await res.json();
+        } catch (e) {
+          // Fallback to local registry check
+          const registry = await fetchRegistry();
+          if (registry.reserved?.includes(normalized)) {
+            return { available: false, reason: 'reserved' };
+          }
+          if (normalized in (registry.preallocated || {})) {
+            return { available: false, reason: 'preallocated' };
+          }
+          if (normalized in (registry.claims || {})) {
+            return { available: false, reason: 'claimed' };
+          }
+          return { available: true };
+        }
+      }
+
+      async function claimSubdomain(subdomain, token) {
+        const res = await fetch('/claim', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ subdomain: subdomain.toLowerCase().trim() })
+        });
+        return res.json();
+      }
+
+      async function getSubdomainOwner(subdomain) {
+        const registry = await fetchRegistry();
+        const normalized = subdomain.toLowerCase().trim();
+        return registry.claims?.[normalized]?.userId || registry.preallocated?.[normalized] || null;
+      }
 
       // === Route Detection ===
       function getRouteInfo() {
@@ -1246,6 +1321,513 @@ function VibesButton({
       // === Original App Code (embedded during assembly) ===
       // __VIBES_APP_CODE__
 
+      // === Custom Passkey Auth Components ===
+
+      // SubdomainChecker: Real-time availability check with debouncing
+      function SubdomainChecker({ value, onChange, onAvailabilityChange }) {
+        const [availability, setAvailability] = useState(null);
+        const [checking, setChecking] = useState(false);
+        const debounceRef = useRef(null);
+
+        useEffect(() => {
+          if (debounceRef.current) clearTimeout(debounceRef.current);
+
+          if (!value || value.length < 3) {
+            setAvailability(null);
+            onAvailabilityChange?.(null);
+            return;
+          }
+
+          setChecking(true);
+          debounceRef.current = setTimeout(async () => {
+            const result = await checkSubdomainAvailability(value);
+            setAvailability(result);
+            setChecking(false);
+            onAvailabilityChange?.(result);
+          }, 300);
+
+          return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+          };
+        }, [value]);
+
+        return (
+          <div className="space-y-2">
+            <div className="flex items-center bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+              <input
+                type="text"
+                placeholder="yourname"
+                value={value}
+                onChange={(e) => onChange(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                className="flex-1 px-4 py-3.5 bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none"
+              />
+              <span className="pr-4 text-gray-400 text-sm whitespace-nowrap">.{APP_DOMAIN}</span>
+            </div>
+            {value && value.length >= 3 && (
+              <div className="text-sm px-1">
+                {checking ? (
+                  <span className="text-gray-400">Checking availability...</span>
+                ) : availability?.available ? (
+                  <span className="text-green-600 font-medium">{value} is available!</span>
+                ) : availability?.reason === 'claimed' ? (
+                  <span className="text-amber-600">{value} is already taken</span>
+                ) : availability?.reason === 'reserved' ? (
+                  <span className="text-red-600">{value} is reserved</span>
+                ) : (
+                  <span className="text-gray-400">Enter at least 3 characters</span>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      }
+
+      // PasskeySignupFlow: Custom signup with passkey creation
+      function PasskeySignupFlow({ subdomain, onSuccess, onCancel }) {
+        const { signUp, setActive } = useSignUp();
+        const [email, setEmail] = useState('');
+        const [step, setStep] = useState('email'); // 'email' | 'verify' | 'passkey' | 'claiming'
+        const [verificationCode, setVerificationCode] = useState('');
+        const [error, setError] = useState(null);
+        const [loading, setLoading] = useState(false);
+
+        const handleEmailSubmit = async (e) => {
+          e.preventDefault();
+          setError(null);
+          setLoading(true);
+
+          try {
+            await signUp.create({ emailAddress: email });
+            await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+            setStep('verify');
+          } catch (err) {
+            setError(err.errors?.[0]?.message || 'Failed to start signup');
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const handleVerificationSubmit = async (e) => {
+          e.preventDefault();
+          setError(null);
+          setLoading(true);
+
+          try {
+            const result = await signUp.attemptEmailAddressVerification({ code: verificationCode });
+            if (result.status === 'complete') {
+              await setActive({ session: result.createdSessionId });
+              setStep('passkey');
+            } else {
+              setError('Verification incomplete. Please try again.');
+            }
+          } catch (err) {
+            setError(err.errors?.[0]?.message || 'Invalid verification code');
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const handlePasskeyCreate = async () => {
+          setError(null);
+          setLoading(true);
+
+          try {
+            // Create passkey with root domain as RP ID for cross-subdomain portability
+            await signUp.createPasskey();
+            setStep('claiming');
+
+            // Claim the subdomain
+            const session = await window.Clerk.session;
+            const token = await session.getToken();
+            const claimResult = await claimSubdomain(subdomain, token);
+
+            if (claimResult.success) {
+              onSuccess?.(subdomain);
+            } else {
+              setError(claimResult.error || 'Failed to claim subdomain');
+            }
+          } catch (err) {
+            if (err.message?.includes('cancelled') || err.message?.includes('aborted')) {
+              // User cancelled passkey creation - still proceed with claim
+              setStep('claiming');
+              try {
+                const session = await window.Clerk.session;
+                const token = await session.getToken();
+                const claimResult = await claimSubdomain(subdomain, token);
+                if (claimResult.success) {
+                  onSuccess?.(subdomain);
+                } else {
+                  setError(claimResult.error || 'Failed to claim subdomain');
+                }
+              } catch (claimErr) {
+                setError('Failed to claim subdomain');
+              }
+            } else {
+              setError(err.errors?.[0]?.message || 'Failed to create passkey');
+            }
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const handleSkipPasskey = async () => {
+          setStep('claiming');
+          setLoading(true);
+          try {
+            const session = await window.Clerk.session;
+            const token = await session.getToken();
+            const claimResult = await claimSubdomain(subdomain, token);
+            if (claimResult.success) {
+              onSuccess?.(subdomain);
+            } else {
+              setError(claimResult.error || 'Failed to claim subdomain');
+            }
+          } catch (err) {
+            setError('Failed to claim subdomain');
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-[var(--vibes-gray-lightest)] p-4">
+            <div className="max-w-md w-full p-8 bg-white rounded-2xl border border-[var(--landing-accent)]/20 shadow-lg">
+              {step === 'email' && (
+                <form onSubmit={handleEmailSubmit}>
+                  <h2 className="text-2xl font-bold text-[var(--vibes-black)] mb-2">
+                    Claim {subdomain}
+                  </h2>
+                  <p className="mb-6 text-[var(--vibes-black)]/60">
+                    Create an account to keep <span className="font-semibold">{subdomain}.{APP_DOMAIN}</span>
+                  </p>
+                  <input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-[var(--landing-accent)]"
+                    required
+                  />
+                  {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-50 transition-colors"
+                  >
+                    {loading ? 'Sending...' : 'Continue'}
+                  </button>
+                  {onCancel && (
+                    <button
+                      type="button"
+                      onClick={onCancel}
+                      className="w-full mt-3 text-sm text-[var(--vibes-black)]/60 hover:text-[var(--vibes-black)]"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </form>
+              )}
+
+              {step === 'verify' && (
+                <form onSubmit={handleVerificationSubmit}>
+                  <h2 className="text-2xl font-bold text-[var(--vibes-black)] mb-2">
+                    Check your email
+                  </h2>
+                  <p className="mb-6 text-[var(--vibes-black)]/60">
+                    Enter the code we sent to {email}
+                  </p>
+                  <input
+                    type="text"
+                    placeholder="123456"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl mb-4 text-center text-2xl tracking-widest focus:outline-none focus:ring-2 focus:ring-[var(--landing-accent)]"
+                    maxLength={6}
+                    required
+                  />
+                  {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+                  <button
+                    type="submit"
+                    disabled={loading || verificationCode.length < 6}
+                    className="w-full px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-50 transition-colors"
+                  >
+                    {loading ? 'Verifying...' : 'Verify'}
+                  </button>
+                </form>
+              )}
+
+              {step === 'passkey' && (
+                <div>
+                  <h2 className="text-2xl font-bold text-[var(--vibes-black)] mb-2">
+                    Add a passkey
+                  </h2>
+                  <p className="mb-6 text-[var(--vibes-black)]/60">
+                    Passkeys let you sign in securely without a password
+                  </p>
+                  {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+                  <button
+                    onClick={handlePasskeyCreate}
+                    disabled={loading}
+                    className="w-full px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-50 transition-colors mb-3"
+                  >
+                    {loading ? 'Setting up...' : 'Create Passkey'}
+                  </button>
+                  <button
+                    onClick={handleSkipPasskey}
+                    disabled={loading}
+                    className="w-full text-sm text-[var(--vibes-black)]/60 hover:text-[var(--vibes-black)]"
+                  >
+                    Skip for now
+                  </button>
+                </div>
+              )}
+
+              {step === 'claiming' && (
+                <div className="text-center">
+                  <div className="animate-pulse text-lg font-medium text-gray-500 mb-2">
+                    Claiming {subdomain}...
+                  </div>
+                  <p className="text-sm text-gray-400">This will just take a moment</p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // PasskeySigninFlow: Passkey-first with email fallback
+      function PasskeySigninFlow({ subdomain, onSuccess }) {
+        const { signIn, setActive } = useSignIn();
+        const [mode, setMode] = useState('passkey'); // 'passkey' | 'email' | 'verify'
+        const [email, setEmail] = useState('');
+        const [error, setError] = useState(null);
+        const [loading, setLoading] = useState(false);
+
+        const handlePasskeySignin = async () => {
+          setError(null);
+          setLoading(true);
+
+          try {
+            const result = await signIn.authenticateWithPasskey({ flow: 'discoverable' });
+            if (result.status === 'complete') {
+              await setActive({ session: result.createdSessionId });
+              onSuccess?.();
+            }
+          } catch (err) {
+            if (err.message?.includes('cancelled') || err.message?.includes('aborted')) {
+              // User cancelled - show email option
+              setMode('email');
+            } else {
+              setError('Passkey sign-in failed. Try email instead.');
+              setMode('email');
+            }
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const handleEmailSubmit = async (e) => {
+          e.preventDefault();
+          setError(null);
+          setLoading(true);
+
+          try {
+            await signIn.create({ identifier: email });
+            const emailFactor = signIn.supportedFirstFactors.find(f => f.strategy === 'email_link');
+            if (emailFactor) {
+              await signIn.prepareFirstFactor({
+                strategy: 'email_link',
+                emailAddressId: emailFactor.emailAddressId,
+                redirectUrl: window.location.href
+              });
+              setMode('verify');
+            } else {
+              // Fallback to email code
+              await signIn.prepareFirstFactor({ strategy: 'email_code' });
+              setMode('verify');
+            }
+          } catch (err) {
+            setError(err.errors?.[0]?.message || 'Failed to send sign-in link');
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        // Auto-attempt passkey on mount
+        useEffect(() => {
+          if (mode === 'passkey') {
+            handlePasskeySignin();
+          }
+        }, []);
+
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-[var(--vibes-gray-lightest)] p-4">
+            <div className="max-w-md w-full p-8 bg-white rounded-2xl border border-[var(--landing-accent)]/20 shadow-lg">
+              {mode === 'passkey' && (
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-[var(--vibes-black)] mb-2">
+                    Welcome back
+                  </h2>
+                  <p className="mb-6 text-[var(--vibes-black)]/60">
+                    Sign in to {subdomain}.{APP_DOMAIN}
+                  </p>
+                  {loading ? (
+                    <div className="animate-pulse text-gray-500">Looking for passkey...</div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handlePasskeySignin}
+                        className="w-full px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] transition-colors mb-3"
+                      >
+                        Sign in with Passkey
+                      </button>
+                      <button
+                        onClick={() => setMode('email')}
+                        className="w-full text-sm text-[var(--vibes-black)]/60 hover:text-[var(--vibes-black)]"
+                      >
+                        Use email instead
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {mode === 'email' && (
+                <form onSubmit={handleEmailSubmit}>
+                  <h2 className="text-2xl font-bold text-[var(--vibes-black)] mb-2">
+                    Sign in with email
+                  </h2>
+                  <p className="mb-6 text-[var(--vibes-black)]/60">
+                    We'll send you a magic link
+                  </p>
+                  <input
+                    type="email"
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-[var(--landing-accent)]"
+                    required
+                  />
+                  {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-50 transition-colors"
+                  >
+                    {loading ? 'Sending...' : 'Send Magic Link'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode('passkey')}
+                    className="w-full mt-3 text-sm text-[var(--vibes-black)]/60 hover:text-[var(--vibes-black)]"
+                  >
+                    Try passkey again
+                  </button>
+                </form>
+              )}
+
+              {mode === 'verify' && (
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-[var(--vibes-black)] mb-2">
+                    Check your email
+                  </h2>
+                  <p className="mb-4 text-[var(--vibes-black)]/60">
+                    We sent a sign-in link to {email}
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    Click the link in your email to continue
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // ClaimPrompt: For authenticated users on unclaimed subdomains
+      function ClaimPrompt({ subdomain, onClaim, onCancel }) {
+        const { getToken } = useAuth();
+        const [claiming, setClaiming] = useState(false);
+        const [error, setError] = useState(null);
+
+        const handleClaim = async () => {
+          setClaiming(true);
+          setError(null);
+
+          try {
+            const token = await getToken();
+            const result = await claimSubdomain(subdomain, token);
+            if (result.success) {
+              onClaim?.(subdomain);
+            } else {
+              setError(result.error || 'Failed to claim subdomain');
+            }
+          } catch (err) {
+            setError('Failed to claim subdomain');
+          } finally {
+            setClaiming(false);
+          }
+        };
+
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-[var(--vibes-gray-lightest)] p-4">
+            <div className="max-w-md w-full p-8 bg-white rounded-2xl border border-[var(--landing-accent)]/20 shadow-lg text-center">
+              <h2 className="text-2xl font-bold text-[var(--vibes-black)] mb-2">
+                {subdomain} is available!
+              </h2>
+              <p className="mb-6 text-[var(--vibes-black)]/60">
+                Add <span className="font-semibold">{subdomain}.{APP_DOMAIN}</span> to your account?
+              </p>
+              {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+              <button
+                onClick={handleClaim}
+                disabled={claiming}
+                className="w-full px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-50 transition-colors mb-3"
+              >
+                {claiming ? 'Claiming...' : 'Claim This Subdomain'}
+              </button>
+              {onCancel && (
+                <button
+                  onClick={onCancel}
+                  className="w-full text-sm text-[var(--vibes-black)]/60 hover:text-[var(--vibes-black)]"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      // NotOwnerRedirect: Shows message then redirects
+      function NotOwnerRedirect() {
+        useEffect(() => {
+          const timer = setTimeout(() => {
+            window.location.href = `https://${APP_DOMAIN}`;
+          }, 3000);
+          return () => clearTimeout(timer);
+        }, []);
+
+        return (
+          <div className="min-h-screen flex items-center justify-center bg-[var(--vibes-gray-lightest)] p-4">
+            <div className="max-w-md w-full p-8 bg-white rounded-2xl border border-[var(--landing-accent)]/20 shadow-lg text-center">
+              <h2 className="text-2xl font-bold text-[var(--vibes-black)] mb-2">
+                This space is taken
+              </h2>
+              <p className="mb-4 text-[var(--vibes-black)]/60">
+                Redirecting you to find your own...
+              </p>
+              <a
+                href={`https://${APP_DOMAIN}`}
+                className="text-[var(--landing-accent)] hover:underline"
+              >
+                Go now
+              </a>
+            </div>
+          </div>
+        );
+      }
+
       // === Sign In Screen (for tenant) ===
       function SignInScreen({ subdomain }) {
         return (
@@ -1270,11 +1852,82 @@ function VibesButton({
       }
 
       // === Tenant App Wrapper ===
+      // Handles subdomain claim states:
+      // - Unclaimed + signed out → PasskeySignupFlow (signup + claim)
+      // - Unclaimed + signed in → ClaimPrompt (add to account)
+      // - Claimed (owner) + signed in → App
+      // - Claimed (not owner) + signed in → NotOwnerRedirect
+      // - Claimed + signed out → PasskeySigninFlow (login)
       function TenantApp({ subdomain }) {
+        const [claimState, setClaimState] = useState({ loading: true, owner: null });
+
+        useEffect(() => {
+          checkSubdomainAvailability(subdomain).then(result => {
+            if (result.available) {
+              setClaimState({ loading: false, owner: null });
+            } else {
+              setClaimState({ loading: false, owner: result.ownerId });
+            }
+          }).catch(err => {
+            console.error('Failed to check subdomain:', err);
+            // Default to available on error (will fail at claim time if actually taken)
+            setClaimState({ loading: false, owner: null });
+          });
+        }, [subdomain]);
+
+        if (claimState.loading) {
+          return (
+            <div className="min-h-screen flex items-center justify-center bg-[var(--vibes-bg-page)]">
+              <div className="text-[var(--vibes-text-secondary)]">Loading...</div>
+            </div>
+          );
+        }
+
         return (
           <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} afterSignOutUrl={`https://${APP_DOMAIN}`}>
-            <TenantProvider subdomain={subdomain}>
-              <SignedIn>
+            <TenantAppInner
+              subdomain={subdomain}
+              isUnclaimed={claimState.owner === null}
+              ownerId={claimState.owner}
+            />
+          </ClerkProvider>
+        );
+      }
+
+      // Inner component that has access to Clerk hooks
+      function TenantAppInner({ subdomain, isUnclaimed, ownerId }) {
+        const { isSignedIn, user, isLoaded } = useUser();
+
+        if (!isLoaded) {
+          return (
+            <div className="min-h-screen flex items-center justify-center bg-[var(--vibes-bg-page)]">
+              <div className="text-[var(--vibes-text-secondary)]">Loading...</div>
+            </div>
+          );
+        }
+
+        // Case 1: Subdomain is unclaimed
+        if (isUnclaimed) {
+          if (isSignedIn) {
+            // User is signed in but subdomain is unclaimed → offer to claim it
+            return (
+              <TenantProvider subdomain={subdomain}>
+                <ClaimPrompt subdomain={subdomain} />
+              </TenantProvider>
+            );
+          } else {
+            // User not signed in, subdomain unclaimed → signup + claim flow
+            return <PasskeySignupFlow subdomain={subdomain} />;
+          }
+        }
+
+        // Case 2: Subdomain is claimed
+        if (isSignedIn) {
+          // Check if current user is the owner
+          if (user.id === ownerId) {
+            // Owner → show the app
+            return (
+              <TenantProvider subdomain={subdomain}>
                 <TenantRegistration subdomain={subdomain}>
                   <SubscriptionGate>
                     <HiddenMenuWrapper menuContent={<VibesPanel />}>
@@ -1287,13 +1940,16 @@ function VibesButton({
                     </HiddenMenuWrapper>
                   </SubscriptionGate>
                 </TenantRegistration>
-              </SignedIn>
-              <SignedOut>
-                <SignInScreen subdomain={subdomain} />
-              </SignedOut>
-            </TenantProvider>
-          </ClerkProvider>
-        );
+              </TenantProvider>
+            );
+          } else {
+            // Not the owner → redirect
+            return <NotOwnerRedirect subdomain={subdomain} />;
+          }
+        } else {
+          // Not signed in, subdomain is claimed → show login
+          return <PasskeySigninFlow subdomain={subdomain} />;
+        }
       }
 
       // === Admin Components (CLIENT-SIDE ONLY - no backend API) ===
@@ -1303,11 +1959,32 @@ function VibesButton({
       // NOTE: Prefixed with underscore to avoid conflicts with user's app.jsx components
       function _SellHero({ onGetStarted }) {
         const [subdomain, setSubdomain] = useState('');
+        const { available, checking, error } = SubdomainChecker({ subdomain });
 
         const handleGetStarted = () => {
-          if (subdomain) {
+          if (subdomain && available) {
             onGetStarted(subdomain);
           }
+        };
+
+        const getStatusIndicator = () => {
+          if (!subdomain) return null;
+          if (checking) {
+            return <span className="text-gray-400 text-sm">Checking...</span>;
+          }
+          if (error) {
+            return <span className="text-red-500 text-sm">{error}</span>;
+          }
+          if (available) {
+            return <span className="text-green-600 text-sm">Available!</span>;
+          }
+          return <span className="text-red-500 text-sm">Taken</span>;
+        };
+
+        const getBorderColor = () => {
+          if (!subdomain || checking) return 'border-gray-200';
+          if (available) return 'border-green-400';
+          return 'border-red-400';
         };
 
         return (
@@ -1320,25 +1997,30 @@ function VibesButton({
                 Your own subdomain. Your own space. Get started in seconds.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 max-w-xl">
-                <div className="flex-1 flex items-center bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-                  <input
-                    type="text"
-                    placeholder="yourname"
-                    value={subdomain}
-                    onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                    onKeyDown={(e) => e.key === 'Enter' && handleGetStarted()}
-                    className="flex-1 px-4 py-3.5 bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none"
-                  />
-                  <span className="pr-4 text-gray-400 text-sm whitespace-nowrap">.{APP_DOMAIN}</span>
+              <div className="flex flex-col gap-2 max-w-xl">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className={`flex-1 flex items-center bg-white rounded-xl border ${getBorderColor()} overflow-hidden shadow-sm transition-colors`}>
+                    <input
+                      type="text"
+                      placeholder="yourname"
+                      value={subdomain}
+                      onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                      onKeyDown={(e) => e.key === 'Enter' && handleGetStarted()}
+                      className="flex-1 px-4 py-3.5 bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none"
+                    />
+                    <span className="pr-4 text-gray-400 text-sm whitespace-nowrap">.{APP_DOMAIN}</span>
+                  </div>
+                  <button
+                    onClick={handleGetStarted}
+                    disabled={!subdomain || !available || checking}
+                    className="px-6 py-3.5 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+                  >
+                    Get Started
+                  </button>
                 </div>
-                <button
-                  onClick={handleGetStarted}
-                  disabled={!subdomain}
-                  className="px-6 py-3.5 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
-                >
-                  Get Started
-                </button>
+                <div className="h-5 pl-1">
+                  {getStatusIndicator()}
+                </div>
               </div>
             </div>
           </section>

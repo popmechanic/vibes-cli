@@ -20,6 +20,7 @@
  *   --features <json>     JSON array of feature strings
  *   --tagline <text>      App tagline for landing page
  *   --admin-ids <json>    JSON array of Clerk user IDs with admin access
+ *   --reserved <csv>      Comma-separated reserved subdomain names
  *
  * Example:
  *   node scripts/assemble-sell.js app.jsx index.html \
@@ -154,6 +155,14 @@ if (options.adminIds) {
   }
 } else {
   replacements['__ADMIN_USER_IDS__'] = '[]';
+}
+
+// Handle reserved subdomain names (comma-separated)
+if (options.reserved) {
+  const reserved = options.reserved.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  replacements['__RESERVED_SUBDOMAINS__'] = JSON.stringify(reserved);
+} else {
+  replacements['__RESERVED_SUBDOMAINS__'] = '[]';
 }
 
 // Apply replacements

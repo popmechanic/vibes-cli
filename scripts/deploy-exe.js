@@ -14,6 +14,10 @@
  *   --ai-key <key>     OpenRouter API key for AI features
  *   --multi-tenant     Enable multi-tenant mode (for sell apps)
  *   --tenant-limit <$> Credit limit per tenant in dollars (default: 5)
+ *   --reserved <list>  Comma-separated reserved subdomain names (e.g., "admin,billing,api")
+ *   --preallocated <list> Pre-claimed subdomains (e.g., "acme:user_xxx,corp:user_yyy")
+ *   --clerk-key <key>  Clerk PEM public key for JWT verification
+ *   --clerk-webhook-secret <secret> Clerk webhook signing secret
  *   --dry-run          Show what would be done without executing
  *   --skip-verify      Skip verification step
  *   --help             Show this help message
@@ -86,6 +90,10 @@ function parseArgs(argv) {
     aiKey: null,
     multiTenant: false,
     tenantLimit: 5,
+    reserved: [],
+    preallocated: {},
+    clerkKey: null,
+    clerkWebhookSecret: null,
     dryRun: false,
     skipVerify: false,
     help: false
@@ -105,6 +113,21 @@ function parseArgs(argv) {
       args.multiTenant = true;
     } else if (arg === '--tenant-limit' && argv[i + 1]) {
       args.tenantLimit = parseFloat(argv[++i]) || 5;
+    } else if (arg === '--reserved' && argv[i + 1]) {
+      args.reserved = argv[++i].split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+    } else if (arg === '--preallocated' && argv[i + 1]) {
+      // Format: "subdomain:user_id,subdomain:user_id"
+      const pairs = argv[++i].split(',');
+      for (const pair of pairs) {
+        const [subdomain, userId] = pair.split(':').map(s => s.trim());
+        if (subdomain && userId) {
+          args.preallocated[subdomain.toLowerCase()] = userId;
+        }
+      }
+    } else if (arg === '--clerk-key' && argv[i + 1]) {
+      args.clerkKey = argv[++i];
+    } else if (arg === '--clerk-webhook-secret' && argv[i + 1]) {
+      args.clerkWebhookSecret = argv[++i];
     } else if (arg === '--dry-run') {
       args.dryRun = true;
     } else if (arg === '--skip-verify') {
@@ -447,8 +470,162 @@ location /api/ai/ {
   }
 }
 
-async function phase6Handoff(args) {
-  console.log('\nPhase 6: Context Handoff...');
+async function phase6Registry(args) {
+  // Skip if no clerk credentials provided
+  if (!args.clerkKey || !args.clerkWebhookSecret) {
+    console.log('\nPhase 6: Registry Server... SKIPPED (no --clerk-key or --clerk-webhook-secret provided)');
+    return;
+  }
+
+  console.log('\nPhase 6: Registry Server Setup...');
+
+  const vmHost = `${args.name}.exe.dev`;
+
+  if (args.dryRun) {
+    console.log('  [DRY RUN] Would deploy registry server');
+    console.log(`  [DRY RUN] Reserved subdomains: ${args.reserved.join(', ') || 'none'}`);
+    console.log(`  [DRY RUN] Preallocated: ${Object.keys(args.preallocated).join(', ') || 'none'}`);
+    return;
+  }
+
+  try {
+    const client = await connect(vmHost);
+
+    // Install Bun if needed (reuse check from AI proxy)
+    console.log('  Checking/installing Bun...');
+    const bunCheck = await runCommand(client, 'which bun || echo "NOT_FOUND"');
+    if (bunCheck.stdout.includes('NOT_FOUND')) {
+      console.log('  Installing Bun...');
+      await runCommand(client, 'curl -fsSL https://bun.sh/install | bash');
+      await runCommand(client, 'echo "export PATH=$HOME/.bun/bin:$PATH" >> ~/.bashrc');
+    }
+    console.log('  ✓ Bun installed');
+
+    // Create initial registry.json
+    console.log('  Creating registry.json...');
+    const registry = {
+      claims: {},
+      reserved: args.reserved,
+      preallocated: args.preallocated
+    };
+    const registryJson = JSON.stringify(registry, null, 2);
+    await runCommand(client, `echo '${registryJson}' | sudo tee /var/www/html/registry.json`);
+    await runCommand(client, 'sudo chown www-data:www-data /var/www/html/registry.json');
+
+    // Upload registry server
+    console.log('  Uploading registry server...');
+    const registryServerPath = join(__dirname, 'registry-server.ts');
+    if (!existsSync(registryServerPath)) {
+      throw new Error(`Registry server not found at ${registryServerPath}`);
+    }
+    await uploadFileWithSudo(registryServerPath, vmHost, '/var/www/registry-server.ts');
+
+    // Create environment file for registry server
+    console.log('  Configuring environment...');
+    const domain = args.domain || `${args.name}.exe.xyz`;
+    const envContent = `REGISTRY_PATH=/var/www/html/registry.json
+CLERK_PEM_PUBLIC_KEY="${args.clerkKey.replace(/\n/g, '\\n')}"
+CLERK_WEBHOOK_SECRET=${args.clerkWebhookSecret}
+PERMITTED_ORIGINS=https://${domain}
+PORT=3001`;
+
+    await runCommand(client, `echo '${envContent}' | sudo tee /etc/registry.env`);
+    await runCommand(client, 'sudo chmod 600 /etc/registry.env');
+
+    // Create systemd service
+    console.log('  Creating systemd service...');
+    const serviceFile = `[Unit]
+Description=Subdomain Registry Server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www
+ExecStart=/root/.bun/bin/bun run /var/www/registry-server.ts
+Restart=always
+RestartSec=10
+EnvironmentFile=/etc/registry.env
+
+[Install]
+WantedBy=multi-user.target`;
+
+    await runCommand(client, `echo '${serviceFile}' | sudo tee /etc/systemd/system/vibes-registry.service`);
+    await runCommand(client, 'sudo systemctl daemon-reload');
+    await runCommand(client, 'sudo systemctl enable vibes-registry');
+    await runCommand(client, 'sudo systemctl restart vibes-registry');
+
+    // Verify service is running
+    const serviceStatus = await runCommand(client, 'systemctl is-active vibes-registry');
+    if (serviceStatus.stdout.trim() !== 'active') {
+      console.log('  ⚠ Service may not be running. Check logs with: journalctl -u vibes-registry');
+    } else {
+      console.log('  ✓ Registry service running');
+    }
+
+    // Configure nginx proxy
+    console.log('  Configuring nginx...');
+    const nginxConf = `# Vibes Registry - auto-generated by deploy-exe.js
+location = /registry.json {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+}
+
+location ~ ^/check/.+ {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+}
+
+location = /claim {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+
+location = /webhook {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}`;
+
+    await runCommand(client, `echo '${nginxConf}' | sudo tee /etc/nginx/vibes-registry.conf`);
+
+    // Add include directive to main config if not already present
+    const includeCheck = await runCommand(client, 'grep -q "include /etc/nginx/vibes-registry.conf" /etc/nginx/sites-available/default && echo "EXISTS" || echo "NOT_FOUND"');
+    if (includeCheck.stdout.includes('NOT_FOUND')) {
+      await runCommand(client, `sudo sed -i '/^[[:space:]]*server[[:space:]]*{/a\\    include /etc/nginx/vibes-registry.conf;' /etc/nginx/sites-available/default`);
+    }
+
+    // Test and reload nginx
+    const nginxTest = await runCommand(client, 'sudo nginx -t 2>&1');
+    if (nginxTest.code === 0) {
+      await runCommand(client, 'sudo systemctl reload nginx');
+      console.log('  ✓ nginx configured for registry');
+    } else {
+      console.log('  ⚠ nginx config test failed. Manual configuration may be needed.');
+      console.log(`     Error: ${nginxTest.stderr || nginxTest.stdout}`);
+    }
+
+    client.end();
+    console.log('  ✓ Registry server setup complete');
+
+  } catch (err) {
+    throw new Error(`Registry server setup failed: ${err.message}`);
+  }
+}
+
+async function phase7Handoff(args) {
+  console.log('\nPhase 7: Context Handoff...');
 
   const vmHost = `${args.name}.exe.dev`;
 
@@ -486,8 +663,8 @@ async function phase6Handoff(args) {
   }
 }
 
-async function phase7PublicAccess(args) {
-  console.log('\nPhase 7: Public Access...');
+async function phase8PublicAccess(args) {
+  console.log('\nPhase 8: Public Access...');
 
   if (args.dryRun) {
     console.log(`  [DRY RUN] Would run: share set-public ${args.name}`);
@@ -523,13 +700,13 @@ async function phase7PublicAccess(args) {
   }
 }
 
-async function phase8CustomDomain(args) {
+async function phase9CustomDomain(args) {
   if (!args.domain) {
-    console.log('\nPhase 8: Custom Domain... SKIPPED (no --domain provided)');
+    console.log('\nPhase 9: Custom Domain... SKIPPED (no --domain provided)');
     return;
   }
 
-  console.log('\nPhase 8: Custom Domain Setup...');
+  console.log('\nPhase 9: Custom Domain Setup...');
   console.log(`
   To set up your custom domain (${args.domain}), follow these steps:
 
@@ -638,6 +815,11 @@ ${'━'.repeat(60)}
     console.log(`  Multi-tenant: ${args.multiTenant}`);
     if (args.multiTenant) console.log(`  Tenant Limit: $${args.tenantLimit}/month`);
   }
+  if (args.clerkKey && args.clerkWebhookSecret) {
+    console.log(`  Registry: Enabled`);
+    if (args.reserved.length > 0) console.log(`  Reserved: ${args.reserved.join(', ')}`);
+    if (Object.keys(args.preallocated).length > 0) console.log(`  Preallocated: ${Object.keys(args.preallocated).join(', ')}`);
+  }
   if (args.dryRun) console.log(`  Mode: DRY RUN`);
 
   try {
@@ -647,9 +829,10 @@ ${'━'.repeat(60)}
     await phase3ServerSetup(args);
     await phase4FileUpload(args);
     await phase5AIProxy(args);
-    await phase6Handoff(args);
-    await phase7PublicAccess(args);
-    await phase8CustomDomain(args);
+    await phase6Registry(args);
+    await phase7Handoff(args);
+    await phase8PublicAccess(args);
+    await phase9CustomDomain(args);
 
     // Verification
     if (!args.skipVerify && !args.dryRun) {
@@ -665,10 +848,13 @@ ${'━'.repeat(60)}
       domain: args.domain,
       aiEnabled: !!args.aiKey,
       multiTenant: args.multiTenant,
+      registryEnabled: !!(args.clerkKey && args.clerkWebhookSecret),
+      reserved: args.reserved,
       deployedAt: new Date().toISOString()
     };
     saveConfig(config);
 
+    const hasRegistry = args.clerkKey && args.clerkWebhookSecret;
     console.log(`
 ${'━'.repeat(60)}
   DEPLOYMENT COMPLETE
@@ -680,6 +866,11 @@ ${args.aiKey ? `
   AI Proxy:
     Endpoint: https://${args.name}.exe.xyz/api/ai/chat
     Mode: ${args.multiTenant ? `Multi-tenant ($${args.tenantLimit}/month per tenant)` : 'Single-user'}` : ''}
+${hasRegistry ? `
+  Subdomain Registry:
+    Check: https://${args.name}.exe.xyz/check/{subdomain}
+    Claim: POST https://${args.name}.exe.xyz/claim
+    Webhook: https://${args.name}.exe.xyz/webhook` : ''}
 
   To continue development on the VM (Claude is pre-installed):
     ssh ${args.name}.exe.dev -t "cd /var/www/html && claude"
@@ -687,7 +878,7 @@ ${args.domain ? `
   Custom domain: https://${args.domain} (after DNS setup)` : ''}
 
   To redeploy after changes:
-    node scripts/deploy-exe.js --name ${args.name} --file ${args.file}${args.aiKey ? ` --ai-key <key>${args.multiTenant ? ' --multi-tenant' : ''}` : ''}
+    node scripts/deploy-exe.js --name ${args.name} --file ${args.file}${args.aiKey ? ` --ai-key <key>${args.multiTenant ? ' --multi-tenant' : ''}` : ''}${hasRegistry ? ` --clerk-key <key> --clerk-webhook-secret <secret>` : ''}
 `);
 
   } catch (err) {
