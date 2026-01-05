@@ -1926,6 +1926,70 @@ function VibesButton({
         );
       }
 
+      // PasskeyGate: Ensures user has passkey before accessing app
+      // Wraps the app for owners - enforces passkey-first even if they signed in via email fallback
+      function PasskeyGate({ children }) {
+        const { user } = useUser();
+        const [step, setStep] = useState('checking'); // 'checking' | 'passkey' | 'ready'
+        const [creating, setCreating] = useState(false);
+        const [error, setError] = useState(null);
+
+        useEffect(() => {
+          if (user) {
+            const hasPasskey = user.passkeys && user.passkeys.length > 0;
+            setStep(hasPasskey ? 'ready' : 'passkey');
+          }
+        }, [user]);
+
+        const handlePasskeyCreate = async () => {
+          setCreating(true);
+          setError(null);
+
+          try {
+            await user.createPasskey();
+            setStep('ready');
+          } catch (err) {
+            console.error('Passkey creation failed:', err);
+            setError(err.message || 'Failed to create passkey. Please try again.');
+          } finally {
+            setCreating(false);
+          }
+        };
+
+        if (step === 'checking') {
+          return (
+            <div className="min-h-screen flex items-center justify-center bg-[var(--vibes-bg-page)]">
+              <div className="text-[var(--vibes-text-secondary)]">Loading...</div>
+            </div>
+          );
+        }
+
+        if (step === 'passkey') {
+          return (
+            <div className="min-h-screen flex items-center justify-center bg-[var(--vibes-gray-lightest)] p-4">
+              <div className="max-w-md w-full p-8 bg-white rounded-2xl border border-[var(--landing-accent)]/20 shadow-lg text-center">
+                <h2 className="text-2xl font-bold text-[var(--vibes-black)] mb-2">
+                  Set up passkey access
+                </h2>
+                <p className="mb-6 text-[var(--vibes-black)]/60">
+                  Create a passkey for fast, secure sign-in. This only takes a moment.
+                </p>
+                {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+                <button
+                  onClick={handlePasskeyCreate}
+                  disabled={creating}
+                  className="w-full px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-50 transition-colors"
+                >
+                  {creating ? 'Creating passkey...' : 'Create Passkey'}
+                </button>
+              </div>
+            </div>
+          );
+        }
+
+        return children;
+      }
+
       // === Sign In Screen (for tenant) ===
       function SignInScreen({ subdomain }) {
         return (
@@ -2023,21 +2087,23 @@ function VibesButton({
         if (isSignedIn) {
           // Check if current user is the owner
           if (user.id === ownerId) {
-            // Owner → show the app
+            // Owner → ensure passkey exists, then show the app
             return (
               <TenantProvider subdomain={subdomain}>
-                <TenantRegistration subdomain={subdomain}>
-                  <SubscriptionGate>
-                    <HiddenMenuWrapper menuContent={<VibesPanel />}>
-                      <div className="relative">
-                        <div className="fixed top-4 right-4 z-50">
-                          <UserButton />
+                <PasskeyGate>
+                  <TenantRegistration subdomain={subdomain}>
+                    <SubscriptionGate>
+                      <HiddenMenuWrapper menuContent={<VibesPanel />}>
+                        <div className="relative">
+                          <div className="fixed top-4 right-4 z-50">
+                            <UserButton />
+                          </div>
+                          <App />
                         </div>
-                        <App />
-                      </div>
-                    </HiddenMenuWrapper>
-                  </SubscriptionGate>
-                </TenantRegistration>
+                      </HiddenMenuWrapper>
+                    </SubscriptionGate>
+                  </TenantRegistration>
+                </PasskeyGate>
               </TenantProvider>
             );
           } else {
