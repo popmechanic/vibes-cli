@@ -2388,13 +2388,13 @@ function VibesButton({
         const userSubdomain = getLastSubdomainCookie();
 
         const handleGetStarted = (subdomain) => {
-          // Direct redirect to subdomain - auth happens there
-          window.location.href = `https://${subdomain}.${APP_DOMAIN}`;
+          // Use ?subdomain= param (exe.dev only has SSL for *.exe.xyz, not nested subdomains)
+          window.location.href = `https://${APP_DOMAIN}?subdomain=${subdomain}`;
         };
 
         const handleGoToApp = () => {
           if (userSubdomain) {
-            window.location.href = `https://${userSubdomain}.${APP_DOMAIN}`;
+            window.location.href = `https://${APP_DOMAIN}?subdomain=${userSubdomain}`;
           }
         };
 

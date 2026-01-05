@@ -33,8 +33,28 @@
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
+import { createInterface } from 'readline';
 import { TEMPLATES } from './lib/paths.js';
 import { stripForTemplate, stripImports } from './lib/strip-code.js';
+
+/**
+ * Prompt user for input when a required option is missing
+ * @param {string} question - The question to ask
+ * @returns {Promise<string>} User's answer
+ */
+async function prompt(question) {
+  const rl = createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
+}
 
 // Parse command line arguments
 function parseArgs(argv) {
@@ -115,8 +135,16 @@ for (const t of templateChecks) {
 // Read template
 let output = readFileSync(templatePath, 'utf8');
 
-// Configuration
-const domain = options.domain || 'example.exe.xyz';
+// Configuration - prompt for domain if not provided
+let domain = options.domain;
+if (!domain) {
+  console.log('\n⚠ No --domain provided. This is required for SaaS apps.\n');
+  domain = await prompt('Enter domain (e.g., myapp.exe.xyz): ');
+  if (!domain) {
+    console.error('Error: Domain is required. Provide via --domain or enter when prompted.');
+    process.exit(1);
+  }
+}
 const appName = options.appName || 'my-app';
 
 // Configuration replacements

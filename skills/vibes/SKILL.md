@@ -73,6 +73,19 @@ export default function App() {
 </code>
 ```
 
+**⚠️ CRITICAL: Fireproof Hook Pattern**
+
+Always destructure hooks FROM useFireproof(), never import directly:
+
+```jsx
+// ✅ CORRECT - destructure hooks from useFireproof()
+const { useDocument, useLiveQuery } = useFireproof("my-db");
+const { doc, merge } = useDocument({ _id: "doc1" });
+
+// ❌ WRONG - this does NOT work
+import { useDocument } from "use-fireproof";  // ERROR!
+```
+
 ## Assembly Workflow
 
 1. Extract the code from `<code>` tags and write to `app.jsx`
