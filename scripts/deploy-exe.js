@@ -550,6 +550,8 @@ async function phase6Registry(args) {
       throw new Error(`Registry server not found at ${registryServerPath}`);
     }
     await uploadFileWithSudo(registryServerPath, vmHost, '/var/www/registry-server.ts');
+    // Fix permissions - service runs as exedev, needs read access
+    await runCommand(client, 'sudo chmod 644 /var/www/registry-server.ts && sudo chown exedev:exedev /var/www/registry-server.ts');
 
     // Create environment file for registry server (port 3002 to avoid conflict with AI proxy on 3001)
     console.log('  Configuring environment...');
