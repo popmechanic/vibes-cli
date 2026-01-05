@@ -529,3 +529,32 @@ This error during signup means Clerk Email settings are wrong:
 4. Ensure "Verify at sign-up" is ON with "Email verification code" checked
 
 See [CLERK-SETUP.md](./CLERK-SETUP.md) for complete settings.
+
+---
+
+## What's Next?
+
+After assembly completes, present deployment options using AskUserQuestion:
+
+```
+Question: "Your SaaS is assembled! What would you like to do?"
+Header: "Next"
+Options:
+- Label: "Deploy now (/exe)"
+  Description: "Go live immediately. Deploy sets up your app at yourapp.exe.xyz with the registry server for subdomain claiming, Clerk authentication, and HTTPS. Tenants can start signing up as soon as it's live."
+
+- Label: "Test locally first"
+  Description: "Preview before going live. Open index.html with Live Server and use ?subdomain=test to simulate tenant routing. Test the signup flow, passkey creation, and billing before real users see it."
+
+- Label: "Customize landing page"
+  Description: "Fine-tune the marketing. Adjust colors to match your brand, refine the tagline, or update feature descriptions. The landing page is your first impression - make it count."
+
+- Label: "I'm done for now"
+  Description: "Wrap up this session. Your index.html is ready to deploy whenever you're ready - just run /vibes:exe later."
+```
+
+**After user responds:**
+- "Deploy now" → Auto-invoke /vibes:exe skill (pass through Clerk keys from earlier config)
+- "Test locally" → Provide localhost testing instructions with ?subdomain= params
+- "Customize" → Stay ready for customization prompts
+- "I'm done" → Confirm index.html saved, remind of deploy command

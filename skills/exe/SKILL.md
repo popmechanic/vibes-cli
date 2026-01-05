@@ -298,3 +298,32 @@ scp file.html vmname.exe.xyz:/home/exedev/
 # or
 scp file.html vmname.exe.xyz:/tmp/
 ```
+
+---
+
+## What's Next?
+
+After successful deployment, present these options using AskUserQuestion:
+
+```
+Question: "Your app is live at https://${name}.exe.xyz! What's next?"
+Header: "Next"
+Options:
+- Label: "Share my URL"
+  Description: "Get the shareable link for your app. I'll confirm the public URL and you can send it to anyone - they'll see your app immediately with full functionality."
+
+- Label: "Make changes and redeploy"
+  Description: "Continue iterating locally. Edit your files here, then run deploy again to push updates. The VM keeps running so there's zero downtime during updates."
+
+- Label: "Continue development on VM"
+  Description: "Work directly on the server. SSH in and use the pre-installed Claude to make changes live. Great for server-specific debugging or when you want changes to persist immediately."
+
+- Label: "I'm done for now"
+  Description: "Wrap up this session. Your app stays live at the URL - it runs 24/7 on exe.dev's persistent VMs. Come back anytime to make updates."
+```
+
+**After user responds:**
+- "Share URL" → Confirm "Your app is live at https://${name}.exe.xyz - share this link!"
+- "Make changes" → Acknowledge, stay ready for local edits
+- "Continue on VM" → Provide: `ssh ${name}.exe.dev -t "cd /var/www/html && claude"`
+- "I'm done" → Confirm app stays live, wish them well

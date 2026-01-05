@@ -164,3 +164,36 @@ Open index.html for gallery, or browse riff-1/, riff-2/, etc.
 ## Plugin Directory
 
 The plugin root is available via `${CLAUDE_PLUGIN_ROOT}` which Claude Code resolves at runtime.
+
+---
+
+## What's Next?
+
+After presenting rankings, guide the user with AskUserQuestion:
+
+```
+Question: "You have ${count} variations ranked. What would you like to do?"
+Header: "Next"
+Options:
+- Label: "Develop the #1 ranked app"
+  Description: "Take the top-ranked variation and continue building it. I'll copy riff-1/app.jsx to your working directory so you can iterate with the full vibes feature set - add functionality, refine the design, make it yours."
+
+- Label: "Let me pick a different one"
+  Description: "The rankings are just my analysis - you might see something special in another variation. Tell me which riff number speaks to you and I'll set it up for development."
+
+- Label: "Turn winner into SaaS (/sell)"
+  Description: "Ready to monetize the best one? Sell adds Clerk authentication with passkeys, subscription billing, and multi-tenant database isolation. Each customer gets their own subdomain with their own data."
+
+- Label: "Deploy a riff as demo (/exe)"
+  Description: "Want to share one quickly? Deploy puts any variation live at yourapp.exe.xyz within minutes. Great for getting feedback before committing to further development."
+
+- Label: "I'm done for now"
+  Description: "Wrap up this session. All riffs are saved in riff-1/, riff-2/, etc. - browse them locally or come back later to continue."
+```
+
+**After user responds:**
+- "Develop #1" → Copy riff-1/app.jsx to ./app.jsx, confirm ready for vibes iteration
+- "Pick different" → Ask which riff number, then copy that one
+- "Turn into SaaS" → Copy riff-1/app.jsx, auto-invoke /vibes:sell skill
+- "Deploy demo" → Ask which riff, auto-invoke /vibes:exe skill with that riff's index.html
+- "I'm done" → Confirm riffs saved, provide directory listing
