@@ -1041,6 +1041,9 @@ function VibesButton({
       const registryCache = { data: null, fetchedAt: 0 };
       const REGISTRY_CACHE_TTL = 5000; // 5 seconds
 
+      // Track if registry server is available (for graceful degradation)
+      let registryServerAvailable = null; // null = unknown, true = available, false = unavailable
+
       async function fetchRegistry() {
         const now = Date.now();
         if (registryCache.data && (now - registryCache.fetchedAt) < REGISTRY_CACHE_TTL) {
@@ -1051,11 +1054,17 @@ function VibesButton({
           if (!res.ok) throw new Error('Failed to fetch registry');
           registryCache.data = await res.json();
           registryCache.fetchedAt = now;
+          registryServerAvailable = true;
           return registryCache.data;
         } catch (e) {
           console.warn('Registry fetch failed, using empty defaults:', e);
+          registryServerAvailable = false;
           return { claims: {}, reserved: RESERVED_SUBDOMAINS, preallocated: {} };
         }
+      }
+
+      function isRegistryAvailable() {
+        return registryServerAvailable === true;
       }
 
       async function checkSubdomainAvailability(subdomain) {
@@ -1091,16 +1100,33 @@ function VibesButton({
       }
 
       async function claimSubdomain(subdomain, token) {
-        const res = await fetch('/claim', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ subdomain: subdomain.toLowerCase().trim() })
-        });
-        const data = await res.json();
-        return { ...data, status: res.status };
+        // Check if registry is available first
+        if (registryServerAvailable === false) {
+          return {
+            success: false,
+            error: 'Subdomain claiming is not available. The app can be used directly via URL.',
+            status: 503
+          };
+        }
+
+        try {
+          const res = await fetch('/claim', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ subdomain: subdomain.toLowerCase().trim() })
+          });
+          const data = await res.json();
+          return { ...data, status: res.status };
+        } catch (e) {
+          return {
+            success: false,
+            error: 'Subdomain claiming is not available. The app can be used directly via URL.',
+            status: 503
+          };
+        }
       }
 
       async function getSubdomainOwner(subdomain) {
@@ -2267,7 +2293,15 @@ function VibesButton({
       // NOTE: Prefixed with underscore to avoid conflicts with user's app.jsx components
       function _SellHero({ onGetStarted }) {
         const [subdomain, setSubdomain] = useState('');
+        const [registryStatus, setRegistryStatus] = useState('checking'); // 'checking' | 'available' | 'unavailable'
         const { available, checking, error } = useSubdomainChecker(subdomain);
+
+        // Check registry availability on mount
+        useEffect(() => {
+          fetchRegistry().then(() => {
+            setRegistryStatus(isRegistryAvailable() ? 'available' : 'unavailable');
+          });
+        }, []);
 
         const handleGetStarted = () => {
           if (subdomain && available) {
@@ -2305,6 +2339,14 @@ function VibesButton({
                 Your own subdomain. Your own space. Get started in seconds.
               </p>
 
+              {/* Warning when registry is unavailable */}
+              {registryStatus === 'unavailable' && (
+                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm">
+                  <strong>Note:</strong> Subdomain claiming is currently unavailable.
+                  You can still try the app by adding <code className="bg-amber-100 px-1 rounded">?subdomain=yourname</code> to the URL.
+                </div>
+              )}
+
               <div className="flex flex-col gap-2 max-w-xl">
                 <div className="flex flex-col sm:flex-row gap-3">
                   <div className={`flex-1 flex items-center bg-white rounded-xl border ${getBorderColor()} overflow-hidden shadow-sm transition-colors`}>
@@ -2315,19 +2357,20 @@ function VibesButton({
                       onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
                       onKeyDown={(e) => e.key === 'Enter' && handleGetStarted()}
                       className="flex-1 px-4 py-3.5 bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none"
+                      disabled={registryStatus === 'unavailable'}
                     />
                     <span className="pr-4 text-gray-400 text-sm whitespace-nowrap">.{APP_DOMAIN}</span>
                   </div>
                   <button
                     onClick={handleGetStarted}
-                    disabled={!subdomain || !available || checking}
+                    disabled={!subdomain || !available || checking || registryStatus === 'unavailable'}
                     className="px-6 py-3.5 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
                   >
                     Get Started
                   </button>
                 </div>
                 <div className="h-5 pl-1">
-                  {getStatusIndicator()}
+                  {registryStatus !== 'unavailable' && getStatusIndicator()}
                 </div>
               </div>
             </div>
