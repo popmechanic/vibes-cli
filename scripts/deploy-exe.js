@@ -244,7 +244,15 @@ async function phase1PreFlight(args) {
   } else {
     const connected = await testConnection();
     if (!connected) {
-      throw new Error('Cannot connect to exe.dev. Run "ssh exe.dev" manually to set up your account.');
+      throw new Error(`Cannot connect to exe.dev.
+
+Before deploying, please:
+1. Run: ssh exe.dev (to create account if needed, verify email)
+2. Then retry this deployment
+
+The deployment will automatically:
+- Create the VM if it doesn't exist
+- Add the host key to known_hosts`);
     }
     console.log('  ✓ exe.dev connection OK');
   }
@@ -265,6 +273,17 @@ async function phase2CreateVM(args) {
     console.log(`  ✓ ${result.message}`);
   } else {
     throw new Error(`Failed to create VM: ${result.message}`);
+  }
+
+  // Add VM host key to known_hosts to avoid interactive prompt
+  const vmHost = `${args.name}.exe.xyz`;
+  console.log(`  Adding ${vmHost} to known_hosts...`);
+  try {
+    const { execSync } = require('child_process');
+    execSync(`ssh-keyscan -H ${vmHost} >> ~/.ssh/known_hosts 2>/dev/null`, { timeout: 30000 });
+    console.log(`  ✓ Host key added`);
+  } catch (err) {
+    console.log(`  Warning: Could not add host key automatically. You may need to run: ssh ${vmHost}`);
   }
 }
 
@@ -504,7 +523,9 @@ async function phase6Registry(args) {
 
     // Install registry server dependencies
     console.log('  Installing dependencies...');
-    await runCommand(client, 'sudo bash -c "cd /var/www && echo \'{\\"name\\":\\"registry\\"}\' > package.json && /usr/local/bin/bun add svix jsonwebtoken"');
+    // Ensure /var/www is owned by exedev for Bun to create package.json
+    await runCommand(client, 'sudo chown exedev:exedev /var/www');
+    await runCommand(client, 'cd /var/www && echo \'{"name":"registry"}\' > package.json && /usr/local/bin/bun add svix jsonwebtoken');
     console.log('  ✓ Dependencies installed');
 
     // Create initial registry.json
@@ -516,7 +537,10 @@ async function phase6Registry(args) {
     };
     const registryJson = JSON.stringify(registry, null, 2);
     await runCommand(client, `echo '${registryJson}' | sudo tee /var/www/html/registry.json`);
-    await runCommand(client, 'sudo chown www-data:www-data /var/www/html/registry.json');
+    // Registry server runs as exedev, needs write access to registry.json and directory (for .tmp files)
+    await runCommand(client, 'sudo chown exedev:exedev /var/www/html');
+    await runCommand(client, 'sudo chmod 775 /var/www/html');
+    await runCommand(client, 'sudo chown exedev:exedev /var/www/html/registry.json');
     await runCommand(client, 'sudo chmod 664 /var/www/html/registry.json');
 
     // Upload registry server
