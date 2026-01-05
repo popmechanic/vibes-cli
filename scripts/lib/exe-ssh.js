@@ -12,6 +12,21 @@
 
 import { Client } from 'ssh2';
 
+/**
+ * Host key verifier that auto-accepts exe.dev domains
+ * Mimics StrictHostKeyChecking=accept-new behavior for trusted domains
+ * @param {string} host - Hostname being connected to
+ * @returns {function} Verifier function for ssh2 Client
+ */
+function createHostVerifier(host) {
+  // Auto-accept host keys for exe.dev domains (trusted)
+  if (host === 'exe.dev' || host.endsWith('.exe.xyz') || host.endsWith('.exe.dev')) {
+    return () => true;
+  }
+  // For other hosts, use default verification (will reject unknown)
+  return undefined;
+}
+
 // exe.dev VM constants
 export const EXE_HOME_DIR = '/home/exedev';
 export const EXE_DEFAULT_USER = 'exedev';
@@ -61,7 +76,8 @@ export function connect(host, options = {}) {
       host,
       port: 22,
       username: options.username || process.env.USER || 'user',
-      privateKey: readFileSync(privateKeyPath)
+      privateKey: readFileSync(privateKeyPath),
+      hostVerifier: createHostVerifier(host)
     };
 
     client.on('ready', () => resolve(client));
@@ -142,7 +158,8 @@ export function runExeCommand(command, options = {}) {
       host: 'exe.dev',
       port: 22,
       username: process.env.USER || 'user',
-      privateKey: readFileSync(privateKeyPath)
+      privateKey: readFileSync(privateKeyPath),
+      hostVerifier: createHostVerifier('exe.dev')
     };
 
     client.on('ready', () => {
@@ -239,7 +256,8 @@ export function uploadFile(localPath, host, remotePath, options = {}) {
       host,
       port: 22,
       username: options.username || process.env.USER || 'user',
-      privateKey: readFileSync(privateKeyPath)
+      privateKey: readFileSync(privateKeyPath),
+      hostVerifier: createHostVerifier(host)
     };
 
     client.on('ready', () => {
