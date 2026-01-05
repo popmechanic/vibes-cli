@@ -1,5 +1,62 @@
 # Vibes DIY Plugin - Development Guide
 
+## Agent Quick Reference
+
+**This section helps coding agents navigate this codebase efficiently.**
+
+### When to Read What
+
+| Task | Read First |
+|------|------------|
+| Working on skills | The specific `skills/*/SKILL.md` file |
+| Generating app code | SKILL.md has patterns; for advanced features, read `cache/fireproof.txt` |
+| Working on scripts | `scripts/package.json` for deps, this file for architecture |
+| Debugging React errors | "Known Issues" section below |
+
+### Fireproof API Reference
+
+SKILL.md provides common patterns (useDocument, useLiveQuery, database.put/del) and critical gotchas.
+
+**Read `cache/fireproof.txt` when the user's app needs:**
+
+| Feature | Signal in prompt | fireproof.txt section |
+|---------|------------------|----------------------|
+| Image/file uploads | "upload", "image", "file", "attachment" | "Working with Files" (line 260) |
+| Drag-and-drop reordering | "sortable", "reorder", "drag", "position" | "Sortable Lists" (line 173) |
+| Date/category grouping | "by month", "by category", "grouped" | "Array Indexes and Prefix Queries" (line 162) |
+| Backend sync/webhooks | "server", "webhook", "subscribe", "sync" | "Using Fireproof in JavaScript" (line 224) |
+| Display images from db | "gallery", "show images" | Example Image Uploader (line 402) |
+
+### Architecture at a Glance
+
+```
+User invokes skill (e.g., /vibes:vibes)
+       │
+       ▼
+skills/*.SKILL.md loaded into context
+       │
+       ▼
+Agent generates app.jsx
+       │
+       ▼
+scripts/assemble.js (inserts JSX into template)
+       │
+       ▼
+index.html (ready to deploy)
+```
+
+### File Intent Guide
+
+| File Pattern | Intent |
+|--------------|--------|
+| `skills/*/SKILL.md` | Loaded verbatim into Claude. Edit carefully - affects agent behavior |
+| `skills/*/templates/*.html` | Base templates. Updated by sync.js - don't edit import maps manually |
+| `scripts/*.js` | Node.js tools. Run locally, not loaded into Claude |
+| `cache/*` | Working cache (gitignored). Source of truth for versions |
+| `skills/*/cache/*` | Default cache (git-tracked). Stable fallback |
+
+---
+
 ## Core Design Principle
 
 **Match vibes.diy exactly. Never deviate.**
@@ -264,6 +321,11 @@ There are two cache locations by design:
    - **This is the authoritative source for stable versions**
 
 The sync script updates `/cache/` and the template files. When upstream has dev versions, the git-tracked cache ensures users get stable versions by default.
+
+**When to read cache files:**
+- `fireproof.txt` - Read when generating apps with file attachments, custom indexes, or non-React code
+- `style-prompt.txt` - Read when you need UI/color guidance beyond what's in SKILL.md
+- `import-map.json` - Reference only; never hardcode these values
 
 ## Architecture: JSX + Babel
 

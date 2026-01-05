@@ -400,3 +400,36 @@ After generating your app, you can deploy it:
 
 - **exe.dev** - VM hosting with nginx. Use `/vibes:exe` to deploy.
 - **Local** - Just open `index.html` in your browser. Works offline with Fireproof.
+
+---
+
+## What's Next?
+
+After generating and assembling the app, present these options using AskUserQuestion:
+
+```
+Question: "Your app is ready! What would you like to do next?"
+Header: "Next"
+Options:
+- Label: "Keep improving this app"
+  Description: "Continue iterating on what you've built. Add new features, refine the styling, or adjust functionality. Great when you have a clear vision and want to polish it further."
+
+- Label: "Explore variations (/riff)"
+  Description: "Not sure if this is the best approach? Riff generates 3-10 completely different interpretations of your idea in parallel. You'll get ranked variations with business model analysis to help you pick the winner."
+
+- Label: "Make it a SaaS (/sell)"
+  Description: "Ready to monetize? Sell transforms your app into a multi-tenant SaaS with Clerk authentication, subscription billing, and isolated databases per customer. Each user gets their own subdomain."
+
+- Label: "Deploy to exe.dev (/exe)"
+  Description: "Go live right now. Deploy creates a persistent VM at yourapp.exe.xyz with HTTPS, nginx, and Claude pre-installed for remote development. Your app stays online even when you close your laptop."
+
+- Label: "I'm done for now"
+  Description: "Wrap up this session. Your files are saved locally - come back anytime to continue."
+```
+
+**After user responds:**
+- "Keep improving" → Acknowledge and stay ready for iteration prompts
+- "Explore variations" → Auto-invoke /vibes:riff skill
+- "Make it a SaaS" → Auto-invoke /vibes:sell skill
+- "Deploy" → Auto-invoke /vibes:exe skill
+- "I'm done" → Confirm files saved, wish them well
