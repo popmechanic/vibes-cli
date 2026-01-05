@@ -263,43 +263,45 @@ For custom domains with wildcard subdomains, see the exe.dev deployment guide.
 
 ---
 
-## Step 5: Clerk Setup
+## Step 5: Clerk Setup (REQUIRED BEFORE TESTING)
+
+**⚠️ CRITICAL: Configure Clerk BEFORE testing the deployed app!**
 
 **Read the complete setup guide:** [CLERK-SETUP.md](./CLERK-SETUP.md)
 
-**Quick summary of steps:**
-1. Create Clerk application at [clerk.com](https://clerk.com), copy Publishable Key
-2. Enable Passkey authentication
-3. Get admin user ID from Clerk Dashboard → Users
-4. Add your production domain to Clerk's allowed origins
+### Quick Checklist
 
-**⚠️ IMPORTANT: Passkey Configuration**
+**Email Settings** (Dashboard → User & Authentication → Email):
+| Setting | Value | Why |
+|---------|-------|-----|
+| Sign-up with email | ✅ ON | Users sign up via email |
+| Require email address | ⬜ **OFF** | **CRITICAL** - signup fails with "missing_requirements" if ON |
+| Verify at sign-up | ✅ ON | Verify before session |
+| Email verification code | ✅ Checked | Use code for signup verification |
 
-Set passkeys to **Optional** in Clerk Dashboard - the app enforces passkey-first at the application level.
+**Passkey Settings** (Dashboard → User & Authentication → Passkeys):
+| Setting | Value | Why |
+|---------|-------|-----|
+| Sign-in with passkey | ✅ ON | Primary auth method |
+| Allow autofill | ✅ ON | Better UX |
+| Show passkey button | ✅ ON | Visible option |
+| Add passkey to account | ✅ ON | Users can add passkeys |
 
-**Why Optional?** Clerk's API requires an active session before `user.createPasskey()` can be called. Setting to "Required" creates a circular dependency where signup can't complete.
+**Note:** The app enforces passkey creation at the application level. Clerk passkeys don't have a "required/optional" setting - the template handles enforcement.
 
-**Clerk Dashboard Setup:**
-1. Go to User & Authentication → Email, Phone, Username
-2. **Passkeys**: Set to **Optional** (not Required!)
-3. **Email**: Enable for verification (email code)
-4. **Email Link**: Enable for sign-in fallback
+**Domain Configuration** (Dashboard → Domains):
+- Add your production domain (e.g., `myapp.exe.xyz`)
 
-**How it works:**
-- Signup: email → verify → session active → app forces passkey creation → claim
+**How authentication works:**
+- Signup: email → verify → session active → app forces passkey creation → claim subdomain
 - Sign-in: passkey first, email magic link as fallback
 - The app blocks access until passkey is created (app-level enforcement)
 
-**For production:**
-- Switch to Clerk production mode for better passkey support
-- Use the production publishable key (`pk_live_*`)
-- Add your production domain to allowed origins
-
 **If using `--billing-mode required`:**
-5. Go to Clerk Dashboard → Billing → Get Started
-6. Create subscription plans (names must match: `pro`, `basic`, `monthly`, `yearly`, `starter`, `free`)
-7. Set prices and trial periods for each plan
-8. Connect your Stripe account
+1. Go to Clerk Dashboard → Billing → Get Started
+2. Create subscription plans (names must match: `pro`, `basic`, `monthly`, `yearly`, `starter`, `free`)
+3. Set prices and trial periods for each plan
+4. Connect your Stripe account
 
 **NO REBUILD REQUIRED**: Clerk setup is done in the Clerk Dashboard only. Change billing mode by re-running assembly with `--billing-mode required` or `--billing-mode off`.
 
@@ -486,12 +488,17 @@ The unified template uses pinned React 18 versions to prevent conflicts with Cle
 - Check `useFireproof(dbName)` uses the tenant database name
 
 ### Passkey creation fails
-- Ensure Clerk passkeys are set to **Optional** (not Required)
-- The app uses `user.createPasskey()` which requires an active session
+- Ensure HTTPS is configured (passkeys require secure context)
+- Check browser supports WebAuthn (all modern browsers do)
+- Verify Passkey settings are enabled in Clerk Dashboard
 - Check console for specific error messages
 - For production: use `pk_live_*` key and add domain to allowed origins
 
-### "Verification incomplete" after email code
-- Clerk passkeys are likely set to "Required" instead of "Optional"
-- Go to Clerk Dashboard → User & Authentication → set Passkeys to Optional
-- The app enforces passkey-first at application level, not Clerk level
+### "Verification incomplete (missing_requirements)" error
+This error during signup means Clerk Email settings are wrong:
+1. Go to Clerk Dashboard → User & Authentication → Email
+2. Set "Require email address" to **OFF** (this is the critical fix!)
+3. Ensure "Sign-up with email" is ON
+4. Ensure "Verify at sign-up" is ON with "Email verification code" checked
+
+See [CLERK-SETUP.md](./CLERK-SETUP.md) for complete settings.
