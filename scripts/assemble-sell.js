@@ -32,11 +32,9 @@
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { dirname, join, resolve } from 'path';
-import { fileURLToPath } from 'url';
+import { resolve } from 'path';
+import { TEMPLATES } from './lib/paths.js';
 import { stripForTemplate, stripImports } from './lib/strip-code.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Parse command line arguments
 function parseArgs(argv) {
@@ -96,17 +94,17 @@ if (existsSync(resolvedOutputPath)) {
   console.log(`Backed up existing file to: ${backupPath}`);
 }
 
-// Template paths
-const templatePath = join(__dirname, '../skills/sell/templates/unified.html');
-const adminComponentPath = join(__dirname, '../skills/sell/components/admin-exe.jsx');
+// Template paths (centralized in lib/paths.js)
+const templatePath = TEMPLATES.sellUnified;
+const adminComponentPath = TEMPLATES.adminComponent;
 
 // Check templates exist
-const templates = [
+const templateChecks = [
   { path: templatePath, name: 'unified.html' },
   { path: adminComponentPath, name: 'components/admin-exe.jsx' }
 ];
 
-for (const t of templates) {
+for (const t of templateChecks) {
   if (!existsSync(t.path)) {
     console.error(`Template not found: ${t.path}`);
     console.error('Make sure the sell skill templates are installed.');
@@ -204,6 +202,11 @@ if (output.includes(adminPlaceholder)) {
   process.exit(1);
 }
 
+// Known safe patterns that aren't config placeholders
+// __PURE__ is a tree-shaking comment used by bundlers
+// __esModule is used by transpilers for ES module compatibility
+const SAFE_PLACEHOLDER_PATTERNS = ['__PURE__', '__esModule'];
+
 // Validate output
 function validateSellAssembly(html, app, admin) {
   const errors = [];
@@ -216,9 +219,9 @@ function validateSellAssembly(html, app, admin) {
     errors.push('Admin code is empty');
   }
 
-  // Check for unreplaced placeholders (exclude __PURE__ which is a tree-shaking comment)
+  // Check for unreplaced placeholders using whitelist approach
   const allMatches = html.match(/__[A-Z_]+__/g) || [];
-  const unreplaced = allMatches.filter(m => m !== '__PURE__');
+  const unreplaced = allMatches.filter(m => !SAFE_PLACEHOLDER_PATTERNS.includes(m));
   if (unreplaced.length > 0) {
     errors.push(`Unreplaced placeholders: ${[...new Set(unreplaced)].join(', ')}`);
   }

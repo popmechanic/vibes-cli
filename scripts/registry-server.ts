@@ -32,6 +32,7 @@ interface Registry {
   claims: Record<string, Claim>;
   reserved: string[];
   preallocated: Record<string, string>;
+  quotas?: Record<string, number>;  // userId -> allowed subdomain count
 }
 
 /**
@@ -93,7 +94,9 @@ function verifyClerkJWT(authHeader: string | null): { userId: string } | null {
         if (pattern === decoded.azp) return true;
         // Wildcard match: https://*.domain.com matches https://sub.domain.com
         if (pattern.includes('*')) {
-          const regex = new RegExp('^' + pattern.replace(/\*/g, '[^.]+') + '$');
+          // Escape regex special chars, then replace * with [^.]+ (any subdomain segment)
+          const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+          const regex = new RegExp('^' + escaped.replace(/\*/g, '[^.]+') + '$');
           return regex.test(decoded.azp as string);
         }
         return false;
@@ -168,7 +171,14 @@ function isSubdomainAvailable(
   }
 
   // Validate subdomain format (alphanumeric and hyphens, 3-63 chars)
-  if (!/^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$/.test(normalized) && normalized.length < 3) {
+  if (normalized.length < 3) {
+    return { available: false, reason: "too_short" };
+  }
+  if (normalized.length > 63) {
+    return { available: false, reason: "too_long" };
+  }
+  // Standard subdomain format: starts/ends with alphanumeric, can contain hyphens in between
+  if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(normalized)) {
     return { available: false, reason: "invalid_format" };
   }
 
@@ -270,6 +280,25 @@ Bun.serve({
         );
       }
 
+      // Check user's quota before claiming
+      const userClaims = getUserClaims(registry, auth.userId);
+      const quota = registry.quotas?.[auth.userId] ?? 0;
+
+      if (userClaims.length >= quota) {
+        return new Response(
+          JSON.stringify({
+            error: "Purchase required",
+            reason: "quota_exceeded",
+            current: userClaims.length,
+            quota: quota,
+          }),
+          {
+            status: 402,  // Payment Required
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
       // Claim the subdomain
       const normalized = body.subdomain.toLowerCase().trim();
       registry.claims[normalized] = {
@@ -318,11 +347,14 @@ Bun.serve({
 
       // Handle subscription changes
       if (
+        event.type === "subscription.created" ||
         event.type === "subscription.updated" ||
         event.type === "subscription.deleted"
       ) {
         const userId = event.data.user_id;
-        const newQuantity = event.data.quantity ?? 0;
+        const newQuantity = event.type === "subscription.deleted"
+          ? 0
+          : (event.data.quantity ?? 1);
 
         if (!userId) {
           console.error("No user_id in webhook payload");
@@ -333,6 +365,17 @@ Bun.serve({
         }
 
         const registry = await readRegistry();
+
+        // Update the user's quota
+        registry.quotas = registry.quotas ?? {};
+        if (newQuantity > 0) {
+          registry.quotas[userId] = newQuantity;
+          console.log(`Updated quota for user ${userId}: ${newQuantity}`);
+        } else {
+          delete registry.quotas[userId];
+          console.log(`Removed quota for user ${userId}`);
+        }
+
         const userClaims = getUserClaims(registry, userId);
 
         // If user has more claims than their subscription allows, release excess (LIFO)
@@ -343,9 +386,9 @@ Bun.serve({
           for (const subdomain of toRelease) {
             delete registry.claims[subdomain];
           }
-
-          await writeRegistry(registry);
         }
+
+        await writeRegistry(registry);
       }
 
       return new Response(JSON.stringify({ received: true }), {

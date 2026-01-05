@@ -11,16 +11,18 @@
  */
 
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { join } from "path";
 import * as esbuild from "esbuild";
-
-// Get the plugin root directory (parent of scripts/)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const PLUGIN_ROOT = dirname(__dirname);
-const CACHE_DIR = join(PLUGIN_ROOT, "cache");
-const CONFIG_FILE = join(PLUGIN_ROOT, "config", "sources.json");
+import {
+  PLUGIN_ROOT,
+  CACHE_DIR,
+  CONFIG_FILES,
+  TEMPLATES,
+  CACHE_FILES,
+  SKILL_FILES,
+  relativeToPlugin
+} from "./lib/paths.js";
+import { parseImportMapTs, parseStylePromptsTs } from "./lib/parsers.js";
 
 // Default upstream sources (can be overridden via config file or env vars)
 const DEFAULT_SOURCES = {
@@ -40,12 +42,12 @@ function loadSourceConfig() {
   let fileConfig = {};
 
   // Try loading config file
-  if (existsSync(CONFIG_FILE)) {
+  if (existsSync(CONFIG_FILES.sources)) {
     try {
-      fileConfig = JSON.parse(readFileSync(CONFIG_FILE, 'utf-8'));
-      console.log('Loaded source config from', CONFIG_FILE);
+      fileConfig = JSON.parse(readFileSync(CONFIG_FILES.sources, 'utf-8'));
+      console.log('Loaded source config from', relativeToPlugin(CONFIG_FILES.sources));
     } catch (e) {
-      console.warn('Warning: Could not parse config file, using defaults');
+      console.warn(`Warning: Could not parse config file (${e.message}), using defaults`);
     }
   }
 
@@ -164,93 +166,7 @@ async function fetchDoc(name, url, force) {
   }
 }
 
-/**
- * Parse the import-map.ts file from vibes.diy and extract the import map.
- *
- * Handles multiple syntax patterns:
- * - Quoted keys: "react-dom": "https://esm.sh/react-dom@19.2.1"
- * - Unquoted keys: react: "https://esm.sh/react@19.2.1"
- * - Template literals with VIBES_VERSION: "use-vibes": `https://esm.sh/use-vibes@${VIBES_VERSION}`
- *
- * @param {string} content - Raw TypeScript content from import-map.ts
- * @returns {Object.<string, string>} - Object mapping package names to CDN URLs
- * @example
- * const imports = parseImportMapTs(tsContent);
- * // { "react": "https://esm.sh/react@19.2.1", "use-vibes": "https://esm.sh/use-vibes@0.19" }
- */
-function parseImportMapTs(content) {
-  const imports = {};
-
-  // Extract VIBES_VERSION
-  const versionMatch = content.match(/const VIBES_VERSION\s*=\s*["']([^"']+)["']/);
-  const vibesVersion = versionMatch ? versionMatch[1] : "0.19";
-
-  // Extract entries from getLibraryImportMap function
-  // Match quoted keys: "react-dom": "https://esm.sh/react-dom@19.2.1"
-  const quotedStaticMatches = content.matchAll(/"([^"]+)":\s*"(https:\/\/[^"]+)"/g);
-  for (const match of quotedStaticMatches) {
-    imports[match[1]] = match[2];
-  }
-
-  // Match unquoted keys: react: "https://esm.sh/react@19.2.1"
-  const unquotedStaticMatches = content.matchAll(/(\w+):\s*"(https:\/\/[^"]+)"/g);
-  for (const match of unquotedStaticMatches) {
-    imports[match[1]] = match[2];
-  }
-
-  // Match quoted keys with template literals: "use-fireproof": `https://esm.sh/use-vibes@${VIBES_VERSION}`
-  const quotedTemplateMatches = content.matchAll(/"([^"]+)":\s*`(https:\/\/[^`]+)\$\{VIBES_VERSION\}`/g);
-  for (const match of quotedTemplateMatches) {
-    imports[match[1]] = match[2] + vibesVersion;
-  }
-
-  // Match unquoted keys with template literals: react: `https://esm.sh/react@${VIBES_VERSION}`
-  const unquotedTemplateMatches = content.matchAll(/(\w+):\s*`(https:\/\/[^`]+)\$\{VIBES_VERSION\}`/g);
-  for (const match of unquotedTemplateMatches) {
-    imports[match[1]] = match[2] + vibesVersion;
-  }
-
-  return imports;
-}
-
-/**
- * Parse the style-prompts.ts file and extract the default style prompt.
- *
- * Looks for DEFAULT_STYLE_NAME and then extracts the corresponding prompt
- * from the stylePrompts array. Falls back to searching for a brutalist-style
- * prompt if the default cannot be found.
- *
- * @param {string} content - Raw TypeScript content from style-prompts.ts
- * @returns {string} The extracted style prompt text, or empty string if not found
- */
-function parseStylePromptsTs(content) {
-  // Find the DEFAULT_STYLE_NAME
-  const defaultNameMatch = content.match(/DEFAULT_STYLE_NAME\s*=\s*["']([^"']+)["']/);
-  const defaultName = defaultNameMatch ? defaultNameMatch[1] : "brutalist web";
-
-  // Find the stylePrompts array and extract the prompt for the default style
-  const styleRegex = new RegExp(
-    `\\{\\s*name:\\s*["']${defaultName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']\\s*,\\s*prompt:\\s*(['"\`])((?:(?!\\1)[^\\\\]|\\\\.)*)\\1`,
-    's'
-  );
-
-  const match = content.match(styleRegex);
-  if (match) {
-    return match[2]
-      .replace(/\\n/g, '\n')
-      .replace(/\\"/g, '"')
-      .replace(/\\'/g, "'")
-      .replace(/\\\\/g, '\\');
-  }
-
-  // Fallback
-  const fallbackMatch = content.match(/prompt:\s*['"`](Create a UI theme in a neo-brutalist style[^'"`]*)['"]/s);
-  if (fallbackMatch) {
-    return fallbackMatch[1];
-  }
-
-  return "";
-}
+// parseImportMapTs and parseStylePromptsTs are imported from ./lib/parsers.js
 
 async function fetchStylePrompt(force) {
   const cachePath = join(CACHE_DIR, "style-prompt.txt");
@@ -407,7 +323,7 @@ async function fetchCssVariables(force) {
  * Fetch and transpile menu components from vibes.diy
  */
 async function fetchMenuComponents(force) {
-  const cachePath = join(CACHE_DIR, "vibes-menu.js");
+  const cachePath = CACHE_FILES.vibesMenu;
 
   if (!force && existsSync(cachePath)) {
     return { name: "vibes-menu", success: true, cached: true };
@@ -434,11 +350,20 @@ async function fetchMenuComponents(force) {
     });
 
     const fetchResults = await Promise.all(fetchPromises);
+
+    // Track successes and failures explicitly
+    const successful = fetchResults.filter(r => r.source !== null);
+    const failed = fetchResults.filter(r => r.source === null);
+
+    // Report failures summary (individual errors logged above)
+    if (failed.length > 0) {
+      console.warn(`  Failed to fetch ${failed.length}/${fetchResults.length} components: ${failed.map(f => f.name).join(', ')}`);
+    }
+
+    // Build sources object from successful fetches
     const sources = {};
-    for (const { name, source } of fetchResults) {
-      if (source !== null) {
-        sources[name] = source;
-      }
+    for (const { name, source } of successful) {
+      sources[name] = source;
     }
 
     if (Object.keys(sources).length === 0) {
@@ -487,6 +412,17 @@ async function fetchMenuComponents(force) {
           .replace(/(?<!React\.)useCallback\(/g, "React.useCallback(")
           .replace(/(?<!React\.)useMemo\(/g, "React.useMemo(")
           .replace(/(?<!React\.)useLayoutEffect\b/g, "React.useLayoutEffect");
+
+        // Namespace functions that would conflict between components
+        // VibesButton.styles defines getContentWrapperStyle(isMobile, hasIcon)
+        // HiddenMenuWrapper.styles defines getContentWrapperStyle(menuHeight, menuOpen, isBouncing)
+        // Rename at transpile time to avoid conflicts when combined
+        if (name === 'VibesButton.styles' || name === 'VibesButton') {
+          code = code.replace(
+            /\bgetContentWrapperStyle\b/g,
+            'getVibesButtonContentWrapperStyle'
+          );
+        }
 
         return { name, code, success: true };
       } catch (err) {
@@ -570,6 +506,16 @@ function generateImportMapJson(imports) {
 }
 
 /**
+ * Get all available component markers from cache content
+ * @param {string} cacheContent - Content of vibes-menu.js
+ * @returns {string[]} - Array of component names found
+ */
+function getAvailableMarkers(cacheContent) {
+  const markers = [...cacheContent.matchAll(/\/\/ === ([\w.]+) ===/g)];
+  return markers.map(m => m[1]);
+}
+
+/**
  * Extract a component's code from the cached vibes-menu.js
  * Components are delimited by `// === ComponentName ===` comments
  *
@@ -582,7 +528,16 @@ function extractComponentFromCache(cacheContent, componentName) {
   const extractSection = (name) => {
     const startMarker = `// === ${name} ===`;
     const startIdx = cacheContent.indexOf(startMarker);
-    if (startIdx === -1) return null;
+
+    if (startIdx === -1) {
+      // Provide helpful debug info when marker not found
+      const available = getAvailableMarkers(cacheContent);
+      console.warn(`  Component marker not found: "${name}"`);
+      if (available.length > 0) {
+        console.warn(`  Available markers: ${available.join(', ')}`);
+      }
+      return null;
+    }
 
     // Find the end (next `// ===` marker or end of file)
     const contentStart = startIdx + startMarker.length;
@@ -591,7 +546,14 @@ function extractComponentFromCache(cacheContent, componentName) {
       ? contentStart + nextMarkerMatch.index
       : cacheContent.length;
 
-    return cacheContent.slice(contentStart, endIdx).trim();
+    const extracted = cacheContent.slice(contentStart, endIdx).trim();
+
+    // Validate we got actual content
+    if (!extracted || extracted.length < 10) {
+      console.warn(`  Warning: Component "${name}" extracted but appears empty or too short`);
+    }
+
+    return extracted;
   };
 
   // Special case: "Icons" extracts all icon components as a group
@@ -625,7 +587,7 @@ function extractComponentFromCache(cacheContent, componentName) {
  * Replaces content between `// === START ComponentName ===` and `// === END ComponentName ===` markers
  */
 function updateTemplateComponents() {
-  const cachePath = join(CACHE_DIR, "vibes-menu.js");
+  const cachePath = CACHE_FILES.vibesMenu;
 
   if (!existsSync(cachePath)) {
     console.log("  Skipping template update: vibes-menu.js not cached");
@@ -637,13 +599,13 @@ function updateTemplateComponents() {
   // Templates and their components
   // Note: VibesPanel is a local component (not in upstream), so not synced
   // Icons = all icon components (BackIcon, LoginIcon, etc.) as a group
-  const templates = [
+  const templateConfigs = [
     {
-      path: join(PLUGIN_ROOT, "skills/vibes/templates/index.html"),
+      path: TEMPLATES.vibesBasic,
       components: ["useMobile", "Icons", "VibesSwitch", "HiddenMenuWrapper", "VibesButton"]
     },
     {
-      path: join(PLUGIN_ROOT, "skills/sell/templates/unified.html"),
+      path: TEMPLATES.sellUnified,
       components: ["useMobile", "Icons", "VibesSwitch", "HiddenMenuWrapper", "VibesButton"]
     }
   ];
@@ -652,9 +614,9 @@ function updateTemplateComponents() {
   const failed = [];
   const skipped = [];
 
-  for (const template of templates) {
+  for (const template of templateConfigs) {
     if (!existsSync(template.path)) {
-      skipped.push(template.path.replace(PLUGIN_ROOT + "/", ""));
+      skipped.push(relativeToPlugin(template.path));
       continue;
     }
 
@@ -677,7 +639,7 @@ function updateTemplateComponents() {
       const endIdx = content.indexOf(endMarker);
 
       if (startIdx === -1 || endIdx === -1) {
-        console.warn(`  Warning: Missing markers for ${componentName} in ${template.path.replace(PLUGIN_ROOT + "/", "")}`);
+        console.warn(`  Warning: Missing markers for ${componentName} in ${relativeToPlugin(template.path)}`);
         continue;
       }
 
@@ -701,9 +663,9 @@ function updateTemplateComponents() {
 
       try {
         writeFileSync(template.path, content, "utf-8");
-        updated.push(template.path.replace(PLUGIN_ROOT + "/", ""));
+        updated.push(relativeToPlugin(template.path));
       } catch (err) {
-        failed.push(template.path.replace(PLUGIN_ROOT + "/", ""));
+        failed.push(relativeToPlugin(template.path));
       }
     }
   }
@@ -714,7 +676,9 @@ function updateTemplateComponents() {
 /**
  * Fix duplicate function names that come from upstream components.
  * Both HiddenMenuWrapper and VibesButton define getContentWrapperStyle with different signatures.
- * This renames the VibesButton version to getButtonContentWrapperStyle to avoid conflicts.
+ *
+ * NOTE: Primary fix is now done at transpile time in fetchMenuComponents().
+ * This function is a safety fallback for templates that were synced before the transpile-time fix.
  */
 function fixDuplicateFunctionNames(content) {
   // Find the VibesButton block and rename getContentWrapperStyle within it
@@ -730,9 +694,11 @@ function fixDuplicateFunctionNames(content) {
   const after = content.slice(vibesButtonEnd);
 
   // Rename the function definition and all uses within VibesButton block
-  const fixedBlock = vibesButtonBlock
-    .replace(/function getContentWrapperStyle\(isMobile, hasIcon\)/g, 'function getButtonContentWrapperStyle(isMobile, hasIcon)')
-    .replace(/const contentWrapperStyle = getContentWrapperStyle\(isMobile/g, 'const contentWrapperStyle = getButtonContentWrapperStyle(isMobile');
+  // Uses the same new name as the transpile-time fix: getVibesButtonContentWrapperStyle
+  const fixedBlock = vibesButtonBlock.replace(
+    /\bgetContentWrapperStyle\b/g,
+    'getVibesButtonContentWrapperStyle'
+  );
 
   return before + fixedBlock + after;
 }
@@ -744,9 +710,8 @@ function updateSkillImportMaps(imports) {
   const updated = [];
   const failed = [];
 
-  const filesToUpdate = [
-    join(PLUGIN_ROOT, "skills/vibes/SKILL.md"),
-  ];
+  // Use centralized skill file paths
+  const filesToUpdate = [SKILL_FILES.vibesSkill];
 
   const importMapRegex = /<script type="importmap">\s*\{[\s\S]*?"imports":\s*\{[\s\S]*?\}\s*\}\s*<\/script>/g;
 
@@ -765,10 +730,10 @@ function updateSkillImportMaps(imports) {
 
       if (newContent !== content) {
         writeFileSync(filePath, newContent, "utf-8");
-        updated.push(filePath.replace(PLUGIN_ROOT + "/", ""));
+        updated.push(relativeToPlugin(filePath));
       }
     } catch (error) {
-      failed.push(filePath.replace(PLUGIN_ROOT + "/", ""));
+      failed.push(relativeToPlugin(filePath));
     }
   }
 
@@ -812,8 +777,7 @@ async function main() {
 
   // Update skill files with new import map
   if (importMapResult.success && !importMapResult.cached) {
-    const cachePath = join(CACHE_DIR, "import-map.json");
-    const cache = JSON.parse(readFileSync(cachePath, "utf-8"));
+    const cache = JSON.parse(readFileSync(CACHE_FILES.importMap, "utf-8"));
     const { updated, failed } = updateSkillImportMaps(cache.imports);
 
     if (updated.length > 0) {
@@ -876,15 +840,13 @@ async function main() {
     console.log("\nCached files:");
     for (const result of successful) {
       if (result.name === "import-map") {
-        const cachePath = join(CACHE_DIR, "import-map.json");
-        if (existsSync(cachePath)) {
-          const content = JSON.parse(readFileSync(cachePath, "utf-8"));
+        if (existsSync(CACHE_FILES.importMap)) {
+          const content = JSON.parse(readFileSync(CACHE_FILES.importMap, "utf-8"));
           console.log(`  import-map: ${Object.keys(content.imports).length} entries, updated ${content.lastUpdated}`);
         }
       } else if (result.name === "vibes-menu") {
-        const cachePath = join(CACHE_DIR, "vibes-menu.js");
-        if (existsSync(cachePath)) {
-          const content = readFileSync(cachePath, "utf-8");
+        if (existsSync(CACHE_FILES.vibesMenu)) {
+          const content = readFileSync(CACHE_FILES.vibesMenu, "utf-8");
           console.log(`  vibes-menu: ${content.length} bytes`);
         }
       } else {
@@ -898,9 +860,8 @@ async function main() {
   }
 
   // Check cache staleness
-  const importMapPath = join(CACHE_DIR, "import-map.json");
-  if (existsSync(importMapPath)) {
-    const cache = JSON.parse(readFileSync(importMapPath, "utf-8"));
+  if (existsSync(CACHE_FILES.importMap)) {
+    const cache = JSON.parse(readFileSync(CACHE_FILES.importMap, "utf-8"));
     const lastUpdated = new Date(cache.lastUpdated);
     const daysSinceUpdate = Math.floor((Date.now() - lastUpdated.getTime()) / (1000 * 60 * 60 * 24));
 

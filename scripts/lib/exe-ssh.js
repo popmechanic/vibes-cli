@@ -287,8 +287,13 @@ export async function uploadFileWithSudo(localPath, host, remotePath, options = 
   // Upload to home directory first (guaranteed writable)
   await uploadFile(localPath, host, tempPath, options);
 
-  // Move to final location with sudo
-  await runCommand(host, `sudo cp ${tempPath} ${remotePath} && sudo chown www-data:www-data ${remotePath} && rm ${tempPath}`, options);
+  // Move to final location with sudo (requires SSH connection)
+  const client = await connect(host, options);
+  try {
+    await runCommand(client, `sudo cp ${tempPath} ${remotePath} && sudo chown www-data:www-data ${remotePath} && rm ${tempPath}`);
+  } finally {
+    client.end();
+  }
 }
 
 /**

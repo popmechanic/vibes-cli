@@ -12,10 +12,9 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, copyFileSync } from 'fs';
-import { dirname, join, resolve, basename } from 'path';
-import { fileURLToPath } from 'url';
+import { resolve } from 'path';
+import { TEMPLATES } from './lib/paths.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const PLACEHOLDER = '// __VIBES_APP_CODE__';
 
 /**
@@ -45,7 +44,7 @@ if (!appPath) {
 }
 
 // Resolve paths
-const templatePath = join(__dirname, '../skills/vibes/templates/index.html');
+const templatePath = TEMPLATES.vibesBasic;
 const resolvedAppPath = resolve(appPath);
 const resolvedOutputPath = resolve(outputPath);
 
@@ -101,7 +100,17 @@ const validationErrors = validateAssembly(output, appCode);
 if (validationErrors.length > 0) {
   console.error('Assembly failed:');
   validationErrors.forEach(e => console.error(`  - ${e}`));
-  console.error('\nFix: Check your app.jsx for syntax errors');
+  // Provide specific guidance based on error type
+  const fixes = validationErrors.map(e => {
+    if (e.includes('empty')) return 'Ensure app.jsx has content';
+    if (e.includes('Placeholder')) return 'Template may be corrupted - run /vibes:sync to refresh';
+    if (e.includes('App component')) return 'Add "export default function App()" or "function App()"';
+    if (e.includes('script tags')) return 'Check for unclosed <script> tags in template';
+    return null;
+  }).filter(Boolean);
+  if (fixes.length > 0) {
+    console.error(`\nFix: ${fixes.join('; ')}`);
+  }
   process.exit(1);
 }
 

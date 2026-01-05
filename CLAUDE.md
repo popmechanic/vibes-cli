@@ -159,7 +159,9 @@ npm run test:e2e:server
 scripts/__tests__/
 ├── unit/                    # Pure logic, no I/O
 │   ├── config-parsing.test.js
-│   └── webhook-signature.test.js
+│   ├── webhook-signature.test.js
+│   ├── jwt-validation.test.js    # azp matching, timing validation
+│   └── auth-flows.test.js        # State machine transitions
 ├── e2e/                     # Local server for manual testing
 │   └── local-server.js
 └── mocks/                   # Shared test doubles
@@ -238,6 +240,9 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `skills/riff/SKILL.md` | Riff skill for parallel app generation |
 | `skills/sell/SKILL.md` | Sell skill for SaaS transformation |
 | `skills/sell/templates/unified.html` | SaaS template with multi-tenant routing |
+| `scripts/registry-server.ts` | Bun server for subdomain registry + Clerk webhooks |
+| `scripts/lib/jwt-validation.js` | JWT validation utilities (azp matching, timing) |
+| `scripts/lib/auth-flows.js` | Auth flow state machines (signup, signin, gate) |
 | `skills/exe/SKILL.md` | exe.dev deployment skill |
 | `commands/sync.md` | User-facing sync command definition |
 | `commands/update.md` | User-facing update command definition |
@@ -359,6 +364,58 @@ Commands are explicitly invoked by the user with the `/` prefix.
 - **sync**: Only when user explicitly runs `/vibes:sync` or skill warns about stale cache.
 - **update**: Only when user explicitly runs `/vibes:update` on existing HTML files.
 
+## Sell Skill: Multi-Tenant SaaS
+
+The `/vibes:sell` skill transforms apps into multi-tenant SaaS with Clerk auth and billing.
+
+### Key Components
+
+**Registry Server** (`scripts/registry-server.ts`):
+- `GET /registry.json` - Public read of claims, quotas, reserved subdomains
+- `GET /check/:subdomain` - Real-time availability checking
+- `POST /claim` - Authenticated claiming with quota enforcement (returns 402 if quota exceeded)
+- `POST /webhook` - Clerk subscription webhooks for quota updates
+
+**Auth Flows** (in `unified.html`):
+- `PasskeySignupFlow`: email → verification → passkey creation → claim
+- `PasskeySigninFlow`: passkey-first with email fallback (link or code)
+- `ClaimPrompt`: for authenticated users, enforces passkey + quota before claim
+- `PasskeyGate`: wraps app, ensures user has passkey before access
+
+**Quota Enforcement**:
+- Quotas stored in `registry.json` via Clerk webhooks
+- `/claim` returns 402 when `userClaims.length >= quota`
+- ClaimPrompt shows "Upgrade Subscription" on 402 response
+- LIFO release when subscription quantity decreases
+
+### Registry Schema
+
+```json
+{
+  "claims": { "alice": { "userId": "user_123", "claimedAt": "2024-..." } },
+  "quotas": { "user_123": 3 },
+  "reserved": ["admin", "api", "www"],
+  "preallocated": {}
+}
+```
+
+### JWT Validation
+
+The registry server validates Clerk JWTs with:
+- Signature verification via `CLERK_PEM_PUBLIC_KEY`
+- Expiration and not-before checks
+- Authorized party (`azp`) validation with wildcard support (`https://*.domain.com`)
+
+### Environment Variables (Registry Server)
+
+| Variable | Purpose |
+|----------|---------|
+| `REGISTRY_PATH` | Path to registry.json (default: `/var/www/html/registry.json`) |
+| `CLERK_PEM_PUBLIC_KEY` | Clerk's PEM public key for JWT verification |
+| `CLERK_WEBHOOK_SECRET` | Svix webhook secret for signature verification |
+| `PERMITTED_ORIGINS` | Comma-separated allowed `azp` values (supports wildcards) |
+| `PORT` | Server port (default: 3001) |
+
 ## exe.dev Deployment
 
 Deploy static Vibes apps to exe.dev VM hosting. Uses pre-installed nginx on persistent VMs.
@@ -378,12 +435,46 @@ exe.dev VM (exeuntu image)
 └── /var/www/html/index.html
 ```
 
+### DNS + SSL Architecture (IMPORTANT)
+
+When using custom domains with exe.dev, there's a critical limitation with wildcard subdomains:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         DNS ROUTING                              │
+├─────────────────────────────────────────────────────────────────┤
+│  yourdomain.com (root)                                           │
+│  └─→ A record: points to hosting with SSL cert                  │
+│      └─→ Works! ✓                                               │
+│                                                                  │
+│  *.yourdomain.com (wildcard)                                     │
+│  └─→ CNAME: yourapp.exe.xyz                                     │
+│      └─→ exe.dev proxy (only has cert for *.exe.xyz)            │
+│          └─→ No cert for *.yourdomain.com                       │
+│              └─→ ERR_CONNECTION_REFUSED ✗                       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**The Problem:** exe.dev's proxy only terminates SSL for `*.exe.xyz` domains, not custom domains.
+
+**The Solution:** Use the `?subdomain=` query parameter:
+```
+https://yourdomain.com?subdomain=tenant
+```
+
+The `getRouteInfo()` function in unified.html detects this parameter and routes to the tenant app while staying on the root domain with valid SSL.
+
+**To fix wildcard subdomains properly**, you'd need:
+1. Wildcard SSL cert (`*.yourdomain.com`) on your own server, OR
+2. Keep using `?subdomain=` parameter (works fine, just less pretty URLs)
+
 ### Multi-Tenant Support
 
 For apps needing tenant isolation, use client-side subdomain parsing:
 - Configure wildcard DNS: `*.myapp.com` → VM IP
-- Set up wildcard SSL via certbot
-- JavaScript reads `window.location.hostname` and uses subdomain as Fireproof database prefix
+- Set up wildcard SSL via certbot (if using your own server)
+- JavaScript reads `window.location.hostname` OR `?subdomain=` param
+- Uses subdomain as Fireproof database prefix for data isolation
 
 ### Prerequisites
 
@@ -395,7 +486,6 @@ For apps needing tenant isolation, use client-side subdomain parsing:
 - `scripts/deploy-exe.js` - Deployment automation
 - `scripts/lib/exe-ssh.js` - SSH helpers
 - `skills/exe/SKILL.md` - Deployment skill
-- `commands/deploy-exe.md` - User command
 
 ## Known Issues
 
