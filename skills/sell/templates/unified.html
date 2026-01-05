@@ -1660,18 +1660,25 @@ function VibesButton({
 
           try {
             await signIn.create({ identifier: email });
-            const emailFactor = signIn.supportedFirstFactors.find(f => f.strategy === 'email_link');
-            if (emailFactor) {
+            // Try email_link first, then email_code as fallback
+            const emailLinkFactor = signIn.supportedFirstFactors.find(f => f.strategy === 'email_link');
+            const emailCodeFactor = signIn.supportedFirstFactors.find(f => f.strategy === 'email_code');
+
+            if (emailLinkFactor) {
               await signIn.prepareFirstFactor({
                 strategy: 'email_link',
-                emailAddressId: emailFactor.emailAddressId,
+                emailAddressId: emailLinkFactor.emailAddressId,
                 redirectUrl: window.location.href
               });
               setMode('verify');
-            } else {
-              // Fallback to email code
-              await signIn.prepareFirstFactor({ strategy: 'email_code' });
+            } else if (emailCodeFactor) {
+              await signIn.prepareFirstFactor({
+                strategy: 'email_code',
+                emailAddressId: emailCodeFactor.emailAddressId
+              });
               setMode('verify');
+            } else {
+              setError('No email verification method available');
             }
           } catch (err) {
             setError(err.errors?.[0]?.message || 'Failed to send sign-in link');
