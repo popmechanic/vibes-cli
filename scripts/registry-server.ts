@@ -86,10 +86,20 @@ function verifyClerkJWT(authHeader: string | null): { userId: string } | null {
       return null;
     }
 
-    // Validate authorized party if configured
+    // Validate authorized party if configured (supports wildcard patterns like *.domain.com)
     if (PERMITTED_ORIGINS.length > 0 && decoded.azp) {
-      if (!PERMITTED_ORIGINS.includes(decoded.azp)) {
-        console.error("Invalid azp claim:", decoded.azp);
+      const azpMatches = PERMITTED_ORIGINS.some(pattern => {
+        // Exact match
+        if (pattern === decoded.azp) return true;
+        // Wildcard match: https://*.domain.com matches https://sub.domain.com
+        if (pattern.includes('*')) {
+          const regex = new RegExp('^' + pattern.replace(/\*/g, '[^.]+') + '$');
+          return regex.test(decoded.azp as string);
+        }
+        return false;
+      });
+      if (!azpMatches) {
+        console.error("Invalid azp claim:", decoded.azp, "permitted:", PERMITTED_ORIGINS);
         return null;
       }
     }
