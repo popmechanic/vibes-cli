@@ -290,7 +290,7 @@ async function phase2CreateVM(args) {
 async function phase3ServerSetup(args) {
   console.log('\nPhase 3: Server Setup...');
 
-  const vmHost = `${args.name}.exe.dev`;
+  const vmHost = `${args.name}.exe.xyz`;
 
   if (args.dryRun) {
     console.log(`  [DRY RUN] Would connect to ${vmHost}`);
@@ -332,7 +332,7 @@ async function phase3ServerSetup(args) {
 async function phase4FileUpload(args) {
   console.log('\nPhase 4: File Upload...');
 
-  const vmHost = `${args.name}.exe.dev`;
+  const vmHost = `${args.name}.exe.xyz`;
   const remotePath = '/var/www/html/index.html';
 
   if (args.dryRun) {
@@ -368,7 +368,7 @@ async function phase5AIProxy(args) {
 
   console.log('\nPhase 5: AI Proxy Setup...');
 
-  const vmHost = `${args.name}.exe.dev`;
+  const vmHost = `${args.name}.exe.xyz`;
 
   if (args.dryRun) {
     console.log('  [DRY RUN] Would install Bun and deploy AI proxy');
@@ -498,7 +498,7 @@ async function phase6Registry(args) {
 
   console.log('\nPhase 6: Registry Server Setup...');
 
-  const vmHost = `${args.name}.exe.dev`;
+  const vmHost = `${args.name}.exe.xyz`;
 
   if (args.dryRun) {
     console.log('  [DRY RUN] Would deploy registry server');
@@ -564,7 +564,7 @@ PORT=3002`;
     await runCommand(client, `echo '${envContent}' | sudo tee /etc/registry.env`);
     await runCommand(client, 'sudo chmod 600 /etc/registry.env');
 
-    // Create systemd service
+    // Create systemd service (runs as exedev to match directory ownership)
     console.log('  Creating systemd service...');
     const serviceFile = `[Unit]
 Description=Subdomain Registry Server
@@ -572,7 +572,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=www-data
+User=exedev
 WorkingDirectory=/var/www
 ExecStart=/usr/local/bin/bun run /var/www/registry-server.ts
 Restart=always
@@ -659,7 +659,7 @@ location = /webhook {
 async function phase7Handoff(args) {
   console.log('\nPhase 7: Context Handoff...');
 
-  const vmHost = `${args.name}.exe.dev`;
+  const vmHost = `${args.name}.exe.xyz`;
 
   if (args.dryRun) {
     console.log('  [DRY RUN] Would generate and upload HANDOFF.md');
@@ -762,7 +762,7 @@ async function phase9CustomDomain(args) {
   2. WILDCARD SSL CERTIFICATE
      SSH into your VM and run certbot with DNS challenge:
 
-     ssh ${args.name}.exe.dev
+     ssh ${args.name}.exe.xyz
      sudo apt install certbot
      sudo certbot certonly --manual --preferred-challenges dns \\
        -d "${args.domain}" -d "*.${args.domain}"
@@ -905,7 +905,7 @@ ${hasRegistry ? `
     Webhook: https://${args.name}.exe.xyz/webhook` : ''}
 
   To continue development on the VM (Claude is pre-installed):
-    ssh ${args.name}.exe.dev -t "cd /var/www/html && claude"
+    ssh ${args.name}.exe.xyz -t "cd /var/www/html && claude"
 ${args.domain ? `
   Custom domain: https://${args.domain} (after DNS setup)` : ''}
 
