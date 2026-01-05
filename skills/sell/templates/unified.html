@@ -1625,8 +1625,9 @@ function VibesButton({
       // PasskeySigninFlow: Passkey-first with email fallback
       function PasskeySigninFlow({ subdomain, onSuccess }) {
         const { signIn, setActive } = useSignIn();
-        const [mode, setMode] = useState('passkey'); // 'passkey' | 'email' | 'verify'
+        const [mode, setMode] = useState('passkey'); // 'passkey' | 'email' | 'verify_link' | 'verify_code'
         const [email, setEmail] = useState('');
+        const [verificationCode, setVerificationCode] = useState('');
         const [error, setError] = useState(null);
         const [loading, setLoading] = useState(false);
 
@@ -1670,18 +1671,40 @@ function VibesButton({
                 emailAddressId: emailLinkFactor.emailAddressId,
                 redirectUrl: window.location.href
               });
-              setMode('verify');
+              setMode('verify_link');
             } else if (emailCodeFactor) {
               await signIn.prepareFirstFactor({
                 strategy: 'email_code',
                 emailAddressId: emailCodeFactor.emailAddressId
               });
-              setMode('verify');
+              setMode('verify_code');
             } else {
               setError('No email verification method available');
             }
           } catch (err) {
-            setError(err.errors?.[0]?.message || 'Failed to send sign-in link');
+            setError(err.errors?.[0]?.message || 'Failed to send verification email');
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        const handleCodeSubmit = async (e) => {
+          e.preventDefault();
+          setError(null);
+          setLoading(true);
+
+          try {
+            const result = await signIn.attemptFirstFactor({
+              strategy: 'email_code',
+              code: verificationCode
+            });
+
+            if (result.status === 'complete') {
+              await setActive({ session: result.createdSessionId });
+              onSuccess?.();
+            }
+          } catch (err) {
+            setError(err.errors?.[0]?.message || 'Invalid code. Please try again.');
           } finally {
             setLoading(false);
           }
@@ -1732,7 +1755,7 @@ function VibesButton({
                     Sign in with email
                   </h2>
                   <p className="mb-6 text-[var(--vibes-black)]/60">
-                    We'll send you a magic link
+                    We'll send you a verification code
                   </p>
                   <input
                     type="email"
@@ -1748,7 +1771,7 @@ function VibesButton({
                     disabled={loading}
                     className="w-full px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-50 transition-colors"
                   >
-                    {loading ? 'Sending...' : 'Send Magic Link'}
+                    {loading ? 'Sending...' : 'Send Code'}
                   </button>
                   <button
                     type="button"
@@ -1760,7 +1783,7 @@ function VibesButton({
                 </form>
               )}
 
-              {mode === 'verify' && (
+              {mode === 'verify_link' && (
                 <div className="text-center">
                   <h2 className="text-2xl font-bold text-[var(--vibes-black)] mb-2">
                     Check your email
@@ -1772,6 +1795,41 @@ function VibesButton({
                     Click the link in your email to continue
                   </p>
                 </div>
+              )}
+
+              {mode === 'verify_code' && (
+                <form onSubmit={handleCodeSubmit}>
+                  <h2 className="text-2xl font-bold text-[var(--vibes-black)] mb-2">
+                    Enter verification code
+                  </h2>
+                  <p className="mb-6 text-[var(--vibes-black)]/60">
+                    We sent a code to {email}
+                  </p>
+                  <input
+                    type="text"
+                    placeholder="Enter code"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-[var(--landing-accent)] text-center text-2xl tracking-widest"
+                    autoComplete="one-time-code"
+                    required
+                  />
+                  {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-50 transition-colors"
+                  >
+                    {loading ? 'Verifying...' : 'Verify'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode('email')}
+                    className="w-full mt-3 text-sm text-[var(--vibes-black)]/60 hover:text-[var(--vibes-black)]"
+                  >
+                    Try different email
+                  </button>
+                </form>
               )}
             </div>
           </div>
