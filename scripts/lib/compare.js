@@ -10,6 +10,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { extractVersion } from './utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -96,17 +97,6 @@ function loadCachedImportMap(pluginRoot) {
   }
 
   return null;
-}
-
-/**
- * Extract version from URL
- * @param {string} url - The URL to parse
- * @returns {string|null} - Version string or null
- */
-function extractVersion(url) {
-  if (!url) return null;
-  const match = url.match(/@([\d.]+[^?/]*)/);
-  return match ? match[1] : null;
 }
 
 /**

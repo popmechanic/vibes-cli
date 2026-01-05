@@ -1099,7 +1099,8 @@ function VibesButton({
           },
           body: JSON.stringify({ subdomain: subdomain.toLowerCase().trim() })
         });
-        return res.json();
+        const data = await res.json();
+        return { ...data, status: res.status };
       }
 
       async function getSubdomainOwner(subdomain) {
@@ -1362,6 +1363,40 @@ function VibesButton({
         return { available, checking, error };
       }
 
+      // usePasskeyCreation: Shared hook for passkey creation across auth components
+      function usePasskeyCreation() {
+        const [creating, setCreating] = useState(false);
+        const [error, setError] = useState(null);
+
+        const createPasskey = async (user) => {
+          if (!user) {
+            setError('No active user. Please try again.');
+            return { success: false, cancelled: false };
+          }
+
+          setCreating(true);
+          setError(null);
+
+          try {
+            await user.createPasskey();
+            return { success: true, cancelled: false };
+          } catch (err) {
+            const isCancelled = err.message?.includes('cancelled') || err.message?.includes('aborted');
+            const message = isCancelled
+              ? 'Passkey is required to secure your account. Please try again.'
+              : err.errors?.[0]?.message || err.message || 'Failed to create passkey';
+            setError(message);
+            return { success: false, cancelled: isCancelled };
+          } finally {
+            setCreating(false);
+          }
+        };
+
+        const clearError = () => setError(null);
+
+        return { creating, error, createPasskey, clearError };
+      }
+
       // SubdomainChecker: Real-time availability check component with debouncing
       function SubdomainChecker({ value, onChange, onAvailabilityChange }) {
         const [availability, setAvailability] = useState(null);
@@ -1508,12 +1543,6 @@ function VibesButton({
           }
         };
 
-        const handleSkipPasskey = async () => {
-          // Passkey-first enforcement: don't allow skip
-          // User can use email magic link for sign-in fallback, but must have a passkey
-          setError('Passkey is required to secure your account. This protects your subdomain.');
-        };
-
         return (
           <div className="min-h-screen flex items-center justify-center bg-[var(--vibes-gray-lightest)] p-4">
             <div className="max-w-md w-full p-8 bg-white rounded-2xl border border-[var(--landing-accent)]/20 shadow-lg">
@@ -1591,20 +1620,28 @@ function VibesButton({
                   <p className="mb-6 text-[var(--vibes-black)]/60">
                     Passkeys let you sign in securely without a password
                   </p>
-                  {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+                  {error && (
+                    <>
+                      <p className="text-red-600 text-sm mb-4">{error}</p>
+                      <button
+                        onClick={() => {
+                          window.Clerk.signOut();
+                          setStep('email');
+                          setEmail('');
+                          setError(null);
+                        }}
+                        className="w-full text-sm text-[var(--vibes-black)]/60 hover:text-[var(--vibes-black)] mb-4 underline"
+                      >
+                        Start over with different email
+                      </button>
+                    </>
+                  )}
                   <button
                     onClick={handlePasskeyCreate}
                     disabled={loading}
                     className="w-full px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-50 transition-colors mb-3"
                   >
-                    {loading ? 'Setting up...' : 'Create Passkey'}
-                  </button>
-                  <button
-                    onClick={handleSkipPasskey}
-                    disabled={loading}
-                    className="w-full text-sm text-[var(--vibes-black)]/60 hover:text-[var(--vibes-black)]"
-                  >
-                    Skip for now
+                    {loading ? 'Setting up...' : error ? 'Try Again' : 'Create Passkey'}
                   </button>
                 </div>
               )}
@@ -1841,10 +1878,10 @@ function VibesButton({
       function ClaimPrompt({ subdomain, onClaim, onCancel }) {
         const { getToken } = useAuth();
         const { user } = useUser();
-        const [step, setStep] = useState('checking'); // 'checking' | 'passkey' | 'claim'
+        const [step, setStep] = useState('checking'); // 'checking' | 'passkey' | 'claim' | 'purchase'
         const [claiming, setClaiming] = useState(false);
-        const [creatingPasskey, setCreatingPasskey] = useState(false);
-        const [error, setError] = useState(null);
+        const [claimError, setClaimError] = useState(null);
+        const { creating: creatingPasskey, error: passkeyError, createPasskey, clearError } = usePasskeyCreation();
 
         // Check if user has passkeys on mount
         useEffect(() => {
@@ -1855,36 +1892,43 @@ function VibesButton({
         }, [user]);
 
         const handlePasskeyCreate = async () => {
-          setCreatingPasskey(true);
-          setError(null);
-
-          try {
-            await user.createPasskey();
+          const result = await createPasskey(user);
+          if (result.success) {
             setStep('claim');
-          } catch (err) {
-            console.error('Passkey creation failed:', err);
-            setError(err.message || 'Failed to create passkey. Please try again.');
-          } finally {
-            setCreatingPasskey(false);
           }
         };
 
         const handleClaim = async () => {
           setClaiming(true);
-          setError(null);
+          setClaimError(null);
 
           try {
             const token = await getToken();
             const result = await claimSubdomain(subdomain, token);
             if (result.success) {
               onClaim?.(subdomain);
+            } else if (result.status === 402 || result.reason === 'quota_exceeded') {
+              // Quota exceeded - need to purchase
+              setStep('purchase');
             } else {
-              setError(result.error || 'Failed to claim subdomain');
+              setClaimError(result.error || 'Failed to claim subdomain');
             }
           } catch (err) {
-            setError('Failed to claim subdomain');
+            setClaimError('Failed to claim subdomain');
           } finally {
             setClaiming(false);
+          }
+        };
+
+        const handlePurchase = () => {
+          // Open Clerk billing portal or checkout
+          // The user will be redirected back after payment
+          // Then webhook updates quota, and they can claim
+          if (window.Clerk?.openUserProfile) {
+            window.Clerk.openUserProfile({ initialPage: 'billing' });
+          } else {
+            // Fallback: redirect to account page
+            window.location.href = `https://${APP_DOMAIN}/account`;
           }
         };
 
@@ -1910,14 +1954,47 @@ function VibesButton({
                 <p className="mb-6 text-[var(--vibes-black)]/60">
                   Create a passkey for passwordless sign-in before claiming <span className="font-semibold">{subdomain}.{APP_DOMAIN}</span>
                 </p>
-                {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+                {passkeyError && <p className="text-red-600 text-sm mb-4">{passkeyError}</p>}
                 <button
                   onClick={handlePasskeyCreate}
                   disabled={creatingPasskey}
                   className="w-full px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-50 transition-colors mb-3"
                 >
-                  {creatingPasskey ? 'Creating passkey...' : 'Create Passkey'}
+                  {creatingPasskey ? 'Creating passkey...' : passkeyError ? 'Try Again' : 'Create Passkey'}
                 </button>
+                {onCancel && (
+                  <button
+                    onClick={onCancel}
+                    className="w-full text-sm text-[var(--vibes-black)]/60 hover:text-[var(--vibes-black)]"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        }
+
+        // Purchase step (shown when quota exceeded)
+        if (step === 'purchase') {
+          return (
+            <div className="min-h-screen flex items-center justify-center bg-[var(--vibes-gray-lightest)] p-4">
+              <div className="max-w-md w-full p-8 bg-white rounded-2xl border border-[var(--landing-accent)]/20 shadow-lg text-center">
+                <h2 className="text-2xl font-bold text-[var(--vibes-black)] mb-2">
+                  Get {subdomain}.{APP_DOMAIN}
+                </h2>
+                <p className="mb-6 text-[var(--vibes-black)]/60">
+                  Add this subdomain to your account with a subscription upgrade.
+                </p>
+                <button
+                  onClick={handlePurchase}
+                  className="w-full px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] transition-colors mb-3"
+                >
+                  Upgrade Subscription
+                </button>
+                <p className="text-xs text-[var(--vibes-black)]/40 mb-4">
+                  After upgrading, return here to claim your subdomain.
+                </p>
                 {onCancel && (
                   <button
                     onClick={onCancel}
@@ -1941,7 +2018,7 @@ function VibesButton({
               <p className="mb-6 text-[var(--vibes-black)]/60">
                 Add <span className="font-semibold">{subdomain}.{APP_DOMAIN}</span> to your account?
               </p>
-              {error && <p className="text-red-600 text-sm mb-4">{error}</p>}
+              {claimError && <p className="text-red-600 text-sm mb-4">{claimError}</p>}
               <button
                 onClick={handleClaim}
                 disabled={claiming}
@@ -1996,8 +2073,7 @@ function VibesButton({
       function PasskeyGate({ children }) {
         const { user } = useUser();
         const [step, setStep] = useState('checking'); // 'checking' | 'passkey' | 'ready'
-        const [creating, setCreating] = useState(false);
-        const [error, setError] = useState(null);
+        const { creating, error, createPasskey } = usePasskeyCreation();
 
         useEffect(() => {
           if (user) {
@@ -2007,17 +2083,9 @@ function VibesButton({
         }, [user]);
 
         const handlePasskeyCreate = async () => {
-          setCreating(true);
-          setError(null);
-
-          try {
-            await user.createPasskey();
+          const result = await createPasskey(user);
+          if (result.success) {
             setStep('ready');
-          } catch (err) {
-            console.error('Passkey creation failed:', err);
-            setError(err.message || 'Failed to create passkey. Please try again.');
-          } finally {
-            setCreating(false);
           }
         };
 
@@ -2045,7 +2113,7 @@ function VibesButton({
                   disabled={creating}
                   className="w-full px-6 py-3 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-50 transition-colors"
                 >
-                  {creating ? 'Creating passkey...' : 'Create Passkey'}
+                  {creating ? 'Creating passkey...' : error ? 'Try Again' : 'Create Passkey'}
                 </button>
               </div>
             </div>
@@ -2089,17 +2157,24 @@ function VibesButton({
         const [claimState, setClaimState] = useState({ loading: true, owner: null });
 
         useEffect(() => {
+          let cancelled = false;
+          setClaimState({ loading: true, owner: null }); // Reset on subdomain change
+
           checkSubdomainAvailability(subdomain).then(result => {
+            if (cancelled) return; // Ignore stale result
             if (result.available) {
               setClaimState({ loading: false, owner: null });
             } else {
               setClaimState({ loading: false, owner: result.ownerId });
             }
           }).catch(err => {
+            if (cancelled) return; // Ignore stale error
             console.error('Failed to check subdomain:', err);
             // Default to available on error (will fail at claim time if actually taken)
             setClaimState({ loading: false, owner: null });
           });
+
+          return () => { cancelled = true; };
         }, [subdomain]);
 
         if (claimState.loading) {
@@ -2277,7 +2352,7 @@ function VibesButton({
       function setLastSubdomainCookie(subdomain) {
         if (subdomain) {
           // Cookie lasts 1 year, accessible on root domain
-          document.cookie = `${LAST_SUBDOMAIN_COOKIE}=${subdomain}; max-age=31536000; path=/; domain=.${APP_DOMAIN}`;
+          document.cookie = `${LAST_SUBDOMAIN_COOKIE}=${subdomain}; max-age=31536000; path=/; domain=.${APP_DOMAIN}; Secure; SameSite=Lax`;
         }
       }
 

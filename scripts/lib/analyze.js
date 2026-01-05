@@ -10,6 +10,7 @@
 
 import { readFileSync, existsSync } from 'fs';
 import { resolve, basename } from 'path';
+import { extractVersion } from './utils.js';
 
 /**
  * Era definitions with detection logic
@@ -54,17 +55,6 @@ function extractImportMap(html) {
   }
 }
 
-/**
- * Extract version from a URL string
- * e.g., "https://esm.sh/use-vibes@0.18.9?external=react" -> "0.18.9"
- * @param {string} url - The URL to parse
- * @returns {string|null} - Version string or null
- */
-function extractVersion(url) {
-  if (!url) return null;
-  const match = url.match(/@([\d.]+[^?/]*)/);
-  return match ? match[1] : null;
-}
 
 /**
  * Detect template type from HTML content
