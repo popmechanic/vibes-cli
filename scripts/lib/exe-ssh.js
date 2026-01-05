@@ -11,6 +11,7 @@
  */
 
 import { Client } from 'ssh2';
+import { spawn } from 'child_process';
 
 /**
  * Host key verifier that auto-accepts exe.dev domains
@@ -55,66 +56,78 @@ export function findSSHKey() {
 }
 
 /**
- * Create an SSH connection to a host
- * @param {string} host - Hostname to connect to
- * @param {object} [options] - Connection options
- * @param {string} [options.username] - SSH username (default: current user)
- * @param {string} [options.privateKeyPath] - Path to private key
- * @returns {Promise<Client>} Connected SSH client
+ * Create a virtual SSH client that uses system ssh commands.
+ * This is a drop-in replacement for ssh2 Client that works with passphrase-protected keys
+ * via ssh-agent.
+ * @param {string} host - Hostname
+ * @param {string} username - SSH username
+ * @returns {object} Virtual client with host/username info and end() method
  */
-export function connect(host, options = {}) {
-  return new Promise((resolve, reject) => {
-    const client = new Client();
-
-    const privateKeyPath = options.privateKeyPath || findSSHKey();
-    if (!privateKeyPath) {
-      reject(new Error('No SSH key found. Please ensure you have an SSH key in ~/.ssh/'));
-      return;
-    }
-
-    const config = {
-      host,
-      port: 22,
-      username: options.username || process.env.USER || 'user',
-      privateKey: readFileSync(privateKeyPath),
-      hostVerifier: createHostVerifier(host)
-    };
-
-    client.on('ready', () => resolve(client));
-    client.on('error', reject);
-    client.connect(config);
-  });
+function createVirtualClient(host, username) {
+  return {
+    host,
+    username,
+    end: () => {} // No-op since system ssh handles connections per-command
+  };
 }
 
 /**
- * Run a command on an SSH connection
- * @param {Client} client - Connected SSH client
+ * Create an SSH connection to a host
+ * Returns a virtual client that stores connection info for use with runCommand.
+ * Uses system ssh via ssh-agent for passphrase-protected keys.
+ * @param {string} host - Hostname to connect to
+ * @param {object} [options] - Connection options
+ * @param {string} [options.username] - SSH username (default: exedev for exe.dev VMs)
+ * @param {string} [options.privateKeyPath] - Path to private key (not used, ssh-agent handles this)
+ * @returns {Promise<object>} Virtual SSH client
+ */
+export async function connect(host, options = {}) {
+  const privateKeyPath = findSSHKey();
+  if (!privateKeyPath) {
+    throw new Error('No SSH key found. Please ensure you have an SSH key in ~/.ssh/');
+  }
+
+  // Determine username based on host
+  const username = options.username || (host.endsWith('.exe.xyz') ? 'exedev' : process.env.USER || 'user');
+
+  // Test connection with a quick command
+  const testClient = createVirtualClient(host, username);
+  try {
+    await runCommand(testClient, 'echo connected');
+  } catch (err) {
+    throw new Error(`Failed to connect to ${host}: ${err.message}`);
+  }
+
+  return testClient;
+}
+
+/**
+ * Run a command on an SSH connection (virtual client)
+ * Uses system ssh to leverage ssh-agent for passphrase-protected keys.
+ * @param {object} client - Virtual SSH client from connect()
  * @param {string} command - Command to execute
  * @returns {Promise<{stdout: string, stderr: string, code: number}>}
  */
 export function runCommand(client, command) {
   return new Promise((resolve, reject) => {
-    client.exec(command, (err, stream) => {
-      if (err) {
-        reject(err);
-        return;
-      }
+    const ssh = spawn('ssh', [
+      '-o', 'ConnectTimeout=10',
+      '-o', 'StrictHostKeyChecking=accept-new',
+      `${client.username}@${client.host}`,
+      command
+    ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
-      let stdout = '';
-      let stderr = '';
+    let stdout = '';
+    let stderr = '';
 
-      stream.on('close', (code) => {
-        resolve({ stdout, stderr, code });
-      });
+    ssh.stdout.on('data', (data) => { stdout += data.toString(); });
+    ssh.stderr.on('data', (data) => { stderr += data.toString(); });
 
-      stream.on('data', (data) => {
-        stdout += data.toString();
-      });
-
-      stream.stderr.on('data', (data) => {
-        stderr += data.toString();
-      });
+    ssh.on('close', (code) => {
+      resolve({ stdout, stderr, code });
     });
+
+    ssh.on('error', reject);
   });
 }
 
@@ -141,7 +154,6 @@ function createError(message, code) {
  */
 export function runExeCommand(command, options = {}) {
   return new Promise((resolve, reject) => {
-    const client = new Client();
     const timeout = options.timeout || 30000;
 
     const privateKeyPath = findSSHKey();
@@ -151,91 +163,60 @@ export function runExeCommand(command, options = {}) {
     }
 
     let output = '';
-    let timeoutId;
+    let stderr = '';
     let resolved = false;
 
-    const config = {
-      host: 'exe.dev',
-      port: 22,
-      username: process.env.USER || 'user',
-      privateKey: readFileSync(privateKeyPath),
-      hostVerifier: createHostVerifier('exe.dev')
-    };
+    // Use system ssh to leverage ssh-agent for passphrase-protected keys
+    const ssh = spawn('ssh', [
+      '-o', 'ConnectTimeout=10',
+      '-o', 'StrictHostKeyChecking=accept-new',
+      'exe.dev',
+      command
+    ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
-    client.on('ready', () => {
-      // exe.dev uses a shell session for its CLI
-      client.shell((err, stream) => {
-        if (err) {
-          client.end();
-          reject(createError(`SSH shell failed: ${err.message}`, 'SSH_ERROR'));
-          return;
-        }
+    const timeoutId = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        ssh.kill();
+        reject(createError(`Command timed out after ${timeout / 1000}s. Check network or try: ssh exe.dev`, 'TIMEOUT'));
+      }
+    }, timeout);
 
-        timeoutId = setTimeout(() => {
-          if (!resolved) {
-            resolved = true;
-            stream.end();
-            client.end();
-            reject(createError(`Command timed out after ${timeout / 1000}s. Check network or try: ssh exe.dev`, 'TIMEOUT'));
-          }
-        }, timeout);
+    ssh.stdout.on('data', (data) => { output += data.toString(); });
+    ssh.stderr.on('data', (data) => { stderr += data.toString(); });
 
-        stream.on('close', () => {
-          if (!resolved) {
-            resolved = true;
-            clearTimeout(timeoutId);
-            client.end();
-            resolve(output);
-          }
-        });
-
-        stream.on('data', (data) => {
-          output += data.toString();
-
-          // Look for the prompt indicating command completion
-          // exe.dev CLI typically returns to prompt after command
-          if (output.includes('exe>') && output.includes(command)) {
-            setTimeout(() => {
-              stream.write('exit\n');
-            }, 500);
-          }
-        });
-
-        // Send the command
-        stream.write(command + '\n');
-      });
+    ssh.on('close', (code) => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeoutId);
+        // exe.dev REPL may return non-zero for some commands but still succeed
+        // Return output and let caller interpret
+        resolve(output || stderr);
+      }
     });
 
-    client.on('error', (err) => {
+    ssh.on('error', (err) => {
       if (!resolved) {
         resolved = true;
         clearTimeout(timeoutId);
 
-        // Map common SSH errors to user-friendly messages
         let message = err.message;
-        let code = 'SSH_ERROR';
+        let errorCode = 'SSH_ERROR';
 
-        if (err.message.includes('ECONNREFUSED')) {
-          message = 'Connection refused. Is exe.dev reachable?';
-          code = 'CONNECTION_REFUSED';
-        } else if (err.message.includes('ETIMEDOUT')) {
-          message = 'Connection timed out. Check your network.';
-          code = 'CONNECTION_TIMEOUT';
-        } else if (err.message.includes('authentication') || err.message.includes('publickey')) {
-          message = 'SSH authentication failed. Run: ssh exe.dev';
-          code = 'AUTH_FAILED';
+        if (err.message.includes('ENOENT')) {
+          message = 'ssh command not found. Install OpenSSH.';
+          errorCode = 'SSH_NOT_FOUND';
         }
 
-        reject(createError(message, code));
+        reject(createError(message, errorCode));
       }
     });
-
-    client.connect(config);
   });
 }
 
 /**
  * Upload a file via SCP
+ * Uses system scp to leverage ssh-agent for passphrase-protected keys.
  * @param {string} localPath - Local file path
  * @param {string} host - Remote hostname
  * @param {string} remotePath - Remote file path
@@ -244,49 +225,90 @@ export function runExeCommand(command, options = {}) {
  */
 export function uploadFile(localPath, host, remotePath, options = {}) {
   return new Promise((resolve, reject) => {
-    const client = new Client();
-
     const privateKeyPath = options.privateKeyPath || findSSHKey();
     if (!privateKeyPath) {
       reject(new Error('No SSH key found'));
       return;
     }
 
-    const config = {
-      host,
-      port: 22,
-      username: options.username || process.env.USER || 'user',
-      privateKey: readFileSync(privateKeyPath),
-      hostVerifier: createHostVerifier(host)
-    };
+    const username = options.username || 'exedev';
+    const destination = `${username}@${host}:${remotePath}`;
 
-    client.on('ready', () => {
-      client.sftp((err, sftp) => {
-        if (err) {
-          client.end();
-          reject(err);
-          return;
-        }
+    const scp = spawn('scp', [
+      '-o', 'StrictHostKeyChecking=accept-new',
+      localPath,
+      destination
+    ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
-        const readStream = createReadStream(localPath);
-        const writeStream = sftp.createWriteStream(remotePath);
+    let stderr = '';
+    scp.stderr.on('data', (data) => { stderr += data.toString(); });
 
-        writeStream.on('close', () => {
-          client.end();
-          resolve();
-        });
-
-        writeStream.on('error', (err) => {
-          client.end();
-          reject(err);
-        });
-
-        readStream.pipe(writeStream);
-      });
+    scp.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`SCP failed: ${stderr || 'Unknown error'}`));
+      }
     });
 
-    client.on('error', reject);
-    client.connect(config);
+    scp.on('error', reject);
+  });
+}
+
+/**
+ * Run a command on a remote VM via system ssh
+ * Uses ssh-agent for passphrase-protected keys.
+ * @param {string} host - Remote hostname
+ * @param {string} command - Command to execute
+ * @param {object} [options] - Options
+ * @returns {Promise<string>} Command output
+ */
+export function runVMCommand(host, command, options = {}) {
+  return new Promise((resolve, reject) => {
+    const timeout = options.timeout || 30000;
+    const username = options.username || 'exedev';
+
+    const ssh = spawn('ssh', [
+      '-o', 'ConnectTimeout=10',
+      '-o', 'StrictHostKeyChecking=accept-new',
+      `${username}@${host}`,
+      command
+    ], { stdio: ['ignore', 'pipe', 'pipe'] });
+
+    let output = '';
+    let stderr = '';
+    let resolved = false;
+
+    const timeoutId = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        ssh.kill();
+        reject(new Error(`Command timed out after ${timeout / 1000}s`));
+      }
+    }, timeout);
+
+    ssh.stdout.on('data', (data) => { output += data.toString(); });
+    ssh.stderr.on('data', (data) => { stderr += data.toString(); });
+
+    ssh.on('close', (code) => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeoutId);
+        if (code === 0) {
+          resolve(output);
+        } else {
+          reject(new Error(`SSH command failed (code ${code}): ${stderr || output}`));
+        }
+      }
+    });
+
+    ssh.on('error', (err) => {
+      if (!resolved) {
+        resolved = true;
+        clearTimeout(timeoutId);
+        reject(err);
+      }
+    });
   });
 }
 
@@ -299,25 +321,20 @@ export function uploadFile(localPath, host, remotePath, options = {}) {
  * @returns {Promise<void>}
  */
 export async function uploadFileWithSudo(localPath, host, remotePath, options = {}) {
-  const filename = require('path').basename(localPath);
+  const { basename } = await import('path');
+  const filename = basename(localPath);
   const tempPath = `/home/exedev/${filename}`;
 
   // Upload to home directory first (guaranteed writable)
   await uploadFile(localPath, host, tempPath, options);
 
-  // Move to final location with sudo (requires SSH connection)
-  const client = await connect(host, options);
-  try {
-    await runCommand(client, `sudo cp ${tempPath} ${remotePath} && sudo chown www-data:www-data ${remotePath} && rm ${tempPath}`);
-  } finally {
-    client.end();
-  }
+  // Move to final location with sudo
+  await runVMCommand(host, `sudo cp ${tempPath} ${remotePath} && sudo chown www-data:www-data ${remotePath} && rm ${tempPath}`, options);
 }
 
 /**
  * Test SSH connectivity to exe.dev
- * Simply verifies we can establish an SSH connection, without relying on
- * the exe.dev CLI's interactive shell output (which is fragile).
+ * Uses system ssh command to leverage ssh-agent for passphrase-protected keys.
  * @returns {Promise<boolean>} True if connection successful
  */
 export async function testConnection() {
@@ -328,29 +345,32 @@ export async function testConnection() {
       return;
     }
 
-    const client = new Client();
+    const ssh = spawn('ssh', [
+      '-o', 'ConnectTimeout=10',
+      '-o', 'BatchMode=yes',
+      '-o', 'StrictHostKeyChecking=accept-new',
+      'exe.dev',
+      'whoami'
+    ], { stdio: ['ignore', 'pipe', 'pipe'] });
+
+    let stdout = '';
+    ssh.stdout.on('data', (data) => { stdout += data.toString(); });
+
     const timeout = setTimeout(() => {
-      client.end();
+      ssh.kill();
       resolve(false);
-    }, 10000);
+    }, 15000);
 
-    client.on('ready', () => {
+    ssh.on('close', (code) => {
       clearTimeout(timeout);
-      client.end();
-      resolve(true);
+      // exe.dev REPL returns user info on 'whoami', or error if not set up
+      // A successful connection will have some output (even if command fails)
+      resolve(code === 0 || stdout.length > 0);
     });
 
-    client.on('error', () => {
+    ssh.on('error', () => {
       clearTimeout(timeout);
       resolve(false);
-    });
-
-    client.connect({
-      host: 'exe.dev',
-      port: 22,
-      username: process.env.USER || 'user',
-      privateKey: readFileSync(privateKeyPath),
-      hostVerifier: createHostVerifier('exe.dev')
     });
   });
 }
@@ -362,16 +382,16 @@ export async function testConnection() {
  */
 export async function createVM(vmName) {
   try {
-    const output = await runExeCommand(`new ${vmName}`, { timeout: 60000 });
+    const output = await runExeCommand(`new --name=${vmName}`, { timeout: 60000 });
     const lowerOutput = output.toLowerCase();
 
     // Success patterns
-    if (lowerOutput.includes('created') || lowerOutput.includes('ready')) {
+    if (lowerOutput.includes('creating') || lowerOutput.includes('created') || lowerOutput.includes('ready') || lowerOutput.includes('.exe.xyz')) {
       return { success: true, message: `VM ${vmName} created` };
     }
 
-    if (lowerOutput.includes('already exists')) {
-      return { success: true, message: `VM ${vmName} already exists` };
+    if (lowerOutput.includes('already exists') || lowerOutput.includes('not available')) {
+      return { success: true, message: `VM ${vmName} already exists`, code: 'EXISTS' };
     }
 
     // Error patterns - detect specific issues
