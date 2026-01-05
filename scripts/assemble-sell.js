@@ -290,14 +290,27 @@ STEP 1: DEPLOY TO exe.dev
 
   Your app will be live at: https://${appName}.exe.xyz
 
-STEP 2: SET UP CLERK
-────────────────────
+STEP 2: SET UP CLERK (REQUIRED BEFORE TESTING)
+───────────────────────────────────────────────
 
-  1. Go to https://dashboard.clerk.com
-  2. Create a new application (or use existing)
-  3. Enable "Passkey" authentication
-  4. Get your Publishable Key
-  5. Re-run assembly with your key:
+  See CLERK-SETUP.md for complete instructions. Critical settings:
+
+  Dashboard → User & Authentication → Email:
+    ✅ Sign-up with email: ON
+    ⚠️  Require email address: OFF (critical - signup fails otherwise!)
+    ✅ Verify at sign-up: ON
+    ✅ Email verification code: CHECKED
+
+  Dashboard → User & Authentication → Passkeys:
+    ✅ Sign-in with passkey: ON
+    ✅ Allow autofill: ON
+    ✅ Show passkey button: ON
+    ✅ Add passkey to account: ON
+
+  Dashboard → Domains:
+    Add your domain (e.g., ${domain})
+
+  Get your Publishable Key and re-run assembly:
 
      node assemble-sell.js app.jsx index.html \\
        --clerk-key pk_live_YOUR_KEY \\

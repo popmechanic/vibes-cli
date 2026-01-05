@@ -14,20 +14,61 @@ This document provides step-by-step instructions for configuring Clerk after dep
 
 ---
 
-## 2. Enable Passkey Authentication
+## 2. Configure Authentication Settings
 
-The sell template uses passkey-first authentication for the best user experience.
+The sell template uses passkey-first authentication. **Follow these settings exactly:**
 
-1. In Clerk Dashboard, go to **Configure** → **Email, phone, username**
-2. Enable **Passkey** as an authentication method
-3. Enable **Email address** for magic link fallback
-4. This enables passwordless login via biometrics with email as backup
+### 2.1 Email Settings
+
+In Clerk Dashboard → **User & Authentication** → **Email**:
+
+| Setting | Value | Why |
+|---------|-------|-----|
+| Sign-up with email | ✅ ON | Users sign up via email |
+| Require email address | ⬜ OFF | **IMPORTANT**: Must be OFF or signup fails |
+| Verify at sign-up | ✅ ON | Verify before session |
+| Email verification code | ✅ Checked | Use code, not magic link for signup |
+
+### 2.2 Passkey Settings
+
+In Clerk Dashboard → **User & Authentication** → **Passkeys**:
+
+| Setting | Value | Why |
+|---------|-------|-----|
+| Sign-in with passkey | ✅ ON | Primary auth method |
+| Allow autofill | ✅ ON | Better UX |
+| Show passkey button | ✅ ON | Visible option |
+| Add passkey to account | ✅ ON | Users can add passkeys |
+
+**Note:** The app enforces passkey creation at the application level, not via Clerk settings. Clerk passkeys don't have an "optional/required" setting - the app handles this.
 
 ### Passkey Scope for Subdomains
 
 Passkeys created on one subdomain (e.g., `alice.yourapp.com`) will work across all subdomains of your domain because WebAuthn uses the root domain as the RP ID (Relying Party ID). A single passkey gives access to all claimed subdomains.
 
 **Reference:** [Clerk Custom Passkey Authentication](https://clerk.com/docs/guides/development/custom-flows/authentication/passkeys)
+
+### 2.3 Get Your JWKS Public Key (for Registry Server)
+
+The registry server needs Clerk's public key to verify JWT tokens. **Important:** The key shown in Clerk Dashboard may differ from the JWKS endpoint. Always use the JWKS endpoint.
+
+1. Find your Clerk domain from the publishable key:
+   - `pk_test_abc123...` → decode base64 to get domain like `internal-dingo-28.clerk.accounts.dev`
+
+2. Fetch the JWKS:
+   ```bash
+   curl https://YOUR_CLERK_DOMAIN/.well-known/jwks.json
+   ```
+
+3. Convert JWK to PEM using Node.js:
+   ```javascript
+   const crypto = require('crypto');
+   const jwk = { /* paste the key object from JWKS */ };
+   const key = crypto.createPublicKey({ key: jwk, format: 'jwk' });
+   console.log(key.export({ type: 'spki', format: 'pem' }));
+   ```
+
+4. Save as `/etc/clerk-public-key.pem` on the server
 
 ---
 
@@ -226,10 +267,19 @@ Pre-allocated subdomains are immediately owned by the specified user.
 
 ### Basic Setup
 - [ ] Create Clerk application and get publishable key
-- [ ] Enable Passkey authentication
-- [ ] Enable Email magic link (fallback)
+- [ ] Configure Email settings:
+  - [ ] Sign-up with email: ON
+  - [ ] Require email address: **OFF** (critical!)
+  - [ ] Verify at sign-up: ON
+  - [ ] Email verification code: Checked
+- [ ] Configure Passkey settings:
+  - [ ] Sign-in with passkey: ON
+  - [ ] Allow autofill: ON
+  - [ ] Show passkey button: ON
+  - [ ] Add passkey to account: ON
 - [ ] Add your domain to authorized domains
 - [ ] Get admin user ID
+- [ ] Get JWKS public key (from `/.well-known/jwks.json`, NOT Dashboard)
 
 ### Subdomain Registry
 - [ ] Configure webhook endpoint in Clerk Dashboard
@@ -283,6 +333,13 @@ For multi-subdomain users, the number of claimed subdomains equals their subscri
 1. Ensure HTTPS is configured (passkeys require secure context)
 2. Check browser supports WebAuthn (all modern browsers do)
 3. Verify Passkey is enabled in Clerk Dashboard
+
+### "Verification incomplete (missing_requirements)" error
+This error during signup means Clerk Email settings are wrong:
+1. Go to Clerk Dashboard → User & Authentication → Email
+2. Set "Require email address" to **OFF**
+3. Ensure "Sign-up with email" is ON
+4. Ensure "Verify at sign-up" is ON with "Email verification code" checked
 
 ### Subdomain shows "unavailable" but shouldn't be
 1. Check `/registry.json` - is it in `reserved` or `claims`?

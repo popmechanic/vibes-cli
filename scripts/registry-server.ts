@@ -281,8 +281,9 @@ Bun.serve({
       }
 
       // Check user's quota before claiming
+      // Default to 999 when no quota set (billing_mode="off" scenario)
       const userClaims = getUserClaims(registry, auth.userId);
-      const quota = registry.quotas?.[auth.userId] ?? 0;
+      const quota = registry.quotas?.[auth.userId] ?? 999;
 
       if (userClaims.length >= quota) {
         return new Response(
