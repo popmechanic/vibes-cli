@@ -316,15 +316,43 @@ export async function uploadFileWithSudo(localPath, host, remotePath, options = 
 
 /**
  * Test SSH connectivity to exe.dev
+ * Simply verifies we can establish an SSH connection, without relying on
+ * the exe.dev CLI's interactive shell output (which is fragile).
  * @returns {Promise<boolean>} True if connection successful
  */
 export async function testConnection() {
-  try {
-    const output = await runExeCommand('help', { timeout: 10000 });
-    return output.includes('exe.dev') || output.includes('help');
-  } catch {
-    return false;
-  }
+  return new Promise((resolve) => {
+    const privateKeyPath = findSSHKey();
+    if (!privateKeyPath) {
+      resolve(false);
+      return;
+    }
+
+    const client = new Client();
+    const timeout = setTimeout(() => {
+      client.end();
+      resolve(false);
+    }, 10000);
+
+    client.on('ready', () => {
+      clearTimeout(timeout);
+      client.end();
+      resolve(true);
+    });
+
+    client.on('error', () => {
+      clearTimeout(timeout);
+      resolve(false);
+    });
+
+    client.connect({
+      host: 'exe.dev',
+      port: 22,
+      username: process.env.USER || 'user',
+      privateKey: readFileSync(privateKeyPath),
+      hostVerifier: createHostVerifier('exe.dev')
+    });
+  });
 }
 
 /**
