@@ -13,6 +13,36 @@ Deploy your Vibes app to exe.dev, a VM hosting platform with persistent storage 
 2. **exe.dev account** - run `ssh exe.dev` once to create your account and verify email
 3. **Generated Vibes app** - an `index.html` file ready to deploy
 
+## Gather Config Upfront
+
+**Use AskUserQuestion to collect deployment config before running the deploy script.**
+
+Use the AskUserQuestion tool with these questions:
+
+```
+Question 1: "What VM name should we use? (becomes yourname.exe.xyz)"
+Header: "VM Name"
+Options: Suggest based on app name from context + user enters via "Other"
+
+Question 2: "Which file should we deploy?"
+Header: "File"
+Options: ["index.html (default)", "Other path"]
+
+Question 3: "Does this app need AI features?"
+Header: "AI"
+Options: ["No", "Yes - I have an OpenRouter key"]
+
+Question 4: "Is this a SaaS app with subdomain claiming?"
+Header: "Registry"
+Options: ["No - simple static deploy", "Yes - need Clerk keys for registry"]
+```
+
+### After Receiving Answers
+
+1. If AI enabled, ask for the OpenRouter API key
+2. If Registry enabled, ask for Clerk PEM public key and webhook secret
+3. **Proceed immediately to deploy** - no more questions
+
 ## Quick Deploy
 
 ```bash

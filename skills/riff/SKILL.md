@@ -21,15 +21,25 @@ Generate multiple app variations in parallel. Each riff is a different INTERPRET
 
 ## Workflow
 
-### Step 1: Gather Requirements
+### Step 1: Gather ALL Requirements Upfront
 
-Ask for these separately:
+**Use AskUserQuestion to collect all config at once.**
 
-1. **Prompt** - What kind of app? (broad/loose is fine)
-2. **Visual direction** - What should it look like? Ask: "Describe the visual style - colors, mood, aesthetic (e.g., 'warm sunset tones', 'neon cyberpunk', 'clean minimal white', 'earthy natural greens')"
-3. **Count** - How many variations? (1-10, recommend 3-5)
+```
+Question 1: "What kind of app do you want to explore? (broad/loose is fine)"
+Header: "Theme"
+Options: User enters via "Other"
 
-If user skips visual direction, prompt them: "What visual style? Give me colors, mood, or aesthetic references."
+Question 2: "Describe the visual style - colors, mood, aesthetic"
+Header: "Visual"
+Options: ["Warm sunset tones", "Clean minimal white", "Neon cyberpunk", "Other (describe)"]
+
+Question 3: "How many variations should I generate?"
+Header: "Count"
+Options: ["3 (recommended)", "5", "7", "10"]
+```
+
+After receiving all answers, **proceed immediately to Step 2** - no more questions.
 
 **Note:** If the `frontend-design` skill is available, use it for enhanced visual design quality.
 
