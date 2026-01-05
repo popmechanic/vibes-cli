@@ -16,8 +16,23 @@ import jwt from "jsonwebtoken";
 
 // Configuration from environment
 const REGISTRY_PATH = process.env.REGISTRY_PATH || "/var/www/html/registry.json";
-const CLERK_PEM_PUBLIC_KEY = process.env.CLERK_PEM_PUBLIC_KEY || "";
 const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET || "";
+
+// Load Clerk PEM public key - supports file path or inline value
+function loadClerkPublicKey(): string {
+  const keyFile = process.env.CLERK_PEM_PUBLIC_KEY_FILE;
+  if (keyFile) {
+    try {
+      const fs = require("fs");
+      return fs.readFileSync(keyFile, "utf8").trim();
+    } catch (err) {
+      console.error(`Failed to read Clerk public key from ${keyFile}:`, err);
+      return "";
+    }
+  }
+  return process.env.CLERK_PEM_PUBLIC_KEY || "";
+}
+const CLERK_PEM_PUBLIC_KEY = loadClerkPublicKey();
 const PORT = parseInt(process.env.PORT || "3001", 10);
 
 // Permitted origins for JWT azp claim validation
