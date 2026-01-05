@@ -144,11 +144,12 @@ function verifyWebhook(
 
 /**
  * Check if a subdomain is available
+ * Returns ownerId when subdomain is claimed (for ownership verification)
  */
 function isSubdomainAvailable(
   registry: Registry,
   subdomain: string
-): { available: boolean; reason?: string } {
+): { available: boolean; reason?: string; ownerId?: string } {
   const normalized = subdomain.toLowerCase().trim();
 
   // Check reserved names
@@ -158,12 +159,12 @@ function isSubdomainAvailable(
 
   // Check preallocated names
   if (normalized in registry.preallocated) {
-    return { available: false, reason: "preallocated" };
+    return { available: false, reason: "preallocated", ownerId: registry.preallocated[normalized] };
   }
 
-  // Check existing claims
+  // Check existing claims - include ownerId for ownership verification
   if (normalized in registry.claims) {
-    return { available: false, reason: "claimed" };
+    return { available: false, reason: "claimed", ownerId: registry.claims[normalized].userId };
   }
 
   // Validate subdomain format (alphanumeric and hyphens, 3-63 chars)
