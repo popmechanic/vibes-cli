@@ -273,19 +273,27 @@ For custom domains with wildcard subdomains, see the exe.dev deployment guide.
 3. Get admin user ID from Clerk Dashboard → Users
 4. Add your production domain to Clerk's allowed origins
 
-**⚠️ IMPORTANT: Passkeys require Production Mode**
+**⚠️ IMPORTANT: Passkey Configuration**
 
-Passkey authentication **only works in Clerk production mode**. Development instances (`pk_test_*`) will fail at passkey creation with errors like "operation not allowed."
+Set passkeys to **Optional** in Clerk Dashboard - the app enforces passkey-first at the application level.
 
-**To enable passkeys:**
-1. Go to Clerk Dashboard → Settings → Instance
-2. Switch from Development to Production
-3. Use the production publishable key (`pk_live_*`)
-4. Add your production domain to allowed origins
+**Why Optional?** Clerk's API requires an active session before `user.createPasskey()` can be called. Setting to "Required" creates a circular dependency where signup can't complete.
 
-**For development testing without passkeys:**
-- Use Clerk's built-in email link or email code authentication
-- The template falls back to email-only signup if passkeys fail
+**Clerk Dashboard Setup:**
+1. Go to User & Authentication → Email, Phone, Username
+2. **Passkeys**: Set to **Optional** (not Required!)
+3. **Email**: Enable for verification (email code)
+4. **Email Link**: Enable for sign-in fallback
+
+**How it works:**
+- Signup: email → verify → session active → app forces passkey creation → claim
+- Sign-in: passkey first, email magic link as fallback
+- The app blocks access until passkey is created (app-level enforcement)
+
+**For production:**
+- Switch to Clerk production mode for better passkey support
+- Use the production publishable key (`pk_live_*`)
+- Add your production domain to allowed origins
 
 **If using `--billing-mode required`:**
 5. Go to Clerk Dashboard → Billing → Get Started
@@ -478,12 +486,12 @@ The unified template uses pinned React 18 versions to prevent conflicts with Cle
 - Check `useFireproof(dbName)` uses the tenant database name
 
 ### Passkey creation fails
-- **Passkeys require Clerk production mode** - they don't work with `pk_test_*` keys
-- Go to Clerk Dashboard → Settings → switch to Production
-- Use the production publishable key (`pk_live_*`)
-- Add your production domain to Clerk's allowed origins
+- Ensure Clerk passkeys are set to **Optional** (not Required)
+- The app uses `user.createPasskey()` which requires an active session
+- Check console for specific error messages
+- For production: use `pk_live_*` key and add domain to allowed origins
 
 ### "Verification incomplete" after email code
-- This happens when passkeys are required but you're in development mode
-- Switch to Clerk production mode, or
-- Disable passkey requirement in Clerk Dashboard temporarily for testing
+- Clerk passkeys are likely set to "Required" instead of "Optional"
+- Go to Clerk Dashboard → User & Authentication → set Passkeys to Optional
+- The app enforces passkey-first at application level, not Clerk level
