@@ -30,7 +30,8 @@ function loadClerkPublicKey(): string {
       return "";
     }
   }
-  return process.env.CLERK_PEM_PUBLIC_KEY || "";
+  // Convert escaped newlines to actual newlines (env vars store \n as literal)
+  return (process.env.CLERK_PEM_PUBLIC_KEY || "").replace(/\\n/g, "\n");
 }
 const CLERK_PEM_PUBLIC_KEY = loadClerkPublicKey();
 const PORT = parseInt(process.env.PORT || "3001", 10);
