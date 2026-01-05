@@ -1081,10 +1081,10 @@ function VibesButton({
             return { available: false, reason: 'reserved' };
           }
           if (normalized in (registry.preallocated || {})) {
-            return { available: false, reason: 'preallocated' };
+            return { available: false, reason: 'preallocated', ownerId: registry.preallocated[normalized] };
           }
           if (normalized in (registry.claims || {})) {
-            return { available: false, reason: 'claimed' };
+            return { available: false, reason: 'claimed', ownerId: registry.claims[normalized].userId };
           }
           return { available: true };
         }
