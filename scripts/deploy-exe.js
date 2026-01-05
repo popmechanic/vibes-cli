@@ -529,10 +529,11 @@ async function phase6Registry(args) {
     // Create environment file for registry server (port 3002 to avoid conflict with AI proxy on 3001)
     console.log('  Configuring environment...');
     const domain = args.domain || `${args.name}.exe.xyz`;
+    // Include both wildcard (for subdomains) and bare domain (for landing page)
     const envContent = `REGISTRY_PATH=/var/www/html/registry.json
 CLERK_PEM_PUBLIC_KEY="${args.clerkKey.replace(/\n/g, '\\n')}"
 CLERK_WEBHOOK_SECRET=${args.clerkWebhookSecret}
-PERMITTED_ORIGINS=https://${domain}
+PERMITTED_ORIGINS=https://*.${domain},https://${domain}
 PORT=3002`;
 
     await runCommand(client, `echo '${envContent}' | sudo tee /etc/registry.env`);
