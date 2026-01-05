@@ -79,6 +79,39 @@ This sets up a **subdomain registry server**:
 | `/claim` | POST | Bearer JWT | Claim subdomain for user |
 | `/webhook` | POST | Svix sig | Clerk subscription events |
 
+### Getting the Clerk Public Key
+
+The registry server needs Clerk's PEM public key to verify JWTs for the `/claim` endpoint.
+
+**Option 1: From Clerk Dashboard**
+1. Go to Clerk Dashboard → API Keys
+2. Scroll to "PEM Public Key" or click "Show JWT Public Key"
+3. Copy the full key (starts with `-----BEGIN PUBLIC KEY-----`)
+
+**Option 2: From JWKS endpoint**
+```bash
+# Get your Clerk frontend API domain from dashboard
+curl https://YOUR_CLERK_DOMAIN/.well-known/jwks.json
+```
+Then convert the JWK to PEM format using an online tool or `jose` CLI.
+
+**Passing to deploy script:**
+```bash
+# From a file
+node deploy-exe.js --clerk-key "$(cat clerk-public-key.pem)" ...
+
+# Inline (escape newlines)
+node deploy-exe.js --clerk-key "-----BEGIN PUBLIC KEY-----\nMIIB...\n-----END PUBLIC KEY-----" ...
+```
+
+**Manual configuration on server:**
+```bash
+ssh myapp.exe.dev
+sudo nano /etc/registry.env
+# Add: CLERK_PEM_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
+sudo systemctl restart vibes-registry
+```
+
 ## Continue Development on the VM
 
 Claude is pre-installed on exe.dev VMs. After deployment, you can continue development remotely:
