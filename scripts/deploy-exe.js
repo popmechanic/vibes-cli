@@ -517,6 +517,7 @@ async function phase6Registry(args) {
     const registryJson = JSON.stringify(registry, null, 2);
     await runCommand(client, `echo '${registryJson}' | sudo tee /var/www/html/registry.json`);
     await runCommand(client, 'sudo chown www-data:www-data /var/www/html/registry.json');
+    await runCommand(client, 'sudo chmod 664 /var/www/html/registry.json');
 
     // Upload registry server
     console.log('  Uploading registry server...');
