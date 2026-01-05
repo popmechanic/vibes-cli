@@ -67,21 +67,20 @@ Skills are **model-invoked** - Claude automatically uses them when your task mat
 
 ### `vibes`
 
-Generate a complete, working app from a prompt. Creates:
-- Single HTML file with inline JavaScript (no build step)
-- Fireproof for local-first database with real-time sync
-- Tailwind CSS for styling
-- Hidden settings menu for database sync configuration
+Generate a complete, working app from a prompt. Perfect when you have a clear idea and want to see it working quickly.
+
+Creates a single HTML file with inline JavaScript, Fireproof database for local-first persistence, and Tailwind CSS styling. No build step - just open and run.
 
 **Example prompts:**
 - "Make a chore chart for my roommates"
 - "Build a potluck sign-up for Friendsgiving"
 - "Create a trivia game about reality TV"
-- "Make a vacation planner for the group"
 
 ### `riff`
 
-Generate multiple app variations in parallel. Perfect for exploring different concepts from a loose prompt.
+Not sure what to build? Riff generates 3-10 completely different interpretations of your idea in parallel.
+
+Each variation is a genuinely different concept - not just styling changes. You'll get ranked variations with business model analysis to help you pick the winner. Great for exploring a broad idea before committing.
 
 **Example prompt:** "Make me an app that could make money"
 
@@ -97,29 +96,15 @@ Generate multiple app variations in parallel. Perfect for exploring different co
 │   └── ...
 ```
 
-Each riff is a genuinely different **concept**, not just aesthetic variations.
-
 ### `sell`
 
-Transform any Vibes app into a multi-tenant SaaS with subdomain-based tenancy, authentication, and billing.
+Ready to monetize? Sell transforms your app into a multi-tenant SaaS with Clerk authentication, subscription billing, and isolated databases per customer.
 
-**The philosophy:** Most SaaS turns every community into rows in one database. Sell turns every community into its own world.
+Each user gets their own subdomain (alice.yourapp.com) with their own data. Includes a marketing landing page, admin dashboard, and subscription gating - everything you need to start charging.
 
 ![Sell: Multi-Tenant SaaS Philosophy](assets/sell-philosophy.png)
 
-This is horizontal scaling, but the unit is the tenant database—not the server fleet. Scaling becomes multiplication of isolated cells instead of enlargement of a shared core. It just scales on autopilot.
-
-**What you can't do is interesting.** No global queries across the userbase. Some ideas won't work here. This is fundamentally about groupware—tools for communities, not platforms that own them. There can be no Zuckerberg over a Vibes CLI app.
-
-**Why it's fast:** Your core artifacts are still just 1-3 files. Less development complexity means higher velocity of ideas. Simpler for the model, simpler for you.
-
-**What it adds:**
-- Subdomain routing (alice.yourdomain.com, bob.yourdomain.com)
-- Clerk authentication with sign-in/sign-up
-- Clerk Billing for subscriptions
-- Per-tenant Fireproof database isolation
-- Marketing landing page with pricing
-- Admin dashboard for tenant management
+**The philosophy:** Most SaaS turns every community into rows in one database. Sell turns every community into its own world. This is horizontal scaling where the unit is the tenant database—not the server fleet.
 
 **Output:** A single unified `index.html` that handles all routes:
 ```
@@ -128,13 +113,17 @@ yourdomain.com          → Landing page with pricing
 admin.yourdomain.com    → Admin dashboard
 ```
 
-**Deployment:** Deploy to exe.dev with `/vibes:exe`. The skill includes step-by-step setup instructions for Clerk and custom domains.
-
 **Example flow:**
-1. Build an app with `/vibes` (e.g., a photo sharing app)
-2. Run `/sell` to transform it into a SaaS
-3. Configure domain, pricing, Clerk keys
-4. Deploy with `/exe` and start selling
+1. Build an app with `/vibes`
+2. Run `/sell` to transform it
+3. Configure Clerk keys and pricing
+4. Deploy with `/exe`
+
+### `exe`
+
+Go live right now. Deploy creates a persistent VM at yourapp.exe.xyz with HTTPS, nginx, and Claude pre-installed.
+
+Your app stays online 24/7 even when you close your laptop. Zero downtime redeployments let you iterate live. Great for demos, pilots, or production.
 
 ## Commands
 
