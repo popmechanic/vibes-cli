@@ -97,48 +97,75 @@ If riffs exist, ask:
 
 ---
 
-## Step 2: Gather Configuration
+## Step 2: Gather ALL Configuration Upfront
 
-Ask the user for these details:
+**Use AskUserQuestion to collect all config in 2 batches before proceeding.**
 
-1. **App Name** (for database naming)
-   - Example: "wedding-photos"
-   - Used for: `{app}-admin` and `{app}-{subdomain}` databases
+Do NOT ask questions one-by-one. Gather everything upfront, then proceed directly to assembly.
 
-2. **App Title** (display name)
-   - Example: "Fantasy Wedding"
-   - Used in: headers, landing page
+### Batch 1: Core Identity
 
-3. **Root Domain**
-   - Example: "myapp.exe.xyz" or "fantasy.wedding"
-   - Subdomains will be: `alice.fantasy.wedding`
+Use the AskUserQuestion tool with these 4 questions:
 
-4. **Tagline** (for landing page)
-   - Example: "Share your wedding photos with guests"
+```
+Question 1: "What should we call this app? (used for database naming, e.g., 'wedding-photos')"
+Header: "App Name"
+Options: Provide 2 suggestions based on context + user enters via "Other"
 
-5. **Billing Mode**
-   - Ask: "Do you want to require paid subscriptions? (Y/n)"
-   - If yes: `--billing-mode required`
-   - If no: `--billing-mode off` (default, everyone gets free access)
-   - Explain: "Pricing plans are configured in Clerk Dashboard → Billing → Plans"
+Question 2: "What domain will this deploy to?"
+Header: "Domain"
+Options: ["Use exe.xyz subdomain", "Custom domain"]
 
-6. **Features** (for landing page display)
-   - Example: ["Photo sharing", "Guest uploads", "Live gallery"]
+Question 3: "Do you want to require paid subscriptions?"
+Header: "Billing"
+Options: ["No - free access for all", "Yes - subscription required"]
 
-7. **Clerk Publishable Key**
-   - From Clerk Dashboard → API Keys
-   - Format: `pk_test_...` or `pk_live_...`
+Question 4: "What's your Clerk Publishable Key? (from Clerk Dashboard → API Keys)"
+Header: "Clerk Key"
+Options: User enters via "Other" (starts with pk_test_ or pk_live_)
+```
 
-8. **Admin User IDs** (array of Clerk user IDs)
-   - From Clerk Dashboard → Users → click user → copy ID
-   - Admins bypass subscription gate
+### Batch 2: Customization
 
-9. **AI Features** (optional)
-   - Ask: "Do you want to enable AI features for your tenants? (Y/n)"
-   - If yes:
-     - **OpenRouter Provisioning Key**: Get from https://openrouter.ai/keys
-     - **Tenant Credit Limit**: Monthly AI credit limit per tenant in dollars (default: $5)
-   - The proxy handles per-tenant key provisioning and usage limits automatically
+Use the AskUserQuestion tool with these 4 questions:
+
+```
+Question 1: "Display title for your app? (shown in headers and landing page)"
+Header: "Title"
+Options: Suggest based on app name + user enters via "Other"
+
+Question 2: "Tagline for the landing page?"
+Header: "Tagline"
+Options: Generate 2 suggestions based on app context + user enters via "Other"
+
+Question 3: "What features should we highlight on the landing page? (comma-separated)"
+Header: "Features"
+Options: User enters via "Other"
+
+Question 4: "Enable AI features for tenants?"
+Header: "AI"
+Options: ["No", "Yes - I have an OpenRouter key"]
+```
+
+### After Receiving Answers
+
+1. If user selected "Custom domain", ask for the domain name
+2. If user enabled AI, ask for the OpenRouter key
+3. Admin User IDs default to empty (user can add later via Clerk Dashboard)
+4. **Proceed immediately to Step 3 (Assembly)** - no more questions
+
+### Config Values Reference
+
+| Config | Script Flag | Example |
+|--------|-------------|---------|
+| App Name | `--app-name` | `wedding-photos` |
+| Domain | `--domain` | `myapp.exe.xyz` |
+| Billing | `--billing-mode` | `off` or `required` |
+| Clerk Key | `--clerk-key` | `pk_test_xxx` |
+| Title | `--app-title` | `Wedding Photos` |
+| Tagline | `--tagline` | `Share your special day` |
+| Features | `--features` | `'["Feature 1","Feature 2"]'` |
+| Admin IDs | `--admin-ids` | `'["user_xxx"]'` (default: `'[]'`) |
 
 ---
 
