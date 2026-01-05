@@ -2191,13 +2191,14 @@ function VibesButton({
               subdomain={subdomain}
               isUnclaimed={claimState.owner === null}
               ownerId={claimState.owner}
+              onClaimSuccess={(userId) => setClaimState({ loading: false, owner: userId })}
             />
           </ClerkProvider>
         );
       }
 
       // Inner component that has access to Clerk hooks
-      function TenantAppInner({ subdomain, isUnclaimed, ownerId }) {
+      function TenantAppInner({ subdomain, isUnclaimed, ownerId, onClaimSuccess }) {
         const { isSignedIn, user, isLoaded } = useUser();
 
         if (!isLoaded) {
@@ -2214,7 +2215,10 @@ function VibesButton({
             // User is signed in but subdomain is unclaimed → offer to claim it
             return (
               <TenantProvider subdomain={subdomain}>
-                <ClaimPrompt subdomain={subdomain} />
+                <ClaimPrompt
+                  subdomain={subdomain}
+                  onClaim={() => onClaimSuccess(user.id)}
+                />
               </TenantProvider>
             );
           } else {
