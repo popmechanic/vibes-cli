@@ -1453,17 +1453,15 @@ function VibesButton({
 
           try {
             const result = await signUp.attemptEmailAddressVerification({ code: verificationCode });
-            // With passkey-first auth, status may be 'missing_requirements' until passkey is created
-            // Proceed to passkey step if email is verified (not rejected)
+            // With Clerk passkeys set to "Optional", signup completes after email verification
+            // We then enforce passkey creation at app level before allowing access
             if (result.status === 'complete') {
               await setActive({ session: result.createdSessionId });
-              setStep('passkey');
-            } else if (result.status === 'missing_requirements') {
-              // Email verified but passkey required - proceed to passkey creation
+              // Session is now active - proceed to passkey creation step
               setStep('passkey');
             } else {
               console.log('Unexpected signup status:', result.status, result);
-              setError(`Verification status: ${result.status}. Please try again.`);
+              setError(`Verification incomplete (${result.status}). Check Clerk passkey settings.`);
             }
           } catch (err) {
             setError(err.errors?.[0]?.message || 'Invalid verification code');
@@ -1477,21 +1475,19 @@ function VibesButton({
           setLoading(true);
 
           try {
-            // Create passkey on signUp object (completes the signup flow)
-            const result = await signUp.createPasskey();
-
-            // After passkey creation, signup should be complete - activate the session
-            if (result.status === 'complete' && result.createdSessionId) {
-              await setActive({ session: result.createdSessionId });
+            // Session is already active from email verification
+            // Create passkey on the USER object (not signUp - that doesn't work)
+            const user = window.Clerk.user;
+            if (!user) {
+              throw new Error('No active user. Please try signing up again.');
             }
+
+            await user.createPasskey();
 
             setStep('claiming');
 
             // Claim the subdomain
             const session = window.Clerk.session;
-            if (!session) {
-              throw new Error('No active session after signup');
-            }
             const token = await session.getToken();
             const claimResult = await claimSubdomain(subdomain, token);
 
@@ -1502,10 +1498,10 @@ function VibesButton({
             }
           } catch (err) {
             if (err.message?.includes('cancelled') || err.message?.includes('aborted')) {
-              // User cancelled passkey creation - can't proceed without it in passkey-first mode
-              setError('Passkey is required to complete signup. Please try again.');
+              // User cancelled passkey creation - enforce passkey-first at app level
+              setError('Passkey is required to secure your account. Please try again.');
             } else {
-              setError(err.errors?.[0]?.message || 'Failed to create passkey');
+              setError(err.errors?.[0]?.message || err.message || 'Failed to create passkey');
             }
           } finally {
             setLoading(false);
@@ -1513,28 +1509,9 @@ function VibesButton({
         };
 
         const handleSkipPasskey = async () => {
-          // Check if we have an active session (only possible if signup was already complete)
-          const session = window.Clerk.session;
-          if (!session) {
-            setError('Passkey is required to complete signup.');
-            return;
-          }
-
-          setStep('claiming');
-          setLoading(true);
-          try {
-            const token = await session.getToken();
-            const claimResult = await claimSubdomain(subdomain, token);
-            if (claimResult.success) {
-              onSuccess?.(subdomain);
-            } else {
-              setError(claimResult.error || 'Failed to claim subdomain');
-            }
-          } catch (err) {
-            setError('Failed to claim subdomain');
-          } finally {
-            setLoading(false);
-          }
+          // Passkey-first enforcement: don't allow skip
+          // User can use email magic link for sign-in fallback, but must have a passkey
+          setError('Passkey is required to secure your account. This protects your subdomain.');
         };
 
         return (
