@@ -142,17 +142,27 @@ Question 3: "What features should we highlight on the landing page? (comma-separ
 Header: "Features"
 Options: User enters via "Other"
 
-Question 4: "Enable AI features for tenants?"
-Header: "AI"
-Options: ["No", "Yes - I have an OpenRouter key"]
+Question 4: "Enable subdomain claiming? (users claim alice.yourapp.com)"
+Header: "Registry"
+Options: ["Yes - enable subdomain claiming (Recommended)", "No - skip for now (can add later)"]
 ```
 
 ### After Receiving Answers
 
 1. If user selected "Custom domain", ask for the domain name
-2. If user enabled AI, ask for the OpenRouter key
+2. **If subdomain claiming enabled**, ask for:
+   - Clerk PEM Public Key (from Clerk Dashboard → API Keys → "Show JWT Public Key")
+   - Clerk Webhook Secret (optional, for subscription sync)
 3. Admin User IDs default to empty (user can add later via Clerk Dashboard)
 4. **Proceed immediately to Step 3 (Assembly)** - no more questions
+
+**IMPORTANT: Clerk has TWO different keys:**
+| Key | Format | Purpose |
+|-----|--------|---------|
+| Publishable Key | `pk_test_...` | Frontend auth (asked in Batch 1) |
+| PEM Public Key | `-----BEGIN PUBLIC KEY-----` | Backend JWT verification (for registry) |
+
+The PEM key is found in Clerk Dashboard → API Keys → scroll down to "PEM Public Key" or "Show JWT Public Key".
 
 ### Config Values Reference
 
@@ -161,11 +171,17 @@ Options: ["No", "Yes - I have an OpenRouter key"]
 | App Name | `--app-name` | `wedding-photos` |
 | Domain | `--domain` | `myapp.exe.xyz` |
 | Billing | `--billing-mode` | `off` or `required` |
-| Clerk Key | `--clerk-key` | `pk_test_xxx` |
+| Clerk Publishable Key | `--clerk-key` | `pk_test_xxx` |
 | Title | `--app-title` | `Wedding Photos` |
 | Tagline | `--tagline` | `Share your special day` |
 | Features | `--features` | `'["Feature 1","Feature 2"]'` |
 | Admin IDs | `--admin-ids` | `'["user_xxx"]'` (default: `'[]'`) |
+
+**Stored for deployment (not used by assemble-sell.js):**
+| Config | exe.js Flag | Purpose |
+|--------|-------------|---------|
+| Clerk PEM Public Key | `--clerk-key` | Registry JWT verification |
+| Clerk Webhook Secret | `--clerk-webhook-secret` | Subscription sync |
 
 ---
 
@@ -554,7 +570,11 @@ Options:
 ```
 
 **After user responds:**
-- "Deploy now" → Auto-invoke /vibes:exe skill (pass through Clerk keys from earlier config)
+- "Deploy now" → Auto-invoke /vibes:exe skill with these flags:
+  - `--name` from app-name
+  - `--file index.html`
+  - If subdomain claiming enabled: `--clerk-key "PEM_KEY"` and `--clerk-webhook-secret "SECRET"`
+  - If AI enabled: `--ai-key "OPENROUTER_KEY"` and `--multi-tenant`
 - "Test locally" → Provide localhost testing instructions with ?subdomain= params
 - "Customize" → Stay ready for customization prompts
-- "I'm done" → Confirm index.html saved, remind of deploy command
+- "I'm done" → Confirm index.html saved, remind of deploy command with all flags needed
