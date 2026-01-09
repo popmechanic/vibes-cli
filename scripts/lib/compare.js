@@ -8,23 +8,9 @@
  */
 
 import { readFileSync, existsSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
-import { extractVersion } from './utils.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-/**
- * Find the plugin root directory
- * Walks up from this file to find the plugin root
- * @returns {string} - Plugin root path
- */
-function findPluginRoot() {
-  // This file is at scripts/lib/compare.js
-  // Plugin root is at ../..
-  return join(__dirname, '..', '..');
-}
+import { join } from 'path';
+import { extractVersion } from './parsers.js';
+import { PLUGIN_ROOT } from './paths.js';
 
 /**
  * Validate import map cache structure
@@ -160,8 +146,7 @@ function compare(analysis) {
     };
   }
 
-  const pluginRoot = findPluginRoot();
-  const cachedImportMap = loadCachedImportMap(pluginRoot);
+  const cachedImportMap = loadCachedImportMap(PLUGIN_ROOT);
 
   if (!cachedImportMap) {
     return {
@@ -314,6 +299,6 @@ export {
   compare,
   loadCachedImportMap,
   compareVersions,
-  findPluginRoot,
-  validateCacheSchema
+  validateCacheSchema,
+  PLUGIN_ROOT
 };

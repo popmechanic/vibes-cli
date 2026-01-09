@@ -10,23 +10,7 @@
  * - Default user is 'exedev'
  */
 
-import { Client } from 'ssh2';
 import { spawn } from 'child_process';
-
-/**
- * Host key verifier that auto-accepts exe.dev domains
- * Mimics StrictHostKeyChecking=accept-new behavior for trusted domains
- * @param {string} host - Hostname being connected to
- * @returns {function} Verifier function for ssh2 Client
- */
-function createHostVerifier(host) {
-  // Auto-accept host keys for exe.dev domains (trusted)
-  if (host === 'exe.dev' || host.endsWith('.exe.xyz') || host.endsWith('.exe.dev')) {
-    return () => true;
-  }
-  // For other hosts, use default verification (will reject unknown)
-  return undefined;
-}
 
 // exe.dev VM constants
 export const EXE_HOME_DIR = '/home/exedev';

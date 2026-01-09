@@ -10,7 +10,7 @@
 
 import { readFileSync, existsSync } from 'fs';
 import { resolve, basename } from 'path';
-import { extractVersion } from './utils.js';
+import { extractVersion } from './parsers.js';
 
 /**
  * Era definitions with detection logic
@@ -333,7 +333,6 @@ export {
   analyze,
   analyzeMultiple,
   extractImportMap,
-  extractVersion,
   detectTemplateType,
   detectEra,
   extractLibraryVersions,

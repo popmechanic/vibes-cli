@@ -7,7 +7,8 @@
 
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { findPluginRoot, loadCachedImportMap } from '../compare.js';
+import { PLUGIN_ROOT } from '../paths.js';
+import { loadCachedImportMap } from '../compare.js';
 
 /**
  * Regex to match import map script tag
@@ -85,8 +86,7 @@ function replaceImportMap(html, newImports) {
  * @returns {object} - Transform result
  */
 function applyImportMapUpdate(html, analysis) {
-  const pluginRoot = findPluginRoot();
-  const cachedImportMap = loadCachedImportMap(pluginRoot);
+  const cachedImportMap = loadCachedImportMap(PLUGIN_ROOT);
 
   if (!cachedImportMap) {
     return {
