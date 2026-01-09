@@ -7,7 +7,7 @@
 
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { findPluginRoot } from '../compare.js';
+import { PLUGIN_ROOT } from '../paths.js';
 
 /**
  * Component markers for identification
@@ -171,10 +171,8 @@ function findFunctionEnd(html, startPos) {
  * @returns {string|null} - Component code or null
  */
 function loadComponentFromTemplate(componentName) {
-  const pluginRoot = findPluginRoot();
-
   // Try to load from template
-  const templatePath = join(pluginRoot, 'skills', 'vibes', 'templates', 'index.html');
+  const templatePath = join(PLUGIN_ROOT, 'skills', 'vibes', 'templates', 'index.html');
 
   if (!existsSync(templatePath)) {
     return null;

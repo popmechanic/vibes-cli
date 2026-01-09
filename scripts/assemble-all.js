@@ -11,12 +11,11 @@
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { dirname, join, resolve } from 'path';
-import { fileURLToPath } from 'url';
+import { resolve } from 'path';
+import { TEMPLATES } from './lib/paths.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const PLACEHOLDER = '// __VIBES_APP_CODE__';
-const templatePath = join(__dirname, '../skills/vibes/templates/index.html');
+const templatePath = TEMPLATES.vibesBasic;
 
 // Read template once
 if (!existsSync(templatePath)) {

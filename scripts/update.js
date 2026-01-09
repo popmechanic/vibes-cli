@@ -12,13 +12,14 @@
  *   node update.js path/to/app.html --verbose   # Show diffs
  */
 
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync, renameSync, copyFileSync } from 'fs';
-import { resolve, join, basename, dirname, extname } from 'path';
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from 'fs';
+import { resolve, join, basename, extname } from 'path';
 import { fileURLToPath } from 'url';
 import { analyze, analyzeMultiple } from './lib/analyze.js';
 import { compare } from './lib/compare.js';
 import { generatePlan, formatPlanOutput, formatBatchSummary, filterUpdates, colors } from './lib/plan.js';
 import { getApplicableUpdates, executeUpdate, getUpdateById } from './updates/registry.js';
+import { createBackup, findLatestBackup, restoreFromBackup } from './lib/backup.js';
 
 /**
  * Parse command line arguments
@@ -120,77 +121,6 @@ function findHtmlFiles(dirPath) {
   }
 
   return files;
-}
-
-/**
- * Generate timestamp string for backup filenames
- * Format: YYYYMMDD-HHMMSS
- */
-function getBackupTimestamp() {
-  const now = new Date();
-  const pad = (n) => n.toString().padStart(2, '0');
-  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-}
-
-/**
- * Create backup of file with timestamp
- * Creates: app.20251231-120000.bak.html
- */
-function createBackup(filePath) {
-  const timestamp = getBackupTimestamp();
-  const backupPath = filePath.replace(/\.html$/, `.${timestamp}.bak.html`);
-  copyFileSync(filePath, backupPath);
-  return backupPath;
-}
-
-/**
- * Find the most recent backup for a file
- */
-function findLatestBackup(filePath) {
-  const dir = dirname(filePath);
-  const baseName = basename(filePath, '.html');
-  const pattern = new RegExp(`^${baseName}\\.\\d{8}-\\d{6}\\.bak\\.html$`);
-
-  try {
-    const entries = readdirSync(dir);
-    const backups = entries
-      .filter(e => pattern.test(e))
-      .sort()
-      .reverse(); // Most recent first
-
-    if (backups.length === 0) {
-      // Fall back to legacy .bak.html format
-      const legacyBackup = `${baseName}.bak.html`;
-      if (entries.includes(legacyBackup)) {
-        return join(dir, legacyBackup);
-      }
-      return null;
-    }
-
-    return join(dir, backups[0]);
-  } catch (e) {
-    return null;
-  }
-}
-
-/**
- * Restore file from backup (uses most recent backup)
- */
-function restoreFromBackup(filePath) {
-  const backupPath = findLatestBackup(filePath);
-
-  if (!backupPath) {
-    return {
-      success: false,
-      error: `No backup file found for: ${filePath}`
-    };
-  }
-
-  copyFileSync(backupPath, filePath);
-  return {
-    success: true,
-    backupPath
-  };
 }
 
 /**
