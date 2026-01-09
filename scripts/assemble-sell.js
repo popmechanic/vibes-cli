@@ -36,6 +36,7 @@ import { resolve } from 'path';
 import { createInterface } from 'readline';
 import { TEMPLATES } from './lib/paths.js';
 import { stripForTemplate, stripImports } from './lib/strip-code.js';
+import { createBackup } from './lib/backup.js';
 
 /**
  * Prompt user for input when a required option is missing
@@ -107,11 +108,9 @@ if (!existsSync(resolvedAppPath)) {
 const resolvedOutputPath = resolve(outputPath || 'index.html');
 
 // Backup existing index.html if it exists
-if (existsSync(resolvedOutputPath)) {
-  const backupPath = resolvedOutputPath.replace(/\.html$/, '.bak.html');
-  const existingContent = readFileSync(resolvedOutputPath, 'utf8');
-  writeFileSync(backupPath, existingContent);
-  console.log(`Backed up existing file to: ${backupPath}`);
+const sellBackupPath = createBackup(resolvedOutputPath);
+if (sellBackupPath) {
+  console.log(`Backed up existing file to: ${sellBackupPath}`);
 }
 
 // Template paths (centralized in lib/paths.js)

@@ -11,28 +11,12 @@
  *   node scripts/assemble.js app.jsx index.html
  */
 
-import { readFileSync, writeFileSync, existsSync, copyFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { TEMPLATES } from './lib/paths.js';
+import { createBackup } from './lib/backup.js';
 
 const PLACEHOLDER = '// __VIBES_APP_CODE__';
-
-/**
- * Create a timestamped backup of an existing file
- * @param {string} filePath - Path to the file to backup
- * @returns {string|null} - Backup path if created, null otherwise
- */
-function createBackup(filePath) {
-  if (!existsSync(filePath)) {
-    return null;
-  }
-  const now = new Date();
-  const pad = (n) => n.toString().padStart(2, '0');
-  const timestamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-  const backupPath = filePath.replace(/\.html$/, `.${timestamp}.bak.html`);
-  copyFileSync(filePath, backupPath);
-  return backupPath;
-}
 
 // Parse args
 const appPath = process.argv[2];
