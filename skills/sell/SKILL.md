@@ -105,7 +105,7 @@ Do NOT ask questions one-by-one. Gather everything upfront, then proceed directl
 
 ### Batch 1: Core Identity
 
-Use the AskUserQuestion tool with these 4 questions:
+Use the AskUserQuestion tool with these 5 questions:
 
 ```
 Question 1: "What should we call this app? (used for database naming, e.g., 'wedding-photos')"
@@ -123,11 +123,15 @@ Options: ["No - free access for all", "Yes - subscription required"]
 Question 4: "What's your Clerk Publishable Key? (from Clerk Dashboard → API Keys)"
 Header: "Clerk Key"
 Options: User enters via "Other" (starts with pk_test_ or pk_live_)
+
+Question 5: "What's your Clerk JWKS Public Key? (from Clerk Dashboard → API Keys → 'Show JWT Public Key')"
+Header: "JWKS Key"
+Options: User enters via "Other" (starts with -----BEGIN PUBLIC KEY-----)
 ```
 
 ### Batch 2: Customization
 
-Use the AskUserQuestion tool with these 4 questions:
+Use the AskUserQuestion tool with these 3 questions:
 
 ```
 Question 1: "Display title for your app? (shown in headers and landing page)"
@@ -141,28 +145,22 @@ Options: Generate 2 suggestions based on app context + user enters via "Other"
 Question 3: "What features should we highlight on the landing page? (comma-separated)"
 Header: "Features"
 Options: User enters via "Other"
-
-Question 4: "Enable subdomain claiming? (users claim alice.yourapp.com)"
-Header: "Registry"
-Options: ["Yes - enable subdomain claiming (Recommended)", "No - skip for now (can add later)"]
 ```
 
 ### After Receiving Answers
 
 1. If user selected "Custom domain", ask for the domain name
-2. **If subdomain claiming enabled**, ask for:
-   - Clerk PEM Public Key (from Clerk Dashboard → API Keys → "Show JWT Public Key")
-   - Clerk Webhook Secret (optional, for subscription sync)
-3. Admin User IDs default to empty (user can add later via Clerk Dashboard)
+2. Optionally ask for Clerk Webhook Secret (for subscription sync with registry)
+3. Admin User IDs default to empty (configured after first deploy - see "What's Next?" section)
 4. **Proceed immediately to Step 3 (Assembly)** - no more questions
 
 **IMPORTANT: Clerk has TWO different keys:**
 | Key | Format | Purpose |
 |-----|--------|---------|
 | Publishable Key | `pk_test_...` | Frontend auth (asked in Batch 1) |
-| PEM Public Key | `-----BEGIN PUBLIC KEY-----` | Backend JWT verification (for registry) |
+| JWKS Public Key | `-----BEGIN PUBLIC KEY-----` | Backend JWT verification (asked in Batch 1) |
 
-The PEM key is found in Clerk Dashboard → API Keys → scroll down to "PEM Public Key" or "Show JWT Public Key".
+The JWKS key is found in Clerk Dashboard → API Keys → scroll down to "Show JWT Public Key".
 
 ### Config Values Reference
 
@@ -180,7 +178,7 @@ The PEM key is found in Clerk Dashboard → API Keys → scroll down to "PEM Pub
 **Stored for deployment (not used by assemble-sell.js):**
 | Config | exe.js Flag | Purpose |
 |--------|-------------|---------|
-| Clerk PEM Public Key | `--clerk-key` | Registry JWT verification |
+| Clerk JWKS Public Key | `--clerk-key` | Registry JWT verification |
 | Clerk Webhook Secret | `--clerk-webhook-secret` | Subscription sync |
 
 ---
@@ -281,17 +279,24 @@ The template uses neutral colors by default. To match the user's brand or prompt
 After assembly, deploy with `/vibes:exe`:
 
 ```bash
-# Basic deployment (no AI)
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name wedding-photos --file index.html
+# Standard deployment with registry (REQUIRED)
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
+  --name wedding-photos \
+  --file index.html \
+  --clerk-key "$(cat clerk-jwks-key.pem)"
 
 # With AI features enabled
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
   --name wedding-photos \
   --file index.html \
+  --clerk-key "$(cat clerk-jwks-key.pem)" \
   --ai-key "sk-or-v1-your-provisioning-key" \
   --multi-tenant \
   --tenant-limit 5
 ```
+
+**Required Flag:**
+- `--clerk-key` - Your Clerk JWKS Public Key (required for registry JWT verification)
 
 **AI Deployment Flags:**
 - `--ai-key` - Your OpenRouter provisioning API key
@@ -299,6 +304,17 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
 - `--tenant-limit` - Monthly credit limit per tenant in dollars (default: $5)
 
 Your app will be live at `https://wedding-photos.exe.xyz`
+
+### Verify Registry is Working
+
+After deployment, verify the registry server is running:
+
+```bash
+# Should return: {"claims":{},"quotas":{},"reserved":["admin","api","www"],"preallocated":{}}
+curl https://wedding-photos.exe.xyz/registry.json
+```
+
+If you see HTML instead of JSON, the registry server isn't running. Check the deployment logs or re-run with `--clerk-key`.
 
 If AI is enabled, tenants can use the `useAI` hook and their usage is automatically metered.
 
@@ -330,10 +346,7 @@ For custom domains with wildcard subdomains, see the exe.dev deployment guide.
 | Show passkey button | ✅ ON | Visible option |
 | Add passkey to account | ✅ ON | Users can add passkeys |
 
-**Note:** The app enforces passkey creation at the application level. Clerk passkeys don't have a "required/optional" setting - the template handles enforcement.
-
-**Domain Configuration** (Dashboard → Domains):
-- Add your production domain (e.g., `myapp.exe.xyz`)
+**Note:** Configure passkey settings AFTER creating your Clerk app (not during initial app creation). The app enforces passkey creation at the application level - Clerk passkeys don't have a "required/optional" setting.
 
 **How authentication works:**
 - Signup: email → verify → session active → app forces passkey creation → claim subdomain
@@ -573,8 +586,32 @@ Options:
 - "Deploy now" → Auto-invoke /vibes:exe skill with these flags:
   - `--name` from app-name
   - `--file index.html`
-  - If subdomain claiming enabled: `--clerk-key "PEM_KEY"` and `--clerk-webhook-secret "SECRET"`
+  - `--clerk-key "JWKS_KEY"` (always required for registry)
+  - Optionally: `--clerk-webhook-secret "SECRET"` for subscription sync
   - If AI enabled: `--ai-key "OPENROUTER_KEY"` and `--multi-tenant`
 - "Test locally" → Provide localhost testing instructions with ?subdomain= params
 - "Customize" → Stay ready for customization prompts
 - "I'm done" → Confirm index.html saved, remind of deploy command with all flags needed
+
+### After Deploy: Configure Admin Access
+
+After the first deployment, guide the user through admin setup:
+
+```
+Question: "Your app is live! Ready to set up admin access?"
+Header: "Admin"
+Options:
+- Label: "Set up admin now (Recommended)"
+  Description: "Sign up on your app, get your user ID from Clerk Dashboard, then re-deploy with admin access."
+
+- Label: "Skip for now"
+  Description: "You can add admin access later by re-running assembly with --admin-ids."
+```
+
+**If "Set up admin now" is selected:**
+1. Tell user to visit their app and sign up (e.g., `https://myapp.exe.xyz`)
+2. After signup, go to Clerk Dashboard → Users → click their user → copy User ID
+3. Re-run assembly with `--admin-ids '["user_xxx"]'`
+4. Re-deploy with the same flags
+
+This ensures the admin dashboard is accessible from the start.
