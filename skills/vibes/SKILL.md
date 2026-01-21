@@ -33,6 +33,7 @@ Do not default to ambient mood generators, floating orbs, or meditation apps unl
 - **Use JSX** - Standard React syntax with Babel transpilation
 - **Single HTML file** - App code assembled into template
 - **Fireproof for data** - Use `useFireproof`, `useLiveQuery`, `useDocument`
+- **Cloud sync by default** - Use `toCloud()` for real-time collaboration
 - **Tailwind for styling** - Mobile-first, responsive design
 
 ## Generation Process
@@ -58,14 +59,18 @@ After reasoning, output the complete JSX in `<code>` tags:
 ```
 <code>
 import React, { useState } from "react";
-import { useFireproof } from "use-fireproof";
+import { toCloud, useFireproof } from "use-fireproof";
 
 export default function App() {
-  const { database, useLiveQuery, useDocument } = useFireproof("app-name-db");
+  const { attach, database, useLiveQuery, useDocument } = useFireproof("app-name-db", {
+    attach: toCloud(),
+  });
   // ... component logic
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] p-4">
+      {/* Sync status indicator (optional) */}
+      <div className="text-xs text-gray-500 mb-2">Sync: {attach.state}</div>
       {/* Your app UI */}
     </div>
   );
@@ -78,13 +83,21 @@ export default function App() {
 Always destructure hooks FROM useFireproof(), never import directly:
 
 ```jsx
-// ✅ CORRECT - destructure hooks from useFireproof()
-const { useDocument, useLiveQuery } = useFireproof("my-db");
+// ✅ CORRECT - with cloud sync (recommended)
+import { toCloud, useFireproof } from "use-fireproof";
+const { attach, useDocument, useLiveQuery } = useFireproof("my-db", {
+  attach: toCloud(),
+});
 const { doc, merge } = useDocument({ _id: "doc1" });
+
+// ✅ CORRECT - local-only (no cloud sync)
+const { useDocument, useLiveQuery } = useFireproof("my-db");
 
 // ❌ WRONG - this does NOT work
 import { useDocument } from "use-fireproof";  // ERROR!
 ```
+
+**Cloud Sync Status**: The `attach` object provides sync state (`"initial" | "attaching" | "attached" | "error"`). Display `attach.state` for user feedback.
 
 ## Assembly Workflow
 
@@ -179,7 +192,11 @@ Fireproof is a local-first database - no loading or error states required, just 
 
 ### Setup
 ```jsx
-const { useLiveQuery, useDocument, database } = useFireproof("my-app-db");
+import { toCloud, useFireproof } from "use-fireproof";
+
+const { attach, useLiveQuery, useDocument, database } = useFireproof("my-app-db", {
+  attach: toCloud(),
+});
 ```
 
 ### Choosing Your Pattern
@@ -250,10 +267,12 @@ await database.del(item._id);
 ### Common Pattern - Form + List
 ```jsx
 import React from "react";
-import { useFireproof } from "use-fireproof";
+import { toCloud, useFireproof } from "use-fireproof";
 
 export default function App() {
-  const { useLiveQuery, useDocument, database } = useFireproof("my-db");
+  const { attach, useLiveQuery, useDocument, database } = useFireproof("my-db", {
+    attach: toCloud(),
+  });
 
   // Form for new items (submit resets for next entry)
   const { doc, merge, submit } = useDocument({ text: "", type: "item" });
@@ -315,10 +334,12 @@ The `useAI` hook is automatically included in the template when AI features are 
 
 ```jsx
 import React from "react";
-import { useFireproof } from "use-fireproof";
+import { toCloud, useFireproof } from "use-fireproof";
 
 export default function App() {
-  const { database, useLiveQuery } = useFireproof("ai-chat-db");
+  const { attach, database, useLiveQuery } = useFireproof("ai-chat-db", {
+    attach: toCloud(),
+  });
   const { callAI, loading, error } = useAI();
 
   const handleSend = async (message) => {
@@ -389,6 +410,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
 
 - **DON'T** use `useState` for form fields - use `useDocument`
 - **DON'T** use `Fireproof.fireproof()` - use `useFireproof()` hook
+- **DON'T** forget `toCloud()` - always include it for cloud sync
 - **DON'T** use white text on light backgrounds
 - **DON'T** use `call-ai` directly - use `useAI` hook instead (it handles proxying and limits)
 

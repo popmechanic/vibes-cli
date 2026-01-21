@@ -2,6 +2,24 @@
 
 All notable changes to the Vibes CLI plugin are documented here.
 
+## [0.1.37] - 2026-01-20
+
+### Changed
+- **BREAKING**: Migrated from use-vibes@0.18.9 to use-vibes@0.24.3-dev
+- Updated Fireproof documentation with new `toCloud()` cloud sync features
+- All templates now include cloud sync by default
+
+### Added
+- `toCloud()` function for automatic Fireproof Cloud synchronization
+- `attach` object in useFireproof() return for sync status tracking
+- Sync states: "initial" | "attaching" | "attached" | "error"
+- Token management via `attach.ctx.tokenAndClaims.reset()`
+
+### Updated
+- skills/vibes/SKILL.md: All examples now use cloud sync pattern
+- cache/fireproof.txt: Complete rewrite with cloud sync documentation
+- CLAUDE.md: Updated version policy from 0.18.9 to 0.24.3-dev
+
 ## [0.1.18] - 2026-01-03
 
 ### Added
