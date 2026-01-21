@@ -73,13 +73,13 @@ vibes update analysis for: my-app.html
 
 Current state:
   Template: vibes-basic
-  use-vibes: 0.18.9
-  Era: 0.18.x Stable
+  use-vibes: 0.20.0
+  Era: 0.20.x
 
 Available updates:
   [1] Update import map
-      Update library versions to latest stable
-      • useVibes: 0.18.9 → 0.19.4
+      Update library versions to latest
+      • useVibes: 0.20.0 → 0.24.3-dev
       [Recommended]
 
   [2] Update VibesSwitch component

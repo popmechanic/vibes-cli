@@ -498,13 +498,13 @@ The unified template uses pinned React 18 versions to prevent conflicts with Cle
     "react-dom": "https://esm.sh/react-dom@18.3.1?deps=react@18.3.1",
     "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1",
     "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
-    "use-fireproof": "https://esm.sh/use-vibes@0.18.9?deps=react@18.3.1",
-    "use-vibes": "https://esm.sh/use-vibes@0.18.9?deps=react@18.3.1"
+    "use-fireproof": "https://esm.sh/use-vibes@0.24.3-dev?deps=react@18.3.1",
+    "use-vibes": "https://esm.sh/use-vibes@0.24.3-dev?deps=react@18.3.1"
   }
 }
 ```
 
-**Note:** `use-fireproof` is aliased to `use-vibes` for compatibility. The stable version 0.18.9 is used instead of dev versions which have known bugs.
+**Note:** `use-fireproof` is aliased to `use-vibes` for compatibility. Version 0.24.3-dev includes `toCloud()` for Fireproof Cloud sync.
 
 **IMPORTANT:**
 - Clerk@5 defaults to React 19, which causes version conflicts. The `?deps=react@18.3.1` parameter pins React 18 for all packages.

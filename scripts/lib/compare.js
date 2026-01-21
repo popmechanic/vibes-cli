@@ -92,14 +92,14 @@ function loadCachedImportMap(pluginRoot) {
  * Dev versions are considered "newer" than their base version for upgrade detection,
  * meaning we want to upgrade FROM dev TO stable.
  *
- * @param {string} v1 - First version string (e.g., "0.18.9" or "0.19.0-dev-preview-50")
+ * @param {string} v1 - First version string (e.g., "0.24.3-dev" or "0.19.0-dev-preview-50")
  * @param {string} v2 - Second version string
  * @returns {number} Comparison result:
  *   - -1 if v1 < v2 (v1 is older, should upgrade to v2)
  *   - 0 if versions are equivalent
  *   - 1 if v1 > v2 (v1 is newer)
  * @example
- * compareVersions("0.18.9", "0.19.0")  // -1 (0.18.9 is older)
+ * compareVersions("0.20.0", "0.24.3-dev")  // -1 (0.20.0 is older)
  * compareVersions("0.19.0", "0.19.0")  // 0 (equal)
  * compareVersions("0.19.0-dev", "0.19.0")  // 1 (dev > stable for downgrade detection)
  */
