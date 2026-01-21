@@ -9,7 +9,7 @@ export const REQUIRED_IMPORT_MAP_KEYS = ['react', 'react-dom'];
 
 /**
  * Extract version from a URL string
- * e.g., "https://esm.sh/use-vibes@0.18.9?external=react" -> "0.18.9"
+ * e.g., "https://esm.sh/use-vibes@0.24.3-dev?external=react" -> "0.24.3-dev"
  * @param {string} url - The URL to parse
  * @returns {string|null} - Version string or null
  */

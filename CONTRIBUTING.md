@@ -128,8 +128,8 @@ Both must have matching version numbers.
 
 The sync script (`scripts/sync.js`) fetches from upstream vibes.diy. Key considerations:
 
-- **Stable versions**: This plugin pins to `0.18.9`, not upstream dev versions
-- **Cache priority**: `skills/vibes/cache/` is the authoritative stable source
+- **Current version**: This plugin uses `0.24.3-dev` with cloud sync features
+- **Cache priority**: `skills/vibes/cache/` is the authoritative source
 - **Template updates**: Sync updates import maps in SKILL.md files
 
 To test sync changes:
@@ -184,8 +184,8 @@ open index.html
 # Check cache contents
 cat cache/import-map.json | jq '.imports'
 
-# Verify stable versions
-grep "0.18.9" skills/vibes/cache/import-map.json
+# Verify versions
+grep "0.24.3-dev" skills/vibes/cache/import-map.json
 ```
 
 ## Questions?

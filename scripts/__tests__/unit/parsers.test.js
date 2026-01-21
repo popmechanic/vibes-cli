@@ -63,7 +63,7 @@ describe('parseImportMapTs', () => {
 
     it('handles mixed static and template values', () => {
       const input = `
-        const VIBES_VERSION = "0.18.9";
+        const VIBES_VERSION = "0.24.3-dev";
         export const imports = {
           "react": "https://esm.sh/react@19.2.1",
           "use-vibes": \`https://esm.sh/use-vibes@\${VIBES_VERSION}\`
@@ -71,7 +71,7 @@ describe('parseImportMapTs', () => {
       `;
       const result = parseImportMapTs(input, { silent: true });
       expect(result['react']).toBe('https://esm.sh/react@19.2.1');
-      expect(result['use-vibes']).toBe('https://esm.sh/use-vibes@0.18.9');
+      expect(result['use-vibes']).toBe('https://esm.sh/use-vibes@0.24.3-dev');
     });
   });
 

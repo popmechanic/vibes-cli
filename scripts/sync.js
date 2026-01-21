@@ -482,11 +482,10 @@ if (typeof window !== 'undefined') {
  * Generate the import map JSON string for templates
  * Uses unpinned React (esm.sh resolves latest compatible) and ?external= for singleton
  *
- * NOTE: We use stable version 0.18.9 for use-vibes, not the upstream
- * dev version. The 0.19.x-dev versions have known React context bugs.
+ * NOTE: Version 0.24.3-dev includes toCloud() for Fireproof Cloud sync.
  * See CLAUDE.md for details.
  */
-const STABLE_VIBES_VERSION = "0.18.9";
+const STABLE_VIBES_VERSION = "0.24.3-dev";
 
 function generateImportMapJson(imports) {
   // Use unpinned React URLs - esm.sh will resolve compatible versions
