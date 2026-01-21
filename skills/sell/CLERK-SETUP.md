@@ -31,6 +31,8 @@ In Clerk Dashboard → **User & Authentication** → **Email**:
 
 ### 2.2 Passkey Settings
 
+**Note:** Configure these settings AFTER creating your Clerk app, not during the initial app creation.
+
 In Clerk Dashboard → **User & Authentication** → **Passkeys**:
 
 | Setting | Value | Why |
@@ -72,15 +74,7 @@ The registry server needs Clerk's public key to verify JWT tokens. **Important:*
 
 ---
 
-## 3. Add Authorized Domains
-
-1. In Clerk Dashboard, go to **Configure** → **Domains**
-2. Add your domain (e.g., `myapp.exe.xyz` or `yourdomain.com`)
-3. For wildcard subdomains, add the root domain - Clerk handles subdomains automatically
-
----
-
-## 4. Get Your Admin User ID
+## 3. Get Your Admin User ID
 
 1. Sign up on your app (or use an existing Clerk account)
 2. Go to Clerk Dashboard → **Users**
@@ -91,14 +85,14 @@ Use this ID in the `--admin-ids` flag when running the assembly script.
 
 ---
 
-## 5. Subdomain Registry & Webhooks
+## 4. Subdomain Registry & Webhooks
 
 The sell template uses a server-side registry to track subdomain ownership. This enables:
 - First-claim ownership (first user to claim a subdomain owns it)
 - Unlimited subdomains per user (each must be paid for)
 - Immediate release when subscription lapses
 
-### 5.1 Configure Webhook Endpoint
+### 4.1 Configure Webhook Endpoint
 
 The registry server listens for Clerk subscription webhooks to release subdomains when subscriptions change.
 
@@ -110,7 +104,7 @@ The registry server listens for Clerk subscription webhooks to release subdomain
    - `subscription.deleted`
 5. Copy the **Signing Secret**
 
-### 5.2 Set Webhook Secret
+### 4.2 Set Webhook Secret
 
 The webhook secret is set when deploying:
 
@@ -132,15 +126,15 @@ sudo systemctl restart registry
 
 ---
 
-## 6. Enable Clerk Billing (Required for `--billing-mode required`)
+## 5. Enable Clerk Billing (Required for `--billing-mode required`)
 
 If your app uses `--billing-mode required`, you must configure Clerk Billing:
 
-### 6.1 Navigate to Billing
+### 5.1 Navigate to Billing
 1. In Clerk Dashboard, go to **Billing**
 2. Click **Get Started** if this is your first time
 
-### 6.2 Create Subscription Plans with Quantity
+### 5.2 Create Subscription Plans with Quantity
 
 For multi-subdomain support, create a plan with **quantity** enabled:
 
@@ -151,7 +145,7 @@ For multi-subdomain support, create a plan with **quantity** enabled:
 
 The registry server automatically updates subscription quantity when users claim or lose subdomains.
 
-### 6.3 Alternative: Simple Plans
+### 5.3 Alternative: Simple Plans
 
 If you prefer simple subscription tiers:
 - `pro` - Premium tier (unlimited subdomains)
@@ -163,13 +157,13 @@ If you prefer simple subscription tiers:
 
 **Important:** Plan names are case-sensitive and must match exactly.
 
-### 6.4 Configure Plan Details
+### 5.4 Configure Plan Details
 For each plan:
 1. Set the price (e.g., $9/month, $89/year)
 2. Add features that will display in the PricingTable
 3. Configure trial period if desired (e.g., 14 days free)
 
-### 6.5 Connect Stripe
+### 5.5 Connect Stripe
 1. Go to **Billing** → **Stripe**
 2. Click **Connect Stripe Account**
 3. Complete the Stripe onboarding flow
@@ -177,7 +171,7 @@ For each plan:
 
 ---
 
-## 7. Understanding Billing Modes
+## 6. Understanding Billing Modes
 
 Your app supports two billing modes set during assembly:
 
@@ -204,7 +198,7 @@ node assemble-sell.js app.jsx index.html \
 
 ---
 
-## 8. Reserved Subdomains
+## 7. Reserved Subdomains
 
 Operators can reserve subdomains at deploy time to prevent users from claiming them:
 
@@ -230,7 +224,7 @@ Pre-allocated subdomains are immediately owned by the specified user.
 
 ---
 
-## 9. Testing
+## 8. Testing
 
 ### Test Mode
 1. Use Clerk test keys (`pk_test_xxx`)
@@ -267,19 +261,24 @@ Pre-allocated subdomains are immediately owned by the specified user.
 
 ### Basic Setup
 - [ ] Create Clerk application and get publishable key
-- [ ] Configure Email settings:
+- [ ] Get JWKS public key (from `/.well-known/jwks.json`, NOT Dashboard)
+- [ ] Configure Email settings (after app creation):
   - [ ] Sign-up with email: ON
   - [ ] Require email address: **OFF** (critical!)
   - [ ] Verify at sign-up: ON
   - [ ] Email verification code: Checked
-- [ ] Configure Passkey settings:
+- [ ] Configure Passkey settings (after app creation):
   - [ ] Sign-in with passkey: ON
   - [ ] Allow autofill: ON
   - [ ] Show passkey button: ON
   - [ ] Add passkey to account: ON
-- [ ] Add your domain to authorized domains
-- [ ] Get admin user ID
-- [ ] Get JWKS public key (from `/.well-known/jwks.json`, NOT Dashboard)
+
+### After First Deploy
+- [ ] Sign up on your app to become the first user
+- [ ] Get admin user ID from Clerk Dashboard → Users
+- [ ] Re-run assembly with `--admin-ids '["user_xxx"]'`
+- [ ] Re-deploy to enable admin dashboard access
+- [ ] Verify registry: `curl https://yourapp.exe.xyz/registry.json`
 
 ### Subdomain Registry
 - [ ] Configure webhook endpoint in Clerk Dashboard
@@ -324,10 +323,17 @@ For multi-subdomain users, the number of claimed subdomains equals their subscri
 
 ## Troubleshooting
 
+### Registry fetch failed error
+If you see "Registry fetch failed, using empty defaults" in the console:
+1. Verify registry server is running: `sudo systemctl status vibes-registry`
+2. Check registry endpoint: `curl https://yourapp.exe.xyz/registry.json`
+3. Verify `--clerk-key` was provided during deployment
+4. Check registry logs: `sudo journalctl -u vibes-registry -f`
+5. If you see HTML instead of JSON, nginx may not be proxying to the registry server
+
 ### Clerk not loading
-1. Add your domain to Clerk's authorized domains
-2. Check publishable key is correct (use pk_test_... for dev, pk_live_... for production)
-3. Verify the domain matches exactly (including subdomains)
+1. Check publishable key is correct (use pk_test_... for dev, pk_live_... for production)
+2. Verify the domain matches your deployment URL
 
 ### Passkey creation fails
 1. Ensure HTTPS is configured (passkeys require secure context)
