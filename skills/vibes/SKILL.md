@@ -19,6 +19,43 @@ description: Generate React web apps with Fireproof database. Use when creating 
 
 Generate React web applications using Fireproof for local-first data persistence.
 
+## Pre-Flight Check: Connect Status
+
+Before generating an app, check if Fireproof Connect is set up:
+
+```bash
+# Check if Connect is configured
+test -f "./fireproof/core/docker-compose.yaml" && test -f "./.env"
+```
+
+**If Connect is NOT set up** (files don't exist), inform the user:
+
+> **Note:** Fireproof Connect is not configured in this project.
+>
+> Apps generated now will use **anonymous device-based sync** via `use-fireproof`. This works great for local development and prototyping, but:
+>
+> - Data is tied to the device, not to user accounts
+> - If you later add authentication, existing local data won't automatically migrate to user accounts
+>
+> **Options:**
+> 1. **Continue with local-only sync** - Perfect for prototyping. You can always migrate later.
+> 2. **Set up Connect first** - Run `/vibes:connect` to configure authenticated sync with Clerk.
+>
+> Which would you like to do?
+
+Use AskUserQuestion to present the choice:
+```
+Question: "Would you like to set up authenticated sync before building?"
+Header: "Sync Mode"
+Options:
+- Label: "Continue with local sync (Recommended for prototyping)"
+  Description: "Use anonymous device sync. Fast to start, can migrate to auth later."
+- Label: "Set up Connect first"
+  Description: "Configure Clerk auth and cloud sync. Best if you know you'll need user accounts."
+```
+
+**If Connect IS set up** (files exist), generate apps using `@fireproof/clerk` patterns automatically. No prompt needed.
+
 **Platform Name vs User Intent**: "Vibes" is the name of this app platform (Vibes DIY). When users say "vibe" or "vibes" in their prompt, interpret it as:
 - Their project/brand name ("my vibes tracker")
 - A positive descriptor ("good vibes app")
