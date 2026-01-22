@@ -19,6 +19,115 @@ description: Generate React web apps with Fireproof database. Use when creating 
 
 Generate React web applications using Fireproof for local-first data persistence.
 
+## Pre-Flight Check: Connect Status
+
+Before generating an app, check if Fireproof Connect is set up:
+
+```bash
+# Check if Connect is configured
+test -f "./fireproof/core/docker-compose.yaml" && test -f "./.env"
+```
+
+**If Connect is NOT set up** (files don't exist), ask the user about cloud sync:
+
+Use AskUserQuestion to present the choice:
+```
+Question: "Do you want cloud sync with user accounts?"
+Header: "Sync Mode"
+Options:
+- Label: "No, local-only for now (Recommended for prototyping)"
+  Description: "Uses device-based sync. Fast to start, works offline. Can add auth later."
+- Label: "Yes, set up Connect"
+  Description: "Configure Clerk auth and cloud sync. Best if you need user accounts."
+```
+
+### If user chooses "Yes, set up Connect":
+
+**Step 1: Clone Fireproof Repository** (if not already present)
+
+```bash
+# Check if repo exists
+if [ ! -d "./fireproof" ]; then
+  git clone --branch selem/docker-for-all https://github.com/fireproof-storage/fireproof.git ./fireproof
+fi
+```
+
+**Step 2: Choose Credential Mode**
+
+Use AskUserQuestion:
+```
+Question: "How would you like to set up credentials?"
+Header: "Credentials"
+Options:
+- Label: "Fresh credentials (Recommended)"
+  Description: "Generate all new session tokens and CA keys. Use this for new projects."
+- Label: "Import from file"
+  Description: "Load credentials from a colleague's exported file. Use for team sharing."
+- Label: "Quick local dev"
+  Description: "Use preset dev tokens. Fastest setup but not for production."
+```
+
+**Step 3: Gather Clerk Keys**
+
+Ask the user for their Clerk credentials:
+```
+Question: "What is your Clerk Publishable Key?"
+Header: "Clerk Key"
+Options:
+- Label: "I have it ready"
+  Description: "Find it at: Clerk Dashboard -> Configure -> API Keys (starts with pk_)"
+- Label: "I need to create a Clerk app first"
+  Description: "Go to https://clerk.com to create an account and application"
+```
+
+Then ask for secret key and JWT URL. Validate formats:
+- `CLERK_PUBLISHABLE_KEY`: Must start with `pk_test_` or `pk_live_`
+- `CLERK_SECRET_KEY`: Must start with `sk_test_` or `sk_live_`
+- `CLERK_PUB_JWT_URL`: Must be a valid HTTPS URL (e.g., `https://your-app.clerk.accounts.dev`)
+
+**Step 4: Run Setup Script**
+
+```bash
+# Fresh credentials (default)
+node "${CLAUDE_PLUGIN_ROOT}/scripts/setup-connect.js" \
+  --clerk-publishable-key "pk_test_..." \
+  --clerk-secret-key "sk_test_..." \
+  --clerk-jwt-url "https://your-app.clerk.accounts.dev" \
+  --mode fresh
+
+# Import from file
+node "${CLAUDE_PLUGIN_ROOT}/scripts/setup-connect.js" \
+  --clerk-publishable-key "pk_test_..." \
+  --clerk-secret-key "sk_test_..." \
+  --clerk-jwt-url "https://your-app.clerk.accounts.dev" \
+  --mode import --import-file ./team-credentials.txt
+
+# Quick dev (uses preset tokens)
+node "${CLAUDE_PLUGIN_ROOT}/scripts/setup-connect.js" \
+  --clerk-publishable-key "pk_test_..." \
+  --clerk-secret-key "sk_test_..." \
+  --clerk-jwt-url "https://your-app.clerk.accounts.dev" \
+  --mode quick-dev
+```
+
+**Step 5: Show Docker Instructions**
+
+After successful setup, tell the user:
+```
+Connect setup complete!
+
+To start the Fireproof services:
+  cd fireproof/core && docker compose up --build
+
+Services will be available at:
+  - Token API: http://localhost:7370/api
+  - Cloud Sync: fpcloud://localhost:8909?protocol=ws
+
+Your .env file has been created. Apps you generate will auto-detect Connect.
+```
+
+**If Connect IS set up** (files exist), generate apps automatically. The assemble script will populate Connect config from .env.
+
 **Platform Name vs User Intent**: "Vibes" is the name of this app platform (Vibes DIY). When users say "vibe" or "vibes" in their prompt, interpret it as:
 - Their project/brand name ("my vibes tracker")
 - A positive descriptor ("good vibes app")
@@ -98,6 +207,12 @@ import { useDocument } from "use-fireproof";  // ERROR!
 ```
 
 **Cloud Sync Status**: The `attach` object provides sync state (`"initial" | "attaching" | "attached" | "error"`). Display `attach.state` for user feedback.
+
+**Connect Auto-Detection**: Generated apps check `window.__VIBES_CONFIG__` at runtime:
+- If config has valid values (set by assemble.js from .env) → Clerk auth + cloud sync
+- If config is empty/placeholders → Local-only mode with toCloud()
+
+The same generated code works in both modes - no code changes needed when switching between local and Connect.
 
 ## Assembly Workflow
 
