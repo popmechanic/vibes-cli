@@ -21,11 +21,11 @@ SKILL.md provides common patterns (useDocument, useLiveQuery, database.put/del) 
 
 | Feature | Signal in prompt | fireproof.txt section |
 |---------|------------------|----------------------|
-| Image/file uploads | "upload", "image", "file", "attachment" | "Working with Files" (line 260) |
-| Drag-and-drop reordering | "sortable", "reorder", "drag", "position" | "Sortable Lists" (line 173) |
-| Date/category grouping | "by month", "by category", "grouped" | "Array Indexes and Prefix Queries" (line 162) |
-| Backend sync/webhooks | "server", "webhook", "subscribe", "sync" | "Using Fireproof in JavaScript" (line 224) |
-| Display images from db | "gallery", "show images" | Example Image Uploader (line 402) |
+| User authentication | "login", "auth", "accounts", "Clerk" | Quick Start, API Reference |
+| Sync status indicators | "connection status", "online/offline" | Sync Status Display |
+| User context/identity | "user name", "profile", "who is logged in" | User Context, useUser() |
+| Complete example | "full example", "show me how" | Complete Example |
+| Migration from use-fireproof | "migrate", "update existing" | Differences from Standard Fireproof |
 
 ### Architecture at a Glance
 
@@ -301,6 +301,10 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `scripts/lib/jwt-validation.js` | JWT validation utilities (azp matching, timing) |
 | `scripts/lib/auth-flows.js` | Auth flow state machines (signup, signin, gate) |
 | `skills/exe/SKILL.md` | exe.dev deployment skill |
+| `skills/connect/SKILL.md` | Connect skill for Fireproof + Clerk setup |
+| `skills/connect/templates/docker-compose.yaml` | Docker Compose template for Connect services |
+| `skills/connect/templates/env.template` | Environment template for Connect config |
+| `scripts/setup-connect.js` | Setup script for Fireproof Connect |
 | `commands/sync.md` | User-facing sync command definition |
 | `commands/update.md` | User-facing update command definition |
 
@@ -323,7 +327,7 @@ There are two cache locations by design:
 The sync script updates `/cache/` and the template files.
 
 **When to read cache files:**
-- `fireproof.txt` - Read when generating apps with file attachments, custom indexes, or non-React code
+- `fireproof.txt` - Now contains `@fireproof/clerk` docs for authenticated sync. Read when Connect is set up and apps need Clerk auth patterns.
 - `style-prompt.txt` - Read when you need UI/color guidance beyond what's in SKILL.md
 - `import-map.json` - Reference only; never hardcode these values
 
