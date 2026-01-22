@@ -6,11 +6,18 @@
  *   node scripts/setup-connect.js \
  *     --clerk-publishable-key "pk_test_..." \
  *     --clerk-secret-key "sk_test_..." \
- *     --clerk-jwt-url "https://your-app.clerk.accounts.dev/.well-known/jwks.json"
+ *     --clerk-jwt-url "https://your-app.clerk.accounts.dev/.well-known/jwks.json" \
+ *     --mode fresh|quick-dev|import \
+ *     --import-file /path/to/credentials.txt
+ *
+ * Modes:
+ *   fresh     - Generate all new session tokens and CA keys (default)
+ *   quick-dev - Use preset dev tokens from dev-credentials.json
+ *   import    - Load session tokens from a colleague's exported file
  *
  * This script:
  * 1. Validates Clerk key formats
- * 2. Generates proper JWK session tokens and device CA keys
+ * 2. Generates or loads session tokens and device CA keys
  * 3. Creates docker-compose.yaml in ./fireproof/core/
  * 4. Creates .env in project root
  */
@@ -202,6 +209,95 @@ async function generateDeviceCAKeys() {
 }
 
 /**
+ * Parse an import file with key=value format
+ * Returns object with session token and CA credentials
+ */
+function parseImportFile(filePath) {
+  if (!existsSync(filePath)) {
+    throw new Error(`Import file not found: ${filePath}`);
+  }
+
+  const content = readFileSync(filePath, 'utf-8');
+  const credentials = {};
+
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    const eqIndex = trimmed.indexOf('=');
+    if (eqIndex === -1) continue;
+
+    const key = trimmed.slice(0, eqIndex).trim();
+    const value = trimmed.slice(eqIndex + 1).trim();
+
+    credentials[key] = value;
+  }
+
+  // Validate required keys
+  const required = [
+    'CLOUD_SESSION_TOKEN_PUBLIC',
+    'CLOUD_SESSION_TOKEN_SECRET',
+    'DEVICE_ID_CA_PRIV_KEY',
+    'DEVICE_ID_CA_CERT'
+  ];
+
+  const missing = required.filter(k => !credentials[k]);
+  if (missing.length > 0) {
+    throw new Error(`Import file missing required keys: ${missing.join(', ')}`);
+  }
+
+  return {
+    sessionTokenPublic: credentials.CLOUD_SESSION_TOKEN_PUBLIC,
+    sessionTokenSecret: credentials.CLOUD_SESSION_TOKEN_SECRET,
+    devicePrivKey: credentials.DEVICE_ID_CA_PRIV_KEY,
+    deviceCert: credentials.DEVICE_ID_CA_CERT
+  };
+}
+
+/**
+ * Load quick-dev credentials from the defaults file
+ */
+function loadQuickDevCredentials(pluginDir) {
+  const defaultsPath = join(pluginDir, 'skills', 'vibes', 'defaults', 'dev-credentials.json');
+
+  if (!existsSync(defaultsPath)) {
+    throw new Error(
+      `Quick-dev credentials not found at: ${defaultsPath}\n` +
+      `Create from example: cp skills/vibes/defaults/dev-credentials.example.json skills/vibes/defaults/dev-credentials.json`
+    );
+  }
+
+  const content = readFileSync(defaultsPath, 'utf-8');
+  const credentials = JSON.parse(content);
+
+  return {
+    sessionTokenPublic: credentials.CLOUD_SESSION_TOKEN_PUBLIC,
+    sessionTokenSecret: credentials.CLOUD_SESSION_TOKEN_SECRET,
+    devicePrivKey: credentials.DEVICE_ID_CA_PRIV_KEY,
+    deviceCert: credentials.DEVICE_ID_CA_CERT
+  };
+}
+
+/**
+ * Export credentials to a shareable file format
+ */
+function exportCredentials(filePath, credentials) {
+  const content = `# Fireproof Connect Credentials
+# Generated: ${new Date().toISOString()}
+# Share this file with team members to use the same sync backend
+#
+# Usage: node setup-connect.js --mode import --import-file ${filePath}
+
+CLOUD_SESSION_TOKEN_PUBLIC=${credentials.sessionTokenPublic}
+CLOUD_SESSION_TOKEN_SECRET=${credentials.sessionTokenSecret}
+DEVICE_ID_CA_PRIV_KEY=${credentials.devicePrivKey}
+DEVICE_ID_CA_CERT=${credentials.deviceCert}
+`;
+  writeFileSync(filePath, content);
+  console.log(`Credentials exported to: ${filePath}`);
+}
+
+/**
  * Validate Clerk key formats
  */
 function validateClerkKeys(publishableKey, secretKey, jwtUrl) {
@@ -239,7 +335,7 @@ function validateClerkKeys(publishableKey, secretKey, jwtUrl) {
  * Parse command line arguments
  */
 function parseArgs(args) {
-  const result = {};
+  const result = { mode: 'fresh' }; // default mode
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--clerk-publishable-key' && args[i + 1]) {
       result.clerkPublishableKey = args[++i];
@@ -249,6 +345,18 @@ function parseArgs(args) {
       result.clerkJwtUrl = args[++i];
     } else if (args[i] === '--output-dir' && args[i + 1]) {
       result.outputDir = args[++i];
+    } else if (args[i] === '--mode' && args[i + 1]) {
+      const mode = args[++i];
+      if (['fresh', 'quick-dev', 'import'].includes(mode)) {
+        result.mode = mode;
+      } else {
+        console.error(`Invalid mode: ${mode}. Valid modes: fresh, quick-dev, import`);
+        process.exit(1);
+      }
+    } else if (args[i] === '--import-file' && args[i + 1]) {
+      result.importFile = args[++i];
+    } else if (args[i] === '--export-file' && args[i + 1]) {
+      result.exportFile = args[++i];
     } else if (args[i] === '--help' || args[i] === '-h') {
       result.help = true;
     }
@@ -266,14 +374,30 @@ Required:
   --clerk-jwt-url <url>          Clerk JWKS URL (https://your-app.clerk.accounts.dev/.well-known/jwks.json)
 
 Optional:
+  --mode <mode>                  Credential mode: fresh (default), quick-dev, or import
+  --import-file <path>           File with credentials to import (for --mode import)
+  --export-file <path>           Export credentials to file for sharing with team
   --output-dir <path>            Output directory (default: current directory)
   --help, -h                     Show this help message
 
+Modes:
+  fresh      Generate all new session tokens and CA keys (default)
+  quick-dev  Use preset dev tokens from dev-credentials.json (for quick local testing)
+  import     Load session tokens from a colleague's exported credentials file
+
 Example:
+  # Fresh setup (generates new keys)
   node setup-connect.js \\
     --clerk-publishable-key "pk_test_abc123" \\
     --clerk-secret-key "sk_test_xyz789" \\
     --clerk-jwt-url "https://my-app.clerk.accounts.dev/.well-known/jwks.json"
+
+  # Import colleague's credentials
+  node setup-connect.js \\
+    --clerk-publishable-key "pk_test_abc123" \\
+    --clerk-secret-key "sk_test_xyz789" \\
+    --clerk-jwt-url "https://my-app.clerk.accounts.dev/.well-known/jwks.json" \\
+    --mode import --import-file ./team-credentials.txt
 `);
 }
 
@@ -299,17 +423,60 @@ async function main() {
     process.exit(1);
   }
 
+  // Validate import mode has required file
+  if (args.mode === 'import' && !args.importFile) {
+    console.error('Error: --import-file is required when using --mode import');
+    process.exit(1);
+  }
+
   const outputDir = args.outputDir || process.cwd();
+  const pluginDir = dirname(__dirname);
 
   console.log('Setting up Fireproof Connect...\n');
+  console.log(`Mode: ${args.mode}`);
 
-  // Generate security keys using Web Crypto API
-  console.log('Generating security keys...');
-  const { publicEnv: sessionTokenPublic, privateEnv: sessionTokenSecret } = await generateSessionTokens();
-  const { privKey: devicePrivKey, cert: deviceCert } = await generateDeviceCAKeys();
+  // Get credentials based on mode
+  let sessionTokenPublic, sessionTokenSecret, devicePrivKey, deviceCert;
+
+  if (args.mode === 'import') {
+    console.log(`Importing credentials from: ${args.importFile}`);
+    const imported = parseImportFile(args.importFile);
+    sessionTokenPublic = imported.sessionTokenPublic;
+    sessionTokenSecret = imported.sessionTokenSecret;
+    devicePrivKey = imported.devicePrivKey;
+    deviceCert = imported.deviceCert;
+    console.log('Credentials imported successfully.');
+  } else if (args.mode === 'quick-dev') {
+    console.log('Loading quick-dev preset credentials...');
+    const quickDev = loadQuickDevCredentials(pluginDir);
+    sessionTokenPublic = quickDev.sessionTokenPublic;
+    sessionTokenSecret = quickDev.sessionTokenSecret;
+    devicePrivKey = quickDev.devicePrivKey;
+    deviceCert = quickDev.deviceCert;
+    console.log('Quick-dev credentials loaded.');
+  } else {
+    // fresh mode (default)
+    console.log('Generating fresh security keys...');
+    const sessionTokens = await generateSessionTokens();
+    const deviceCA = await generateDeviceCAKeys();
+    sessionTokenPublic = sessionTokens.publicEnv;
+    sessionTokenSecret = sessionTokens.privateEnv;
+    devicePrivKey = deviceCA.privKey;
+    deviceCert = deviceCA.cert;
+    console.log('Fresh credentials generated.');
+  }
+
+  // Export credentials if requested
+  if (args.exportFile) {
+    exportCredentials(args.exportFile, {
+      sessionTokenPublic,
+      sessionTokenSecret,
+      devicePrivKey,
+      deviceCert
+    });
+  }
 
   // Find plugin directory for templates
-  const pluginDir = dirname(__dirname);
   const templateDir = join(pluginDir, 'skills', 'connect', 'templates');
 
   // Read templates

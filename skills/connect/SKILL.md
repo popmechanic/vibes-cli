@@ -3,6 +3,20 @@ name: connect
 description: Set up local Fireproof sync backend with Clerk authentication. Run this before /vibes:vibes to enable authenticated cloud sync. Creates Docker-based Token API and Cloud sync services.
 ---
 
+> **DEPRECATED:** Connect setup is now integrated into the main `/vibes:vibes` skill.
+> When you run `/vibes:vibes`, it will ask if you want cloud sync and guide you through
+> Connect setup automatically. This standalone skill remains for reference but should
+> not be invoked directly.
+>
+> **What changed:**
+> - `/vibes:vibes` now asks "Do you want cloud sync with user accounts?" at the start
+> - If you say yes, it runs the full Connect setup (same as this skill did)
+> - Apps auto-detect Connect at runtime - same code works in local or Connect mode
+>
+> **Migration:** Just run `/vibes:vibes` instead of `/vibes:connect` + `/vibes:vibes`
+
+---
+
 **Display this ASCII art immediately when starting:**
 
 ```
