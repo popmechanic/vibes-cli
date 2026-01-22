@@ -61,6 +61,15 @@
         }
       }
     </script>
+    <!-- Connect configuration - populated by assemble.js from .env if present -->
+    <!-- If values are empty or placeholders, app runs in local-only mode with toCloud() -->
+    <script>
+      window.__VIBES_CONFIG__ = {
+        tokenApiUri: "__VITE_TOKEN_API_URI__",
+        cloudBackendUrl: "__VITE_CLOUD_BACKEND_URL__",
+        clerkPublishableKey: "__VITE_CLERK_PUBLISHABLE_KEY__"
+      };
+    </script>
     <!-- Load React globally for menu components -->
     <script type="module">
       import * as React from "react";

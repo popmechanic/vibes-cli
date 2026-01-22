@@ -12,11 +12,61 @@
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { resolve } from 'path';
+import { resolve, dirname } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { createBackup } from './lib/backup.js';
 
 const PLACEHOLDER = '// __VIBES_APP_CODE__';
+
+// Connect config placeholders
+const CONFIG_PLACEHOLDERS = {
+  '__VITE_TOKEN_API_URI__': 'VITE_TOKEN_API_URI',
+  '__VITE_CLOUD_BACKEND_URL__': 'VITE_CLOUD_BACKEND_URL',
+  '__VITE_CLERK_PUBLISHABLE_KEY__': 'VITE_CLERK_PUBLISHABLE_KEY'
+};
+
+/**
+ * Parse .env file if it exists
+ * Returns object with env var values
+ */
+function loadEnvFile(dir) {
+  const envPath = resolve(dir, '.env');
+  if (!existsSync(envPath)) {
+    return {};
+  }
+
+  const content = readFileSync(envPath, 'utf8');
+  const env = {};
+
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    const eqIndex = trimmed.indexOf('=');
+    if (eqIndex === -1) continue;
+
+    const key = trimmed.slice(0, eqIndex).trim();
+    const value = trimmed.slice(eqIndex + 1).trim();
+    env[key] = value;
+  }
+
+  return env;
+}
+
+/**
+ * Replace Connect config placeholders with values from .env
+ * If no .env or values missing, keeps placeholders (app will use local mode)
+ */
+function populateConnectConfig(html, envVars) {
+  let result = html;
+
+  for (const [placeholder, envKey] of Object.entries(CONFIG_PLACEHOLDERS)) {
+    const value = envVars[envKey] || '';
+    result = result.replace(placeholder, value);
+  }
+
+  return result;
+}
 
 // Parse args
 const appPath = process.argv[2];
@@ -52,8 +102,20 @@ if (!template.includes(PLACEHOLDER)) {
   process.exit(1);
 }
 
-// Assemble: insert app code at placeholder
-const output = template.replace(PLACEHOLDER, appCode);
+// Load env vars from .env if present (for Connect config)
+const outputDir = dirname(resolvedOutputPath);
+const envVars = loadEnvFile(outputDir);
+
+// Log Connect mode detection
+if (envVars.VITE_TOKEN_API_URI && envVars.VITE_CLERK_PUBLISHABLE_KEY) {
+  console.log('Connect mode: Clerk auth + cloud sync enabled');
+} else {
+  console.log('Connect mode: Local-only (toCloud)');
+}
+
+// Assemble: insert app code at placeholder, then populate Connect config
+let output = template.replace(PLACEHOLDER, appCode);
+output = populateConnectConfig(output, envVars);
 
 // Validate output
 function validateAssembly(html, code) {
