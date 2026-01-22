@@ -3,13 +3,42 @@
 # Start with: docker compose up --build
 
 services:
-  connect:
+  # Cloud Backend (Wrangler dev with R2 storage)
+  cloud-backend:
     build:
-      context: ../packages/connect-token
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile.cloud-backend
+    container_name: fireproof-cloud-backend
+    ports:
+      - "8909:8909"
+    environment:
+      # Server config
+      ENDPOINT_PORT: "8909"
+      NODE_ENV: development
+
+      # Session tokens
+      CLOUD_SESSION_TOKEN_PUBLIC: __CLOUD_SESSION_TOKEN_PUBLIC__
+
+      # Protocol settings
+      VERSION: FP-MSG-1.0
+      FP_DEBUG: "true"
+      MAX_IDLE_TIME: "300"
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8909/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Dashboard (Frontend + Backend API with Clerk auth)
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    container_name: fireproof-dashboard
     ports:
       - "7370:7370"
     environment:
+      # Server config
       PORT: "7370"
       NODE_ENV: development
       ENVIRONMENT: dev
@@ -27,26 +56,29 @@ services:
       # Device ID CA keys
       DEVICE_ID_CA_PRIV_KEY: __DEVICE_ID_CA_PRIV_KEY__
       DEVICE_ID_CA_CERT: __DEVICE_ID_CA_CERT__
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7370/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
-  cloud:
-    build:
-      context: ../packages/cloud-backend
-      dockerfile: Dockerfile
-    ports:
-      - "8909:8909"
-    environment:
-      PORT: "8909"
-      NODE_ENV: development
+      # Limits
+      MAX_LEDGERS: "50"
+      MAX_TENANTS: "100"
+      MAX_ADMIN_USERS: "10"
+      MAX_MEMBER_USERS: "50"
+      MAX_INVITES: "100"
+      MAX_APPID_BINDINGS: "50"
 
-      # Session tokens (must match connect service)
-      CLOUD_SESSION_TOKEN_PUBLIC: __CLOUD_SESSION_TOKEN_PUBLIC__
-      CLOUD_SESSION_TOKEN_SECRET: __CLOUD_SESSION_TOKEN_SECRET__
+      # Cloud backend URL
+      FP_ENDPOINT: http://cloud-backend:8909
     depends_on:
-      connect:
-        condition: service_started
+      cloud-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:7370/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  wrangler_state:
+
+networks:
+  default:
+    name: fireproof-network

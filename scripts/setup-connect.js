@@ -6,11 +6,11 @@
  *   node scripts/setup-connect.js \
  *     --clerk-publishable-key "pk_test_..." \
  *     --clerk-secret-key "sk_test_..." \
- *     --clerk-jwt-url "https://your-app.clerk.accounts.dev"
+ *     --clerk-jwt-url "https://your-app.clerk.accounts.dev/.well-known/jwks.json"
  *
  * This script:
  * 1. Validates Clerk key formats
- * 2. Generates session tokens and device CA keys
+ * 2. Generates proper JWK session tokens and device CA keys
  * 3. Creates docker-compose.yaml in ./fireproof/core/
  * 4. Creates .env in project root
  */
@@ -18,20 +18,23 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { randomBytes } from 'crypto';
+import { webcrypto } from 'crypto';
+
+const { subtle } = webcrypto;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Base58 alphabet (Bitcoin-style)
+// Base58btc alphabet (multibase compatible)
 const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
 /**
  * Encode bytes to base58
  */
 function base58Encode(bytes) {
+  const uint8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   const digits = [0];
-  for (const byte of bytes) {
+  for (const byte of uint8) {
     let carry = byte;
     for (let i = 0; i < digits.length; i++) {
       carry += digits[i] << 8;
@@ -45,7 +48,7 @@ function base58Encode(bytes) {
   }
   // Leading zeros become '1'
   let result = '';
-  for (const byte of bytes) {
+  for (const byte of uint8) {
     if (byte === 0) result += '1';
     else break;
   }
@@ -57,34 +60,87 @@ function base58Encode(bytes) {
 }
 
 /**
- * Generate a random base58 string with prefix
+ * Encode a JWK object to base58btc (matching Fireproof's jwk2env format)
+ * Format: 'z' + base58btc(utf8(JSON.stringify(jwk)))
  */
-function generateBase58Token(byteLength, prefix = 'z') {
-  const bytes = randomBytes(byteLength);
-  return prefix + base58Encode(bytes);
+function jwkToEnv(jwk) {
+  const jsonStr = JSON.stringify(jwk);
+  const bytes = new TextEncoder().encode(jsonStr);
+  return 'z' + base58Encode(bytes);
 }
 
 /**
- * Generate EC P-256 key pair components for JWT
- * This creates deterministic-looking but random values for dev environments
+ * Generate EC P-256 key pair and return as JWK-encoded env strings
  */
-function generateDeviceCAKeys() {
-  // Generate private key (base58 encoded)
-  const privKeyBytes = randomBytes(96);
-  const privKey = 'z33' + base58Encode(privKeyBytes);
+async function generateSessionTokens() {
+  // Generate EC P-256 key pair for signing
+  const keyPair = await subtle.generateKey(
+    {
+      name: 'ECDSA',
+      namedCurve: 'P-256'
+    },
+    true, // extractable
+    ['sign', 'verify']
+  );
 
-  // Generate a mock JWT certificate
-  // In production, this would be a properly signed JWT
-  // For dev, we create a valid JWT structure with random data
+  // Export keys as JWK
+  const publicJwk = await subtle.exportKey('jwk', keyPair.publicKey);
+  const privateJwk = await subtle.exportKey('jwk', keyPair.privateKey);
+
+  // Add algorithm hint for Fireproof
+  publicJwk.alg = 'ES256';
+  privateJwk.alg = 'ES256';
+
+  // Encode as base58btc
+  const publicEnv = jwkToEnv(publicJwk);
+  const privateEnv = jwkToEnv(privateJwk);
+
+  return { publicEnv, privateEnv };
+}
+
+/**
+ * Generate Device CA key pair and certificate
+ */
+async function generateDeviceCAKeys() {
+  // Generate EC P-256 key pair for CA
+  const keyPair = await subtle.generateKey(
+    {
+      name: 'ECDSA',
+      namedCurve: 'P-256'
+    },
+    true,
+    ['sign', 'verify']
+  );
+
+  // Export private key as JWK
+  const privateJwk = await subtle.exportKey('jwk', keyPair.privateKey);
+  privateJwk.alg = 'ES256';
+  const privKey = jwkToEnv(privateJwk);
+
+  // Export public key as JWK for the certificate
+  const publicJwk = await subtle.exportKey('jwk', keyPair.publicKey);
+
+  // Generate a self-signed certificate JWT
+  const now = Math.floor(Date.now() / 1000);
+  const oneYear = 365 * 24 * 60 * 60;
+
+  // Generate a key ID from the public key
+  const kidBytes = new Uint8Array(32);
+  webcrypto.getRandomValues(kidBytes);
+  const kid = base58Encode(kidBytes);
+
   const header = {
     alg: 'ES256',
     typ: 'CERT+JWT',
-    kid: base58Encode(randomBytes(32)),
+    kid: kid,
     x5c: []
   };
 
-  const now = Math.floor(Date.now() / 1000);
-  const oneYear = 365 * 24 * 60 * 60;
+  const jtiBytes = new Uint8Array(32);
+  webcrypto.getRandomValues(jtiBytes);
+
+  const serialBytes = new Uint8Array(32);
+  webcrypto.getRandomValues(serialBytes);
 
   const payload = {
     iss: 'Docker Dev CA',
@@ -93,10 +149,10 @@ function generateDeviceCAKeys() {
     iat: now,
     nbf: now,
     exp: now + oneYear,
-    jti: base58Encode(randomBytes(32)),
+    jti: base58Encode(jtiBytes),
     certificate: {
       version: '3',
-      serialNumber: base58Encode(randomBytes(32)),
+      serialNumber: base58Encode(serialBytes),
       subject: {
         commonName: 'Docker Dev CA',
         organization: 'Vibes DIY Development',
@@ -116,10 +172,10 @@ function generateDeviceCAKeys() {
         notAfter: new Date((now + oneYear) * 1000).toISOString()
       },
       subjectPublicKeyInfo: {
-        kty: 'EC',
-        crv: 'P-256',
-        x: Buffer.from(randomBytes(32)).toString('base64url'),
-        y: Buffer.from(randomBytes(32)).toString('base64url')
+        kty: publicJwk.kty,
+        crv: publicJwk.crv,
+        x: publicJwk.x,
+        y: publicJwk.y
       },
       signatureAlgorithm: 'ES256',
       keyUsage: ['digitalSignature', 'keyEncipherment'],
@@ -127,12 +183,20 @@ function generateDeviceCAKeys() {
     }
   };
 
-  // Create the JWT (header.payload.signature)
+  // Create the unsigned JWT parts
   const headerB64 = Buffer.from(JSON.stringify(header)).toString('base64url');
   const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  const signature = Buffer.from(randomBytes(64)).toString('base64url');
 
-  const cert = `${headerB64}.${payloadB64}.${signature}`;
+  // Sign the JWT
+  const dataToSign = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
+  const signature = await subtle.sign(
+    { name: 'ECDSA', hash: 'SHA-256' },
+    keyPair.privateKey,
+    dataToSign
+  );
+  const signatureB64 = Buffer.from(signature).toString('base64url');
+
+  const cert = `${headerB64}.${payloadB64}.${signatureB64}`;
 
   return { privKey, cert };
 }
@@ -199,7 +263,7 @@ Usage: node setup-connect.js [options]
 Required:
   --clerk-publishable-key <key>  Clerk publishable key (pk_test_... or pk_live_...)
   --clerk-secret-key <key>       Clerk secret key (sk_test_... or sk_live_...)
-  --clerk-jwt-url <url>          Clerk JWT URL (https://your-app.clerk.accounts.dev)
+  --clerk-jwt-url <url>          Clerk JWKS URL (https://your-app.clerk.accounts.dev/.well-known/jwks.json)
 
 Optional:
   --output-dir <path>            Output directory (default: current directory)
@@ -209,7 +273,7 @@ Example:
   node setup-connect.js \\
     --clerk-publishable-key "pk_test_abc123" \\
     --clerk-secret-key "sk_test_xyz789" \\
-    --clerk-jwt-url "https://my-app.clerk.accounts.dev"
+    --clerk-jwt-url "https://my-app.clerk.accounts.dev/.well-known/jwks.json"
 `);
 }
 
@@ -239,11 +303,10 @@ async function main() {
 
   console.log('Setting up Fireproof Connect...\n');
 
-  // Generate security keys
+  // Generate security keys using Web Crypto API
   console.log('Generating security keys...');
-  const sessionTokenPublic = generateBase58Token(96, 'z');
-  const sessionTokenSecret = generateBase58Token(120, 'z33');
-  const { privKey: devicePrivKey, cert: deviceCert } = generateDeviceCAKeys();
+  const { publicEnv: sessionTokenPublic, privateEnv: sessionTokenSecret } = await generateSessionTokens();
+  const { privKey: devicePrivKey, cert: deviceCert } = await generateDeviceCAKeys();
 
   // Find plugin directory for templates
   const pluginDir = dirname(__dirname);
