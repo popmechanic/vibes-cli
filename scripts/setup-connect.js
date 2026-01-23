@@ -210,6 +210,7 @@ async function generateDeviceCAKeys() {
 
 /**
  * Parse an import file with key=value format
+ * Handles common variations: export prefix, quoted values, whitespace around =
  * Returns object with session token and CA credentials
  */
 function parseImportFile(filePath) {
@@ -220,17 +221,44 @@ function parseImportFile(filePath) {
   const content = readFileSync(filePath, 'utf-8');
   const credentials = {};
 
+  // Key name mappings for common variations
+  const keyMappings = {
+    // Short names (without prefix)
+    'SESSION_TOKEN_PUBLIC': 'CLOUD_SESSION_TOKEN_PUBLIC',
+    'SESSION_TOKEN_SECRET': 'CLOUD_SESSION_TOKEN_SECRET',
+    'CA_PRIV_KEY': 'DEVICE_ID_CA_PRIV_KEY',
+    'CA_CERT': 'DEVICE_ID_CA_CERT',
+    // Already correct names (pass through)
+    'CLOUD_SESSION_TOKEN_PUBLIC': 'CLOUD_SESSION_TOKEN_PUBLIC',
+    'CLOUD_SESSION_TOKEN_SECRET': 'CLOUD_SESSION_TOKEN_SECRET',
+    'DEVICE_ID_CA_PRIV_KEY': 'DEVICE_ID_CA_PRIV_KEY',
+    'DEVICE_ID_CA_CERT': 'DEVICE_ID_CA_CERT'
+  };
+
   for (const line of content.split('\n')) {
-    const trimmed = line.trim();
+    let trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
+
+    // Strip 'export ' prefix (common in Docker .env files)
+    if (trimmed.startsWith('export ')) {
+      trimmed = trimmed.slice(7);
+    }
 
     const eqIndex = trimmed.indexOf('=');
     if (eqIndex === -1) continue;
 
-    const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).trim();
+    let key = trimmed.slice(0, eqIndex).trim();
+    let value = trimmed.slice(eqIndex + 1).trim();
 
-    credentials[key] = value;
+    // Strip quotes from value (single or double)
+    if ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+
+    // Map key variations to expected names
+    const mappedKey = keyMappings[key] || key;
+    credentials[mappedKey] = value;
   }
 
   // Validate required keys
@@ -243,7 +271,7 @@ function parseImportFile(filePath) {
 
   const missing = required.filter(k => !credentials[k]);
   if (missing.length > 0) {
-    throw new Error(`Import file missing required keys: ${missing.join(', ')}`);
+    throw new Error(`Import file missing required keys: ${missing.join(', ')}\nFound keys: ${Object.keys(credentials).join(', ')}`);
   }
 
   return {
@@ -359,6 +387,8 @@ function parseArgs(args) {
       result.exportFile = args[++i];
     } else if (args[i] === '--help' || args[i] === '-h') {
       result.help = true;
+    } else if (args[i] === '--skip-clone') {
+      result.skipClone = true;
     }
   }
   return result;
@@ -378,6 +408,7 @@ Optional:
   --import-file <path>           File with credentials to import (for --mode import)
   --export-file <path>           Export credentials to file for sharing with team
   --output-dir <path>            Output directory (default: current directory)
+  --skip-clone                   Skip cloning Fireproof repo (use if already cloned)
   --help, -h                     Show this help message
 
 Modes:
@@ -399,6 +430,93 @@ Example:
     --clerk-jwt-url "https://my-app.clerk.accounts.dev/.well-known/jwks.json" \\
     --mode import --import-file ./team-credentials.txt
 `);
+}
+
+/**
+ * Clone the Fireproof repository if not already present
+ */
+async function cloneFireproofRepo(outputDir) {
+  const repoDir = join(outputDir, 'fireproof');
+
+  if (existsSync(repoDir)) {
+    console.log(`Fireproof repo already exists at: ${repoDir}`);
+    return true;
+  }
+
+  console.log('Cloning Fireproof repository...');
+  const { execSync } = await import('child_process');
+  try {
+    execSync(
+      'git clone --branch selem/docker-for-all https://github.com/fireproof-storage/fireproof.git fireproof',
+      { cwd: outputDir, stdio: 'inherit' }
+    );
+    console.log('Repository cloned successfully.');
+    return true;
+  } catch (error) {
+    console.error('Failed to clone repository:', error.message);
+    return false;
+  }
+}
+
+/**
+ * Apply CORS fix to the cloud backend server.ts
+ * The upstream repo has incomplete CORS headers that cause browser errors
+ */
+async function applyCorsFix(repoDir) {
+  const serverPath = join(repoDir, 'cloud', 'backend', 'cf-d1', 'server.ts');
+
+  if (!existsSync(serverPath)) {
+    console.log('Note: cf-d1/server.ts not found, skipping CORS patch');
+    return;
+  }
+
+  let content = readFileSync(serverPath, 'utf-8');
+
+  // Check if already patched
+  if (content.includes('X-Requested-With')) {
+    console.log('CORS headers already patched.');
+    return;
+  }
+
+  console.log('Applying CORS fix to server.ts...');
+
+  // Apply CORS_HEADERS fix
+  const oldCorsHeaders = `const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, PUT, DELETE, HEAD, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};`;
+
+  const newCorsHeaders = `const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, HEAD, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept, Origin, X-FP-*",
+  "Access-Control-Allow-Credentials": "true",
+  "Access-Control-Max-Age": "86400",
+};`;
+
+  content = content.replace(oldCorsHeaders, newCorsHeaders);
+
+  // Apply Durable Object response CORS fix
+  const oldDOFetch = 'return getRoomDurableObject(env, "V1").fetch(req);';
+  const newDOFetch = `const response = await getRoomDurableObject(env, "V1").fetch(req);
+
+      // Add CORS headers to Durable Object response
+      const newHeaders = new Headers(response.headers);
+      Object.entries(CORS_HEADERS).forEach(([key, value]) => {
+        newHeaders.set(key, value);
+      });
+
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: newHeaders,
+      });`;
+
+  content = content.replace(oldDOFetch, newDOFetch);
+
+  writeFileSync(serverPath, content);
+  console.log('Applied CORS fix to server.ts');
 }
 
 async function main() {
@@ -476,6 +594,20 @@ async function main() {
     });
   }
 
+  // Clone Fireproof repo if not skipped
+  if (!args.skipClone) {
+    const cloned = await cloneFireproofRepo(outputDir);
+    if (!cloned) {
+      console.error('Cannot proceed without Fireproof repository.');
+      console.error('To skip cloning (if repo already exists elsewhere), use --skip-clone');
+      process.exit(1);
+    }
+
+    // Apply CORS fix to the cloned repo
+    const repoDir = join(outputDir, 'fireproof');
+    await applyCorsFix(repoDir);
+  }
+
   // Find plugin directory for templates
   const templateDir = join(pluginDir, 'skills', 'connect', 'templates');
 
@@ -545,11 +677,8 @@ async function main() {
 Setup complete!
 
 Next steps:
-1. Clone the Fireproof repository (if not already done):
-   git clone --branch selem/docker-for-all https://github.com/fireproof-storage/fireproof.git ./fireproof
-
-2. Start the Docker services:
-   cd fireproof/core && docker compose up --build
+Start the Docker services:
+  cd fireproof/core && docker compose up --build
 
 Services will be available at:
   - Token API: http://localhost:7370/api
