@@ -85,6 +85,32 @@ Then ask for secret key and JWT URL. Validate formats:
 - `CLERK_SECRET_KEY`: Must start with `sk_test_` or `sk_live_`
 - `CLERK_PUB_JWT_URL`: Must be a valid HTTPS URL (e.g., `https://your-app.clerk.accounts.dev`)
 
+**Step 3b: Configure JWT Template**
+
+Instruct the user to set up a JWT template in Clerk:
+
+> In your Clerk Dashboard, go to **Configure → Sessions → JWT templates**.
+> Click **"Add a new template"** and paste this under **Claims**:
+>
+> ```json
+> {
+>     "role": "authenticated",
+>     "params": {
+>         "last": "{{user.last_name}}",
+>         "name": "{{user.username}}",
+>         "email": "{{user.primary_email_address}}",
+>         "first": "{{user.first_name}}",
+>         "image_url": "{{user.image_url}}",
+>         "external_id": "{{user.external_id}}",
+>         "public_meta": "{{user.public_metadata}}",
+>         "email_verified": "{{user.email_verified}}"
+>     },
+>     "userId": "{{user.id}}"
+> }
+> ```
+>
+> Save the template. This ensures Fireproof receives the user info it needs for sync.
+
 **Step 4: Run Setup Script**
 
 ```bash
