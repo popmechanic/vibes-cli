@@ -21,14 +21,16 @@ Generate React web applications using Fireproof for local-first data persistence
 
 ## Pre-Flight Check: Connect Status
 
-Before generating an app, check if Fireproof Connect is set up:
+**MANDATORY: Complete these steps BEFORE generating any app code.**
 
+**Step 0: Check Connect Status**
+
+Run this command first:
 ```bash
-# Check if Connect is configured
-test -f "./fireproof/core/docker-compose.yaml" && test -f "./.env"
+test -f "./fireproof/core/docker-compose.yaml" && test -f "./.env" && echo "CONNECT_READY" || echo "CONNECT_NOT_READY"
 ```
 
-**If Connect is NOT set up** (files don't exist), ask the user about cloud sync:
+**If output is "CONNECT_NOT_READY"**, you MUST stop and ask the user about sync mode BEFORE proceeding:
 
 Use AskUserQuestion to present the choice:
 ```
@@ -596,3 +598,7 @@ Options:
 - "Make it a SaaS" → Auto-invoke /vibes:sell skill
 - "Deploy" → Auto-invoke /vibes:exe skill
 - "I'm done" → Confirm files saved, wish them well
+
+**Do NOT proceed to code generation until:**
+1. User chose "local-only" (skip Connect setup), OR
+2. User chose "set up Connect" AND all Connect setup steps are complete (repo cloned, docker-compose.yaml created, .env created)
