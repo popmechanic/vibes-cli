@@ -21,14 +21,16 @@ Generate React web applications using Fireproof for local-first data persistence
 
 ## Pre-Flight Check: Connect Status
 
-Before generating an app, check if Fireproof Connect is set up:
+**MANDATORY: Complete these steps BEFORE generating any app code.**
 
+**Step 0: Check Connect Status**
+
+Run this command first:
 ```bash
-# Check if Connect is configured
-test -f "./fireproof/core/docker-compose.yaml" && test -f "./.env"
+test -f "./fireproof/core/docker-compose.yaml" && test -f "./.env" && echo "CONNECT_READY" || echo "CONNECT_NOT_READY"
 ```
 
-**If Connect is NOT set up** (files don't exist), ask the user about cloud sync:
+**If output is "CONNECT_NOT_READY"**, you MUST stop and ask the user about sync mode BEFORE proceeding:
 
 Use AskUserQuestion to present the choice:
 ```
@@ -84,6 +86,32 @@ Then ask for secret key and JWT URL. Validate formats:
 - `CLERK_PUBLISHABLE_KEY`: Must start with `pk_test_` or `pk_live_`
 - `CLERK_SECRET_KEY`: Must start with `sk_test_` or `sk_live_`
 - `CLERK_PUB_JWT_URL`: Must be a valid HTTPS URL (e.g., `https://your-app.clerk.accounts.dev`)
+
+**Step 3b: Configure JWT Template**
+
+Instruct the user to set up a JWT template in Clerk:
+
+> In your Clerk Dashboard, go to **Configure → Sessions → JWT templates**.
+> Click **"Add a new template"** and paste this under **Claims**:
+>
+> ```json
+> {
+>     "role": "authenticated",
+>     "params": {
+>         "last": "{{user.last_name}}",
+>         "name": "{{user.username}}",
+>         "email": "{{user.primary_email_address}}",
+>         "first": "{{user.first_name}}",
+>         "image_url": "{{user.image_url}}",
+>         "external_id": "{{user.external_id}}",
+>         "public_meta": "{{user.public_metadata}}",
+>         "email_verified": "{{user.email_verified}}"
+>     },
+>     "userId": "{{user.id}}"
+> }
+> ```
+>
+> Save the template. This ensures Fireproof receives the user info it needs for sync.
 
 **Step 4: Run Setup Script**
 
@@ -570,3 +598,7 @@ Options:
 - "Make it a SaaS" → Auto-invoke /vibes:sell skill
 - "Deploy" → Auto-invoke /vibes:exe skill
 - "I'm done" → Confirm files saved, wish them well
+
+**Do NOT proceed to code generation until:**
+1. User chose "local-only" (skip Connect setup), OR
+2. User chose "set up Connect" AND all Connect setup steps are complete (repo cloned, docker-compose.yaml created, .env created)
