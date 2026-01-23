@@ -19,10 +19,16 @@ services:
       # Session tokens
       CLOUD_SESSION_TOKEN_PUBLIC: __CLOUD_SESSION_TOKEN_PUBLIC__
 
+      # Clerk authentication
+      CLERK_PUB_JWT_URL: __CLERK_PUB_JWT_URL__
+
       # Protocol settings
       VERSION: FP-MSG-1.0
       FP_DEBUG: "true"
       MAX_IDLE_TIME: "300"
+
+      # Blob storage URL (for generating correct blob URLs)
+      BLOB_PROXY_URL: "http://localhost:8909"
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8909/health"]
       interval: 10s
