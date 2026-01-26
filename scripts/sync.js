@@ -487,6 +487,10 @@ if (typeof window !== 'undefined') {
  */
 const STABLE_VIBES_VERSION = "0.24.3-dev";
 
+// @fireproof/clerk package for authenticated Clerk sync
+const FIREPROOF_CLERK_VERSION = "0.0.2";
+const FIREPROOF_CLERK_PACKAGE = "@necrodome/fireproof-clerk";
+
 function generateImportMapJson(imports) {
   // Use unpinned React URLs - esm.sh will resolve compatible versions
   const templateImports = {
@@ -500,6 +504,9 @@ function generateImportMapJson(imports) {
   // Override upstream version if it's a dev version (has known bugs)
   templateImports["use-fireproof"] = `https://esm.sh/use-vibes@${STABLE_VIBES_VERSION}?external=react,react-dom`;
   templateImports["use-vibes"] = `https://esm.sh/use-vibes@${STABLE_VIBES_VERSION}?external=react,react-dom`;
+
+  // @fireproof/clerk for authenticated Clerk sync
+  templateImports["@fireproof/clerk"] = `https://esm.sh/${FIREPROOF_CLERK_PACKAGE}@${FIREPROOF_CLERK_VERSION}?external=react,react-dom`;
 
   return JSON.stringify({ imports: templateImports }, null, 6).replace(/^/gm, '  ').trim();
 }
