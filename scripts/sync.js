@@ -485,7 +485,7 @@ if (typeof window !== 'undefined') {
  * NOTE: Version 0.24.3-dev includes toCloud() for Fireproof Cloud sync.
  * See CLAUDE.md for details.
  */
-const STABLE_VIBES_VERSION = "0.24.3-dev";
+const STABLE_VIBES_VERSION = "0.18.9";
 
 // @fireproof/clerk package for authenticated Clerk sync
 const FIREPROOF_CLERK_VERSION = "0.0.2";
