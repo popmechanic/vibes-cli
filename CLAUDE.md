@@ -106,7 +106,7 @@ Run sync with: `/vibes:sync` or `node scripts/sync.js --force`
 | `css-variables.ts` | `cache/vibes-variables.css` | CSS theme variables |
 | Menu components | `cache/vibes-menu.js` | Assembled VibesSwitch/VibesMenu components |
 
-**Note on Versions:** This plugin uses version `0.24.3-dev` which includes the `toCloud()` function for Fireproof Cloud sync. The git-tracked `skills/vibes/cache/` contains the current versions and serves as the authoritative source.
+**Note on Versions:** This plugin uses version `0.18.9` which is the stable version that avoids React singleton crashes. The git-tracked `skills/vibes/cache/` contains the current versions and serves as the authoritative source.
 
 ### Configuring Upstream Sources
 
@@ -144,7 +144,7 @@ node scripts/sync.js --force
 When using `use-vibes` via esm.sh, you MUST add `?external=react,react-dom` to ensure a single React instance:
 
 ```json
-"use-vibes": "https://esm.sh/use-vibes@0.24.3-dev?external=react,react-dom"
+"use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom"
 ```
 
 **Why `?external=`:** This tells esm.sh to keep `react` and `react-dom` as bare specifiers instead of bundling them. The browser's import map then intercepts these bare specifiers, ensuring all code uses the same React instance.
@@ -161,15 +161,15 @@ The import map requires these entries:
   "react-dom": "https://esm.sh/react-dom",
   "react-dom/client": "https://esm.sh/react-dom/client",
   "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
-  "use-fireproof": "https://esm.sh/use-vibes@0.24.3-dev?external=react,react-dom",
-  "use-vibes": "https://esm.sh/use-vibes@0.24.3-dev?external=react,react-dom"
+  "use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
+  "use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom"
 }
 ```
 
 **Notes:**
 - Unpinned React (`https://esm.sh/react` without version) lets esm.sh resolve the latest compatible version
 - `?external=react,react-dom` is REQUIRED to prevent duplicate React instances
-- Version `0.24.3-dev` includes `toCloud()` for Fireproof Cloud sync
+- Version `0.18.9` is the stable version that avoids React singleton crashes
 
 ### 4. NEVER Update Documentation Examples Manually
 
@@ -180,7 +180,7 @@ Import map examples in documentation become stale. Reference `cache/import-map.j
 | Mistake | Consequence | Fix |
 |---------|-------------|-----|
 | Missing `?external=react,react-dom` on use-vibes URLs | Multiple React instances, context errors | Add `?external=react,react-dom` to use-vibes imports |
-| Using old versions (0.18.x or earlier) | Missing cloud sync features | Update to 0.24.3-dev |
+| Using dev versions (0.19.x-dev) | React singleton crashes | Use stable version 0.18.9 |
 | Missing `react/jsx-runtime` | Build errors | Run sync to get all entries |
 | Hardcoded versions in docs | Docs become stale | Reference cache file |
 | Editing templates without running sync | Versions out of date | Always run sync after edits |
@@ -290,7 +290,7 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `cache/fireproof.txt` | Working cache - Fireproof API docs |
 | `cache/vibes-menu.js` | Working cache - assembled menu components |
 | `cache/vibes-variables.css` | Working cache - CSS theme variables |
-| `skills/vibes/cache/` | Default cache (git-tracked) - ships with plugin, version 0.24.3-dev |
+| `skills/vibes/cache/` | Default cache (git-tracked) - ships with plugin, version 0.18.9 |
 | `skills/vibes/templates/index.html` | HTML template with menu components |
 | `skills/vibes/SKILL.md` | Main vibes skill (has import map) |
 | `skills/riff/templates/index.html` | Riff gallery template |
@@ -320,7 +320,7 @@ There are two cache locations by design:
    - `vibes-variables.css` - CSS theme variables (OKLCH colors)
 
 2. **`skills/vibes/cache/`** (git-tracked) - Default values shipped with the plugin
-   - Contains `0.24.3-dev` versions with `?external=react,react-dom`
+   - Contains `0.18.9` versions with `?external=react,react-dom`
    - Serves as fallback for users who haven't run sync yet
    - **This is the authoritative source for current versions**
 
@@ -389,14 +389,14 @@ The `?external=` parameter tells esm.sh to keep specified dependencies as **bare
     "react-dom": "https://esm.sh/react-dom",
     "react-dom/client": "https://esm.sh/react-dom/client",
     "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
-    "use-fireproof": "https://esm.sh/use-vibes@0.24.3-dev?external=react,react-dom",
-    "use-vibes": "https://esm.sh/use-vibes@0.24.3-dev?external=react,react-dom"
+    "use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
+    "use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom"
   }
 }
 ```
 
 **Key points:**
-- Version `0.24.3-dev` includes `toCloud()` for Fireproof Cloud sync
+- Version `0.18.9` is the stable version that avoids React singleton crashes
 - Unpinned React lets esm.sh resolve compatible version
 - `?external=react,react-dom` ensures import map controls React
 

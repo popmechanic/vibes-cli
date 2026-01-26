@@ -1,16 +1,16 @@
 {
   "lastUpdated": "2026-01-20T00:00:00.000Z",
   "source": "https://vibes.diy (production)",
-  "note": "Using @0.24.3-dev + unpinned React + ?external=react,react-dom. This version includes toCloud() for Fireproof Cloud sync.",
+  "note": "Using @0.18.9 + unpinned React + ?external=react,react-dom.",
   "imports": {
     "react": "https://esm.sh/react",
     "react-dom": "https://esm.sh/react-dom",
     "react-dom/client": "https://esm.sh/react-dom/client",
     "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
-    "use-fireproof": "https://esm.sh/use-vibes@0.24.3-dev?external=react,react-dom",
-    "use-vibes": "https://esm.sh/use-vibes@0.24.3-dev?external=react,react-dom",
+    "use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
+    "use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
     "@fireproof/clerk": "https://esm.sh/@necrodome/fireproof-clerk@0.0.2?external=react,react-dom",
-    "https://esm.sh/use-fireproof": "https://esm.sh/use-vibes@0.24.3-dev?external=react,react-dom",
-    "https://esm.sh/use-vibes": "https://esm.sh/use-vibes@0.24.3-dev?external=react,react-dom"
+    "https://esm.sh/use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
+    "https://esm.sh/use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom"
   }
 }
