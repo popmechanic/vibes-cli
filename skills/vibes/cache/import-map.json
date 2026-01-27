@@ -9,7 +9,7 @@
     "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
     "use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
     "use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
-    "@fireproof/clerk": "https://esm.sh/@necrodome/fireproof-clerk@0.0.2?external=react,react-dom",
+    "@fireproof/clerk": "https://esm.sh/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom",
     "https://esm.sh/use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
     "https://esm.sh/use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom"
   }
