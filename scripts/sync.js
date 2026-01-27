@@ -488,7 +488,7 @@ if (typeof window !== 'undefined') {
 const STABLE_VIBES_VERSION = "0.18.9";
 
 // @fireproof/clerk package for authenticated Clerk sync
-const FIREPROOF_CLERK_VERSION = "0.0.2";
+const FIREPROOF_CLERK_VERSION = "0.0.3";
 const FIREPROOF_CLERK_PACKAGE = "@necrodome/fireproof-clerk";
 
 function generateImportMapJson(imports) {
