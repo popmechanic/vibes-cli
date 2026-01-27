@@ -385,6 +385,16 @@ function parseArgs(args) {
       result.importFile = args[++i];
     } else if (args[i] === '--export-file' && args[i + 1]) {
       result.exportFile = args[++i];
+    } else if (args[i] === '--deploy' && args[i + 1]) {
+      const target = args[++i];
+      if (['local', 'exe'].includes(target)) {
+        result.deployTarget = target;
+      } else {
+        console.error(`Invalid deploy target: ${target}. Valid targets: local, exe`);
+        process.exit(1);
+      }
+    } else if (args[i] === '--vm-name' && args[i + 1]) {
+      result.vmName = args[++i];
     } else if (args[i] === '--help' || args[i] === '-h') {
       result.help = true;
     } else if (args[i] === '--skip-clone') {
@@ -409,6 +419,8 @@ Optional:
   --export-file <path>           Export credentials to file for sharing with team
   --output-dir <path>            Output directory (default: current directory)
   --skip-clone                   Skip cloning Fireproof repo (use if already cloned)
+  --deploy <target>              Deploy target: local (default) or exe (exe.dev VM)
+  --vm-name <name>               VM name for exe.dev deployment (default: fireproof-connect)
   --help, -h                     Show this help message
 
 Modes:
@@ -416,12 +428,23 @@ Modes:
   quick-dev  Use preset dev tokens from dev-credentials.json (for quick local testing)
   import     Load session tokens from a colleague's exported credentials file
 
+Deploy Targets:
+  local      Set up Docker for local development (default)
+  exe        Deploy to exe.dev VM (no local Docker required)
+
 Example:
-  # Fresh setup (generates new keys)
+  # Fresh setup for local Docker (generates new keys)
   node setup-connect.js \\
     --clerk-publishable-key "pk_test_abc123" \\
     --clerk-secret-key "sk_test_xyz789" \\
     --clerk-jwt-url "https://my-app.clerk.accounts.dev/.well-known/jwks.json"
+
+  # Deploy to exe.dev VM (no local Docker required)
+  node setup-connect.js \\
+    --clerk-publishable-key "pk_test_abc123" \\
+    --clerk-secret-key "sk_test_xyz789" \\
+    --clerk-jwt-url "https://my-app.clerk.accounts.dev/.well-known/jwks.json" \\
+    --deploy exe --vm-name myconnect
 
   # Import colleague's credentials
   node setup-connect.js \\
@@ -549,6 +572,72 @@ async function main() {
 
   const outputDir = args.outputDir || process.cwd();
   const pluginDir = dirname(__dirname);
+
+  // Handle exe.dev deployment
+  if (args.deployTarget === 'exe') {
+    console.log('Deploying Fireproof Connect to exe.dev...\n');
+
+    const vmName = args.vmName || 'fireproof-connect';
+    const deployExePath = join(pluginDir, 'scripts', 'deploy-exe.js');
+
+    // Build the command arguments
+    const deployArgs = [
+      'node',
+      deployExePath,
+      '--name', vmName,
+      '--connect',
+      '--skip-file',
+      '--clerk-publishable-key', args.clerkPublishableKey,
+      '--clerk-secret-key', args.clerkSecretKey,
+      '--clerk-jwt-url', args.clerkJwtUrl
+    ];
+
+    console.log(`Running: node deploy-exe.js --name ${vmName} --connect --skip-file ...`);
+
+    const { execSync } = await import('child_process');
+    try {
+      execSync(deployArgs.slice(1).map(a => a.includes(' ') ? `"${a}"` : a).join(' '), {
+        cwd: pluginDir,
+        stdio: 'inherit',
+        env: { ...process.env }
+      });
+
+      // Create/update local .env with remote URLs
+      const envPath = join(outputDir, '.env');
+      const envContent = `# Clerk Authentication
+VITE_CLERK_PUBLISHABLE_KEY=${args.clerkPublishableKey}
+
+# Fireproof Connect (exe.dev)
+VITE_TOKEN_API_URI=https://${vmName}.exe.xyz/api
+VITE_CLOUD_BACKEND_URL=fpcloud://${vmName}.exe.xyz/sync?protocol=wss
+`;
+
+      if (existsSync(envPath)) {
+        const existingEnv = readFileSync(envPath, 'utf-8');
+        if (existingEnv.includes('VITE_CLERK_PUBLISHABLE_KEY')) {
+          // Update existing values
+          let updatedEnv = existingEnv
+            .replace(/VITE_CLERK_PUBLISHABLE_KEY=.*/g, `VITE_CLERK_PUBLISHABLE_KEY=${args.clerkPublishableKey}`)
+            .replace(/VITE_TOKEN_API_URI=.*/g, `VITE_TOKEN_API_URI=https://${vmName}.exe.xyz/api`)
+            .replace(/VITE_CLOUD_BACKEND_URL=.*/g, `VITE_CLOUD_BACKEND_URL=fpcloud://${vmName}.exe.xyz/sync?protocol=wss`);
+          writeFileSync(envPath, updatedEnv);
+          console.log(`Updated: ${envPath}`);
+        } else {
+          writeFileSync(envPath, existingEnv + '\n' + envContent);
+          console.log(`Appended to: ${envPath}`);
+        }
+      } else {
+        writeFileSync(envPath, envContent);
+        console.log(`Created: ${envPath}`);
+      }
+
+      console.log('\nexe.dev deployment complete!');
+      process.exit(0);
+    } catch (error) {
+      console.error('Deployment failed:', error.message);
+      process.exit(1);
+    }
+  }
 
   console.log('Setting up Fireproof Connect...\n');
   console.log(`Mode: ${args.mode}`);

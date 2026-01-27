@@ -484,21 +484,51 @@ The registry server validates Clerk JWTs with:
 
 ## exe.dev Deployment
 
-Deploy static Vibes apps to exe.dev VM hosting. Uses pre-installed nginx on persistent VMs.
+Deploy static Vibes apps and Fireproof Connect services to exe.dev VM hosting. Uses pre-installed nginx on persistent VMs.
 
 ### Quick Start
 
 ```bash
-# Deploy to exe.dev
+# Deploy app to exe.dev
 node scripts/deploy-exe.js --name myapp --file index.html
+
+# Deploy Fireproof Connect services (no local Docker required)
+node scripts/deploy-exe.js --name myconnect --connect --skip-file \
+  --clerk-publishable-key "pk_test_..." \
+  --clerk-secret-key "sk_test_..." \
+  --clerk-jwt-url "https://your-app.clerk.accounts.dev"
+
+# Deploy app + Connect together
+node scripts/deploy-exe.js --name myapp --connect \
+  --clerk-publishable-key "pk_test_..." \
+  --clerk-secret-key "sk_test_..." \
+  --clerk-jwt-url "https://your-app.clerk.accounts.dev"
 ```
 
 ### Architecture
 
 ```
 exe.dev VM (exeuntu image)
-├── nginx (serves all subdomains)
-└── /var/www/html/index.html
+├── nginx (serves all routes)
+│   ├── /           → /var/www/html/index.html (app)
+│   ├── /api        → localhost:7370 (Token API, if --connect)
+│   └── /sync       → localhost:8909 (Cloud Sync WebSocket, if --connect)
+└── Docker (if --connect)
+    ├── fireproof-dashboard (port 7370)
+    └── fireproof-cloud-backend (port 8909)
+```
+
+### Connect Services
+
+When deployed with `--connect`, the VM runs Fireproof sync services:
+- **Token API**: `https://<vm-name>.exe.xyz/api` - Issues authenticated tokens
+- **Cloud Sync**: `wss://<vm-name>.exe.xyz/sync` - Real-time WebSocket sync
+
+Update your `.env` file to use remote services:
+```bash
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
+VITE_TOKEN_API_URI=https://<vm-name>.exe.xyz/api
+VITE_CLOUD_BACKEND_URL=fpcloud://<vm-name>.exe.xyz/sync?protocol=wss
 ```
 
 ### DNS + SSL Architecture (IMPORTANT)
