@@ -1,6 +1,6 @@
 ---
 name: connect
-description: Set up local Fireproof sync backend with Clerk authentication. Run this before /vibes:vibes to enable authenticated cloud sync. Creates Docker-based Token API and Cloud sync services.
+description: Set up Fireproof sync backend with Clerk authentication on exe.dev. Run this before /vibes:vibes to enable authenticated cloud sync. Deploys Token API and Cloud sync services to exe.dev VM.
 ---
 
 > **DEPRECATED:** Connect setup is now integrated into the main `/vibes:vibes` skill.
@@ -29,17 +29,18 @@ description: Set up local Fireproof sync backend with Clerk authentication. Run 
 ░▒▓███████▓▒░░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓████████▓▒░░▒▓██████▓▒░  ░▒▓█▓▒░
 ```
 
-# Fireproof Connect Setup
+# Fireproof Connect Setup (exe.dev Deployment)
 
-Set up a local Fireproof sync backend with Clerk authentication. This creates Docker services for:
-- **Token API** (localhost:7370) - Issues authenticated tokens for cloud sync
-- **Cloud Backend** (localhost:8909) - Real-time WebSocket sync
+Set up a Fireproof sync backend with Clerk authentication on exe.dev. This deploys Docker services for:
+- **Token API** (https://yourvm.exe.xyz/api) - Issues authenticated tokens for cloud sync
+- **Cloud Backend** (wss://yourvm.exe.xyz/sync) - Real-time WebSocket sync
 
 After setup, apps generated with `/vibes:vibes` will use `@fireproof/clerk` for authenticated sync tied to user accounts.
 
 ## Prerequisites
 
-- Docker and Docker Compose installed
+- An SSH key in ~/.ssh/ (ed25519, rsa, or ecdsa)
+- An exe.dev account (run `ssh exe.dev` to create one)
 - A Clerk account with an application configured
 
 ## Setup Process
@@ -78,98 +79,114 @@ Questions:
 After user provides credentials, validate the format:
 - `CLERK_PUBLISHABLE_KEY`: Must start with `pk_test_` or `pk_live_`
 - `CLERK_SECRET_KEY`: Must start with `sk_test_` or `sk_live_`
-- `CLERK_PUB_JWT_URL`: Must be a valid HTTPS URL (e.g., `https://your-app.clerk.accounts.dev`)
+- `CLERK_JWT_URL`: Must be a valid HTTPS URL (e.g., `https://your-app.clerk.accounts.dev`)
 
-### Step 2: Generate Security Keys
+### Step 2: Choose a VM Name
 
-The setup script auto-generates:
-- `CLOUD_SESSION_TOKEN_PUBLIC` - Public session token (base58, ~128 chars)
-- `CLOUD_SESSION_TOKEN_SECRET` - Secret session token (base58, ~160 chars)
-- `DEVICE_ID_CA_PRIV_KEY` - Device CA private key (base58, ~160 chars)
-- `DEVICE_ID_CA_CERT` - Device CA certificate (JWT format)
+Ask the user what to name their Connect VM:
 
-### Step 3: Clone Fireproof Repository
-
-```bash
-# Clone the fireproof repo with Docker support branch
-git clone --branch selem/docker-for-all https://github.com/fireproof-storage/fireproof.git ./fireproof
+```
+Question: "What should we name your Connect VM?"
+Header: "VM Name"
+Options:
+- Label: "myconnect (Recommended)"
+  Description: "Your services will be at https://myconnect.exe.xyz"
+- Label: "fireproof-sync"
+  Description: "Your services will be at https://fireproof-sync.exe.xyz"
+- Label: "Let me choose"
+  Description: "Enter a custom name (lowercase letters, numbers, hyphens only)"
 ```
 
-If the directory already exists, skip cloning and inform the user.
+### Step 3: Deploy to exe.dev
 
-### Step 4: Generate Configuration Files
-
-Run the setup script with the gathered credentials:
+Run the deployment script:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/setup-connect.js" \
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
+  --name <vm-name> \
+  --connect \
+  --skip-file \
   --clerk-publishable-key "pk_test_..." \
   --clerk-secret-key "sk_test_..." \
   --clerk-jwt-url "https://your-app.clerk.accounts.dev"
 ```
 
-This generates:
-1. `./fireproof/core/docker-compose.yaml` - Docker services configuration
-2. `./.env` - Environment variables for generated apps
+This will:
+1. Create an exe.dev VM (if it doesn't exist)
+2. Install Docker on the VM
+3. Clone the Fireproof repository
+4. Generate security tokens
+5. Configure and start Docker services
+6. Set up nginx proxy for /api and /sync routes
 
-### Step 5: Provide Startup Instructions
+### Step 4: Provide Connection Details
 
-After successful setup, inform the user:
+After successful deployment, inform the user:
 
 ```
-Connect setup complete!
+Connect deployment complete!
 
-To start the Fireproof services:
+Services are available at:
+  - Token API: https://<vm-name>.exe.xyz/api
+  - Cloud Sync: wss://<vm-name>.exe.xyz/sync
 
-  cd fireproof/core && docker compose up --build
+Update your project's .env file:
 
-Services will be available at:
-  - Token API: http://localhost:7370/api
-  - Cloud Sync: fpcloud://localhost:8909?protocol=ws
+  VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
+  VITE_TOKEN_API_URI=https://<vm-name>.exe.xyz/api
+  VITE_CLOUD_BACKEND_URL=fpcloud://<vm-name>.exe.xyz/sync?protocol=wss
 
-Your .env file has been created with the connection settings.
 Apps generated with /vibes:vibes will now use authenticated sync.
 
-To stop the services: Ctrl+C or `docker compose down`
+To check Docker status:
+  ssh <vm-name>.exe.xyz "cd /opt/fireproof/core && sudo docker compose ps"
+
+To view logs:
+  ssh <vm-name>.exe.xyz "cd /opt/fireproof/core && sudo docker compose logs -f"
 ```
 
-## Generated Files
+## Generated Configuration
 
-### docker-compose.yaml
+### docker-compose.yaml (on VM)
 
-Located at `./fireproof/core/docker-compose.yaml`:
+Located at `/opt/fireproof/core/docker-compose.yaml`:
 
 ```yaml
 services:
-  connect:
+  cloud-backend:
     build:
-      context: ../packages/connect-token
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile.cloud-backend
     ports:
-      - "7370:7370"
+      - "127.0.0.1:8909:8909"
+    environment:
+      ENDPOINT_PORT: "8909"
+      NODE_ENV: production
+      CLOUD_SESSION_TOKEN_PUBLIC: <generated>
+      CLERK_PUB_JWT_URL: <your-clerk-jwt-url>
+      VERSION: FP-MSG-1.0
+      BLOB_PROXY_URL: "https://<vm-name>.exe.xyz/sync"
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    ports:
+      - "127.0.0.1:7370:7370"
     environment:
       PORT: "7370"
-      NODE_ENV: development
-      ENVIRONMENT: dev
-      CLOUD_SESSION_TOKEN_PUBLIC: ${CLOUD_SESSION_TOKEN_PUBLIC}
-      CLOUD_SESSION_TOKEN_SECRET: ${CLOUD_SESSION_TOKEN_SECRET}
-      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
-      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
-      VITE_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
-      CLERK_PUB_JWT_URL: ${CLERK_PUB_JWT_URL}
-      DEVICE_ID_CA_PRIV_KEY: ${DEVICE_ID_CA_PRIV_KEY}
-      DEVICE_ID_CA_CERT: ${DEVICE_ID_CA_CERT}
-
-  cloud:
-    build:
-      context: ../packages/cloud-backend
-      dockerfile: Dockerfile
-    ports:
-      - "8909:8909"
-    environment:
-      PORT: "8909"
-      CLOUD_SESSION_TOKEN_PUBLIC: ${CLOUD_SESSION_TOKEN_PUBLIC}
-      CLOUD_SESSION_TOKEN_SECRET: ${CLOUD_SESSION_TOKEN_SECRET}
+      NODE_ENV: production
+      CLOUD_SESSION_TOKEN_PUBLIC: <generated>
+      CLOUD_SESSION_TOKEN_SECRET: <generated>
+      CLERK_SECRET_KEY: <your-clerk-secret-key>
+      CLERK_PUBLISHABLE_KEY: <your-clerk-publishable-key>
+      CLERK_PUB_JWT_URL: <your-clerk-jwt-url>
+      DEVICE_ID_CA_PRIV_KEY: <generated>
+      DEVICE_ID_CA_CERT: <generated>
+      FP_ENDPOINT: http://cloud-backend:8909
+    depends_on:
+      cloud-backend:
+        condition: service_healthy
 ```
 
 ### .env (Project Root)
@@ -178,29 +195,32 @@ services:
 # Clerk Authentication
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
 
-# Fireproof Connect (Local Development)
-VITE_TOKEN_API_URI=http://localhost:7370/api
-VITE_CLOUD_BACKEND_URL=fpcloud://localhost:8909?protocol=ws
+# Fireproof Connect (exe.dev)
+VITE_TOKEN_API_URI=https://<vm-name>.exe.xyz/api
+VITE_CLOUD_BACKEND_URL=fpcloud://<vm-name>.exe.xyz/sync?protocol=wss
 ```
 
 ## Troubleshooting
 
-### Docker Build Fails
+### Docker Services Not Starting
 
-If Docker build fails, ensure:
-1. Docker Desktop is running
-2. You have network access to npm registry
-3. The `selem/docker-for-all` branch exists
-
-### Port Already in Use
-
-If ports 7370 or 8909 are in use:
+Check Docker status on the VM:
 ```bash
-# Find what's using the port
-lsof -i :7370
-
-# Kill the process or change ports in docker-compose.yaml
+ssh <vm-name>.exe.xyz "cd /opt/fireproof/core && sudo docker compose ps"
+ssh <vm-name>.exe.xyz "cd /opt/fireproof/core && sudo docker compose logs"
 ```
+
+If containers are unhealthy, try rebuilding:
+```bash
+ssh <vm-name>.exe.xyz "cd /opt/fireproof/core && sudo docker compose down && sudo docker compose up -d --build"
+```
+
+### Connection Refused
+
+If you get connection refused errors:
+1. Verify nginx is running: `ssh <vm-name>.exe.xyz "sudo systemctl status nginx"`
+2. Check nginx config: `ssh <vm-name>.exe.xyz "sudo nginx -t"`
+3. Verify Docker ports are listening: `ssh <vm-name>.exe.xyz "sudo netstat -tlnp | grep -E '7370|8909'"`
 
 ### Clerk Authentication Fails
 
@@ -208,25 +228,43 @@ lsof -i :7370
 2. Ensure the JWT URL matches your Clerk frontend API domain
 3. Check that your Clerk app has the correct allowed origins
 
+### WebSocket Connection Issues
+
+If WebSocket connections fail:
+1. Check that the /sync nginx config includes WebSocket upgrade headers
+2. Verify the cloud-backend container is healthy
+3. Check browser console for CORS errors
+
+## Comparison: exe.dev vs Local Docker
+
+| Aspect | exe.dev (Recommended) | Local Docker |
+|--------|----------------------|--------------|
+| Setup | Single command | Multiple steps |
+| Docker required | No (runs on VM) | Yes |
+| HTTPS | Automatic | Manual setup |
+| Accessibility | Public URL | localhost only |
+| Team sharing | Share URL | Share credentials |
+| Persistence | Always running | Manual start/stop |
+
 ## What's Next?
 
 After Connect setup is complete, present these options:
 
 ```
-Question: "Connect is ready! What would you like to do next?"
+Question: "Connect is deployed! What would you like to do next?"
 Header: "Next"
 Options:
 - Label: "Build an app with auth (/vibes)"
   Description: "Generate a new React app with Clerk authentication and Fireproof cloud sync."
 
-- Label: "Start the Docker services"
-  Description: "Run 'cd fireproof/core && docker compose up --build' to start Token API and Cloud sync."
+- Label: "View Docker logs"
+  Description: "SSH into the VM and tail the Docker logs to verify everything is working."
 
 - Label: "I'm done for now"
-  Description: "Your configuration is saved. Run Docker services later when ready to develop."
+  Description: "Your Connect services are running. Start building when you're ready."
 ```
 
 **After user responds:**
 - "Build an app" → Auto-invoke /vibes:vibes skill
-- "Start Docker" → Display the command and explain what to expect
-- "Done for now" → Confirm setup complete, explain how to start later
+- "View Docker logs" → Show the SSH command: `ssh <vm-name>.exe.xyz "cd /opt/fireproof/core && sudo docker compose logs -f"`
+- "Done for now" → Confirm setup complete
