@@ -1,6 +1,9 @@
 # OS files
 .DS_Store
 
+# Dependencies
+node_modules/
+
 # Claude config (user-specific)
 .claude/
 
