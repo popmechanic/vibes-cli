@@ -25,25 +25,22 @@ Generate React web applications using Fireproof for local-first data persistence
 
 **Step 0: Check Connect Status**
 
-Run this command first:
+Run this command first to validate Clerk credentials (not just file existence):
 ```bash
-test -f "./fireproof/core/docker-compose.yaml" && test -f "./.env" && echo "CONNECT_READY" || echo "CONNECT_NOT_READY"
+if test -f "./.env" && grep -qE "^VITE_CLERK_PUBLISHABLE_KEY=pk_(test|live)_" ./.env 2>/dev/null; then
+  echo "CONNECT_READY"
+else
+  echo "CONNECT_NOT_READY"
+fi
 ```
 
-**If output is "CONNECT_NOT_READY"**, you MUST stop and ask the user about sync mode BEFORE proceeding:
+**If output is "CONNECT_NOT_READY"**, Connect setup is required. Inform the user:
 
-Use AskUserQuestion to present the choice:
-```
-Question: "Do you want cloud sync with user accounts?"
-Header: "Sync Mode"
-Options:
-- Label: "No, local-only for now (Recommended for prototyping)"
-  Description: "Uses device-based sync. Fast to start, works offline. Can add auth later."
-- Label: "Yes, set up Connect"
-  Description: "Configure Clerk auth and cloud sync. Best if you need user accounts."
-```
+> Connect with Clerk authentication is required for Vibes apps. Let me guide you through the setup.
 
-### If user chooses "Yes, set up Connect":
+Then proceed with Connect setup below.
+
+### Connect Setup Steps:
 
 **Step 1: Clone Fireproof Repository** (if not already present)
 
@@ -71,21 +68,47 @@ Options:
 
 **Step 3: Gather Clerk Keys**
 
-Ask the user for their Clerk credentials:
+Collect credentials using AskUserQuestion. Users enter values via the "Other" option.
+
+**3a. Publishable Key:**
 ```
-Question: "What is your Clerk Publishable Key?"
-Header: "Clerk Key"
+Question: "Enter your Clerk Publishable Key (paste via 'Other')"
+Header: "Publishable"
 Options:
-- Label: "I have it ready"
-  Description: "Find it at: Clerk Dashboard -> Configure -> API Keys (starts with pk_)"
 - Label: "I need to create a Clerk app first"
-  Description: "Go to https://clerk.com to create an account and application"
+  Description: "Go to clerk.com → Create application → Configure → API Keys"
 ```
 
-Then ask for secret key and JWT URL. Validate formats:
-- `CLERK_PUBLISHABLE_KEY`: Must start with `pk_test_` or `pk_live_`
-- `CLERK_SECRET_KEY`: Must start with `sk_test_` or `sk_live_`
-- `CLERK_PUB_JWT_URL`: Must be a valid HTTPS URL (e.g., `https://your-app.clerk.accounts.dev`)
+After receiving via "Other", validate: must start with `pk_test_` or `pk_live_`.
+If invalid, inform the user and ask again.
+
+**3b. Secret Key:**
+```
+Question: "Enter your Clerk Secret Key (paste via 'Other')"
+Header: "Secret Key"
+Options:
+- Label: "Where do I find this?"
+  Description: "Clerk Dashboard → Configure → API Keys → Secret keys section"
+```
+
+After receiving via "Other", validate: must start with `sk_test_` or `sk_live_`.
+If invalid, inform the user and ask again.
+
+**3c. JWT URL (Auto-derived):**
+
+Extract the Clerk domain from the publishable key - no user input needed:
+```javascript
+// Publishable key format: pk_test_<base64-encoded-domain>
+const payload = publishableKey.replace(/^pk_(test|live)_/, '');
+const domain = atob(payload).replace('$', '');
+const jwtUrl = `https://${domain}/.well-known/jwks.json`;
+```
+
+Example: `pk_test_aW50ZXJuYWwtZGluZ28tMjguY2xlcmsuYWNjb3VudHMuZGV2JA`
+→ decodes to `internal-dingo-28.clerk.accounts.dev`
+→ JWT URL: `https://internal-dingo-28.clerk.accounts.dev/.well-known/jwks.json`
+
+Tell the user what was derived so they can verify it looks correct.
 
 **Step 3b: Configure JWT Template**
 
@@ -154,7 +177,7 @@ Services will be available at:
 Your .env file has been created. Apps you generate will auto-detect Connect.
 ```
 
-**If Connect IS set up** (files exist), generate apps automatically. The assemble script will populate Connect config from .env.
+**If Connect IS set up** (CONNECT_READY), proceed directly to app generation. The assemble script will populate Connect config from .env.
 
 **Platform Name vs User Intent**: "Vibes" is the name of this app platform (Vibes DIY). When users say "vibe" or "vibes" in their prompt, interpret it as:
 - Their project/brand name ("my vibes tracker")
@@ -618,5 +641,4 @@ Options:
 - "I'm done" → Confirm files saved, wish them well
 
 **Do NOT proceed to code generation until:**
-1. User chose "local-only" (skip Connect setup), OR
-2. User chose "set up Connect" AND all Connect setup steps are complete (repo cloned, docker-compose.yaml created, .env created)
+Connect setup is complete with valid Clerk credentials in .env (pre-flight check returns CONNECT_READY).

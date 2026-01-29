@@ -54,8 +54,15 @@ function loadEnvFile(dir) {
 }
 
 /**
+ * Validate that a Clerk publishable key has the correct format
+ */
+function validateClerkKey(key) {
+  return key && (key.startsWith('pk_test_') || key.startsWith('pk_live_'));
+}
+
+/**
  * Replace Connect config placeholders with values from .env
- * If no .env or values missing, keeps placeholders (app will use local mode)
+ * Requires valid Clerk credentials - will fail if missing
  */
 function populateConnectConfig(html, envVars) {
   let result = html;
@@ -106,12 +113,22 @@ if (!template.includes(PLACEHOLDER)) {
 const outputDir = dirname(resolvedOutputPath);
 const envVars = loadEnvFile(outputDir);
 
-// Log Connect mode detection
-if (envVars.VITE_TOKEN_API_URI && envVars.VITE_CLERK_PUBLISHABLE_KEY) {
-  console.log('Connect mode: Clerk auth + cloud sync enabled');
-} else {
-  console.log('Connect mode: Local-only (toCloud)');
+// Validate Connect credentials - fail fast if invalid
+const hasValidConnect = validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY) &&
+                        envVars.VITE_TOKEN_API_URI;
+
+if (!hasValidConnect) {
+  console.error('Error: Valid Clerk credentials required.');
+  console.error('');
+  console.error('Expected in .env:');
+  console.error('  VITE_CLERK_PUBLISHABLE_KEY=pk_test_... or pk_live_...');
+  console.error('  VITE_TOKEN_API_URI=http://localhost:7370/api');
+  console.error('');
+  console.error('Run Connect setup before assembling apps.');
+  process.exit(1);
 }
+
+console.log('Connect mode: Clerk auth + cloud sync enabled');
 
 // Assemble: insert app code at placeholder, then populate Connect config
 let output = template.replace(PLACEHOLDER, appCode);
