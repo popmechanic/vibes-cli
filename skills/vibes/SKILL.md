@@ -163,7 +163,7 @@ Your .env file has been created. Apps you generate will auto-detect Connect.
 
 Do not default to ambient mood generators, floating orbs, or meditation apps unless explicitly requested.
 
-**Import Map Note**: The import map aliases `use-fireproof` to `@necrodome/fireproof-clerk`. Your code uses `import { useFireproofClerk } from "use-fireproof"` and the browser resolves this to the `@fireproof/clerk` package, which provides Clerk authentication integration and cloud sync support. This is intentional—it ensures compatible versions and enables auth when Connect is configured.
+**Import Map Note**: The import map aliases `use-fireproof` to `@necrodome/fireproof-clerk`. Your code uses `import { useFireproofClerk } from "use-fireproof"` and the browser resolves this to the `@necrodome/fireproof-clerk` package, which provides Clerk authentication integration and cloud sync support. This is intentional—it ensures compatible versions and enables auth when Connect is configured.
 
 ## Core Rules
 
@@ -199,7 +199,7 @@ import React, { useState } from "react";
 import { useFireproofClerk } from "use-fireproof";
 
 export default function App() {
-  const { database, useLiveQuery, useDocument, attachState, syncStatus } = useFireproofClerk("app-name-db");
+  const { database, useLiveQuery, useDocument, syncStatus } = useFireproofClerk("app-name-db");
   // ... component logic
 
   return (
@@ -215,17 +215,18 @@ export default function App() {
 
 **⚠️ CRITICAL: Fireproof Hook Pattern**
 
-Always use `useFireproofClerk` and destructure hooks from it:
+The `@necrodome/fireproof-clerk` package exports ONLY `useFireproofClerk`. Always use this pattern:
 
 ```jsx
-// ✅ CORRECT - useFireproofClerk handles sync automatically
+// ✅ CORRECT - This is the ONLY pattern that works
 import { useFireproofClerk } from "use-fireproof";
-const { database, useDocument, useLiveQuery, attachState, syncStatus } = useFireproofClerk("my-db");
+const { database, useDocument, useLiveQuery, syncStatus } = useFireproofClerk("my-db");
 const { doc, merge } = useDocument({ _id: "doc1" });
 
-// ❌ WRONG - these do NOT work
-import { useDocument } from "use-fireproof";  // ERROR!
-import { useFireproof } from "use-fireproof";  // Old API - use useFireproofClerk
+// ❌ WRONG - DO NOT USE (old use-vibes API)
+import { toCloud, useFireproof } from "use-fireproof";  // WRONG - old API
+import { useDocument } from "use-fireproof";  // WRONG - standalone import
+const { attach } = useFireproof("db", { attach: toCloud() });  // WRONG - old pattern
 ```
 
 **Sync Status**: `syncStatus` provides the current sync state as a string. Display it for user feedback.
@@ -245,6 +246,31 @@ The same generated code works in both modes - no code changes needed when switch
    node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble.js" app.jsx index.html
    ```
 4. Tell user: "Open `index.html` in your browser to view your app."
+
+---
+
+## ⚠️ CRITICAL: DEPRECATED API - DO NOT USE
+
+The `@necrodome/fireproof-clerk` package has a DIFFERENT API than the old `use-vibes` package.
+
+**NEVER generate code with these patterns:**
+
+```jsx
+// ❌ WRONG - OLD API - WILL NOT WORK
+import { toCloud, useFireproof } from "use-fireproof";
+import { useDocument } from "use-fireproof";
+const { attach, database } = useFireproof("db", { attach: toCloud() });
+// attach.state, attach.error - WRONG
+```
+
+**ALWAYS generate code with this pattern:**
+
+```jsx
+// ✅ CORRECT - CURRENT API
+import { useFireproofClerk } from "use-fireproof";
+const { database, useLiveQuery, useDocument, syncStatus } = useFireproofClerk("my-db");
+// syncStatus - CORRECT
+```
 
 ---
 
@@ -331,7 +357,7 @@ Fireproof is a local-first database - no loading or error states required, just 
 ```jsx
 import { useFireproofClerk } from "use-fireproof";
 
-const { database, useLiveQuery, useDocument, attachState, syncStatus } = useFireproofClerk("my-app-db");
+const { database, useLiveQuery, useDocument, syncStatus } = useFireproofClerk("my-app-db");
 ```
 
 **Note**: When Connect is configured (via .env), the template wraps your App in `ClerkFireproofProvider`, enabling authenticated cloud sync automatically. Your code just uses `useFireproofClerk`.
