@@ -163,14 +163,14 @@ Your .env file has been created. Apps you generate will auto-detect Connect.
 
 Do not default to ambient mood generators, floating orbs, or meditation apps unless explicitly requested.
 
-**Import Map Note**: The import map aliases `use-fireproof` to `use-vibes` because `use-vibes` re-exports all Fireproof APIs (useFireproof, useLiveQuery, useDocument) plus additional helpers. Your code uses `import { useFireproof } from "use-fireproof"` but the browser resolves this to the `use-vibes` package. This is intentional—it ensures compatible versions.
+**Import Map Note**: The import map aliases `use-fireproof` to `@necrodome/fireproof-clerk`. Your code uses `import { useFireproofClerk } from "use-fireproof"` and the browser resolves this to the `@fireproof/clerk` package, which provides Clerk authentication integration and cloud sync support. This is intentional—it ensures compatible versions and enables auth when Connect is configured.
 
 ## Core Rules
 
 - **Use JSX** - Standard React syntax with Babel transpilation
 - **Single HTML file** - App code assembled into template
-- **Fireproof for data** - Use `useFireproof`, `useLiveQuery`, `useDocument`
-- **Cloud sync by default** - Use `toCloud()` for real-time collaboration
+- **Fireproof for data** - Use `useFireproofClerk` for database + sync
+- **Auto-detect Connect** - Template handles Clerk auth when Connect is configured
 - **Tailwind for styling** - Mobile-first, responsive design
 
 ## Generation Process
@@ -196,18 +196,16 @@ After reasoning, output the complete JSX in `<code>` tags:
 ```
 <code>
 import React, { useState } from "react";
-import { toCloud, useFireproof } from "use-fireproof";
+import { useFireproofClerk } from "use-fireproof";
 
 export default function App() {
-  const { attach, database, useLiveQuery, useDocument } = useFireproof("app-name-db", {
-    attach: toCloud(),
-  });
+  const { database, useLiveQuery, useDocument, attachState, syncStatus } = useFireproofClerk("app-name-db");
   // ... component logic
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] p-4">
       {/* Sync status indicator (optional) */}
-      <div className="text-xs text-gray-500 mb-2">Sync: {attach.state}</div>
+      <div className="text-xs text-gray-500 mb-2">Sync: {syncStatus}</div>
       {/* Your app UI */}
     </div>
   );
@@ -217,28 +215,24 @@ export default function App() {
 
 **⚠️ CRITICAL: Fireproof Hook Pattern**
 
-Always destructure hooks FROM useFireproof(), never import directly:
+Always use `useFireproofClerk` and destructure hooks from it:
 
 ```jsx
-// ✅ CORRECT - with cloud sync (recommended)
-import { toCloud, useFireproof } from "use-fireproof";
-const { attach, useDocument, useLiveQuery } = useFireproof("my-db", {
-  attach: toCloud(),
-});
+// ✅ CORRECT - useFireproofClerk handles sync automatically
+import { useFireproofClerk } from "use-fireproof";
+const { database, useDocument, useLiveQuery, attachState, syncStatus } = useFireproofClerk("my-db");
 const { doc, merge } = useDocument({ _id: "doc1" });
 
-// ✅ CORRECT - local-only (no cloud sync)
-const { useDocument, useLiveQuery } = useFireproof("my-db");
-
-// ❌ WRONG - this does NOT work
+// ❌ WRONG - these do NOT work
 import { useDocument } from "use-fireproof";  // ERROR!
+import { useFireproof } from "use-fireproof";  // Old API - use useFireproofClerk
 ```
 
-**Cloud Sync Status**: The `attach` object provides sync state (`"initial" | "attaching" | "attached" | "error"`). Display `attach.state` for user feedback.
+**Sync Status**: `syncStatus` provides the current sync state as a string. Display it for user feedback.
 
 **Connect Auto-Detection**: Generated apps check `window.__VIBES_CONFIG__` at runtime:
-- If config has valid values (set by assemble.js from .env) → Clerk auth + cloud sync
-- If config is empty/placeholders → Local-only mode with toCloud()
+- If config has valid values (set by assemble.js from .env) → Clerk auth required, cloud sync enabled
+- If config is empty/placeholders → Local-only mode, no auth required
 
 The same generated code works in both modes - no code changes needed when switching between local and Connect.
 
@@ -331,16 +325,16 @@ Lighten/darken using L value:
 
 ## Fireproof API
 
-Fireproof is a local-first database - no loading or error states required, just empty data states. Data persists across sessions and can sync in real-time.
+Fireproof is a local-first database - no loading or error states required, just empty data states. Data persists across sessions and syncs in real-time when Connect is configured.
 
 ### Setup
 ```jsx
-import { toCloud, useFireproof } from "use-fireproof";
+import { useFireproofClerk } from "use-fireproof";
 
-const { attach, useLiveQuery, useDocument, database } = useFireproof("my-app-db", {
-  attach: toCloud(),
-});
+const { database, useLiveQuery, useDocument, attachState, syncStatus } = useFireproofClerk("my-app-db");
 ```
+
+**Note**: When Connect is configured (via .env), the template wraps your App in `ClerkFireproofProvider`, enabling authenticated cloud sync automatically. Your code just uses `useFireproofClerk`.
 
 ### Choosing Your Pattern
 
@@ -410,12 +404,10 @@ await database.del(item._id);
 ### Common Pattern - Form + List
 ```jsx
 import React from "react";
-import { toCloud, useFireproof } from "use-fireproof";
+import { useFireproofClerk } from "use-fireproof";
 
 export default function App() {
-  const { attach, useLiveQuery, useDocument, database } = useFireproof("my-db", {
-    attach: toCloud(),
-  });
+  const { database, useLiveQuery, useDocument, syncStatus } = useFireproofClerk("my-db");
 
   // Form for new items (submit resets for next entry)
   const { doc, merge, submit } = useDocument({ text: "", type: "item" });
@@ -425,6 +417,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f1f5f9] p-4">
+      {/* Optional sync status indicator */}
+      <div className="text-xs text-gray-500 mb-2">Sync: {syncStatus}</div>
       <form onSubmit={submit} className="mb-4">
         <input
           value={doc.text}
@@ -477,12 +471,10 @@ The `useAI` hook is automatically included in the template when AI features are 
 
 ```jsx
 import React from "react";
-import { toCloud, useFireproof } from "use-fireproof";
+import { useFireproofClerk } from "use-fireproof";
 
 export default function App() {
-  const { attach, database, useLiveQuery } = useFireproof("ai-chat-db", {
-    attach: toCloud(),
-  });
+  const { database, useLiveQuery, syncStatus } = useFireproofClerk("ai-chat-db");
   const { callAI, loading, error } = useAI();
 
   const handleSend = async (message) => {
@@ -552,8 +544,8 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
 ## Common Mistakes to Avoid
 
 - **DON'T** use `useState` for form fields - use `useDocument`
-- **DON'T** use `Fireproof.fireproof()` - use `useFireproof()` hook
-- **DON'T** forget `toCloud()` - always include it for cloud sync
+- **DON'T** use `Fireproof.fireproof()` - use `useFireproofClerk()` hook
+- **DON'T** use the old `useFireproof` with `toCloud()` - use `useFireproofClerk` instead
 - **DON'T** use white text on light backgrounds
 - **DON'T** use `call-ai` directly - use `useAI` hook instead (it handles proxying and limits)
 
