@@ -721,6 +721,7 @@ async function phase7Handoff(args) {
     const context = extractContextFromEnv();
     context.files = [args.file];
     context.vmName = args.name;
+    context.connectEnabled = !!args.connect;
 
     // Generate handoff document
     const handoffContent = generateHandoff(context);

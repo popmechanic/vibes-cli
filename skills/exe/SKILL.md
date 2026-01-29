@@ -56,6 +56,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.htm
 2. **Starts nginx** (pre-installed on exeuntu image)
 3. **Uploads** your index.html to `/var/www/html/`
 4. **Generates HANDOFF.md** - context document for remote Claude
+   - For Connect-enabled deployments, includes full Docker setup documentation (commands, troubleshooting, service endpoints)
 5. **Makes VM public** via `ssh exe.dev share set-public <vmname>`
 6. **Verifies** public access at `https://myapp.exe.xyz`
 
