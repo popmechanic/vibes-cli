@@ -55,10 +55,8 @@
           "react-dom": "https://esm.sh/react-dom",
           "react-dom/client": "https://esm.sh/react-dom/client",
           "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
-          "use-fireproof": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
-          "use-vibes": "https://esm.sh/use-vibes@0.18.9?external=react,react-dom",
-          "@clerk/clerk-react": "https://esm.sh/@clerk/clerk-react?external=react,react-dom",
-          "@fireproof/clerk": "https://esm.sh/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom"
+          "@fireproof/clerk": "https://esm.sh/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom",
+          "use-fireproof": "https://esm.sh/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom"
         }
       }
     </script>
@@ -990,13 +988,92 @@ function VibesButton({
 
       // __VIBES_APP_CODE__
 
-      // Extract dbName from App's useFireproof call if possible
-      const rootElement = document.getElementById("container");
-      ReactDOMClient.createRoot(rootElement).render(
-        <HiddenMenuWrapper menuContent={<VibesPanel />}>
-          <App />
-        </HiddenMenuWrapper>
-      );
+      // Connect mode: ClerkFireproofProvider with auth gate
+      // Local mode: Direct rendering (no auth required)
+      function AppWrapper() {
+        const config = window.__VIBES_CONFIG__;
+        const hasConnect = config?.clerkPublishableKey &&
+                          !config.clerkPublishableKey.startsWith('__');
+
+        if (hasConnect && window.ClerkFireproofProvider) {
+          const { ClerkFireproofProvider, SignedIn, SignedOut, SignInButton, UserButton } = window.ClerkComponents;
+
+          // AuthGate shown when user is not signed in
+          const AuthGate = () => (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+              <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
+                <h1 className="text-2xl font-bold mb-4">Sign in to continue</h1>
+                <p className="text-gray-600 mb-6">This app uses cloud sync and requires authentication.</p>
+                <SignInButton mode="modal">
+                  <button className="px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
+                    Sign In
+                  </button>
+                </SignInButton>
+              </div>
+            </div>
+          );
+
+          return (
+            <ClerkFireproofProvider
+              publishableKey={config.clerkPublishableKey}
+              connectConfig={{
+                tokenApiUri: config.tokenApiUri,
+                cloudBackendUrl: config.cloudBackendUrl
+              }}
+            >
+              <SignedOut>
+                <AuthGate />
+              </SignedOut>
+              <SignedIn>
+                <HiddenMenuWrapper menuContent={<VibesPanel />}>
+                  <App />
+                </HiddenMenuWrapper>
+              </SignedIn>
+            </ClerkFireproofProvider>
+          );
+        }
+
+        // Local-only mode - no auth required
+        return (
+          <HiddenMenuWrapper menuContent={<VibesPanel />}>
+            <App />
+          </HiddenMenuWrapper>
+        );
+      }
+
+      // Load Clerk components dynamically only in Connect mode
+      async function initApp() {
+        const config = window.__VIBES_CONFIG__;
+        const hasConnect = config?.clerkPublishableKey &&
+                          !config.clerkPublishableKey.startsWith('__');
+
+        if (hasConnect) {
+          try {
+            // Dynamic import of @fireproof/clerk package
+            const clerkModule = await import("@fireproof/clerk");
+            window.ClerkFireproofProvider = clerkModule.ClerkFireproofProvider;
+            window.ClerkComponents = {
+              ClerkFireproofProvider: clerkModule.ClerkFireproofProvider,
+              SignedIn: clerkModule.SignedIn,
+              SignedOut: clerkModule.SignedOut,
+              SignInButton: clerkModule.SignInButton,
+              UserButton: clerkModule.UserButton
+            };
+            // Export for user's App code
+            window.SignedIn = clerkModule.SignedIn;
+            window.SignedOut = clerkModule.SignedOut;
+            window.SignInButton = clerkModule.SignInButton;
+            window.UserButton = clerkModule.UserButton;
+          } catch (err) {
+            console.error('Failed to load Clerk components:', err);
+          }
+        }
+
+        const rootElement = document.getElementById("container");
+        ReactDOMClient.createRoot(rootElement).render(<AppWrapper />);
+      }
+
+      initApp();
     </script>
   </body>
 </html>
