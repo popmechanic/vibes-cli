@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Made on Vibes DIY</title>
+    <script>globalThis.process = { env: { NODE_ENV: "production" } };</script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
@@ -51,14 +52,13 @@
     <script type="importmap">
       {
         "imports": {
-          "react": "https://esm.run/react@19.2.4",
-          "react-dom": "https://esm.run/react-dom@19.2.4",
-          "react-dom/client": "https://esm.run/react-dom@19.2.4/client",
-          "react/jsx-runtime": "https://esm.run/react@19.2.4/jsx-runtime",
-          "multiformats": "https://esm.run/multiformats@13.4.2",
-          "@clerk/clerk-react": "https://esm.run/@clerk/clerk-react@5",
-          "@fireproof/clerk": "https://esm.run/@necrodome/fireproof-clerk@0.0.3",
-          "use-fireproof": "https://esm.run/@necrodome/fireproof-clerk@0.0.3"
+          "react": "https://esm.sh/stable/react@19.2.4",
+          "react/jsx-runtime": "https://esm.sh/stable/react@19.2.4/jsx-runtime",
+          "react/jsx-dev-runtime": "https://esm.sh/stable/react@19.2.4/jsx-dev-runtime",
+          "react-dom": "https://esm.sh/stable/react-dom@19.2.4",
+          "react-dom/client": "https://esm.sh/stable/react-dom@19.2.4/client",
+          "use-fireproof": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom",
+          "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom"
         }
       }
     </script>
@@ -1018,9 +1018,9 @@ function VibesButton({
           return (
             <ClerkFireproofProvider
               publishableKey={config.clerkPublishableKey}
-              connectConfig={{
-                tokenApiUri: config.tokenApiUri,
-                cloudBackendUrl: config.cloudBackendUrl
+              config={{
+                apiUrl: config.tokenApiUri,
+                cloudUrl: config.cloudBackendUrl
               }}
             >
               <SignedOut>

@@ -1,13 +1,14 @@
 {
   "lastUpdated": "2026-01-29T00:00:00.000Z",
-  "source": "vibes-skill (@necrodome/fireproof-clerk migration)",
-  "note": "Using @necrodome/fireproof-clerk@0.0.3 for Clerk auth integration. use-fireproof aliased to this package.",
+  "source": "vibes-skill (stable URLs migration)",
+  "note": "Using esm.sh/stable/ for reliable pre-built packages",
   "imports": {
-    "react": "https://esm.sh/react",
-    "react-dom": "https://esm.sh/react-dom",
-    "react-dom/client": "https://esm.sh/react-dom/client",
-    "react/jsx-runtime": "https://esm.sh/react/jsx-runtime",
-    "@fireproof/clerk": "https://esm.sh/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom",
-    "use-fireproof": "https://esm.sh/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom"
+    "react": "https://esm.sh/stable/react@19.2.4",
+    "react/jsx-runtime": "https://esm.sh/stable/react@19.2.4/jsx-runtime",
+    "react/jsx-dev-runtime": "https://esm.sh/stable/react@19.2.4/jsx-dev-runtime",
+    "react-dom": "https://esm.sh/stable/react-dom@19.2.4",
+    "react-dom/client": "https://esm.sh/stable/react-dom@19.2.4/client",
+    "use-fireproof": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom",
+    "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom"
   }
 }
