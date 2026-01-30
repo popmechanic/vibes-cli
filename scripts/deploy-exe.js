@@ -1108,34 +1108,14 @@ location /blob {
     client_max_body_size 100M;
 }
 
-# /backend/blob -> rewrite to /blob (CAR file storage via legacy prefix)
-location /backend/blob {
-    proxy_hide_header Access-Control-Allow-Origin;
-    proxy_hide_header Access-Control-Allow-Methods;
-    proxy_hide_header Access-Control-Allow-Headers;
-    add_header Access-Control-Allow-Origin "*" always;
-    add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
-    add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
-
-    if ($request_method = OPTIONS) {
-        add_header Access-Control-Allow-Origin "*" always;
-        add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
-        add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
-        return 204;
+# Cloud backend - handles /backend, /backend/blob/*, /backend/ws, etc.
+# Uses regex to capture and forward full subpath
+location ~ ^/backend(/.*)?$ {
+    set $backend_path $1;
+    if ($backend_path = '') {
+        set $backend_path '/fp';
     }
 
-    rewrite ^/backend/blob(.*)$ /blob$1 break;
-    proxy_pass http://127.0.0.1:8909;
-    proxy_http_version 1.1;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    client_max_body_size 100M;
-}
-
-# Legacy /backend endpoint (rewrites to /fp or /ws based on request type)
-location /backend {
     proxy_hide_header Access-Control-Allow-Origin;
     proxy_hide_header Access-Control-Allow-Methods;
     proxy_hide_header Access-Control-Allow-Headers;
@@ -1150,12 +1130,9 @@ location /backend {
         return 204;
     }
 
-    set $backend_path /fp;
-    if ($http_upgrade ~* "websocket") {
-        set $backend_path /ws;
-    }
-
-    proxy_pass http://127.0.0.1:8909$backend_path$is_args$args;
+    resolver 127.0.0.11 valid=30s;
+    set $backend_host 127.0.0.1;
+    proxy_pass http://$backend_host:8909$backend_path;
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "upgrade";
@@ -1164,6 +1141,7 @@ location /backend {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_read_timeout 86400;
+    client_max_body_size 100M;
 }`;
 
     const escapedNginxConf = nginxConf.replace(/'/g, "'\\''");
