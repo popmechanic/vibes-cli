@@ -211,6 +211,20 @@ Import map examples in documentation become stale. Reference `cache/import-map.j
 | Hardcoded versions in docs | Docs become stale | Reference cache file |
 | Editing templates without running sync | Versions out of date | Always run sync after edits |
 
+## Local Development
+
+To test the plugin from local source (instead of the installed version):
+
+```bash
+# From the plugin directory
+claude --plugin .
+
+# Or with absolute path
+claude --plugin /path/to/vibes-skill
+```
+
+This loads skills and commands from your local checkout, so you can test changes without publishing.
+
 ## Testing
 
 The plugin includes a comprehensive test suite using Vitest. Tests are organized into three tiers:
