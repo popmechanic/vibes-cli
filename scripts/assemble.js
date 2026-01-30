@@ -20,8 +20,8 @@ const PLACEHOLDER = '// __VIBES_APP_CODE__';
 
 // Connect config placeholders (required - apps need Clerk auth)
 const CONFIG_PLACEHOLDERS = {
-  '__VITE_TOKEN_API_URI__': 'VITE_API_URL',
-  '__VITE_CLOUD_BACKEND_URL__': 'VITE_CLOUD_URL',
+  '__VITE_API_URL__': 'VITE_API_URL',
+  '__VITE_CLOUD_URL__': 'VITE_CLOUD_URL',
   '__VITE_CLERK_PUBLISHABLE_KEY__': 'VITE_CLERK_PUBLISHABLE_KEY'
 };
 

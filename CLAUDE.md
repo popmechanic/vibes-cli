@@ -673,7 +673,7 @@ If you see these errors, React is being duplicated:
 - Page becomes unresponsive after focusing text inputs
 - Controlled inputs trigger infinite render loops
 
-**Fix:** Ensure `use-vibes` imports have `?external=react,react-dom`
+**Fix:** Ensure `fireproof-clerk` imports have `?external=react,react-dom`
 
 ### VibeContextProvider NOT Required
 
