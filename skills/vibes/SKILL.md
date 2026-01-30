@@ -189,8 +189,8 @@ To start the Fireproof services:
   cd fireproof/core && docker compose up --build
 
 Services will be available at:
-  - Token API: http://localhost:7370/api
-  - Cloud Sync: fpcloud://localhost:8909?protocol=ws
+  - Token API: http://localhost:8080/api/
+  - Cloud Sync: fpcloud://localhost:8080?protocol=ws
 
 Your .env file has been created. Apps you generate will auto-detect Connect.
 ```
