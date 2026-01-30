@@ -18,10 +18,10 @@ import { createBackup } from './lib/backup.js';
 
 const PLACEHOLDER = '// __VIBES_APP_CODE__';
 
-// Connect config placeholders
+// Connect config placeholders (required - apps need Clerk auth)
 const CONFIG_PLACEHOLDERS = {
-  '__VITE_TOKEN_API_URI__': 'VITE_TOKEN_API_URI',
-  '__VITE_CLOUD_BACKEND_URL__': 'VITE_CLOUD_BACKEND_URL',
+  '__VITE_TOKEN_API_URI__': 'VITE_API_URL',
+  '__VITE_CLOUD_BACKEND_URL__': 'VITE_CLOUD_URL',
   '__VITE_CLERK_PUBLISHABLE_KEY__': 'VITE_CLERK_PUBLISHABLE_KEY'
 };
 
@@ -115,14 +115,14 @@ const envVars = loadEnvFile(outputDir);
 
 // Validate Connect credentials - fail fast if invalid
 const hasValidConnect = validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY) &&
-                        envVars.VITE_TOKEN_API_URI;
+                        envVars.VITE_API_URL;
 
 if (!hasValidConnect) {
   console.error('Error: Valid Clerk credentials required.');
   console.error('');
   console.error('Expected in .env:');
   console.error('  VITE_CLERK_PUBLISHABLE_KEY=pk_test_... or pk_live_...');
-  console.error('  VITE_TOKEN_API_URI=http://localhost:7370/api');
+  console.error('  VITE_API_URL=http://localhost:7370/api');
   console.error('');
   console.error('Run Connect setup before assembling apps.');
   process.exit(1);

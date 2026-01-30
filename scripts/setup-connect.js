@@ -608,8 +608,8 @@ async function main() {
 VITE_CLERK_PUBLISHABLE_KEY=${args.clerkPublishableKey}
 
 # Fireproof Connect (exe.dev)
-VITE_TOKEN_API_URI=https://${vmName}.exe.xyz/api
-VITE_CLOUD_BACKEND_URL=fpcloud://${vmName}.exe.xyz/sync?protocol=wss
+VITE_API_URL=https://${vmName}.exe.xyz/api
+VITE_CLOUD_URL=fpcloud://${vmName}.exe.xyz/backend?protocol=wss
 `;
 
       if (existsSync(envPath)) {
@@ -618,8 +618,8 @@ VITE_CLOUD_BACKEND_URL=fpcloud://${vmName}.exe.xyz/sync?protocol=wss
           // Update existing values
           let updatedEnv = existingEnv
             .replace(/VITE_CLERK_PUBLISHABLE_KEY=.*/g, `VITE_CLERK_PUBLISHABLE_KEY=${args.clerkPublishableKey}`)
-            .replace(/VITE_TOKEN_API_URI=.*/g, `VITE_TOKEN_API_URI=https://${vmName}.exe.xyz/api`)
-            .replace(/VITE_CLOUD_BACKEND_URL=.*/g, `VITE_CLOUD_BACKEND_URL=fpcloud://${vmName}.exe.xyz/sync?protocol=wss`);
+            .replace(/VITE_API_URL=.*/g, `VITE_API_URL=https://${vmName}.exe.xyz/api`)
+            .replace(/VITE_CLOUD_URL=.*/g, `VITE_CLOUD_URL=fpcloud://${vmName}.exe.xyz/backend?protocol=wss`);
           writeFileSync(envPath, updatedEnv);
           console.log(`Updated: ${envPath}`);
         } else {
@@ -749,8 +749,8 @@ VITE_CLOUD_BACKEND_URL=fpcloud://${vmName}.exe.xyz/sync?protocol=wss
       // Replace existing values
       let updatedEnv = existingEnv
         .replace(/VITE_CLERK_PUBLISHABLE_KEY=.*/g, `VITE_CLERK_PUBLISHABLE_KEY=${args.clerkPublishableKey}`)
-        .replace(/VITE_TOKEN_API_URI=.*/g, 'VITE_TOKEN_API_URI=http://localhost:7370/api')
-        .replace(/VITE_CLOUD_BACKEND_URL=.*/g, 'VITE_CLOUD_BACKEND_URL=fpcloud://localhost:8909?protocol=ws');
+        .replace(/VITE_API_URL=.*/g, 'VITE_API_URL=http://localhost:7370/api')
+        .replace(/VITE_CLOUD_URL=.*/g, 'VITE_CLOUD_URL=fpcloud://localhost:8909?protocol=ws');
       writeFileSync(envPath, updatedEnv);
     } else {
       // Append to existing file
