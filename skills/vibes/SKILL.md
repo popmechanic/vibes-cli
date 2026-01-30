@@ -40,9 +40,12 @@ Generate React web applications using Fireproof for local-first data persistence
 
 **Step 0: Check Connect Status**
 
-Run this command first to validate Clerk credentials (not just file existence):
+Run this command first to validate all required credentials:
 ```bash
-if test -f "./.env" && grep -qE "^VITE_CLERK_PUBLISHABLE_KEY=pk_(test|live)_" ./.env 2>/dev/null; then
+if test -f "./.env" && \
+   grep -qE "^VITE_CLERK_PUBLISHABLE_KEY=pk_(test|live)_" ./.env 2>/dev/null && \
+   grep -qE "^VITE_API_URL=" ./.env 2>/dev/null && \
+   grep -qE "^VITE_CLOUD_URL=" ./.env 2>/dev/null; then
   echo "CONNECT_READY"
 else
   echo "CONNECT_NOT_READY"
