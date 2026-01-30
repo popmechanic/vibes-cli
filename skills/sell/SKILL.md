@@ -1,6 +1,7 @@
 ---
 name: sell
 description: Transform a Vibes app into a multi-tenant SaaS with subdomain-based tenancy. Adds Clerk authentication, subscription gating, and generates a unified app with landing page, tenant routing, and admin dashboard.
+allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 ---
 
 **Display this ASCII art immediately when starting:**
@@ -14,6 +15,21 @@ description: Transform a Vibes app into a multi-tenant SaaS with subdomain-based
        ░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░
 ░▒▓███████▓▒░░▒▓████████▓▒░▒▓████████▓▒░▒▓████████▓▒░
 ```
+
+> **Before starting:** Complete [Clerk Setup](CLERK-SETUP.md) to configure authentication.
+
+## Quick Navigation
+
+- [Critical Rules](#-critical-rules---read-first-) - Read this first
+- [Workflow Overview](#workflow-overview) - Step-by-step process
+- [Step 1: Detect Existing App](#step-1-detect-existing-app) - Find app to transform
+- [Step 2: Gather Configuration](#step-2-gather-all-configuration-upfront) - Collect all settings
+- [Step 3: Assemble](#step-3-assemble-do-not-generate-code) - Build the unified app
+- [Step 4: Deploy](#step-4-deploy) - Go live with exe.dev
+- [Step 5: Clerk Setup](#step-5-clerk-setup-required-before-testing) - Configure authentication
+- [Key Components](#key-components) - Routing, TenantContext, SubscriptionGate
+- [Testing](#testing) - Local and staging verification
+- [Troubleshooting](#troubleshooting) - Common issues and fixes
 
 ---
 
@@ -489,25 +505,25 @@ The `?subdomain=` parameter works on both localhost and exe.xyz, allowing you to
 
 ## Import Map
 
-The unified template uses pinned React 18 versions to prevent conflicts with Clerk:
+The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk integration:
 
 ```json
 {
   "imports": {
-    "react": "https://esm.sh/react@18.3.1",
-    "react-dom": "https://esm.sh/react-dom@18.3.1?deps=react@18.3.1",
-    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1",
-    "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
-    "use-fireproof": "https://esm.sh/use-vibes@0.24.3-dev?deps=react@18.3.1",
-    "use-vibes": "https://esm.sh/use-vibes@0.24.3-dev?deps=react@18.3.1"
+    "react": "https://esm.sh/stable/react@19.2.4",
+    "react/jsx-runtime": "https://esm.sh/stable/react@19.2.4/jsx-runtime",
+    "react/jsx-dev-runtime": "https://esm.sh/stable/react@19.2.4/jsx-dev-runtime",
+    "react-dom": "https://esm.sh/stable/react-dom@19.2.4",
+    "react-dom/client": "https://esm.sh/stable/react-dom@19.2.4/client",
+    "use-fireproof": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom",
+    "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom"
   }
 }
 ```
 
-**Note:** `use-fireproof` is aliased to `use-vibes` for compatibility. Version 0.24.3-dev includes `toCloud()` for Fireproof Cloud sync.
+**Note:** Uses `esm.sh/stable/` for pre-built, cached packages. The `?external=react,react-dom` ensures import map controls React.
 
 **IMPORTANT:**
-- Clerk@5 defaults to React 19, which causes version conflicts. The `?deps=react@18.3.1` parameter pins React 18 for all packages.
 - `@clerk/clerk-react` is imported directly via URL in the code (not via import map) because Babel standalone doesn't properly resolve bare specifiers from import maps.
 
 ---
@@ -521,8 +537,8 @@ The unified template uses pinned React 18 versions to prevent conflicts with Cle
 
 ### "Cannot read properties of null (reading 'useEffect')"
 - React version mismatch between packages
-- Ensure import map uses pinned React 18 versions with `?deps=react@18.3.1`
-- Clerk@5 defaults to React 19 - must pin with deps parameter
+- Ensure fireproof-clerk imports have `?external=react,react-dom`
+- Use `esm.sh/stable/` URLs for consistent package resolution
 
 ### "Subscription Required" loop
 - Check that admin user ID is correct and in the `ADMIN_USER_IDS` array
