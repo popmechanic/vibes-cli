@@ -57,7 +57,7 @@ This deployment includes Fireproof Connect services running in Docker.
 | Service | Internal Port | External URL | Purpose |
 |---------|--------------|--------------|---------|
 | Dashboard (Token API) | 7370 | https://${vmName}.exe.xyz/api | Issues authenticated tokens |
-| Cloud Backend (Sync) | 8909 | wss://${vmName}.exe.xyz/sync | Real-time WebSocket sync |
+| Cloud Backend (Sync) | 8909 | wss://${vmName}.exe.xyz/backend | Real-time WebSocket sync |
 
 ### Docker Commands
 
@@ -89,7 +89,7 @@ cd /opt/fireproof/core && sudo docker compose up -d --build
 
 The Connect services are proxied through nginx:
 - \`/api\` → localhost:7370 (Token API)
-- \`/sync\` → localhost:8909 (WebSocket sync)
+- \`/backend\` → localhost:8909 (WebSocket sync)
 
 Config file: \`/etc/nginx/vibes-connect.conf\`
 

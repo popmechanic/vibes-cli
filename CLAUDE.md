@@ -27,6 +27,31 @@ SKILL.md provides common patterns (useDocument, useLiveQuery, database.put/del) 
 | Complete example | "full example", "show me how" | Complete Example |
 | Migration from use-fireproof | "migrate", "update existing" | Differences from Standard Fireproof |
 
+### ClerkFireproofProvider Config Pattern
+
+Working configuration pattern for Vite apps with Clerk authentication:
+
+```tsx
+import { ClerkFireproofProvider } from "@necrodome/fireproof-clerk";
+
+const config = {
+  apiUrl: import.meta.env.VITE_API_URL || "http://localhost:7370/api",
+  cloudUrl: import.meta.env.VITE_CLOUD_URL || "fpcloud://localhost:8909?protocol=ws",
+};
+
+<ClerkFireproofProvider publishableKey={CLERK_KEY} config={config}>
+  {/* app content */}
+</ClerkFireproofProvider>
+```
+
+**Environment Variables:**
+
+| Variable | Purpose | Production Example |
+|----------|---------|-------------------|
+| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk auth | `pk_test_...` or `pk_live_...` |
+| `VITE_API_URL` | Token API endpoint | `https://yourvm.exe.xyz/api` |
+| `VITE_CLOUD_URL` | Cloud sync (fpcloud protocol) | `fpcloud://yourvm.exe.xyz/backend?protocol=wss` |
+
 ### Architecture at a Glance
 
 ```
@@ -514,7 +539,7 @@ exe.dev VM (exeuntu image)
 ├── nginx (serves all routes)
 │   ├── /           → /var/www/html/index.html (app)
 │   ├── /api        → localhost:7370 (Token API, if --connect)
-│   └── /sync       → localhost:8909 (Cloud Sync WebSocket, if --connect)
+│   └── /backend    → localhost:8909 (Cloud Sync WebSocket, if --connect)
 └── Docker (if --connect)
     ├── fireproof-dashboard (port 7370)
     └── fireproof-cloud-backend (port 8909)
@@ -524,13 +549,13 @@ exe.dev VM (exeuntu image)
 
 When deployed with `--connect`, the VM runs Fireproof sync services:
 - **Token API**: `https://<vm-name>.exe.xyz/api` - Issues authenticated tokens
-- **Cloud Sync**: `wss://<vm-name>.exe.xyz/sync` - Real-time WebSocket sync
+- **Cloud Sync**: `wss://<vm-name>.exe.xyz/backend` - Real-time WebSocket sync
 
 Update your `.env` file to use remote services:
 ```bash
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
-VITE_TOKEN_API_URI=https://<vm-name>.exe.xyz/api
-VITE_CLOUD_BACKEND_URL=fpcloud://<vm-name>.exe.xyz/sync?protocol=wss
+VITE_API_URL=https://<vm-name>.exe.xyz/api
+VITE_CLOUD_URL=fpcloud://<vm-name>.exe.xyz/backend?protocol=wss
 ```
 
 ### DNS + SSL Architecture (IMPORTANT)
@@ -584,6 +609,46 @@ For apps needing tenant isolation, use client-side subdomain parsing:
 - `scripts/deploy-exe.js` - Deployment automation
 - `scripts/lib/exe-ssh.js` - SSH helpers
 - `skills/exe/SKILL.md` - Deployment skill
+
+### Nginx CORS Configuration Patterns
+
+The Connect nginx config in `deploy-exe.js` uses important patterns for CORS:
+
+1. **Hide backend CORS headers and add our own:**
+   ```nginx
+   proxy_hide_header Access-Control-Allow-Origin;
+   proxy_hide_header Access-Control-Allow-Methods;
+   proxy_hide_header Access-Control-Allow-Headers;
+   add_header Access-Control-Allow-Origin "*" always;
+   add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
+   add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
+   ```
+
+2. **Handle OPTIONS preflight:**
+   ```nginx
+   if ($request_method = OPTIONS) {
+       add_header Access-Control-Allow-Origin "*" always;
+       add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
+       add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
+       return 204;
+   }
+   ```
+
+3. **WebSocket-specific settings:**
+   ```nginx
+   proxy_set_header Upgrade $http_upgrade;
+   proxy_set_header Connection "upgrade";
+   proxy_read_timeout 86400;  # 24 hours for long-lived WS
+   ```
+
+4. **Smart `/backend` routing:** Routes to `/fp` for regular requests, `/ws` for WebSocket upgrades
+
+5. **Blob storage:** `client_max_body_size 100M;` for large CAR files
+
+**Troubleshooting CORS:**
+- Use `proxy_hide_header` to remove conflicting backend headers
+- Ensure `always` keyword is present (sends headers even on error responses)
+- Verify OPTIONS preflight returns 204
 
 ## Known Issues
 

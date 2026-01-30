@@ -33,7 +33,7 @@ description: Set up Fireproof sync backend with Clerk authentication on exe.dev.
 
 Set up a Fireproof sync backend with Clerk authentication on exe.dev. This deploys Docker services for:
 - **Token API** (https://yourvm.exe.xyz/api) - Issues authenticated tokens for cloud sync
-- **Cloud Backend** (wss://yourvm.exe.xyz/sync) - Real-time WebSocket sync
+- **Cloud Backend** (wss://yourvm.exe.xyz/backend) - Real-time WebSocket sync
 
 After setup, apps generated with `/vibes:vibes` will use `@fireproof/clerk` for authenticated sync tied to user accounts.
 
@@ -117,7 +117,7 @@ This will:
 3. Clone the Fireproof repository
 4. Generate security tokens
 5. Configure and start Docker services
-6. Set up nginx proxy for /api and /sync routes
+6. Set up nginx proxy for /api and /backend routes
 
 ### Step 4: Provide Connection Details
 
@@ -128,13 +128,13 @@ Connect deployment complete!
 
 Services are available at:
   - Token API: https://<vm-name>.exe.xyz/api
-  - Cloud Sync: wss://<vm-name>.exe.xyz/sync
+  - Cloud Sync: wss://<vm-name>.exe.xyz/backend
 
 Update your project's .env file:
 
   VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
-  VITE_TOKEN_API_URI=https://<vm-name>.exe.xyz/api
-  VITE_CLOUD_BACKEND_URL=fpcloud://<vm-name>.exe.xyz/sync?protocol=wss
+  VITE_API_URL=https://<vm-name>.exe.xyz/api
+  VITE_CLOUD_URL=fpcloud://<vm-name>.exe.xyz/backend?protocol=wss
 
 Apps generated with /vibes:vibes will now use authenticated sync.
 
@@ -165,7 +165,7 @@ services:
       CLOUD_SESSION_TOKEN_PUBLIC: <generated>
       CLERK_PUB_JWT_URL: <your-clerk-jwt-url>
       VERSION: FP-MSG-1.0
-      BLOB_PROXY_URL: "https://<vm-name>.exe.xyz/sync"
+      BLOB_PROXY_URL: "https://<vm-name>.exe.xyz/backend"
 
   dashboard:
     build:
@@ -196,8 +196,8 @@ services:
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
 
 # Fireproof Connect (exe.dev)
-VITE_TOKEN_API_URI=https://<vm-name>.exe.xyz/api
-VITE_CLOUD_BACKEND_URL=fpcloud://<vm-name>.exe.xyz/sync?protocol=wss
+VITE_API_URL=https://<vm-name>.exe.xyz/api
+VITE_CLOUD_URL=fpcloud://<vm-name>.exe.xyz/backend?protocol=wss
 ```
 
 ## Troubleshooting
@@ -231,9 +231,30 @@ If you get connection refused errors:
 ### WebSocket Connection Issues
 
 If WebSocket connections fail:
-1. Check that the /sync nginx config includes WebSocket upgrade headers
+1. Check that the /backend nginx config includes WebSocket upgrade headers
 2. Verify the cloud-backend container is healthy
 3. Check browser console for CORS errors
+
+### Multi-Device Sync Requires Page Reload
+
+**Symptom**: Changes made on Device A don't appear in real-time on Device B (same Clerk account), but do appear after refreshing.
+
+**Cause**: This is a known fireproof-connect backend issue. WebSocket notifications tell clients WHAT blob changed (CID) but not WHERE it's stored (device namespace). Each device stores blobs under its own path, so cross-device lookups fail.
+
+**Evidence** (from backend logs):
+- Device 2 writes: `PUT /blob/device2-id/.../baembeicgz...` → 200 OK
+- Device 1 receives notification, tries: `GET /blob/device1-id/.../baembeicgz...` → 404
+
+**Workaround**: Refresh the page to trigger full sync which queries across all user device namespaces.
+
+**Status**: Reported upstream. Fix requires backend change to look up CIDs across all user device namespaces.
+
+### CORS Errors
+
+If you see CORS errors in the browser console:
+1. Verify nginx is using `proxy_hide_header` to remove conflicting backend headers
+2. Ensure the `always` keyword is present on `add_header` directives (sends headers even on error responses)
+3. Verify OPTIONS preflight returns 204
 
 ## Comparison: exe.dev vs Local Docker
 
