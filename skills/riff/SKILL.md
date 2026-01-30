@@ -1,6 +1,7 @@
 ---
 name: riff
-description: Generate multiple Vibes app variations in parallel with business models and rankings. Use when exploring different interpretations of a broad objective or loose creative prompt.
+description: Generate 3-10 app variations in parallel for comparing ideas. Use when user says "explore options", "give me variations", "riff on this", "brainstorm approaches", or wants to see multiple interpretations of a concept.
+allowed-tools: Read, Write, Bash, Task, Glob, AskUserQuestion
 ---
 
 **Display this ASCII art immediately when starting:**

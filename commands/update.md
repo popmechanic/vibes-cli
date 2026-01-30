@@ -1,6 +1,7 @@
 ---
 name: update
 description: Update an existing Vibes app to the latest plugin version without regenerating code
+argument-hint: "<file.html> [--apply] [--backup]"
 ---
 
 # vibes update

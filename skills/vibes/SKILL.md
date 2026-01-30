@@ -1,6 +1,7 @@
 ---
 name: vibes
 description: Generate React web apps with Fireproof database. Use when creating new web applications, adding components, or working with local-first databases. Ideal for quick prototypes and single-page apps that need real-time data sync.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
 
 **Display this ASCII art immediately when starting:**
@@ -14,6 +15,20 @@ description: Generate React web apps with Fireproof database. Use when creating 
   ░▒▓█▓▓█▓▒░ ░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░
    ░▒▓██▓▒░  ░▒▓█▓▒░▒▓███████▓▒░░▒▓████████▓▒░▒▓███████▓▒░
 ```
+
+## Quick Navigation
+
+- [Pre-Flight Check](#pre-flight-check-connect-status) - Validate Connect setup before coding
+- [Core Rules](#core-rules) - Essential guidelines for app generation
+- [Generation Process](#generation-process) - Design reasoning and code output
+- [Assembly Workflow](#assembly-workflow) - Build the final app
+- [UI Style & Theming](#ui-style--theming) - OKLCH colors and design patterns
+- [Fireproof API](#fireproof-api) - Database operations and hooks
+- [AI Features](#ai-features-optional) - Optional AI integration
+- [Common Mistakes](#common-mistakes-to-avoid) - Avoid these pitfalls
+- [Deployment Options](#deployment-options) - Where to deploy
+
+---
 
 # Vibes DIY App Generator
 
@@ -270,28 +285,7 @@ Apps will show a configuration error if credentials are missing.
 
 ---
 
-## ⚠️ CRITICAL: DEPRECATED API - DO NOT USE
-
-The `@necrodome/fireproof-clerk` package has a DIFFERENT API than the old `use-vibes` package.
-
-**NEVER generate code with these patterns:**
-
-```jsx
-// ❌ WRONG - OLD API - WILL NOT WORK
-import { toCloud, useFireproof } from "use-fireproof";
-import { useDocument } from "use-fireproof";
-const { attach, database } = useFireproof("db", { attach: toCloud() });
-// attach.state, attach.error - WRONG
-```
-
-**ALWAYS generate code with this pattern:**
-
-```jsx
-// ✅ CORRECT - CURRENT API
-import { useFireproofClerk } from "use-fireproof";
-const { database, useLiveQuery, useDocument, syncStatus } = useFireproofClerk("my-db");
-// syncStatus - CORRECT
-```
+> **⚠️ DEPRECATED API:** Never use the old `useFireproof` with `toCloud()` pattern. See [references/DEPRECATED.md](references/DEPRECATED.md) for migration details if you encounter legacy code.
 
 ---
 

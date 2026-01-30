@@ -1,19 +1,20 @@
 ---
 name: exe
 description: Deploy a Vibes app to exe.dev VM hosting. Uses nginx on persistent VMs with SSH automation. Supports client-side multi-tenancy via subdomain-based Fireproof database isolation.
+allowed-tools: Bash, Read, Glob, AskUserQuestion
 ---
 
-# Deploy to exe.dev
+## Deploy to exe.dev
 
 Deploy your Vibes app to exe.dev, a VM hosting platform with persistent storage and HTTPS by default.
 
-## Prerequisites
+### Prerequisites
 
 1. **SSH key** in `~/.ssh/` (id_ed25519, id_rsa, or id_ecdsa)
 2. **exe.dev account** - run `ssh exe.dev` once to create your account and verify email
 3. **Generated Vibes app** - an `index.html` file ready to deploy
 
-## Gather Config Upfront
+### Gather Config Upfront
 
 **Use AskUserQuestion to collect deployment config before running the deploy script.**
 
@@ -37,20 +38,20 @@ Header: "Registry"
 Options: ["No - simple static deploy", "Yes - need Clerk keys for registry"]
 ```
 
-### After Receiving Answers
+#### After Receiving Answers
 
 1. If AI enabled, ask for the OpenRouter API key
 2. If Registry enabled, ask for Clerk PEM public key and webhook secret
 3. **Proceed immediately to deploy** - no more questions
 
-## Quick Deploy
+### Quick Deploy
 
 ```bash
 cd "${CLAUDE_PLUGIN_ROOT}/scripts" && [ -d node_modules ] || npm install
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.html
 ```
 
-## What It Does
+### What It Does
 
 1. **Creates VM** on exe.dev via SSH CLI
 2. **Starts nginx** (pre-installed on exeuntu image)
@@ -60,7 +61,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.htm
 5. **Makes VM public** via `ssh exe.dev share set-public <vmname>`
 6. **Verifies** public access at `https://myapp.exe.xyz`
 
-## AI-Enabled Apps
+### AI-Enabled Apps
 
 For apps using the `useAI` hook, deploy with the `--ai-key` flag:
 
@@ -76,7 +77,7 @@ This sets up a **secure AI proxy**:
 
 **IMPORTANT:** Do not manually set up AI proxying. Manual nginx config changes can overwrite SSL settings and miss the Bun/proxy.js service. Always use the deploy script with `--ai-key`.
 
-### Multi-Tenant AI Apps
+#### Multi-Tenant AI Apps
 
 For SaaS apps with per-tenant AI:
 
@@ -84,7 +85,7 @@ For SaaS apps with per-tenant AI:
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.html --ai-key "sk-or-v1-..." --multi-tenant
 ```
 
-## Registry Server
+### Registry Server
 
 For SaaS apps using subdomain claiming (from `/vibes:sell`), deploy with Clerk credentials:
 
@@ -101,7 +102,7 @@ This sets up a **subdomain registry server**:
 3. Configures systemd service (port 3002)
 4. Adds nginx proxy for `/registry.json`, `/check/*`, `/claim`, `/webhook`
 
-### Registry Endpoints
+#### Registry Endpoints
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
@@ -110,7 +111,7 @@ This sets up a **subdomain registry server**:
 | `/claim` | POST | Bearer JWT | Claim subdomain for user |
 | `/webhook` | POST | Svix sig | Clerk subscription events |
 
-### Getting the Clerk Public Key
+#### Getting the Clerk Public Key
 
 The registry server needs Clerk's PEM public key to verify JWTs for the `/claim` endpoint.
 
@@ -143,7 +144,7 @@ sudo nano /etc/registry.env
 sudo systemctl restart vibes-registry
 ```
 
-## Continue Development on the VM
+### Continue Development on the VM
 
 Claude is pre-installed on exe.dev VMs. After deployment, you can continue development remotely:
 
@@ -153,7 +154,7 @@ ssh myapp.exe.dev -t "cd /var/www/html && claude"
 
 The HANDOFF.md file provides context about what was built, so Claude can continue meaningfully.
 
-### Manual Public Access
+#### Manual Public Access
 
 If the deploy script doesn't make the VM public automatically, run:
 
@@ -161,11 +162,11 @@ If the deploy script doesn't make the VM public automatically, run:
 ssh exe.dev share set-public myapp
 ```
 
-## Multi-Tenant Apps
+### Multi-Tenant Apps
 
 For apps that need tenant isolation (e.g., `alice.myapp.com`, `bob.myapp.com`):
 
-### Client-Side Isolation
+#### Client-Side Isolation
 
 The same `index.html` serves all subdomains. JavaScript reads the hostname and uses the subdomain as a Fireproof database prefix:
 
@@ -179,7 +180,7 @@ const dbName = `myapp-${subdomain}`;
 const { database } = useFireproof(dbName);
 ```
 
-### Custom Domain Setup
+#### Custom Domain Setup
 
 1. **Add `--domain` flag:**
    ```bash
@@ -200,7 +201,7 @@ const { database } = useFireproof(dbName);
      -d "myapp.com" -d "*.myapp.com"
    ```
 
-## CLI Options
+### CLI Options
 
 | Option | Description |
 |--------|-------------|
@@ -217,7 +218,7 @@ const { database } = useFireproof(dbName);
 | `--dry-run` | Show commands without executing |
 | `--skip-verify` | Skip deployment verification |
 
-## Redeployment
+### Redeployment
 
 After making changes, redeploy with:
 
@@ -225,7 +226,7 @@ After making changes, redeploy with:
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp
 ```
 
-## SSH Access
+### SSH Access
 
 Access your VM directly:
 
@@ -233,7 +234,7 @@ Access your VM directly:
 ssh myapp.exe.dev
 ```
 
-## Architecture
+### Architecture
 
 ```
 exe.dev VM (exeuntu image)
@@ -252,7 +253,7 @@ exe.dev VM (exeuntu image)
     └── vibes-registry.service       ← systemd unit
 ```
 
-### Port Assignments
+#### Port Assignments
 
 | Service | Port | Purpose |
 |---------|------|---------|
@@ -264,7 +265,7 @@ exe.dev VM (exeuntu image)
 - **HTTPS by default** - exe.dev handles SSL for *.exe.xyz
 - **Claude pre-installed** - continue development on the VM
 
-## Post-Deploy Debugging
+### Post-Deploy Debugging
 
 After deployment, **always work with local files** - they are the source of truth. SSHing to read deployed files is slow and wastes tokens.
 
@@ -280,7 +281,7 @@ After deployment, **always work with local files** - they are the source of trut
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name <vmname> --file index.html
 ```
 
-## SSL Configuration
+### SSL Configuration
 
 The deploy script preserves existing SSL by using include files for AI proxy config. When manually editing nginx:
 
@@ -289,7 +290,7 @@ The deploy script preserves existing SSL by using include files for AI proxy con
 3. **Use includes:** Put new configs in `/etc/nginx/conf.d/` or separate files
 4. **Test before reload:** `sudo nginx -t`
 
-### exe.dev Home Directory
+#### exe.dev Home Directory
 
 The home directory on exe.dev VMs is `/home/exedev` (not `~` expansion). For manual file operations:
 
@@ -302,7 +303,7 @@ scp file.html vmname.exe.xyz:/tmp/
 
 ---
 
-## What's Next?
+### What's Next?
 
 After successful deployment, present these options using AskUserQuestion:
 

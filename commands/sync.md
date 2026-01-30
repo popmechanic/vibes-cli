@@ -1,6 +1,7 @@
 ---
 name: sync
 description: Sync cached Vibes DIY documentation and import map from upstream sources
+argument-hint: "[--force]"
 ---
 
 # Sync Vibes DIY
