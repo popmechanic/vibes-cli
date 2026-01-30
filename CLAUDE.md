@@ -654,7 +654,20 @@ The Connect nginx config in `deploy-exe.js` uses important patterns for CORS:
    proxy_read_timeout 86400;  # 24 hours for long-lived WS
    ```
 
-4. **Smart `/backend` routing:** Routes to `/fp` for regular requests, `/ws` for WebSocket upgrades
+4. **Smart `/backend` routing with regex for subpaths:**
+   ```nginx
+   # CRITICAL: Use regex to capture and forward full subpath
+   # Without this, /backend/blob/* requests fail with 404
+   location ~ ^/backend(/.*)?$ {
+       set $backend_path $1;
+       if ($backend_path = '') {
+           set $backend_path '/fp';
+       }
+       proxy_pass http://$backend_host:8909$backend_path;
+       # ... headers and WebSocket config
+   }
+   ```
+   The regex `^/backend(/.*)?$` captures everything after `/backend` (e.g., `/blob/tenant/db/car/cid`) and forwards it to the backend. Without the regex, a plain `location /backend` block won't properly handle subpaths.
 
 5. **Blob storage:** `client_max_body_size 100M;` for large CAR files
 
@@ -662,6 +675,11 @@ The Connect nginx config in `deploy-exe.js` uses important patterns for CORS:
 - Use `proxy_hide_header` to remove conflicting backend headers
 - Ensure `always` keyword is present (sends headers even on error responses)
 - Verify OPTIONS preflight returns 204
+
+**Troubleshooting 404 on `/backend/blob/*`:**
+- Ensure the `/backend` location uses regex `~ ^/backend(/.*)?$`
+- Verify `$backend_path` captures and forwards the full subpath
+- Check nginx logs: requests should show the full path reaching the backend
 
 ## Known Issues
 
