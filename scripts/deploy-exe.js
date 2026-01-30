@@ -322,7 +322,6 @@ async function phase2CreateVM(args) {
   const vmHost = `${args.name}.exe.xyz`;
   console.log(`  Adding ${vmHost} to known_hosts...`);
   try {
-    const { execSync } = require('child_process');
     execSync(`ssh-keyscan -H ${vmHost} >> ~/.ssh/known_hosts 2>/dev/null`, { timeout: 30000 });
     console.log(`  ✓ Host key added`);
   } catch (err) {
@@ -894,138 +893,17 @@ async function phase10Connect(args) {
       await runCommand(client, 'cd /opt/fireproof && git pull origin selem/docker-for-all || true');
     }
 
-    // 3. Generate session tokens using setup-connect.js logic
+    // 3. Generate session tokens using shared crypto utilities
     console.log('  Generating security tokens...');
-    const { webcrypto } = await import('crypto');
-    const { subtle } = webcrypto;
+    const { generateSessionTokens, generateDeviceCAKeys } = await import('./lib/crypto-utils.js');
 
-    // Base58btc alphabet
-    const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-
-    function base58Encode(bytes) {
-      const uint8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-      const digits = [0];
-      for (const byte of uint8) {
-        let carry = byte;
-        for (let i = 0; i < digits.length; i++) {
-          carry += digits[i] << 8;
-          digits[i] = carry % 58;
-          carry = Math.floor(carry / 58);
-        }
-        while (carry > 0) {
-          digits.push(carry % 58);
-          carry = Math.floor(carry / 58);
-        }
-      }
-      let result = '';
-      for (const byte of uint8) {
-        if (byte === 0) result += '1';
-        else break;
-      }
-      for (let i = digits.length - 1; i >= 0; i--) {
-        result += BASE58_ALPHABET[digits[i]];
-      }
-      return result;
-    }
-
-    function jwkToEnv(jwk) {
-      const jsonStr = JSON.stringify(jwk);
-      const bytes = new TextEncoder().encode(jsonStr);
-      return 'z' + base58Encode(bytes);
-    }
-
-    // Generate session tokens
-    const sessionKeyPair = await subtle.generateKey(
-      { name: 'ECDSA', namedCurve: 'P-256' },
-      true,
-      ['sign', 'verify']
-    );
-    const sessionPublicJwk = await subtle.exportKey('jwk', sessionKeyPair.publicKey);
-    const sessionPrivateJwk = await subtle.exportKey('jwk', sessionKeyPair.privateKey);
-    sessionPublicJwk.alg = 'ES256';
-    sessionPrivateJwk.alg = 'ES256';
-    const sessionTokenPublic = jwkToEnv(sessionPublicJwk);
-    const sessionTokenSecret = jwkToEnv(sessionPrivateJwk);
-
-    // Generate Device CA keys
-    const caKeyPair = await subtle.generateKey(
-      { name: 'ECDSA', namedCurve: 'P-256' },
-      true,
-      ['sign', 'verify']
-    );
-    const caPrivateJwk = await subtle.exportKey('jwk', caKeyPair.privateKey);
-    caPrivateJwk.alg = 'ES256';
-    const devicePrivKey = jwkToEnv(caPrivateJwk);
-
-    const caPublicJwk = await subtle.exportKey('jwk', caKeyPair.publicKey);
-    const now = Math.floor(Date.now() / 1000);
-    const oneYear = 365 * 24 * 60 * 60;
-
-    const kidBytes = new Uint8Array(32);
-    webcrypto.getRandomValues(kidBytes);
-    const jtiBytes = new Uint8Array(32);
-    webcrypto.getRandomValues(jtiBytes);
-    const serialBytes = new Uint8Array(32);
-    webcrypto.getRandomValues(serialBytes);
-
-    const header = {
-      alg: 'ES256',
-      typ: 'CERT+JWT',
-      kid: base58Encode(kidBytes),
-      x5c: []
-    };
-
-    const payload = {
-      iss: 'exe.dev Connect CA',
-      sub: 'exe.dev Connect CA',
-      aud: 'certificate-users',
-      iat: now,
-      nbf: now,
-      exp: now + oneYear,
-      jti: base58Encode(jtiBytes),
-      certificate: {
-        version: '3',
-        serialNumber: base58Encode(serialBytes),
-        subject: {
-          commonName: 'exe.dev Connect CA',
-          organization: 'Vibes DIY',
-          locality: 'Cloud',
-          stateOrProvinceName: 'Production',
-          countryName: 'WD'
-        },
-        issuer: {
-          commonName: 'exe.dev Connect CA',
-          organization: 'Vibes DIY',
-          locality: 'Cloud',
-          stateOrProvinceName: 'Production',
-          countryName: 'WD'
-        },
-        validity: {
-          notBefore: new Date(now * 1000).toISOString(),
-          notAfter: new Date((now + oneYear) * 1000).toISOString()
-        },
-        subjectPublicKeyInfo: {
-          kty: caPublicJwk.kty,
-          crv: caPublicJwk.crv,
-          x: caPublicJwk.x,
-          y: caPublicJwk.y
-        },
-        signatureAlgorithm: 'ES256',
-        keyUsage: ['digitalSignature', 'keyEncipherment'],
-        extendedKeyUsage: ['serverAuth']
-      }
-    };
-
-    const headerB64 = Buffer.from(JSON.stringify(header)).toString('base64url');
-    const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
-    const dataToSign = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
-    const signature = await subtle.sign(
-      { name: 'ECDSA', hash: 'SHA-256' },
-      caKeyPair.privateKey,
-      dataToSign
-    );
-    const signatureB64 = Buffer.from(signature).toString('base64url');
-    const deviceCert = `${headerB64}.${payloadB64}.${signatureB64}`;
+    const { publicEnv: sessionTokenPublic, privateEnv: sessionTokenSecret } = await generateSessionTokens();
+    const { privKey: devicePrivKey, cert: deviceCert } = await generateDeviceCAKeys({
+      issuer: 'exe.dev Connect CA',
+      organization: 'Vibes DIY',
+      locality: 'Cloud',
+      state: 'Production'
+    });
 
     console.log('  ✓ Security tokens generated');
 
@@ -1457,7 +1335,7 @@ ${hasConnect ? `
   Update your .env file:
     VITE_CLERK_PUBLISHABLE_KEY=${args._connectInfo.clerkPublishableKey}
     VITE_API_URL=${args._connectInfo.tokenApi}
-    VITE_CLOUD_URL=fpcloud://${args.name}.exe.xyz:8000/backend?protocol=wss
+    VITE_CLOUD_URL=fpcloud://${args.name}.exe.xyz/backend?protocol=wss
 
   To check Docker status:
     ssh ${args.name}.exe.xyz "cd /opt/fireproof/core && sudo docker compose ps"
