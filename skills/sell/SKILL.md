@@ -214,18 +214,18 @@ The user's app needs to use `useTenant()` for database scoping. Check if their a
 
 ```jsx
 // BEFORE: Hardcoded name
-const { useLiveQuery } = useFireproof("my-app");
+const { useLiveQuery } = useFireproofClerk("my-app");
 
 // AFTER: Tenant-aware
 const { dbName } = useTenant();
-const { useLiveQuery } = useFireproof(dbName);
+const { useLiveQuery } = useFireproofClerk(dbName);
 ```
 
 If the app uses a hardcoded name, update it to use `useTenant()`:
 
-1. Find the `useFireproof("...")` call
+1. Find the `useFireproofClerk("...")` call
 2. Add `const { dbName } = useTenant();` before it
-3. Change to `useFireproof(dbName)`
+3. Change to `useFireproofClerk(dbName)`
 
 The template makes `useTenant` available globally via `window.useTenant`.
 
@@ -541,7 +541,7 @@ The unified template uses pinned React 18 versions to prevent conflicts with Cle
 
 ### Database not isolated
 - Verify `useTenant()` is used in the App component
-- Check `useFireproof(dbName)` uses the tenant database name
+- Check `useFireproofClerk(dbName)` uses the tenant database name
 
 ### Passkey creation fails
 - Ensure HTTPS is configured (passkeys require secure context)
