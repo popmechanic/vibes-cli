@@ -35,8 +35,8 @@ Working configuration pattern for Vite apps with Clerk authentication:
 import { ClerkFireproofProvider } from "@necrodome/fireproof-clerk";
 
 const config = {
-  apiUrl: import.meta.env.VITE_API_URL || "http://localhost:7370/api",
-  cloudUrl: import.meta.env.VITE_CLOUD_URL || "fpcloud://localhost:8909?protocol=ws",
+  apiUrl: import.meta.env.VITE_API_URL || "http://localhost:8080/api/",
+  cloudUrl: import.meta.env.VITE_CLOUD_URL || "fpcloud://localhost:8080?protocol=ws",
 };
 
 <ClerkFireproofProvider publishableKey={CLERK_KEY} config={config}>
@@ -552,11 +552,10 @@ node scripts/deploy-exe.js --name myapp --connect \
 exe.dev VM (exeuntu image)
 ├── nginx (serves all routes)
 │   ├── /           → /var/www/html/index.html (app)
-│   ├── /api        → localhost:7370 (Token API, if --connect)
-│   └── /backend    → localhost:8909 (Cloud Sync WebSocket, if --connect)
+│   ├── /api        → localhost:8080/api (Token API via unified proxy)
+│   └── /backend    → localhost:8080/ws (Cloud Sync WebSocket via unified proxy)
 └── Docker (if --connect)
-    ├── fireproof-dashboard (port 7370)
-    └── fireproof-cloud-backend (port 8909)
+    └── fireproof unified (port 8080 - nginx proxy to internal services)
 ```
 
 ### Connect Services
