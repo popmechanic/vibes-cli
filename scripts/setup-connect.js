@@ -571,8 +571,8 @@ VITE_CLOUD_URL=fpcloud://${vmName}.exe.xyz/backend?protocol=wss
       // Replace existing values
       let updatedEnv = existingEnv
         .replace(/VITE_CLERK_PUBLISHABLE_KEY=.*/g, `VITE_CLERK_PUBLISHABLE_KEY=${args.clerkPublishableKey}`)
-        .replace(/VITE_API_URL=.*/g, 'VITE_API_URL=http://localhost:7370/api')
-        .replace(/VITE_CLOUD_URL=.*/g, 'VITE_CLOUD_URL=fpcloud://localhost:8909?protocol=ws');
+        .replace(/VITE_API_URL=.*/g, 'VITE_API_URL=http://localhost:8080/api/')
+        .replace(/VITE_CLOUD_URL=.*/g, 'VITE_CLOUD_URL=fpcloud://localhost:8080?protocol=ws');
       writeFileSync(envPath, updatedEnv);
     } else {
       // Append to existing file
@@ -592,8 +592,8 @@ Start the Docker services:
   cd fireproof/core && docker compose up --build
 
 Services will be available at:
-  - Token API: http://localhost:7370/api
-  - Cloud Sync: fpcloud://localhost:8909?protocol=ws
+  - Token API: http://localhost:8080/api/
+  - Cloud Sync: fpcloud://localhost:8080?protocol=ws
 
 Apps generated with /vibes:vibes will now use authenticated sync.
 `);

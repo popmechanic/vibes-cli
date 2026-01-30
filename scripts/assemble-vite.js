@@ -236,8 +236,8 @@ async function main() {
     console.log('  Creating .env configuration...');
     const envContent = [
       args.clerkKey ? `VITE_CLERK_PUBLISHABLE_KEY=${args.clerkKey}` : '# VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxx',
-      args.apiUrl ? `VITE_API_URL=${args.apiUrl}` : '# VITE_API_URL=http://localhost:7370/api',
-      args.cloudUrl ? `VITE_CLOUD_URL=${args.cloudUrl}` : '# VITE_CLOUD_URL=fpcloud://localhost:8909?protocol=ws'
+      args.apiUrl ? `VITE_API_URL=${args.apiUrl}` : '# VITE_API_URL=http://localhost:8080/api/',
+      args.cloudUrl ? `VITE_CLOUD_URL=${args.cloudUrl}` : '# VITE_CLOUD_URL=fpcloud://localhost:8080?protocol=ws'
     ].join('\n') + '\n';
 
     writeFileSync(join(args.outputDir, '.env'), envContent);

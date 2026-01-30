@@ -305,7 +305,7 @@ const { database, attach, useLiveQuery } = useFireproof("my-ledger", {
 
 The cloud backend URL uses the `fpcloud://` protocol prefix:
 - `fpcloud://cloud.fireproof.direct` - Production Fireproof Cloud
-- `fpcloud://localhost:8909?protocol=ws` - Local development with WebSocket
+- `fpcloud://localhost:8080?protocol=ws` - Local development with WebSocket
 
 ### Displaying Sync Status
 

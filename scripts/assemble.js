@@ -122,7 +122,7 @@ if (!hasValidConnect) {
   console.error('');
   console.error('Expected in .env:');
   console.error('  VITE_CLERK_PUBLISHABLE_KEY=pk_test_... or pk_live_...');
-  console.error('  VITE_API_URL=http://localhost:7370/api');
+  console.error('  VITE_API_URL=http://localhost:8080/api/');
   console.error('');
   console.error('Run Connect setup before assembling apps.');
   process.exit(1);

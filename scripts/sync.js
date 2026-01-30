@@ -66,8 +66,10 @@ function loadSourceConfig() {
 const SOURCE_CONFIG = loadSourceConfig();
 
 // Documentation sources
+// NOTE: fireproof.txt is now maintained independently in this plugin (not synced from upstream)
+// This allows us to use unified port 8080 for local development per selem/docker-for-all branch
 const DOC_SOURCES = {
-  fireproof: SOURCE_CONFIG.fireproof,
+  // fireproof: SOURCE_CONFIG.fireproof,  // Removed - now maintained in skills/vibes/cache/fireproof.txt
 };
 
 // Style prompt source
