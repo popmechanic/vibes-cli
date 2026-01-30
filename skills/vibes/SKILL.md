@@ -254,11 +254,9 @@ const { attach } = useFireproof("db", { attach: toCloud() });  // WRONG - old pa
 
 **Sync Status**: `syncStatus` provides the current sync state as a string. Display it for user feedback.
 
-**Connect Auto-Detection**: Generated apps check `window.__VIBES_CONFIG__` at runtime:
-- If config has valid values (set by assemble.js from .env) → Clerk auth required, cloud sync enabled
-- If config is empty/placeholders → Local-only mode, no auth required
-
-The same generated code works in both modes - no code changes needed when switching between local and Connect.
+**Connect Configuration**: Generated apps require Clerk authentication and cloud sync.
+The `assemble.js` script populates `window.__VIBES_CONFIG__` from your `.env` file.
+Apps will show a configuration error if credentials are missing.
 
 ## Assembly Workflow
 

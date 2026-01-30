@@ -185,7 +185,7 @@ The implementation:
 
 ```javascript
 const subdomain = window.location.hostname.split('.')[0];
-const { database } = useFireproof(`app-${subdomain}`);
+const { database } = useFireproofClerk(`app-${subdomain}`);
 ```
 
 Three lines. No backend. No database configuration. No tenant middleware.
