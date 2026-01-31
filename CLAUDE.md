@@ -319,7 +319,8 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `scripts/sync.js` | Sync script - fetches and updates cache |
 | `scripts/find-plugin.js` | Plugin directory lookup with validation |
 | `scripts/update.js` | Deterministic app updater |
-| `scripts/deploy-exe.js` | exe.dev deployment automation |
+| `scripts/deploy-exe.js` | App deployment to exe.dev (static files, AI proxy, registry) |
+| `scripts/deploy-connect.js` | Connect Studio deployment to exe.dev (Docker-based sync) |
 | `scripts/generate-riff.js` | Parallel riff generator - spawns claude -p for variations |
 | `scripts/assemble-all.js` | Batch assembler for riff directories |
 | `scripts/lib/exe-ssh.js` | SSH automation for exe.dev |
@@ -340,11 +341,8 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `scripts/registry-server.ts` | Bun server for subdomain registry + Clerk webhooks |
 | `scripts/lib/jwt-validation.js` | JWT validation utilities (azp matching, timing) |
 | `scripts/lib/auth-flows.js` | Auth flow state machines (signup, signin, gate) |
-| `skills/exe/SKILL.md` | exe.dev deployment skill |
-| `skills/connect/SKILL.md` | Connect skill for Fireproof + Clerk setup |
-| `skills/connect/templates/docker-compose.yaml` | Docker Compose template for Connect services |
-| `skills/connect/templates/env.template` | Environment template for Connect config |
-| `scripts/setup-connect.js` | Setup script for Fireproof Connect |
+| `skills/exe/SKILL.md` | exe.dev app deployment skill |
+| `skills/connect/SKILL.md` | Connect Studio deployment skill |
 | `commands/sync.md` | User-facing sync command definition |
 | `commands/update.md` | User-facing update command definition |
 
@@ -525,51 +523,59 @@ The registry server validates Clerk JWTs with:
 
 ## exe.dev Deployment
 
-Deploy static Vibes apps and Fireproof Connect services to exe.dev VM hosting. Uses pre-installed nginx on persistent VMs.
+Deploy static Vibes apps to exe.dev VM hosting. Uses pre-installed nginx on persistent VMs.
+
+### Architecture: Separate App and Connect VMs
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      User's Apps                             │
+├─────────────────────────────────────────────────────────────┤
+│  quicknotes.exe.xyz     │  todoapp.exe.xyz    │  ...        │
+│  (static HTML only)     │  (static HTML only) │             │
+│  Points to Studio →     │  Points to Studio → │             │
+└─────────────────────────┴─────────────────────┴─────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Studio VM                                 │
+│                 <name>-studio.exe.xyz                        │
+├─────────────────────────────────────────────────────────────┤
+│  /opt/fireproof/ (cloned from repo)                         │
+│  └── docker-compose.yaml + start.sh                         │
+│                                                              │
+│  Public URLs (port 8080 exposed via nginx):                  │
+│  - https://<studio>.exe.xyz/api                              │
+│  - fpcloud://<studio>.exe.xyz?protocol=wss                   │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ### Quick Start
 
 ```bash
-# Deploy app to exe.dev
+# Deploy static app to exe.dev
 node scripts/deploy-exe.js --name myapp --file index.html
 
-# Deploy Fireproof Connect services (no local Docker required)
-node scripts/deploy-exe.js --name myconnect --connect --skip-file \
+# Deploy Fireproof Connect to a separate Studio VM
+node scripts/deploy-connect.js --studio mystudio \
   --clerk-publishable-key "pk_test_..." \
-  --clerk-secret-key "sk_test_..." \
-  --clerk-jwt-url "https://your-app.clerk.accounts.dev"
-
-# Deploy app + Connect together
-node scripts/deploy-exe.js --name myapp --connect \
-  --clerk-publishable-key "pk_test_..." \
-  --clerk-secret-key "sk_test_..." \
-  --clerk-jwt-url "https://your-app.clerk.accounts.dev"
+  --clerk-secret-key "sk_test_..."
 ```
 
-### Architecture
+### Connect Studio
 
-```
-exe.dev VM (exeuntu image)
-├── nginx (serves all routes)
-│   ├── /           → /var/www/html/index.html (app)
-│   ├── /api        → localhost:8080/api (Token API via unified proxy)
-│   └── /backend    → localhost:8080/ws (Cloud Sync WebSocket via unified proxy)
-└── Docker (if --connect)
-    └── fireproof unified (port 8080 - nginx proxy to internal services)
-```
+Use `deploy-connect.js` to deploy Fireproof Connect to a dedicated Studio VM:
+- **Token API**: `https://<studio>.exe.xyz/api`
+- **Cloud Sync**: `fpcloud://<studio>.exe.xyz?protocol=wss`
 
-### Connect Services
-
-When deployed with `--connect`, the VM runs Fireproof sync services:
-- **Token API**: `https://<vm-name>.exe.xyz/api` - Issues authenticated tokens
-- **Cloud Sync**: `wss://<vm-name>.exe.xyz/backend` - Real-time WebSocket sync
-
-Update your `.env` file to use remote services:
+Update your app's `.env` to point to the Studio:
 ```bash
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
-VITE_API_URL=https://<vm-name>.exe.xyz/api
-VITE_CLOUD_URL=fpcloud://<vm-name>.exe.xyz/backend?protocol=wss
+VITE_API_URL=https://<studio>.exe.xyz/api
+VITE_CLOUD_URL=fpcloud://<studio>.exe.xyz?protocol=wss
 ```
+
+The Studio runs Docker services from the upstream fireproof repo without local reimplementation.
 
 ### DNS + SSL Architecture (IMPORTANT)
 
@@ -619,67 +625,11 @@ For apps needing tenant isolation, use client-side subdomain parsing:
 
 ### Related Files
 
-- `scripts/deploy-exe.js` - Deployment automation
+- `scripts/deploy-exe.js` - App deployment (static files, AI proxy, registry)
+- `scripts/deploy-connect.js` - Connect Studio deployment (Docker-based sync)
 - `scripts/lib/exe-ssh.js` - SSH helpers
-- `skills/exe/SKILL.md` - Deployment skill
-
-### Nginx CORS Configuration Patterns
-
-The Connect nginx config in `deploy-exe.js` uses important patterns for CORS:
-
-1. **Hide backend CORS headers and add our own:**
-   ```nginx
-   proxy_hide_header Access-Control-Allow-Origin;
-   proxy_hide_header Access-Control-Allow-Methods;
-   proxy_hide_header Access-Control-Allow-Headers;
-   add_header Access-Control-Allow-Origin "*" always;
-   add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
-   add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
-   ```
-
-2. **Handle OPTIONS preflight:**
-   ```nginx
-   if ($request_method = OPTIONS) {
-       add_header Access-Control-Allow-Origin "*" always;
-       add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
-       add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
-       return 204;
-   }
-   ```
-
-3. **WebSocket-specific settings:**
-   ```nginx
-   proxy_set_header Upgrade $http_upgrade;
-   proxy_set_header Connection "upgrade";
-   proxy_read_timeout 86400;  # 24 hours for long-lived WS
-   ```
-
-4. **Smart `/backend` routing with regex for subpaths:**
-   ```nginx
-   # CRITICAL: Use regex to capture and forward full subpath
-   # Without this, /backend/blob/* requests fail with 404
-   location ~ ^/backend(/.*)?$ {
-       set $backend_path $1;
-       if ($backend_path = '') {
-           set $backend_path '/fp';
-       }
-       proxy_pass http://$backend_host:8909$backend_path;
-       # ... headers and WebSocket config
-   }
-   ```
-   The regex `^/backend(/.*)?$` captures everything after `/backend` (e.g., `/blob/tenant/db/car/cid`) and forwards it to the backend. Without the regex, a plain `location /backend` block won't properly handle subpaths.
-
-5. **Blob storage:** `client_max_body_size 100M;` for large CAR files
-
-**Troubleshooting CORS:**
-- Use `proxy_hide_header` to remove conflicting backend headers
-- Ensure `always` keyword is present (sends headers even on error responses)
-- Verify OPTIONS preflight returns 204
-
-**Troubleshooting 404 on `/backend/blob/*`:**
-- Ensure the `/backend` location uses regex `~ ^/backend(/.*)?$`
-- Verify `$backend_path` captures and forwards the full subpath
-- Check nginx logs: requests should show the full path reaching the backend
+- `skills/exe/SKILL.md` - App deployment skill
+- `skills/connect/SKILL.md` - Connect deployment skill
 
 ## Known Issues
 
