@@ -22,31 +22,12 @@ import { homedir } from 'os';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import { ensureSSH2 } from './lib/ensure-deps.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Auto-install dependencies if missing
-async function ensureDependencies() {
-  try {
-    await import('ssh2');
-  } catch (e) {
-    if (e.code === 'ERR_MODULE_NOT_FOUND') {
-      console.log('Installing dependencies...');
-      try {
-        execSync('npm install', { cwd: __dirname, stdio: 'inherit' });
-        console.log('Dependencies installed.\n');
-      } catch (installErr) {
-        console.error('Failed to install dependencies:', installErr.message);
-        process.exit(1);
-      }
-    } else {
-      throw e;
-    }
-  }
-}
-
-await ensureDependencies();
+await ensureSSH2(__filename);
 
 import {
   findSSHKey,
