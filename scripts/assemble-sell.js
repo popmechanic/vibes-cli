@@ -33,29 +33,10 @@
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
-import { createInterface } from 'readline';
 import { TEMPLATES } from './lib/paths.js';
 import { stripForTemplate, stripImports } from './lib/strip-code.js';
 import { createBackup } from './lib/backup.js';
-
-/**
- * Prompt user for input when a required option is missing
- * @param {string} question - The question to ask
- * @returns {Promise<string>} User's answer
- */
-async function prompt(question) {
-  const rl = createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
-}
+import { prompt } from './lib/prompt.js';
 
 // Parse command line arguments
 function parseArgs(argv) {

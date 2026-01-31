@@ -36,34 +36,13 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import * as readline from 'readline';
 import { execSync } from 'child_process';
+import { ensureSSH2 } from './lib/ensure-deps.js';
+import { prompt, confirm } from './lib/prompt.js';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirnameEarly = dirname(__filename);
 
-// Auto-install dependencies if missing (needed when running from plugin cache)
-async function ensureDependencies() {
-  try {
-    await import('ssh2');
-  } catch (e) {
-    if (e.code === 'ERR_MODULE_NOT_FOUND') {
-      console.log('Installing dependencies...');
-      try {
-        execSync('npm install', { cwd: __dirnameEarly, stdio: 'inherit' });
-        console.log('Dependencies installed.\n');
-      } catch (installErr) {
-        console.error('Failed to install dependencies:', installErr.message);
-        console.error('Try running: cd ' + __dirnameEarly + ' && npm install');
-        process.exit(1);
-      }
-    } else {
-      throw e;
-    }
-  }
-}
-
-await ensureDependencies();
+await ensureSSH2(__filename);
 
 import {
   findSSHKey,
@@ -79,7 +58,7 @@ import {
 
 import { generateHandoff, extractContextFromEnv } from './generate-handoff.js';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = dirname(__filename);
 const CONFIG_PATH = join(homedir(), '.vibes-deploy-exe.json');
 
 // ============== Argument Parsing ==============
@@ -211,30 +190,6 @@ function saveConfig(config) {
     mkdirSync(dir, { recursive: true });
   }
   writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-}
-
-// ============== User Input ==============
-
-function createReadline() {
-  return readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-}
-
-async function prompt(question) {
-  const rl = createReadline();
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
-}
-
-async function confirm(question) {
-  const answer = await prompt(`${question} (y/N): `);
-  return answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes';
 }
 
 // ============== Deployment Phases ==============
