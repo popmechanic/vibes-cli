@@ -245,55 +245,19 @@ export function uploadFile(localPath, host, remotePath, options = {}) {
  * @param {string} host - Remote hostname
  * @param {string} command - Command to execute
  * @param {object} [options] - Options
+ * @param {string} [options.username] - SSH username (default: 'exedev')
  * @returns {Promise<string>} Command output
  */
-export function runVMCommand(host, command, options = {}) {
-  return new Promise((resolve, reject) => {
-    const timeout = options.timeout || 30000;
-    const username = options.username || 'exedev';
+export async function runVMCommand(host, command, options = {}) {
+  const username = options.username || 'exedev';
+  const client = createVirtualClient(host, username);
+  const result = await runCommand(client, command);
 
-    const ssh = spawn('ssh', [
-      '-o', 'ConnectTimeout=10',
-      '-o', 'StrictHostKeyChecking=accept-new',
-      `${username}@${host}`,
-      command
-    ], { stdio: ['ignore', 'pipe', 'pipe'] });
-
-    let output = '';
-    let stderr = '';
-    let resolved = false;
-
-    const timeoutId = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        ssh.kill();
-        reject(new Error(`Command timed out after ${timeout / 1000}s`));
-      }
-    }, timeout);
-
-    ssh.stdout.on('data', (data) => { output += data.toString(); });
-    ssh.stderr.on('data', (data) => { stderr += data.toString(); });
-
-    ssh.on('close', (code) => {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(timeoutId);
-        if (code === 0) {
-          resolve(output);
-        } else {
-          reject(new Error(`SSH command failed (code ${code}): ${stderr || output}`));
-        }
-      }
-    });
-
-    ssh.on('error', (err) => {
-      if (!resolved) {
-        resolved = true;
-        clearTimeout(timeoutId);
-        reject(err);
-      }
-    });
-  });
+  if (result.code === 0) {
+    return result.stdout;
+  } else {
+    throw new Error(`SSH command failed (code ${result.code}): ${result.stderr || result.stdout}`);
+  }
 }
 
 /**

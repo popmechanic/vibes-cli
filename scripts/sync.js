@@ -133,9 +133,20 @@ async function fetchWithTimeout(url, timeoutMs = FETCH_TIMEOUT_MS) {
   }
 }
 
-async function fetchDoc(name, url, force) {
-  const cachePath = join(CACHE_DIR, `${name}.txt`);
-
+/**
+ * Generic fetch-and-cache function
+ * @param {object} config - Fetch configuration
+ * @param {string} config.name - Cache name for logging
+ * @param {string} config.url - URL to fetch from
+ * @param {string} config.cachePath - Path to cache file
+ * @param {boolean} force - Force refresh even if cached
+ * @param {object} [options] - Optional processing options
+ * @param {function} [options.transform] - Transform content before caching
+ * @param {function} [options.onNotFound] - Fallback when URL returns 404
+ * @param {function} [options.formatLog] - Custom log message for cached size
+ * @returns {Promise<{name: string, success: boolean, cached: boolean, error?: string}>}
+ */
+async function fetchAndCache({ name, url, cachePath }, force, options = {}) {
   if (!force && existsSync(cachePath)) {
     return { name, success: true, cached: true };
   }
@@ -145,6 +156,12 @@ async function fetchDoc(name, url, force) {
     const response = await fetchWithTimeout(url);
 
     if (!response.ok) {
+      if (options.onNotFound && response.status === 404) {
+        const fallback = options.onNotFound();
+        writeFileSync(cachePath, fallback, "utf-8");
+        console.log(`  Generated ${name} (${fallback.length} bytes)`);
+        return { name, success: true, cached: false };
+      }
       return {
         name,
         success: false,
@@ -153,9 +170,24 @@ async function fetchDoc(name, url, force) {
       };
     }
 
-    const content = await response.text();
+    let content = await response.text();
+
+    if (options.transform) {
+      const transformed = options.transform(content);
+      if (transformed === null) {
+        return {
+          name,
+          success: false,
+          cached: false,
+          error: `Failed to parse ${name} from source`
+        };
+      }
+      content = transformed;
+    }
+
     writeFileSync(cachePath, content, "utf-8");
-    console.log(`  Cached ${name} (${content.length} bytes)`);
+    const logMsg = options.formatLog ? options.formatLog(content) : `${content.length} bytes`;
+    console.log(`  Cached ${name} (${logMsg})`);
 
     return { name, success: true, cached: false };
   } catch (error) {
@@ -168,115 +200,51 @@ async function fetchDoc(name, url, force) {
   }
 }
 
+// Convenience wrappers using fetchAndCache
+
+async function fetchDoc(name, url, force) {
+  return fetchAndCache(
+    { name, url, cachePath: join(CACHE_DIR, `${name}.txt`) },
+    force
+  );
+}
+
 // parseImportMapTs and parseStylePromptsTs are imported from ./lib/parsers.js
 
 async function fetchStylePrompt(force) {
-  const cachePath = join(CACHE_DIR, "style-prompt.txt");
-
-  if (!force && existsSync(cachePath)) {
-    return { name: "style-prompt", success: true, cached: true };
-  }
-
-  try {
-    console.log(`Fetching style-prompt from ${STYLE_PROMPT_URL}...`);
-    const response = await fetchWithTimeout(STYLE_PROMPT_URL);
-
-    if (!response.ok) {
-      return {
-        name: "style-prompt",
-        success: false,
-        cached: false,
-        error: `HTTP ${response.status}: ${response.statusText}`
-      };
-    }
-
-    const content = await response.text();
-    const stylePrompt = parseStylePromptsTs(content);
-
-    if (!stylePrompt) {
-      return {
-        name: "style-prompt",
-        success: false,
-        cached: false,
-        error: "Failed to parse default style prompt from source"
-      };
-    }
-
-    writeFileSync(cachePath, stylePrompt, "utf-8");
-    console.log(`  Cached style-prompt (${stylePrompt.length} bytes)`);
-
-    return { name: "style-prompt", success: true, cached: false };
-  } catch (error) {
-    return {
-      name: "style-prompt",
-      success: false,
-      cached: false,
-      error: error instanceof Error ? error.message : String(error)
-    };
-  }
+  return fetchAndCache(
+    { name: "style-prompt", url: STYLE_PROMPT_URL, cachePath: join(CACHE_DIR, "style-prompt.txt") },
+    force,
+    { transform: parseStylePromptsTs }
+  );
 }
 
 async function fetchImportMap(force) {
-  const cachePath = join(CACHE_DIR, "import-map.json");
-
-  if (!force && existsSync(cachePath)) {
-    return { name: "import-map", success: true, cached: true };
-  }
-
-  try {
-    console.log(`Fetching import-map from ${IMPORT_MAP_URL}...`);
-    const response = await fetchWithTimeout(IMPORT_MAP_URL);
-
-    if (!response.ok) {
-      return {
-        name: "import-map",
-        success: false,
-        cached: false,
-        error: `HTTP ${response.status}: ${response.statusText}`
-      };
+  return fetchAndCache(
+    { name: "import-map", url: IMPORT_MAP_URL, cachePath: join(CACHE_DIR, "import-map.json") },
+    force,
+    {
+      transform: (content) => {
+        const imports = parseImportMapTs(content);
+        return JSON.stringify({
+          lastUpdated: new Date().toISOString(),
+          source: IMPORT_MAP_URL,
+          imports
+        }, null, 2);
+      },
+      formatLog: (content) => {
+        const parsed = JSON.parse(content);
+        return `${Object.keys(parsed.imports).length} entries`;
+      }
     }
-
-    const content = await response.text();
-    const imports = parseImportMapTs(content);
-
-    const cache = {
-      lastUpdated: new Date().toISOString(),
-      source: IMPORT_MAP_URL,
-      imports
-    };
-
-    writeFileSync(cachePath, JSON.stringify(cache, null, 2), "utf-8");
-    console.log(`  Cached import-map (${Object.keys(imports).length} entries)`);
-
-    return { name: "import-map", success: true, cached: false };
-  } catch (error) {
-    return {
-      name: "import-map",
-      success: false,
-      cached: false,
-      error: error instanceof Error ? error.message : String(error)
-    };
-  }
+  );
 }
 
 /**
  * Fetch CSS variables from vibes.diy
  */
 async function fetchCssVariables(force) {
-  const cachePath = join(CACHE_DIR, "vibes-variables.css");
-
-  if (!force && existsSync(cachePath)) {
-    return { name: "vibes-variables", success: true, cached: true };
-  }
-
-  try {
-    console.log(`Fetching CSS variables from ${CSS_VARIABLES_URL}...`);
-    const response = await fetchWithTimeout(CSS_VARIABLES_URL);
-
-    if (!response.ok) {
-      // If the CSS file doesn't exist, generate minimal CSS variables
-      console.log("  CSS file not found, generating minimal variables...");
-      const minimalCss = `:root {
+  const minimalCssFallback = () => `:root {
   /* Vibes color variables */
   --vibes-black: #0f172a;
   --vibes-white: #ffffff;
@@ -301,24 +269,12 @@ async function fetchCssVariables(force) {
   50% { transform: translateY(-4px); }
 }
 `;
-      writeFileSync(cachePath, minimalCss, "utf-8");
-      console.log(`  Generated vibes-variables.css (${minimalCss.length} bytes)`);
-      return { name: "vibes-variables", success: true, cached: false };
-    }
 
-    const content = await response.text();
-    writeFileSync(cachePath, content, "utf-8");
-    console.log(`  Cached vibes-variables.css (${content.length} bytes)`);
-
-    return { name: "vibes-variables", success: true, cached: false };
-  } catch (error) {
-    return {
-      name: "vibes-variables",
-      success: false,
-      cached: false,
-      error: error instanceof Error ? error.message : String(error)
-    };
-  }
+  return fetchAndCache(
+    { name: "vibes-variables", url: CSS_VARIABLES_URL, cachePath: join(CACHE_DIR, "vibes-variables.css") },
+    force,
+    { onNotFound: minimalCssFallback }
+  );
 }
 
 /**
