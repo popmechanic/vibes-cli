@@ -1,7 +1,7 @@
 /**
  * Cryptographic utilities for Fireproof Connect token generation
  *
- * Shared between deploy-exe.js and setup-connect.js
+ * Shared between deploy-exe.js and deploy-connect.js
  */
 
 import { webcrypto } from 'crypto';

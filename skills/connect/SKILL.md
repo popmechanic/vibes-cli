@@ -60,7 +60,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-connect.js" \
 
 ### What It Does
 
-1. **SSH to `<studio>.exe.dev`** - Creates VM if needed
+1. **SSH to `<studio>.exe.xyz`** - Creates VM if needed
 2. **Clone fireproof repo** - `selem/docker-for-all` branch to `/opt/fireproof`
 3. **Generate security tokens** - Session tokens and device CA keys
 4. **Create `.env`** - All credentials for Docker services
@@ -120,17 +120,17 @@ VITE_CLOUD_URL=fpcloud://<studio>.exe.xyz?protocol=wss
 
 **Check Docker status:**
 ```bash
-ssh <studio>.exe.dev "cd /opt/fireproof && docker compose ps"
+ssh <studio>.exe.xyz "cd /opt/fireproof && sudo docker compose ps"
 ```
 
 **View logs:**
 ```bash
-ssh <studio>.exe.dev "cd /opt/fireproof && docker compose logs -f"
+ssh <studio>.exe.xyz "cd /opt/fireproof && sudo docker compose logs -f"
 ```
 
 **Restart services:**
 ```bash
-ssh <studio>.exe.dev "cd /opt/fireproof && docker compose restart"
+ssh <studio>.exe.xyz "cd /opt/fireproof && sudo docker compose restart"
 ```
 
 ### CLI Options
