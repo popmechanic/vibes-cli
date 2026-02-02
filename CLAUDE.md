@@ -370,6 +370,7 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `skills/sell/template.delta.html` | Sell-specific delta (multi-tenant routing) |
 | `skills/sell/templates/unified.html` | Generated SaaS template |
 | `skills/sell/SKILL.md` | Sell skill for SaaS transformation |
+| `skills/design-reference/SKILL.md` | Design reference skill - mechanical HTML→React transformation |
 | `scripts/registry-server.ts` | Bun server for subdomain registry + Clerk webhooks |
 | `scripts/lib/jwt-validation.js` | JWT validation utilities (azp matching, timing) |
 | `scripts/lib/auth-flows.js` | Auth flow state machines (signup, signin, gate) |
@@ -483,6 +484,7 @@ This plugin provides both skills and commands. Understanding when each is used:
 | Skill | Triggered When | Description |
 |-------|----------------|-------------|
 | `/vibes:vibes` | User asks to "build an app", "create a todo list", etc. | Generates a single Vibes app |
+| `/vibes:design-reference` | User provides a design.html or mockup file | Mechanically transforms design to Vibes app |
 | `/vibes:riff` | User asks to "explore ideas", "generate variations", "riff on X" | Generates multiple app variations in parallel |
 | `/vibes:sell` | User asks to "monetize", "add billing", "make it SaaS" | Transforms app into multi-tenant SaaS |
 
@@ -500,6 +502,7 @@ Commands are explicitly invoked by the user with the `/` prefix.
 ### Selection Logic
 
 - **vibes vs riff**: "Make me an app" → vibes (single). "Give me 5 variations" → riff (multiple).
+- **vibes vs design-reference**: "Build X" → vibes. "Match this design.html" or "use this mockup" → design-reference.
 - **vibes vs sell**: "Build X" → vibes. "Build X with billing" or "monetize my app" → sell.
 - **sync**: Only when user explicitly runs `/vibes:sync` or skill warns about stale cache.
 - **update**: Only when user explicitly runs `/vibes:update` on existing HTML files.
