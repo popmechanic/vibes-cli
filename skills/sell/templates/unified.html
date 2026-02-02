@@ -18,6 +18,7 @@
         /* Gray scale */
         --vibes-gray-lightest: #f1f5f9;
         --vibes-gray-ultralight: #f8fafc;
+        --vibes-gray-mid: #555555;
 
         /* Menu colors */
         --vibes-menu-bg: #CCCDC8;
@@ -35,6 +36,12 @@
         --vibes-button-border: var(--vibes-near-black);
         --vibes-button-icon-bg: #fff;
         --vibes-button-icon-fill: #2a2a2a;
+
+        /* Dark-aware button variants (for components using ignoreDarkMode=false) */
+        --vibes-button-bg-dark-aware: var(--vibes-cream);
+        --vibes-button-text-dark-aware: var(--vibes-near-black);
+        --vibes-button-border-dark-aware: var(--vibes-near-black);
+        --vibes-button-icon-bg-dark-aware: var(--vibes-white);
 
         /* Card colors */
         --vibes-card-bg: var(--vibes-cream);
@@ -63,6 +70,64 @@
         --admin-border: #0f172a;
         --admin-shadow: #0f172a;
       }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --vibes-button-bg-dark-aware: #2a2a2a;
+          --vibes-button-text-dark-aware: var(--vibes-gray-ultralight);
+          --vibes-button-border-dark-aware: var(--vibes-gray-mid);
+          --vibes-button-icon-bg-dark-aware: #404040;
+        }
+      }
+
+      /* Admin menu overrides - scoped to VibesPanel in HiddenMenuWrapper */
+      #hidden-menu {
+        /* Gray scale needed by components */
+        --vibes-gray-lighter: #cccccc;
+        --vibes-gray-pale: #e5e5e5;
+        --vibes-gray-dark: #333333;
+
+        /* Variant colors (fix yellow being red) */
+        --vibes-variant-blue: #3b82f6;
+        --vibes-variant-red: #ef4444;
+        --vibes-variant-yellow: #eab308;
+
+        /* Button styling */
+        --vibes-button-bg: var(--vibes-cream);
+        --vibes-button-text: var(--vibes-near-black);
+        --vibes-button-border: var(--vibes-near-black);
+        --vibes-button-icon-bg: #2a2a2a;
+        --vibes-button-icon-fill: var(--vibes-white);
+
+        /* Dark-aware variants (used when ignoreDarkMode=false) */
+        --vibes-button-bg-dark-aware: var(--vibes-cream);
+        --vibes-button-text-dark-aware: var(--vibes-near-black);
+        --vibes-button-border-dark-aware: var(--vibes-near-black);
+        --vibes-button-icon-bg-dark-aware: var(--vibes-white);
+
+        /* Card styling */
+        --vibes-card-bg: var(--vibes-gray-pale);
+        --vibes-card-text: var(--vibes-near-black);
+        --vibes-card-border: var(--vibes-near-black);
+
+        /* Text */
+        --vibes-text-primary: var(--vibes-gray-dark);
+
+        /* Shadows */
+        --vibes-shadow-color: var(--vibes-near-black);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        #hidden-menu {
+          --vibes-button-bg-dark-aware: #2a2a2a;
+          --vibes-button-text-dark-aware: var(--vibes-gray-ultralight);
+          --vibes-button-border-dark-aware: var(--vibes-gray-mid);
+          --vibes-button-icon-bg-dark-aware: #404040;
+          --vibes-card-bg: var(--vibes-near-black);
+          --vibes-card-text: var(--vibes-white);
+          --vibes-card-border: var(--vibes-gray-mid);
+        }
+      }
+
       body {
         margin: 0;
         padding: 0;
