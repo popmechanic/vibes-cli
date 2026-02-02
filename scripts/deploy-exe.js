@@ -331,6 +331,48 @@ async function phase4FileUpload(args) {
   }
 }
 
+// TEMPORARY: Deploy local Fireproof bundle until upstream package is fixed
+// Issue: @necrodome/fireproof-clerk@0.0.3 from esm.sh has client-side CID stringification bug
+// Remove this phase when the npm package is updated with the fix
+// See: https://github.com/fireproof-storage/fireproof/issues/XXX
+async function phase4bBundleUpload(args) {
+  const BUNDLE_FILENAME = 'fireproof-clerk-bundle.js';
+  const BUNDLE_PATH = join(__dirname, '..', 'bundles', BUNDLE_FILENAME);
+
+  // Graceful skip if bundle not present
+  if (!existsSync(BUNDLE_PATH)) {
+    console.log('\nPhase 4b: Bundle Upload... SKIPPED (bundle not found)');
+    console.log('  Warning: Apps will use esm.sh package (may have CID bug)');
+    return;
+  }
+
+  console.log('\nPhase 4b: Bundle Upload (temporary workaround)...');
+
+  const vmHost = `${args.name}.exe.xyz`;
+  const remotePath = `/var/www/html/${BUNDLE_FILENAME}`;
+
+  if (args.dryRun) {
+    console.log(`  [DRY RUN] Would upload ${BUNDLE_FILENAME} to ${vmHost}:${remotePath}`);
+    return;
+  }
+
+  try {
+    const tmpPath = `/home/exedev/${BUNDLE_FILENAME}`;
+    await uploadFile(BUNDLE_PATH, vmHost, tmpPath);
+
+    const client = await connect(vmHost);
+    await runCommand(client, `sudo mv ${tmpPath} ${remotePath}`);
+    await runCommand(client, `sudo chown www-data:www-data ${remotePath}`);
+    client.end();
+
+    console.log('  ✓ Bundle uploaded (temporary fix for CID bug)');
+  } catch (err) {
+    // Non-fatal - warn but don't fail deployment
+    console.warn(`  Warning: Bundle upload failed: ${err.message}`);
+    console.warn('  Apps may experience CID stringification issues');
+  }
+}
+
 async function phase5AIProxy(args) {
   // Skip if no AI key provided
   if (!args.aiKey) {
@@ -834,6 +876,7 @@ ${'━'.repeat(60)}
     await phase2CreateVM(args);
     await phase3ServerSetup(args);
     await phase4FileUpload(args);
+    await phase4bBundleUpload(args);
     await phase5AIProxy(args);
     await phase6Registry(args);
     await phase7Handoff(args);

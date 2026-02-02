@@ -35,6 +35,33 @@
         --vibes-button-border: var(--vibes-near-black);
         --vibes-button-icon-bg: #fff;
         --vibes-button-icon-fill: #2a2a2a;
+
+        /* Card colors */
+        --vibes-card-bg: var(--vibes-cream);
+        --vibes-card-text: var(--vibes-near-black);
+        --vibes-card-border: var(--vibes-near-black);
+
+        /* Status colors */
+        --vibes-green: #22c55e;
+        --vibes-red-accent: #ef4444;
+        --vibes-yellow-accent: #eab308;
+        --vibes-shadow-color: rgba(0, 0, 0, 0.2);
+
+        /* Text colors */
+        --vibes-text-primary: var(--vibes-near-black);
+
+        /* Landing page theming (customize these for brand) */
+        --landing-accent: #0f172a;
+        --landing-accent-hover: #1e293b;
+
+        /* Admin dashboard theming */
+        --admin-bg: oklch(0.97 0.01 250);
+        --admin-card-bg: white;
+        --admin-text: #0f172a;
+        --admin-text-muted: #64748b;
+        --admin-accent: oklch(0.6 0.2 145);
+        --admin-border: #0f172a;
+        --admin-shadow: #0f172a;
       }
       body {
         margin: 0;
@@ -61,12 +88,13 @@
           "multiformats/": "https://esm.sh/stable/multiformats@13.3.1/",
           "@ipld/dag-cbor": "https://esm.sh/stable/@ipld/dag-cbor@9.2.2?external=multiformats",
           "@ipld/dag-json": "https://esm.sh/stable/@ipld/dag-json@10.2.3?external=multiformats",
-          "use-fireproof": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom,multiformats,@ipld/dag-cbor,@ipld/dag-json",
-          "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom,multiformats,@ipld/dag-cbor,@ipld/dag-json"
+          "@clerk/clerk-react": "https://esm.sh/stable/@clerk/clerk-react@5.59.2?external=react,react-dom",
+          "use-fireproof": "/fireproof-clerk-bundle.js",
+          "@fireproof/clerk": "/fireproof-clerk-bundle.js"
         }
       }
     </script>
-    <!-- Connect configuration - populated by assemble.js from .env (required) -->
+    <!-- Connect configuration - populated by assemble.js from .env -->
     <script>
       window.__VIBES_CONFIG__ = {
         tokenApiUri: "__VITE_API_URL__",
@@ -79,26 +107,43 @@
       import * as React from "react";
       window.React = React;
 
-      // === START useMobile ===
+      // Auto-generated vibes menu components
+// Run: node scripts/build-components.js --force to regenerate
+// Source: /Users/marcusestes/Websites/vibes-skill/components
+// Generated: 2026-02-02T20:03:22.787Z
+// Components: 23/23
+
+// === useMobile ===
 function useMobile() {
-  const [isMobile, setIsMobile] = React.useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.matchMedia("(max-width: 768px)").matches;
-  });
+  const [isMobile, setIsMobile] = React.useState(false);
   React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    const mediaQuery = window.matchMedia("(max-width: 768px)");
-    const handleChange = (e) => {
-      setIsMobile(e.matches);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
     };
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
   return isMobile;
 }
-// === END useMobile ===
 
-      // === START Icons ===
+
+// === useIsMobile ===
+function useIsMobile() {
+  const [isMobile, setIsMobile] = React.useState(false);
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+  return isMobile;
+}
+
+
+// === BackIcon ===
 function BackIcon({
   bgFill = "#fff",
   fill = "#2a2a2a",
@@ -125,58 +170,8 @@ function BackIcon({
   );
 }
 
-function LoginIcon({
-  bgFill = "#fff",
-  fill = "#2a2a2a",
-  width = 44,
-  height = 44
-}) {
-  return /* @__PURE__ */ React.createElement(
-    "svg",
-    {
-      width,
-      height,
-      viewBox: "0 0 44 44",
-      fill: "none",
-      xmlns: "http://www.w3.org/2000/svg"
-    },
-    /* @__PURE__ */ React.createElement("circle", { cx: "22", cy: "22", r: "22", fill: bgFill }),
-    /* @__PURE__ */ React.createElement(
-      "path",
-      {
-        d: "M21.895 25.562C23.266 25.578 24.508 25.226 25.618 24.519C26.731 23.812 27.61 22.843 28.27 21.613C28.926 20.382 29.254 19 29.254 17.468C29.254 16.023 28.926 14.699 28.27 13.496C27.61 12.297 26.723 11.332 25.61 10.613C24.493 9.88604 23.254 9.52704 21.895 9.52704C20.52 9.52704 19.278 9.88604 18.161 10.613C17.043 11.332 16.157 12.297 15.5 13.496C14.84 14.699 14.516 16.023 14.532 17.468C14.532 19 14.86 20.375 15.512 21.589C16.157 22.804 17.039 23.769 18.149 24.476C19.258 25.183 20.508 25.547 21.895 25.562ZM21.895 40.519C23.524 40.519 25.145 40.304 26.758 39.867C28.368 39.429 29.875 38.8 31.297 37.976C32.711 37.156 33.969 36.164 35.075 35.007C34.301 33.777 33.243 32.726 31.911 31.863C30.571 30.996 29.047 30.336 27.336 29.886C25.625 29.433 23.809 29.207 21.895 29.207C19.946 29.207 18.114 29.441 16.399 29.894C14.68 30.355 13.164 31.015 11.836 31.882C10.516 32.75 9.46498 33.789 8.69598 35.007C9.79298 36.164 11.059 37.156 12.485 37.976C13.911 38.8 15.418 39.429 17.024 39.867C18.625 40.304 20.25 40.519 21.895 40.519Z",
-        fill
-      }
-    )
-  );
-}
 
-function RemixIcon({
-  bgFill = "#fff",
-  fill = "#2a2a2a",
-  width = 44,
-  height = 44
-}) {
-  return /* @__PURE__ */ React.createElement(
-    "svg",
-    {
-      width,
-      height,
-      viewBox: "0 0 44 44",
-      fill: "none",
-      xmlns: "http://www.w3.org/2000/svg"
-    },
-    /* @__PURE__ */ React.createElement("circle", { cx: "22", cy: "22", r: "22", fill: bgFill }),
-    /* @__PURE__ */ React.createElement(
-      "path",
-      {
-        d: "M28.442 19.879C29.145 19.879 29.762 19.594 30.301 19.032C30.836 18.465 31.106 17.739 31.106 16.8521C31.106 15.9501 30.84 15.2151 30.309 14.6411C29.781 14.0671 29.156 13.782 28.442 13.782C27.742 13.782 27.129 14.0671 26.606 14.6411C26.086 15.2151 25.824 15.9501 25.824 16.8521C25.824 17.739 26.09 18.465 26.617 19.032C27.149 19.594 27.754 19.879 28.442 19.879ZM21.895 32.95C23.426 32.95 24.774 32.672 25.942 32.114C27.109 31.555 28.012 30.918 28.656 30.203C29.301 29.489 29.621 28.887 29.621 28.399C29.621 28.129 29.516 27.942 29.301 27.844C29.086 27.742 28.863 27.742 28.637 27.844C27.836 28.285 26.91 28.711 25.867 29.121C24.82 29.528 23.496 29.731 21.895 29.731C20.277 29.731 18.949 29.524 17.914 29.11C16.875 28.692 15.949 28.27 15.133 27.844C14.902 27.742 14.684 27.742 14.469 27.844C14.254 27.942 14.145 28.129 14.145 28.399C14.145 28.887 14.473 29.489 15.121 30.203C15.774 30.918 16.68 31.555 17.84 32.114C18.996 32.672 20.352 32.95 21.895 32.95ZM15.328 19.879C16.027 19.879 16.649 19.594 17.184 19.032C17.719 18.465 17.988 17.739 17.988 16.8521C17.988 15.9501 17.723 15.2151 17.195 14.6411C16.664 14.0671 16.043 13.782 15.328 13.782C14.625 13.782 14.016 14.0671 13.504 14.6411C12.988 15.2151 12.731 15.9501 12.731 16.8521C12.731 17.739 12.992 18.465 13.512 19.032C14.035 19.594 14.641 19.879 15.328 19.879Z",
-        fill
-      }
-    )
-  );
-}
-
+// === InviteIcon ===
 function InviteIcon({
   bgFill = "#fff",
   fill = "#2a2a2a",
@@ -203,6 +198,64 @@ function InviteIcon({
   );
 }
 
+
+// === LoginIcon ===
+function LoginIcon({
+  bgFill = "#fff",
+  fill = "#2a2a2a",
+  width = 44,
+  height = 44
+}) {
+  return /* @__PURE__ */ React.createElement(
+    "svg",
+    {
+      width,
+      height,
+      viewBox: "0 0 44 44",
+      fill: "none",
+      xmlns: "http://www.w3.org/2000/svg"
+    },
+    /* @__PURE__ */ React.createElement("circle", { cx: "22", cy: "22", r: "22", fill: bgFill }),
+    /* @__PURE__ */ React.createElement(
+      "path",
+      {
+        d: "M21.895 25.562C23.266 25.578 24.508 25.226 25.618 24.519C26.731 23.812 27.61 22.843 28.27 21.613C28.926 20.382 29.254 19 29.254 17.468C29.254 16.023 28.926 14.699 28.27 13.496C27.61 12.297 26.723 11.332 25.61 10.613C24.493 9.88604 23.254 9.52704 21.895 9.52704C20.52 9.52704 19.278 9.88604 18.161 10.613C17.043 11.332 16.157 12.297 15.5 13.496C14.84 14.699 14.516 16.023 14.532 17.468C14.532 19 14.86 20.375 15.512 21.589C16.157 22.804 17.039 23.769 18.149 24.476C19.258 25.183 20.508 25.547 21.895 25.562ZM21.895 40.519C23.524 40.519 25.145 40.304 26.758 39.867C28.368 39.429 29.875 38.8 31.297 37.976C32.711 37.156 33.969 36.164 35.075 35.007C34.301 33.777 33.243 32.726 31.911 31.863C30.571 30.996 29.047 30.336 27.336 29.886C25.625 29.433 23.809 29.207 21.895 29.207C19.946 29.207 18.114 29.441 16.399 29.894C14.68 30.355 13.164 31.015 11.836 31.882C10.516 32.75 9.46498 33.789 8.69598 35.007C9.79298 36.164 11.059 37.156 12.485 37.976C13.911 38.8 15.418 39.429 17.024 39.867C18.625 40.304 20.25 40.519 21.895 40.519Z",
+        fill
+      }
+    )
+  );
+}
+
+
+// === RemixIcon ===
+function RemixIcon({
+  bgFill = "#fff",
+  fill = "#2a2a2a",
+  width = 44,
+  height = 44
+}) {
+  return /* @__PURE__ */ React.createElement(
+    "svg",
+    {
+      width,
+      height,
+      viewBox: "0 0 44 44",
+      fill: "none",
+      xmlns: "http://www.w3.org/2000/svg"
+    },
+    /* @__PURE__ */ React.createElement("circle", { cx: "22", cy: "22", r: "22", fill: bgFill }),
+    /* @__PURE__ */ React.createElement(
+      "path",
+      {
+        d: "M28.442 19.879C29.145 19.879 29.762 19.594 30.301 19.032C30.836 18.465 31.106 17.739 31.106 16.8521C31.106 15.9501 30.84 15.2151 30.309 14.6411C29.781 14.0671 29.156 13.782 28.442 13.782C27.742 13.782 27.129 14.0671 26.606 14.6411C26.086 15.2151 25.824 15.9501 25.824 16.8521C25.824 17.739 26.09 18.465 26.617 19.032C27.149 19.594 27.754 19.879 28.442 19.879ZM21.895 32.95C23.426 32.95 24.774 32.672 25.942 32.114C27.109 31.555 28.012 30.918 28.656 30.203C29.301 29.489 29.621 28.887 29.621 28.399C29.621 28.129 29.516 27.942 29.301 27.844C29.086 27.742 28.863 27.742 28.637 27.844C27.836 28.285 26.91 28.711 25.867 29.121C24.82 29.528 23.496 29.731 21.895 29.731C20.277 29.731 18.949 29.524 17.914 29.11C16.875 28.692 15.949 28.27 15.133 27.844C14.902 27.742 14.684 27.742 14.469 27.844C14.254 27.942 14.145 28.129 14.145 28.399C14.145 28.887 14.473 29.489 15.121 30.203C15.774 30.918 16.68 31.555 17.84 32.114C18.996 32.672 20.352 32.95 21.895 32.95ZM15.328 19.879C16.027 19.879 16.649 19.594 17.184 19.032C17.719 18.465 17.988 17.739 17.988 16.8521C17.988 15.9501 17.723 15.2151 17.195 14.6411C16.664 14.0671 16.043 13.782 15.328 13.782C14.625 13.782 14.016 14.0671 13.504 14.6411C12.988 15.2151 12.731 15.9501 12.731 16.8521C12.731 17.739 12.992 18.465 13.512 19.032C14.035 19.594 14.641 19.879 15.328 19.879Z",
+        fill
+      }
+    )
+  );
+}
+
+
+// === SettingsIcon ===
 function SettingsIcon({
   bgFill = "#fff",
   fill = "#2a2a2a",
@@ -228,14 +281,424 @@ function SettingsIcon({
     )
   );
 }
-// === END Icons ===
 
-      // === START VibesSwitch ===
+
+// === GoogleIcon ===
+function GoogleIcon({
+  fill = "#000",
+  width = 44,
+  height = 44
+}) {
+  return /* @__PURE__ */ React.createElement(
+    "svg",
+    {
+      width,
+      height,
+      viewBox: "10 10 24 24",
+      fill: "none",
+      xmlns: "http://www.w3.org/2000/svg"
+    },
+    /* @__PURE__ */ React.createElement(
+      "path",
+      {
+        d: "M32.5 22.2273C32.5 21.518 32.4386 20.8364 32.3239 20.1818H22V24.05H27.8977C27.65 25.3 26.9455 26.3591 25.8864 27.0682V29.5773H29.3182C31.2273 27.8364 32.5 25.2727 32.5 22.2273Z",
+        fill
+      }
+    ),
+    /* @__PURE__ */ React.createElement(
+      "path",
+      {
+        d: "M22 32C24.7 32 26.9636 31.1045 29.3182 29.5773L25.8864 27.0682C24.9909 27.6682 23.8636 28.0227 22 28.0227C19.3955 28.0227 17.1909 26.2636 16.4045 23.9H12.8636V26.4909C15.2091 31.1591 18.3409 32 22 32Z",
+        fill
+      }
+    ),
+    /* @__PURE__ */ React.createElement(
+      "path",
+      {
+        d: "M16.4045 23.9C16.1909 23.3 16.0682 22.6591 16.0682 22C16.0682 21.3409 16.1909 20.7 16.4045 20.1V17.5091H12.8636C12.1773 18.8727 11.8 20.3955 11.8 22C11.8 23.6045 12.1773 25.1273 12.8636 26.4909L16.4045 23.9Z",
+        fill
+      }
+    ),
+    /* @__PURE__ */ React.createElement(
+      "path",
+      {
+        d: "M22 15.9773C24.0227 15.9773 25.8409 16.6727 27.2727 18.0409L30.3364 14.9773C28.9591 13.6909 27.2045 12 22 12C18.3409 12 15.2091 12.8409 12.8636 17.5091L16.4045 20.1C17.1909 17.7364 19.3955 15.9773 22 15.9773Z",
+        fill
+      }
+    )
+  );
+}
+
+
+// === GitHubIcon ===
+function GitHubIcon({
+  fill = "#000",
+  width = 44,
+  height = 44
+}) {
+  return /* @__PURE__ */ React.createElement(
+    "svg",
+    {
+      width,
+      height,
+      viewBox: "10 10 24 24",
+      fill: "none",
+      xmlns: "http://www.w3.org/2000/svg"
+    },
+    /* @__PURE__ */ React.createElement(
+      "path",
+      {
+        fillRule: "evenodd",
+        clipRule: "evenodd",
+        d: "M22 11C15.925 11 11 15.925 11 22C11 26.8625 14.0375 31.0125 18.2625 32.4875C18.8125 32.5875 19.025 32.2625 19.025 31.9875C19.025 31.7375 19.0125 30.9125 19.0125 30.0375C16.5 30.5375 15.775 29.4625 15.55 28.9C15.425 28.6375 14.9 27.7 14.4375 27.45C14.0625 27.2625 13.5125 26.7625 14.425 26.75C15.275 26.7375 15.8875 27.525 16.1 27.85C17.05 29.4125 18.5875 28.9625 19.0625 28.6875C19.15 27.9625 19.4375 27.5 19.75 27.2375C17.4875 26.975 15.1 26.05 15.1 21.925C15.1 20.7375 15.425 19.7625 16.125 19.0125C16.025 18.75 15.65 17.65 16.225 16.2125C16.225 16.2125 17.1125 15.9375 19.025 17.2125C19.875 16.975 20.7875 16.8625 21.7 16.8625C22.6125 16.8625 23.525 16.975 24.375 17.2125C26.2875 15.925 27.175 16.2125 27.175 16.2125C27.75 17.65 27.375 18.75 27.275 19.0125C27.975 19.7625 28.3 20.725 28.3 21.925C28.3 26.0625 25.9 26.975 23.6375 27.2375C24.025 27.575 24.3625 28.225 24.3625 29.2375C24.3625 30.7 24.35 31.875 24.35 31.9875C24.35 32.2625 24.5625 32.6 25.1125 32.4875C29.3 31.0125 33 26.8625 33 22C33 15.925 28.075 11 22 11Z",
+        fill
+      }
+    )
+  );
+}
+
+
+// === MoonIcon ===
+function MoonIcon({
+  fill = "currentColor",
+  width = 24,
+  height = 24
+}) {
+  return /* @__PURE__ */ React.createElement(
+    "svg",
+    {
+      width,
+      height,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      xmlns: "http://www.w3.org/2000/svg"
+    },
+    /* @__PURE__ */ React.createElement(
+      "path",
+      {
+        d: "M21.752 15.002A9.718 9.718 0 0112.478 3.5a10.013 10.013 0 00-7.715 4.754A10.003 10.003 0 0012 22c3.516 0 6.63-1.817 8.426-4.564a9.724 9.724 0 01.326-.434z",
+        fill
+      }
+    )
+  );
+}
+
+
+// === SunIcon ===
+function SunIcon({
+  fill = "currentColor",
+  width = 24,
+  height = 24
+}) {
+  return /* @__PURE__ */ React.createElement(
+    "svg",
+    {
+      width,
+      height,
+      viewBox: "0 0 24 24",
+      fill: "none",
+      xmlns: "http://www.w3.org/2000/svg"
+    },
+    /* @__PURE__ */ React.createElement("circle", { cx: "12", cy: "12", r: "4", fill }),
+    /* @__PURE__ */ React.createElement(
+      "path",
+      {
+        d: "M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41",
+        stroke: fill,
+        strokeWidth: "2",
+        strokeLinecap: "round"
+      }
+    )
+  );
+}
+
+
+// === BrutalistCard.styles ===
+function getShadowColor(variant) {
+  switch (variant) {
+    case "success":
+      return "var(--vibes-green)";
+    case "error":
+      return "var(--vibes-red-accent)";
+    case "warning":
+      return "var(--vibes-yellow-accent)";
+    case "default":
+    default:
+      return "var(--vibes-shadow-color)";
+  }
+}
+function getPadding(size) {
+  switch (size) {
+    case "sm":
+      return "0.75rem 1rem";
+    case "md":
+      return "1rem";
+    case "lg":
+      return "2rem 3rem";
+    default:
+      return "1rem";
+  }
+}
+function getFontSize(size) {
+  switch (size) {
+    case "sm":
+      return "0.875rem";
+    case "md":
+      return "1rem";
+    case "lg":
+      return "1rem";
+    default:
+      return "1rem";
+  }
+}
+function getBoxShadow(size, variant) {
+  const color = getShadowColor(variant);
+  switch (size) {
+    case "sm":
+      return `2px 3px 0px 0px ${color}`;
+    case "md":
+      return `4px 5px 0px 0px ${color}`;
+    case "lg":
+      return `6px 6px 0px 0px ${color}`;
+    default:
+      return `4px 5px 0px 0px ${color}`;
+  }
+}
+function getBorderRadius(messageType) {
+  switch (messageType) {
+    case "user":
+      return "12px 12px 0 12px";
+    case "ai":
+      return "12px 12px 12px 0";
+    default:
+      return "12px";
+  }
+}
+function getBrutalistCardStyle(variant = "default", size = "md", messageType) {
+  return {
+    borderRadius: getBorderRadius(messageType),
+    padding: getPadding(size),
+    fontSize: getFontSize(size),
+    fontWeight: 500,
+    letterSpacing: "0.02em",
+    boxShadow: getBoxShadow(size, variant),
+    transition: "box-shadow 0.15s ease, transform 0.15s ease",
+    boxSizing: "border-box"
+  };
+}
+
+
+// === BrutalistCard ===
+const BrutalistCard = React.forwardRef(
+  ({
+    children,
+    variant = "default",
+    size = "md",
+    messageType,
+    style,
+    className,
+    ...divProps
+  }, ref) => {
+    const cardStyle = {
+      ...getBrutalistCardStyle(variant, size, messageType),
+      background: "var(--vibes-card-bg)",
+      color: "var(--vibes-card-text)",
+      border: "3px solid var(--vibes-card-border)",
+      ...style
+    };
+    return /* @__PURE__ */ React.createElement("div", { ref, style: cardStyle, className, ...divProps }, children);
+  }
+);
+BrutalistCard.displayName = "BrutalistCard";
+
+
+// === LabelContainer.styles ===
+function getLabelContainerContainerStyle() {
+  return {
+    position: "relative",
+    display: "inline-flex",
+    alignItems: "stretch",
+    width: "auto",
+    marginBottom: "40px"
+  };
+}
+function getLabelContainerLabelStyle() {
+  return {
+    background: "var(--vibes-card-bg)",
+    border: "2px solid var(--vibes-card-border)",
+    borderLeft: "none",
+    borderTopRightRadius: "8px",
+    borderBottomRightRadius: "8px",
+    padding: "12px 8px",
+    fontWeight: 700,
+    fontSize: "14px",
+    letterSpacing: "1px",
+    whiteSpace: "nowrap",
+    color: "var(--vibes-card-text)",
+    writingMode: "vertical-rl",
+    transform: "rotate(180deg)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    margin: "32px 0px"
+  };
+}
+function getLabelContainerButtonWrapperStyle() {
+  return {
+    background: "var(--vibes-card-bg)",
+    border: "2px solid var(--vibes-card-border)",
+    borderRadius: "8px",
+    padding: "24px 24px 32px 24px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "auto"
+  };
+}
+function getLabelContainerResponsiveLabelStyle(isMobile, disappear = false) {
+  if (isMobile) {
+    if (disappear) {
+      return {
+        display: "none"
+      };
+    }
+    return {
+      background: "var(--vibes-card-bg)",
+      border: "2px solid var(--vibes-card-border)",
+      borderLeft: "2px solid var(--vibes-card-border)",
+      borderBottom: "none",
+      borderTopLeftRadius: "8px",
+      borderTopRightRadius: "8px",
+      borderBottomRightRadius: "0",
+      padding: "8px 12px",
+      fontWeight: 700,
+      fontSize: "14px",
+      letterSpacing: "1px",
+      whiteSpace: "nowrap",
+      color: "var(--vibes-card-text)",
+      writingMode: "horizontal-tb",
+      transform: "none",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0,
+      width: "calc(100% - 64px)",
+      margin: "0px 32px"
+    };
+  }
+  return {
+    background: "var(--vibes-card-bg)",
+    border: "2px solid var(--vibes-card-border)",
+    borderLeft: "none",
+    borderBottom: "2px solid var(--vibes-card-border)",
+    borderTopRightRadius: "8px",
+    borderBottomRightRadius: "8px",
+    borderTopLeftRadius: "0",
+    padding: "12px 8px",
+    fontWeight: 700,
+    fontSize: "14px",
+    letterSpacing: "1px",
+    whiteSpace: "nowrap",
+    color: "var(--vibes-card-text)",
+    writingMode: "vertical-rl",
+    transform: "rotate(180deg)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    margin: "32px 0px",
+    width: "auto"
+  };
+}
+function getLabelContainerResponsiveButtonWrapperStyle(isMobile, disappear = false) {
+  if (isMobile && disappear) {
+    return {
+      background: "transparent",
+      border: "none",
+      borderRadius: "0",
+      padding: "0",
+      paddingBottom: "24px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "auto"
+    };
+  }
+  if (isMobile && !disappear) {
+    return {
+      background: "var(--vibes-card-bg)",
+      border: "2px solid var(--vibes-card-border)",
+      borderRadius: "8px",
+      padding: "24px 24px 32px 24px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "100%"
+    };
+  }
+  return {
+    background: "var(--vibes-card-bg)",
+    border: "2px solid var(--vibes-card-border)",
+    borderRadius: "8px",
+    padding: "24px 24px 32px 24px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "auto"
+  };
+}
+function getLabelContainerResponsiveContainerStyle(isMobile) {
+  if (isMobile) {
+    return {
+      position: "relative",
+      display: "inline-flex",
+      alignItems: "stretch",
+      flexDirection: "column",
+      width: "100%",
+      marginBottom: "40px"
+    };
+  }
+  return {
+    position: "relative",
+    display: "inline-flex",
+    alignItems: "stretch",
+    flexDirection: "row",
+    width: "auto",
+    marginBottom: "40px"
+  };
+}
+
+
+// === LabelContainer ===
+function LabelContainer({
+  label,
+  children,
+  style,
+  className,
+  disappear = false
+}) {
+  const isMobile = useMobile();
+  return /* @__PURE__ */ React.createElement(
+    "div",
+    {
+      style: { ...getLabelContainerResponsiveContainerStyle(isMobile), ...style },
+      className
+    },
+    label && /* @__PURE__ */ React.createElement("div", { style: getLabelContainerResponsiveLabelStyle(isMobile, disappear) }, label),
+    /* @__PURE__ */ React.createElement("div", { style: getLabelContainerResponsiveButtonWrapperStyle(isMobile, disappear) }, children)
+  );
+}
+
+
+// === VibesSwitch.styles ===
 const switchColors = {
   primary: "var(--vibes-black)",
   secondary: "var(--vibes-white)"
 };
 
+
+// === VibesSwitch ===
 function VibesSwitch({
   size = 24,
   className,
@@ -412,9 +875,9 @@ function VibesSwitch({
     )
   );
 }
-// === END VibesSwitch ===
 
-      // === START HiddenMenuWrapper ===
+
+// === HiddenMenuWrapper.styles ===
 if (typeof document !== "undefined") {
   const styleId = "hidden-menu-wrapper-vars";
   if (!document.getElementById(styleId)) {
@@ -455,7 +918,7 @@ const hiddenMenuTheme = {
     toggle: 20
   },
   dimensions: {
-    gridSize: "40px",
+    gridSize: "32px",
     padding: "24px",
     bottomOffset: "16px"
   },
@@ -523,6 +986,8 @@ const getToggleButtonStyle = () => ({
   cursor: "pointer"
 });
 
+
+// === HiddenMenuWrapper ===
 function HiddenMenuWrapper({
   children,
   menuContent,
@@ -725,9 +1190,9 @@ function HiddenMenuWrapper({
     /* @__PURE__ */ React.createElement(VibesSwitch, { size: 80 })
   ));
 }
-// === END HiddenMenuWrapper ===
 
-      // === START VibesButton ===
+
+// === VibesButton.styles ===
 const variantColors = {
   blue: "var(--vibes-variant-blue)",
   red: "var(--vibes-variant-red)",
@@ -747,10 +1212,30 @@ const bounceKeyframes = `
     }
   }
 `;
-function getButtonStyle(variant, isHovered, isActive, isMobile = false, hasIcon) {
+function getFormButtonStyle(variant, formColor) {
+  const cssColor = formColor || getVariantColor(variant);
+  return {
+    width: "100%",
+    padding: "3px",
+    backgroundColor: cssColor,
+    border: "1px solid var(--vibes-button-border)",
+    color: "var(--vibes-button-text)",
+    fontSize: "24px",
+    fontWeight: "bold",
+    letterSpacing: "2px",
+    cursor: "pointer",
+    transition: "0.2s",
+    borderRadius: "20px",
+    textTransform: "none"
+  };
+}
+function getButtonStyle(variant, isHovered, isActive, isMobile = false, hasIcon, buttonType, formColor) {
+  if (buttonType === "form") {
+    return getFormButtonStyle(variant, formColor);
+  }
   const cssColor = getVariantColor(variant);
   let transform = "translate(0px, 0px)";
-  let boxShadow = `8px 10px 0px 0px ${cssColor}, 8px 10px 0px 2px var(--vibes-button-border)`;
+  let boxShadow = buttonType ? `7px 8px 0px 0px ${cssColor}, 7px 8px 0px 2px var(--vibes-button-border)` : `8px 10px 0px 0px ${cssColor}, 8px 10px 0px 2px var(--vibes-button-border)`;
   if (isHovered && !isActive) {
     transform = "translate(2px, 2px)";
     boxShadow = `2px 3px 0px 0px ${cssColor}, 2px 3px 0px 2px var(--vibes-button-border)`;
@@ -760,14 +1245,13 @@ function getButtonStyle(variant, isHovered, isActive, isMobile = false, hasIcon)
     boxShadow = "none";
   }
   return {
-    width: !hasIcon ? "auto" : isMobile ? "100%" : "150px",
-    height: !hasIcon ? "auto" : isMobile ? "auto" : "150px",
+    width: buttonType === "flat-rounded" ? "100%" : !hasIcon ? "auto" : isMobile ? "100%" : "130px",
+    height: buttonType === "flat-rounded" ? "auto" : !hasIcon ? "auto" : isMobile ? "auto" : "135px",
     minHeight: isMobile ? "60px" : void 0,
-    padding: isMobile ? "0.75rem 1.5rem" : "1rem 2rem",
+    padding: buttonType === "flat-rounded" ? "0.5rem 0.75rem" : isMobile ? buttonType ? "none" : "0.75rem 1.5rem" : "1rem 2rem",
     borderRadius: "12px",
     fontSize: "1rem",
     fontWeight: 700,
-    textTransform: "uppercase",
     letterSpacing: "0.05em",
     cursor: "pointer",
     transition: "all 0.15s ease",
@@ -776,28 +1260,40 @@ function getButtonStyle(variant, isHovered, isActive, isMobile = false, hasIcon)
     boxShadow
   };
 }
-function getMergedButtonStyle(baseStyle, ignoreDarkMode, customStyle) {
-  return {
+function getMergedButtonStyle(baseStyle, ignoreDarkMode, customStyle, buttonType) {
+  if (buttonType === "form") {
+    return {
+      ...baseStyle,
+      ...customStyle
+    };
+  }
+  const style = {
     ...baseStyle,
     background: ignoreDarkMode ? "var(--vibes-button-bg)" : "var(--vibes-button-bg-dark-aware)",
     color: ignoreDarkMode ? "var(--vibes-button-text)" : "var(--vibes-button-text-dark-aware)",
-    border: ignoreDarkMode ? "2px solid var(--vibes-button-border)" : "2px solid var(--vibes-button-border-dark-aware)",
+    border: ignoreDarkMode ? "2px solid var(--vibes-button-border)" : "2px solid var(--vibes-button-border-dark-aware)"
+  };
+  if (buttonType === "flat-rounded") {
+    style.borderRadius = "50px";
+  }
+  return {
+    ...style,
     ...customStyle
   };
 }
-function getIconContainerStyle(variant, isMobile, hasIcon) {
+function getIconContainerStyle(variant, isMobile, hasIcon, buttonType) {
   if (!hasIcon) return {};
   const cssColor = getVariantColor(variant);
   return {
-    width: isMobile ? "48px" : "80px",
-    height: isMobile ? "48px" : "80px",
-    backgroundColor: cssColor,
-    borderRadius: "8px",
+    width: buttonType === "flat-rounded" ? "28px" : isMobile ? "48px" : "80px",
+    height: buttonType === "flat-rounded" ? "28px" : isMobile ? "48px" : "80px",
+    backgroundColor: buttonType === "flat-rounded" ? "transparent" : cssColor,
+    borderRadius: buttonType === "flat-rounded" ? "0" : "8px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
-    border: "2px solid var(--vibes-black)"
+    border: buttonType === "flat-rounded" ? "none" : "2px solid var(--vibes-black)"
   };
 }
 function getIconStyle(isMobile, isHovered, isActive) {
@@ -810,18 +1306,20 @@ function getIconStyle(isMobile, isHovered, isActive) {
     animation: isHovered && !isActive ? "vibes-button-bounce 0.8s ease-in-out infinite" : "none"
   };
 }
-function getVibesButtonContentWrapperStyle(isMobile, hasIcon) {
+function getVibesButtonContentWrapperStyle(isMobile, hasIcon, buttonType) {
   if (!hasIcon) return {};
   return {
     display: "flex",
     alignItems: "center",
-    gap: isMobile ? "16px" : "6px",
-    flexDirection: isMobile ? "row" : "column",
-    justifyContent: isMobile ? "flex-start" : "center",
+    gap: buttonType === "flat-rounded" ? "0.5rem" : isMobile ? "16px" : "6px",
+    flexDirection: buttonType === "flat-rounded" ? "row" : isMobile ? "row" : "column",
+    justifyContent: buttonType === "flat-rounded" ? "flex-start" : isMobile ? "flex-start" : "center",
     width: "100%"
   };
 }
 
+
+// === VibesButton ===
 const BLUE = "blue";
 const RED = "red";
 const YELLOW = "yellow";
@@ -831,10 +1329,13 @@ const iconMap = {
   remix: RemixIcon,
   invite: InviteIcon,
   settings: SettingsIcon,
-  back: BackIcon
+  back: BackIcon,
+  google: GoogleIcon,
+  github: GitHubIcon
 };
 function VibesButton({
   variant = "blue",
+  buttonType = "square",
   children,
   onHover,
   onUnhover,
@@ -842,6 +1343,7 @@ function VibesButton({
   style: customStyle,
   className = "",
   ignoreDarkMode = false,
+  formColor,
   ...props
 }) {
   const buttonVariant = variant;
@@ -861,20 +1363,28 @@ function VibesButton({
     isHovered,
     isActive,
     isMobile,
-    !!IconComponent
+    !!IconComponent,
+    buttonType,
+    formColor
   );
   const mergedStyle = getMergedButtonStyle(
     baseStyle,
     ignoreDarkMode,
-    customStyle
+    customStyle,
+    buttonType
   );
   const iconContainerStyle = getIconContainerStyle(
     buttonVariant,
     isMobile,
-    !!IconComponent
+    !!IconComponent,
+    buttonType
   );
   const iconStyle = getIconStyle(isMobile, isHovered, isActive);
-  const contentWrapperStyle = getVibesButtonContentWrapperStyle(isMobile, !!IconComponent);
+  const contentWrapperStyle = getVibesButtonContentWrapperStyle(
+    isMobile,
+    !!IconComponent,
+    buttonType
+  );
   return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("style", null, bounceKeyframes), /* @__PURE__ */ React.createElement(
     "button",
     {
@@ -893,37 +1403,375 @@ function VibesButton({
       IconComponent,
       {
         bgFill: "var(--vibes-button-icon-bg)",
-        fill: "var(--vibes-button-icon-fill)",
-        width: isMobile ? 28 : 50,
-        height: isMobile ? 28 : 50
+        fill: icon === "google" || icon === "github" ? "#000" : "var(--vibes-button-icon-fill)",
+        width: buttonType === "flat-rounded" ? 28 : isMobile ? 28 : 45,
+        height: buttonType === "flat-rounded" ? 28 : isMobile ? 28 : 45,
+        withCircle: icon === "back"
       }
     ))), /* @__PURE__ */ React.createElement("span", null, children)) : children
   ));
 }
-// === END VibesButton ===
 
-      // === START VibesPanel ===
-      function VibesPanel({ dbName }) {
-        return React.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "12px", alignItems: "center", maxWidth: "400px", margin: "0 auto" } },
-          React.createElement(VibesButton, { variant: "blue", href: "https://vibes.diy" }, "VISIT VIBES.DIY"),
-          React.createElement(VibesButton, { variant: "yellow", href: "https://vibes.diy" }, "CREATE YOUR OWN")
-        );
-      }
-      window.VibesPanel = VibesPanel;
-      // === END VibesPanel ===
 
-      // Expose all menu components globally for Babel scripts
-      window.useMobile = useMobile;
-      window.HiddenMenuWrapper = HiddenMenuWrapper;
-      window.VibesSwitch = VibesSwitch;
-      window.VibesButton = VibesButton;
-      window.BackIcon = BackIcon;
-      window.LoginIcon = LoginIcon;
-      window.RemixIcon = RemixIcon;
-      window.InviteIcon = InviteIcon;
-      window.SettingsIcon = SettingsIcon;
+// === VibesPanel.styles ===
+function getOuterContainerStyle(customStyle) {
+  return {
+    padding: "12px",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: "12px",
+    ...customStyle
+  };
+}
+function getVibesPanelContainerStyle() {
+  return {
+    position: "relative",
+    display: "inline-flex",
+    alignItems: "stretch",
+    width: "auto",
+    marginBottom: "40px"
+  };
+}
+function getVibesPanelLabelStyle() {
+  return {
+    background: "var(--vibes-card-bg)",
+    border: "2px solid var(--vibes-card-border)",
+    borderLeft: "none",
+    borderTopRightRadius: "8px",
+    borderBottomRightRadius: "8px",
+    padding: "12px 8px",
+    fontWeight: 700,
+    fontSize: "14px",
+    textTransform: "uppercase",
+    letterSpacing: "1px",
+    whiteSpace: "nowrap",
+    color: "var(--vibes-card-text)",
+    writingMode: "vertical-rl",
+    transform: "rotate(180deg)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    margin: "32px 0px"
+  };
+}
+function getVibesPanelButtonWrapperStyle() {
+  return {
+    background: "var(--vibes-card-bg)",
+    border: "2px solid var(--vibes-card-border)",
+    borderRadius: "8px",
+    padding: "24px 24px 32px 24px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: "auto"
+  };
+}
+function getButtonContainerStyle(isMobile) {
+  return {
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: isMobile ? "24px" : "65px",
+    flexWrap: "wrap",
+    maxWidth: "100%",
+    width: isMobile ? "100%" : "auto",
+    padding: isMobile ? "0px" : "0px 65px"
+  };
+}
+function getInviteFormStyle(isMobile) {
+  return {
+    width: isMobile ? "calc(100% - 40px)" : "300px",
+    display: "flex",
+    padding: "20px",
+    flexDirection: "column",
+    gap: "12px",
+    borderRadius: "20px",
+    background: "var(--vibes-button-bg)"
+  };
+}
+function getInviteLabelStyle() {
+  return {
+    alignSelf: "flex-start",
+    fontWeight: 600,
+    color: "#231F20"
+  };
+}
+function getInviteInputStyle() {
+  return {
+    width: "calc(100% - 20px)",
+    background: "transparent",
+    color: "var(--vibes-text-primary)",
+    fontSize: "inherit",
+    fontWeight: "inherit",
+    letterSpacing: "inherit",
+    padding: "8px 10px",
+    border: "2px solid var(--vibes-card-border)",
+    borderRadius: "20px"
+  };
+}
+function getInviteStatusStyle() {
+  return {
+    textAlign: "center"
+  };
+}
+function getVibesPanelResponsiveLabelStyle(isMobile) {
+  if (isMobile) {
+    return {
+      display: "none"
+    };
+  }
+  return getVibesPanelLabelStyle();
+}
+function getVibesPanelResponsiveButtonWrapperStyle(isMobile) {
+  if (isMobile) {
+    return {
+      background: "transparent",
+      border: "none",
+      borderRadius: "0",
+      padding: "0",
+      paddingBottom: "24px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: "auto"
+    };
+  }
+  return getVibesPanelButtonWrapperStyle();
+}
+function getVibesPanelResponsiveContainerStyle(isMobile) {
+  if (isMobile) {
+    return {
+      ...getVibesPanelContainerStyle(),
+      flexDirection: "column",
+      width: "100%"
+    };
+  }
+  return getVibesPanelContainerStyle();
+}
+function getInviteRowStyle(isMobile) {
+  return {
+    display: "flex",
+    flexDirection: isMobile ? "column" : "row",
+    gap: isMobile ? "24px" : "65px",
+    width: isMobile ? "100%" : "auto"
+  };
+}
+function getButtonAnimationStyle(isVisible, delay = 0) {
+  return {
+    opacity: isVisible ? 1 : 0,
+    visibility: isVisible ? "visible" : "hidden",
+    transition: `opacity 0.3s ease-in-out ${delay}ms, visibility 0s ${isVisible ? "0ms" : "300ms"}`,
+    pointerEvents: isVisible ? "auto" : "none"
+  };
+}
+function getInviteFormContainerStyle(isVisible) {
+  return {
+    display: "flex",
+    flexDirection: "row",
+    gap: "12px",
+    gridColumn: "1 / -1",
+    opacity: isVisible ? 1 : 0,
+    transform: isVisible ? "translateX(0)" : "translateX(-20px)",
+    transition: "opacity 0.4s ease-out 0.2s, transform 0.4s ease-out 0.2s",
+    pointerEvents: isVisible ? "auto" : "none"
+  };
+}
+function getAnimatedButtonContainerStyle() {
+  return {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: "24px",
+    width: "100%",
+    position: "relative"
+  };
+}
 
-      // === START useAI ===
+
+// === VibesPanel ===
+function VibesPanel({
+  style,
+  className,
+  baseURL,
+  token
+} = {}) {
+  const emailId = React.useId();
+  const isMobile = useIsMobile();
+  const [mode, setMode] = React.useState("default");
+  const [email, setEmail] = React.useState("");
+  const [inviteStatus, setInviteStatus] = React.useState("idle");
+  const [inviteMessage, setInviteMessage] = React.useState("");
+  const effectiveBaseURL = baseURL ?? (typeof window !== "undefined" ? window.location.origin : "https://vibes.diy");
+  const handleInviteClick = () => {
+    if (mode === "default") {
+      setMode("invite");
+      setEmail("");
+      setInviteStatus("idle");
+      setInviteMessage("");
+    }
+  };
+  const handleBackClick = () => {
+    setMode("default");
+  };
+  const handleChangeCodeClick = () => {
+    window.open(`${effectiveBaseURL}/remix`, "_top");
+  };
+  const handleLogoutClick = () => {
+    document.dispatchEvent(new CustomEvent("vibes-sync-disable"));
+    document.dispatchEvent(new CustomEvent("vibes-logout-request"));
+  };
+  const handleInviteSubmit = (e) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setInviteStatus("sending");
+    setInviteMessage("");
+    document.dispatchEvent(
+      new CustomEvent("vibes-share-request", {
+        detail: {
+          email: email.trim(),
+          role: "member",
+          right: "read",
+          token
+        }
+      })
+    );
+  };
+  React.useEffect(() => {
+    const handleShareSuccess = (event) => {
+      const customEvent = event;
+      setInviteStatus("success");
+      setInviteMessage(
+        customEvent.detail?.message || `Invitation sent to ${customEvent.detail?.email}!`
+      );
+    };
+    const handleShareError = (event) => {
+      const customEvent = event;
+      setInviteStatus("error");
+      setInviteMessage(
+        customEvent.detail?.error?.message || "Failed to send invitation. Please try again."
+      );
+    };
+    document.addEventListener("vibes-share-success", handleShareSuccess);
+    document.addEventListener("vibes-share-error", handleShareError);
+    return () => {
+      document.removeEventListener("vibes-share-success", handleShareSuccess);
+      document.removeEventListener("vibes-share-error", handleShareError);
+    };
+  }, []);
+  return /* @__PURE__ */ React.createElement("div", { style: getOuterContainerStyle(style), className }, /* @__PURE__ */ React.createElement(
+    LabelContainer,
+    {
+      label: "Launcher",
+      disappear: true
+    },
+    /* @__PURE__ */ React.createElement("div", { style: getButtonContainerStyle(isMobile) }, mode === "invite" ? /* @__PURE__ */ React.createElement("div", { style: getInviteRowStyle(isMobile) }, /* @__PURE__ */ React.createElement(
+      VibesButton,
+      {
+        variant: YELLOW,
+        onClick: () => {
+        },
+        icon: "invite"
+      },
+      "Invite"
+    ), inviteStatus === "idle" ? /* @__PURE__ */ React.createElement(
+      "form",
+      {
+        onSubmit: handleInviteSubmit,
+        style: getInviteFormStyle(isMobile)
+      },
+      /* @__PURE__ */ React.createElement("label", { htmlFor: emailId, style: getInviteLabelStyle() }, "Invite by email"),
+      /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          id: emailId,
+          type: "email",
+          placeholder: "friend@example.com",
+          value: email,
+          onChange: (e) => setEmail(e.target.value),
+          style: getInviteInputStyle(),
+          autoComplete: "email",
+          required: true
+        }
+      ),
+      /* @__PURE__ */ React.createElement(
+        VibesButton,
+        {
+          variant: YELLOW,
+          type: "submit",
+          disabled: !email.trim()
+        },
+        "Submit"
+      )
+    ) : /* @__PURE__ */ React.createElement(
+      BrutalistCard,
+      {
+        id: "invite-status",
+        role: "status",
+        "aria-live": "polite",
+        size: "sm",
+        variant: inviteStatus === "sending" ? "default" : inviteStatus === "error" ? "error" : "success",
+        style: getInviteStatusStyle()
+      },
+      inviteStatus === "sending" ? "Inviting..." : inviteMessage
+    ), /* @__PURE__ */ React.createElement(VibesButton, { variant: GRAY, onClick: handleBackClick, icon: "back" }, "Back")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      VibesButton,
+      {
+        variant: BLUE,
+        onClick: handleLogoutClick,
+        icon: "login"
+      },
+      "Logout"
+    ), /* @__PURE__ */ React.createElement(
+      VibesButton,
+      {
+        variant: YELLOW,
+        onClick: handleInviteClick,
+        icon: "invite"
+      },
+      "Invite"
+    )))
+  ));
+}
+
+
+// === Window Exports (for standalone apps) ===
+// Expose key components to window for use in inline scripts
+if (typeof window !== 'undefined') {
+  // Hooks
+  window.useMobile = useMobile;
+  window.useIsMobile = useIsMobile;
+
+  // Core components
+  window.HiddenMenuWrapper = HiddenMenuWrapper;
+  window.VibesSwitch = VibesSwitch;
+  window.VibesButton = VibesButton;
+  window.VibesPanel = VibesPanel;
+  window.BrutalistCard = BrutalistCard;
+  window.LabelContainer = LabelContainer;
+
+  // Button variant constants
+  window.BLUE = BLUE;
+  window.RED = RED;
+  window.YELLOW = YELLOW;
+  window.GRAY = GRAY;
+
+  // Icons
+  window.BackIcon = BackIcon;
+  window.InviteIcon = InviteIcon;
+  window.LoginIcon = LoginIcon;
+  window.RemixIcon = RemixIcon;
+  window.SettingsIcon = SettingsIcon;
+  window.GoogleIcon = GoogleIcon;
+  window.GitHubIcon = GitHubIcon;
+  window.MoonIcon = MoonIcon;
+  window.SunIcon = SunIcon;
+}
+
+
+      // === useAI Hook ===
       // AI hook for proxied OpenRouter calls with metering
       function useAI() {
         const [loading, setLoading] = React.useState(false);
@@ -986,7 +1834,6 @@ function VibesButton({
         return { callAI: callAI, loading: loading, error: error, clearError: function() { setError(null); } };
       }
       window.useAI = useAI;
-      // === END useAI ===
     </script>
     <script type="text/babel" data-type="module">
       import ReactDOMClient from "react-dom/client";
@@ -1044,6 +1891,36 @@ function VibesButton({
 
         const { ClerkFireproofProvider, SignedIn, SignedOut, SignInButton } = window.ClerkComponents;
 
+        // Event handlers for VibesPanel
+        React.useEffect(() => {
+          const handleLogout = () => {
+            if (window.Clerk) window.Clerk.signOut();
+          };
+          const handleSyncDisable = () => {
+            console.log('[Vibes] Sync disabled');
+          };
+          const handleShareRequest = (e) => {
+            const { email, role, right, token } = e.detail;
+            console.log('[Vibes] Share request:', { email, role, right });
+            // TODO: Implement actual share logic with Fireproof
+            // For now, simulate success after a delay
+            setTimeout(() => {
+              document.dispatchEvent(new CustomEvent('vibes-share-success', {
+                detail: { email, message: `Invitation sent to ${email}!` }
+              }));
+            }, 1000);
+          };
+
+          document.addEventListener('vibes-logout-request', handleLogout);
+          document.addEventListener('vibes-sync-disable', handleSyncDisable);
+          document.addEventListener('vibes-share-request', handleShareRequest);
+          return () => {
+            document.removeEventListener('vibes-logout-request', handleLogout);
+            document.removeEventListener('vibes-sync-disable', handleSyncDisable);
+            document.removeEventListener('vibes-share-request', handleShareRequest);
+          };
+        }, []);
+
         // AuthGate shown when user is not signed in
         const AuthGate = () => (
           <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -1097,6 +1974,8 @@ function VibesButton({
           window.SignedOut = clerkModule.SignedOut;
           window.SignInButton = clerkModule.SignInButton;
           window.UserButton = clerkModule.UserButton;
+          // Export Fireproof hook for user's App code
+          window.useFireproofClerk = clerkModule.useFireproofClerk;
         } catch (err) {
           console.error('Failed to load Clerk components:', err);
           window.__CLERK_LOAD_ERROR__ = err.message || String(err);
@@ -1108,5 +1987,6 @@ function VibesButton({
 
       initApp();
     </script>
+
   </body>
 </html>
