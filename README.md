@@ -76,6 +76,17 @@ Creates a single HTML file with inline JavaScript, Fireproof database for local-
 - "Build a potluck sign-up for Friendsgiving"
 - "Create a trivia game about reality TV"
 
+### `design-reference`
+
+Have a design mockup or static HTML file? This skill mechanically transforms it into a working Vibes app while preserving the design exactly.
+
+The transformation is deterministic: CSS is copied verbatim, HTML structure is preserved, only syntax changes (class→className) and dynamic content bindings are added. No interpretation, no "improvements" - pixel-perfect fidelity to your design.
+
+**Example prompts:**
+- "Use design.html as the reference for my app"
+- "Match this mockup exactly"
+- "Convert this static HTML to a Vibes app"
+
 ### `riff`
 
 Not sure what to build? Riff generates 3-10 completely different interpretations of your idea in parallel.
