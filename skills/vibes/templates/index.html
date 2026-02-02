@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Made on Vibes DIY</title>
     <script>globalThis.process = { env: { NODE_ENV: "production" } };</script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.26.0/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
       :root {
@@ -57,8 +57,12 @@
           "react/jsx-dev-runtime": "https://esm.sh/stable/react@19.2.4/jsx-dev-runtime",
           "react-dom": "https://esm.sh/stable/react-dom@19.2.4",
           "react-dom/client": "https://esm.sh/stable/react-dom@19.2.4/client",
-          "use-fireproof": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom",
-          "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom"
+          "multiformats": "https://esm.sh/stable/multiformats@13.3.1",
+          "multiformats/": "https://esm.sh/stable/multiformats@13.3.1/",
+          "@ipld/dag-cbor": "https://esm.sh/stable/@ipld/dag-cbor@9.2.2?external=multiformats",
+          "@ipld/dag-json": "https://esm.sh/stable/@ipld/dag-json@10.2.3?external=multiformats",
+          "use-fireproof": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom,multiformats,@ipld/dag-cbor,@ipld/dag-json",
+          "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom,multiformats,@ipld/dag-cbor,@ipld/dag-json"
         }
       }
     </script>
