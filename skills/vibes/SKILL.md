@@ -615,6 +615,9 @@ Options:
 - Label: "Keep improving this app"
   Description: "Continue iterating on what you've built. Add new features, refine the styling, or adjust functionality. Great when you have a clear vision and want to polish it further."
 
+- Label: "Apply a design reference (/design-reference)"
+  Description: "Have a design.html or mockup file? This skill mechanically transforms your app to match it exactly - pixel-perfect fidelity with your Fireproof data binding preserved."
+
 - Label: "Explore variations (/riff)"
   Description: "Not sure if this is the best approach? Riff generates 3-10 completely different interpretations of your idea in parallel. You'll get ranked variations with business model analysis to help you pick the winner."
 
@@ -630,6 +633,7 @@ Options:
 
 **After user responds:**
 - "Keep improving" → Acknowledge and stay ready for iteration prompts
+- "Apply a design reference" → Auto-invoke /vibes:design-reference skill
 - "Explore variations" → Auto-invoke /vibes:riff skill
 - "Make it a SaaS" → Auto-invoke /vibes:sell skill
 - "Deploy" → Auto-invoke /vibes:exe skill
