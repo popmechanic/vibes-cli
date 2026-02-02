@@ -19,8 +19,10 @@
     "svix": "^1.44.0"
   },
   "devDependencies": {
+    "@ipld/dag-json": "^10.2.6",
     "@types/jsonwebtoken": "^9.0.7",
     "@vitest/coverage-v8": "^3.2.4",
+    "multiformats": "^13.4.2",
     "vitest": "^3.0.0"
   }
 }
