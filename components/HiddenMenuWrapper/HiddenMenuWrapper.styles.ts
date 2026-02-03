@@ -4,6 +4,10 @@ import type { CSSProperties } from "react";
  * HiddenMenuWrapper Component Styling
  * Following the same pattern as VibeControl styles for consistency
  *
+ * IMPORTANT: Menu background uses --vibes-menu-bg from the template.
+ * Do NOT use --vibes-gray-lightest or other generic variables.
+ * The canonical color (#CCCDC8) is defined in skills/_base/template.html.
+ *
  * Dark mode support:
  * Override CSS variables in your stylesheet using:
  *
@@ -25,7 +29,7 @@ if (typeof document !== "undefined") {
     style.id = styleId;
     style.textContent = `
       :root {
-        --hm-menu-bg: var(--vibes-gray-lightest);
+        --hm-menu-bg: var(--vibes-menu-bg);
         --hm-menu-text: var(--vibes-white);
         --hm-content-bg: #1e1e1e;
         --hm-shadow: rgba(0, 0, 0, 0.3);
@@ -48,7 +52,7 @@ if (typeof document !== "undefined") {
 // CSS Custom Properties (Variables) as JavaScript constants with fallbacks
 export const hiddenMenuTheme = {
   colors: {
-    menuBg: "var(--hm-menu-bg, var(--vibes-gray-lightest))",
+    menuBg: "var(--hm-menu-bg, var(--vibes-menu-bg))",
     menuText: "var(--hm-menu-text, var(--vibes-white))",
     contentBg: "var(--hm-content-bg, #1e1e1e)",
     shadow: "var(--hm-shadow, rgba(0, 0, 0, 0.3))",
@@ -146,6 +150,13 @@ export const getToggleButtonStyle = (): CSSProperties => ({
   right: 0,
   zIndex: hiddenMenuTheme.zIndex.toggle,
   backgroundColor: "transparent",
+  background: "none",
   border: "none",
+  padding: 0,
+  margin: 0,
   cursor: "pointer",
+  // Reset browser/Tailwind button defaults
+  appearance: "none",
+  WebkitAppearance: "none",
+  outline: "none",
 });
