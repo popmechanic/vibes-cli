@@ -483,6 +483,7 @@
             background-color: #ECECEC;
             margin: 0;
             padding: 0;
+            overflow-x: hidden;
         }
 
         .landing-page * {
@@ -531,41 +532,6 @@
             justify-content: center;
             align-items: center;
             position: relative;
-        }
-
-        .landing-page .kinetic-blob {
-            position: absolute;
-            width: 60vw;
-            height: 60vw;
-            background: radial-gradient(circle at center, var(--accent-pants), transparent 60%);
-            opacity: 0.15;
-            filter: blur(80px);
-            animation: breathe 10s infinite alternate ease-in-out;
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        .landing-page .kinetic-blob-2 {
-            position: absolute;
-            top: -20%;
-            right: -10%;
-            width: 40vw;
-            height: 40vw;
-            background: radial-gradient(circle at center, var(--accent-shoe-green), transparent 60%);
-            opacity: 0.12;
-            filter: blur(60px);
-            animation: float 15s infinite reverse linear;
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        @keyframes breathe {
-            0% { transform: scale(1) translate(0, 0); }
-            100% { transform: scale(1.1) translate(-20px, 20px); }
-        }
-        @keyframes float {
-            0% { transform: rotate(0deg) translate(0, 0); }
-            100% { transform: rotate(360deg) translate(50px, -50px); }
         }
 
         .landing-page .hero-container {
@@ -878,10 +844,6 @@
             <style>{landingPageStyles}</style>
 
             <div className="landing-page">
-              {/* Kinetic blobs */}
-              <div className="kinetic-blob" />
-              <div className="kinetic-blob-2" />
-
               {/* Nav - logo only */}
               <nav>
                 <div className="logo">{displayName}</div>
