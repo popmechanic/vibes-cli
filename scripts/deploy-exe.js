@@ -377,6 +377,63 @@ async function phase4bBundleUpload(args) {
   }
 }
 
+// Upload auth card images for AuthScreen component
+async function phase4cAuthCardsUpload(args) {
+  const CARDS_DIR = join(__dirname, '..', 'assets', 'auth-cards');
+  const CARD_FILES = ['card-1.png', 'card-2.png', 'card-3.png', 'card-4.png'];
+
+  // Check if cards directory exists
+  if (!existsSync(CARDS_DIR)) {
+    console.log('\nPhase 4c: Auth Cards Upload... SKIPPED (assets/auth-cards not found)');
+    return;
+  }
+
+  console.log('\nPhase 4c: Auth Cards Upload...');
+
+  const vmHost = `${args.name}.exe.xyz`;
+  const remoteDir = '/var/www/html/cards';
+
+  if (args.dryRun) {
+    console.log(`  [DRY RUN] Would create ${remoteDir} and upload ${CARD_FILES.length} card images`);
+    return;
+  }
+
+  try {
+    const client = await connect(vmHost);
+
+    // Create cards directory on server
+    await runCommand(client, `sudo mkdir -p ${remoteDir}`);
+    await runCommand(client, `sudo chown www-data:www-data ${remoteDir}`);
+
+    client.end();
+
+    // Upload each card image
+    for (const cardFile of CARD_FILES) {
+      const localPath = join(CARDS_DIR, cardFile);
+      if (!existsSync(localPath)) {
+        console.log(`  Warning: ${cardFile} not found, skipping`);
+        continue;
+      }
+
+      const tmpPath = `/home/exedev/${cardFile}`;
+      const remotePath = `${remoteDir}/${cardFile}`;
+
+      await uploadFile(localPath, vmHost, tmpPath);
+
+      const client2 = await connect(vmHost);
+      await runCommand(client2, `sudo mv ${tmpPath} ${remotePath}`);
+      await runCommand(client2, `sudo chown www-data:www-data ${remotePath}`);
+      client2.end();
+    }
+
+    console.log(`  ✓ ${CARD_FILES.length} card images uploaded to /cards/`);
+  } catch (err) {
+    // Non-fatal - auth screens work without cards, just shows buttons
+    console.warn(`  Warning: Card upload failed: ${err.message}`);
+    console.warn('  AuthScreen will render without card images');
+  }
+}
+
 async function phase5AIProxy(args) {
   // Skip if no AI key provided
   if (!args.aiKey) {
@@ -921,6 +978,7 @@ ${'━'.repeat(60)}
     await phase3ServerSetup(args);
     await phase4FileUpload(args);
     await phase4bBundleUpload(args);
+    await phase4cAuthCardsUpload(args);
     await phase5AIProxy(args);
     await phase6Registry(args);
     await phase7Handoff(args);

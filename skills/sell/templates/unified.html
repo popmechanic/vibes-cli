@@ -183,7 +183,7 @@
       // Auto-generated vibes menu components
 // Run: node scripts/build-components.js --force to regenerate
 // Source: /Users/marcusestes/Websites/vibes-skill/components
-// Generated: 2026-02-03T04:31:50.353Z
+// Generated: 2026-02-03T05:04:03.023Z
 // Components: 25/25
 
 // === useMobile ===
@@ -873,12 +873,11 @@ const getErrorDetailsStyle = () => ({
 const getButtonsContainerStyle = () => ({
   display: "flex",
   flexDirection: "column",
-  gap: "0.75rem",
+  gap: "1rem",
   width: "100%",
-  maxWidth: "300px",
+  maxWidth: "400px",
   position: "relative",
-  zIndex: 1,
-  marginTop: "0.5rem"
+  zIndex: 1
 });
 const getAnimationStyles = () => `
   @keyframes shredCard {
@@ -904,6 +903,7 @@ const getAnimationStyles = () => `
     0% {
       transform: scale(1);
       border-radius: 8px;
+      background-color: var(--vibes-gray-lighter, #c4c4c4);
     }
     40% {
       transform: scaleX(0.05) scaleY(0.01);
@@ -2452,8 +2452,24 @@ if (typeof window !== 'undefined') {
 
       // === Auth Gate (for signed-out users) ===
       function AuthGate({ onSignUp }) {
-        const { SignInButton, SignUpButton } = window.ClerkComponents;
+        const { SignInButton, SignUpButton } = window.ClerkComponents || {};
         const appDisplayName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+        // Debug: Log button components
+        console.log('AuthGate render:', {
+          SignInButton: typeof SignInButton,
+          SignUpButton: typeof SignUpButton,
+          AuthScreen: typeof AuthScreen,
+          VibesButton: typeof VibesButton,
+          RED: typeof RED,
+          YELLOW: typeof YELLOW
+        });
+
+        // Guard against undefined components
+        if (!SignInButton || !SignUpButton) {
+          return <LoadingError error="Clerk auth buttons not loaded. Please refresh." />;
+        }
+
         return (
           <AuthScreen
             title={`Welcome to ${appDisplayName}`}
@@ -2576,7 +2592,7 @@ if (typeof window !== 'undefined') {
       // === Tenant App Wrapper ===
       function TenantApp({ subdomain }) {
         const [claimState, setClaimState] = useState({ loading: true, owner: null });
-        const { SignedIn, SignedOut } = window.ClerkComponents;
+        const { SignedIn, SignedOut } = window.ClerkComponents || {};
 
         // Hook must be called unconditionally at top of component (Rules of Hooks)
         window.useVibesPanelEvents('Sell');
@@ -2586,6 +2602,18 @@ if (typeof window !== 'undefined') {
             setClaimState({ loading: false, owner });
           });
         }, [subdomain]);
+
+        // Debug: Log component status (after all hooks)
+        console.log('TenantApp render:', {
+          SignedIn: typeof SignedIn,
+          SignedOut: typeof SignedOut,
+          ClerkComponents: !!window.ClerkComponents
+        });
+
+        // Guard against undefined Clerk components (after all hooks)
+        if (!SignedIn || !SignedOut) {
+          return <LoadingError error="Clerk components not loaded. Please refresh the page." />;
+        }
 
         if (claimState.loading) {
           return (
@@ -2658,7 +2686,12 @@ if (typeof window !== 'undefined') {
 
       // === Admin Dashboard (placeholder) ===
       function AdminApp() {
-        const { SignedIn, SignedOut } = window.ClerkComponents;
+        const { SignedIn, SignedOut } = window.ClerkComponents || {};
+
+        // Guard against undefined Clerk components
+        if (!SignedIn || !SignedOut) {
+          return <LoadingError error="Clerk components not loaded. Please refresh the page." />;
+        }
 
         return (
           <>
@@ -2842,19 +2875,22 @@ if (typeof window !== 'undefined') {
       async function initApp() {
         try {
           const clerkModule = await import("@fireproof/clerk");
+          // SignUpButton is not exported by fireproof-clerk bundle, import from @clerk/clerk-react directly
+          const { SignUpButton } = await import("@clerk/clerk-react");
+
           window.ClerkFireproofProvider = clerkModule.ClerkFireproofProvider;
           window.ClerkComponents = {
             ClerkFireproofProvider: clerkModule.ClerkFireproofProvider,
             SignedIn: clerkModule.SignedIn,
             SignedOut: clerkModule.SignedOut,
             SignInButton: clerkModule.SignInButton,
-            SignUpButton: clerkModule.SignUpButton,
+            SignUpButton: SignUpButton,  // From @clerk/clerk-react
             UserButton: clerkModule.UserButton
           };
           window.SignedIn = clerkModule.SignedIn;
           window.SignedOut = clerkModule.SignedOut;
           window.SignInButton = clerkModule.SignInButton;
-          window.SignUpButton = clerkModule.SignUpButton;
+          window.SignUpButton = SignUpButton;  // From @clerk/clerk-react
           window.UserButton = clerkModule.UserButton;
 
           // Export useUser hook for wrapper components that need user info
