@@ -290,15 +290,53 @@ The deploy script preserves existing SSL by using include files for AI proxy con
 3. **Use includes:** Put new configs in `/etc/nginx/conf.d/` or separate files
 4. **Test before reload:** `sudo nginx -t`
 
-#### exe.dev Home Directory
+### Manual File Transfer to VMs
 
-The home directory on exe.dev VMs is `/home/exedev` (not `~` expansion). For manual file operations:
+When manually transferring files (outside the deploy script), use the two-stage pattern.
 
+**Key distinction:**
+- `exe.dev` = orchestrator (for VM management: `ssh exe.dev new`, `ssh exe.dev share`)
+- `<app>.exe.xyz` = actual VM (for file operations, SSH access)
+
+**Reliable pattern:**
 ```bash
-# Use explicit path or /tmp for staging
-scp file.html vmname.exe.xyz:/home/exedev/
-# or
-scp file.html vmname.exe.xyz:/tmp/
+# Upload: SCP to server temp → sudo move to /var/www/html/
+scp index.html myapp.exe.xyz:/tmp/
+ssh myapp.exe.xyz "sudo cp /tmp/index.html /var/www/html/"
+
+# Download: Direct SCP works fine
+scp myapp.exe.xyz:/var/www/html/index.html ./downloaded.html
+```
+
+**Why server-side temp?**
+- Direct SCP to `/var/www/html/` fails (permission denied - owned by www-data)
+- Server `/tmp/` is world-writable, so SCP succeeds
+- `sudo cp` moves file with correct ownership
+
+**Common mistakes:**
+| Mistake | Error | Fix |
+|---------|-------|-----|
+| `ssh exe.dev cat /var/www/...` | "No VMs found" | Use `ssh <app>.exe.xyz` |
+| `scp file vm:/var/www/html/` | Permission denied | Use temp + sudo pattern |
+| Forgetting sudo for /var/www | Permission denied | Always `sudo cp` for www-data dirs |
+
+**Quick reference commands:**
+```bash
+# Connect to VM
+ssh <app>.exe.xyz
+
+# Read file
+ssh <app>.exe.xyz "cat /var/www/html/index.html"
+
+# Upload file (two-stage)
+scp index.html <app>.exe.xyz:/tmp/
+ssh <app>.exe.xyz "sudo cp /tmp/index.html /var/www/html/"
+
+# Download file
+scp <app>.exe.xyz:/var/www/html/index.html ./downloaded.html
+
+# Verify
+ssh <app>.exe.xyz "head -20 /var/www/html/index.html"
 ```
 
 ---
