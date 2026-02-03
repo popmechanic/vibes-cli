@@ -129,12 +129,11 @@ export const getErrorDetailsStyle = (): CSSProperties => ({
 export const getButtonsContainerStyle = (): CSSProperties => ({
   display: "flex",
   flexDirection: "column",
-  gap: "0.75rem",
+  gap: "1rem",
   width: "100%",
-  maxWidth: "300px",
+  maxWidth: "400px",
   position: "relative",
   zIndex: 1,
-  marginTop: "0.5rem",
 });
 
 // Keyframe animations (injected via <style> tag)
@@ -162,6 +161,7 @@ export const getAnimationStyles = (): string => `
     0% {
       transform: scale(1);
       border-radius: 8px;
+      background-color: var(--vibes-gray-lighter, #c4c4c4);
     }
     40% {
       transform: scaleX(0.05) scaleY(0.01);
