@@ -8,6 +8,11 @@
       // Shared error components from base template
       const ConfigError = window.ConfigError;
       const LoadingError = window.LoadingError;
+      // AuthScreen and VibesButton for styled auth views
+      const AuthScreen = window.AuthScreen;
+      const VibesButton = window.VibesButton;
+      const RED = window.RED;
+      const YELLOW = window.YELLOW;
 
       // === Configuration ===
       const CONFIG = {
@@ -206,35 +211,48 @@
 
       // === Auth Gate (for signed-out users) ===
       function AuthGate({ onSignUp }) {
-        const { SignInButton, SignUpButton } = window.ClerkComponents;
+        const { SignInButton, SignUpButton } = window.ClerkComponents || {};
+        const appDisplayName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+        // Debug: Log button components
+        console.log('AuthGate render:', {
+          SignInButton: typeof SignInButton,
+          SignUpButton: typeof SignUpButton,
+          AuthScreen: typeof AuthScreen,
+          VibesButton: typeof VibesButton,
+          RED: typeof RED,
+          YELLOW: typeof YELLOW
+        });
+
+        // Guard against undefined components
+        if (!SignInButton || !SignUpButton) {
+          return <LoadingError error="Clerk auth buttons not loaded. Please refresh." />;
+        }
+
         return (
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
-              <h1 className="text-2xl font-bold mb-4">Welcome to {APP_NAME}</h1>
-              <p className="text-gray-600 mb-6">Sign in to access your space.</p>
-              <div className="flex flex-col gap-3">
-                <SignInButton mode="modal">
-                  <button className="w-full px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
-                    Sign In
-                  </button>
-                </SignInButton>
-                {onSignUp && (
-                  <button
-                    onClick={onSignUp}
-                    className="w-full px-6 py-3 border-2 border-black text-black rounded-lg font-medium hover:bg-gray-100 transition-colors"
-                  >
-                    Create Account
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
+          <AuthScreen
+            title={`Welcome to ${appDisplayName}`}
+            message="Sign in to access your space."
+            showCard={true}
+          >
+            <SignInButton mode="modal">
+              <VibesButton variant={RED} buttonType="form">
+                Sign In
+              </VibesButton>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <VibesButton variant={YELLOW} buttonType="form">
+                Create Account
+              </VibesButton>
+            </SignUpButton>
+          </AuthScreen>
         );
       }
 
       // === Claim Prompt (for signed-in users on unclaimed subdomains) ===
       function ClaimPrompt({ subdomain, onClaim, onCancel }) {
         const [claiming, setClaiming] = useState(false);
+        const [isShredding, setIsShredding] = useState(false);
         const [error, setError] = useState(null);
 
         const handleClaim = async () => {
@@ -245,7 +263,11 @@
             if (!token) throw new Error('Not authenticated');
             const result = await claimSubdomain(subdomain, token);
             if (result.success) {
-              onClaim?.();
+              // Trigger shredding animation before navigating
+              setIsShredding(true);
+              setTimeout(() => {
+                onClaim?.();
+              }, 1200); // Match animation duration
             } else {
               setError(result.error || 'Failed to claim subdomain');
             }
@@ -257,54 +279,42 @@
         };
 
         return (
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
-              <h1 className="text-2xl font-bold mb-4">Claim {subdomain}.{APP_DOMAIN}</h1>
-              <p className="text-gray-600 mb-6">This subdomain is available! Would you like to claim it?</p>
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                  {error}
-                </div>
-              )}
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={handleClaim}
-                  disabled={claiming}
-                  className="w-full px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 transition-colors"
-                >
-                  {claiming ? 'Claiming...' : 'Claim This Subdomain'}
-                </button>
-                {onCancel && (
-                  <button
-                    onClick={onCancel}
-                    className="w-full px-6 py-3 text-gray-600 hover:text-gray-800 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
+          <AuthScreen
+            title={`Claim ${subdomain}.${APP_DOMAIN}`}
+            message={error || "This subdomain is available! Would you like to claim it?"}
+            showCard={true}
+            isShredding={isShredding}
+            isError={!!error}
+          >
+            <div onClick={handleClaim}>
+              <VibesButton variant={RED} buttonType="form" disabled={claiming}>
+                {claiming ? 'Claiming...' : 'Claim This Subdomain'}
+              </VibesButton>
             </div>
-          </div>
+            {onCancel && (
+              <div onClick={onCancel} style={{ cursor: 'pointer', textAlign: 'center', color: '#666', fontSize: '0.875rem' }}>
+                Cancel
+              </div>
+            )}
+          </AuthScreen>
         );
       }
 
       // === Not Owner Redirect ===
       function NotOwnerRedirect({ subdomain }) {
         return (
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
-              <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-              <p className="text-gray-600 mb-6">
-                {subdomain}.{APP_DOMAIN} belongs to another user.
-              </p>
-              <a
-                href={`https://${APP_DOMAIN}`}
-                className="inline-block px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors"
-              >
+          <AuthScreen
+            title="Access Denied"
+            message={`${subdomain}.${APP_DOMAIN} belongs to another user.`}
+            showCard={true}
+            isError={true}
+          >
+            <a href={`https://${APP_DOMAIN}`} style={{ textDecoration: 'none' }}>
+              <VibesButton variant={YELLOW} buttonType="form">
                 Get Your Own
-              </a>
-            </div>
-          </div>
+              </VibesButton>
+            </a>
+          </AuthScreen>
         );
       }
 
@@ -341,7 +351,7 @@
       // === Tenant App Wrapper ===
       function TenantApp({ subdomain }) {
         const [claimState, setClaimState] = useState({ loading: true, owner: null });
-        const { SignedIn, SignedOut } = window.ClerkComponents;
+        const { SignedIn, SignedOut } = window.ClerkComponents || {};
 
         // Hook must be called unconditionally at top of component (Rules of Hooks)
         window.useVibesPanelEvents('Sell');
@@ -351,6 +361,18 @@
             setClaimState({ loading: false, owner });
           });
         }, [subdomain]);
+
+        // Debug: Log component status (after all hooks)
+        console.log('TenantApp render:', {
+          SignedIn: typeof SignedIn,
+          SignedOut: typeof SignedOut,
+          ClerkComponents: !!window.ClerkComponents
+        });
+
+        // Guard against undefined Clerk components (after all hooks)
+        if (!SignedIn || !SignedOut) {
+          return <LoadingError error="Clerk components not loaded. Please refresh the page." />;
+        }
 
         if (claimState.loading) {
           return (
@@ -423,7 +445,12 @@
 
       // === Admin Dashboard (placeholder) ===
       function AdminApp() {
-        const { SignedIn, SignedOut } = window.ClerkComponents;
+        const { SignedIn, SignedOut } = window.ClerkComponents || {};
+
+        // Guard against undefined Clerk components
+        if (!SignedIn || !SignedOut) {
+          return <LoadingError error="Clerk components not loaded. Please refresh the page." />;
+        }
 
         return (
           <>
@@ -607,19 +634,22 @@
       async function initApp() {
         try {
           const clerkModule = await import("@fireproof/clerk");
+          // SignUpButton is not exported by fireproof-clerk bundle, import from @clerk/clerk-react directly
+          const { SignUpButton } = await import("@clerk/clerk-react");
+
           window.ClerkFireproofProvider = clerkModule.ClerkFireproofProvider;
           window.ClerkComponents = {
             ClerkFireproofProvider: clerkModule.ClerkFireproofProvider,
             SignedIn: clerkModule.SignedIn,
             SignedOut: clerkModule.SignedOut,
             SignInButton: clerkModule.SignInButton,
-            SignUpButton: clerkModule.SignUpButton,
+            SignUpButton: SignUpButton,  // From @clerk/clerk-react
             UserButton: clerkModule.UserButton
           };
           window.SignedIn = clerkModule.SignedIn;
           window.SignedOut = clerkModule.SignedOut;
           window.SignInButton = clerkModule.SignInButton;
-          window.SignUpButton = clerkModule.SignUpButton;
+          window.SignUpButton = SignUpButton;  // From @clerk/clerk-react
           window.UserButton = clerkModule.UserButton;
 
           // Export useUser hook for wrapper components that need user info

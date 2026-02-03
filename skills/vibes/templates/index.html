@@ -183,7 +183,7 @@
       // Auto-generated vibes menu components
 // Run: node scripts/build-components.js --force to regenerate
 // Source: /Users/marcusestes/Websites/vibes-skill/components
-// Generated: 2026-02-03T04:31:50.353Z
+// Generated: 2026-02-03T05:04:03.023Z
 // Components: 25/25
 
 // === useMobile ===
@@ -873,12 +873,11 @@ const getErrorDetailsStyle = () => ({
 const getButtonsContainerStyle = () => ({
   display: "flex",
   flexDirection: "column",
-  gap: "0.75rem",
+  gap: "1rem",
   width: "100%",
-  maxWidth: "300px",
+  maxWidth: "400px",
   position: "relative",
-  zIndex: 1,
-  marginTop: "0.5rem"
+  zIndex: 1
 });
 const getAnimationStyles = () => `
   @keyframes shredCard {
@@ -904,6 +903,7 @@ const getAnimationStyles = () => `
     0% {
       transform: scale(1);
       border-radius: 8px;
+      background-color: var(--vibes-gray-lighter, #c4c4c4);
     }
     40% {
       transform: scaleX(0.05) scaleY(0.01);

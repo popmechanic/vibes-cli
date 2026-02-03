@@ -248,6 +248,21 @@
 
       // === Shared Error Components ===
       function ConfigError({ message }) {
+        // Use AuthScreen if available, fallback to simple div
+        if (window.AuthScreen) {
+          return React.createElement(window.AuthScreen, {
+            title: 'Configuration Error',
+            message: message,
+            showCard: false,
+            isError: true,
+            errorDetails: 'Run Connect setup to configure Clerk credentials.'
+          },
+            React.createElement('p', { style: { color: '#7f1d1d', fontSize: '0.875rem' } },
+              'Check your .env file for missing credentials.'
+            )
+          );
+        }
+        // Fallback for when AuthScreen hasn't loaded
         return React.createElement('div', { className: 'min-h-screen flex items-center justify-center bg-gray-50' },
           React.createElement('div', { className: 'text-center p-8 bg-white rounded-xl shadow-lg max-w-md border border-red-200' },
             React.createElement('div', { className: 'text-red-500 text-4xl mb-4' }, '⚠️'),
@@ -260,6 +275,30 @@
       window.ConfigError = ConfigError;
 
       function LoadingError({ error }) {
+        // Use AuthScreen if available, fallback to simple div
+        if (window.AuthScreen) {
+          return React.createElement(window.AuthScreen, {
+            title: 'Loading Failed',
+            message: 'Failed to load authentication components. Check your network connection and try refreshing the page.',
+            showCard: false,
+            isError: true,
+            errorDetails: error
+          },
+            React.createElement('button', {
+              onClick: function() { window.location.reload(); },
+              style: {
+                padding: '0.75rem 1.5rem',
+                backgroundColor: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }
+            }, 'Retry')
+          );
+        }
+        // Fallback for when AuthScreen hasn't loaded
         return React.createElement('div', { className: 'min-h-screen flex items-center justify-center bg-gray-50' },
           React.createElement('div', { className: 'text-center p-8 bg-white rounded-xl shadow-lg max-w-md border border-amber-200' },
             React.createElement('div', { className: 'text-amber-500 text-4xl mb-4' }, '⚡'),

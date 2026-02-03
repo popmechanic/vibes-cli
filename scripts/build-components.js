@@ -49,6 +49,10 @@ const COMPONENT_SOURCES = {
   "LabelContainer.styles": "LabelContainer/LabelContainer.styles.ts",
   "LabelContainer": "LabelContainer/LabelContainer.tsx",
 
+  // AuthScreen component
+  "AuthScreen.styles": "AuthScreen/AuthScreen.styles.ts",
+  "AuthScreen": "AuthScreen/AuthScreen.tsx",
+
   // Core components
   "VibesSwitch.styles": "VibesSwitch/VibesSwitch.styles.ts",
   "VibesSwitch": "VibesSwitch/VibesSwitch.tsx",
@@ -177,6 +181,7 @@ if (typeof window !== 'undefined') {
   window.VibesPanel = VibesPanel;
   window.BrutalistCard = BrutalistCard;
   window.LabelContainer = LabelContainer;
+  window.AuthScreen = AuthScreen;
 
   // Button variant constants
   window.BLUE = BLUE;
