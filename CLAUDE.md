@@ -728,6 +728,16 @@ If you see these errors, React is being duplicated:
 
 `VibeContextProvider` is used internally by the vibes.diy platform for database naming. **Standalone apps do NOT need it** - just render your App component directly with the VibesSwitch toggle.
 
+### Sell Skill Deploy Issues (Future Improvements)
+
+The `/vibes:sell` deploy has several issues that need fixing in `scripts/deploy-exe.js`:
+
+1. **Port mismatch**: nginx is configured on port 80, but exe.dev requires ports 3000-9999. Fix: configure nginx to listen on port 8000 and run `ssh exe.dev share port <name> 8000`.
+
+2. **Missing nginx registry routes**: Deploy doesn't add proxy routes for `/claim`, `/check/`, `/webhook` to the registry server on port 3002. These routes need to be added to the nginx config.
+
+3. **Admin dashboard is placeholder**: The sell template (`skills/sell/templates/unified.html`) has a stub admin that just says "Admin dashboard coming soon...". Need to build a real admin dashboard that fetches `/registry.json` and displays claims/users/stats.
+
 ## Temporary Workaround: Local Fireproof Bundle
 
 **Status**: Temporary workaround until `@necrodome/fireproof-clerk` is updated on npm.
