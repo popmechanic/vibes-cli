@@ -8,6 +8,7 @@
     <script src="https://unpkg.com/@babel/standalone@7.26.0/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
+      button { cursor: pointer; }
       :root {
         /* Core colors */
         --vibes-black: #0f172a;
@@ -783,20 +784,18 @@ const getOverlayStyle = () => ({
   left: 0,
   right: 0,
   bottom: 0,
-  backgroundColor: "rgba(0, 0, 0, 0.5)",
+  backgroundColor: "var(--vibes-menu-bg, #CCCDC8)",
+  backgroundImage: `
+    linear-gradient(rgba(255, 255, 255, 0.5) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.5) 1px, transparent 1px)
+  `,
+  backgroundSize: "32px 32px",
   zIndex: 0
 });
 const getBlackBorderWrapperStyle = () => ({
   position: "relative",
   width: "90%",
   maxWidth: "550px",
-  backgroundImage: `
-    linear-gradient(to right, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px)
-  `,
-  backgroundSize: "40px 40px",
-  backgroundColor: "#e8e4df",
-  border: "3px solid #1a1a1a",
   borderRadius: "12px",
   zIndex: 1,
   overflow: "hidden"
@@ -818,8 +817,7 @@ const getBackgroundStyle = (isShredding, isError) => ({
   left: "1.5rem",
   right: "1.5rem",
   bottom: "1.5rem",
-  backgroundColor: isError ? "var(--vibes-red-accent, #ef4444)" : "var(--vibes-gray-lighter, #c4c4c4)",
-  border: "1px solid black",
+  backgroundColor: isError ? "var(--vibes-red-accent, #ef4444)" : "transparent",
   borderRadius: "8px",
   zIndex: 0,
   transformOrigin: "center center",
