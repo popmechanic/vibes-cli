@@ -420,7 +420,27 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
 
 **Without these flags, the registry server will NOT be deployed and subdomain claiming will NOT work.**
 
-### 5.2 Optional: AI Features
+### 5.2 DNS Configuration (For Custom Domains)
+
+If using a custom domain (not just yourapp.exe.xyz), configure DNS:
+
+| Type | Name | Value |
+|------|------|-------|
+| ALIAS | @ | exe.xyz |
+| CNAME | * | yourapp.exe.xyz |
+
+**Example for `cosmic-garden.exe.xyz` with custom domain `cosmicgarden.app`:**
+
+| Type | Name | Value |
+|------|------|-------|
+| ALIAS | @ | exe.xyz |
+| CNAME | * | cosmic-garden.exe.xyz |
+
+This routes both the apex domain and all subdomains through exe.dev's proxy, which handles SSL automatically.
+
+**Note:** If your DNS provider doesn't support ALIAS records, use the `?subdomain=` query parameter as a fallback.
+
+### 5.3 Optional: AI Features
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
@@ -433,7 +453,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
   --tenant-limit 5
 ```
 
-### 5.3 Validation Gate: Verify Registry
+### 5.4 Validation Gate: Verify Registry
 
 After deployment, verify the registry server is running:
 
