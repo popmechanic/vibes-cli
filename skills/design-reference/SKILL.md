@@ -1,6 +1,7 @@
 ---
 name: design-reference
 description: Transform a design reference HTML file into a Vibes app. Use when user provides a design.html, mockup, or static prototype to match exactly.
+allowed-tools: Read, Write, Bash, AskUserQuestion
 ---
 
 **Display this ASCII art immediately when starting:**
@@ -119,11 +120,36 @@ The Vibes template has dark mode support. If your design is light-only, add this
 html, body, #container, #container > div {
     background-color: var(--your-bg-color) !important;
 }
-
-[style*="position: fixed"][style*="background"] {
-    background-color: var(--your-bg-color) !important;
-}
 ```
+
+**Note:** Avoid targeting `[style*="position: fixed"]` as this will style the VibesSwitch toggle button.
+
+### Step 4b: Scope CSS to Avoid VibesSwitch/VibesPanel Conflicts
+
+The template includes a VibesSwitch toggle button and VibesPanel admin menu that sit **outside** your app container. Broad CSS selectors can accidentally style these components.
+
+**Watch for these problematic patterns:**
+
+| Problematic | Why | Safe Alternative |
+|-------------|-----|------------------|
+| `button { ... }` | Styles VibesSwitch toggle | `.app button { ... }` or `#container button { ... }` |
+| `* { ... }` (with colors/backgrounds) | Cascades everywhere | Scope to specific containers |
+| `[style*="position: fixed"]` | Targets VibesSwitch | Target by class/ID instead |
+| `body > div` | May match menu wrapper | Use `#container > div` |
+
+**If your design has global button/element styles:**
+
+1. Wrap your app content in a container with a class: `<div className="app">...</div>`
+2. Scope broad rules: `button { }` → `.app button { }`
+3. Or use `#container` which is the template's app root
+
+**The template already protects components with:**
+```css
+button[aria-controls="hidden-menu"] { background: transparent !important; }
+#hidden-menu { /* menu-specific variable resets */ }
+```
+
+But defense-in-depth is better—scope your CSS to avoid conflicts.
 
 ### Step 5: Assemble and Test
 
@@ -174,6 +200,9 @@ After assembly:
 - [ ] All interactive elements work
 - [ ] Data persists on refresh
 - [ ] No console errors
+- [ ] VibesSwitch toggle (bottom-right) displays correctly with no background box
+- [ ] VibesPanel menu opens when toggle is clicked
+- [ ] Menu buttons are correctly styled (not inheriting app button styles)
 
 ---
 
