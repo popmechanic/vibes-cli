@@ -308,6 +308,36 @@
         );
       }
 
+      // === Wrapper Components (use useUser hook instead of render props) ===
+      // Clerk's SignedIn doesn't support render props - must use hooks inside child components
+
+      function ClaimPromptWrapper({ subdomain, onClaimSuccess }) {
+        const { user } = window.useUser();
+        return (
+          <ClaimPrompt
+            subdomain={subdomain}
+            onClaim={() => onClaimSuccess(user?.id)}
+          />
+        );
+      }
+
+      function TenantOwnerCheck({ subdomain, ownerId }) {
+        const { user } = window.useUser();
+
+        if (user?.id === ownerId) {
+          // Owner - show app with admin panel
+          return (
+            <TenantProvider subdomain={subdomain}>
+              <HiddenMenuWrapper menuContent={<VibesPanel />}>
+                <App />
+              </HiddenMenuWrapper>
+            </TenantProvider>
+          );
+        }
+        // Not owner
+        return <NotOwnerRedirect subdomain={subdomain} />;
+      }
+
       // === Tenant App Wrapper ===
       function TenantApp({ subdomain }) {
         const [claimState, setClaimState] = useState({ loading: true, owner: null });
@@ -339,12 +369,7 @@
           return (
             <>
               <SignedIn>
-                {({ user }) => (
-                  <ClaimPrompt
-                    subdomain={subdomain}
-                    onClaim={() => onClaimSuccess(user?.id)}
-                  />
-                )}
+                <ClaimPromptWrapper subdomain={subdomain} onClaimSuccess={onClaimSuccess} />
               </SignedIn>
               <SignedOut>
                 <AuthGate />
@@ -357,20 +382,7 @@
         return (
           <>
             <SignedIn>
-              {({ user }) => {
-                if (user?.id === claimState.owner) {
-                  // Owner - show app with admin panel
-                  return (
-                    <TenantProvider subdomain={subdomain}>
-                      <HiddenMenuWrapper menuContent={<VibesPanel />}>
-                        <App />
-                      </HiddenMenuWrapper>
-                    </TenantProvider>
-                  );
-                }
-                // Not owner
-                return <NotOwnerRedirect subdomain={subdomain} />;
-              }}
+              <TenantOwnerCheck subdomain={subdomain} ownerId={claimState.owner} />
             </SignedIn>
             <SignedOut>
               <AuthGate />
@@ -379,38 +391,44 @@
         );
       }
 
+      // === Admin Dashboard Content (uses useUser hook) ===
+      function AdminDashboardContent() {
+        const { user } = window.useUser();
+        const { UserButton } = window.ClerkComponents;
+
+        if (!ADMIN_USER_IDS.includes(user?.id)) {
+          return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+              <div className="text-center p-8">
+                <h1 className="text-2xl font-bold mb-4">Admin Access Required</h1>
+                <p className="text-gray-600">You don't have admin privileges.</p>
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div className="min-h-screen bg-gray-50 p-8">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex justify-between items-center mb-8">
+                <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+                <UserButton />
+              </div>
+              <div className="bg-white rounded-xl shadow p-6">
+                <p className="text-gray-600">Admin dashboard coming soon...</p>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
       // === Admin Dashboard (placeholder) ===
       function AdminApp() {
-        const { SignedIn, SignedOut, UserButton } = window.ClerkComponents;
+        const { SignedIn, SignedOut } = window.ClerkComponents;
 
         return (
           <>
             <SignedIn>
-              {({ user }) => {
-                if (!ADMIN_USER_IDS.includes(user?.id)) {
-                  return (
-                    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                      <div className="text-center p-8">
-                        <h1 className="text-2xl font-bold mb-4">Admin Access Required</h1>
-                        <p className="text-gray-600">You don't have admin privileges.</p>
-                      </div>
-                    </div>
-                  );
-                }
-                return (
-                  <div className="min-h-screen bg-gray-50 p-8">
-                    <div className="max-w-4xl mx-auto">
-                      <div className="flex justify-between items-center mb-8">
-                        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-                        <UserButton />
-                      </div>
-                      <div className="bg-white rounded-xl shadow p-6">
-                        <p className="text-gray-600">Admin dashboard coming soon...</p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }}
+              <AdminDashboardContent />
             </SignedIn>
             <SignedOut>
               <AuthGate />
@@ -603,6 +621,10 @@
           window.SignInButton = clerkModule.SignInButton;
           window.SignUpButton = clerkModule.SignUpButton;
           window.UserButton = clerkModule.UserButton;
+
+          // Export useUser hook for wrapper components that need user info
+          window.useUser = clerkModule.useUser;
+          window.ClerkComponents.useUser = clerkModule.useUser;
 
           // Export Fireproof hook for user's App code
           window.useFireproofClerk = clerkModule.useFireproofClerk;

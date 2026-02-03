@@ -75,6 +75,7 @@ function parseArgs(argv) {
     preallocated: {},
     clerkKey: null,
     clerkWebhookSecret: null,
+    skipRegistry: false,
     dryRun: false,
     skipVerify: false,
     help: false
@@ -109,6 +110,8 @@ function parseArgs(argv) {
       args.clerkKey = argv[++i];
     } else if (arg === '--clerk-webhook-secret' && argv[i + 1]) {
       args.clerkWebhookSecret = argv[++i];
+    } else if (arg === '--skip-registry') {
+      args.skipRegistry = true;
     } else if (arg === '--dry-run') {
       args.dryRun = true;
     } else if (arg === '--skip-verify') {
@@ -147,6 +150,7 @@ AI Proxy Options:
 Registry Options (for SaaS apps with subdomain claiming):
   --clerk-key <pem>            Clerk PEM public key for JWT verification
   --clerk-webhook-secret <s>   Clerk webhook signing secret
+  --skip-registry              Skip registry server (no subdomain claiming)
   --reserved <list>            Comma-separated reserved subdomain names
   --preallocated <list>        Pre-claimed subdomains (format: sub:user_id)
 
@@ -504,10 +508,50 @@ location /api/ai/ {
 }
 
 async function phase6Registry(args) {
-  // Skip if no clerk credentials provided
-  if (!args.clerkKey || !args.clerkWebhookSecret) {
-    console.log('\nPhase 6: Registry Server... SKIPPED (no --clerk-key or --clerk-webhook-secret provided)');
+  // Explicit skip requested
+  if (args.skipRegistry) {
+    console.log('\nPhase 6: Registry Server... SKIPPED (--skip-registry flag)');
+    console.log('  Note: Subdomain claiming will NOT work without the registry server.');
     return;
+  }
+
+  // Check if credentials are missing (error unless explicitly skipped)
+  if (!args.clerkKey || !args.clerkWebhookSecret) {
+    // Build list of missing credentials
+    const missing = [];
+    if (!args.clerkKey) missing.push('• --clerk-key "$(cat clerk-jwks-key.pem)"');
+    if (!args.clerkWebhookSecret) missing.push('• --clerk-webhook-secret "whsec_xxx"');
+    const missingLines = missing.map(item => `║    ${item.padEnd(55)} ║`).join('\n');
+
+    console.error(`
+╔════════════════════════════════════════════════════════════════╗
+║  Phase 6: Registry Server... FAILED                            ║
+╠════════════════════════════════════════════════════════════════╣
+║  Registry server requires Clerk credentials for JWT            ║
+║  verification and subscription webhooks.                       ║
+║                                                                 ║
+║  Missing:                                                       ║
+${missingLines}
+║                                                                 ║
+║  For SaaS apps, the registry server is REQUIRED for:           ║
+║    • Subdomain claiming (/claim endpoint)                      ║
+║    • Availability checking (/check/:subdomain)                 ║
+║    • Subscription quota enforcement                             ║
+║                                                                 ║
+║  OPTIONS:                                                       ║
+║                                                                 ║
+║  1. Provide credentials (recommended for SaaS):                 ║
+║     node scripts/deploy-exe.js --name ${(args.name || 'myapp').padEnd(20)}    \\      ║
+║       --file index.html \\                                      ║
+║       --clerk-key "$(cat clerk-jwks-key.pem)" \\                ║
+║       --clerk-webhook-secret "whsec_xxx"                        ║
+║                                                                 ║
+║  2. Skip registry (for simple static apps):                     ║
+║     Add --skip-registry flag                                    ║
+║                                                                 ║
+╚════════════════════════════════════════════════════════════════╝
+`);
+    process.exit(1);
   }
 
   console.log('\nPhase 6: Registry Server Setup...');
