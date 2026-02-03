@@ -245,6 +245,68 @@
         return { callAI: callAI, loading: loading, error: error, clearError: function() { setError(null); } };
       }
       window.useAI = useAI;
+
+      // === Shared Error Components ===
+      function ConfigError({ message }) {
+        return React.createElement('div', { className: 'min-h-screen flex items-center justify-center bg-gray-50' },
+          React.createElement('div', { className: 'text-center p-8 bg-white rounded-xl shadow-lg max-w-md border border-red-200' },
+            React.createElement('div', { className: 'text-red-500 text-4xl mb-4' }, '⚠️'),
+            React.createElement('h1', { className: 'text-xl font-bold text-red-700 mb-4' }, 'Configuration Error'),
+            React.createElement('p', { className: 'text-gray-600 mb-4' }, message),
+            React.createElement('p', { className: 'text-sm text-gray-500' }, 'Run Connect setup to configure Clerk credentials.')
+          )
+        );
+      }
+      window.ConfigError = ConfigError;
+
+      function LoadingError({ error }) {
+        return React.createElement('div', { className: 'min-h-screen flex items-center justify-center bg-gray-50' },
+          React.createElement('div', { className: 'text-center p-8 bg-white rounded-xl shadow-lg max-w-md border border-amber-200' },
+            React.createElement('div', { className: 'text-amber-500 text-4xl mb-4' }, '⚡'),
+            React.createElement('h1', { className: 'text-xl font-bold text-amber-700 mb-4' }, 'Loading Failed'),
+            React.createElement('p', { className: 'text-gray-600 mb-4' }, 'Failed to load authentication components.'),
+            React.createElement('p', { className: 'text-sm text-gray-500 mb-4' }, 'Check your network connection and try refreshing the page.'),
+            React.createElement('details', { className: 'text-left text-xs text-gray-400' },
+              React.createElement('summary', { className: 'cursor-pointer' }, 'Technical details'),
+              React.createElement('pre', { className: 'mt-2 p-2 bg-gray-100 rounded overflow-auto' }, error)
+            )
+          )
+        );
+      }
+      window.LoadingError = LoadingError;
+
+      // === VibesPanel Event Handler Hook ===
+      function useVibesPanelEvents(logPrefix) {
+        React.useEffect(() => {
+          const handleLogout = () => {
+            if (window.Clerk) window.Clerk.signOut();
+          };
+          const handleSyncDisable = () => {
+            console.log('[' + logPrefix + '] Sync disabled');
+          };
+          const handleShareRequest = (e) => {
+            const { email, role, right, token } = e.detail;
+            console.log('[' + logPrefix + '] Share request:', { email, role, right });
+            // TODO: Implement actual share logic with Fireproof
+            // For now, simulate success after a delay
+            setTimeout(() => {
+              document.dispatchEvent(new CustomEvent('vibes-share-success', {
+                detail: { email: email, message: 'Invitation sent to ' + email + '!' }
+              }));
+            }, 1000);
+          };
+
+          document.addEventListener('vibes-logout-request', handleLogout);
+          document.addEventListener('vibes-sync-disable', handleSyncDisable);
+          document.addEventListener('vibes-share-request', handleShareRequest);
+          return () => {
+            document.removeEventListener('vibes-logout-request', handleLogout);
+            document.removeEventListener('vibes-sync-disable', handleSyncDisable);
+            document.removeEventListener('vibes-share-request', handleShareRequest);
+          };
+        }, []);
+      }
+      window.useVibesPanelEvents = useVibesPanelEvents;
     </script>
     <!-- === DELTA_PLACEHOLDER === -->
   </body>

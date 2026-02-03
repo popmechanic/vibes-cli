@@ -1928,79 +1928,53 @@ if (typeof window !== 'undefined') {
         return { callAI: callAI, loading: loading, error: error, clearError: function() { setError(null); } };
       }
       window.useAI = useAI;
-    </script>
-    <script type="text/babel" data-type="module">
-      import ReactDOMClient from "react-dom/client";
 
-      // __VIBES_APP_CODE__
-
-      // Error UI for configuration or loading issues
+      // === Shared Error Components ===
       function ConfigError({ message }) {
-        return (
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md border border-red-200">
-              <div className="text-red-500 text-4xl mb-4">⚠️</div>
-              <h1 className="text-xl font-bold text-red-700 mb-4">Configuration Error</h1>
-              <p className="text-gray-600 mb-4">{message}</p>
-              <p className="text-sm text-gray-500">
-                Run Connect setup to configure Clerk credentials.
-              </p>
-            </div>
-          </div>
+        return React.createElement('div', { className: 'min-h-screen flex items-center justify-center bg-gray-50' },
+          React.createElement('div', { className: 'text-center p-8 bg-white rounded-xl shadow-lg max-w-md border border-red-200' },
+            React.createElement('div', { className: 'text-red-500 text-4xl mb-4' }, '⚠️'),
+            React.createElement('h1', { className: 'text-xl font-bold text-red-700 mb-4' }, 'Configuration Error'),
+            React.createElement('p', { className: 'text-gray-600 mb-4' }, message),
+            React.createElement('p', { className: 'text-sm text-gray-500' }, 'Run Connect setup to configure Clerk credentials.')
+          )
         );
       }
+      window.ConfigError = ConfigError;
 
       function LoadingError({ error }) {
-        return (
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md border border-amber-200">
-              <div className="text-amber-500 text-4xl mb-4">⚡</div>
-              <h1 className="text-xl font-bold text-amber-700 mb-4">Loading Failed</h1>
-              <p className="text-gray-600 mb-4">Failed to load authentication components.</p>
-              <p className="text-sm text-gray-500 mb-4">
-                Check your network connection and try refreshing the page.
-              </p>
-              <details className="text-left text-xs text-gray-400">
-                <summary className="cursor-pointer">Technical details</summary>
-                <pre className="mt-2 p-2 bg-gray-100 rounded overflow-auto">{error}</pre>
-              </details>
-            </div>
-          </div>
+        return React.createElement('div', { className: 'min-h-screen flex items-center justify-center bg-gray-50' },
+          React.createElement('div', { className: 'text-center p-8 bg-white rounded-xl shadow-lg max-w-md border border-amber-200' },
+            React.createElement('div', { className: 'text-amber-500 text-4xl mb-4' }, '⚡'),
+            React.createElement('h1', { className: 'text-xl font-bold text-amber-700 mb-4' }, 'Loading Failed'),
+            React.createElement('p', { className: 'text-gray-600 mb-4' }, 'Failed to load authentication components.'),
+            React.createElement('p', { className: 'text-sm text-gray-500 mb-4' }, 'Check your network connection and try refreshing the page.'),
+            React.createElement('details', { className: 'text-left text-xs text-gray-400' },
+              React.createElement('summary', { className: 'cursor-pointer' }, 'Technical details'),
+              React.createElement('pre', { className: 'mt-2 p-2 bg-gray-100 rounded overflow-auto' }, error)
+            )
+          )
         );
       }
+      window.LoadingError = LoadingError;
 
-      // App wrapper with Clerk auth gate (always required)
-      function AppWrapper() {
-        const config = window.__VIBES_CONFIG__;
-
-        // Check for configuration errors
-        if (!config?.clerkPublishableKey || config.clerkPublishableKey.startsWith('__')) {
-          return <ConfigError message="Missing Clerk publishable key. Apps require authentication." />;
-        }
-
-        // Check if Clerk components loaded
-        if (!window.ClerkFireproofProvider) {
-          return <LoadingError error={window.__CLERK_LOAD_ERROR__ || 'Clerk components not available'} />;
-        }
-
-        const { ClerkFireproofProvider, SignedIn, SignedOut, SignInButton } = window.ClerkComponents;
-
-        // Event handlers for VibesPanel
+      // === VibesPanel Event Handler Hook ===
+      function useVibesPanelEvents(logPrefix) {
         React.useEffect(() => {
           const handleLogout = () => {
             if (window.Clerk) window.Clerk.signOut();
           };
           const handleSyncDisable = () => {
-            console.log('[Vibes] Sync disabled');
+            console.log('[' + logPrefix + '] Sync disabled');
           };
           const handleShareRequest = (e) => {
             const { email, role, right, token } = e.detail;
-            console.log('[Vibes] Share request:', { email, role, right });
+            console.log('[' + logPrefix + '] Share request:', { email, role, right });
             // TODO: Implement actual share logic with Fireproof
             // For now, simulate success after a delay
             setTimeout(() => {
               document.dispatchEvent(new CustomEvent('vibes-share-success', {
-                detail: { email, message: `Invitation sent to ${email}!` }
+                detail: { email: email, message: 'Invitation sent to ' + email + '!' }
               }));
             }, 1000);
           };
@@ -2014,6 +1988,36 @@ if (typeof window !== 'undefined') {
             document.removeEventListener('vibes-share-request', handleShareRequest);
           };
         }, []);
+      }
+      window.useVibesPanelEvents = useVibesPanelEvents;
+    </script>
+    <script type="text/babel" data-type="module">
+      import ReactDOMClient from "react-dom/client";
+
+      // __VIBES_APP_CODE__
+
+      // Use shared error components from base template
+      const ConfigError = window.ConfigError;
+      const LoadingError = window.LoadingError;
+
+      // App wrapper with Clerk auth gate (always required)
+      function AppWrapper() {
+        const config = window.__VIBES_CONFIG__;
+
+        // Hook must be called unconditionally at top of component (Rules of Hooks)
+        window.useVibesPanelEvents('Vibes');
+
+        // Check for configuration errors
+        if (!config?.clerkPublishableKey || config.clerkPublishableKey.startsWith('__')) {
+          return <ConfigError message="Missing Clerk publishable key. Apps require authentication." />;
+        }
+
+        // Check if Clerk components loaded
+        if (!window.ClerkFireproofProvider) {
+          return <LoadingError error={window.__CLERK_LOAD_ERROR__ || 'Clerk components not available'} />;
+        }
+
+        const { ClerkFireproofProvider, SignedIn, SignedOut, SignInButton } = window.ClerkComponents;
 
         // AuthGate shown when user is not signed in
         const AuthGate = () => (
