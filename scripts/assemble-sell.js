@@ -18,7 +18,8 @@
  *   --domain <domain>     Root domain (e.g., "myapp.exe.xyz")
  *   --billing-mode <mode> Billing mode: "off" (free) or "required" (subscription required)
  *   --features <json>     JSON array of feature strings
- *   --tagline <text>      App tagline for landing page
+ *   --tagline <text>      App tagline for landing page headline
+ *   --subtitle <text>     Subheadline text below the tagline
  *   --admin-ids <json>    JSON array of Clerk user IDs with admin access
  *   --reserved <csv>      Comma-separated reserved subdomain names
  *
@@ -191,7 +192,8 @@ const replacements = {
   '__APP_TITLE__': options.appTitle || appName,
   '__APP_DOMAIN__': domain,
   '__BILLING_MODE__': options.billingMode || 'off',
-  '__APP_TAGLINE__': options.tagline || 'Your own private workspace. Get started in seconds.'
+  '__APP_TAGLINE__': options.tagline || 'SHIP FASTER.<br>LOOK BETTER.',
+  '__APP_SUBTITLE__': options.subtitle || 'The first design-native framework for the next generation of SaaS. Zero config, infinite style.'
 };
 
 // Handle JSON values - features

@@ -23,6 +23,7 @@
         billingMode: "__BILLING_MODE__",
         features: __FEATURES__,
         tagline: "__APP_TAGLINE__",
+        subtitle: "__APP_SUBTITLE__",
         adminUserIds: __ADMIN_USER_IDS__,
         reservedSubdomains: __RESERVED_SUBDOMAINS__
       };
@@ -34,6 +35,7 @@
       const BILLING_MODE = CONFIG.billingMode;
       const FEATURES = CONFIG.features;
       const APP_TAGLINE = CONFIG.tagline;
+      const APP_SUBTITLE = CONFIG.subtitle;
       const ADMIN_USER_IDS = CONFIG.adminUserIds;
       const RESERVED_SUBDOMAINS = CONFIG.reservedSubdomains;
 
@@ -464,108 +466,374 @@
         );
       }
 
-      // === Landing Page Components ===
-      function SellHero({ onGetStarted }) {
+      // === Landing Page Styles (from design reference) ===
+      const landingPageStyles = `
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Space+Grotesk:wght@300;500;700&display=swap');
+
+        :root {
+            --bg-color: #ECECEC;
+            --text-main: #111111;
+            --accent-pants: #3B282A;
+            --accent-shoe-green: #203A2E;
+            --swosh-white: #FFFFFF;
+            --easing: cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .landing-page * {
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .landing-page {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            padding: 0;
+        }
+
+        .landing-page nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 2rem 3rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            mix-blend-mode: difference;
+            color: white;
+        }
+
+        .landing-page .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 1.2rem;
+            letter-spacing: -0.04em;
+            text-transform: uppercase;
+        }
+
+        .landing-page main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .landing-page .kinetic-blob {
+            position: absolute;
+            width: 60vw;
+            height: 60vw;
+            background: radial-gradient(circle at center, var(--accent-pants), transparent 60%);
+            opacity: 0.15;
+            filter: blur(80px);
+            animation: breathe 10s infinite alternate ease-in-out;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .landing-page .kinetic-blob-2 {
+            position: absolute;
+            top: -20%;
+            right: -10%;
+            width: 40vw;
+            height: 40vw;
+            background: radial-gradient(circle at center, var(--accent-shoe-green), transparent 60%);
+            opacity: 0.12;
+            filter: blur(60px);
+            animation: float 15s infinite reverse linear;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        @keyframes breathe {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.1) translate(-20px, 20px); }
+        }
+        @keyframes float {
+            0% { transform: rotate(0deg) translate(0, 0); }
+            100% { transform: rotate(360deg) translate(50px, -50px); }
+        }
+
+        .landing-page .hero-container {
+            z-index: 10;
+            text-align: center;
+            max-width: 1200px;
+            width: 100%;
+            padding: 0 2rem;
+        }
+
+        .landing-page h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(3rem, 8vw, 9rem);
+            line-height: 0.85;
+            font-weight: 700;
+            letter-spacing: -0.06em;
+            margin-bottom: 2rem;
+            color: var(--text-main);
+            transform: translateY(20px);
+            opacity: 0;
+            animation: fadeUp 1s var(--easing) forwards 0.2s;
+        }
+
+        .landing-page p.subhead {
+            font-family: 'Inter', sans-serif;
+            font-size: clamp(1rem, 1.5vw, 1.5rem);
+            max-width: 600px;
+            margin: 0 auto 4rem auto;
+            color: #666;
+            line-height: 1.4;
+            transform: translateY(20px);
+            opacity: 0;
+            animation: fadeUp 1s var(--easing) forwards 0.4s;
+        }
+
+        .landing-page .claim-bar {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.9);
+            border-radius: 100px;
+            padding: 8px;
+            box-shadow:
+                0 20px 40px -10px rgba(0,0,0,0.1),
+                0 0 0 1px rgba(0,0,0,0.02);
+            position: relative;
+            transform: translateY(20px);
+            opacity: 0;
+            animation: fadeUp 1s var(--easing) forwards 0.6s;
+            transition: transform 0.3s var(--easing), box-shadow 0.3s var(--easing);
+            max-width: 100%;
+        }
+
+        .landing-page .claim-bar:hover {
+            transform: translateY(18px) scale(1.01);
+            box-shadow:
+                0 30px 60px -15px rgba(0,0,0,0.15),
+                0 0 0 1px rgba(0,0,0,0.02);
+        }
+
+        .landing-page .input-group {
+            display: flex;
+            align-items: baseline;
+            padding: 0 1.5rem;
+            position: relative;
+        }
+
+        .landing-page input[type="text"] {
+            background: transparent;
+            border: none;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            color: var(--text-main);
+            outline: none;
+            width: 200px;
+            font-weight: 500;
+            letter-spacing: -0.03em;
+            padding: 1rem 0;
+        }
+
+        .landing-page input[type="text"]::placeholder {
+            color: #CCC;
+            font-weight: 300;
+        }
+
+        .landing-page .domain-suffix {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            color: #999;
+            font-weight: 400;
+            letter-spacing: -0.03em;
+            pointer-events: none;
+            margin-right: 1rem;
+            user-select: none;
+        }
+
+        .landing-page .btn-start {
+            background-color: var(--text-main);
+            color: var(--swosh-white);
+            border: none;
+            border-radius: 50px;
+            padding: 1rem 2.5rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+            cursor: pointer;
+            transition: all 0.4s var(--easing);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .landing-page .btn-start::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .landing-page .btn-start:hover {
+            background-color: var(--accent-pants);
+            transform: scale(1.02);
+            padding-right: 3rem;
+        }
+
+        .landing-page .btn-start:hover::before {
+            left: 100%;
+        }
+
+        .landing-page .btn-start:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .landing-page .btn-start:disabled:hover {
+            background-color: var(--text-main);
+            transform: none;
+            padding-right: 2.5rem;
+        }
+
+        .landing-page .arrow-icon {
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: all 0.4s var(--easing);
+            position: absolute;
+            right: 1.5rem;
+        }
+
+        .landing-page .btn-start:hover .arrow-icon {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .landing-page .btn-start:disabled:hover .arrow-icon {
+            opacity: 0;
+        }
+
+        .landing-page .footer-strip {
+            position: fixed;
+            bottom: 2rem;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #888;
+            opacity: 0;
+            animation: fadein 2s ease forwards 1s;
+        }
+
+        .landing-page .footer-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .landing-page .footer-item a {
+            color: inherit;
+            text-decoration: underline;
+        }
+
+        @keyframes fadeUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes fadein {
+            to { opacity: 1; }
+        }
+
+        .landing-page ::selection {
+            background: var(--accent-pants);
+            color: white;
+        }
+
+        .landing-page .status-indicator {
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            min-height: 1.5rem;
+            opacity: 0;
+            animation: fadeUp 1s var(--easing) forwards 0.8s;
+        }
+
+        .landing-page .status-checking { color: #999; }
+        .landing-page .status-available { color: #10b981; }
+        .landing-page .status-taken { color: #ef4444; }
+        .landing-page .status-error { color: #ef4444; }
+
+        @media (max-width: 768px) {
+            .landing-page h1 {
+                font-size: 3.5rem;
+            }
+            .landing-page .claim-bar {
+                flex-direction: column;
+                border-radius: 20px;
+                width: 100%;
+                padding: 1rem;
+                gap: 1rem;
+            }
+            .landing-page .input-group {
+                width: 100%;
+                justify-content: center;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 1rem;
+            }
+            .landing-page .btn-start {
+                width: 100%;
+                justify-content: center;
+            }
+            .landing-page input[type="text"] {
+                width: auto;
+                max-width: 120px;
+                text-align: right;
+            }
+        }
+      `;
+
+      // === Landing Page Component (design reference transformation) ===
+      function SellLandingPage() {
         const [subdomain, setSubdomain] = useState('');
         const [registryStatus, setRegistryStatus] = useState('checking');
         const { available, checking, error } = useSubdomainChecker(subdomain);
+        const copyrightRef = useRef(null);
 
+        // Check registry availability on mount
         useEffect(() => {
           fetchRegistry().then(() => {
             setRegistryStatus(isRegistryAvailable() ? 'available' : 'unavailable');
           });
         }, []);
 
-        const handleGetStarted = () => {
-          if (subdomain && available) {
-            onGetStarted(subdomain);
+        // Set copyright year
+        useEffect(() => {
+          if (copyrightRef.current) {
+            copyrightRef.current.textContent = '© ' + new Date().getFullYear();
           }
-        };
+        }, []);
 
-        const getStatusIndicator = () => {
-          if (!subdomain) return null;
-          if (checking) return <span className="text-gray-400 text-sm">Checking...</span>;
-          if (error) return <span className="text-red-500 text-sm">{error}</span>;
-          if (available) return <span className="text-green-600 text-sm">Available!</span>;
-          return <span className="text-red-500 text-sm">Taken</span>;
-        };
-
-        const getBorderColor = () => {
-          if (!subdomain || checking) return 'border-gray-200';
-          if (available) return 'border-green-400';
-          return 'border-red-400';
-        };
-
-        return (
-          <section className="max-w-4xl mx-auto px-6 pt-16 pb-20">
-            <div className="max-w-2xl">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[var(--landing-accent)] leading-[1.1] tracking-tight mb-6">
-                {APP_TAGLINE}
-              </h1>
-              <p className="text-lg text-gray-500 mb-10 leading-relaxed">
-                Your own subdomain. Your own space. Get started in seconds.
-              </p>
-
-              {registryStatus === 'unavailable' && (
-                <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm">
-                  <strong>Note:</strong> Subdomain claiming is currently unavailable.
-                  You can still try the app by adding <code className="bg-amber-100 px-1 rounded">?subdomain=yourname</code> to the URL.
-                </div>
-              )}
-
-              <div className="flex flex-col gap-2 max-w-xl">
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <div className={`flex-1 flex items-center bg-white rounded-xl border ${getBorderColor()} overflow-hidden shadow-sm transition-colors`}>
-                    <input
-                      type="text"
-                      placeholder="yourname"
-                      value={subdomain}
-                      onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-                      onKeyDown={(e) => e.key === 'Enter' && handleGetStarted()}
-                      className="flex-1 px-4 py-3.5 bg-transparent text-gray-800 placeholder-gray-400 focus:outline-none"
-                      disabled={registryStatus === 'unavailable'}
-                    />
-                    <span className="pr-4 text-gray-400 text-sm whitespace-nowrap">.{APP_DOMAIN}</span>
-                  </div>
-                  <button
-                    onClick={handleGetStarted}
-                    disabled={!subdomain || !available || checking || registryStatus === 'unavailable'}
-                    className="px-6 py-3.5 bg-[var(--landing-accent)] text-white font-medium rounded-xl hover:bg-[var(--landing-accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
-                  >
-                    Get Started
-                  </button>
-                </div>
-                <div className="h-5 pl-1">
-                  {registryStatus !== 'unavailable' && getStatusIndicator()}
-                </div>
-              </div>
-            </div>
-          </section>
-        );
-      }
-
-      function SellFeaturesSection() {
-        return (
-          <section className="py-16 px-6 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold text-center text-gray-900 mb-10">Everything you need</h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              {FEATURES.slice(0, 6).map((feature, i) => (
-                <div key={i} className="p-5 bg-white rounded-xl border border-gray-200">
-                  <div className="w-10 h-10 bg-[var(--landing-accent)]/10 rounded-lg flex items-center justify-center mb-3">
-                    <svg className="w-5 h-5 text-[var(--landing-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <p className="text-gray-700 font-medium">{feature}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        );
-      }
-
-      function SellLandingPage() {
-        const handleGetStarted = (subdomain) => {
+        const handleGetStarted = () => {
+          if (!subdomain || !available) return;
           // Navigate to subdomain
           const url = new URL(window.location.href);
           if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname.endsWith('.exe.xyz')) {
@@ -576,19 +844,92 @@
           window.location.href = url.toString();
         };
 
+        const handleInputChange = (e) => {
+          setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''));
+        };
+
+        const handleKeyDown = (e) => {
+          if (e.key === 'Enter') {
+            handleGetStarted();
+          }
+        };
+
+        const getStatusIndicator = () => {
+          if (!subdomain || subdomain.length < 3) return null;
+          if (checking) return <span className="status-checking">Checking...</span>;
+          if (error) return <span className="status-error">{error}</span>;
+          if (available) return <span className="status-available">Available!</span>;
+          return <span className="status-taken">Taken</span>;
+        };
+
+        // Humanize app name for display (e.g., "cosmic-garden" → "Cosmic Garden")
+        const displayName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+        const isDisabled = !subdomain || !available || checking || registryStatus === 'unavailable';
+
         return (
-          <div className="min-h-screen bg-gray-50">
-            <header className="flex justify-between items-center px-6 py-4 max-w-6xl mx-auto">
-              <div className="font-semibold text-lg text-gray-900">
-                {APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+          <>
+            <style>{landingPageStyles}</style>
+
+            <div className="landing-page">
+              {/* Kinetic blobs */}
+              <div className="kinetic-blob" />
+              <div className="kinetic-blob-2" />
+
+              {/* Nav - logo only */}
+              <nav>
+                <div className="logo">{displayName}</div>
+              </nav>
+
+              <main>
+                <div className="hero-container">
+                  <h1 dangerouslySetInnerHTML={{ __html: APP_TAGLINE }} />
+                  <p className="subhead">{APP_SUBTITLE}</p>
+
+                  {/* Claim bar with subdomain input */}
+                  <div className="claim-bar">
+                    <div className="input-group">
+                      <input
+                        type="text"
+                        placeholder="yourname"
+                        spellCheck="false"
+                        autoFocus
+                        value={subdomain}
+                        onChange={handleInputChange}
+                        onKeyDown={handleKeyDown}
+                        disabled={registryStatus === 'unavailable'}
+                      />
+                      <span className="domain-suffix">.{APP_DOMAIN}</span>
+                    </div>
+                    <button
+                      className="btn-start"
+                      onClick={handleGetStarted}
+                      disabled={isDisabled}
+                    >
+                      Get Started
+                      <svg className="arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  {/* Status indicator */}
+                  <div className="status-indicator">
+                    {registryStatus !== 'unavailable' && getStatusIndicator()}
+                  </div>
+                </div>
+              </main>
+
+              {/* Footer with attribution */}
+              <div className="footer-strip">
+                <div className="footer-item">
+                  Made with ❤️ using <a href="https://github.com/popmechanic/vibes-cli">Vibes CLI</a>
+                </div>
+                <div className="footer-item"><span ref={copyrightRef} /></div>
               </div>
-            </header>
-            <SellHero onGetStarted={handleGetStarted} />
-            <SellFeaturesSection />
-            <footer className="py-8 px-6 text-center text-gray-400 border-t border-gray-200 mt-16">
-              <p>Built with <a href="https://vibes.diy" className="text-[var(--landing-accent)] hover:underline">Vibes DIY</a></p>
-            </footer>
-          </div>
+            </div>
+          </>
         );
       }
 
