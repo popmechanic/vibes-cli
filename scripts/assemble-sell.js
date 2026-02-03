@@ -414,16 +414,24 @@ STEP 2: SET UP CLERK (REQUIRED BEFORE TESTING)
        --app-name ${appName} \\
        --domain ${domain}
 
-STEP 3: SET UP WILDCARD DNS (Optional - for subdomains)
-───────────────────────────────────────────────────────
+STEP 3: SET UP DNS (Required for custom domains)
+─────────────────────────────────────────────────
 
-  For tenant subdomains (e.g., alice.${domain}), you need:
+  Configure your DNS provider with these records:
 
-  1. Custom domain pointing to your exe.dev VM
-  2. Wildcard DNS: *.${domain} → VM IP
-  3. Wildcard SSL certificate (via certbot DNS-01)
+  ┌────────┬──────┬─────────────────────────┐
+  │ Type   │ Name │ Value                   │
+  ├────────┼──────┼─────────────────────────┤
+  │ ALIAS  │ @    │ exe.xyz                 │
+  │ CNAME  │ *    │ ${appName}.exe.xyz      │
+  └────────┴──────┴─────────────────────────┘
 
-  See exe.dev docs for wildcard SSL setup.
+  This routes both apex (${domain}) and wildcards
+  (*.${domain}) through exe.dev's proxy, which
+  handles SSL termination automatically.
+
+  Note: If your DNS provider doesn't support ALIAS,
+  use ?subdomain= query parameters instead.
 
 STEP 4: CONFIGURE BILLING (if --billing-mode required)
 ───────────────────────────────────────────────────────
