@@ -927,6 +927,15 @@ const getAnimationStyles = () => `
       background-color: black;
     }
   }
+
+  @keyframes slideUpReveal {
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(-100vh);
+    }
+  }
 `;
 
 
@@ -2594,6 +2603,13 @@ if (typeof window !== 'undefined') {
         const [claimState, setClaimState] = useState({ loading: true, owner: null });
         const { SignedIn, SignedOut } = window.ClerkComponents || {};
 
+        // Post-auth animation state
+        // Phases: 'idle' | 'shredding' | 'sliding' | 'done'
+        const { isLoaded, isSignedIn } = window.useUser();
+        const [postAuthPhase, setPostAuthPhase] = useState('idle');
+        const wasSignedIn = useRef(null);
+        const appDisplayName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
         // Hook must be called unconditionally at top of component (Rules of Hooks)
         window.useVibesPanelEvents('Sell');
 
@@ -2603,11 +2619,34 @@ if (typeof window !== 'undefined') {
           });
         }, [subdomain]);
 
+        // Detect sign-in transition and trigger animation sequence
+        useEffect(() => {
+          if (!isLoaded) return;
+
+          // First load - record state, don't animate
+          if (wasSignedIn.current === null) {
+            wasSignedIn.current = isSignedIn;
+            return;
+          }
+
+          // Fresh sign-in detected - play animation sequence
+          if (isSignedIn && !wasSignedIn.current) {
+            setPostAuthPhase('shredding');
+            // After shred completes, start slide
+            setTimeout(() => setPostAuthPhase('sliding'), 1200);
+            // After slide completes, show app
+            setTimeout(() => setPostAuthPhase('done'), 2000);
+          }
+
+          wasSignedIn.current = isSignedIn;
+        }, [isSignedIn, isLoaded]);
+
         // Debug: Log component status (after all hooks)
         console.log('TenantApp render:', {
           SignedIn: typeof SignedIn,
           SignedOut: typeof SignedOut,
-          ClerkComponents: !!window.ClerkComponents
+          ClerkComponents: !!window.ClerkComponents,
+          postAuthPhase
         });
 
         // Guard against undefined Clerk components (after all hooks)
@@ -2619,6 +2658,23 @@ if (typeof window !== 'undefined') {
           return (
             <div className="min-h-screen flex items-center justify-center">
               <div className="text-gray-500">Loading...</div>
+            </div>
+          );
+        }
+
+        // During post-auth animation, show auth gate with animation
+        if (postAuthPhase === 'shredding' || postAuthPhase === 'sliding') {
+          return (
+            <div style={{
+              transform: postAuthPhase === 'sliding' ? 'translateY(-100vh)' : 'none',
+              transition: postAuthPhase === 'sliding' ? 'transform 0.8s ease-in-out' : 'none'
+            }}>
+              <AuthScreen
+                title={`Welcome to ${appDisplayName}`}
+                message="Signing you in..."
+                showCard={true}
+                isShredding={postAuthPhase === 'shredding'}
+              />
             </div>
           );
         }
