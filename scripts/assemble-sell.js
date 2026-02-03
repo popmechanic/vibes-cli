@@ -201,19 +201,29 @@ if (output.includes(appPlaceholder)) {
 // Read and process admin component - strip imports (template already imports dependencies)
 let adminCode = stripImports(readFileSync(adminComponentPath, 'utf8').trim());
 
-// Insert admin code at placeholder
+// Insert admin code at placeholder (optional - template may have inline admin)
 const adminPlaceholder = '__ADMIN_CODE__';
 if (output.includes(adminPlaceholder)) {
   output = output.replace(adminPlaceholder, adminCode);
 } else {
-  console.error(`Template missing placeholder: ${adminPlaceholder}`);
-  process.exit(1);
+  console.log('Note: Template has inline admin dashboard, skipping admin component injection');
 }
 
 // Known safe patterns that aren't config placeholders
 // __PURE__ is a tree-shaking comment used by bundlers
 // __esModule is used by transpilers for ES module compatibility
-const SAFE_PLACEHOLDER_PATTERNS = ['__PURE__', '__esModule'];
+// __VIBES_CONFIG__ is a runtime config object populated by the template
+// __CLERK_LOAD_ERROR__ is a runtime error variable
+// __VITE_* are populated by the vibes template for Connect config
+const SAFE_PLACEHOLDER_PATTERNS = [
+  '__PURE__',
+  '__esModule',
+  '__VIBES_CONFIG__',
+  '__CLERK_LOAD_ERROR__',
+  '__VITE_API_URL__',
+  '__VITE_CLOUD_URL__',
+  '__VITE_CLERK_PUBLISHABLE_KEY__'
+];
 
 // Validate output
 function validateSellAssembly(html, app, admin) {
@@ -223,9 +233,10 @@ function validateSellAssembly(html, app, admin) {
     errors.push('App code is empty');
   }
 
-  if (!admin || admin.trim().length === 0) {
-    errors.push('Admin code is empty');
-  }
+  // Admin code is optional - template may have inline admin dashboard
+  // if (!admin || admin.trim().length === 0) {
+  //   errors.push('Admin code is empty');
+  // }
 
   // Check for unreplaced placeholders using whitelist approach
   const allMatches = html.match(/__[A-Z_]+__/g) || [];
