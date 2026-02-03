@@ -49,6 +49,23 @@ export function HiddenMenuWrapper({
     }
   }, [hasBouncedOnMount, menuOpen]);
 
+  // Inject toggle button style override (must come AFTER app styles to win cascade)
+  // Uses high-specificity selector to override app rules like [style*="..."][style*="..."]
+  useEffect(() => {
+    const styleId = "vibes-switch-toggle-override";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = `
+        button[aria-controls="hidden-menu"][aria-haspopup="dialog"][aria-expanded] {
+          background: transparent !important;
+          background-color: transparent !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
   // Inject keyframes for bounce animation
   useEffect(() => {
     const styleId = "vibes-drop-to-close-keyframes";
