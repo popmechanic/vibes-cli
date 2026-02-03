@@ -270,14 +270,20 @@ Description: "Shown in headers and landing page"
 
 ### Batch 2: Customization
 
-Use the AskUserQuestion tool with these 2 questions:
+Use the AskUserQuestion tool with these 3 questions:
 
 ```
-Question 1: "Tagline for the landing page?"
+Question 1: "Tagline for the landing page headline?"
 Header: "Tagline"
 Options: Generate 2 suggestions based on app context + user enters via "Other"
+Description: "Bold headline text. Can include <br> for line breaks (e.g., 'SHARE YOUR DAY.<br>MAKE IT SPECIAL.')"
 
-Question 2: "What features should we highlight on the landing page?"
+Question 2: "Subtitle text below the tagline?"
+Header: "Subtitle"
+Options: Generate 2 suggestions based on app context + user enters via "Other"
+Description: "Explanatory text below the headline (e.g., 'The easiest way to share wedding photos with guests.')"
+
+Question 3: "What features should we highlight on the landing page?"
 Header: "Features"
 Options: User enters via "Other"
 Description: "Comma-separated list (e.g., 'Photo sharing, Guest uploads, Live gallery')"
@@ -298,7 +304,8 @@ Description: "Comma-separated list (e.g., 'Photo sharing, Guest uploads, Live ga
 | Billing | `--billing-mode` | `off` or `required` |
 | Clerk Publishable Key | `--clerk-key` | `pk_test_xxx` |
 | Title | `--app-title` | `Wedding Photos` |
-| Tagline | `--tagline` | `Share your special day` |
+| Tagline | `--tagline` | `SHARE YOUR DAY.<br>MAKE IT SPECIAL.` |
+| Subtitle | `--subtitle` | `The easiest way to share wedding photos with guests.` |
 | Features | `--features` | `'["Feature 1","Feature 2"]'` |
 | Admin IDs | `--admin-ids` | `'["user_xxx"]'` (default: `'[]'`) |
 
@@ -348,7 +355,8 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
   --app-name "wedding-photos" \
   --app-title "Wedding Photos" \
   --domain "myapp.exe.xyz" \
-  --tagline "Share your wedding photos with guests" \
+  --tagline "SHARE YOUR DAY.<br>MAKE IT SPECIAL." \
+  --subtitle "The easiest way to share wedding photos with guests." \
   --billing-mode "off" \
   --features '["Photo sharing","Guest uploads","Live gallery"]' \
   --admin-ids '[]'
