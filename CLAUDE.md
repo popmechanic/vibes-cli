@@ -713,6 +713,29 @@ For apps needing tenant isolation, use client-side subdomain parsing:
 - `skills/exe/SKILL.md` - App deployment skill
 - `skills/connect/SKILL.md` - Connect deployment skill
 
+### Manual File Transfer to exe.dev VMs
+
+**Key distinction:**
+- `ssh exe.dev` = orchestrator CLI (create VMs, share ports, manage account)
+- `ssh <app>.exe.xyz` = actual VM (file operations, server access)
+
+**Reliable transfer pattern (two-stage):**
+```bash
+# Upload: SCP to server /tmp/ → sudo move to /var/www/html/
+scp index.html myapp.exe.xyz:/tmp/
+ssh myapp.exe.xyz "sudo cp /tmp/index.html /var/www/html/"
+
+# Download: Direct SCP works
+scp myapp.exe.xyz:/var/www/html/index.html ./downloaded.html
+```
+
+**Common mistakes:**
+| Mistake | Error | Fix |
+|---------|-------|-----|
+| `ssh exe.dev cat /var/www/...` | "No VMs found" | Use `ssh <app>.exe.xyz` |
+| `scp file vm:/var/www/html/` | Permission denied | Use temp + sudo pattern |
+| Forgetting sudo for /var/www | Permission denied | Always `sudo cp` for www-data dirs |
+
 ## Known Issues
 
 ### React Context Error Symptoms
