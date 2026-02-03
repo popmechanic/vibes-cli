@@ -183,8 +183,8 @@
       // Auto-generated vibes menu components
 // Run: node scripts/build-components.js --force to regenerate
 // Source: /Users/marcusestes/Websites/vibes-skill/components
-// Generated: 2026-02-03T00:42:28.616Z
-// Components: 23/23
+// Generated: 2026-02-03T04:31:50.353Z
+// Components: 25/25
 
 // === useMobile ===
 function useMobile() {
@@ -762,6 +762,214 @@ function LabelContainer({
     /* @__PURE__ */ React.createElement("div", { style: getLabelContainerResponsiveButtonWrapperStyle(isMobile, disappear) }, children)
   );
 }
+
+
+// === AuthScreen.styles ===
+const getScreenContainerStyle = () => ({
+  position: "fixed",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  zIndex: 1e3,
+  overflow: "hidden"
+});
+const getOverlayStyle = () => ({
+  position: "absolute",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: "rgba(0, 0, 0, 0.5)",
+  zIndex: 0
+});
+const getBlackBorderWrapperStyle = () => ({
+  position: "relative",
+  width: "90%",
+  maxWidth: "550px",
+  backgroundImage: `
+    linear-gradient(to right, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px)
+  `,
+  backgroundSize: "40px 40px",
+  backgroundColor: "#e8e4df",
+  border: "3px solid #1a1a1a",
+  borderRadius: "12px",
+  zIndex: 1,
+  overflow: "hidden"
+});
+const getContainerStyle = () => ({
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+  minHeight: "500px",
+  width: "100%",
+  gap: "2rem",
+  padding: "3rem 0rem",
+  position: "relative"
+});
+const getBackgroundStyle = (isShredding, isError) => ({
+  position: "absolute",
+  top: "1.5rem",
+  left: "1.5rem",
+  right: "1.5rem",
+  bottom: "1.5rem",
+  backgroundColor: isError ? "var(--vibes-red-accent, #ef4444)" : "var(--vibes-gray-lighter, #c4c4c4)",
+  border: "1px solid black",
+  borderRadius: "8px",
+  zIndex: 0,
+  transformOrigin: "center center",
+  animation: isShredding ? "collapseToLine 1.2s ease-in-out forwards" : "none",
+  pointerEvents: "none"
+});
+const getCardIconStyle = (isShredding) => ({
+  marginBottom: "1rem",
+  animation: isShredding ? "shredCard 0.9s ease-in forwards" : "none",
+  position: "relative",
+  zIndex: 1
+});
+const getAuthContentStyle = () => ({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  textAlign: "center",
+  gap: "1rem",
+  width: "100%",
+  maxWidth: "400px",
+  padding: "0 1.5rem",
+  position: "relative",
+  zIndex: 1
+});
+const getTitleStyle = (isError) => ({
+  fontSize: "1.75rem",
+  fontWeight: "bold",
+  color: isError ? "#991b1b" : "#1a1a1a",
+  margin: 0,
+  lineHeight: 1.2
+});
+const getMessageStyle = (isError) => ({
+  fontSize: "1rem",
+  color: isError ? "#7f1d1d" : "#555555",
+  margin: 0,
+  lineHeight: 1.5
+});
+const getErrorDetailsStyle = () => ({
+  marginTop: "0.5rem",
+  padding: "0.75rem",
+  backgroundColor: "rgba(127, 29, 29, 0.1)",
+  border: "1px solid rgba(127, 29, 29, 0.3)",
+  borderRadius: "6px",
+  fontSize: "0.75rem",
+  color: "#7f1d1d",
+  fontFamily: "monospace",
+  maxWidth: "100%",
+  overflow: "auto",
+  textAlign: "left"
+});
+const getButtonsContainerStyle = () => ({
+  display: "flex",
+  flexDirection: "column",
+  gap: "0.75rem",
+  width: "100%",
+  maxWidth: "300px",
+  position: "relative",
+  zIndex: 1,
+  marginTop: "0.5rem"
+});
+const getAnimationStyles = () => `
+  @keyframes shredCard {
+    0% {
+      clip-path: inset(0 0 0% 0);
+      transform: translateY(0);
+    }
+    45% {
+      clip-path: inset(0 0 0% 0);
+      transform: translateY(0);
+    }
+    80% {
+      clip-path: inset(0 0 100% 0);
+      transform: translateY(310px);
+    }
+    100% {
+      clip-path: inset(0 0 100% 0);
+      transform: translateY(310px);
+    }
+  }
+
+  @keyframes collapseToLine {
+    0% {
+      transform: scale(1);
+      border-radius: 8px;
+    }
+    40% {
+      transform: scaleX(0.05) scaleY(0.01);
+      border-radius: 50%;
+      background-color: black;
+    }
+    45% {
+      transform: scaleX(0.05) scaleY(0.01);
+      border-radius: 50%;
+      background-color: black;
+    }
+    65% {
+      transform: scaleX(0.6) scaleY(0.01);
+      border-radius: 0;
+    }
+    80% {
+      transform: scaleX(0.6) scaleY(0.01);
+      border-radius: 0;
+    }
+    100% {
+      transform: scaleX(0) scaleY(0.01);
+      border-radius: 0;
+      background-color: black;
+    }
+  }
+`;
+
+
+// === AuthScreen ===
+const CARD_URLS = [
+  "/cards/card-1.png",
+  "/cards/card-2.png",
+  "/cards/card-3.png",
+  "/cards/card-4.png"
+];
+const AuthScreen = ({
+  children,
+  title,
+  message,
+  showCard = true,
+  isShredding = false,
+  isError = false,
+  errorDetails
+}) => {
+  const [selectedCard, setSelectedCard] = React.useState(CARD_URLS[0]);
+  const [cardLoaded, setCardLoaded] = React.useState(false);
+  const [cardError, setCardError] = React.useState(false);
+  React.useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * CARD_URLS.length);
+    setSelectedCard(CARD_URLS[randomIndex]);
+  }, []);
+  return /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("style", null, getAnimationStyles()), /* @__PURE__ */ React.createElement("div", { style: getScreenContainerStyle() }, /* @__PURE__ */ React.createElement("div", { style: getOverlayStyle() }), /* @__PURE__ */ React.createElement("div", { style: getBlackBorderWrapperStyle() }, /* @__PURE__ */ React.createElement("div", { style: getBackgroundStyle(isShredding, isError) }), /* @__PURE__ */ React.createElement("div", { style: getContainerStyle() }, showCard && !cardError && /* @__PURE__ */ React.createElement("div", { style: getCardIconStyle(isShredding) }, /* @__PURE__ */ React.createElement(
+    "img",
+    {
+      src: selectedCard,
+      alt: "Vibes Card",
+      style: {
+        display: cardLoaded ? "block" : "none",
+        width: "200px",
+        height: "auto"
+      },
+      onLoad: () => setCardLoaded(true),
+      onError: () => setCardError(true)
+    }
+  )), /* @__PURE__ */ React.createElement("div", { style: getAuthContentStyle() }, title && /* @__PURE__ */ React.createElement("h1", { style: getTitleStyle(isError) }, title), message && /* @__PURE__ */ React.createElement("p", { style: getMessageStyle(isError) }, message), errorDetails && /* @__PURE__ */ React.createElement("details", { style: { width: "100%" } }, /* @__PURE__ */ React.createElement("summary", { style: { cursor: "pointer", fontSize: "0.875rem", color: "#7f1d1d" } }, "Technical details"), /* @__PURE__ */ React.createElement("pre", { style: getErrorDetailsStyle() }, errorDetails))), /* @__PURE__ */ React.createElement("div", { style: getButtonsContainerStyle() }, children)))));
+};
 
 
 // === VibesSwitch.styles ===
@@ -1845,6 +2053,7 @@ if (typeof window !== 'undefined') {
   window.VibesPanel = VibesPanel;
   window.BrutalistCard = BrutalistCard;
   window.LabelContainer = LabelContainer;
+  window.AuthScreen = AuthScreen;
 
   // Button variant constants
   window.BLUE = BLUE;
@@ -1931,6 +2140,21 @@ if (typeof window !== 'undefined') {
 
       // === Shared Error Components ===
       function ConfigError({ message }) {
+        // Use AuthScreen if available, fallback to simple div
+        if (window.AuthScreen) {
+          return React.createElement(window.AuthScreen, {
+            title: 'Configuration Error',
+            message: message,
+            showCard: false,
+            isError: true,
+            errorDetails: 'Run Connect setup to configure Clerk credentials.'
+          },
+            React.createElement('p', { style: { color: '#7f1d1d', fontSize: '0.875rem' } },
+              'Check your .env file for missing credentials.'
+            )
+          );
+        }
+        // Fallback for when AuthScreen hasn't loaded
         return React.createElement('div', { className: 'min-h-screen flex items-center justify-center bg-gray-50' },
           React.createElement('div', { className: 'text-center p-8 bg-white rounded-xl shadow-lg max-w-md border border-red-200' },
             React.createElement('div', { className: 'text-red-500 text-4xl mb-4' }, '⚠️'),
@@ -1943,6 +2167,30 @@ if (typeof window !== 'undefined') {
       window.ConfigError = ConfigError;
 
       function LoadingError({ error }) {
+        // Use AuthScreen if available, fallback to simple div
+        if (window.AuthScreen) {
+          return React.createElement(window.AuthScreen, {
+            title: 'Loading Failed',
+            message: 'Failed to load authentication components. Check your network connection and try refreshing the page.',
+            showCard: false,
+            isError: true,
+            errorDetails: error
+          },
+            React.createElement('button', {
+              onClick: function() { window.location.reload(); },
+              style: {
+                padding: '0.75rem 1.5rem',
+                backgroundColor: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '500'
+              }
+            }, 'Retry')
+          );
+        }
+        // Fallback for when AuthScreen hasn't loaded
         return React.createElement('div', { className: 'min-h-screen flex items-center justify-center bg-gray-50' },
           React.createElement('div', { className: 'text-center p-8 bg-white rounded-xl shadow-lg max-w-md border border-amber-200' },
             React.createElement('div', { className: 'text-amber-500 text-4xl mb-4' }, '⚡'),
@@ -2001,6 +2249,11 @@ if (typeof window !== 'undefined') {
       // Shared error components from base template
       const ConfigError = window.ConfigError;
       const LoadingError = window.LoadingError;
+      // AuthScreen and VibesButton for styled auth views
+      const AuthScreen = window.AuthScreen;
+      const VibesButton = window.VibesButton;
+      const RED = window.RED;
+      const YELLOW = window.YELLOW;
 
       // === Configuration ===
       const CONFIG = {
@@ -2200,34 +2453,31 @@ if (typeof window !== 'undefined') {
       // === Auth Gate (for signed-out users) ===
       function AuthGate({ onSignUp }) {
         const { SignInButton, SignUpButton } = window.ClerkComponents;
+        const appDisplayName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         return (
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
-              <h1 className="text-2xl font-bold mb-4">Welcome to {APP_NAME}</h1>
-              <p className="text-gray-600 mb-6">Sign in to access your space.</p>
-              <div className="flex flex-col gap-3">
-                <SignInButton mode="modal">
-                  <button className="w-full px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
-                    Sign In
-                  </button>
-                </SignInButton>
-                {onSignUp && (
-                  <button
-                    onClick={onSignUp}
-                    className="w-full px-6 py-3 border-2 border-black text-black rounded-lg font-medium hover:bg-gray-100 transition-colors"
-                  >
-                    Create Account
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
+          <AuthScreen
+            title={`Welcome to ${appDisplayName}`}
+            message="Sign in to access your space."
+            showCard={true}
+          >
+            <SignInButton mode="modal">
+              <VibesButton variant={RED} buttonType="form">
+                Sign In
+              </VibesButton>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <VibesButton variant={YELLOW} buttonType="form">
+                Create Account
+              </VibesButton>
+            </SignUpButton>
+          </AuthScreen>
         );
       }
 
       // === Claim Prompt (for signed-in users on unclaimed subdomains) ===
       function ClaimPrompt({ subdomain, onClaim, onCancel }) {
         const [claiming, setClaiming] = useState(false);
+        const [isShredding, setIsShredding] = useState(false);
         const [error, setError] = useState(null);
 
         const handleClaim = async () => {
@@ -2238,7 +2488,11 @@ if (typeof window !== 'undefined') {
             if (!token) throw new Error('Not authenticated');
             const result = await claimSubdomain(subdomain, token);
             if (result.success) {
-              onClaim?.();
+              // Trigger shredding animation before navigating
+              setIsShredding(true);
+              setTimeout(() => {
+                onClaim?.();
+              }, 1200); // Match animation duration
             } else {
               setError(result.error || 'Failed to claim subdomain');
             }
@@ -2250,54 +2504,42 @@ if (typeof window !== 'undefined') {
         };
 
         return (
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
-              <h1 className="text-2xl font-bold mb-4">Claim {subdomain}.{APP_DOMAIN}</h1>
-              <p className="text-gray-600 mb-6">This subdomain is available! Would you like to claim it?</p>
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-                  {error}
-                </div>
-              )}
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={handleClaim}
-                  disabled={claiming}
-                  className="w-full px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 transition-colors"
-                >
-                  {claiming ? 'Claiming...' : 'Claim This Subdomain'}
-                </button>
-                {onCancel && (
-                  <button
-                    onClick={onCancel}
-                    className="w-full px-6 py-3 text-gray-600 hover:text-gray-800 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
+          <AuthScreen
+            title={`Claim ${subdomain}.${APP_DOMAIN}`}
+            message={error || "This subdomain is available! Would you like to claim it?"}
+            showCard={true}
+            isShredding={isShredding}
+            isError={!!error}
+          >
+            <div onClick={handleClaim}>
+              <VibesButton variant={RED} buttonType="form" disabled={claiming}>
+                {claiming ? 'Claiming...' : 'Claim This Subdomain'}
+              </VibesButton>
             </div>
-          </div>
+            {onCancel && (
+              <div onClick={onCancel} style={{ cursor: 'pointer', textAlign: 'center', color: '#666', fontSize: '0.875rem' }}>
+                Cancel
+              </div>
+            )}
+          </AuthScreen>
         );
       }
 
       // === Not Owner Redirect ===
       function NotOwnerRedirect({ subdomain }) {
         return (
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
-              <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-              <p className="text-gray-600 mb-6">
-                {subdomain}.{APP_DOMAIN} belongs to another user.
-              </p>
-              <a
-                href={`https://${APP_DOMAIN}`}
-                className="inline-block px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors"
-              >
+          <AuthScreen
+            title="Access Denied"
+            message={`${subdomain}.${APP_DOMAIN} belongs to another user.`}
+            showCard={true}
+            isError={true}
+          >
+            <a href={`https://${APP_DOMAIN}`} style={{ textDecoration: 'none' }}>
+              <VibesButton variant={YELLOW} buttonType="form">
                 Get Your Own
-              </a>
-            </div>
-          </div>
+              </VibesButton>
+            </a>
+          </AuthScreen>
         );
       }
 
