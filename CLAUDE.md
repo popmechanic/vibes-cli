@@ -615,44 +615,45 @@ VITE_CLOUD_URL=fpcloud://<studio>.exe.xyz?protocol=wss
 
 The Studio runs Docker services from the upstream fireproof repo without local reimplementation.
 
-### DNS + SSL Architecture (IMPORTANT)
+### DNS Configuration for Custom Domains
 
-When using custom domains with exe.dev, there's a critical limitation with wildcard subdomains:
+When using custom domains with exe.dev, configure DNS as follows:
+
+| Type | Name | Value |
+|------|------|-------|
+| ALIAS | @ | exe.xyz |
+| CNAME | * | yourapp.exe.xyz |
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         DNS ROUTING                              │
 ├─────────────────────────────────────────────────────────────────┤
-│  yourdomain.com (root)                                           │
-│  └─→ A record: points to hosting with SSL cert                  │
-│      └─→ Works! ✓                                               │
+│  yourdomain.com (apex)                                           │
+│  └─→ ALIAS: exe.xyz                                             │
+│      └─→ exe.dev proxy terminates SSL ✓                        │
 │                                                                  │
 │  *.yourdomain.com (wildcard)                                     │
 │  └─→ CNAME: yourapp.exe.xyz                                     │
-│      └─→ exe.dev proxy (only has cert for *.exe.xyz)            │
-│          └─→ No cert for *.yourdomain.com                       │
-│              └─→ ERR_CONNECTION_REFUSED ✗                       │
+│      └─→ exe.dev proxy terminates SSL ✓                        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**The Problem:** exe.dev's proxy only terminates SSL for `*.exe.xyz` domains, not custom domains.
+**Key points:**
+- Use ALIAS (not A record) for the apex domain - points to `exe.xyz`
+- Use CNAME for wildcard - points to your app's exe.xyz subdomain (e.g., `cosmic-garden.exe.xyz`)
+- exe.dev's proxy handles SSL termination for both apex and wildcard
 
-**The Solution:** Use the `?subdomain=` query parameter:
+**Fallback option:** If your DNS provider doesn't support ALIAS records, use the `?subdomain=` query parameter:
 ```
 https://yourdomain.com?subdomain=tenant
 ```
 
-The `getRouteInfo()` function in unified.html detects this parameter and routes to the tenant app while staying on the root domain with valid SSL.
-
-**To fix wildcard subdomains properly**, you'd need:
-1. Wildcard SSL cert (`*.yourdomain.com`) on your own server, OR
-2. Keep using `?subdomain=` parameter (works fine, just less pretty URLs)
+The `getRouteInfo()` function in unified.html detects this parameter and routes to the tenant app.
 
 ### Multi-Tenant Support
 
 For apps needing tenant isolation, use client-side subdomain parsing:
-- Configure wildcard DNS: `*.myapp.com` → VM IP
-- Set up wildcard SSL via certbot (if using your own server)
+- Configure DNS: ALIAS @ → exe.xyz, CNAME * → yourapp.exe.xyz
 - JavaScript reads `window.location.hostname` OR `?subdomain=` param
 - Uses subdomain as Fireproof database prefix for data isolation
 
