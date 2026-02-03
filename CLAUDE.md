@@ -94,6 +94,46 @@ node scripts/build-components.js --force  # Build components from local source
 node scripts/merge-templates.js --force   # Merge base + deltas into final templates
 ```
 
+### Auth Components
+
+The `components/` directory contains TypeScript components designed by Amber (commit f34b5ebc). These are the **source of truth** for UI/UX patterns. Templates are directly informed by these components.
+
+**Component inventory:**
+
+| Component | Purpose | Used By |
+|-----------|---------|---------|
+| `AuthPopUp/` | Modal auth dialog (isOpen/onClose) | vibes template |
+| `AuthScreen/` | Full-screen auth gate (always visible) | sell template |
+| `BrutalistCard/` | Animated card with shred/collapse effects | Auth flows |
+| `LabelContainer/` | Form field wrapper with labels | Auth forms |
+| `VibesButton/` | Styled button component | All templates |
+| `VibesPanel/` | Settings panel UI | Menu system |
+| `VibesSwitch/` | Toggle switch for menu | All templates |
+| `HiddenMenuWrapper/` | Slide-out menu container | All templates |
+| `icons/` | SVG icon components | Various |
+
+**AuthPopUp vs AuthScreen:**
+
+Both components share the same visual design patterns but serve different purposes:
+
+| Aspect | AuthPopUp | AuthScreen |
+|--------|-----------|------------|
+| Visibility | Modal (isOpen/onClose props) | Always visible (gate) |
+| Close button | Yes (dismissible) | No (must complete auth) |
+| Content | Hardcoded buttons | Flexible `children` prop |
+| Use case | Optional auth prompt | Required auth gate (SaaS) |
+
+**Style consistency rules:**
+
+When creating or modifying auth components, match these values from AuthPopUp:
+- `getButtonsContainerStyle`: `gap: "1rem"`, `maxWidth: "400px"`
+- `getContainerStyle`: `minHeight: "500px"`, `gap: "2rem"`
+- Animations: `shredCard`, `collapseToLine` keyframes
+
+**Preserving Amber's work:**
+
+Never modify the original component files without explicit request. Bug fixes to HiddenMenuWrapper (CSS variable fixes, button resets) are acceptable. Design changes require discussion.
+
 ### File Intent Guide
 
 | File Pattern | Intent |
@@ -353,7 +393,10 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `scripts/lib/exe-ssh.js` | SSH automation for exe.dev |
 | `scripts/package.json` | Node.js deps |
 | `config/sources.example.json` | Example config for upstream URL overrides |
-| `components/` | Local TypeScript components (VibesSwitch, VibesPanel, etc.) |
+| `components/` | Local TypeScript components - source of truth for UI/UX |
+| `components/AuthPopUp/` | Modal auth dialog (Amber's original design) |
+| `components/AuthScreen/` | Full-screen auth gate for sell template |
+| `components/BrutalistCard/` | Animated card with shred/collapse effects |
 | `cache/import-map.json` | Working cache - package versions |
 | `cache/style-prompt.txt` | Working cache - UI style guidance |
 | `cache/fireproof.txt` | Working cache - Fireproof API docs |
