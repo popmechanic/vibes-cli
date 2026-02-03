@@ -398,6 +398,34 @@ export async function setPublic(vmName) {
 }
 
 /**
+ * Set the HTTP proxy port for a VM
+ * @param {string} vmName - VM name
+ * @param {number} port - Port number to route traffic to
+ * @returns {Promise<{success: boolean, message: string}>}
+ */
+export async function setPort(vmName, port) {
+  try {
+    const output = await runExeCommand(`share port ${vmName} ${port}`, { timeout: 30000 });
+
+    // Check for success indicators in output
+    const lowerOutput = output.toLowerCase();
+    if (lowerOutput.includes('success') || lowerOutput.includes('updated') || lowerOutput.includes('port')) {
+      return { success: true, message: output };
+    }
+
+    // Check for error indicators
+    if (lowerOutput.includes('error') || lowerOutput.includes('fail') || lowerOutput.includes('not found')) {
+      return { success: false, message: output.trim() };
+    }
+
+    // If no clear indicator, assume success (command completed without error)
+    return { success: true, message: output };
+  } catch (err) {
+    return { success: false, message: err.message };
+  }
+}
+
+/**
  * List VMs on exe.dev
  * @returns {Promise<string[]>} List of VM names
  */
