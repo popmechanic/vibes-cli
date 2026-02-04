@@ -1,0 +1,23 @@
+name = "vibes-registry"
+main = "src/index.ts"
+compatibility_date = "2025-02-04"
+compatibility_flags = ["nodejs_compat"]
+
+# KV namespace for registry storage
+[[kv_namespaces]]
+binding = "REGISTRY_KV"
+id = "your-kv-namespace-id"
+preview_id = "your-preview-kv-namespace-id"
+
+# Static assets (the generated index.html)
+[assets]
+directory = "./public"
+
+[vars]
+# Default reserved subdomains
+RESERVED_SUBDOMAINS = "admin,api,www,billing"
+
+# Secrets (set via `wrangler secret put`):
+# - CLERK_PEM_PUBLIC_KEY
+# - CLERK_WEBHOOK_SECRET
+# - PERMITTED_ORIGINS
