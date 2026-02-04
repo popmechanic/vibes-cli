@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CID [object Object] Bug - Proof</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #eee; }
+    .test { margin: 20px 0; padding: 15px; border-radius: 8px; }
+    .pass { background: #1a3a1a; border: 1px solid #3a5; }
+    .fail { background: #3a1a1a; border: 1px solid #a33; }
+    h2 { margin-top: 0; }
+    pre { background: #111; padding: 10px; overflow-x: auto; white-space: pre-wrap; }
+    .section { margin: 30px 0; padding: 20px; background: #222; border-radius: 8px; }
+    code { background: #333; padding: 2px 6px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>CID [object Object] Bug - Proof of Concept</h1>
+
+  <div class="section">
+    <h2>The Bug</h2>
+    <p>PUT requests work: <code>/blob/.../car/baembeic...</code></p>
+    <p>GET requests fail: <code>/blob/.../car/[object Object]</code></p>
+  </div>
+
+  <div id="results"></div>
+
+  <script>
+    const results = document.getElementById('results');
+
+    function addResult(title, passed, details) {
+      const div = document.createElement('div');
+      div.className = `test ${passed ? 'pass' : 'fail'}`;
+      div.innerHTML = `
+        <h2>${passed ? '✓' : '✗'} ${title}</h2>
+        <pre>${details}</pre>
+      `;
+      results.appendChild(div);
+    }
+
+    const testCidStr = 'baembeicwjk7ybsrjc2mjuijtvs4q42uhfloaauzpupwsljwzgyiwwh6bri';
+
+    // Test 1: String CID works
+    const url1 = `/blob/tenant/db/car/${testCidStr}`;
+    addResult('Test 1: String CID in template', url1.includes('baem'),
+      `CID as string: "${testCidStr}"
+Template: \`/blob/tenant/db/car/\${cidString}\`
+Result: ${url1}
+✓ This is what PUT does - it uses the string`);
+
+    // Test 2: CID-like object WITHOUT toString
+    // This is what happens when a CID object from one multiformats instance
+    // is used by code expecting a different instance
+    const cidObjectNoToString = {
+      version: 1,
+      code: 85,
+      bytes: new Uint8Array([1, 85, 18, 32, /* ... */]),
+      // NO toString() method!
+    };
+    const url2 = `/blob/tenant/db/car/${cidObjectNoToString}`;
+    addResult('Test 2: CID object WITHOUT toString()', url2 === '/blob/tenant/db/car/[object Object]',
+      `CID as object (no toString): ${JSON.stringify({version: 1, code: 85, bytes: '...'})}
+Template: \`/blob/tenant/db/car/\${cidObject}\`
+Result: ${url2}
+
+THIS IS THE BUG!
+When CID comes from a different multiformats bundle,
+it may not have a compatible toString() method.`);
+
+    // Test 3: dag-json link format
+    // This is how CIDs are stored in dag-json: {"/": "bafy..."}
+    const dagJsonLink = { "/": testCidStr };
+    const url3 = `/blob/tenant/db/car/${dagJsonLink}`;
+    addResult('Test 3: dag-json link object {"/": "..."}', url3 === '/blob/tenant/db/car/[object Object]',
+      `dag-json link format: ${JSON.stringify(dagJsonLink)}
+Template: \`/blob/tenant/db/car/\${link}\`
+Result: ${url3}
+
+ALSO A BUG PATH!
+If dag-json parse() returns raw {"/": "..."} instead of CID,
+it becomes [object Object] in templates.`);
+
+    // Test 4: The fix - always extract string
+    function cidToString(cid) {
+      if (typeof cid === 'string') return cid;
+      if (cid && typeof cid === 'object') {
+        // dag-json link format
+        if (cid['/']) return cid['/'];
+        // Try toString if available
+        if (typeof cid.toString === 'function') {
+          const str = cid.toString();
+          if (str !== '[object Object]') return str;
+        }
+        // CID bytes - would need proper encoding
+        if (cid.bytes) return '[need CID library to encode bytes]';
+      }
+      return String(cid);
+    }
+
+    const url4a = `/blob/tenant/db/car/${cidToString(testCidStr)}`;
+    const url4b = `/blob/tenant/db/car/${cidToString(cidObjectNoToString)}`;
+    const url4c = `/blob/tenant/db/car/${cidToString(dagJsonLink)}`;
+
+    addResult('Test 4: Fixed with cidToString() helper',
+      url4a.includes('baem') && url4c.includes('baem'),
+      `Helper function handles all cases:
+
+cidToString(stringCid): ${url4a}
+cidToString(objectCid): ${url4b}
+cidToString(dagJsonLink): ${url4c}
+
+THE FIX for gateway.ts:
+Instead of: const url = \`/blob/\${tenant}/\${db}/car/\${cid}\`
+Use:        const url = \`/blob/\${tenant}/\${db}/car/\${cid.toString()}\`
+Or:         const url = \`/blob/\${tenant}/\${db}/car/\${String(cid)}\`
+
+If that still fails, the CID might be a dag-json link object,
+so check for {"/": "..."} format first.`);
+
+    // Test 5: Demonstrate Object.prototype.toString behavior
+    const customObj = {
+      toString() { return testCidStr; }
+    };
+    const url5 = `/blob/tenant/db/car/${customObj}`;
+    addResult('Test 5: Object with custom toString()', url5.includes('baem'),
+      `Object with toString(): { toString() { return "${testCidStr}"; } }
+Template result: ${url5}
+
+When toString() exists and returns the CID string, it works!
+The bug occurs when toString() is missing or returns wrong value.`);
+  </script>
+</body>
+</html>

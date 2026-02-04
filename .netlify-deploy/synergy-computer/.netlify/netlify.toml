@@ -1,0 +1,26 @@
+plugins = []
+headers = []
+redirects = []
+
+[functions]
+
+[functions."*"]
+
+[build]
+publish = "/Users/marcusestes/Websites/VibesCLI/vibes-skill-claude/.netlify-deploy/synergy-computer"
+publishOrigin = "default"
+base = "/Users/marcusestes/Websites/VibesCLI/vibes-skill-claude/.netlify-deploy/synergy-computer"
+
+[build.environment]
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]

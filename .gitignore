@@ -28,3 +28,6 @@ test-vibes/
 .env
 .connect
 fireproof/
+
+# Local superpowers clone
+superpowers/

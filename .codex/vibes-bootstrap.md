@@ -1,21 +1,21 @@
-# Vibes Bootstrap for Codex
+# Vibes Bootstrap for Coding Agents
 
 <EXTREMELY_IMPORTANT>
 You have Vibes - a vibe coding stack made for coding agents.
 
 **Tool for running skills:**
-- `~/.codex/vibes/.codex/vibes-codex use-skill <skill-name>`
+- `~/.vibes/.codex/vibes-codex use-skill <skill-name>`
 
 **Tool for running scripts:**
-- `~/.codex/vibes/.codex/vibes-codex run <script-name> [args]`
+- `~/.vibes/.codex/vibes-codex run <script-name> [args]`
 
-**Tool Mapping for Codex:**
-When skills reference tools you don't have, substitute your equivalent tools:
+**Tool Mapping:**
+When skills reference Claude Code tools, substitute your equivalent:
 - `AskUserQuestion` → prompt user directly with clear options
 - `Skill` tool → `vibes-codex use-skill` command
-- `Task` tool with subagents → Use Codex collab `spawn_agent` + `wait` when available; if collab is disabled, proceed sequentially
+- `Task` tool with subagents → spawn parallel agents if available; otherwise proceed sequentially
 - `Read`, `Write`, `Edit`, `Bash` → Use your native tools
-- `${CLAUDE_PLUGIN_ROOT}` → `~/.codex/vibes`
+- `${CLAUDE_PLUGIN_ROOT}` → `~/.vibes`
 
 **Available Skills:**
 | Skill | Trigger | Description |
@@ -30,7 +30,7 @@ When skills reference tools you don't have, substitute your equivalent tools:
 **Critical Rules:**
 - Before building apps, check if a relevant skill applies
 - If a skill matches, load it with `vibes-codex use-skill <name>`
-- Read CLAUDE.md for full project context: `cat ~/.codex/vibes/CLAUDE.md`
+- Read CLAUDE.md for full project context: `cat ~/.vibes/CLAUDE.md`
 
 IF A SKILL APPLIES TO YOUR TASK, YOU DO NOT HAVE A CHOICE. YOU MUST USE IT.
 </EXTREMELY_IMPORTANT>
