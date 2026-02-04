@@ -20,69 +20,88 @@ import { homedir } from 'os';
 
 /**
  * Find the vibes plugin directory
+ * Checks multiple sources in priority order:
+ * 1. VIBES_PLUGIN_ROOT environment variable
+ * 2. Claude Code plugin cache
+ * 3. Codex installation (~/.codex/vibes)
+ * 4. Skills.sh installation (~/.skills/...)
+ *
  * @param {object} options - Options
  * @param {boolean} options.quiet - Suppress error messages
  * @returns {string|null} - Plugin directory path (with trailing slash) or null
  */
 export function findPluginDir(options = {}) {
   const { quiet = false } = options;
-  const cacheBase = join(homedir(), '.claude', 'plugins', 'cache', 'vibes-cli', 'vibes');
+  const home = homedir();
 
-  // Check if cache directory exists
-  if (!existsSync(cacheBase)) {
-    if (!quiet) {
-      console.error('Error: Vibes plugin not found.');
-      console.error('Please install with: /plugin install vibes@vibes-cli');
+  // Helper to validate a plugin directory
+  const isValidPluginDir = (dir) => {
+    return existsSync(join(dir, 'scripts', 'assemble.js'));
+  };
+
+  // 1. Check VIBES_PLUGIN_ROOT environment variable
+  if (process.env.VIBES_PLUGIN_ROOT) {
+    const envPath = process.env.VIBES_PLUGIN_ROOT;
+    if (isValidPluginDir(envPath)) {
+      return envPath.endsWith('/') ? envPath : envPath + '/';
     }
-    return null;
   }
 
-  // Find all version directories and sort them
-  let versions;
-  try {
-    versions = readdirSync(cacheBase)
-      .filter(name => !name.startsWith('.'))
-      .sort((a, b) => {
-        // Version sort: split by dots and compare numerically
-        const partsA = a.split('.').map(n => parseInt(n, 10) || 0);
-        const partsB = b.split('.').map(n => parseInt(n, 10) || 0);
-        for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-          const diff = (partsA[i] || 0) - (partsB[i] || 0);
-          if (diff !== 0) return diff;
+  // 2. Check Claude Code plugin cache
+  const cacheBase = join(home, '.claude', 'plugins', 'cache', 'vibes-cli', 'vibes');
+  if (existsSync(cacheBase)) {
+    try {
+      const versions = readdirSync(cacheBase)
+        .filter(name => !name.startsWith('.'))
+        .sort((a, b) => {
+          // Version sort: split by dots and compare numerically
+          const partsA = a.split('.').map(n => parseInt(n, 10) || 0);
+          const partsB = b.split('.').map(n => parseInt(n, 10) || 0);
+          for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+            const diff = (partsA[i] || 0) - (partsB[i] || 0);
+            if (diff !== 0) return diff;
+          }
+          return 0;
+        });
+
+      if (versions.length > 0) {
+        const latestVersion = versions[versions.length - 1];
+        const pluginDir = join(cacheBase, latestVersion) + '/';
+        if (isValidPluginDir(pluginDir)) {
+          return pluginDir;
         }
-        return 0;
-      });
-  } catch (e) {
-    if (!quiet) {
-      console.error('Error: Could not read plugin cache directory.');
+      }
+    } catch (e) {
+      // Continue to next check
     }
-    return null;
   }
 
-  if (versions.length === 0) {
-    if (!quiet) {
-      console.error('Error: Vibes plugin not found.');
-      console.error('Please install with: /plugin install vibes@vibes-cli');
-    }
-    return null;
+  // 3. Check Codex installation
+  const codexPath = join(home, '.codex', 'vibes');
+  if (isValidPluginDir(codexPath)) {
+    return codexPath + '/';
   }
 
-  // Use the latest version
-  const latestVersion = versions[versions.length - 1];
-  const pluginDir = join(cacheBase, latestVersion) + '/';
-
-  // Verify key files exist
-  const assembleScript = join(pluginDir, 'scripts', 'assemble.js');
-  if (!existsSync(assembleScript)) {
-    if (!quiet) {
-      console.error('Error: Vibes plugin installation appears incomplete.');
-      console.error(`Missing: ${assembleScript}`);
-      console.error('Please reinstall with: /plugin install vibes@vibes-cli');
+  // 4. Check Skills.sh installations
+  const skillsPaths = [
+    join(home, '.skills', 'popmechanic', 'vibes-cli'),
+    join(home, '.skills', 'vibesguru', 'vibes'),
+  ];
+  for (const skillsPath of skillsPaths) {
+    if (isValidPluginDir(skillsPath)) {
+      return skillsPath + '/';
     }
-    return null;
   }
 
-  return pluginDir;
+  // Not found
+  if (!quiet) {
+    console.error('Error: Vibes plugin not found.');
+    console.error('Install options:');
+    console.error('  Claude Code: /plugin install vibes@vibes-cli');
+    console.error('  Codex: git clone https://github.com/popmechanic/vibes-cli.git ~/.codex/vibes');
+    console.error('  Skills.sh: npx skills add popmechanic/vibes-cli');
+  }
+  return null;
 }
 
 /**
