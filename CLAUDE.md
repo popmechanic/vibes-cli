@@ -149,6 +149,56 @@ Never modify the original component files without explicit request. Bug fixes to
 
 ---
 
+## Multi-Harness Support
+
+This plugin works with multiple coding agents, not just Claude Code.
+
+### Distribution Model
+
+| Agent | Installation | Bootstrap |
+|-------|--------------|-----------|
+| Claude Code | `/plugin install vibes@vibes-cli` | Automatic via plugin system |
+| Codex | Fetch `.codex/INSTALL.md` | `vibes-codex bootstrap` |
+| OpenCode / Others | `git clone` to `~/.vibes` | `vibes-codex bootstrap` |
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `.codex/vibes-codex` | CLI wrapper for non-Claude-Code agents |
+| `.codex/vibes-bootstrap.md` | Tool mappings (AskUserQuestion → prompt, etc.) |
+| `.codex/INSTALL.md` | Fetchable installation guide |
+| `lib/resolve-paths.js` | Finds plugin directory across install locations |
+
+### Path Resolution
+
+`lib/resolve-paths.js` checks these locations in order:
+1. `VIBES_PLUGIN_ROOT` environment variable
+2. Claude Code plugin cache (`~/.claude/plugins/cache/vibes-cli/vibes/<version>`)
+3. Standard git clone (`~/.vibes`)
+4. Development mode (relative to script)
+
+### vibes-codex CLI
+
+For agents without a plugin system:
+
+```bash
+~/.vibes/.codex/vibes-codex bootstrap     # Show bootstrap context + skills
+~/.vibes/.codex/vibes-codex use-skill vibes  # Load a skill
+~/.vibes/.codex/vibes-codex run assemble.js app.jsx index.html  # Run scripts
+~/.vibes/.codex/vibes-codex find-skills   # List available skills
+```
+
+### Tool Mappings (for non-Claude-Code agents)
+
+When skills reference Claude Code tools, agents should substitute:
+- `AskUserQuestion` → prompt user directly
+- `Skill` tool → `vibes-codex use-skill` command
+- `Task` tool with subagents → spawn parallel agents if available
+- `${CLAUDE_PLUGIN_ROOT}` → `~/.vibes`
+
+---
+
 ## Core Design Principle
 
 **Match vibes.diy exactly. Never deviate.**
