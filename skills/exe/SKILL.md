@@ -1,6 +1,7 @@
 ---
 name: exe
 description: Deploy a Vibes app to exe.dev VM hosting. Uses nginx on persistent VMs with SSH automation. Supports client-side multi-tenancy via subdomain-based Fireproof database isolation.
+license: MIT
 allowed-tools: Bash, Read, Glob, AskUserQuestion
 ---
 

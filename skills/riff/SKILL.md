@@ -1,6 +1,7 @@
 ---
 name: riff
 description: Generate 3-10 app variations in parallel for comparing ideas. Use when user says "explore options", "give me variations", "riff on this", "brainstorm approaches", or wants to see multiple interpretations of a concept.
+license: MIT
 allowed-tools: Read, Write, Bash, Task, Glob, AskUserQuestion
 ---
 
