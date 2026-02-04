@@ -434,6 +434,64 @@ async function phase4cAuthCardsUpload(args) {
   }
 }
 
+// Upload favicon assets for PWA and browser tabs
+async function phase4dFaviconUpload(args) {
+  const FAVICON_DIR = join(__dirname, '..', 'assets', 'vibes-favicon');
+  const FAVICON_FILES = [
+    'favicon.svg',
+    'favicon-96x96.png',
+    'favicon.ico',
+    'apple-touch-icon.png',
+    'site.webmanifest',
+    'web-app-manifest-192x192.png',
+    'web-app-manifest-512x512.png'
+  ];
+
+  // Check if favicon directory exists
+  if (!existsSync(FAVICON_DIR)) {
+    console.log('\nPhase 4d: Favicon Upload... SKIPPED (assets/vibes-favicon not found)');
+    return;
+  }
+
+  console.log('\nPhase 4d: Favicon Upload...');
+
+  const vmHost = `${args.name}.exe.xyz`;
+  const remoteDir = '/var/www/html';
+
+  if (args.dryRun) {
+    console.log(`  [DRY RUN] Would upload ${FAVICON_FILES.length} favicon files to ${remoteDir}`);
+    return;
+  }
+
+  try {
+    for (const file of FAVICON_FILES) {
+      const localPath = join(FAVICON_DIR, file);
+      if (!existsSync(localPath)) {
+        console.warn(`  Warning: ${file} not found, skipping`);
+        continue;
+      }
+
+      const remotePath = `${remoteDir}/${file}`;
+      const tempPath = `/tmp/${file}`;
+
+      // Upload to temp, then sudo move to www
+      const client = await connectSSH(vmHost);
+      await scpUpload(client, localPath, tempPath);
+      client.end();
+
+      const client2 = await connectSSH(vmHost);
+      await runCommand(client2, `sudo cp ${tempPath} ${remotePath}`);
+      await runCommand(client2, `sudo chown www-data:www-data ${remotePath}`);
+      client2.end();
+    }
+
+    console.log(`  ✓ ${FAVICON_FILES.length} favicon files uploaded`);
+  } catch (err) {
+    // Non-fatal - app works without favicons
+    console.warn(`  Warning: Favicon upload failed: ${err.message}`);
+  }
+}
+
 async function phase5AIProxy(args) {
   // Skip if no AI key provided
   if (!args.aiKey) {
@@ -979,6 +1037,7 @@ ${'━'.repeat(60)}
     await phase4FileUpload(args);
     await phase4bBundleUpload(args);
     await phase4cAuthCardsUpload(args);
+    await phase4dFaviconUpload(args);
     await phase5AIProxy(args);
     await phase6Registry(args);
     await phase7Handoff(args);
