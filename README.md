@@ -20,34 +20,57 @@ That's it. Your agent generates a single HTML file with a working app.
 
 ## Installation
 
-### Claude Code
+> **Note:** Installation differs by platform. Claude Code has a built-in plugin system. Codex and OpenCode require manual setup.
+
+### Claude Code (via Plugin Marketplace)
+
+In Claude Code, register the marketplace first:
 
 ```
 /plugin marketplace add popmechanic/vibes-cli
+```
+
+Then install the plugin:
+
+```
 /plugin install vibes@vibes-cli
 ```
 
 Restart Claude Code after installation.
+
+**Verify Installation:**
+```
+/help
+# Should see vibes skills like:
+# /vibes:vibes - Generate React web apps
+# /vibes:riff - Generate app variations
+# /vibes:sell - Transform to multi-tenant SaaS
+```
 
 **Updating:**
 ```
 /plugin update vibes@vibes-cli
 ```
 
-### Codex / OpenCode / Other Agents
+### Codex
 
-Have your agent fetch and follow the install instructions:
+Tell Codex:
+
 ```
-https://raw.githubusercontent.com/popmechanic/vibes-cli/main/.codex/INSTALL.md
+Fetch and follow instructions from https://raw.githubusercontent.com/popmechanic/vibes-cli/main/.codex/INSTALL.md
 ```
 
-Or install manually:
+### OpenCode / Other Agents
+
+Install manually:
+
 ```bash
 git clone https://github.com/popmechanic/vibes-cli.git ~/.vibes
 cd ~/.vibes/scripts && npm install
 ```
 
-Then add to your agent's config (e.g., `~/.codex/AGENTS.md`):
+Then add to your agent's config:
+
 ```markdown
 ## Vibes
 
