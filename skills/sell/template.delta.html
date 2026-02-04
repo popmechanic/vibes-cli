@@ -134,7 +134,6 @@
       // === Route Detection ===
       function getRouteInfo() {
         const hostname = window.location.hostname;
-        const parts = hostname.split('.');
         const params = new URLSearchParams(window.location.search);
         const testSubdomain = params.get('subdomain');
 
@@ -145,21 +144,36 @@
           return { route: 'landing', subdomain: null };
         }
 
-        // Handle exe.xyz for testing
+        // Handle exe.xyz for testing (use ?subdomain= param)
         if (hostname.endsWith('.exe.xyz')) {
           if (testSubdomain === 'admin') return { route: 'admin', subdomain: null };
           if (testSubdomain) return { route: 'tenant', subdomain: testSubdomain };
           return { route: 'landing', subdomain: null };
         }
 
-        // Production: detect subdomain from hostname
-        if (parts.length <= 2 || parts[0] === 'www') {
+        // Handle workers.dev (use ?subdomain= param, no wildcard SSL)
+        if (hostname.endsWith('.workers.dev')) {
+          if (testSubdomain === 'admin') return { route: 'admin', subdomain: null };
+          if (testSubdomain) return { route: 'tenant', subdomain: testSubdomain };
           return { route: 'landing', subdomain: null };
         }
-        if (parts[0] === 'admin') {
+
+        // Production: detect subdomain from hostname using APP_DOMAIN
+        if (hostname === APP_DOMAIN || hostname === `www.${APP_DOMAIN}`) {
+          return { route: 'landing', subdomain: null };
+        }
+        if (hostname === `admin.${APP_DOMAIN}`) {
           return { route: 'admin', subdomain: null };
         }
-        return { route: 'tenant', subdomain: parts[0] };
+        if (hostname.endsWith(`.${APP_DOMAIN}`)) {
+          const subdomain = hostname.slice(0, -(APP_DOMAIN.length + 1));
+          return { route: 'tenant', subdomain };
+        }
+
+        // Fallback for unrecognized domains (direct worker URL, etc.)
+        if (testSubdomain === 'admin') return { route: 'admin', subdomain: null };
+        if (testSubdomain) return { route: 'tenant', subdomain: testSubdomain };
+        return { route: 'landing', subdomain: null };
       }
 
       const routeInfo = getRouteInfo();

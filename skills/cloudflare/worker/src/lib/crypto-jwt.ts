@@ -73,31 +73,28 @@ function parseJwt(token: string): {
 /**
  * Verify Clerk JWT from Authorization header using Web Crypto API
  */
-export async function verifyClerkJWT(
+// Debug version that returns failure reason
+export async function verifyClerkJWTDebug(
   authHeader: string | null,
   pemPublicKey: string,
   permittedOrigins: string[]
-): Promise<{ userId: string } | null> {
+): Promise<{ userId: string } | { error: string }> {
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return null;
+    return { error: "no_auth_header" };
   }
 
   const token = authHeader.slice(7);
   const parsed = parseJwt(token);
 
   if (!parsed) {
-    console.error("Failed to parse JWT");
-    return null;
+    return { error: "parse_jwt_failed" };
   }
 
-  // Verify algorithm
   if (parsed.header.alg !== "RS256") {
-    console.error("Unsupported JWT algorithm:", parsed.header.alg);
-    return null;
+    return { error: `bad_algorithm:${parsed.header.alg}` };
   }
 
   try {
-    // Import the public key
     const keyData = pemToArrayBuffer(pemPublicKey);
     const cryptoKey = await crypto.subtle.importKey(
       "spki",
@@ -107,7 +104,6 @@ export async function verifyClerkJWT(
       ["verify"]
     );
 
-    // Verify signature
     const isValid = await crypto.subtle.verify(
       "RSASSA-PKCS1-v1_5",
       cryptoKey,
@@ -116,33 +112,38 @@ export async function verifyClerkJWT(
     );
 
     if (!isValid) {
-      console.error("JWT signature verification failed");
-      return null;
+      return { error: "signature_invalid" };
     }
 
-    // Validate timing (exp, nbf)
     const timingResult = validateJwtTiming(parsed.payload as { exp?: number; nbf?: number });
     if (!timingResult.valid) {
-      console.error("JWT timing validation failed:", timingResult.reason);
-      return null;
+      return { error: `timing:${timingResult.reason}` };
     }
 
-    // Validate azp (authorized party)
     if (!matchAzp(parsed.payload.azp as string | undefined, permittedOrigins)) {
-      console.error("Invalid azp claim:", parsed.payload.azp);
-      return null;
+      return { error: `azp_mismatch:${parsed.payload.azp}` };
     }
 
-    // Extract user ID from sub claim
     const userId = parsed.payload.sub as string;
     if (!userId) {
-      console.error("No sub claim in JWT");
-      return null;
+      return { error: "no_sub_claim" };
     }
 
     return { userId };
   } catch (error) {
-    console.error("JWT verification error:", error);
+    return { error: `exception:${error}` };
+  }
+}
+
+export async function verifyClerkJWT(
+  authHeader: string | null,
+  pemPublicKey: string,
+  permittedOrigins: string[]
+): Promise<{ userId: string } | null> {
+  const result = await verifyClerkJWTDebug(authHeader, pemPublicKey, permittedOrigins);
+  if ('error' in result) {
+    console.error("JWT verification failed:", result.error);
     return null;
   }
+  return result;
 }
