@@ -1,0 +1,156 @@
+#!/usr/bin/env node
+/**
+ * vibes-codex - CLI wrapper for Vibes skills in Codex
+ *
+ * Commands:
+ *   bootstrap           - Show bootstrap context
+ *   use-skill <name>    - Load a skill's SKILL.md
+ *   run <script> [args] - Run a vibes script with correct paths
+ *   find-skills         - List available skills
+ */
+
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { spawn } = require('child_process');
+
+// Resolve vibes directory - supports env var, Codex install, and dev mode
+function resolveVibesDir() {
+  // 1. Environment variable override
+  if (process.env.VIBES_PLUGIN_ROOT) {
+    return process.env.VIBES_PLUGIN_ROOT;
+  }
+  // 2. Codex installation (default for this CLI)
+  const codexPath = path.join(os.homedir(), '.codex', 'vibes');
+  if (fs.existsSync(path.join(codexPath, 'skills', 'vibes', 'SKILL.md'))) {
+    return codexPath;
+  }
+  // 3. Dev mode - relative to this script
+  const devPath = path.resolve(__dirname, '..');
+  if (fs.existsSync(path.join(devPath, 'skills', 'vibes', 'SKILL.md'))) {
+    return devPath;
+  }
+  // 4. Fallback to Codex path (will show "not found" errors)
+  return codexPath;
+}
+
+const vibesDir = resolveVibesDir();
+const skillsDir = path.join(vibesDir, 'skills');
+const bootstrapFile = path.join(vibesDir, '.codex', 'vibes-bootstrap.md');
+
+const SKILLS = ['vibes', 'riff', 'sell', 'exe', 'connect', 'design-reference'];
+
+function extractFrontmatter(content) {
+  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) return {};
+  const fm = {};
+  for (const line of match[1].split('\n')) {
+    const idx = line.indexOf(':');
+    if (idx > 0) {
+      fm[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+    }
+  }
+  return fm;
+}
+
+function runBootstrap() {
+  // Check for updates
+  try {
+    const { execSync } = require('child_process');
+    execSync('git fetch origin', { cwd: vibesDir, timeout: 3000, stdio: 'pipe' });
+    const status = execSync('git status --porcelain=v1 --branch', { cwd: vibesDir, encoding: 'utf8' });
+    if (status.includes('[behind ')) {
+      console.log('## Update Available\n');
+      console.log('Your vibes installation is behind. To update: `cd ~/.codex/vibes && git pull`\n');
+      console.log('---\n');
+    }
+  } catch (e) { /* ignore network errors */ }
+
+  // Show bootstrap
+  if (fs.existsSync(bootstrapFile)) {
+    console.log(fs.readFileSync(bootstrapFile, 'utf8'));
+  }
+
+  console.log('\n---\n');
+  runFindSkills();
+}
+
+function runFindSkills() {
+  console.log('Available skills:');
+  console.log('==================\n');
+
+  for (const skill of SKILLS) {
+    const skillPath = path.join(skillsDir, skill, 'SKILL.md');
+    if (fs.existsSync(skillPath)) {
+      const content = fs.readFileSync(skillPath, 'utf8');
+      const fm = extractFrontmatter(content);
+      console.log(`- vibes:${skill}`);
+      if (fm.description) console.log(`  ${fm.description}`);
+      console.log('');
+    }
+  }
+}
+
+function runUseSkill(skillName) {
+  if (!skillName) {
+    console.log('Usage: vibes-codex use-skill <skill-name>');
+    return runFindSkills();
+  }
+
+  // Strip vibes: prefix if present
+  const name = skillName.replace(/^vibes:/, '');
+  const skillPath = path.join(skillsDir, name, 'SKILL.md');
+
+  if (!fs.existsSync(skillPath)) {
+    console.error(`Skill not found: ${name}`);
+    return runFindSkills();
+  }
+
+  const content = fs.readFileSync(skillPath, 'utf8');
+  const fm = extractFrontmatter(content);
+
+  console.log(`# Loading skill: vibes:${name}`);
+  console.log(`# Source: ${skillPath}`);
+  if (fm.description) console.log(`# ${fm.description}`);
+  console.log('# ============================================\n');
+
+  // Strip frontmatter and output content
+  const body = content.replace(/^---\n[\s\S]*?\n---\n/, '');
+  console.log(body);
+}
+
+function runScript(scriptName, args) {
+  if (!scriptName) {
+    console.log('Usage: vibes-codex run <script-name> [args]');
+    console.log('Example: vibes-codex run assemble.js app.jsx index.html');
+    return;
+  }
+
+  const scriptPath = path.join(vibesDir, 'scripts', scriptName);
+  if (!fs.existsSync(scriptPath)) {
+    console.error(`Script not found: ${scriptPath}`);
+    process.exit(1);
+  }
+
+  // Set VIBES_PLUGIN_ROOT for the script
+  const env = { ...process.env, VIBES_PLUGIN_ROOT: vibesDir };
+  const child = spawn('node', [scriptPath, ...args], { env, stdio: 'inherit' });
+  child.on('exit', code => process.exit(code || 0));
+}
+
+// CLI router
+const [,, command, ...args] = process.argv;
+switch (command) {
+  case 'bootstrap': runBootstrap(); break;
+  case 'use-skill': runUseSkill(args[0]); break;
+  case 'run': runScript(args[0], args.slice(1)); break;
+  case 'find-skills': runFindSkills(); break;
+  default:
+    console.log('vibes-codex - Vibes DIY for Codex');
+    console.log('');
+    console.log('Usage:');
+    console.log('  vibes-codex bootstrap              # Show bootstrap with all skills');
+    console.log('  vibes-codex use-skill <skill>      # Load a specific skill');
+    console.log('  vibes-codex run <script> [args]    # Run a vibes script');
+    console.log('  vibes-codex find-skills            # List available skills');
+}

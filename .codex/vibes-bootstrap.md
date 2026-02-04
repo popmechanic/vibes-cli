@@ -1,7 +1,7 @@
 # Vibes Bootstrap for Codex
 
 <EXTREMELY_IMPORTANT>
-You have Vibes DIY - an AI-native web app development platform.
+You have Vibes - a vibe coding stack made for coding agents.
 
 **Tool for running skills:**
 - `~/.codex/vibes/.codex/vibes-codex use-skill <skill-name>`
