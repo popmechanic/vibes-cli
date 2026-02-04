@@ -23,8 +23,7 @@ import { homedir } from 'os';
  * Checks multiple sources in priority order:
  * 1. VIBES_PLUGIN_ROOT environment variable
  * 2. Claude Code plugin cache
- * 3. Codex installation (~/.codex/vibes)
- * 4. Skills.sh installation (~/.skills/...)
+ * 3. Standard git clone installation (~/.vibes)
  *
  * @param {object} options - Options
  * @param {boolean} options.quiet - Suppress error messages
@@ -76,21 +75,10 @@ export function findPluginDir(options = {}) {
     }
   }
 
-  // 3. Check Codex installation
-  const codexPath = join(home, '.codex', 'vibes');
-  if (isValidPluginDir(codexPath)) {
-    return codexPath + '/';
-  }
-
-  // 4. Check Skills.sh installations
-  const skillsPaths = [
-    join(home, '.skills', 'popmechanic', 'vibes-cli'),
-    join(home, '.skills', 'vibesguru', 'vibes'),
-  ];
-  for (const skillsPath of skillsPaths) {
-    if (isValidPluginDir(skillsPath)) {
-      return skillsPath + '/';
-    }
+  // 3. Check standard git clone installation (~/.vibes)
+  const vibesPath = join(home, '.vibes');
+  if (isValidPluginDir(vibesPath)) {
+    return vibesPath + '/';
   }
 
   // Not found
@@ -98,8 +86,7 @@ export function findPluginDir(options = {}) {
     console.error('Error: Vibes plugin not found.');
     console.error('Install options:');
     console.error('  Claude Code: /plugin install vibes@vibes-cli');
-    console.error('  Codex: git clone https://github.com/popmechanic/vibes-cli.git ~/.codex/vibes');
-    console.error('  Skills.sh: npx skills add popmechanic/vibes-cli');
+    console.error('  Other agents: git clone https://github.com/popmechanic/vibes-cli.git ~/.vibes');
   }
   return null;
 }
