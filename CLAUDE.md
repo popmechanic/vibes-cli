@@ -12,6 +12,7 @@
 | Generating app code | SKILL.md has patterns; for advanced features, read `cache/fireproof.txt` |
 | Working on scripts | `scripts/package.json` for deps, this file for architecture |
 | Debugging React errors | "Known Issues" section below |
+| Deploying to Cloudflare | `skills/cloudflare/SKILL.md` |
 
 ### Fireproof API Reference
 
@@ -482,6 +483,9 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `scripts/lib/auth-flows.js` | Auth flow state machines (signup, signin, gate) |
 | `skills/exe/SKILL.md` | exe.dev app deployment skill |
 | `skills/connect/SKILL.md` | Connect Studio deployment skill |
+| `skills/cloudflare/SKILL.md` | Cloudflare Workers deployment skill |
+| `skills/cloudflare/worker/` | Cloudflare Worker source (Hono, KV, Web Crypto JWT) |
+| `scripts/deploy-cloudflare.js` | Cloudflare deployment script |
 | `commands/sync.md` | User-facing sync command definition |
 | `commands/update.md` | User-facing update command definition |
 
