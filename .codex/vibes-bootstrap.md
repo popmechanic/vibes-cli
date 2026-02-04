@@ -26,6 +26,7 @@ When skills reference Claude Code tools, substitute your equivalent:
 | exe | "deploy", "put it online" | Deploy to exe.dev VM hosting |
 | connect | "set up Connect", "enable sync" | Deploy Fireproof Connect |
 | design-reference | design.html or mockup provided | Transform design to Vibes app |
+| cloudflare | "deploy to cloudflare", "cloudflare workers" | Deploy to Cloudflare Workers with KV registry |
 
 **Critical Rules:**
 - Before building apps, check if a relevant skill applies

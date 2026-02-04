@@ -42,7 +42,7 @@ const vibesDir = resolveVibesDir();
 const skillsDir = path.join(vibesDir, 'skills');
 const bootstrapFile = path.join(vibesDir, '.codex', 'vibes-bootstrap.md');
 
-const SKILLS = ['vibes', 'riff', 'sell', 'exe', 'connect', 'design-reference'];
+const SKILLS = ['vibes', 'riff', 'sell', 'exe', 'connect', 'design-reference', 'cloudflare'];
 
 function extractFrontmatter(content) {
   const match = content.match(/^---\n([\s\S]*?)\n---/);

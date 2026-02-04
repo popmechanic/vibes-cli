@@ -180,6 +180,16 @@ Go live right now. Deploy creates a persistent VM at yourapp.exe.xyz with HTTPS,
 
 Your app stays online 24/7 even when you close your laptop. Zero downtime redeployments let you iterate live. Great for demos, pilots, or production.
 
+### `cloudflare`
+
+Deploy to Cloudflare Workers with a subdomain registry. Uses KV for storage and native Web Crypto for JWT verification.
+
+Includes the full registry server for multi-tenant apps: subdomain claiming, availability checking, Clerk webhook handling, and quota enforcement. Static assets (your app, bundles, images) are served alongside the worker.
+
+**Example prompts:**
+- "Deploy to Cloudflare"
+- "Put this on Cloudflare Workers"
+
 ## Commands
 
 Commands are **user-invoked** - run them explicitly when needed.
