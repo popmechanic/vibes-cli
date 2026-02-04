@@ -1,6 +1,7 @@
 ---
 name: design-reference
 description: Transform a design reference HTML file into a Vibes app. Use when user provides a design.html, mockup, or static prototype to match exactly.
+license: MIT
 allowed-tools: Read, Write, Bash, AskUserQuestion
 ---
 

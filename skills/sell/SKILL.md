@@ -1,6 +1,7 @@
 ---
 name: sell
 description: Transform a Vibes app into a multi-tenant SaaS with subdomain-based tenancy. Adds Clerk authentication, subscription gating, and generates a unified app with landing page, tenant routing, and admin dashboard.
+license: MIT
 allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 ---
 
