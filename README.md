@@ -20,8 +20,6 @@ That's it. Your agent generates a single HTML file with a working app.
 
 ## Installation
 
-Choose your agent platform:
-
 ### Claude Code
 
 ```
@@ -36,36 +34,32 @@ Restart Claude Code after installation.
 /plugin update vibes@vibes-cli
 ```
 
-### OpenAI Codex
+### Codex / OpenCode / Other Agents
 
-```bash
-git clone https://github.com/popmechanic/vibes-cli.git ~/.codex/vibes
-cd ~/.codex/vibes/scripts && npm install
+Have your agent fetch and follow the install instructions:
+```
+https://raw.githubusercontent.com/popmechanic/vibes-cli/main/.codex/INSTALL.md
 ```
 
-Add to your `~/.codex/AGENTS.md`:
+Or install manually:
+```bash
+git clone https://github.com/popmechanic/vibes-cli.git ~/.vibes
+cd ~/.vibes/scripts && npm install
+```
+
+Then add to your agent's config (e.g., `~/.codex/AGENTS.md`):
 ```markdown
 ## Vibes
 
 <EXTREMELY_IMPORTANT>
-You have Vibes installed. RIGHT NOW run:
-`~/.codex/vibes/.codex/vibes-codex bootstrap`
-and follow the instructions it returns.
+You have Vibes installed. Run `~/.vibes/.codex/vibes-codex bootstrap` and follow the instructions.
 </EXTREMELY_IMPORTANT>
 ```
 
 **Updating:**
 ```bash
-cd ~/.codex/vibes && git pull
+cd ~/.vibes && git pull
 ```
-
-### Skills.sh (Agent Skills Standard)
-
-```bash
-npx skills add popmechanic/vibes-cli
-```
-
-This makes all Vibes skills available to any agent that supports the [Agent Skills](https://skills.sh) standard.
 
 ### Troubleshooting
 
@@ -78,14 +72,14 @@ This makes all Vibes skills available to any agent that supports the [Agent Skil
 ```
 Then restart Claude Code.
 
-**Codex - permission denied:**
+**Permission denied running vibes-codex:**
 ```bash
-chmod +x ~/.codex/vibes/.codex/vibes-codex
+chmod +x ~/.vibes/.codex/vibes-codex
 ```
 
 **Scripts fail with "module not found":**
 ```bash
-cd ~/.codex/vibes/scripts && npm install
+cd ~/.vibes/scripts && npm install
 ```
 
 ## Skills
