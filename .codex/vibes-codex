@@ -9,26 +9,30 @@
  *   find-skills         - List available skills
  */
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
-const { spawn } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import { spawn, execSync } from 'child_process';
+import { fileURLToPath } from 'url';
 
-// Resolve vibes directory - supports env var, Codex install, and dev mode
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Resolve vibes directory - supports env var, npm install, Codex install, and dev mode
 function resolveVibesDir() {
   // 1. Environment variable override
   if (process.env.VIBES_PLUGIN_ROOT) {
     return process.env.VIBES_PLUGIN_ROOT;
   }
-  // 2. Codex installation (default for this CLI)
+  // 2. npm installation (node_modules/@vibesguru/vibes)
+  const npmPath = path.resolve(__dirname, '..');
+  if (fs.existsSync(path.join(npmPath, 'skills', 'vibes', 'SKILL.md'))) {
+    return npmPath;
+  }
+  // 3. Codex installation
   const codexPath = path.join(os.homedir(), '.codex', 'vibes');
   if (fs.existsSync(path.join(codexPath, 'skills', 'vibes', 'SKILL.md'))) {
     return codexPath;
-  }
-  // 3. Dev mode - relative to this script
-  const devPath = path.resolve(__dirname, '..');
-  if (fs.existsSync(path.join(devPath, 'skills', 'vibes', 'SKILL.md'))) {
-    return devPath;
   }
   // 4. Fallback to Codex path (will show "not found" errors)
   return codexPath;
@@ -54,15 +58,16 @@ function extractFrontmatter(content) {
 }
 
 function runBootstrap() {
-  // Check for updates
+  // Check for updates (only if it's a git repo)
   try {
-    const { execSync } = require('child_process');
-    execSync('git fetch origin', { cwd: vibesDir, timeout: 3000, stdio: 'pipe' });
-    const status = execSync('git status --porcelain=v1 --branch', { cwd: vibesDir, encoding: 'utf8' });
-    if (status.includes('[behind ')) {
-      console.log('## Update Available\n');
-      console.log('Your vibes installation is behind. To update: `cd ~/.codex/vibes && git pull`\n');
-      console.log('---\n');
+    if (fs.existsSync(path.join(vibesDir, '.git'))) {
+      execSync('git fetch origin', { cwd: vibesDir, timeout: 3000, stdio: 'pipe' });
+      const status = execSync('git status --porcelain=v1 --branch', { cwd: vibesDir, encoding: 'utf8' });
+      if (status.includes('[behind ')) {
+        console.log('## Update Available\n');
+        console.log('Your vibes installation is behind. To update: `cd ~/.codex/vibes && git pull`\n');
+        console.log('---\n');
+      }
     }
   } catch (e) { /* ignore network errors */ }
 
