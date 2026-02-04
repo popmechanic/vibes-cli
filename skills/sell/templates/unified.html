@@ -4,11 +4,15 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>__APP_TITLE__</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <script>globalThis.process = { env: { NODE_ENV: "production" } };</script>
     <script src="https://unpkg.com/@babel/standalone@7.26.0/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
-      button { cursor: pointer; }
       :root {
         /* Core colors */
         --vibes-black: #0f172a;
@@ -784,18 +788,20 @@ const getOverlayStyle = () => ({
   left: 0,
   right: 0,
   bottom: 0,
-  backgroundColor: "var(--vibes-menu-bg, #CCCDC8)",
-  backgroundImage: `
-    linear-gradient(rgba(255, 255, 255, 0.5) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.5) 1px, transparent 1px)
-  `,
-  backgroundSize: "32px 32px",
+  backgroundColor: "rgba(0, 0, 0, 0.5)",
   zIndex: 0
 });
 const getBlackBorderWrapperStyle = () => ({
   position: "relative",
   width: "90%",
   maxWidth: "550px",
+  backgroundImage: `
+    linear-gradient(to right, rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.1) 1px, transparent 1px)
+  `,
+  backgroundSize: "40px 40px",
+  backgroundColor: "#e8e4df",
+  border: "3px solid #1a1a1a",
   borderRadius: "12px",
   zIndex: 1,
   overflow: "hidden"
@@ -817,7 +823,8 @@ const getBackgroundStyle = (isShredding, isError) => ({
   left: "1.5rem",
   right: "1.5rem",
   bottom: "1.5rem",
-  backgroundColor: isError ? "var(--vibes-red-accent, #ef4444)" : "transparent",
+  backgroundColor: isError ? "var(--vibes-red-accent, #ef4444)" : "var(--vibes-gray-lighter, #c4c4c4)",
+  border: "1px solid black",
   borderRadius: "8px",
   zIndex: 0,
   transformOrigin: "center center",
@@ -925,15 +932,6 @@ const getAnimationStyles = () => `
       transform: scaleX(0) scaleY(0.01);
       border-radius: 0;
       background-color: black;
-    }
-  }
-
-  @keyframes slideUpReveal {
-    0% {
-      transform: translateY(0);
-    }
-    100% {
-      transform: translateY(-100vh);
     }
   }
 `;
@@ -2603,13 +2601,6 @@ if (typeof window !== 'undefined') {
         const [claimState, setClaimState] = useState({ loading: true, owner: null });
         const { SignedIn, SignedOut } = window.ClerkComponents || {};
 
-        // Post-auth animation state
-        // Phases: 'idle' | 'shredding' | 'sliding' | 'done'
-        const { isLoaded, isSignedIn } = window.useUser();
-        const [postAuthPhase, setPostAuthPhase] = useState('idle');
-        const wasSignedIn = useRef(null);
-        const appDisplayName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
         // Hook must be called unconditionally at top of component (Rules of Hooks)
         window.useVibesPanelEvents('Sell');
 
@@ -2619,34 +2610,11 @@ if (typeof window !== 'undefined') {
           });
         }, [subdomain]);
 
-        // Detect sign-in transition and trigger animation sequence
-        useEffect(() => {
-          if (!isLoaded) return;
-
-          // First load - record state, don't animate
-          if (wasSignedIn.current === null) {
-            wasSignedIn.current = isSignedIn;
-            return;
-          }
-
-          // Fresh sign-in detected - play animation sequence
-          if (isSignedIn && !wasSignedIn.current) {
-            setPostAuthPhase('shredding');
-            // After shred completes, start slide
-            setTimeout(() => setPostAuthPhase('sliding'), 1200);
-            // After slide completes, show app
-            setTimeout(() => setPostAuthPhase('done'), 2000);
-          }
-
-          wasSignedIn.current = isSignedIn;
-        }, [isSignedIn, isLoaded]);
-
         // Debug: Log component status (after all hooks)
         console.log('TenantApp render:', {
           SignedIn: typeof SignedIn,
           SignedOut: typeof SignedOut,
-          ClerkComponents: !!window.ClerkComponents,
-          postAuthPhase
+          ClerkComponents: !!window.ClerkComponents
         });
 
         // Guard against undefined Clerk components (after all hooks)
@@ -2658,23 +2626,6 @@ if (typeof window !== 'undefined') {
           return (
             <div className="min-h-screen flex items-center justify-center">
               <div className="text-gray-500">Loading...</div>
-            </div>
-          );
-        }
-
-        // During post-auth animation, show auth gate with animation
-        if (postAuthPhase === 'shredding' || postAuthPhase === 'sliding') {
-          return (
-            <div style={{
-              transform: postAuthPhase === 'sliding' ? 'translateY(-100vh)' : 'none',
-              transition: postAuthPhase === 'sliding' ? 'transform 0.8s ease-in-out' : 'none'
-            }}>
-              <AuthScreen
-                title={`Welcome to ${appDisplayName}`}
-                message="Signing you in..."
-                showCard={true}
-                isShredding={postAuthPhase === 'shredding'}
-              />
             </div>
           );
         }
@@ -2774,6 +2725,13 @@ if (typeof window !== 'undefined') {
             --easing: cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
+        html, body {
+            background-color: #ECECEC;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
         .landing-page * {
             box-sizing: border-box;
             -webkit-font-smoothing: antialiased;
@@ -2820,41 +2778,6 @@ if (typeof window !== 'undefined') {
             justify-content: center;
             align-items: center;
             position: relative;
-        }
-
-        .landing-page .kinetic-blob {
-            position: absolute;
-            width: 60vw;
-            height: 60vw;
-            background: radial-gradient(circle at center, var(--accent-pants), transparent 60%);
-            opacity: 0.15;
-            filter: blur(80px);
-            animation: breathe 10s infinite alternate ease-in-out;
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        .landing-page .kinetic-blob-2 {
-            position: absolute;
-            top: -20%;
-            right: -10%;
-            width: 40vw;
-            height: 40vw;
-            background: radial-gradient(circle at center, var(--accent-shoe-green), transparent 60%);
-            opacity: 0.12;
-            filter: blur(60px);
-            animation: float 15s infinite reverse linear;
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        @keyframes breathe {
-            0% { transform: scale(1) translate(0, 0); }
-            100% { transform: scale(1.1) translate(-20px, 20px); }
-        }
-        @keyframes float {
-            0% { transform: rotate(0deg) translate(0, 0); }
-            100% { transform: rotate(360deg) translate(50px, -50px); }
         }
 
         .landing-page .hero-container {
@@ -3167,10 +3090,6 @@ if (typeof window !== 'undefined') {
             <style>{landingPageStyles}</style>
 
             <div className="landing-page">
-              {/* Kinetic blobs */}
-              <div className="kinetic-blob" />
-              <div className="kinetic-blob-2" />
-
               {/* Nav - logo only */}
               <nav>
                 <div className="logo">{displayName}</div>
