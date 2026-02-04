@@ -464,6 +464,7 @@ async function phase4dFaviconUpload(args) {
   }
 
   try {
+    // Upload each favicon file
     for (const file of FAVICON_FILES) {
       const localPath = join(FAVICON_DIR, file);
       if (!existsSync(localPath)) {
@@ -471,18 +472,15 @@ async function phase4dFaviconUpload(args) {
         continue;
       }
 
+      const tmpPath = `/home/exedev/${file}`;
       const remotePath = `${remoteDir}/${file}`;
-      const tempPath = `/tmp/${file}`;
 
-      // Upload to temp, then sudo move to www
-      const client = await connectSSH(vmHost);
-      await scpUpload(client, localPath, tempPath);
+      await uploadFile(localPath, vmHost, tmpPath);
+
+      const client = await connect(vmHost);
+      await runCommand(client, `sudo mv ${tmpPath} ${remotePath}`);
+      await runCommand(client, `sudo chown www-data:www-data ${remotePath}`);
       client.end();
-
-      const client2 = await connectSSH(vmHost);
-      await runCommand(client2, `sudo cp ${tempPath} ${remotePath}`);
-      await runCommand(client2, `sudo chown www-data:www-data ${remotePath}`);
-      client2.end();
     }
 
     console.log(`  ✓ ${FAVICON_FILES.length} favicon files uploaded`);
