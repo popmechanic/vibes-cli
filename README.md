@@ -1,12 +1,12 @@
-# Vibes CLI - a Claude Code skill for vibe coding small apps
+# Vibes - a vibe coding stack made for coding agents
 
 ![Vibes](assets/vibes.png)
 
 Instantly make your own small multi-user apps, without a backend. With Vibes, The front-end _is_ the app.
 
-## What is Vibes CLI?
+## What is Vibes?
 
-Vibes is the vibe coding stack made for AI agents. It collapses application code and application state into a single HTML file that runs anywhere.
+Vibes is a vibe coding stack made for coding agents. It collapses application code and application state into a single HTML file that runs anywhere.
 
 **Why does this matter?** AI doesn't make apps - it makes *text*. By embedding the database in JavaScript (via [Fireproof](https://fireproof.storage)), your coding agent can describe an entire app - including its persistence layer - in one shot. No server setup, no schema imports. Just a working app.
 
@@ -14,52 +14,79 @@ Your data lives locally in the browser, encrypted and portable. It syncs across 
 
 ## Quick Start
 
-1. Install the plugin:
-   ```
-   /plugin marketplace add popmechanic/vibes-cli
-   /plugin install vibes@vibes-cli
-   ```
+Install for your agent, then try: "Make me a todo vibe"
 
-2. Restart Claude Code
-
-3. Try it:
-   ```
-   Make me a todo vibe
-   ```
-
-That's it. Claude generates a single HTML file with a working app.
+That's it. Your agent generates a single HTML file with a working app.
 
 ## Installation
 
-In Claude Code, run:
+Choose your agent platform:
+
+### Claude Code
 
 ```
 /plugin marketplace add popmechanic/vibes-cli
 /plugin install vibes@vibes-cli
 ```
 
-**Important**: Restart Claude Code after installation to load the new skills.
+Restart Claude Code after installation.
 
-### Updating
-
-To update to the latest version:
-
+**Updating:**
 ```
 /plugin update vibes@vibes-cli
 ```
 
+### OpenAI Codex
+
+```bash
+git clone https://github.com/popmechanic/vibes-cli.git ~/.codex/vibes
+cd ~/.codex/vibes/scripts && npm install
+```
+
+Add to your `~/.codex/AGENTS.md`:
+```markdown
+## Vibes
+
+<EXTREMELY_IMPORTANT>
+You have Vibes installed. RIGHT NOW run:
+`~/.codex/vibes/.codex/vibes-codex bootstrap`
+and follow the instructions it returns.
+</EXTREMELY_IMPORTANT>
+```
+
+**Updating:**
+```bash
+cd ~/.codex/vibes && git pull
+```
+
+### Skills.sh (Agent Skills Standard)
+
+```bash
+npx skills add popmechanic/vibes-cli
+```
+
+This makes all Vibes skills available to any agent that supports the [Agent Skills](https://skills.sh) standard.
+
 ### Troubleshooting
 
-If updates aren't working or you're stuck on an old version:
-
+**Claude Code - stuck on old version:**
 ```
 /plugin marketplace remove vibes-cli
 /plugin uninstall vibes@vibes-cli
 /plugin marketplace add popmechanic/vibes-cli
 /plugin install vibes@vibes-cli
 ```
-
 Then restart Claude Code.
+
+**Codex - permission denied:**
+```bash
+chmod +x ~/.codex/vibes/.codex/vibes-codex
+```
+
+**Scripts fail with "module not found":**
+```bash
+cd ~/.codex/vibes/scripts && npm install
+```
 
 ## Skills
 
