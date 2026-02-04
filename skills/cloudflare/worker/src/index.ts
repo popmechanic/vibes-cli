@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import { Webhook } from "svix";
 import type { Env } from "./types";
 import { RegistryKV } from "./lib/kv-storage";
-import { verifyClerkJWT } from "./lib/crypto-jwt";
+import { verifyClerkJWT, verifyClerkJWTDebug } from "./lib/crypto-jwt";
 import { parsePermittedOrigins } from "./lib/jwt-validation";
 import {
   isSubdomainAvailable,
@@ -38,10 +38,16 @@ app.post("/claim", async (c) => {
   const authHeader = c.req.header("Authorization");
   const permittedOrigins = parsePermittedOrigins(c.env.PERMITTED_ORIGINS);
 
-  const auth = await verifyClerkJWT(authHeader, c.env.CLERK_PEM_PUBLIC_KEY, permittedOrigins);
-  if (!auth) {
-    return c.json({ error: "Unauthorized" }, 401);
+  // Use debug version to get detailed failure reason
+  const authResult = await verifyClerkJWTDebug(authHeader, c.env.CLERK_PEM_PUBLIC_KEY, permittedOrigins);
+  if ('error' in authResult) {
+    return c.json({
+      error: "Unauthorized",
+      failReason: authResult.error,
+      permittedOrigins
+    }, 401);
   }
+  const auth = authResult;
 
   let body: { subdomain?: string };
   try {

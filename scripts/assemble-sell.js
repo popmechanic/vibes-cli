@@ -12,7 +12,7 @@
  *   node scripts/assemble-sell.js <app.jsx> [output.html] [options]
  *
  * Options:
- *   --clerk-key <key>     Clerk publishable key (required)
+ *   --clerk-key <key>     Clerk publishable key (optional - uses .env if not provided)
  *   --app-name <name>     App name for database naming (e.g., "wedding-photos")
  *   --app-title <title>   Display title (e.g., "Wedding Photos")
  *   --domain <domain>     Root domain (e.g., "myapp.exe.xyz")
@@ -185,9 +185,58 @@ if (!domain) {
 }
 const appName = options.appName || 'my-app';
 
+// Load env vars from .env BEFORE replacements (so we can use as fallback for Clerk key)
+const outputDir = dirname(resolve(outputPath || 'index.html'));
+const envVars = loadEnvFile(outputDir);
+
+// Check if .env file exists at all
+const envPath = resolve(outputDir, '.env');
+if (!existsSync(envPath)) {
+  console.error(`
+╔════════════════════════════════════════════════════════════════╗
+║  ERROR: .env file not found                                    ║
+╠════════════════════════════════════════════════════════════════╣
+║  The sell skill requires Fireproof Connect to be configured.   ║
+║                                                                 ║
+║  SOLUTION: Run /vibes:connect first to set up your sync        ║
+║  backend, then return to /vibes:sell.                          ║
+║                                                                 ║
+║  Expected: ${envPath.length > 50 ? '...' + envPath.slice(-47) : envPath.padEnd(50)} ║
+╚════════════════════════════════════════════════════════════════╝
+`);
+  process.exit(1);
+}
+
+// Validate Connect credentials - fail fast if invalid
+const hasValidConnect = validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY) &&
+                        envVars.VITE_API_URL;
+
+if (!hasValidConnect) {
+  console.error(`
+╔════════════════════════════════════════════════════════════════╗
+║  ERROR: Invalid Clerk credentials in .env                      ║
+╠════════════════════════════════════════════════════════════════╣
+║  The .env file exists but is missing required values.          ║
+║                                                                 ║
+║  Required in .env:                                              ║
+║    VITE_CLERK_PUBLISHABLE_KEY=pk_test_... or pk_live_...       ║
+║    VITE_API_URL=https://your-studio.exe.xyz/api                ║
+║    VITE_CLOUD_URL=fpcloud://your-studio.exe.xyz?protocol=wss   ║
+║                                                                 ║
+║  Current values:                                                ║
+║    VITE_CLERK_PUBLISHABLE_KEY=${(envVars.VITE_CLERK_PUBLISHABLE_KEY || '(not set)').substring(0, 30).padEnd(30)}    ║
+║    VITE_API_URL=${(envVars.VITE_API_URL || '(not set)').substring(0, 40).padEnd(40)}    ║
+║                                                                 ║
+║  SOLUTION: Run /vibes:connect to configure your sync backend.  ║
+╚════════════════════════════════════════════════════════════════╝
+`);
+  process.exit(1);
+}
+
 // Configuration replacements
+// Use --clerk-key if provided, otherwise fall back to .env value (validated above)
 const replacements = {
-  '__CLERK_PUBLISHABLE_KEY__': options.clerkKey || 'pk_test_YOUR_KEY_HERE',
+  '__CLERK_PUBLISHABLE_KEY__': options.clerkKey || envVars.VITE_CLERK_PUBLISHABLE_KEY || 'pk_test_YOUR_KEY_HERE',
   '__APP_NAME__': appName,
   '__APP_TITLE__': options.appTitle || appName,
   '__APP_DOMAIN__': domain,
@@ -268,57 +317,8 @@ if (output.includes(adminPlaceholder)) {
   console.log('Note: Template has inline admin dashboard, skipping admin component injection');
 }
 
-// Load env vars from .env if present (for Connect config - Fireproof sync)
-const outputDir = dirname(resolvedOutputPath);
-const envVars = loadEnvFile(outputDir);
-
-// Check if .env file exists at all
-const envPath = resolve(outputDir, '.env');
-if (!existsSync(envPath)) {
-  console.error(`
-╔════════════════════════════════════════════════════════════════╗
-║  ERROR: .env file not found                                    ║
-╠════════════════════════════════════════════════════════════════╣
-║  The sell skill requires Fireproof Connect to be configured.   ║
-║                                                                 ║
-║  SOLUTION: Run /vibes:connect first to set up your sync        ║
-║  backend, then return to /vibes:sell.                          ║
-║                                                                 ║
-║  Expected: ${envPath.length > 50 ? '...' + envPath.slice(-47) : envPath.padEnd(50)} ║
-╚════════════════════════════════════════════════════════════════╝
-`);
-  process.exit(1);
-}
-
-// Validate Connect credentials - fail fast if invalid
-const hasValidConnect = validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY) &&
-                        envVars.VITE_API_URL;
-
-if (!hasValidConnect) {
-  console.error(`
-╔════════════════════════════════════════════════════════════════╗
-║  ERROR: Invalid Clerk credentials in .env                      ║
-╠════════════════════════════════════════════════════════════════╣
-║  The .env file exists but is missing required values.          ║
-║                                                                 ║
-║  Required in .env:                                              ║
-║    VITE_CLERK_PUBLISHABLE_KEY=pk_test_... or pk_live_...       ║
-║    VITE_API_URL=https://your-studio.exe.xyz/api                ║
-║    VITE_CLOUD_URL=fpcloud://your-studio.exe.xyz?protocol=wss   ║
-║                                                                 ║
-║  Current values:                                                ║
-║    VITE_CLERK_PUBLISHABLE_KEY=${(envVars.VITE_CLERK_PUBLISHABLE_KEY || '(not set)').substring(0, 30).padEnd(30)}    ║
-║    VITE_API_URL=${(envVars.VITE_API_URL || '(not set)').substring(0, 40).padEnd(40)}    ║
-║                                                                 ║
-║  SOLUTION: Run /vibes:connect to configure your sync backend.  ║
-╚════════════════════════════════════════════════════════════════╝
-`);
-  process.exit(1);
-}
-
+// Populate Connect config placeholders from .env (envVars loaded earlier)
 console.log('Connect mode: Clerk auth + cloud sync enabled');
-
-// Populate Connect config placeholders from .env
 output = populateConnectConfig(output, envVars);
 
 // Known safe patterns that aren't config placeholders

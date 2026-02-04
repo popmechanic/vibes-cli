@@ -16,10 +16,10 @@ import {
 
 // Card images served from deployed assets
 const CARD_URLS = [
-  "/cards/card-1.png",
-  "/cards/card-2.png",
-  "/cards/card-3.png",
-  "/cards/card-4.png",
+  "/assets/auth-cards/card-1.png",
+  "/assets/auth-cards/card-2.png",
+  "/assets/auth-cards/card-3.png",
+  "/assets/auth-cards/card-4.png",
 ];
 
 export interface AuthScreenProps {

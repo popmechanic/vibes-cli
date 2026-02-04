@@ -68,3 +68,74 @@ The registry is stored in Cloudflare KV under the key `registry`. Schema:
   "quotas": { "userId": 3 }
 }
 ```
+
+### Important: Custom Domain Required for Subdomains
+
+Workers.dev domains only support one subdomain level for SSL. For multi-tenant
+apps with subdomains (tenant.myapp.workers.dev), you MUST use a custom domain.
+
+**Won't work:** `tenant.myapp.username.workers.dev` (SSL error)
+**Will work:** `tenant.myapp.com` (with custom domain)
+
+On workers.dev, use the `?subdomain=` query parameter for testing:
+- `myapp.username.workers.dev` → landing page
+- `myapp.username.workers.dev?subdomain=tenant` → tenant app
+- `myapp.username.workers.dev?subdomain=admin` → admin dashboard
+
+### Custom Domain Setup
+
+1. **Add domain to Cloudflare** (get nameservers from Cloudflare DNS dashboard)
+2. **Point registrar nameservers** to Cloudflare's assigned nameservers
+3. **Delete conflicting DNS records** for the apex domain (A, AAAA, CNAME)
+4. **Add Custom Domain** in Workers & Pages → your worker → Settings → Domains & Routes → Add → Custom Domain (apex: yourdomain.com)
+5. **Add wildcard CNAME** in DNS: Name: `*`, Target: `<worker-name>.<username>.workers.dev` (Proxied: ON)
+6. **Add Route** in Workers & Pages → your worker → Settings → Domains & Routes → Add → Route: `*.yourdomain.com/*`
+
+After setup:
+- `yourdomain.com` → landing page
+- `tenant.yourdomain.com` → tenant app
+- `admin.yourdomain.com` → admin dashboard
+
+### Required Secrets
+
+| Secret | Source | Purpose |
+|--------|--------|---------|
+| `CLERK_PEM_PUBLIC_KEY` | Clerk JWKS endpoint | JWT signature verification |
+| `PERMITTED_ORIGINS` | Your domains | JWT azp claim validation |
+| `CLERK_WEBHOOK_SECRET` | Clerk dashboard | Webhook signature verification |
+
+**Setting secrets:**
+```bash
+cd skills/cloudflare/worker
+npx wrangler secret put CLERK_PEM_PUBLIC_KEY
+# Paste the PEM key (-----BEGIN PUBLIC KEY----- ... -----END PUBLIC KEY-----)
+
+npx wrangler secret put CLERK_WEBHOOK_SECRET
+# Paste the webhook signing secret from Clerk dashboard
+
+npx wrangler secret put PERMITTED_ORIGINS
+# Enter: https://yourdomain.com,https://*.yourdomain.com
+```
+
+**Getting CLERK_PEM_PUBLIC_KEY:**
+
+1. Find your Clerk Frontend API URL in Clerk dashboard (e.g., `clerk.yourdomain.com`)
+2. Fetch JWKS: `curl https://clerk.yourdomain.com/.well-known/jwks.json`
+3. Convert JWK to PEM using Node.js:
+```javascript
+const crypto = require('crypto');
+const jwk = { /* paste the key from jwks.json */ };
+const pem = crypto.createPublicKey({ key: jwk, format: 'jwk' }).export({ type: 'spki', format: 'pem' });
+console.log(pem);
+```
+
+### Deploy with --name Flag
+
+Always use the `--name` flag to deploy to your app's worker:
+
+```bash
+node scripts/deploy-cloudflare.js --name myapp --file index.html
+```
+
+**Important:** The `--name` determines the worker URL. Without it, wrangler uses
+the name from wrangler.toml (`vibes-registry`), not your app.
