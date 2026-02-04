@@ -197,6 +197,19 @@ When skills reference Claude Code tools, agents should substitute:
 - `Task` tool with subagents → spawn parallel agents if available
 - `${CLAUDE_PLUGIN_ROOT}` → `~/.vibes`
 
+### Adding or Removing Skills (Manual Checklist)
+
+**When you add, remove, or rename a skill**, update these files:
+
+| File | What to Update |
+|------|----------------|
+| `.codex/vibes-codex` | `SKILLS` array (line ~45) |
+| `.codex/vibes-bootstrap.md` | Skills table |
+| `README.md` | Skills section |
+| `.claude-plugin/plugin.json` | `skills` array |
+
+**Skill content changes** (editing `skills/*/SKILL.md`) flow automatically to all harnesses—no manual steps needed.
+
 ---
 
 ## Core Design Principle
