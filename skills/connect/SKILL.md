@@ -1,6 +1,7 @@
 ---
 name: connect
 description: Deploy Fireproof Connect to a dedicated Studio VM on exe.dev. Sets up cloud sync backend for all your Vibes apps.
+license: MIT
 allowed-tools: Bash, Read, Glob, AskUserQuestion
 ---
 
