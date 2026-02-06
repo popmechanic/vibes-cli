@@ -85,6 +85,48 @@ if (attach.ctx.tokenAndClaims.state === "ready") {
 }
 ```
 
+### ClerkFireproofProvider Config
+
+For Vibes apps with Clerk authentication and cloud sync, use the `ClerkFireproofProvider` wrapper:
+
+```jsx
+import { ClerkFireproofProvider } from "@fireproof/clerk";
+
+const config = {
+  apiUrl: import.meta.env.VITE_API_URL || "http://localhost:8080/api/",
+  cloudUrl: import.meta.env.VITE_CLOUD_URL || "fpcloud://localhost:8080?protocol=ws",
+};
+
+<ClerkFireproofProvider publishableKey={CLERK_KEY} config={config}>
+  {/* app content — useFireproofClerk() works inside here */}
+</ClerkFireproofProvider>
+```
+
+| Variable | Purpose | Production Example |
+|----------|---------|-------------------|
+| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk auth | `pk_test_...` or `pk_live_...` |
+| `VITE_API_URL` | Token API endpoint | `https://yourstudio.exe.xyz/api` |
+| `VITE_CLOUD_URL` | Cloud sync (fpcloud protocol) | `fpcloud://yourstudio.exe.xyz/backend?protocol=wss` |
+
+### Sync Status Display
+
+The `attach` object provides real-time sync state:
+
+| State | Meaning | Suggested UI |
+|-------|---------|-------------|
+| `initial` | Not yet connected | Grey dot |
+| `attaching` | Establishing connection | Pulsing dot / spinner |
+| `attached` | Connected and syncing | Green dot |
+| `error` | Failed (check `attach.error.message`) | Red dot + message |
+
+```jsx
+<div className="sync-status">
+  {attach.state === "attached" && <span style={{color: "green"}}>Synced</span>}
+  {attach.state === "attaching" && <span>Connecting...</span>}
+  {attach.state === "error" && <span style={{color: "red"}}>{attach.error.message}</span>}
+</div>
+```
+
 #### Put and Get Documents
 
 Documents are JSON-style objects (CBOR) storing application data. Each has an `_id`, which can be auto-generated or set explicitly. Auto-generation is recommended to ensure uniqueness and avoid conflicts. If multiple replicas update the same database, Fireproof merges them via CRDTs, deterministically choosing the winner for each `_id`.
@@ -574,17 +616,26 @@ export default function App() {
 
 ### Example Image Uploader
 
-This React example shows a simple image uploader application that uses Fireproof to store and sort images by creation date. These APIs easily work with plain JavaScript also.
+> **CRITICAL:** `ImgFile` is NOT exported from the Fireproof bundle. Use `doc._files.uploaded.file()` + `URL.createObjectURL()` instead.
+
+This React example shows a simple image uploader application that uses Fireproof to store and sort images by creation date.
 
 Code listing for App.jsx:
 ```js
-import { toCloud, useFireproof, ImgFile } from "use-fireproof";
-import { useState } from "react";
+import { useFireproof } from "use-fireproof";
+import { useState, useEffect } from "react";
+
+function StoredImage({ fileRef, alt, className }) {
+  const [url, setUrl] = useState(null);
+  useEffect(() => {
+    fileRef.file().then(f => setUrl(URL.createObjectURL(f)));
+    return () => url && URL.revokeObjectURL(url);
+  }, [fileRef]);
+  return url ? <img src={url} alt={alt} className={className} /> : null;
+}
 
 export default function App() {
-  const { attach, useDocument, useLiveQuery } = useFireproof("image-uploads", {
-    attach: toCloud(),
-  });
+  const { useDocument, useLiveQuery } = useFireproof("image-uploads");
   const { doc, merge, submit } = useDocument({ _files: {}, description: "" });
   const { docs } = useLiveQuery("_id", { descending: true, limit: 5 });
   const [error, setError] = useState(false);
@@ -592,12 +643,6 @@ export default function App() {
   return (
     <div className="p-6 max-w-lg mx-auto bg-white shadow-lg rounded-lg">
       <h2 className="text-2xl font-bold mb-4">Image Uploader</h2>
-
-      {/* Sync Status */}
-      <div className="mb-4 text-sm text-gray-600">
-        Sync: {attach.state}
-      </div>
-
       <input type="file" accept="image/*" onChange={e => e.target.files[0] && merge({ _files: { uploaded: e.target.files[0] } })} className="mb-2 border p-2 w-full rounded" />
       <input
         type="text"
@@ -611,7 +656,7 @@ export default function App() {
       <div className="grid grid-cols-2 gap-4 mt-2">
         {docs.map(doc => (
           <div key={doc._id} className="border p-2 rounded shadow-sm bg-gray-50">
-            {doc._files?.uploaded && <ImgFile file={doc._files.uploaded} alt="Uploaded Image" className="w-full h-auto rounded" />}
+            {doc._files?.uploaded && <StoredImage fileRef={doc._files.uploaded} alt="Uploaded Image" className="w-full h-auto rounded" />}
             <p className="text-sm text-gray-700 mt-2">{doc.description || "No description"}</p>
           </div>
         ))}

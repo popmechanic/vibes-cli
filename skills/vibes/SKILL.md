@@ -595,6 +595,34 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
 - **DON'T** use the old `useFireproof` with `toCloud()` - use `useFireproofClerk` instead
 - **DON'T** use white text on light backgrounds
 - **DON'T** use `call-ai` directly - use `useAI` hook instead (it handles proxying and limits)
+- **DON'T** import `ImgFile` - it is NOT exported from the bundle. Display stored files like this:
+  ```jsx
+  function StoredImage({ fileRef, alt, className }) {
+    const [url, setUrl] = useState(null);
+    useEffect(() => {
+      fileRef.file().then(f => setUrl(URL.createObjectURL(f)));
+      return () => url && URL.revokeObjectURL(url);
+    }, [fileRef]);
+    return url ? <img src={url} alt={alt} className={className} /> : null;
+  }
+  // Usage: <StoredImage fileRef={doc._files.photo} alt="Photo" />
+  ```
+- **DON'T** wrap your app in `VibeContextProvider` - that's a vibes.diy platform-only component. Standalone apps use `useFireproofClerk()` directly.
+- **DON'T** panic if you see "Cannot read properties of null (reading 'useContext')" - the template already handles the React singleton via `?external=react,react-dom` in the import map. Check that the import map wasn't accidentally modified.
+- **NOTE:** Apps use `/fireproof-clerk-bundle.js` - this is a temporary local bundle workaround for a CID bug in the npm package. Apps work correctly with it.
+
+---
+
+## When to Read Extended Docs
+
+The shipped cache files contain detailed reference material. Read them when the user's prompt matches these signals:
+
+| Need | Signal in Prompt | Read This |
+|------|------------------|-----------|
+| File uploads | "upload", "images", "photos", "attachments" | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/fireproof.txt` → "Example Image Uploader" |
+| Auth / sync config | "Clerk", "Connect", "cloud sync", "login" | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/fireproof.txt` → "ClerkFireproofProvider Config" |
+| Sync status display | "online/offline", "connection status" | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/fireproof.txt` → "Sync Status Display" |
+| Full Neobrute design details | detailed design system, spacing, typography | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/style-prompt.txt` |
 
 ---
 
