@@ -13,6 +13,7 @@
 | Working on scripts | `scripts/package.json` for deps, this file for architecture |
 | Debugging React errors | "Known Issues" section below |
 | Deploying to Cloudflare | `skills/cloudflare/SKILL.md` |
+| Testing plugin changes | `cd scripts && npm run test:fixtures` for structural tests; `/vibes:test` for full E2E |
 
 ### Fireproof API Reference
 
@@ -439,6 +440,17 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 - **Integration tests** go in `scripts/__tests__/integration/` - use mocks from `mocks/`
 - **Mocks** go in `scripts/__tests__/mocks/` - shared test doubles for external services
 
+## Integration Testing
+
+| What Changed | How to Test |
+|-------------|-------------|
+| Template structure | `cd scripts && npm run test:fixtures` (vitest, ~200ms) |
+| Full E2E (assembly + deploy + browser) | `/vibes:test` |
+
+**Structural tests** (`npm run test:fixtures`) validate assembly output without credentials — no placeholders, import map present, Babel script block intact. Fast enough to run after every template edit.
+
+**Full E2E** (`/vibes:test`) orchestrates real credentials, Connect studio, Cloudflare deploy, and presents a live URL for browser verification. Use after structural tests pass.
+
 ## File Reference
 
 | File | Purpose |
@@ -455,6 +467,8 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `scripts/generate-riff.js` | Parallel riff generator - spawns claude -p for variations |
 | `scripts/assemble-all.js` | Batch assembler for riff directories |
 | `scripts/lib/exe-ssh.js` | SSH automation for exe.dev |
+| `scripts/__tests__/fixtures/` | Pre-written JSX test fixtures |
+| `skills/test/SKILL.md` | E2E integration test skill |
 | `scripts/package.json` | Node.js deps |
 | `config/sources.example.json` | Example config for upstream URL overrides |
 | `components/` | Local TypeScript components - source of truth for UI/UX |
@@ -606,6 +620,7 @@ Claude automatically selects the appropriate skill based on user intent. The ski
 |---------|-------------|-------------|
 | `/vibes:sync` | Periodically (every 30 days) or when docs seem stale | Updates cached documentation and import maps |
 | `/vibes:update` | When existing app has outdated imports or patterns | Deterministic updater for existing apps |
+| `/vibes:test` | After template/assembly changes pass structural tests | E2E integration test with real deploy |
 
 Commands are explicitly invoked by the user with the `/` prefix.
 
@@ -616,6 +631,7 @@ Commands are explicitly invoked by the user with the `/` prefix.
 - **vibes vs sell**: "Build X" → vibes. "Build X with billing" or "monetize my app" → sell.
 - **sync**: Only when user explicitly runs `/vibes:sync` or skill warns about stale cache.
 - **update**: Only when user explicitly runs `/vibes:update` on existing HTML files.
+- **test**: Only when user explicitly runs `/vibes:test` or asks to "test the plugin".
 
 ## Sell Skill: Multi-Tenant SaaS
 
