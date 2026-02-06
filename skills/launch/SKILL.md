@@ -165,7 +165,61 @@ If the user selects "Custom domain", ask for the domain name.
 Store these values:
 - `appPrompt` - the full app description
 - `appName` - URL-safe slug (e.g., `wedding-photos`)
-- `domain` - where it'll live (e.g., `wedding-photos.yourname.workers.dev` or `wedding-photos.example.com`)
+- `domain` - where it'll live (auto-resolved for Cloudflare Workers, or user-provided custom domain)
+
+### 0.3 Resolve Workers URL
+
+If deploying to Cloudflare Workers (the default), resolve the full URL now — this is needed for the Clerk webhook setup in Phase 1.5:
+
+```bash
+node "{pluginRoot}/scripts/lib/resolve-workers-url.js" --name "{appName}"
+```
+
+The script outputs the full URL, e.g., `wedding-photos.marcus-e.workers.dev`. Store this as `domain`.
+
+**Fallback**: If the script fails (e.g., wrangler not authenticated, config not found), ask the user:
+
+```
+Question: "What's your Cloudflare Workers subdomain? (Run `npx wrangler whoami` to find your account name)"
+Header: "CF subdomain"
+Options:
+- Label: "Let me check"
+  Description: "I'll run wrangler whoami and tell you"
+- Label: "I know it"
+  Description: "I'll type my subdomain (e.g., marcus-e)"
+multiSelect: false
+```
+
+Then construct: `{appName}.{subdomain}.workers.dev`
+
+### 0.4 Check for AI Requirements
+
+Look for AI-related keywords in `appPrompt`:
+- "chatbot", "chat with AI", "ask AI"
+- "summarize", "generate", "write", "create content"
+- "analyze", "classify", "recommend"
+- "AI-powered", "intelligent", "smart" (in context of features)
+
+If detected (or ambiguous), ask:
+
+```
+Question: "Does this app need AI features (chatbot, summarization, content generation)?"
+Header: "AI features"
+Options:
+- Label: "Yes — I have an OpenRouter key"
+  Description: "I'll paste my API key from openrouter.ai/keys"
+- Label: "Yes — I need to get one"
+  Description: "I'll sign up at openrouter.ai and get a key"
+- Label: "No AI needed"
+  Description: "This app doesn't need AI capabilities"
+multiSelect: false
+```
+
+- If "Yes — I have an OpenRouter key": collect the key via a follow-up AskUserQuestion. Store as `openRouterKey`.
+- If "Yes — I need to get one": tell the user to visit https://openrouter.ai/keys, then collect the key. Store as `openRouterKey`.
+- If "No AI needed": set `openRouterKey` to null.
+
+If no AI keywords detected, skip this step and set `openRouterKey` to null.
 
 ---
 
@@ -208,7 +262,11 @@ If `CONNECT_READY` (from Phase 0), skip T2 and T3 — mark them completed immedi
 
 Spawn via `Task` tool with `team_name: "launch-{appName}"`, `name: "builder"`, `subagent_type: "general-purpose"`.
 
-**Builder spawn prompt — include ALL of this:**
+**Builder spawn prompt — include ALL of this.**
+
+When constructing the prompt, set `{aiInstructions}` based on `openRouterKey`:
+- If `openRouterKey` is set: `10. This app needs AI features. Use the \`useAI\` hook (from the template) for AI calls: \`const { callAI, loading, error } = useAI();\`. See the vibes SKILL.md "AI Features" section for the full API.`
+- If `openRouterKey` is null: (leave `{aiInstructions}` empty)
 
 ```
 You are the builder agent for a Vibes app launch. Your ONLY job is to generate app.jsx.
@@ -239,6 +297,7 @@ Do NOT hardcode database names. `useTenant()` is provided by the sell template a
 7. All Fireproof imports come from "use-fireproof" (mapped by import map)
 8. Do NOT use TypeScript syntax — pure JSX only
 9. Do NOT use AskUserQuestion — you have everything you need
+{aiInstructions}
 
 ## Write Output
 Write the generated JSX to: ./app.jsx
@@ -453,12 +512,18 @@ Mark T5 completed.
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
   --name "{appName}" \
   --file index.html \
-  --clerk-key "{clerkPk}"
+  --clerk-key "{clerkPk}" \
+  {aiKeyFlag}
 ```
+
+When constructing this command:
+- If `openRouterKey` is set: `{aiKeyFlag}` = `--ai-key "{openRouterKey}"`
+- If `openRouterKey` is null: omit `{aiKeyFlag}` entirely
 
 This automatically:
 - Copies index.html + bundles to the worker
 - Sets `CLERK_PEM_PUBLIC_KEY` and `PERMITTED_ORIGINS` secrets
+- Sets `OPENROUTER_API_KEY` secret (if `--ai-key` provided)
 - Runs `wrangler deploy`
 
 Mark T6 completed.
@@ -483,9 +548,9 @@ Tell the user:
 
 > Your app is live! Here are the URLs to verify:
 >
-> - **Landing page**: `https://{appName}.{account}.workers.dev`
-> - **Tenant test**: `https://{appName}.{account}.workers.dev?subdomain=test`
-> - **Admin dashboard**: `https://{appName}.{account}.workers.dev?subdomain=admin`
+> - **Landing page**: `https://{domain}`
+> - **Tenant test**: `https://{domain}?subdomain=test`
+> - **Admin dashboard**: `https://{domain}?subdomain=admin`
 >
 > Open each one and confirm:
 > 1. Landing page loads with your title, tagline, and features
@@ -517,7 +582,7 @@ Present a final summary:
 ## Launch Complete
 
 **App**: {appTitle}
-**URL**: https://{appName}.{account}.workers.dev
+**URL**: https://{domain}
 **Clerk**: {clerkPk}
 **Connect**: {studioUrl}
 **Billing**: {billingMode}

@@ -350,9 +350,6 @@ STEP 2: SET UP CLERK (REQUIRED BEFORE TESTING)
     ✅ Show passkey button: ON
     ✅ Add passkey to account: ON
 
-  Dashboard → Domains:
-    Add your domain (e.g., ${domain})
-
   Get your Publishable Key and re-run assembly:
 
      node assemble-sell.js app.jsx index.html \\
