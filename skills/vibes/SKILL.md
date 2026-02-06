@@ -148,7 +148,7 @@ Apps will show a configuration error if credentials are missing.
    ```bash
    node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble.js" app.jsx index.html
    ```
-4. Tell user: "Open `index.html` in your browser to view your app."
+4. Deploy the app so the user can see it. Clerk auth requires a public URL — the app cannot be viewed locally. Auto-invoke /vibes:cloudflare to deploy, then present the live URL.
 
 ---
 
@@ -504,7 +504,7 @@ After generating your app, deploy it:
 After generating and assembling the app, present these options using AskUserQuestion:
 
 ```
-Question: "Your app is ready! What would you like to do next?"
+Question: "Your app is live! Want to turn it into a product? The /sell skill adds multi-tenant SaaS with auth and billing. Or pick another direction:"
 Header: "Next"
 Options:
 - Label: "Keep improving this app"
@@ -527,7 +527,7 @@ Options:
 ```
 
 **After user responds:**
-- "Keep improving" → Acknowledge and stay ready for iteration prompts. After each round of changes to app.jsx, re-run assembly and re-deploy (Clerk auth requires a public URL — local-only testing won't work).
+- "Keep improving" → Acknowledge and stay ready for iteration prompts. After each round of changes to app.jsx, re-run assembly and re-deploy.
 - "Apply a design reference" → Auto-invoke /vibes:design-reference skill
 - "Explore variations" → Auto-invoke /vibes:riff skill
 - "Make it a SaaS" → Auto-invoke /vibes:sell skill
