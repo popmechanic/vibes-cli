@@ -170,7 +170,21 @@ node scripts/assemble.js test-vibes/app.jsx test-vibes/index.html
 4. `<script type="text/babel">` contains the fixture code
 5. For sell-ready: `getRouteInfo` function is present
 
-If any check fails, report the error and stop.
+If any check fails, report the error, then ask:
+
+```
+AskUserQuestion:
+  Question: "What next?"
+  Header: "Next"
+  Options:
+  - Label: "Test another fixture"
+    Description: "Go back to Phase 3 and pick a different fixture"
+  - Label: "End test session"
+    Description: "Clean up artifacts and finish"
+```
+
+If "Test another fixture": go to Phase 3.
+If "End test session": go to Phase 11.
 
 ### Phase 5: Deploy to Cloudflare
 
@@ -278,11 +292,12 @@ AskUserQuestion:
   Options:
   - Label: "Test another fixture"
     Description: "Go back to Phase 3 and pick a different fixture"
-  - Label: "Done"
-    Description: "All good — end the test session"
+  - Label: "End test session"
+    Description: "Clean up artifacts and finish"
 ```
 
 If "Test another fixture": go to Phase 3.
+If "End test session": go to Phase 11.
 
 **If "Has issues":** proceed to Phase 7.
 
@@ -391,8 +406,24 @@ AskUserQuestion:
     Description: "Original issue fixed but something else is wrong"
 ```
 
-If "Still broken" or "Different issue": loop back to Phase 7. After 3 loops, stop and say:
+If "Still broken" or "Different issue": loop back to Phase 7. After 3 loops, say:
 > This needs hands-on investigation. Here's what I've tried so far: <summary>. Try debugging manually or open an issue.
+
+Then ask:
+
+```
+AskUserQuestion:
+  Question: "What next?"
+  Header: "Next"
+  Options:
+  - Label: "Test another fixture"
+    Description: "Go back to Phase 3 and pick a different fixture"
+  - Label: "End test session"
+    Description: "Clean up artifacts and finish"
+```
+
+If "Test another fixture": go to Phase 3.
+If "End test session": go to Phase 11.
 
 ### Phase 10: Resolution Summary
 
@@ -431,9 +462,41 @@ AskUserQuestion:
     Description: "Go back to Phase 3 with the fix in place"
   - Label: "Commit the fix"
     Description: "Review and commit the plugin source changes"
-  - Label: "Done"
-    Description: "End the test session"
+  - Label: "End test session"
+    Description: "Clean up artifacts and finish"
 ```
 
-If "Commit the fix": show `git diff` of plugin source changes (exclude `test-vibes/`), suggest a commit message derived from the fix report.
+If "Commit the fix": show `git diff` of plugin source changes (exclude `test-vibes/`), suggest a commit message derived from the fix report. After committing, show the canonical prompt:
+
+```
+AskUserQuestion:
+  Question: "What next?"
+  Header: "Next"
+  Options:
+  - Label: "Test another fixture"
+    Description: "Go back to Phase 3 and pick a different fixture"
+  - Label: "End test session"
+    Description: "Clean up artifacts and finish"
+```
+
 If "Test another fixture": go to Phase 3.
+If "End test session": go to Phase 11.
+
+### Phase 11: Session Cleanup
+
+Triggered when user selects "End test session" from any "What next?" prompt.
+
+Clean up test artifacts while preserving reusable credentials:
+
+```bash
+# Clean test artifacts, preserve .env and .connect
+cd test-vibes && find . -maxdepth 1 ! -name '.' ! -name '.env' ! -name '.connect' -exec rm -rf {} +
+```
+
+Print:
+
+```
+Test session complete.
+  Cleaned: test-vibes/ artifacts
+  Preserved: .env, .connect (reusable next session)
+```
