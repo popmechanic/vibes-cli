@@ -190,6 +190,17 @@ Includes the full registry server for multi-tenant apps: subdomain claiming, ava
 - "Deploy to Cloudflare"
 - "Put this on Cloudflare Workers"
 
+### `launch`
+
+The full SaaS pipeline in one command. Takes you from a prompt to a live, deployed multi-tenant SaaS app with Clerk authentication, subscription billing, and Cloudflare hosting.
+
+Uses **Agent Teams** to parallelize independent steps for maximum speed. A builder agent generates app code while you configure Clerk, and an infra agent deploys Connect in parallel. Typical time: ~20-25 minutes for a new app (vs ~40-60 min doing each step sequentially).
+
+**Example prompts:**
+- "Launch a SaaS app for wedding photo sharing"
+- "Build and deploy a team dashboard with billing"
+- "Full pipeline: task manager with subscriptions"
+
 ### `test`
 
 End-to-end integration test for plugin developers. Assembles a pre-written fixture with real Clerk credentials, deploys a Connect studio and Cloudflare worker, and presents a live URL for browser verification.
