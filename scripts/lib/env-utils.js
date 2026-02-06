@@ -51,6 +51,20 @@ export function validateClerkKey(key) {
 }
 
 /**
+ * Validate that an OpenRouter API key has the correct format
+ */
+export function validateOpenRouterKey(key) {
+  return typeof key === 'string' && key.startsWith('sk-or-');
+}
+
+/**
+ * Validate that a Clerk user ID has the correct format
+ */
+export function validateClerkUserId(id) {
+  return typeof id === 'string' && id.startsWith('user_');
+}
+
+/**
  * Replace Connect config placeholders with values from .env
  * @param {string} html - Template HTML
  * @param {object} envVars - Environment variables
