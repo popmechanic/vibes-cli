@@ -171,13 +171,23 @@ Store these values:
 
 ## Phase 1: Spawn Team & Parallel Work
 
-### 1.1 Spawn Team
+### 1.1 Resolve Plugin Root
+
+Before spawning teammates, resolve `${CLAUDE_PLUGIN_ROOT}` to an absolute path. Teammates don't have this environment variable — they receive plain text prompts, so all paths must be fully resolved.
+
+```bash
+echo "${CLAUDE_PLUGIN_ROOT}"
+```
+
+Store the output as `pluginRoot`. Use this resolved path when constructing all teammate spawn prompts below (substitute `{pluginRoot}` with the actual value).
+
+### 1.2 Spawn Team
 
 ```
 Teammate.spawnTeam("launch-{appName}", "Full SaaS pipeline for {appName}")
 ```
 
-### 1.2 Create Task List
+### 1.3 Create Task List
 
 Create all tasks with dependencies:
 
@@ -194,7 +204,7 @@ Create all tasks with dependencies:
 
 If `CONNECT_READY` (from Phase 0), skip T2 and T3 — mark them completed immediately and don't spawn infra.
 
-### 1.3 Spawn Builder Teammate
+### 1.4 Spawn Builder Teammate
 
 Spawn via `Task` tool with `team_name: "launch-{appName}"`, `name: "builder"`, `subagent_type: "general-purpose"`.
 
@@ -220,9 +230,9 @@ const { database, useLiveQuery, useDocument } = useFireproofClerk(dbName);
 Do NOT hardcode database names. `useTenant()` is provided by the sell template at runtime.
 
 ## Generation Rules
-1. Read the vibes skill for patterns: Read file `${CLAUDE_PLUGIN_ROOT}/skills/vibes/SKILL.md`
-2. Read Fireproof API docs: Read file `${CLAUDE_PLUGIN_ROOT}/cache/fireproof.txt`
-3. Read style guidance: Read file `${CLAUDE_PLUGIN_ROOT}/cache/style-prompt.txt`
+1. Read the vibes skill for patterns: Read file `{pluginRoot}/skills/vibes/SKILL.md`
+2. Read Fireproof API docs: Read file `{pluginRoot}/cache/fireproof.txt`
+3. Read style guidance: Read file `{pluginRoot}/cache/style-prompt.txt`
 4. Output ONLY JSX — no HTML wrapper, no import map, no Babel script tags
 5. Export a default function component: `export default function App() { ... }`
 6. Use Tailwind CSS for styling (available via CDN in template)
@@ -237,7 +247,7 @@ Write the generated JSX to: ./app.jsx
 Mark your task (T1) as completed via TaskUpdate.
 ```
 
-### 1.4 Lead Collects Clerk Credentials (T2) — Simultaneous With Builder
+### 1.5 Lead Collects Clerk Credentials (T2) — Simultaneous With Builder
 
 **Skip this step entirely if CONNECT_READY.**
 
@@ -298,7 +308,7 @@ PEMEOF
 
 Mark T2 completed.
 
-### 1.5 Spawn Infra Teammate (After T2 Completes)
+### 1.6 Spawn Infra Teammate (After T2 Completes)
 
 **Skip if CONNECT_READY.**
 
@@ -318,7 +328,7 @@ Deploy a Fireproof Connect studio named "{appName}-studio" using deploy-connect.
 
 ## Run the Deploy Script
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-connect.js" \
+node "{pluginRoot}/scripts/deploy-connect.js" \
   --studio "{appName}-studio" \
   --clerk-publishable-key "{clerkPk}" \
   --clerk-secret-key "{clerkSk}"
@@ -342,7 +352,7 @@ Send a message to the lead with the .env contents.
 - If the deploy fails, send the error to the lead via SendMessage
 ```
 
-### 1.6 Lead Collects Sell Config (T4) — While Infra Deploys
+### 1.7 Lead Collects Sell Config (T4) — While Infra Deploys
 
 While infra deploys Connect, collect the remaining sell config. Use AskUserQuestion:
 
