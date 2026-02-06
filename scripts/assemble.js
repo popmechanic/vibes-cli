@@ -15,65 +15,9 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { createBackup } from './lib/backup.js';
+import { loadEnvFile, validateClerkKey, populateConnectConfig } from './lib/env-utils.js';
 
 const PLACEHOLDER = '// __VIBES_APP_CODE__';
-
-// Connect config placeholders (required - apps need Clerk auth)
-const CONFIG_PLACEHOLDERS = {
-  '__VITE_API_URL__': 'VITE_API_URL',
-  '__VITE_CLOUD_URL__': 'VITE_CLOUD_URL',
-  '__VITE_CLERK_PUBLISHABLE_KEY__': 'VITE_CLERK_PUBLISHABLE_KEY'
-};
-
-/**
- * Parse .env file if it exists
- * Returns object with env var values
- */
-function loadEnvFile(dir) {
-  const envPath = resolve(dir, '.env');
-  if (!existsSync(envPath)) {
-    return {};
-  }
-
-  const content = readFileSync(envPath, 'utf8');
-  const env = {};
-
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-
-    const eqIndex = trimmed.indexOf('=');
-    if (eqIndex === -1) continue;
-
-    const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).trim();
-    env[key] = value;
-  }
-
-  return env;
-}
-
-/**
- * Validate that a Clerk publishable key has the correct format
- */
-function validateClerkKey(key) {
-  return key && (key.startsWith('pk_test_') || key.startsWith('pk_live_'));
-}
-
-/**
- * Replace Connect config placeholders with values from .env
- * Requires valid Clerk credentials - will fail if missing
- */
-function populateConnectConfig(html, envVars) {
-  let result = html;
-
-  for (const [placeholder, envKey] of Object.entries(CONFIG_PLACEHOLDERS)) {
-    const value = envVars[envKey] || '';
-    result = result.replace(placeholder, value);
-  }
-
-  return result;
-}
 
 // Parse args
 const appPath = process.argv[2];
@@ -166,7 +110,7 @@ if (validationErrors.length > 0) {
   // Provide specific guidance based on error type
   const fixes = validationErrors.map(e => {
     if (e.includes('empty')) return 'Ensure app.jsx has content';
-    if (e.includes('Placeholder')) return 'Template may be corrupted - run /vibes:sync to refresh';
+    if (e.includes('Placeholder')) return 'Template may be corrupted - rebuild with: node scripts/merge-templates.js --force';
     if (e.includes('App component')) return 'Add "export default function App()" or "function App()"';
     if (e.includes('script tags')) return 'Check for unclosed <script> tags in template';
     return null;

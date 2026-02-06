@@ -42,10 +42,8 @@ vibes-cli/
 │   ├── sell/SKILL.md        # SaaS transformation
 │   └── exe/SKILL.md         # exe.dev deployment
 ├── commands/                # User-invoked commands
-│   ├── sync.md              # Update cache from upstream
 │   └── update.md            # Update existing apps
 ├── scripts/                 # Node.js utilities
-│   ├── sync.js              # Cache sync script
 │   ├── assemble.js          # JSX → HTML assembly
 │   ├── update.js            # App updater
 │   └── __tests__/           # Test suite
@@ -124,21 +122,6 @@ Both must have matching version numbers.
 # Edit marketplace.json plugins array: "version": "0.1.18"
 ```
 
-## Sync Script Development
-
-The sync script (`scripts/sync.js`) fetches from upstream vibes.diy. Key considerations:
-
-- **Current version**: This plugin uses `0.24.3-dev` with cloud sync features
-- **Cache priority**: `skills/vibes/cache/` is the authoritative source
-- **Template updates**: Sync updates import maps in SKILL.md files
-
-To test sync changes:
-
-```bash
-cd scripts
-node sync.js --force
-```
-
 ## Pull Request Guidelines
 
 1. **One feature per PR**: Keep changes focused
@@ -159,11 +142,12 @@ node sync.js --force
 
 ## Common Tasks
 
-### Update Import Maps
+### Rebuild Templates
 
 ```bash
 cd scripts
-node sync.js --force
+node build-components.js --force
+node merge-templates.js --force
 ```
 
 ### Test a Generated App

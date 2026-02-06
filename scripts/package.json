@@ -4,9 +4,7 @@
   "type": "module",
   "description": "Sync scripts for vibes-cli plugin",
   "scripts": {
-    "sync": "node sync.js",
-    "sync:force": "node sync.js --force",
-    "registry": "bun run registry-server.ts",
+"registry": "bun run registry-server.ts",
     "test": "vitest",
     "test:unit": "vitest run __tests__/unit",
     "test:integration": "vitest run __tests__/integration",
