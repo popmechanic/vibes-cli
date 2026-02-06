@@ -144,13 +144,6 @@
           return { route: 'landing', subdomain: null };
         }
 
-        // Handle exe.xyz for testing (use ?subdomain= param)
-        if (hostname.endsWith('.exe.xyz')) {
-          if (testSubdomain === 'admin') return { route: 'admin', subdomain: null };
-          if (testSubdomain) return { route: 'tenant', subdomain: testSubdomain };
-          return { route: 'landing', subdomain: null };
-        }
-
         // Handle workers.dev (use ?subdomain= param, no wildcard SSL)
         if (hostname.endsWith('.workers.dev')) {
           if (testSubdomain === 'admin') return { route: 'admin', subdomain: null };
@@ -180,7 +173,6 @@
         const hostname = window.location.hostname;
         return hostname === 'localhost'
           || hostname === '127.0.0.1'
-          || hostname.endsWith('.exe.xyz')
           || hostname.endsWith('.workers.dev');
       }
 
