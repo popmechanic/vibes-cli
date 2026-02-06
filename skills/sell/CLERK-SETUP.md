@@ -98,7 +98,7 @@ The registry server listens for Clerk subscription webhooks to release subdomain
 
 1. In Clerk Dashboard, go to **Webhooks**
 2. Click **Add Endpoint**
-3. Enter your webhook URL: `https://yourapp.exe.xyz/webhook`
+3. Enter your webhook URL: `https://{domain}/webhook`
 4. Select these events:
    - `subscription.updated`
    - `subscription.deleted`
@@ -106,22 +106,10 @@ The registry server listens for Clerk subscription webhooks to release subdomain
 
 ### 4.2 Set Webhook Secret
 
-The webhook secret is set when deploying:
+The webhook secret is set via Wrangler after deploying:
 
 ```bash
-node deploy-exe.js --name myapp \
-  --file index.html \
-  --clerk-webhook-secret whsec_xxxxx
-```
-
-Or set it in `/etc/registry.env` on the VM:
-```
-CLERK_WEBHOOK_SECRET=whsec_xxxxx
-```
-
-Then restart the registry service:
-```bash
-sudo systemctl restart registry
+echo "whsec_xxxxx" | npx wrangler secret put CLERK_WEBHOOK_SECRET --name myapp
 ```
 
 ---
@@ -203,10 +191,12 @@ node assemble-sell.js app.jsx index.html \
 Operators can reserve subdomains at deploy time to prevent users from claiming them:
 
 ```bash
-node deploy-exe.js --name myapp \
+node deploy-cloudflare.js --name myapp \
   --file index.html \
-  --reserved "admin,billing,api,www,support"
+  --clerk-key "pk_test_xxx"
 ```
+
+Reserved subdomains are configured in the Cloudflare Worker's KV store.
 
 Reserved subdomains show as "unavailable" to users.
 
@@ -214,11 +204,7 @@ Reserved subdomains show as "unavailable" to users.
 
 For enterprise customers or special cases, pre-allocate subdomains to specific user IDs:
 
-```bash
-node deploy-exe.js --name myapp \
-  --file index.html \
-  --preallocated "acme:user_enterprise1,bigcorp:user_enterprise2"
-```
+Pre-allocated subdomains can be configured directly in the Worker's KV store after deployment.
 
 Pre-allocated subdomains are immediately owned by the specified user.
 
@@ -278,7 +264,7 @@ Pre-allocated subdomains are immediately owned by the specified user.
 - [ ] Get admin user ID from Clerk Dashboard → Users
 - [ ] Re-run assembly with `--admin-ids '["user_xxx"]'`
 - [ ] Re-deploy to enable admin dashboard access
-- [ ] Verify registry: `curl https://yourapp.exe.xyz/registry.json`
+- [ ] Verify registry: `curl https://{domain}/registry.json`
 
 ### Subdomain Registry
 - [ ] Configure webhook endpoint in Clerk Dashboard
@@ -295,7 +281,7 @@ Pre-allocated subdomains are immediately owned by the specified user.
 
 ### Subdomain Registry (Server-side)
 
-Subdomain ownership is stored in `/var/www/html/registry.json`:
+Subdomain ownership is stored in the Cloudflare Worker's KV store (served at `/registry.json`):
 
 ```json
 {
@@ -325,11 +311,10 @@ For multi-subdomain users, the number of claimed subdomains equals their subscri
 
 ### Registry fetch failed error
 If you see "Registry fetch failed, using empty defaults" in the console:
-1. Verify registry server is running: `sudo systemctl status vibes-registry`
-2. Check registry endpoint: `curl https://yourapp.exe.xyz/registry.json`
-3. Verify `--clerk-key` was provided during deployment
-4. Check registry logs: `sudo journalctl -u vibes-registry -f`
-5. If you see HTML instead of JSON, nginx may not be proxying to the registry server
+1. Check registry endpoint: `curl https://{domain}/registry.json`
+2. Verify `--clerk-key` was provided during deployment
+3. Check Worker logs: `npx wrangler tail --name {appName}`
+4. If you see HTML instead of JSON, the Worker may not have deployed correctly
 
 ### Clerk not loading
 1. Check publishable key is correct (use pk_test_... for dev, pk_live_... for production)
@@ -349,13 +334,12 @@ This error during signup means Clerk Email settings are wrong:
 
 ### Subdomain shows "unavailable" but shouldn't be
 1. Check `/registry.json` - is it in `reserved` or `claims`?
-2. Verify registry server is running: `sudo systemctl status registry`
-3. Check nginx proxy config is correct
+2. Check Worker logs: `npx wrangler tail --name {appName}`
 
 ### Webhook not releasing subdomains
 1. Verify webhook URL is correct in Clerk Dashboard
-2. Check webhook secret matches `/etc/registry.env`
-3. View registry logs: `sudo journalctl -u registry -f`
+2. Check webhook secret was set: `npx wrangler secret list --name {appName}`
+3. View Worker logs: `npx wrangler tail --name {appName}`
 4. Verify webhook events are selected (subscription.updated, subscription.deleted)
 
 ### Billing not working

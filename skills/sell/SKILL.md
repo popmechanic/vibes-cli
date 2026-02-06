@@ -24,7 +24,7 @@ allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 - [Step 2: Clerk Configuration](#step-2-clerk-configuration-required) - Set up authentication (REQUIRED)
 - [Step 3: App Configuration](#step-3-app-configuration) - Collect app settings
 - [Step 4: Assembly](#step-4-assembly) - Build the unified app
-- [Step 5: Deployment](#step-5-deployment) - Go live with exe.dev
+- [Step 5: Deployment](#step-5-deployment) - Deploy to Cloudflare Workers
 - [Step 6: Post-Deploy Verification](#step-6-post-deploy-verification) - Confirm everything works
 - [Key Components](#key-components) - Routing, TenantContext, SubscriptionGate
 - [Troubleshooting](#troubleshooting) - Common issues and fixes
@@ -38,18 +38,18 @@ allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 | Step | Script | What it does |
 |------|--------|--------------|
 | Assembly | `assemble-sell.js` | Generates unified index.html |
-| Deploy | `deploy-exe.js` | Deploys to exe.dev with registry |
+| Deploy | `deploy-cloudflare.js` | Deploys to Cloudflare Workers with registry |
 
 **Script location:**
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" ...
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" ...
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" ...
 ```
 
 **NEVER do these manually:**
 - ❌ Write HTML/JSX for landing page, tenant app, or admin dashboard
 - ❌ Generate routing logic or authentication code
-- ❌ Deploy without `--clerk-key` and `--clerk-webhook-secret`
+- ❌ Deploy without `--clerk-key`
 
 **ALWAYS do these:**
 - ✅ Complete pre-flight checks before starting
@@ -160,20 +160,70 @@ Before collecting credentials, the user must set up Clerk. Present these instruc
 >    | Show passkey button | ✅ ON |
 >    | Add passkey to account | ✅ ON |
 >
-> 4. **Create Webhook** (Dashboard → Configure → Webhooks):
->    - Click "Add Endpoint"
->    - Enter URL: `https://YOUR-APP.exe.xyz/webhook` (we'll confirm the name later)
->    - Select events: `user.created`, `user.deleted`, `subscription.*`
->    - Click "Create"
->    - Copy the **"Signing Secret"** (starts with `whsec_`)
 >
 > See [CLERK-SETUP.md](./CLERK-SETUP.md) for complete details.
 >
 > **When you're ready, I'll collect your Clerk credentials.**
 
-### 2.2 Collect Clerk Credentials
+### 2.2 Collect App Name (Needed for Webhook URL)
 
-Use AskUserQuestion with these 3 questions:
+The webhook endpoint URL requires the app name. Collect it now so we can give the user the exact URL.
+
+Use AskUserQuestion:
+```
+Question: "What should we call this app?"
+Header: "App Name"
+Options: Provide 2 suggestions based on context + user enters via "Other"
+Description: "Used for database naming and deployment URL (e.g., 'wedding-photos')"
+multiSelect: false
+```
+
+Store as `appName` (URL-safe slug: lowercase, hyphens, no special chars).
+
+Now resolve the Cloudflare Workers URL so the webhook step has the real domain:
+
+```bash
+node "{pluginRoot}/scripts/lib/resolve-workers-url.js" --name "{appName}"
+```
+
+The script outputs the full URL, e.g., `wedding-photos.marcus-e.workers.dev`. Store this as `domain`.
+
+**Fallback**: If the script fails (e.g., wrangler not authenticated), ask the user:
+
+```
+Question: "What's your Cloudflare Workers subdomain? (Run `npx wrangler whoami` to find your account name)"
+Header: "CF subdomain"
+Options:
+- Label: "Let me check"
+  Description: "I'll run wrangler whoami and tell you"
+- Label: "I know it"
+  Description: "I'll type my subdomain (e.g., marcus-e)"
+multiSelect: false
+```
+
+Then construct: `{appName}.{subdomain}.workers.dev` and store as `domain`.
+
+The user can configure a custom domain later (see Step 5.2).
+
+### 2.3 Create Webhook
+
+Use AskUserQuestion:
+```
+Question: "Create a webhook in Clerk: Go to Webhooks > Add Endpoint. Set the URL to: https://{domain}/webhook — Subscribe to these events: user.created, user.deleted, subscription.created, subscription.updated, subscription.deleted"
+Header: "Webhook"
+Options:
+- Label: "Webhook created"
+  Description: "I've added the endpoint and subscribed to the events"
+- Label: "I need help"
+  Description: "I'm having trouble finding the webhooks page"
+multiSelect: false
+```
+
+If "I need help": walk them through navigating Clerk dashboard > Configure > Webhooks > Add Endpoint, making sure to repeat the URL `https://{domain}/webhook`.
+
+### 2.4 Collect Clerk Credentials
+
+Use AskUserQuestion with these 2 questions:
 
 ```
 Question 1: "What's your Clerk Publishable Key?"
@@ -181,54 +231,28 @@ Header: "Clerk Key"
 Options: User enters via "Other"
 Description: "From Clerk Dashboard → API Keys. Starts with pk_test_ or pk_live_"
 
-Question 2: "What's your Clerk JWKS Public Key?"
-Header: "JWKS Key"
-Options: User enters via "Other"
-Description: "From Clerk Dashboard → API Keys → scroll to 'Show JWT Public Key'. Starts with -----BEGIN PUBLIC KEY-----"
-
-Question 3: "What's your Clerk Webhook Secret?"
+Question 2: "What's your Clerk Webhook Secret?"
 Header: "Webhook"
 Options: User enters via "Other"
-Description: "From the webhook you created. Starts with whsec_"
+Description: "From the webhook you just created — click the endpoint, copy the Signing Secret. Starts with whsec_"
 ```
 
-### 2.3 Validation Gate
+### 2.5 Validation Gate
 
 **Before proceeding, validate ALL credentials:**
 
 | Credential | Valid Format | If Invalid |
 |------------|--------------|------------|
 | Publishable Key | Starts with `pk_test_` or `pk_live_` | Stop, ask for correct key |
-| JWKS Public Key | Starts with `-----BEGIN PUBLIC KEY-----` | Stop, guide to JWT Public Key location |
 | Webhook Secret | Starts with `whsec_` | Stop, guide to webhook creation |
 
 **If ANY validation fails:** Stop and help user get the correct credential. Do not proceed to Step 3.
 
-### 2.4 Save JWKS Key to File
-
-After receiving and validating the JWKS key, save it to a file for the deploy command:
-
-```bash
-cat > clerk-jwks-key.pem << 'EOF'
------BEGIN PUBLIC KEY-----
-[THE USER'S KEY CONTENT HERE]
------END PUBLIC KEY-----
-EOF
-```
-
-Verify the file was created:
-```bash
-head -1 clerk-jwks-key.pem
-```
-
-**Expected output:** `-----BEGIN PUBLIC KEY-----`
-
-### 2.5 Clerk Configuration Complete
+### 2.6 Clerk Configuration Complete
 
 Confirm to the user:
 > "Clerk credentials validated and saved:
-> - ✓ Publishable Key: pk_test_... (saved for assembly)
-> - ✓ JWKS Key: Saved to clerk-jwks-key.pem (for deployment)
+> - ✓ Publishable Key: pk_test_... (saved for assembly and deployment)
 > - ✓ Webhook Secret: whsec_... (saved for deployment)
 >
 > Now let's configure your app settings."
@@ -241,25 +265,17 @@ Confirm to the user:
 
 ### Batch 1: Core Identity
 
-Use the AskUserQuestion tool with these 4 questions:
+App name and deploy domain were already resolved in Step 2.2. Custom domains can be configured later (Step 5.2).
+
+Use the AskUserQuestion tool with these 2 questions:
 
 ```
-Question 1: "What should we call this app?"
-Header: "App Name"
-Options: Provide 2 suggestions based on context + user enters via "Other"
-Description: "Used for database naming and deployment URL (e.g., 'wedding-photos')"
-
-Question 2: "What domain will this deploy to?"
-Header: "Domain"
-Options: ["Use exe.xyz subdomain", "Custom domain"]
-Description: "exe.xyz is instant. Custom domains require DNS setup."
-
-Question 3: "Do you want to require paid subscriptions?"
+Question 1: "Do you want to require paid subscriptions?"
 Header: "Billing"
 Options: ["No - free access for all", "Yes - subscription required"]
 Description: "Billing is configured in Clerk Dashboard → Billing"
 
-Question 4: "Display title for your app?"
+Question 2: "Display title for your app?"
 Header: "Title"
 Options: Suggest based on app name + user enters via "Other"
 Description: "Shown in headers and landing page"
@@ -288,7 +304,7 @@ Description: "Comma-separated list (e.g., 'Photo sharing, Guest uploads, Live ga
 
 ### After Receiving Answers
 
-1. If user selected "Custom domain", ask for the domain name
+1. Domain is `{domain}` (resolved in Step 2.2). Custom domains can be added post-deploy (Step 5.2).
 2. Admin User IDs default to empty (configured after first deploy - see Step 6)
 3. **Proceed immediately to Step 4 (Assembly)**
 
@@ -297,7 +313,7 @@ Description: "Comma-separated list (e.g., 'Photo sharing, Guest uploads, Live ga
 | Config | Script Flag | Example |
 |--------|-------------|---------|
 | App Name | `--app-name` | `wedding-photos` |
-| Domain | `--domain` | `myapp.exe.xyz` |
+| Domain | `--domain` | `myapp.marcus-e.workers.dev` |
 | Billing | `--billing-mode` | `off` or `required` |
 | Clerk Publishable Key | `--clerk-key` | `pk_test_xxx` |
 | Title | `--app-title` | `Wedding Photos` |
@@ -385,7 +401,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
   --clerk-key "pk_test_xxx" \
   --app-name "wedding-photos" \
   --app-title "Wedding Photos" \
-  --domain "myapp.exe.xyz" \
+  --domain "{domain}" \
   --tagline "SHARE YOUR DAY.<br>MAKE IT SPECIAL." \
   --subtitle "The easiest way to share wedding photos with guests." \
   --billing-mode "off" \
@@ -430,82 +446,63 @@ The template uses neutral colors by default. To match the user's brand:
 
 **Registry server credentials are REQUIRED for SaaS apps.**
 
-### 5.0 Pre-Deploy Check: Verify JWKS Key File
-
-Before deploying, verify the JWKS key file exists:
+### 5.1 Deploy to Cloudflare Workers
 
 ```bash
-test -f clerk-jwks-key.pem && echo "✓ JWKS key file exists" || echo "✗ MISSING: clerk-jwks-key.pem"
-```
-
-**If output shows `MISSING`:**
-> Return to Step 2.4 and save the JWKS key to `clerk-jwks-key.pem`
-
-### 5.1 Deploy with ALL Required Flags
-
-```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
   --name wedding-photos \
   --file index.html \
-  --clerk-key "$(cat clerk-jwks-key.pem)" \
-  --clerk-webhook-secret "whsec_xxx"
+  --clerk-key "pk_test_xxx"
+```
+
+Then set the webhook secret as a Wrangler secret:
+
+```bash
+echo "whsec_xxx" | npx wrangler secret put CLERK_WEBHOOK_SECRET --name wedding-photos
 ```
 
 **Required Flags for SaaS:**
-| Flag | Source | Purpose |
-|------|--------|---------|
-| `--clerk-key` | clerk-jwks-key.pem file | Registry JWT verification |
-| `--clerk-webhook-secret` | Clerk webhook | Subscription sync |
+| Flag / Secret | Source | Purpose |
+|---------------|--------|---------|
+| `--clerk-key` | Clerk publishable key (pk_test_/pk_live_) | deploy-cloudflare.js auto-fetches PEM from JWKS endpoint |
+| `CLERK_WEBHOOK_SECRET` | Clerk webhook signing secret | Set via `wrangler secret put` after deploy |
 
-**Without these flags, the registry server will NOT be deployed and subdomain claiming will NOT work.**
+**Without `--clerk-key`, the Worker won't be able to verify JWTs for subdomain claiming.**
 
 ### 5.2 DNS Configuration (For Custom Domains)
 
-If using a custom domain (not just yourapp.exe.xyz), configure DNS:
+The app is immediately available at `{appName}.{subdomain}.workers.dev`. For a custom domain:
 
-| Type | Name | Value |
-|------|------|-------|
-| ALIAS | @ | exe.xyz |
-| CNAME | * | yourapp.exe.xyz |
+1. In the Cloudflare dashboard, go to **Workers & Pages** → your worker → **Settings** → **Domains & Routes**
+2. Add a custom domain (e.g., `cosmicgarden.app`)
+3. For wildcard subdomains (e.g., `*.cosmicgarden.app`), add a wildcard route
 
-**Example for `cosmic-garden.exe.xyz` with custom domain `cosmicgarden.app`:**
-
-| Type | Name | Value |
-|------|------|-------|
-| ALIAS | @ | exe.xyz |
-| CNAME | * | cosmic-garden.exe.xyz |
-
-This routes both the apex domain and all subdomains through exe.dev's proxy, which handles SSL automatically.
-
-**Note:** If your DNS provider doesn't support ALIAS records, use the `?subdomain=` query parameter as a fallback.
+**Note:** Until a custom domain with wildcard SSL is configured, use the `?subdomain=` query parameter for tenant routing (e.g., `https://{domain}?subdomain=alice`).
 
 ### 5.3 Optional: AI Features
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
   --name wedding-photos \
   --file index.html \
-  --clerk-key "$(cat clerk-jwks-key.pem)" \
-  --clerk-webhook-secret "whsec_xxx" \
-  --ai-key "sk-or-v1-your-provisioning-key" \
-  --multi-tenant \
-  --tenant-limit 5
+  --clerk-key "pk_test_xxx" \
+  --ai-key "sk-or-v1-your-provisioning-key"
 ```
 
 ### 5.4 Validation Gate: Verify Registry
 
-After deployment, verify the registry server is running:
+After deployment, verify the registry is working:
 
 ```bash
-curl -s https://wedding-photos.exe.xyz/registry.json | head -c 100
+curl -s https://{domain}/registry.json | head -c 100
 ```
 
 **Expected output:** `{"claims":{},"quotas":{},"reserved":["admin","api","www"]...`
 
 **If you see HTML instead of JSON:**
-- The registry server isn't running
-- Check deployment logs
-- Verify `--clerk-key` and `--clerk-webhook-secret` were provided
+- The Worker may not have deployed correctly
+- Check `npx wrangler tail --name {appName}` for errors
+- Verify `--clerk-key` was provided during deploy
 
 ---
 
@@ -514,14 +511,14 @@ curl -s https://wedding-photos.exe.xyz/registry.json | head -c 100
 ### 6.1 Test Landing Page
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}" https://wedding-photos.exe.xyz
+curl -s -o /dev/null -w "%{http_code}" https://{domain}
 ```
 
 **Expected:** `200`
 
 ### 6.2 Test Tenant Routing
 
-Open in browser: `https://wedding-photos.exe.xyz?subdomain=test`
+Open in browser: `https://{domain}?subdomain=test`
 
 Should show the tenant app (may require sign-in).
 
@@ -534,11 +531,11 @@ Present this checklist to the user:
 > Verify these settings in your Clerk Dashboard:
 >
 > **Domains** (Dashboard → Domains):
-> - [ ] Add your deployment domain (e.g., `wedding-photos.exe.xyz`)
+> - [ ] Add your deployment domain (e.g., `{domain}`)
 > - [ ] If using custom domain, add that too
 >
 > **Webhook** (Dashboard → Configure → Webhooks):
-> - [ ] Endpoint URL matches your deployment: `https://wedding-photos.exe.xyz/webhook`
+> - [ ] Endpoint URL matches your deployment: `https://{domain}/webhook`
 > - [ ] Events selected: `user.created`, `user.deleted`, `subscription.*`
 >
 > **If using billing** (Dashboard → Billing):
@@ -551,7 +548,7 @@ Guide the user through admin setup:
 
 > **Set Up Admin Access**
 >
-> 1. Visit your app and sign up: `https://wedding-photos.exe.xyz`
+> 1. Visit your app and sign up: `https://{domain}`
 > 2. Complete the signup flow (email → verify → passkey)
 > 3. Go to Clerk Dashboard → Users → click your user → copy User ID
 > 4. Re-run assembly with admin access:
@@ -559,20 +556,20 @@ Guide the user through admin setup:
 > ```bash
 > node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
 >   --clerk-key "pk_test_xxx" \
->   --app-name "wedding-photos" \
->   --app-title "Wedding Photos" \
->   --domain "wedding-photos.exe.xyz" \
+>   --app-name "{appName}" \
+>   --app-title "{appTitle}" \
+>   --domain "{domain}" \
 >   --admin-ids '["user_xxx"]' \
 >   [... other options ...]
 > ```
 >
 > 5. Re-deploy:
 > ```bash
-> node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
->   --name wedding-photos \
+> node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
+>   --name {appName} \
 >   --file index.html \
->   --clerk-key "$(cat clerk-jwks-key.pem)" \
->   --clerk-webhook-secret "whsec_xxx"
+>   --clerk-key "pk_test_xxx"
+> echo "whsec_xxx" | npx wrangler secret put CLERK_WEBHOOK_SECRET --name {appName}
 > ```
 
 After collecting the user ID, save it to the project `.env`:
@@ -604,8 +601,8 @@ function getRouteInfo() {
     return { route: 'landing', subdomain: null };
   }
 
-  // Handle exe.xyz testing (before custom domain is set up)
-  if (hostname.endsWith('.exe.xyz')) {
+  // Handle workers.dev (use ?subdomain= param, no wildcard SSL)
+  if (hostname.endsWith('.workers.dev')) {
     if (testSubdomain === 'admin') return { route: 'admin', subdomain: null };
     if (testSubdomain) return { route: 'tenant', subdomain: testSubdomain };
     return { route: 'landing', subdomain: null };
@@ -663,11 +660,11 @@ http://localhost:5500/index.html?subdomain=test → Tenant app
 http://localhost:5500/index.html?subdomain=admin → Admin dashboard
 ```
 
-**exe.xyz (before custom domain):**
+**Workers.dev (before custom domain):**
 ```
-https://myapp.exe.xyz              → Landing page
-https://myapp.exe.xyz?subdomain=test → Tenant app
-https://myapp.exe.xyz?subdomain=admin → Admin dashboard
+https://{domain}              → Landing page
+https://{domain}?subdomain=test → Tenant app
+https://{domain}?subdomain=admin → Admin dashboard
 ```
 
 ---
@@ -730,15 +727,15 @@ The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk i
 4. Ensure "Verify at sign-up" is ON with "Email verification code" checked
 
 ### Registry returns HTML instead of JSON
-- The registry server isn't running
-- Deploy was run without `--clerk-key` and `--clerk-webhook-secret`
-- Re-deploy with both flags:
+- The Worker may not have deployed correctly
+- Deploy was run without `--clerk-key`
+- Re-deploy with the clerk key:
   ```bash
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
     --name myapp \
     --file index.html \
-    --clerk-key "$(cat clerk-jwks-key.pem)" \
-    --clerk-webhook-secret "whsec_xxx"
+    --clerk-key "pk_test_xxx"
+  echo "whsec_xxx" | npx wrangler secret put CLERK_WEBHOOK_SECRET --name myapp
   ```
 
 ### Assembly fails with ".env file not found"
@@ -763,5 +760,5 @@ Options:
   Description: "Adjust colors, refine tagline, or update feature descriptions."
 
 - Label: "I'm done for now"
-  Description: "Your app is live at https://yourapp.exe.xyz"
+  Description: "Your app is live at https://{domain}"
 ```
