@@ -190,6 +190,14 @@ Includes the full registry server for multi-tenant apps: subdomain claiming, ava
 - "Deploy to Cloudflare"
 - "Put this on Cloudflare Workers"
 
+### `test`
+
+End-to-end integration test for plugin developers. Assembles a pre-written fixture with real Clerk credentials, deploys a Connect studio and Cloudflare worker, and presents a live URL for browser verification.
+
+Walks you through each step interactively: credentials, Connect setup, fixture selection, assembly, deploy, and verification.
+
+**Example prompt:** "Test the plugin" or "Run an integration test"
+
 ## Commands
 
 Commands are **user-invoked** - run them explicitly when needed.

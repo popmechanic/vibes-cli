@@ -10,7 +10,8 @@
     "test": "vitest",
     "test:unit": "vitest run __tests__/unit",
     "test:integration": "vitest run __tests__/integration",
-    "test:e2e:server": "node __tests__/e2e/local-server.js"
+    "test:e2e:server": "node __tests__/e2e/local-server.js",
+    "test:fixtures": "vitest run __tests__/integration/assembly-pipeline.test.js"
   },
   "dependencies": {
     "esbuild": "^0.24.0",

@@ -27,6 +27,7 @@ When skills reference Claude Code tools, substitute your equivalent:
 | connect | "set up Connect", "enable sync" | Deploy Fireproof Connect |
 | design-reference | design.html or mockup provided | Transform design to Vibes app |
 | cloudflare | "deploy to cloudflare", "cloudflare workers" | Deploy to Cloudflare Workers with KV registry |
+| test | "test the plugin", "integration test" | E2E test — assemble fixture, deploy, verify in browser |
 
 **Critical Rules:**
 - Before building apps, check if a relevant skill applies
