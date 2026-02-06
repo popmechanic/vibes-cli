@@ -55,6 +55,7 @@ This automatically:
 | `/check/:subdomain` | GET | Check subdomain availability |
 | `/claim` | POST | Claim a subdomain (auth required) |
 | `/webhook` | POST | Clerk subscription webhooks |
+| `/api/ai/chat` | POST | AI proxy to OpenRouter (requires OPENROUTER_API_KEY) |
 
 ### KV Storage
 
@@ -103,6 +104,7 @@ After setup:
 | `CLERK_PEM_PUBLIC_KEY` | Clerk JWKS endpoint | JWT signature verification |
 | `PERMITTED_ORIGINS` | Your domains | JWT azp claim validation |
 | `CLERK_WEBHOOK_SECRET` | Clerk dashboard | Webhook signature verification |
+| `OPENROUTER_API_KEY` | OpenRouter dashboard | AI proxy for `useAI()` hook (optional) |
 
 **Setting secrets:**
 ```bash
@@ -139,3 +141,22 @@ node scripts/deploy-cloudflare.js --name myapp --file index.html
 
 **Important:** The `--name` determines the worker URL. Without it, wrangler uses
 the name from wrangler.toml (`vibes-registry`), not your app.
+
+### AI Features
+
+Apps using the `useAI()` hook call `/api/ai/chat` on the same origin. The worker proxies these requests to OpenRouter.
+
+**Deploy with AI enabled:**
+
+```bash
+node scripts/deploy-cloudflare.js --name myapp --file index.html --ai-key "sk-or-v1-your-key"
+```
+
+The `--ai-key` flag sets the `OPENROUTER_API_KEY` secret on the worker after deployment. Without it, `/api/ai/chat` returns `{"error": "AI not configured"}`.
+
+**Manual setup:**
+
+```bash
+npx wrangler secret put OPENROUTER_API_KEY --name myapp
+# Paste your OpenRouter API key
+```

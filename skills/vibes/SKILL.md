@@ -580,7 +580,7 @@ error = {
 When deploying AI-enabled apps, include the OpenRouter key:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
   --name myapp \
   --file index.html \
   --ai-key "sk-or-v1-your-key"
