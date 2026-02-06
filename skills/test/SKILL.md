@@ -123,7 +123,32 @@ AskUserQuestion:
     Description: "/api/ai/chat endpoint + CORS — requires OpenRouter key"
 ```
 
-**For sell-ready fixture:** Collect additional configuration:
+**For sell-ready fixture:** Collect additional configuration.
+
+First, check `~/.vibes/.env` for a cached Clerk user ID:
+
+```bash
+grep CLERK_USER_ID ~/.vibes/.env 2>/dev/null
+```
+
+**If found**, offer to reuse it (mask the middle of the value in the prompt, e.g., `user_37ici...ohcY`):
+
+```
+AskUserQuestion:
+  Question: "Reuse stored admin user ID? (user_37ici...ohcY)"
+  Header: "Admin ID"
+  Options:
+  - Label: "Yes, reuse"
+    Description: "Use the cached user ID from ~/.vibes/.env"
+  - Label: "Enter new"
+    Description: "I'll paste a different user ID"
+  - Label: "Skip admin"
+    Description: "Deploy without admin access configured"
+```
+
+If "Yes, reuse": use the stored value. If "Enter new": collect via the prompt below, then update `~/.vibes/.env`.
+
+**If not found** (or user chose "Enter new"):
 
 ```
 AskUserQuestion:
@@ -134,6 +159,27 @@ AskUserQuestion:
     Description: "Go to clerk.com → your app → Users → click your user → copy User ID (starts with user_)"
   - Label: "Skip admin"
     Description: "Deploy without admin access configured"
+```
+
+After collecting a new user ID, offer to save it:
+
+```
+AskUserQuestion:
+  Question: "Save this user ID to ~/.vibes/.env for future projects?"
+  Header: "Cache"
+  Options:
+  - Label: "Yes, save"
+    Description: "Cache the user ID so you don't have to paste it again"
+  - Label: "No, skip"
+    Description: "Use for this session only"
+```
+
+If "Yes, save":
+```bash
+mkdir -p ~/.vibes
+grep -q CLERK_USER_ID ~/.vibes/.env 2>/dev/null && \
+  sed -i '' 's/^CLERK_USER_ID=.*/CLERK_USER_ID=<new>/' ~/.vibes/.env || \
+  echo "CLERK_USER_ID=<new>" >> ~/.vibes/.env
 ```
 
 Save the admin user ID for use in Phase 4.
@@ -188,7 +234,30 @@ If "End test session": go to Phase 11.
 
 ### Phase 5: Deploy to Cloudflare
 
-**For ai-proxy fixture:** Ask for OpenRouter key first:
+**For ai-proxy fixture:** Check `~/.vibes/.env` for a cached OpenRouter key first:
+
+```bash
+grep OPENROUTER_API_KEY ~/.vibes/.env 2>/dev/null
+```
+
+**If found**, offer to reuse it (mask the key, e.g., `sk-or-v1-...a3b2`):
+
+```
+AskUserQuestion:
+  Question: "Reuse stored OpenRouter API key? (sk-or-v1-...a3b2)"
+  Header: "AI Key"
+  Options:
+  - Label: "Yes, reuse"
+    Description: "Use the cached key from ~/.vibes/.env"
+  - Label: "Enter new"
+    Description: "I'll paste a different key"
+  - Label: "Skip AI proxy"
+    Description: "Deploy without AI endpoint"
+```
+
+If "Yes, reuse": use the stored value. If "Enter new": collect via the prompt below, then update `~/.vibes/.env`.
+
+**If not found** (or user chose "Enter new"):
 
 ```
 AskUserQuestion:
@@ -197,6 +266,27 @@ AskUserQuestion:
   Options:
   - Label: "Skip AI proxy"
     Description: "Deploy without AI endpoint"
+```
+
+After collecting a new key, offer to save it:
+
+```
+AskUserQuestion:
+  Question: "Save this OpenRouter key to ~/.vibes/.env for future projects?"
+  Header: "Cache"
+  Options:
+  - Label: "Yes, save"
+    Description: "Cache the key so you don't have to paste it again"
+  - Label: "No, skip"
+    Description: "Use for this session only"
+```
+
+If "Yes, save":
+```bash
+mkdir -p ~/.vibes
+grep -q OPENROUTER_API_KEY ~/.vibes/.env 2>/dev/null && \
+  sed -i '' 's/^OPENROUTER_API_KEY=.*/OPENROUTER_API_KEY=<new>/' ~/.vibes/.env || \
+  echo "OPENROUTER_API_KEY=<new>" >> ~/.vibes/.env
 ```
 
 Run the deploy:
