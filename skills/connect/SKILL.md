@@ -22,6 +22,23 @@ Deploy Fireproof Connect to exe.dev as your personal sync backend. Your Studio V
 **Use AskUserQuestion to collect deployment config before running the deploy script.**
 
 ```
+Question 0: "Have you created an exe.dev account? (Run `ssh exe.dev` in your terminal to create one)"
+Header: "exe.dev"
+Options:
+- Label: "Yes, I have an account"
+  Description: "I've already run ssh exe.dev and verified my account."
+- Label: "No, I need to set one up"
+  Description: "I haven't created an exe.dev account yet."
+```
+
+If "No": Instruct the user:
+> Run `ssh exe.dev` in your terminal. This will create your account automatically.
+> You'll need an SSH key in ~/.ssh/ (the command will guide you).
+> Once your account is confirmed, come back and we'll continue.
+
+Then STOP and wait for them to confirm they've completed this step.
+
+```
 Question 1: "What codename for your Studio? (becomes <codename>.exe.xyz)"
 Header: "Studio"
 Options: Suggest "${username}-studio" + user enters via "Other"
