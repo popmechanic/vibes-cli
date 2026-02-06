@@ -12,7 +12,7 @@
  */
 
 import { execSync } from "child_process";
-import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync } from "fs";
+import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync, readFileSync, writeFileSync } from "fs";
 import { resolve, dirname, join, basename } from "path";
 import { fileURLToPath } from "url";
 import { homedir } from "os";
@@ -173,9 +173,69 @@ async function main() {
     run("npm install", { cwd: WORKER_DIR });
   }
 
-  // Deploy with wrangler
+  // Create per-app KV namespace and update wrangler.toml
+  const wranglerToml = resolve(WORKER_DIR, "wrangler.toml");
+  const originalToml = readFileSync(wranglerToml, "utf8");
+
+  console.log("\nEnsuring per-app KV namespace...");
+  const kvName = `${name}-registry`;
+  let kvId;
+  try {
+    // List existing KV namespaces to check if one already exists for this app
+    const listOutput = execSync("npx wrangler kv namespace list", {
+      cwd: WORKER_DIR,
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    const namespaces = JSON.parse(listOutput);
+    const existing = namespaces.find((ns) => ns.title === kvName);
+    if (existing) {
+      kvId = existing.id;
+      console.log(`  Found existing KV namespace: ${kvName} (${kvId})`);
+    }
+  } catch (e) {
+    // List failed, will create new
+  }
+
+  if (!kvId) {
+    console.log(`  Creating KV namespace: ${kvName}`);
+    const createOutput = execSync(`npx wrangler kv namespace create "${kvName}"`, {
+      cwd: WORKER_DIR,
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    // Parse the namespace ID from the output (JSON format: "id": "..." or TOML format: id = "...")
+    const idMatch = createOutput.match(/"id"\s*:\s*"([^"]+)"/) || createOutput.match(/id\s*=\s*"([^"]+)"/);
+    if (!idMatch) {
+      console.error("Failed to parse KV namespace ID from output:", createOutput);
+      process.exit(1);
+    }
+    kvId = idMatch[1];
+    console.log(`  Created KV namespace: ${kvName} (${kvId})`);
+  }
+
+  // Rewrite wrangler.toml with the per-app KV namespace ID
+  const updatedToml = originalToml.replace(
+    /^id\s*=\s*"[^"]*"/m,
+    `id = "${kvId}"`
+  );
+  writeFileSync(wranglerToml, updatedToml);
+
+  // Deploy with wrangler (capture output to extract URL)
   console.log("\nDeploying to Cloudflare...");
-  run(`npx wrangler deploy --name ${name}`, { cwd: WORKER_DIR });
+  let deployOutput = "";
+  try {
+    console.log(`> npx wrangler deploy --name ${name}`);
+    deployOutput = execSync(`npx wrangler deploy --name ${name}`, {
+      cwd: WORKER_DIR,
+      encoding: "utf8",
+      stdio: ["inherit", "pipe", "pipe"],
+    });
+    process.stdout.write(deployOutput);
+  } finally {
+    // Always restore original wrangler.toml
+    writeFileSync(wranglerToml, originalToml);
+  }
 
   // Set OpenRouter API key if provided
   if (aiKey) {
@@ -218,7 +278,10 @@ async function main() {
     console.log("  Clerk auth enabled for /claim endpoint");
   }
 
-  console.log(`\n✅ Deployed to https://${name}.workers.dev`);
+  // Extract the actual deployed URL from wrangler output (includes account subdomain)
+  const urlMatch = deployOutput.match(/https:\/\/[^\s]+\.workers\.dev/);
+  const deployedUrl = urlMatch ? urlMatch[0] : `https://${name}.workers.dev`;
+  console.log(`\n✅ Deployed to ${deployedUrl}`);
 }
 
 main().catch((e) => {
