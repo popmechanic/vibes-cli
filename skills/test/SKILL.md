@@ -123,9 +123,7 @@ AskUserQuestion:
     Description: "/api/ai/chat endpoint + CORS — requires OpenRouter key"
 ```
 
-**For sell-ready fixture:** Collect additional configuration.
-
-First, check `test-vibes/.env` for a cached admin user ID:
+**For sell-ready fixture:** Check `test-vibes/.env` for a cached admin user ID from a previous run:
 
 ```bash
 grep CLERK_ADMIN_USER_ID test-vibes/.env 2>/dev/null
@@ -140,35 +138,14 @@ AskUserQuestion:
   Options:
   - Label: "Yes, reuse"
     Description: "Use the cached user ID from test-vibes/.env"
-  - Label: "Enter new"
-    Description: "I'll paste a different user ID"
   - Label: "Skip admin"
-    Description: "Deploy without admin access configured"
+    Description: "Deploy without admin — you can set it up after deploy"
 ```
 
-If "Yes, reuse": use the stored value. If "Enter new": collect via the prompt below.
+If "Yes, reuse": use the stored value in Phase 4 assembly.
+If "Skip admin": omit `--admin-ids` in Phase 4. Admin setup will be offered post-deploy in Phase 5.5.
 
-**If not found** (or user chose "Enter new"):
-
-```
-AskUserQuestion:
-  Question: "Paste your Clerk user ID for admin access (find it in Clerk Dashboard → Users)"
-  Header: "Admin ID"
-  Options:
-  - Label: "I need to find it"
-    Description: "Go to clerk.com → your app → Users → click your user → copy User ID (starts with user_)"
-  - Label: "Skip admin"
-    Description: "Deploy without admin access configured"
-```
-
-After collecting a new user ID, save it to the project env:
-```bash
-grep -q CLERK_ADMIN_USER_ID test-vibes/.env 2>/dev/null && \
-  sed -i '' 's/^CLERK_ADMIN_USER_ID=.*/CLERK_ADMIN_USER_ID=<new>/' test-vibes/.env || \
-  echo "CLERK_ADMIN_USER_ID=<new>" >> test-vibes/.env
-```
-
-Save the admin user ID for use in Phase 4.
+**If not found:** No prompt needed. Admin will be set up post-deploy in Phase 5.5 after the user has a chance to sign up on the live app.
 
 ### Phase 4: Assembly
 
@@ -293,6 +270,93 @@ Read the publishable key from `test-vibes/.env`. The `--clerk-key` flag automati
 node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html --ai-key <key>
 ```
 
+### Phase 5.5: Admin Setup (sell-ready only)
+
+**Condition:** Only runs for the sell-ready fixture AND admin is not yet configured (no cached ID was reused in Phase 3).
+
+After deploy, guide the user through post-deploy admin setup:
+
+1. Tell the user the app is live and they can now sign up:
+
+```
+Your app is deployed! To configure admin access, first create an account:
+  Sign up here: https://vibes-test.<account>.workers.dev?subdomain=test
+
+After signing up, we'll grab your User ID from Clerk Dashboard.
+```
+
+2. Ask if they've signed up:
+
+```
+AskUserQuestion:
+  Question: "Have you completed signup on the deployed app?"
+  Header: "Signup"
+  Options:
+  - Label: "Yes, signed up"
+    Description: "I've created my account and I'm ready to get my User ID"
+  - Label: "Skip admin setup"
+    Description: "Continue without admin access"
+```
+
+If "Skip admin setup": proceed to Phase 6 without admin configured.
+
+3. Guide to Clerk Dashboard:
+
+```
+Now grab your User ID:
+  1. Go to clerk.com → your application → Users
+  2. Click on your user
+  3. Copy the User ID (starts with user_)
+```
+
+4. Collect the User ID:
+
+```
+AskUserQuestion:
+  Question: "Paste your Clerk User ID (starts with user_)"
+  Header: "Admin ID"
+  Options:
+  - Label: "I need help finding it"
+    Description: "Show me where to find the User ID in Clerk Dashboard"
+  - Label: "Skip admin setup"
+    Description: "Continue without admin access"
+```
+
+Validate the input starts with `user_`. If not, ask again.
+
+5. Save to `test-vibes/.env`:
+
+```bash
+grep -q CLERK_ADMIN_USER_ID test-vibes/.env 2>/dev/null && \
+  sed -i '' 's/^CLERK_ADMIN_USER_ID=.*/CLERK_ADMIN_USER_ID=<userId>/' test-vibes/.env || \
+  echo "CLERK_ADMIN_USER_ID=<userId>" >> test-vibes/.env
+```
+
+6. Re-assemble with admin configured:
+
+```bash
+set -a && source test-vibes/.env && set +a
+
+node scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html \
+  --domain vibes-test.exe.xyz \
+  --admin-ids '["<userId>"]'
+```
+
+7. Re-deploy:
+
+```bash
+node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html \
+  --clerk-key $VITE_CLERK_PUBLISHABLE_KEY
+```
+
+8. Confirm:
+
+```
+Admin access configured! The admin dashboard at ?subdomain=admin should now work for your account.
+```
+
+Proceed to Phase 6.
+
 ### Phase 6: Present URL
 
 Print the live URL and what to check:
@@ -319,8 +383,8 @@ What to verify:
 - Landing page shows pricing/marketing content
 - Claim a subdomain — should succeed (tests /claim + JWT auth)
 - Tenant URL shows auth gate (Clerk sign-in)
-- Admin URL shows admin dashboard (if --admin-ids was configured)
-- Admin URL shows "Admin Access Required" (if --admin-ids was skipped)
+- Admin URL shows admin dashboard (if admin was configured in Phase 3 or 5.5)
+- Admin URL shows "Admin Access Required" (if admin setup was skipped)
 ```
 
 **For ai-proxy:**
