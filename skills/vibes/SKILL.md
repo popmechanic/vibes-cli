@@ -134,7 +134,9 @@ Tell the user what was derived so they can verify it looks correct.
 Instruct the user to set up a JWT template in Clerk:
 
 > In your Clerk Dashboard, go to **Configure → Sessions → JWT templates**.
-> Click **"Add a new template"** and paste this under **Claims**:
+> Click **"Add a new template"** and select **"Blank"**.
+> First, give it a name — **"Vibes"** works well.
+> Then paste this under **Claims**:
 >
 > ```json
 > {
@@ -600,7 +602,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" \
 
 After generating your app, you can deploy it:
 
-- **exe.dev** - VM hosting with nginx. Use `/vibes:exe` to deploy.
+- **Cloudflare** - Edge deployment with Workers. Use `/vibes:cloudflare` to deploy.
 - **Local** - Just open `index.html` in your browser. Works offline with Fireproof.
 
 ---
@@ -625,8 +627,8 @@ Options:
 - Label: "Make it a SaaS (/sell)"
   Description: "Ready to monetize? Sell transforms your app into a multi-tenant SaaS with Clerk authentication, subscription billing, and isolated databases per customer. Each user gets their own subdomain."
 
-- Label: "Deploy to exe.dev (/exe)"
-  Description: "Go live right now. Deploy creates a persistent VM at yourapp.exe.xyz with HTTPS, nginx, and Claude pre-installed for remote development. Your app stays online even when you close your laptop."
+- Label: "Deploy to Cloudflare (/cloudflare)"
+  Description: "Go live on the edge. Deploy to Cloudflare Workers with a subdomain registry, KV storage, and global CDN. Fast, scalable, and always on."
 
 - Label: "I'm done for now"
   Description: "Wrap up this session. Your files are saved locally - come back anytime to continue."
@@ -637,7 +639,7 @@ Options:
 - "Apply a design reference" → Auto-invoke /vibes:design-reference skill
 - "Explore variations" → Auto-invoke /vibes:riff skill
 - "Make it a SaaS" → Auto-invoke /vibes:sell skill
-- "Deploy" → Auto-invoke /vibes:exe skill
+- "Deploy" → Auto-invoke /vibes:cloudflare skill
 - "I'm done" → Confirm files saved, wish them well
 
 **Do NOT proceed to code generation until:**
