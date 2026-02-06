@@ -280,7 +280,7 @@ The assembly script:
 ---
 
 ## What's Next?
-
+<!-- Transitions map to WORKFLOW.md exits from node G -->
 After transforming a design reference, present these options using AskUserQuestion:
 
 ```

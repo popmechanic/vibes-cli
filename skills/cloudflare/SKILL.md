@@ -6,6 +6,7 @@ allowed-tools: Bash, Read, Glob, AskUserQuestion, Write
 ---
 
 ## Deploy to Cloudflare
+<!-- Implements WORKFLOW.md node D (DEPLOY) -->
 
 Deploy your Vibes app to Cloudflare Workers with the subdomain registry.
 

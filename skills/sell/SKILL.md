@@ -61,6 +61,10 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" ...
 
 # Sell - Transform Vibes to SaaS
 
+## Canonical Workflow
+This skill covers nodes S (config), A (assembly), D (deploy), AD (admin setup) in the [Vibes Workflow Graph](../_base/WORKFLOW.md).
+Pre-flight checks implement WORKFLOW.md skip conditions for CO and G.
+
 This skill uses `assemble-sell.js` to inject the user's app into a pre-built template. The template contains security checks, proper Clerk integration, and Fireproof patterns.
 
 Convert your Vibes app into a multi-tenant SaaS product with:
@@ -91,16 +95,12 @@ This approach simplifies deployment - you upload one file and it handles everyth
 
 ### 1.1 Check for Fireproof Connect
 
-Run this command to check if Connect is configured:
-
 ```bash
 cat .env 2>/dev/null | grep VITE_API_URL || echo "NOT_FOUND"
 ```
 
-**If output shows `NOT_FOUND`:**
-> "Fireproof Connect is not configured. Run `/vibes:connect` first to set up your sync backend, then return to `/vibes:sell`."
-
-**STOP HERE** if Connect is not configured. The sell skill requires cloud sync for multi-tenant data isolation.
+**If `NOT_FOUND`:** Run `/vibes:connect` first. See [WORKFLOW.md](../_base/WORKFLOW.md) node CO.
+**STOP HERE** if Connect is not configured.
 
 ### 1.2 Detect Existing App
 
@@ -549,7 +549,7 @@ Present this checklist to the user:
 > - [ ] Stripe connected
 > - [ ] Plans created with matching names: `pro`, `basic`, `monthly`, `yearly`, `starter`, or `free`
 
-### 6.4 Admin Setup (After First Signup)
+### 6.4 Admin Setup (After First Signup) <!-- WORKFLOW.md node AD -->
 
 Guide the user through admin setup:
 

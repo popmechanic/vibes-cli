@@ -38,29 +38,14 @@ prompt → vibes app → Clerk setup → Connect deploy → sell transform → C
 
 It uses **Agent Teams** to parallelize independent steps. The key insight: app generation only needs the user's prompt, so it runs in parallel with Clerk setup (the longest manual step).
 
-### Dependency Graph
+## Canonical Workflow
+This skill implements the [Vibes Workflow Graph](../_base/WORKFLOW.md) via Agent Teams.
+Task mapping: G=T1, CR=T2, CO=T3, S=T4, A=T5, D=T6, AD=Phase 3.5, V=T8.
+See WORKFLOW.md "Context: Launch" for parallel lanes and skip logic.
 
-```
-Phase 0 (Lead):  Collect app prompt + basic identity
-                        |
-         +--------------+--------------+
-         v              v              v
-Phase 1: BUILDER        LEAD           (waiting)
-         generates      guides user
-         app.jsx        through Clerk
-         (2-3 min)      setup (5-20m)
-         |              |
-         |              v
-         |       INFRA deploys
-         |       Connect (5-10m)
-         |              |
-         v              v
-Phase 2: ---- sell assembly ----  (needs app.jsx + .env + config)
-                    |
-Phase 3:    Cloudflare deploy     (needs index.html + Clerk secrets)
-                    |
-Phase 4:      browser test        (present URL to user)
-```
+### Dependency Graph
+See [WORKFLOW.md](../_base/WORKFLOW.md) for the canonical dependency graph.
+Launch-specific parallel lanes: T1 || T2->T3 || T4. All converge at T5 (assembly).
 
 ### Timing
 
@@ -783,18 +768,5 @@ After builder completes, scan app.jsx for these issues before running assembly:
 ---
 
 ## Skip Modes
-
-### Already have Connect (.env exists)
-- Skip T2 (Clerk credentials) and T3 (Connect deploy)
-- Read Clerk PK from `.env`
-- Still need: webhook secret and PEM key for Cloudflare
-- Ask user for just those two values
-
-### Already have app.jsx
-- Skip T1 (builder)
-- Ask user if they want to reuse or regenerate
-- If reusing, check for `useTenant()` pattern — if missing, fix it before assembly
-
-### Already have everything (re-deploy)
-- Skip T1-T4
-- Go straight to Phase 2 (assembly) and Phase 3 (deploy)
+See [WORKFLOW.md](../_base/WORKFLOW.md) node registry "Skip If" column.
+Launch-specific: if .env has Clerk keys -> skip T2+T3. If app.jsx exists -> skip T1. If both -> skip T1-T4, go to Phase 2.
