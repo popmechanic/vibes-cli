@@ -1,0 +1,568 @@
+---
+name: launch
+description: Full SaaS pipeline — generates a Vibes app, adds auth + billing,
+  and deploys live. Uses Agent Teams to parallelize for maximum speed.
+license: MIT
+allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion, Task, Teammate, SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet
+---
+
+**Display this ASCII art immediately when starting:**
+
+```
+░▒▓█▓▒░      ░▒▓████████▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓███████▓▒░░▒▓██████▓▒░▒▓█▓▒░░▒▓█▓▒░
+░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░
+░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░     ░▒▓████████▓▒░
+░▒▓█▓▒░      ░▒▓████████▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░
+░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░     ░▒▓█▓▒░░▒▓█▓▒░
+░▒▓████████▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░▒▓█▓▒░░▒▓█▓▒░
+```
+
+## Quick Navigation
+
+- [Phase 0: Pre-Flight & Prompt Collection](#phase-0-pre-flight--prompt-collection)
+- [Phase 1: Spawn Team & Parallel Work](#phase-1-spawn-team--parallel-work)
+- [Phase 2: Sell Assembly](#phase-2-sell-assembly)
+- [Phase 3: Deploy to Cloudflare](#phase-3-deploy-to-cloudflare)
+- [Phase 4: Verify & Cleanup](#phase-4-verify--cleanup)
+- [Error Handling](#error-handling)
+
+---
+
+## Overview
+
+Launch orchestrates the full pipeline from prompt to live SaaS product:
+
+```
+prompt → vibes app → Clerk setup → Connect deploy → sell transform → Cloudflare deploy → browser test
+```
+
+It uses **Agent Teams** to parallelize independent steps. The key insight: app generation only needs the user's prompt, so it runs in parallel with Clerk setup (the longest manual step).
+
+### Dependency Graph
+
+```
+Phase 0 (Lead):  Collect app prompt + basic identity
+                        |
+         +--------------+--------------+
+         v              v              v
+Phase 1: BUILDER        LEAD           (waiting)
+         generates      guides user
+         app.jsx        through Clerk
+         (2-3 min)      setup (5-20m)
+         |              |
+         |              v
+         |       INFRA deploys
+         |       Connect (5-10m)
+         |              |
+         v              v
+Phase 2: ---- sell assembly ----  (needs app.jsx + .env + config)
+                    |
+Phase 3:    Cloudflare deploy     (needs index.html + Clerk secrets)
+                    |
+Phase 4:      browser test        (present URL to user)
+```
+
+### Timing
+
+| Step | Agent | Blocked By | Duration |
+|------|-------|-----------|----------|
+| Generate app.jsx | builder | prompt only | ~2-3 min |
+| Clerk dashboard setup | lead (interactive) | nothing | ~5-20 min |
+| Deploy Connect | infra | Clerk pk + sk | ~5-10 min |
+| Sell config (remaining Qs) | lead (interactive) | app context nice-to-have | ~2 min |
+| Sell assembly | lead | app.jsx + .env + all config | ~30 sec |
+| Cloudflare deploy | lead | sell index.html + secrets | ~2 min |
+| Browser test | lead (interactive) | deployed URL | ~1 min |
+
+**Best case** (Clerk already configured): ~8-10 minutes total
+**Typical case** (new Clerk app): ~20-25 minutes total
+
+---
+
+## Phase 0: Pre-Flight & Prompt Collection
+
+### 0.1 Pre-Flight Checks
+
+Run these checks before doing anything else:
+
+**Check for existing .env (skip Connect if present):**
+```bash
+if test -f "./.env" && \
+   grep -qE "^VITE_CLERK_PUBLISHABLE_KEY=pk_(test|live)_" ./.env 2>/dev/null && \
+   grep -qE "^VITE_API_URL=" ./.env 2>/dev/null && \
+   grep -qE "^VITE_CLOUD_URL=" ./.env 2>/dev/null; then
+  echo "CONNECT_READY"
+else
+  echo "CONNECT_NOT_READY"
+fi
+```
+
+If `CONNECT_READY`, you can skip the infra teammate and T2/T3 entirely. Read `.env` to get the existing Clerk publishable key.
+
+**Check for existing app.jsx:**
+If `app.jsx` exists in the working directory, ask the user whether to reuse it or regenerate.
+
+**Check SSH key (needed for Connect):**
+```bash
+ls ~/.ssh/id_ed25519 ~/.ssh/id_rsa ~/.ssh/id_ecdsa 2>/dev/null | head -1
+```
+
+**Check exe.dev account (needed for Connect):**
+```bash
+ssh -o ConnectTimeout=5 exe.dev 2>&1 | head -3
+```
+
+**Check wrangler auth (needed for Cloudflare):**
+```bash
+npx wrangler whoami 2>&1
+```
+
+If wrangler is not authenticated, tell the user to run `npx wrangler login` and wait.
+
+### 0.2 Collect Essential Information
+
+Use AskUserQuestion to collect these three pieces upfront (enough to spawn the builder immediately):
+
+```
+Question 1: "What do you want to build? Describe the app you have in mind."
+Header: "App prompt"
+Options:
+- Label: "Todo list"
+  Description: "A simple task manager with categories and due dates"
+- Label: "Photo gallery"
+  Description: "A shareable photo gallery with albums and captions"
+- Label: "Team dashboard"
+  Description: "A metrics and status dashboard for small teams"
+multiSelect: false
+```
+
+Then use a second AskUserQuestion for app identity:
+
+```
+Question 1: "What's the app name? (used for subdomain + database)"
+Header: "App name"
+Options:
+- Label: "Derive from prompt"
+  Description: "I'll generate a slug from your app description (e.g., wedding-photos)"
+- Label: "Let me specify"
+  Description: "I'll type in the exact name I want"
+multiSelect: false
+
+Question 2: "Where will this be deployed?"
+Header: "Domain"
+Options:
+- Label: "Cloudflare Workers (Recommended)"
+  Description: "appname.your-account.workers.dev — free, fast, global"
+- Label: "Custom domain"
+  Description: "I have my own domain configured"
+multiSelect: false
+```
+
+If the user selects "Derive from prompt", generate a URL-safe slug from the prompt (lowercase, hyphens, no special chars, max 30 chars).
+
+If the user selects "Custom domain", ask for the domain name.
+
+Store these values:
+- `appPrompt` - the full app description
+- `appName` - URL-safe slug (e.g., `wedding-photos`)
+- `domain` - where it'll live (e.g., `wedding-photos.yourname.workers.dev` or `wedding-photos.example.com`)
+
+---
+
+## Phase 1: Spawn Team & Parallel Work
+
+### 1.1 Spawn Team
+
+```
+Teammate.spawnTeam("launch-{appName}", "Full SaaS pipeline for {appName}")
+```
+
+### 1.2 Create Task List
+
+Create all tasks with dependencies:
+
+| Task | Subject | BlockedBy | Owner |
+|------|---------|-----------|-------|
+| T1 | Generate app.jsx from prompt | -- | builder |
+| T2 | Collect Clerk credentials | -- | lead |
+| T3 | Deploy Connect studio | T2 | infra |
+| T4 | Collect sell config (billing, title, tagline) | -- | lead |
+| T5 | Run sell assembly | T1, T3, T4 | lead |
+| T6 | Deploy to Cloudflare | T5 | lead |
+| T7 | Set webhook secret on Cloudflare | T6 | lead |
+| T8 | Browser verification | T7 | lead |
+
+If `CONNECT_READY` (from Phase 0), skip T2 and T3 — mark them completed immediately and don't spawn infra.
+
+### 1.3 Spawn Builder Teammate
+
+Spawn via `Task` tool with `team_name: "launch-{appName}"`, `name: "builder"`, `subagent_type: "general-purpose"`.
+
+**Builder spawn prompt — include ALL of this:**
+
+```
+You are the builder agent for a Vibes app launch. Your ONLY job is to generate app.jsx.
+
+## Your Task
+Generate a React JSX app based on this prompt:
+"{appPrompt}"
+
+App name: {appName}
+
+## CRITICAL: Use useTenant() for database name
+This app will become a multi-tenant SaaS. You MUST use useTenant() to get the database name:
+
+```jsx
+const { dbName } = useTenant();
+const { database, useLiveQuery, useDocument } = useFireproofClerk(dbName);
+```
+
+Do NOT hardcode database names. `useTenant()` is provided by the sell template at runtime.
+
+## Generation Rules
+1. Read the vibes skill for patterns: Read file `${CLAUDE_PLUGIN_ROOT}/skills/vibes/SKILL.md`
+2. Read Fireproof API docs: Read file `${CLAUDE_PLUGIN_ROOT}/cache/fireproof.txt`
+3. Read style guidance: Read file `${CLAUDE_PLUGIN_ROOT}/cache/style-prompt.txt`
+4. Output ONLY JSX — no HTML wrapper, no import map, no Babel script tags
+5. Export a default function component: `export default function App() { ... }`
+6. Use Tailwind CSS for styling (available via CDN in template)
+7. All Fireproof imports come from "use-fireproof" (mapped by import map)
+8. Do NOT use TypeScript syntax — pure JSX only
+9. Do NOT use AskUserQuestion — you have everything you need
+
+## Write Output
+Write the generated JSX to: ./app.jsx
+
+## When Done
+Mark your task (T1) as completed via TaskUpdate.
+```
+
+### 1.4 Lead Collects Clerk Credentials (T2) — Simultaneous With Builder
+
+**Skip this step entirely if CONNECT_READY.**
+
+While the builder generates app.jsx, guide the user through Clerk setup. Use AskUserQuestion for each step:
+
+**Step 1: Clerk App Setup**
+```
+Question: "Do you have a Clerk app configured, or do we need to create one?"
+Header: "Clerk app"
+Options:
+- Label: "I have one ready"
+  Description: "I already have a Clerk app with passkeys and email auth enabled"
+- Label: "I need to create one"
+  Description: "Walk me through setting up a new Clerk app"
+multiSelect: false
+```
+
+If they need to create one, walk them through:
+1. Go to [clerk.com/dashboard](https://clerk.com/dashboard) and create a new application
+2. Name it after the app (e.g., "Wedding Photos")
+3. Enable **Email** and **Passkey** as sign-in methods
+4. Under Email settings: set "Require email address" OFF, "Verify at sign-up" ON, "Email link" ON, "Email code" ON
+5. Enable passkeys under "Multi-factor" or "Passkeys" section
+
+**Step 2: Create JWT Template**
+Tell the user:
+> In Clerk dashboard, go to **JWT Templates** > **Create template**. Name it "fireproof". Leave the claims as default. Click **Save**.
+
+**Step 3: Create Webhook**
+Tell the user:
+> Go to **Webhooks** > **Add Endpoint**. Set the URL to `https://{domain}/webhook`. Subscribe to `subscription.created`, `subscription.updated`, `subscription.deleted` events.
+
+**Step 4: Collect Credentials**
+
+Use AskUserQuestion:
+```
+Question: "Please paste your Clerk Publishable Key (starts with pk_test_ or pk_live_)"
+Header: "Clerk PK"
+Options:
+- Label: "Paste key"
+  Description: "The publishable key from Clerk dashboard > API Keys"
+multiSelect: false
+```
+
+The user will type their key via "Other". Validate it starts with `pk_test_` or `pk_live_`.
+
+Repeat for:
+- **Secret Key** — starts with `sk_test_` or `sk_live_`
+- **JWKS PEM Public Key** — from Clerk dashboard > API Keys > Advanced > Public Key. Must start with `-----BEGIN PUBLIC KEY-----`
+- **Webhook Secret** — from Clerk dashboard > Webhooks > your endpoint > Signing Secret. Starts with `whsec_`
+
+Save the PEM key to `clerk-jwks-key.pem`:
+```bash
+cat > clerk-jwks-key.pem << 'PEMEOF'
+{pemKey}
+PEMEOF
+```
+
+Mark T2 completed.
+
+### 1.5 Spawn Infra Teammate (After T2 Completes)
+
+**Skip if CONNECT_READY.**
+
+Spawn via `Task` tool with `team_name: "launch-{appName}"`, `name: "infra"`, `subagent_type: "general-purpose"`.
+
+**Infra spawn prompt — include ALL of this:**
+
+```
+You are the infra agent for a Vibes app launch. Your ONLY job is to deploy Fireproof Connect.
+
+## Your Task
+Deploy a Fireproof Connect studio named "{appName}-studio" using deploy-connect.js.
+
+## Credentials
+- Clerk Publishable Key: {clerkPk}
+- Clerk Secret Key: {clerkSk}
+
+## Run the Deploy Script
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-connect.js" \
+  --studio "{appName}-studio" \
+  --clerk-publishable-key "{clerkPk}" \
+  --clerk-secret-key "{clerkSk}"
+```
+
+## Expected Outcome
+The script will create a `.env` file with these variables:
+- VITE_CLERK_PUBLISHABLE_KEY
+- VITE_API_URL (e.g., https://{appName}-studio.exe.xyz/api/)
+- VITE_CLOUD_URL (e.g., fpcloud://{appName}-studio.exe.xyz?protocol=wss)
+
+## Verify
+Confirm the .env file exists and contains all three variables.
+
+## When Done
+Mark your task (T3) as completed via TaskUpdate.
+Send a message to the lead with the .env contents.
+
+## Rules
+- Do NOT use AskUserQuestion — you have everything you need
+- If the deploy fails, send the error to the lead via SendMessage
+```
+
+### 1.6 Lead Collects Sell Config (T4) — While Infra Deploys
+
+While infra deploys Connect, collect the remaining sell config. Use AskUserQuestion:
+
+```
+Question 1: "What billing mode for your SaaS?"
+Header: "Billing"
+Options:
+- Label: "Free (no billing)"
+  Description: "Users sign up and use the app for free"
+- Label: "Subscription required"
+  Description: "Users must have an active subscription to access the app"
+multiSelect: false
+
+Question 2: "App display title? (shown on landing page)"
+Header: "Title"
+Options:
+- Label: "Derive from app name"
+  Description: "I'll title-case your app name (e.g., 'Wedding Photos')"
+- Label: "Let me specify"
+  Description: "I'll type the exact title"
+multiSelect: false
+```
+
+Then ask for tagline, subtitle, and features:
+
+```
+Question: "Describe your app's tagline (short punchy phrase for the landing page)"
+Header: "Tagline"
+Options:
+- Label: "Generate one"
+  Description: "I'll create a tagline based on your app description"
+- Label: "Let me write it"
+  Description: "I'll provide the exact tagline"
+multiSelect: false
+```
+
+Repeat similar for subtitle and features list (3-5 bullet points).
+
+Store these values:
+- `billingMode` — `"off"` or `"required"`
+- `appTitle` — display title
+- `tagline` — landing page tagline (can include `<br>` for line breaks)
+- `subtitle` — landing page subtitle
+- `features` — JSON array of feature strings
+
+Mark T4 completed.
+
+---
+
+## Phase 2: Sell Assembly
+
+**Blocked by: T1 (app.jsx), T3 (.env/Connect), T4 (sell config)**
+
+Wait for all three tasks to complete. Check TaskList periodically.
+
+### 2.1 Verify Inputs
+
+Before running assembly, verify:
+1. `app.jsx` exists and contains valid JSX
+2. `.env` exists with `VITE_CLERK_PUBLISHABLE_KEY`, `VITE_API_URL`, `VITE_CLOUD_URL`
+3. All sell config values are collected
+
+### 2.2 Run Sell Assembly
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
+  --clerk-key "{clerkPk}" \
+  --app-name "{appName}" \
+  --app-title "{appTitle}" \
+  --domain "{domain}" \
+  --billing-mode "{billingMode}" \
+  --tagline "{tagline}" \
+  --subtitle "{subtitle}" \
+  --features '{featuresJSON}' \
+  --admin-ids '[]'
+```
+
+### 2.3 Validate Output
+
+Check for leftover placeholders:
+```bash
+grep -c '__VITE_\|__CLERK_\|__APP_' index.html
+```
+
+If count > 0, there are unresolved placeholders. Check `.env` for missing values and re-run assembly.
+
+Mark T5 completed.
+
+---
+
+## Phase 3: Deploy to Cloudflare
+
+**Blocked by: T5 (sell assembly)**
+
+### 3.1 Deploy
+
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
+  --name "{appName}" \
+  --file index.html \
+  --clerk-key "{clerkPk}"
+```
+
+This automatically:
+- Copies index.html + bundles to the worker
+- Sets `CLERK_PEM_PUBLIC_KEY` and `PERMITTED_ORIGINS` secrets
+- Runs `wrangler deploy`
+
+Mark T6 completed.
+
+### 3.2 Set Webhook Secret
+
+The deploy script doesn't set the webhook secret. Do it manually:
+
+```bash
+echo "{webhookSecret}" | npx wrangler secret put CLERK_WEBHOOK_SECRET --name "{appName}"
+```
+
+Mark T7 completed.
+
+---
+
+## Phase 4: Verify & Cleanup
+
+### 4.1 Present URLs
+
+Tell the user:
+
+> Your app is live! Here are the URLs to verify:
+>
+> - **Landing page**: `https://{appName}.{account}.workers.dev`
+> - **Tenant test**: `https://{appName}.{account}.workers.dev?subdomain=test`
+> - **Admin dashboard**: `https://{appName}.{account}.workers.dev?subdomain=admin`
+>
+> Open each one and confirm:
+> 1. Landing page loads with your title, tagline, and features
+> 2. Tenant route shows the auth gate (Clerk sign-in)
+> 3. Admin route loads the admin dashboard
+
+Mark T8 completed after user confirms.
+
+### 4.2 Shutdown Teammates
+
+After verification, shut down all teammates:
+
+```
+SendMessage type: "shutdown_request" to "builder"
+SendMessage type: "shutdown_request" to "infra"
+```
+
+Wait for shutdown responses, then clean up:
+
+```
+Teammate.cleanup
+```
+
+### 4.3 Summary
+
+Present a final summary:
+
+```
+## Launch Complete
+
+**App**: {appTitle}
+**URL**: https://{appName}.{account}.workers.dev
+**Clerk**: {clerkPk}
+**Connect**: {studioUrl}
+**Billing**: {billingMode}
+
+### What's deployed:
+- Cloudflare Worker with KV registry
+- Fireproof Connect studio for real-time sync
+- Clerk authentication with passkeys
+- Subdomain-based multi-tenancy
+
+### Next steps:
+- Configure a custom domain (see CLAUDE.md DNS section)
+- Set up Clerk billing plans if using subscription mode
+- Add admin user IDs to the admin dashboard
+```
+
+---
+
+## Error Handling
+
+| Failure | Recovery |
+|---------|----------|
+| Builder generates invalid JSX | Read app.jsx, check for TS syntax or wrong hooks, fix and re-save |
+| Connect deploy fails | Infra reports error via SendMessage. Present to user with fix steps (SSH issues, VM quota) |
+| Sell assembly has placeholders | Check .env for missing values, verify all config collected, re-run assembly |
+| Cloudflare deploy fails | Check `npx wrangler whoami`. If not logged in, guide through `npx wrangler login` |
+| Wrangler secret put fails | Retry. If persistent, have user run manually in terminal |
+| Teammate goes silent (3+ min) | Send status check via SendMessage. If no response, take over the task directly |
+| Builder uses hardcoded DB name | Edit app.jsx to replace hardcoded name with `useTenant()` pattern before assembly |
+
+### Common Builder Mistakes to Watch For
+
+After builder completes, scan app.jsx for these issues before running assembly:
+
+1. **Hardcoded database name**: Look for `useFireproofClerk("some-name")` — must be `useFireproofClerk(dbName)` with `const { dbName } = useTenant()`
+2. **TypeScript syntax**: Remove type annotations, interface declarations, `as` casts
+3. **Missing export default**: Must have `export default function App()`
+4. **Import statements for React**: Remove — React is globally available via import map
+5. **Import statements for Fireproof**: Must use `import { useFireproofClerk } from "use-fireproof"`
+
+---
+
+## Skip Modes
+
+### Already have Connect (.env exists)
+- Skip T2 (Clerk credentials) and T3 (Connect deploy)
+- Read Clerk PK from `.env`
+- Still need: webhook secret and PEM key for Cloudflare
+- Ask user for just those two values
+
+### Already have app.jsx
+- Skip T1 (builder)
+- Ask user if they want to reuse or regenerate
+- If reusing, check for `useTenant()` pattern — if missing, fix it before assembly
+
+### Already have everything (re-deploy)
+- Skip T1-T4
+- Go straight to Phase 2 (assembly) and Phase 3 (deploy)
