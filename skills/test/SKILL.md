@@ -7,16 +7,11 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 
 ## Integration Test Skill
 
-## Canonical Workflow
-This skill implements the [Vibes Workflow Graph](../_base/WORKFLOW.md) in sequential test mode.
-Phase mapping: CR=Phase 1, CO=Phase 2, G=Phase 3, A=Phase 4, D=Phase 5, AD=Phase 5.5, V=Phase 6.
-Phases 7-12 are test-specific (diagnosis, fix, unit tests, cleanup).
-
 Orchestrates the full test pipeline: credentials → Connect studio → fixture assembly → Cloudflare deploy → live URL → unit tests.
 
 **Working directory:** `test-vibes/` (gitignored, persists across runs)
 
-### Phase 1: Credentials <!-- WORKFLOW.md node CR -->
+### Phase 1: Credentials
 
 Check if `test-vibes/.env` exists and has Clerk keys.
 
@@ -66,7 +61,7 @@ VITE_CLERK_PUBLISHABLE_KEY=<key>
 VITE_CLERK_SECRET_KEY=<key>
 ```
 
-### Phase 2: Connect Studio <!-- WORKFLOW.md node CO -->
+### Phase 2: Connect Studio
 
 Check if `test-vibes/.connect` exists (marks a deployed studio).
 
@@ -275,7 +270,7 @@ Read the publishable key from `test-vibes/.env`. The `--clerk-key` flag automati
 node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html --ai-key <key>
 ```
 
-### Phase 5.5: Admin Setup (sell-ready only) <!-- WORKFLOW.md node AD -->
+### Phase 5.5: Admin Setup (sell-ready only)
 
 **Condition:** Only runs for the sell-ready fixture AND admin is not yet configured (no cached ID was reused in Phase 3).
 

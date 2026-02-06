@@ -35,10 +35,6 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 
 Generate React web applications using Fireproof for local-first data persistence.
 
-## Canonical Workflow
-This skill is the entry point for node G (GENERATE) in the [Vibes Workflow Graph](../_base/WORKFLOW.md).
-Pre-flight implements CR/CO skip logic. "What's Next?" offers transitions to other graph nodes.
-
 ## Pre-Flight Check: Connect Status
 
 **MANDATORY: Complete these steps BEFORE generating any app code.**
@@ -62,7 +58,6 @@ fi
 > Connect with Clerk authentication is required for Vibes apps.
 
 Invoke `/vibes:connect` to deploy Connect, then return here when complete.
-See [WORKFLOW.md](../_base/WORKFLOW.md) nodes CR -> CO for the full sequence.
 
 **If Connect IS set up** (CONNECT_READY), proceed directly to app generation. The assemble script will populate Connect config from .env.
 
@@ -506,7 +501,6 @@ After generating your app, deploy it:
 
 ## What's Next?
 
-<!-- These options map to WORKFLOW.md exit transitions from node G -->
 After generating and assembling the app, present these options using AskUserQuestion:
 
 ```
@@ -533,7 +527,7 @@ Options:
 ```
 
 **After user responds:**
-- "Keep improving" → Acknowledge and stay ready for iteration prompts
+- "Keep improving" → Acknowledge and stay ready for iteration prompts. After each round of changes to app.jsx, re-run assembly and re-deploy (Clerk auth requires a public URL — local-only testing won't work).
 - "Apply a design reference" → Auto-invoke /vibes:design-reference skill
 - "Explore variations" → Auto-invoke /vibes:riff skill
 - "Make it a SaaS" → Auto-invoke /vibes:sell skill
