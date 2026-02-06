@@ -35,6 +35,10 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 
 Generate React web applications using Fireproof for local-first data persistence.
 
+## Canonical Workflow
+This skill is the entry point for node G (GENERATE) in the [Vibes Workflow Graph](../_base/WORKFLOW.md).
+Pre-flight implements CR/CO skip logic. "What's Next?" offers transitions to other graph nodes.
+
 ## Pre-Flight Check: Connect Status
 
 **MANDATORY: Complete these steps BEFORE generating any app code.**
@@ -53,150 +57,12 @@ else
 fi
 ```
 
-**If output is "CONNECT_NOT_READY"**, Connect setup is required. Inform the user:
+**If output is "CONNECT_NOT_READY"**, Connect setup is required:
 
-> Connect with Clerk authentication is required for Vibes apps. Let me guide you through the setup.
+> Connect with Clerk authentication is required for Vibes apps.
 
-Then proceed with Connect setup below.
-
-### Connect Setup Steps:
-
-**Step 1: Clone Fireproof Repository** (if not already present)
-
-```bash
-# Check if repo exists
-if [ ! -d "./fireproof" ]; then
-  git clone --branch selem/docker-for-all https://github.com/fireproof-storage/fireproof.git ./fireproof
-fi
-```
-
-**Step 2: Choose Credential Mode**
-
-Use AskUserQuestion:
-```
-Question: "How would you like to set up credentials?"
-Header: "Credentials"
-Options:
-- Label: "Fresh credentials (Recommended)"
-  Description: "Generate all new session tokens and CA keys. Use this for new projects."
-- Label: "Import from file"
-  Description: "Load credentials from a colleague's exported file. Use for team sharing."
-- Label: "Quick local dev"
-  Description: "Use preset dev tokens. Fastest setup but not for production."
-```
-
-**Step 3: Gather Clerk Keys**
-
-Collect credentials using AskUserQuestion. Users enter values via the "Other" option.
-
-**3a. Publishable Key:**
-```
-Question: "Enter your Clerk Publishable Key (paste via 'Other')"
-Header: "Publishable"
-Options:
-- Label: "I need to create a Clerk app first"
-  Description: "Go to clerk.com → Create application → Configure → API Keys"
-```
-
-After receiving via "Other", validate: must start with `pk_test_` or `pk_live_`.
-If invalid, inform the user and ask again.
-
-**3b. Secret Key:**
-```
-Question: "Enter your Clerk Secret Key (paste via 'Other')"
-Header: "Secret Key"
-Options:
-- Label: "Where do I find this?"
-  Description: "Clerk Dashboard → Configure → API Keys → Secret keys section"
-```
-
-After receiving via "Other", validate: must start with `sk_test_` or `sk_live_`.
-If invalid, inform the user and ask again.
-
-**3c. JWT URL (Auto-derived):**
-
-Extract the Clerk domain from the publishable key - no user input needed:
-```javascript
-// Publishable key format: pk_test_<base64-encoded-domain>
-const payload = publishableKey.replace(/^pk_(test|live)_/, '');
-const domain = atob(payload).replace('$', '');
-const jwtUrl = `https://${domain}/.well-known/jwks.json`;
-```
-
-Example: `pk_test_aW50ZXJuYWwtZGluZ28tMjguY2xlcmsuYWNjb3VudHMuZGV2JA`
-→ decodes to `internal-dingo-28.clerk.accounts.dev`
-→ JWT URL: `https://internal-dingo-28.clerk.accounts.dev/.well-known/jwks.json`
-
-Tell the user what was derived so they can verify it looks correct.
-
-**Step 3b: Configure JWT Template**
-
-Instruct the user to set up a JWT template in Clerk:
-
-> In your Clerk Dashboard, go to **Configure → Sessions → JWT templates**.
-> Click **"Add a new template"** and select **"Blank"**.
-> First, give it a name — **"Vibes"** works well.
-> Then paste this under **Claims**:
->
-> ```json
-> {
->     "role": "authenticated",
->     "params": {
->         "last": "{{user.last_name}}",
->         "name": "{{user.username}}",
->         "email": "{{user.primary_email_address}}",
->         "first": "{{user.first_name}}",
->         "image_url": "{{user.image_url}}",
->         "external_id": "{{user.external_id}}",
->         "public_meta": "{{user.public_metadata}}",
->         "email_verified": "{{user.email_verified}}"
->     },
->     "userId": "{{user.id}}"
-> }
-> ```
->
-> Save the template. This ensures Fireproof receives the user info it needs for sync.
-
-**Step 4: Run Setup Script**
-
-```bash
-# Fresh credentials (default)
-node "${CLAUDE_PLUGIN_ROOT}/scripts/setup-connect.js" \
-  --clerk-publishable-key "pk_test_..." \
-  --clerk-secret-key "sk_test_..." \
-  --clerk-jwt-url "https://your-app.clerk.accounts.dev" \
-  --mode fresh
-
-# Import from file
-node "${CLAUDE_PLUGIN_ROOT}/scripts/setup-connect.js" \
-  --clerk-publishable-key "pk_test_..." \
-  --clerk-secret-key "sk_test_..." \
-  --clerk-jwt-url "https://your-app.clerk.accounts.dev" \
-  --mode import --import-file ./team-credentials.txt
-
-# Quick dev (uses preset tokens)
-node "${CLAUDE_PLUGIN_ROOT}/scripts/setup-connect.js" \
-  --clerk-publishable-key "pk_test_..." \
-  --clerk-secret-key "sk_test_..." \
-  --clerk-jwt-url "https://your-app.clerk.accounts.dev" \
-  --mode quick-dev
-```
-
-**Step 5: Show Docker Instructions**
-
-After successful setup, tell the user:
-```
-Connect setup complete!
-
-To start the Fireproof services:
-  cd fireproof/core && docker compose up --build
-
-Services will be available at:
-  - Token API: http://localhost:8080/api/
-  - Cloud Sync: fpcloud://localhost:8080?protocol=ws
-
-Your .env file has been created. Apps you generate will auto-detect Connect.
-```
+Invoke `/vibes:connect` to deploy Connect, then return here when complete.
+See [WORKFLOW.md](../_base/WORKFLOW.md) nodes CR -> CO for the full sequence.
 
 **If Connect IS set up** (CONNECT_READY), proceed directly to app generation. The assemble script will populate Connect config from .env.
 
@@ -632,15 +498,15 @@ The shipped cache files contain detailed reference material. Read them when the 
 
 ## Deployment Options
 
-After generating your app, you can deploy it:
+After generating your app, deploy it:
 
 - **Cloudflare** - Edge deployment with Workers. Use `/vibes:cloudflare` to deploy.
-- **Local** - Just open `index.html` in your browser. Works offline with Fireproof.
 
 ---
 
 ## What's Next?
 
+<!-- These options map to WORKFLOW.md exit transitions from node G -->
 After generating and assembling the app, present these options using AskUserQuestion:
 
 ```

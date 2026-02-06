@@ -163,7 +163,7 @@ ssh <studio>.exe.xyz "cd /opt/fireproof && sudo docker compose restart"
 ---
 
 ### What's Next?
-
+<!-- Transitions map to WORKFLOW.md edges from node CO -->
 After successful deployment, present these options using AskUserQuestion:
 
 ```
