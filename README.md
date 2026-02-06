@@ -6,7 +6,7 @@ Instantly make your own small multi-user apps, without a backend. With Vibes, Th
 
 ## What is Vibes?
 
-Vibes is a vibe coding stack made for coding agents. It collapses application code and application state into a single HTML file that runs anywhere.
+Vibes is a vibe coding framework made for coding agents. It collapses application code and application state into a single HTML file that runs anywhere.
 
 **Why does this matter?** AI doesn't make apps - it makes *text*. By embedding the database in JavaScript (via [Fireproof](https://fireproof.storage)), your coding agent can describe an entire app - including its persistence layer - in one shot. No server setup, no schema imports. Just a working app.
 
