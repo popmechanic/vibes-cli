@@ -357,10 +357,10 @@ Do NOT destructure from React (e.g., `const { useState } = React;`) or import Re
 
 ### 4.3 Run Assembly Script
 
-Before running assembly, check `~/.vibes/.env` for a cached admin user ID:
+Before running assembly, check the project `.env` for a cached admin user ID:
 
 ```bash
-grep CLERK_USER_ID ~/.vibes/.env 2>/dev/null
+grep CLERK_ADMIN_USER_ID .env 2>/dev/null
 ```
 
 **If found**, offer to include it (mask the middle, e.g., `user_37ici...ohcY`):
@@ -378,7 +378,7 @@ AskUserQuestion:
     Description: "I'll paste a different user ID"
 ```
 
-If "Yes, include": pass `--admin-ids '["<user_id>"]'`. If "Enter different": collect new ID, save to `~/.vibes/.env`, then pass it. If "No, skip admin": pass `--admin-ids '[]'`.
+If "Yes, include": pass `--admin-ids '["<user_id>"]'`. If "Enter different": collect new ID, save to `.env`, then pass it. If "No, skip admin": pass `--admin-ids '[]'`.
 
 **If not found**: use `--admin-ids '[]'` (admin setup happens post-deploy in Step 6.4).
 
@@ -579,25 +579,11 @@ Guide the user through admin setup:
 >   --clerk-webhook-secret "whsec_xxx"
 > ```
 
-After collecting the user ID, offer to cache it for future projects:
-
-```
-AskUserQuestion:
-  Question: "Save this user ID to ~/.vibes/.env for future projects?"
-  Header: "Cache"
-  Options:
-  - Label: "Yes, save"
-    Description: "Cache the user ID so you don't have to paste it again"
-  - Label: "No, skip"
-    Description: "Use for this project only"
-```
-
-If "Yes, save":
+After collecting the user ID, save it to the project `.env`:
 ```bash
-mkdir -p ~/.vibes
-grep -q CLERK_USER_ID ~/.vibes/.env 2>/dev/null && \
-  sed -i '' 's/^CLERK_USER_ID=.*/CLERK_USER_ID=<new>/' ~/.vibes/.env || \
-  echo "CLERK_USER_ID=<new>" >> ~/.vibes/.env
+grep -q CLERK_ADMIN_USER_ID .env 2>/dev/null && \
+  sed -i '' 's/^CLERK_ADMIN_USER_ID=.*/CLERK_ADMIN_USER_ID=<new>/' .env || \
+  echo "CLERK_ADMIN_USER_ID=<new>" >> .env
 ```
 
 ---
