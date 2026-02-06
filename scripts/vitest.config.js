@@ -23,7 +23,7 @@ export default defineConfig({
     testTimeout: 10000,
 
     // Watch mode settings
-    watch: true,
+    watch: false,
     watchExclude: ['**/node_modules/**', '**/cache/**']
   }
 });

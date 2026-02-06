@@ -566,7 +566,7 @@ EnvironmentFile=/etc/environment
 [Install]
 WantedBy=multi-user.target`;
 
-    await runCommand(client, `echo '${serviceFile}' | sudo tee /etc/systemd/system/vibes-proxy.service`);
+    await runCommand(client, `cat <<'SVCEOF' | sudo tee /etc/systemd/system/vibes-proxy.service\n${serviceFile}\nSVCEOF`);
     await runCommand(client, 'sudo systemctl daemon-reload');
     await runCommand(client, 'sudo systemctl enable vibes-proxy');
     await runCommand(client, 'sudo systemctl restart vibes-proxy');
@@ -592,7 +592,7 @@ location /api/ai/ {
 }`;
 
     // Write AI proxy config to separate include file (doesn't touch main config)
-    await runCommand(client, `echo '${nginxConf}' | sudo tee /etc/nginx/vibes-ai-proxy.conf`);
+    await runCommand(client, `cat <<'NGXEOF' | sudo tee /etc/nginx/vibes-ai-proxy.conf\n${nginxConf}\nNGXEOF`);
 
     // Add include directive to main config if not already present
     // This is the only modification to main config - a single include line
@@ -707,7 +707,7 @@ ${missingLines}
       preallocated: args.preallocated
     };
     const registryJson = JSON.stringify(registry, null, 2);
-    await runCommand(client, `echo '${registryJson}' | sudo tee /var/www/html/registry.json`);
+    await runCommand(client, `cat <<'REGEOF' | sudo tee /var/www/html/registry.json\n${registryJson}\nREGEOF`);
     // Registry server runs as exedev, needs write access to registry.json and directory (for .tmp files)
     await runCommand(client, 'sudo chown exedev:exedev /var/www/html');
     await runCommand(client, 'sudo chmod 775 /var/www/html');
@@ -734,7 +734,7 @@ CLERK_WEBHOOK_SECRET=${args.clerkWebhookSecret}
 PERMITTED_ORIGINS=https://*.${domain},https://${domain}
 PORT=3002`;
 
-    await runCommand(client, `echo '${envContent}' | sudo tee /etc/registry.env`);
+    await runCommand(client, `cat <<'ENVEOF' | sudo tee /etc/registry.env\n${envContent}\nENVEOF`);
     await runCommand(client, 'sudo chmod 600 /etc/registry.env');
 
     // Create systemd service (runs as exedev to match directory ownership)
@@ -755,7 +755,7 @@ EnvironmentFile=/etc/registry.env
 [Install]
 WantedBy=multi-user.target`;
 
-    await runCommand(client, `echo '${serviceFile}' | sudo tee /etc/systemd/system/vibes-registry.service`);
+    await runCommand(client, `cat <<'SVCEOF' | sudo tee /etc/systemd/system/vibes-registry.service\n${serviceFile}\nSVCEOF`);
     await runCommand(client, 'sudo systemctl daemon-reload');
     await runCommand(client, 'sudo systemctl enable vibes-registry');
     await runCommand(client, 'sudo systemctl restart vibes-registry');
@@ -803,7 +803,7 @@ location = /webhook {
     proxy_set_header X-Forwarded-Proto $scheme;
 }`;
 
-    await runCommand(client, `echo '${nginxConf}' | sudo tee /etc/nginx/vibes-registry.conf`);
+    await runCommand(client, `cat <<'NGXEOF' | sudo tee /etc/nginx/vibes-registry.conf\n${nginxConf}\nNGXEOF`);
 
     // Add include directive to main config if not already present
     const includeCheck = await runCommand(client, 'grep -q "include /etc/nginx/vibes-registry.conf" /etc/nginx/sites-available/default && echo "EXISTS" || echo "NOT_FOUND"');

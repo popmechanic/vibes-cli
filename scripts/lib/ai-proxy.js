@@ -39,8 +39,11 @@ if (IS_MULTI_TENANT) {
   `);
 }
 
+// Clerk PEM public key for JWT verification (same as registry server)
+const CLERK_PEM_PUBLIC_KEY = (process.env.CLERK_PEM_PUBLIC_KEY || "").replace(/\\n/g, "\n");
+
 /**
- * Extract tenant ID from Clerk JWT
+ * Verify and extract tenant ID from Clerk JWT
  * In sell apps, the JWT contains the subdomain as custom claim
  */
 async function extractTenant(req) {
@@ -52,9 +55,31 @@ async function extractTenant(req) {
   const token = authHeader.slice(7);
 
   try {
-    // Decode JWT payload (base64url)
+    // Decode JWT parts
     const parts = token.split(".");
     if (parts.length !== 3) return null;
+
+    // Verify signature if PEM key is configured
+    if (CLERK_PEM_PUBLIC_KEY) {
+      const crypto = await import("crypto");
+      const header = JSON.parse(
+        Buffer.from(parts[0].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString()
+      );
+      if (header.alg !== "RS256") return null;
+
+      const signatureInput = parts[0] + "." + parts[1];
+      const signature = Buffer.from(parts[2].replace(/-/g, "+").replace(/_/g, "/"), "base64");
+      const isValid = crypto.default.createVerify("RSA-SHA256")
+        .update(signatureInput)
+        .verify(CLERK_PEM_PUBLIC_KEY, signature);
+
+      if (!isValid) {
+        console.error("JWT signature verification failed");
+        return null;
+      }
+    } else {
+      console.warn("CLERK_PEM_PUBLIC_KEY not set — JWT signature not verified");
+    }
 
     const payload = JSON.parse(
       Buffer.from(parts[1].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString()
@@ -67,7 +92,8 @@ async function extractTenant(req) {
 
     // Extract tenant from custom claims or subdomain
     return payload.tenant || payload.subdomain || payload.sub || null;
-  } catch {
+  } catch (err) {
+    console.error("JWT verification error:", err.message);
     return null;
   }
 }
@@ -131,13 +157,33 @@ async function proxyToOpenRouter(body, apiKey) {
   return response;
 }
 
+// Permitted origins for CORS (reuse PERMITTED_ORIGINS from registry if set)
+const CORS_ORIGINS = (process.env.PERMITTED_ORIGINS || "").split(",").filter(Boolean);
+
+function getCorsOrigin(req) {
+  const requestOrigin = req.headers.get("Origin") || "";
+  if (CORS_ORIGINS.length === 0) return "*";
+
+  const isAllowed = CORS_ORIGINS.some(pattern => {
+    if (pattern === requestOrigin) return true;
+    if (pattern.includes("*")) {
+      const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp("^" + escaped.replace(/\*/g, "[^.]+") + "$");
+      return regex.test(requestOrigin);
+    }
+    return false;
+  });
+
+  return isAllowed ? requestOrigin : CORS_ORIGINS[0];
+}
+
 /**
  * Main request handler
  */
 async function handleRequest(req) {
   // CORS headers
   const corsHeaders = {
-    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Origin": getCorsOrigin(req),
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization"
   };

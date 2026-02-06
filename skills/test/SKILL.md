@@ -7,7 +7,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 
 ## Integration Test Skill
 
-Orchestrates the full test pipeline: credentials → Connect studio → fixture assembly → Cloudflare deploy → live URL.
+Orchestrates the full test pipeline: credentials → Connect studio → fixture assembly → Cloudflare deploy → live URL → unit tests.
 
 **Working directory:** `test-vibes/` (gitignored, persists across runs)
 
@@ -482,9 +482,34 @@ AskUserQuestion:
 If "Test another fixture": go to Phase 3.
 If "End test session": go to Phase 11.
 
-### Phase 11: Session Cleanup
+### Phase 11: Unit & Integration Tests
 
-Triggered when user selects "End test session" from any "What next?" prompt.
+Run the vitest suite to confirm plugin source is healthy. Especially important after any fixes applied in Phase 9.
+
+```bash
+cd scripts && npm test
+```
+
+**If all tests pass:** Print the count (e.g. "429 tests passed") and proceed to cleanup.
+
+**If any tests fail:** Show the failure output and ask:
+
+```
+AskUserQuestion:
+  Question: "Unit/integration tests failed. Fix before finishing?"
+  Header: "Tests"
+  Options:
+  - Label: "Yes, fix them"
+    Description: "Investigate and fix the failing tests"
+  - Label: "Skip"
+    Description: "Finish the session anyway"
+```
+
+If "Yes, fix them": diagnose and fix the failures, re-run `npm test`, loop until green.
+
+### Phase 12: Session Cleanup
+
+Triggered after Phase 11 completes or when user selects "End test session" from any "What next?" prompt.
 
 Clean up test artifacts while preserving reusable credentials:
 
