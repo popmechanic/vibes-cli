@@ -51,6 +51,20 @@ export function stripConstants(code, constants) {
 }
 
 /**
+ * Remove React destructuring assignments (e.g., const { useState } = React;)
+ * These conflict with sell template which already imports React hooks.
+ * @param {string} code - Source code
+ * @returns {string} Code with React destructuring removed
+ */
+export function stripReactDestructuring(code) {
+  return code
+    // Multi-line first (greedy): const {\n  useState,\n} = React;
+    .replace(/^const\s+\{[\s\S]*?\}\s*=\s*React\s*;?\s*$/gm, '')
+    // Single-line: const { useState, useEffect } = React;
+    .replace(/^const\s+\{[^}]*\}\s*=\s*React\s*;?\s*$/gm, '');
+}
+
+/**
  * Strip all template conflicts from app code (imports, exports, CONFIG, constants)
  * @param {string} code - Source code
  * @param {string[]} [templateConstants] - Additional constants the template provides
@@ -59,6 +73,7 @@ export function stripConstants(code, constants) {
 export function stripForTemplate(code, templateConstants = []) {
   let result = code.trim();
   result = stripImports(result);
+  result = stripReactDestructuring(result);
   result = stripExportDefault(result);
   result = stripConfig(result);
   if (templateConstants.length > 0) {
