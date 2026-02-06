@@ -21,3 +21,4 @@ RESERVED_SUBDOMAINS = "admin,api,www,billing"
 # - CLERK_PEM_PUBLIC_KEY
 # - CLERK_WEBHOOK_SECRET
 # - PERMITTED_ORIGINS
+# - OPENROUTER_API_KEY (optional, for AI features)

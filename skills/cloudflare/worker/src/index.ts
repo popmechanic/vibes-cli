@@ -158,6 +158,38 @@ app.post("/webhook", async (c) => {
   return c.json({ received: true });
 });
 
+// POST /api/ai/chat - AI proxy to OpenRouter
+app.post("/api/ai/chat", async (c) => {
+  const apiKey = c.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    return c.json({ error: "AI not configured" }, 500);
+  }
+
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON" }, 400);
+  }
+
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": new URL(c.req.url).origin,
+      "X-Title": new URL(c.req.url).hostname.split('.')[0]
+    },
+    body: JSON.stringify(body)
+  });
+
+  const responseBody = await response.text();
+  return new Response(responseBody, {
+    status: response.status,
+    headers: { "Content-Type": "application/json" }
+  });
+});
+
 // 404 for everything else
 app.notFound((c) => c.json({ error: "Not Found" }, 404));
 

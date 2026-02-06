@@ -3,7 +3,7 @@
  * Deploy Vibes app to Cloudflare Workers
  *
  * Usage:
- *   node scripts/deploy-cloudflare.js --name myapp --file index.html
+ *   node scripts/deploy-cloudflare.js --name myapp --file index.html [--ai-key <openrouter-key>]
  *
  * Automatically copies:
  *   - index.html to public/
@@ -81,14 +81,16 @@ function main() {
   const args = process.argv.slice(2);
   const nameIdx = args.indexOf("--name");
   const fileIdx = args.indexOf("--file");
+  const aiKeyIdx = args.indexOf("--ai-key");
 
   if (nameIdx === -1) {
-    console.error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html>");
+    console.error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html> [--ai-key <openrouter-key>]");
     process.exit(1);
   }
 
   const name = args[nameIdx + 1];
   const file = fileIdx !== -1 ? args[fileIdx + 1] : "index.html";
+  const aiKey = aiKeyIdx !== -1 ? args[aiKeyIdx + 1] : null;
 
   console.log(`Deploying ${name} to Cloudflare Workers...`);
   console.log(`Plugin root: ${PLUGIN_ROOT}`);
@@ -138,6 +140,16 @@ function main() {
   // Deploy with wrangler
   console.log("\nDeploying to Cloudflare...");
   run(`npx wrangler deploy --name ${name}`, { cwd: WORKER_DIR });
+
+  // Set OpenRouter API key if provided
+  if (aiKey) {
+    console.log("\nSetting OPENROUTER_API_KEY secret...");
+    execSync(`echo "${aiKey}" | npx wrangler secret put OPENROUTER_API_KEY --name ${name}`, {
+      stdio: "inherit",
+      cwd: WORKER_DIR,
+    });
+    console.log("AI proxy enabled at /api/ai/chat");
+  }
 
   console.log(`\n✅ Deployed to https://${name}.workers.dev`);
 }
