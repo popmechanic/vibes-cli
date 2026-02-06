@@ -29,6 +29,8 @@ When skills reference Claude Code tools, substitute your equivalent:
 | cloudflare | "deploy to cloudflare", "cloudflare workers" | Deploy to Cloudflare Workers with KV registry |
 | test | "test the plugin", "integration test" | E2E test — assemble fixture, deploy, verify in browser |
 
+> **Note:** The `launch` skill (full SaaS pipeline with Agent Teams) is available in Claude Code only. For Codex/OpenCode, run `vibes`, `sell`, `connect`, and `cloudflare` skills sequentially.
+
 **Critical Rules:**
 - Before building apps, check if a relevant skill applies
 - If a skill matches, load it with `vibes-codex use-skill <name>`

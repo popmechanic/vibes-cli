@@ -210,6 +210,8 @@ When skills reference Claude Code tools, agents should substitute:
 | `README.md` | Skills section |
 | `.claude-plugin/plugin.json` | `skills` array |
 
+**Claude Code-only skills** (e.g., `launch` — requires Agent Teams) are excluded from `.codex/vibes-codex` and `.codex/vibes-bootstrap.md`. Add a note pointing Codex/OpenCode users to the sequential alternative.
+
 **Skill content changes** (editing `skills/*/SKILL.md`) flow automatically to all harnesses—no manual steps needed.
 
 ---
@@ -427,6 +429,7 @@ npm run test:e2e:server
 | `scripts/registry-server.ts` | Bun server for subdomain registry + Clerk webhooks |
 | `scripts/lib/jwt-validation.js` | JWT validation utilities (azp matching, timing) |
 | `scripts/lib/auth-flows.js` | Auth flow state machines (signup, signin, gate) |
+| `skills/launch/SKILL.md` | Launch skill - full SaaS pipeline with Agent Teams |
 | `skills/exe/SKILL.md` | exe.dev app deployment skill |
 | `skills/connect/SKILL.md` | Connect Studio deployment skill |
 | `skills/cloudflare/SKILL.md` | Cloudflare Workers deployment skill |
@@ -526,6 +529,7 @@ This plugin provides both skills and commands. Understanding when each is used:
 | `/vibes:design-reference` | User provides a design.html or mockup file | Mechanically transforms design to Vibes app |
 | `/vibes:riff` | User asks to "explore ideas", "generate variations", "riff on X" | Generates multiple app variations in parallel |
 | `/vibes:sell` | User asks to "monetize", "add billing", "make it SaaS" | Transforms app into multi-tenant SaaS |
+| `/vibes:launch` | User asks to "launch my app", "full pipeline", "build and deploy SaaS" | Full pipeline: app gen + auth + billing + deploy via Agent Teams |
 
 Claude automatically selects the appropriate skill based on user intent. The skill description in the YAML frontmatter guides this selection.
 
@@ -543,6 +547,7 @@ Commands are explicitly invoked by the user with the `/` prefix.
 - **vibes vs riff**: "Make me an app" → vibes (single). "Give me 5 variations" → riff (multiple).
 - **vibes vs design-reference**: "Build X" → vibes. "Match this design.html" or "use this mockup" → design-reference.
 - **vibes vs sell**: "Build X" → vibes. "Build X with billing" or "monetize my app" → sell.
+- **sell vs launch**: "Monetize this existing app" → sell (transforms existing app.jsx). "Build and deploy a SaaS from scratch" or "full pipeline" → launch (orchestrates everything end-to-end with Agent Teams).
 - **update**: Only when user explicitly runs `/vibes:update` on existing HTML files.
 - **test**: Only when user explicitly runs `/vibes:test` or asks to "test the plugin".
 
