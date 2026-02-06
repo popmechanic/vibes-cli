@@ -215,8 +215,50 @@ Options:
 multiSelect: false
 ```
 
-- If "Yes — I have an OpenRouter key": collect the key via a follow-up AskUserQuestion. Store as `openRouterKey`.
-- If "Yes — I need to get one": tell the user to visit https://openrouter.ai/keys, then collect the key. Store as `openRouterKey`.
+- If "Yes — I have an OpenRouter key" or "Yes — I need to get one": before prompting for the key, check for a cached value:
+
+  ```bash
+  grep OPENROUTER_API_KEY ~/.vibes/.env 2>/dev/null
+  ```
+
+  **If found**, offer to reuse it (mask the key, e.g., `sk-or-v1-...a3b2`):
+
+  ```
+  AskUserQuestion:
+    Question: "Reuse stored OpenRouter API key? (sk-or-v1-...a3b2)"
+    Header: "AI Key"
+    Options:
+    - Label: "Yes, reuse"
+      Description: "Use the cached key from ~/.vibes/.env"
+    - Label: "Enter new"
+      Description: "I'll paste a different key"
+  ```
+
+  If "Yes, reuse": use the stored value. If "Enter new": collect via a follow-up AskUserQuestion, then update `~/.vibes/.env`.
+
+  **If not found** (or user chose "Enter new"): collect the key via a follow-up AskUserQuestion. After collecting, offer to save:
+
+  ```
+  AskUserQuestion:
+    Question: "Save this OpenRouter key to ~/.vibes/.env for future projects?"
+    Header: "Cache"
+    Options:
+    - Label: "Yes, save"
+      Description: "Cache the key so you don't have to paste it again"
+    - Label: "No, skip"
+      Description: "Use for this session only"
+  ```
+
+  If "Yes, save":
+  ```bash
+  mkdir -p ~/.vibes
+  grep -q OPENROUTER_API_KEY ~/.vibes/.env 2>/dev/null && \
+    sed -i '' 's/^OPENROUTER_API_KEY=.*/OPENROUTER_API_KEY=<new>/' ~/.vibes/.env || \
+    echo "OPENROUTER_API_KEY=<new>" >> ~/.vibes/.env
+  ```
+
+  Store as `openRouterKey`.
+
 - If "No AI needed": set `openRouterKey` to null.
 
 If no AI keywords detected, skip this step and set `openRouterKey` to null.
@@ -336,8 +378,20 @@ Tell the user:
 > In Clerk dashboard, go to **JWT Templates** > **Create template**. Name it "fireproof". Leave the claims as default. Click **Save**.
 
 **Step 3: Create Webhook**
-Tell the user:
-> Go to **Webhooks** > **Add Endpoint**. Set the URL to `https://{domain}/webhook`. Subscribe to `subscription.created`, `subscription.updated`, `subscription.deleted` events.
+
+Use AskUserQuestion:
+```
+Question: "Create a webhook in Clerk: Go to Webhooks > Add Endpoint. Set the URL to: https://{domain}/webhook — Subscribe to these events: subscription.created, subscription.updated, subscription.deleted"
+Header: "Webhook"
+Options:
+- Label: "Webhook created"
+  Description: "I've added the endpoint and subscribed to the events"
+- Label: "I need help"
+  Description: "I'm having trouble finding the webhooks page"
+multiSelect: false
+```
+
+If "I need help": walk them through navigating Clerk dashboard > Webhooks > Add Endpoint, making sure to repeat the URL `https://{domain}/webhook`.
 
 **Step 4: Collect Credentials**
 
