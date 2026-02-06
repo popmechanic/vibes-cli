@@ -110,7 +110,7 @@ const config = {
 
 ### Sync Status Display
 
-The `attach` object provides real-time sync state:
+> **Vibes apps:** Use `syncStatus` from `useFireproofClerk()` (see SKILL.md). The `attach` states below are the low-level API used by `toCloud()` — shown here for reference only.
 
 | State | Meaning | Suggested UI |
 |-------|---------|-------------|
@@ -628,8 +628,12 @@ import { useState, useEffect } from "react";
 function StoredImage({ fileRef, alt, className }) {
   const [url, setUrl] = useState(null);
   useEffect(() => {
-    fileRef.file().then(f => setUrl(URL.createObjectURL(f)));
-    return () => url && URL.revokeObjectURL(url);
+    let objectUrl;
+    fileRef.file().then(f => {
+      objectUrl = URL.createObjectURL(f);
+      setUrl(objectUrl);
+    });
+    return () => objectUrl && URL.revokeObjectURL(objectUrl);
   }, [fileRef]);
   return url ? <img src={url} alt={alt} className={className} /> : null;
 }

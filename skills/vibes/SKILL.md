@@ -600,8 +600,12 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
   function StoredImage({ fileRef, alt, className }) {
     const [url, setUrl] = useState(null);
     useEffect(() => {
-      fileRef.file().then(f => setUrl(URL.createObjectURL(f)));
-      return () => url && URL.revokeObjectURL(url);
+      let objectUrl;
+      fileRef.file().then(f => {
+        objectUrl = URL.createObjectURL(f);
+        setUrl(objectUrl);
+      });
+      return () => objectUrl && URL.revokeObjectURL(objectUrl);
     }, [fileRef]);
     return url ? <img src={url} alt={alt} className={className} /> : null;
   }
