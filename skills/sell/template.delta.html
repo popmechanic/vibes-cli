@@ -176,6 +176,14 @@
         return { route: 'landing', subdomain: null };
       }
 
+      function needsQueryParamRouting() {
+        const hostname = window.location.hostname;
+        return hostname === 'localhost'
+          || hostname === '127.0.0.1'
+          || hostname.endsWith('.exe.xyz')
+          || hostname.endsWith('.workers.dev');
+      }
+
       const routeInfo = getRouteInfo();
 
       // === Tenant Context ===
@@ -286,7 +294,7 @@
 
         return (
           <AuthScreen
-            title={`Claim ${subdomain}.${APP_DOMAIN}`}
+            title={`Claim ${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`}
             message={error || "This subdomain is available! Would you like to claim it?"}
             showCard={true}
             isShredding={isShredding}
@@ -311,11 +319,11 @@
         return (
           <AuthScreen
             title="Access Denied"
-            message={`${subdomain}.${APP_DOMAIN} belongs to another user.`}
+            message={`${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN} belongs to another user.`}
             showCard={true}
             isError={true}
           >
-            <a href={`https://${APP_DOMAIN}`} style={{ textDecoration: 'none' }}>
+            <a href={needsQueryParamRouting() ? window.location.origin : `https://${APP_DOMAIN}`} style={{ textDecoration: 'none' }}>
               <VibesButton variant={YELLOW} buttonType="form">
                 Get Your Own
               </VibesButton>
@@ -805,7 +813,7 @@
           if (!subdomain || !available) return;
           // Navigate to subdomain
           const url = new URL(window.location.href);
-          if (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname.endsWith('.exe.xyz')) {
+          if (needsQueryParamRouting()) {
             url.searchParams.set('subdomain', subdomain);
           } else {
             url.hostname = `${subdomain}.${APP_DOMAIN}`;
@@ -864,7 +872,7 @@
                         onKeyDown={handleKeyDown}
                         disabled={registryStatus === 'unavailable'}
                       />
-                      <span className="domain-suffix">.{APP_DOMAIN}</span>
+                      <span className="domain-suffix">.{needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}</span>
                     </div>
                     <button
                       className="btn-start"
