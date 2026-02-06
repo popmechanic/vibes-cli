@@ -344,7 +344,16 @@ If the app uses a hardcoded name, update it:
 2. Add `const { dbName } = useTenant();` before it
 3. Change to `useFireproofClerk(dbName)`
 
-The template makes `useTenant` available globally via `window.useTenant`.
+**Template-Provided Globals — do NOT redeclare these in app.jsx:**
+
+| Category | Globals |
+|----------|---------|
+| React | `React`, `useState`, `useEffect`, `useRef`, `useCallback`, `useMemo`, `createContext`, `useContext` |
+| Template utilities | `useTenant`, `useMobile`, `useIsMobile` |
+| UI components | `HiddenMenuWrapper`, `VibesSwitch`, `VibesButton`, `VibesPanel`, `BrutalistCard`, `LabelContainer`, `AuthScreen` |
+| Color constants | `BLUE`, `RED`, `YELLOW`, `GRAY` |
+
+Do NOT destructure from React (e.g., `const { useState } = React;`) or import React hooks — they are already in scope from the template.
 
 ### 4.3 Run Assembly Script
 
