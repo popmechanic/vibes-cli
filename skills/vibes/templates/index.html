@@ -32,7 +32,7 @@
         /* Button variant colors */
         --vibes-variant-blue: #009ACE;
         --vibes-variant-red: #DA291C;
-        --vibes-variant-yellow: #DA291C;
+        --vibes-variant-yellow: #eab308;
         --vibes-variant-gray: #6b7280;
 
         /* Button styling */
@@ -2103,7 +2103,7 @@ if (typeof window !== 'undefined') {
               method: 'POST',
               headers: Object.assign({ 'Content-Type': 'application/json' }, authHeader),
               body: JSON.stringify(Object.assign({
-                model: options.model || 'anthropic/claude-sonnet-4',
+                model: options.model || (window.__VIBES_CONFIG__ && window.__VIBES_CONFIG__.defaultModel) || 'anthropic/claude-sonnet-4',
                 messages: options.messages
               }, options))
             });

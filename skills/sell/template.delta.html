@@ -230,16 +230,6 @@
         const { SignInButton, SignUpButton } = window.ClerkComponents || {};
         const appDisplayName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-        // Debug: Log button components
-        console.log('AuthGate render:', {
-          SignInButton: typeof SignInButton,
-          SignUpButton: typeof SignUpButton,
-          AuthScreen: typeof AuthScreen,
-          VibesButton: typeof VibesButton,
-          RED: typeof RED,
-          YELLOW: typeof YELLOW
-        });
-
         // Guard against undefined components
         if (!SignInButton || !SignUpButton) {
           return <LoadingError error="Clerk auth buttons not loaded. Please refresh." />;
@@ -377,13 +367,6 @@
             setClaimState({ loading: false, owner });
           });
         }, [subdomain]);
-
-        // Debug: Log component status (after all hooks)
-        console.log('TenantApp render:', {
-          SignedIn: typeof SignedIn,
-          SignedOut: typeof SignedOut,
-          ClerkComponents: !!window.ClerkComponents
-        });
 
         // Guard against undefined Clerk components (after all hooks)
         if (!SignedIn || !SignedOut) {

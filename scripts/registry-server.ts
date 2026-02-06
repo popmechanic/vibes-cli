@@ -13,6 +13,10 @@
 
 import { Webhook } from "svix";
 import jwt from "jsonwebtoken";
+import {
+  isSubdomainAvailable as _isSubdomainAvailable,
+  getUserClaims as _getUserClaims,
+} from "./lib/registry-logic.js";
 
 // Configuration from environment
 const REGISTRY_PATH = process.env.REGISTRY_PATH || "/var/www/html/registry.json";
@@ -74,6 +78,44 @@ async function writeRegistry(registry: Registry): Promise<void> {
   // Atomic rename
   const fs = await import("fs/promises");
   await fs.rename(tempPath, REGISTRY_PATH);
+}
+
+/**
+ * Simple file-based mutex for registry operations
+ * Prevents race conditions in read-check-write cycles
+ */
+const LOCK_PATH = `${REGISTRY_PATH}.lock`;
+const LOCK_TIMEOUT = 5000; // 5 seconds
+
+async function acquireLock(): Promise<boolean> {
+  const fs = await import("fs");
+  const start = Date.now();
+  while (Date.now() - start < LOCK_TIMEOUT) {
+    try {
+      fs.writeFileSync(LOCK_PATH, String(process.pid), { flag: "wx" });
+      return true;
+    } catch {
+      // Lock exists, wait and retry
+      await new Promise(r => setTimeout(r, 50));
+    }
+  }
+  // Timeout — check if lock is stale (older than LOCK_TIMEOUT)
+  try {
+    const fs2 = await import("fs/promises");
+    const stat = await fs2.stat(LOCK_PATH);
+    if (Date.now() - stat.mtimeMs > LOCK_TIMEOUT) {
+      await fs2.unlink(LOCK_PATH);
+      return acquireLock();
+    }
+  } catch {}
+  return false;
+}
+
+async function releaseLock(): Promise<void> {
+  try {
+    const fs = await import("fs/promises");
+    await fs.unlink(LOCK_PATH);
+  } catch {}
 }
 
 /**
@@ -161,62 +203,36 @@ function verifyWebhook(
   }
 }
 
-/**
- * Check if a subdomain is available
- * Returns ownerId when subdomain is claimed (for ownership verification)
- */
-function isSubdomainAvailable(
+// Registry logic imported from shared module (tested in registry-logic.test.js)
+const isSubdomainAvailable = _isSubdomainAvailable as (
   registry: Registry,
   subdomain: string
-): { available: boolean; reason?: string; ownerId?: string } {
-  const normalized = subdomain.toLowerCase().trim();
+) => { available: boolean; reason?: string; ownerId?: string };
 
-  // Check reserved names
-  if (registry.reserved.includes(normalized)) {
-    return { available: false, reason: "reserved" };
-  }
-
-  // Check preallocated names
-  if (normalized in registry.preallocated) {
-    return { available: false, reason: "preallocated", ownerId: registry.preallocated[normalized] };
-  }
-
-  // Check existing claims - include ownerId for ownership verification
-  if (normalized in registry.claims) {
-    return { available: false, reason: "claimed", ownerId: registry.claims[normalized].userId };
-  }
-
-  // Validate subdomain format (alphanumeric and hyphens, 3-63 chars)
-  if (normalized.length < 3) {
-    return { available: false, reason: "too_short" };
-  }
-  if (normalized.length > 63) {
-    return { available: false, reason: "too_long" };
-  }
-  // Standard subdomain format: starts/ends with alphanumeric, can contain hyphens in between
-  if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(normalized)) {
-    return { available: false, reason: "invalid_format" };
-  }
-
-  return { available: true };
-}
+const getUserClaims = _getUserClaims as (
+  registry: Registry,
+  userId: string
+) => string[];
 
 /**
- * Get all claims for a specific user
+ * Get CORS origin for a request
+ * Restricts to PERMITTED_ORIGINS if configured, otherwise allows all
  */
-function getUserClaims(registry: Registry, userId: string): string[] {
-  const claims: Array<{ subdomain: string; claimedAt: string }> = [];
+function getCorsOrigin(req: Request): string {
+  const requestOrigin = req.headers.get("Origin") || "";
+  if (PERMITTED_ORIGINS.length === 0) return "*";
 
-  for (const [subdomain, claim] of Object.entries(registry.claims)) {
-    if (claim.userId === userId) {
-      claims.push({ subdomain, claimedAt: claim.claimedAt });
+  const isAllowed = PERMITTED_ORIGINS.some(pattern => {
+    if (pattern === requestOrigin) return true;
+    if (pattern.includes("*")) {
+      const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp("^" + escaped.replace(/\*/g, "[^.]+") + "$");
+      return regex.test(requestOrigin);
     }
-  }
+    return false;
+  });
 
-  // Sort by claimedAt descending (newest first) for LIFO release
-  claims.sort((a, b) => new Date(b.claimedAt).getTime() - new Date(a.claimedAt).getTime());
-
-  return claims.map((c) => c.subdomain);
+  return isAllowed ? requestOrigin : PERMITTED_ORIGINS[0];
 }
 
 /**
@@ -228,7 +244,7 @@ Bun.serve({
   async fetch(req) {
     const url = new URL(req.url);
     const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Origin": getCorsOrigin(req),
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
     };
@@ -283,55 +299,67 @@ Bun.serve({
         });
       }
 
-      const registry = await readRegistry();
-      const availability = isSubdomainAvailable(registry, body.subdomain);
-
-      if (!availability.available) {
+      // Acquire lock for read-check-write atomicity
+      if (!await acquireLock()) {
         return new Response(
-          JSON.stringify({ error: "Subdomain not available", reason: availability.reason }),
-          {
-            status: 409,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          JSON.stringify({ error: "Server busy, try again" }),
+          { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      // Check user's quota before claiming
-      // Default to 999 when no quota set (billing_mode="off" scenario)
-      const userClaims = getUserClaims(registry, auth.userId);
-      const quota = registry.quotas?.[auth.userId] ?? 999;
+      try {
+        const registry = await readRegistry();
+        const availability = isSubdomainAvailable(registry, body.subdomain);
 
-      if (userClaims.length >= quota) {
-        return new Response(
-          JSON.stringify({
-            error: "Purchase required",
-            reason: "quota_exceeded",
-            current: userClaims.length,
-            quota: quota,
-          }),
-          {
-            status: 402,  // Payment Required
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-
-      // Claim the subdomain
-      const normalized = body.subdomain.toLowerCase().trim();
-      registry.claims[normalized] = {
-        userId: auth.userId,
-        claimedAt: new Date().toISOString(),
-      };
-
-      await writeRegistry(registry);
-
-      return new Response(
-        JSON.stringify({ success: true, subdomain: normalized }),
-        {
-          status: 201,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        if (!availability.available) {
+          return new Response(
+            JSON.stringify({ error: "Subdomain not available", reason: availability.reason }),
+            {
+              status: 409,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
         }
-      );
+
+        // Check user's quota before claiming
+        // Default to 999 when no quota set (billing_mode="off" scenario)
+        const userClaims = getUserClaims(registry, auth.userId);
+        const quota = registry.quotas?.[auth.userId] ?? 999;
+
+        if (userClaims.length >= quota) {
+          return new Response(
+            JSON.stringify({
+              error: "Purchase required",
+              reason: "quota_exceeded",
+              current: userClaims.length,
+              quota: quota,
+            }),
+            {
+              status: 402,  // Payment Required
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+
+        // Claim the subdomain
+        const normalized = body.subdomain.toLowerCase().trim();
+        registry.claims[normalized] = {
+          userId: auth.userId,
+          claimedAt: new Date().toISOString(),
+        };
+
+        await writeRegistry(registry);
+
+        return new Response(
+          JSON.stringify({ success: true, subdomain: normalized }),
+          {
+            status: 201,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      } finally {
+        await releaseLock();
+      }
     }
 
     // POST /webhook — Clerk subscription webhooks

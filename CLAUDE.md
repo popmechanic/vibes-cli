@@ -214,87 +214,15 @@ When skills reference Claude Code tools, agents should substitute:
 
 ---
 
-## Core Design Principle
+## Package Versions
 
-**Match vibes.diy exactly. Never deviate.**
+This plugin uses `esm.sh/stable/` URLs with `@necrodome/fireproof-clerk@0.0.3` and React 19.2.4. The `/stable/` path provides pre-built, cached packages that avoid dependency resolution issues. The git-tracked `skills/vibes/cache/` contains the current versions and serves as the authoritative source.
 
-This plugin generates React apps that are compatible with the vibes.diy ecosystem. All configuration—import maps, package versions, style prompts—MUST come from the upstream vibes.diy repository. Do not "improve" or "optimize" by changing values.
-
-## Architecture: The Sync Pattern
-
-### Data Flow
-
-```
-vibes.diy repo (GitHub)
-        │
-        │ fetch (HTTP)
-        ▼
-  /cache/ directory
-   ├── import-map.json    ← Package versions
-   ├── style-prompt.txt   ← UI style guide
-   └── fireproof.txt      ← API documentation
-        │
-        │ regex replacement
-        ▼
-  Template files updated
-   └── skills/vibes/SKILL.md
-```
-
-### How Sync Works
-
-The `scripts/sync.js` script (Node.js + esbuild):
-
-1. **Fetches** from vibes.diy GitHub raw URLs
-2. **Parses** TypeScript source to extract values (handles both quoted and unquoted keys)
-3. **Caches** parsed data in `/cache/` as JSON/text
-4. **Updates** template files by regex-replacing `<script type="importmap">` blocks
-
-Run sync with: `/vibes:sync` or `node scripts/sync.js --force`
-
-**Prerequisites:** Node.js 18+ (uses native fetch). Install deps: `cd scripts && npm install`
-
-### What Gets Synced
-
-| Source | Cache File | Updates |
-|--------|------------|---------|
-| `import-map.ts` | `cache/import-map.json` | Import maps in SKILL.md |
-| `style-prompts.ts` | `cache/style-prompt.txt` | UI style guidance |
-| `css-variables.ts` | `cache/vibes-variables.css` | CSS theme variables |
-
-**Note:** Menu components (VibesSwitch, VibesPanel, etc.) are now built from local `components/` directory, not synced from upstream. Run `node scripts/build-components.js` to rebuild.
-
-**Note on Versions:** This plugin uses `esm.sh/stable/` URLs with `@necrodome/fireproof-clerk@0.0.3` and React 19.2.4. The `/stable/` path provides pre-built, cached packages that avoid dependency resolution issues. The git-tracked `skills/vibes/cache/` contains the current versions and serves as the authoritative source.
-
-### Configuring Upstream Sources
-
-The sync script supports custom upstream URLs via config file or environment variables.
-
-**Priority:** Environment variables > `config/sources.json` > defaults
-
-**Config file:** Copy `config/sources.example.json` to `config/sources.json` and modify URLs.
-
-**Environment variables:**
-- `VIBES_FIREPROOF_URL` - Fireproof documentation URL
-- `VIBES_STYLE_PROMPT_URL` - Style prompts source
-- `VIBES_IMPORT_MAP_URL` - Import map source
-- `VIBES_CSS_VARIABLES_URL` - CSS variables source
-
-Example:
-```bash
-VIBES_IMPORT_MAP_URL="https://example.com/my-import-map.ts" node scripts/sync.js --force
-```
+Menu components (VibesSwitch, VibesPanel, etc.) are built from local `components/` directory. Run `node scripts/build-components.js` to rebuild.
 
 ## Critical Rules
 
-### 1. NEVER Hardcode Import Map Values
-
-Let the sync script update templates from cache:
-
-```bash
-node scripts/sync.js --force
-```
-
-### 2. Use `?external=` for React Singleton
+### 1. Use `?external=` for React Singleton
 
 When using `@necrodome/fireproof-clerk` via esm.sh, you MUST add `?external=react,react-dom` to ensure a single React instance:
 
@@ -306,9 +234,9 @@ When using `@necrodome/fireproof-clerk` via esm.sh, you MUST add `?external=reac
 
 **Why NOT `?alias=`:** The `?alias` parameter rewrites imports at esm.sh build time, but doesn't prevent esm.sh from resolving its own React version for internal dependencies. `?external` is more reliable for no-build workflows.
 
-### 3. Include ALL Import Entries
+### 2. Include ALL Import Entries
 
-The import map requires these entries:
+The authoritative import map is defined in `skills/_base/template.html`. It currently uses a local bundle workaround (see "Temporary Workaround" section below). The full set of required entries:
 
 ```json
 {
@@ -317,19 +245,21 @@ The import map requires these entries:
   "react/jsx-dev-runtime": "https://esm.sh/stable/react@19.2.4/jsx-dev-runtime",
   "react-dom": "https://esm.sh/stable/react-dom@19.2.4",
   "react-dom/client": "https://esm.sh/stable/react-dom@19.2.4/client",
-  "use-fireproof": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom",
-  "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom"
+  "multiformats": "https://esm.sh/stable/multiformats@13.3.1",
+  "multiformats/": "https://esm.sh/stable/multiformats@13.3.1/",
+  "@ipld/dag-cbor": "https://esm.sh/stable/@ipld/dag-cbor@9.2.2?external=multiformats",
+  "@ipld/dag-json": "https://esm.sh/stable/@ipld/dag-json@10.2.3?external=multiformats",
+  "@clerk/clerk-react": "https://esm.sh/stable/@clerk/clerk-react@5.59.2?external=react,react-dom",
+  "use-fireproof": "/fireproof-clerk-bundle.js",
+  "@fireproof/clerk": "/fireproof-clerk-bundle.js"
 }
 ```
 
 **Notes:**
 - The `/stable/` path uses pre-built, cached versions from esm.sh that avoid on-the-fly dependency resolution issues
-- `?external=react,react-dom` is REQUIRED to prevent duplicate React instances
-- Uses `@necrodome/fireproof-clerk@0.0.3` for Clerk auth integration
-
-### 4. NEVER Update Documentation Examples Manually
-
-Import map examples in documentation become stale. Reference `cache/import-map.json` instead of embedding versions.
+- `?external=react,react-dom` is REQUIRED on any esm.sh package that depends on React
+- `use-fireproof` and `@fireproof/clerk` currently point to the local bundle (temporary workaround)
+- `multiformats`, `@ipld/dag-cbor`, `@ipld/dag-json` are required by Fireproof internals
 
 ## Common Mistakes
 
@@ -337,9 +267,8 @@ Import map examples in documentation become stale. Reference `cache/import-map.j
 |---------|-------------|-----|
 | Missing `?external=react,react-dom` on fireproof-clerk URLs | Multiple React instances, context errors | Add `?external=react,react-dom` to fireproof-clerk imports |
 | Not using `esm.sh/stable/` path | Dependency resolution issues | Use `/stable/` prefix for pre-built packages |
-| Missing `react/jsx-runtime` | Build errors | Run sync to get all entries |
-| Hardcoded versions in docs | Docs become stale | Reference cache file |
-| Editing templates without running sync | Versions out of date | Always run sync after edits |
+| Missing `react/jsx-runtime` | Build errors | Check `skills/_base/template.html` for all required entries |
+| Editing base template without rebuilding | Generated templates out of date | Run `node scripts/merge-templates.js --force` |
 
 ## Local Development
 
@@ -384,14 +313,28 @@ npm run test:e2e:server
 
 ```
 scripts/__tests__/
-├── unit/                    # Pure logic, no I/O
-│   ├── config-parsing.test.js
-│   ├── webhook-signature.test.js
-│   ├── jwt-validation.test.js    # azp matching, timing validation
-│   └── auth-flows.test.js        # State machine transitions
-├── e2e/                     # Local server for manual testing
+├── unit/                           # Pure logic, no I/O
+│   ├── ai-proxy.test.js
+│   ├── analyze.test.js
+│   ├── assemble-validation.test.js
+│   ├── auth-flows.test.js          # State machine transitions
+│   ├── compare.test.js
+│   ├── component-transforms.test.js
+│   ├── generate-handoff.test.js
+│   ├── jwt-validation.test.js      # azp matching, timing validation
+│   ├── parsers.test.js
+│   ├── registry-logic.test.js
+│   ├── strip-code.test.js
+│   ├── template-merge.test.js
+│   └── webhook-signature.test.js
+├── integration/                    # Mocked external services
+│   ├── assembly-pipeline.test.js
+│   ├── deploy-ai-proxy.test.js
+│   ├── deploy-handoff.test.js
+│   └── registry-webhooks.test.js
+├── e2e/                            # Local server for manual testing
 │   └── local-server.js
-└── mocks/                   # Shared test doubles
+└── mocks/                          # Shared test doubles
     └── clerk-webhooks.js
 ```
 
@@ -415,16 +358,6 @@ npm run test:e2e:server
    - `http://test-app.local:3000` - Landing page
    - `http://tenant1.test-app.local:3000` - Tenant app
    - `http://admin.test-app.local:3000` - Admin dashboard
-
-### Verify Sync Worked
-
-```bash
-# Check cache was updated (should show 9 entries)
-cat cache/import-map.json | jq '.imports | keys | length'
-
-# Check templates were updated (should show 4 occurrences)
-grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
-```
 
 ### Test Generated Apps
 
@@ -457,7 +390,6 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 |------|---------|
 | `scripts/assemble.js` | Assembly script - inserts JSX into template |
 | `scripts/assemble-sell.js` | SaaS assembly script - generates multi-tenant app |
-| `scripts/sync.js` | Sync script - fetches style prompts, import maps, CSS variables |
 | `scripts/build-components.js` | Build components from local `components/` directory |
 | `scripts/merge-templates.js` | Merge base + delta templates into final templates |
 | `scripts/find-plugin.js` | Plugin directory lookup with validation |
@@ -467,10 +399,10 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `scripts/generate-riff.js` | Parallel riff generator - spawns claude -p for variations |
 | `scripts/assemble-all.js` | Batch assembler for riff directories |
 | `scripts/lib/exe-ssh.js` | SSH automation for exe.dev |
+| `scripts/lib/env-utils.js` | Shared .env loading, Clerk key validation, Connect config |
 | `scripts/__tests__/fixtures/` | Pre-written JSX test fixtures |
 | `skills/test/SKILL.md` | E2E integration test skill |
 | `scripts/package.json` | Node.js deps |
-| `config/sources.example.json` | Example config for upstream URL overrides |
 | `components/` | Local TypeScript components - source of truth for UI/UX |
 | `components/AuthPopUp/` | Modal auth dialog (Amber's original design) |
 | `components/AuthScreen/` | Full-screen auth gate for sell template |
@@ -500,7 +432,6 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 | `skills/cloudflare/SKILL.md` | Cloudflare Workers deployment skill |
 | `skills/cloudflare/worker/` | Cloudflare Worker source (Hono, KV, Web Crypto JWT) |
 | `scripts/deploy-cloudflare.js` | Cloudflare deployment script |
-| `commands/sync.md` | User-facing sync command definition |
 | `commands/update.md` | User-facing update command definition |
 
 ### Cache Locations
@@ -508,19 +439,17 @@ grep -c "esm.sh/use-vibes" skills/vibes/SKILL.md
 There are two cache locations by design:
 
 1. **`/cache/`** (gitignored) - Working cache
-   - `import-map.json` - Package versions and CDN URLs (from sync.js)
-   - `style-prompt.txt` - UI style guidance (from sync.js)
+   - `import-map.json` - Package versions and CDN URLs
+   - `style-prompt.txt` - UI style guidance
    - `fireproof.txt` - Fireproof API documentation
    - `vibes-menu.js` - Built components (from build-components.js)
-   - `vibes-variables.css` - CSS theme variables (from sync.js)
+   - `vibes-variables.css` - CSS theme variables
 
 2. **`skills/vibes/cache/`** (git-tracked) - Default values shipped with the plugin
    - Uses `esm.sh/stable/` URLs with `?external=react,react-dom`
-   - Serves as fallback for users who haven't run sync yet
    - **This is the authoritative source for current versions**
 
 **Build scripts:**
-- `sync.js` - Updates import-map.json, style-prompt.txt, vibes-variables.css from upstream
 - `build-components.js` - Builds vibes-menu.js from local `components/` directory
 - `merge-templates.js` - Combines base + delta templates into final templates
 
@@ -580,24 +509,10 @@ The `?external=` parameter tells esm.sh to keep specified dependencies as **bare
 
 ### Correct Import Map
 
-```json
-{
-  "imports": {
-    "react": "https://esm.sh/stable/react@19.2.4",
-    "react/jsx-runtime": "https://esm.sh/stable/react@19.2.4/jsx-runtime",
-    "react/jsx-dev-runtime": "https://esm.sh/stable/react@19.2.4/jsx-dev-runtime",
-    "react-dom": "https://esm.sh/stable/react-dom@19.2.4",
-    "react-dom/client": "https://esm.sh/stable/react-dom@19.2.4/client",
-    "use-fireproof": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom",
-    "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom"
-  }
-}
-```
-
-**Key points:**
+See the "Include ALL Import Entries" section above for the current authoritative import map. The key points:
 - The `/stable/` path uses pre-built, cached versions that avoid dependency resolution issues
 - `?external=react,react-dom` ensures import map controls React
-- Uses `@necrodome/fireproof-clerk@0.0.3` for Clerk auth integration
+- Currently uses a local bundle workaround for `use-fireproof` and `@fireproof/clerk`
 
 ## Skills vs Commands
 
@@ -618,7 +533,6 @@ Claude automatically selects the appropriate skill based on user intent. The ski
 
 | Command | When to Use | Description |
 |---------|-------------|-------------|
-| `/vibes:sync` | Periodically (every 30 days) or when docs seem stale | Updates cached documentation and import maps |
 | `/vibes:update` | When existing app has outdated imports or patterns | Deterministic updater for existing apps |
 | `/vibes:test` | After template/assembly changes pass structural tests | E2E integration test with real deploy |
 
@@ -629,7 +543,6 @@ Commands are explicitly invoked by the user with the `/` prefix.
 - **vibes vs riff**: "Make me an app" → vibes (single). "Give me 5 variations" → riff (multiple).
 - **vibes vs design-reference**: "Build X" → vibes. "Match this design.html" or "use this mockup" → design-reference.
 - **vibes vs sell**: "Build X" → vibes. "Build X with billing" or "monetize my app" → sell.
-- **sync**: Only when user explicitly runs `/vibes:sync` or skill warns about stale cache.
 - **update**: Only when user explicitly runs `/vibes:update` on existing HTML files.
 - **test**: Only when user explicitly runs `/vibes:test` or asks to "test the plugin".
 

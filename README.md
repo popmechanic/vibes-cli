@@ -202,10 +202,6 @@ Walks you through each step interactively: credentials, Connect setup, fixture s
 
 Commands are **user-invoked** - run them explicitly when needed.
 
-### `sync`
-
-Update the cached documentation and import maps from upstream Vibes DIY sources.
-
 ### `update`
 
 Deterministically update an existing Vibes app's infrastructure (import maps, library versions, components) without regenerating your code.

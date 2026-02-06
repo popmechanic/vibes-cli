@@ -32,7 +32,7 @@
         /* Button variant colors */
         --vibes-variant-blue: #009ACE;
         --vibes-variant-red: #DA291C;
-        --vibes-variant-yellow: #DA291C;
+        --vibes-variant-yellow: #eab308;
         --vibes-variant-gray: #6b7280;
 
         /* Button styling */
@@ -2103,7 +2103,7 @@ if (typeof window !== 'undefined') {
               method: 'POST',
               headers: Object.assign({ 'Content-Type': 'application/json' }, authHeader),
               body: JSON.stringify(Object.assign({
-                model: options.model || 'anthropic/claude-sonnet-4',
+                model: options.model || (window.__VIBES_CONFIG__ && window.__VIBES_CONFIG__.defaultModel) || 'anthropic/claude-sonnet-4',
                 messages: options.messages
               }, options))
             });
@@ -2476,16 +2476,6 @@ if (typeof window !== 'undefined') {
         const { SignInButton, SignUpButton } = window.ClerkComponents || {};
         const appDisplayName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-        // Debug: Log button components
-        console.log('AuthGate render:', {
-          SignInButton: typeof SignInButton,
-          SignUpButton: typeof SignUpButton,
-          AuthScreen: typeof AuthScreen,
-          VibesButton: typeof VibesButton,
-          RED: typeof RED,
-          YELLOW: typeof YELLOW
-        });
-
         // Guard against undefined components
         if (!SignInButton || !SignUpButton) {
           return <LoadingError error="Clerk auth buttons not loaded. Please refresh." />;
@@ -2623,13 +2613,6 @@ if (typeof window !== 'undefined') {
             setClaimState({ loading: false, owner });
           });
         }, [subdomain]);
-
-        // Debug: Log component status (after all hooks)
-        console.log('TenantApp render:', {
-          SignedIn: typeof SignedIn,
-          SignedOut: typeof SignedOut,
-          ClerkComponents: !!window.ClerkComponents
-        });
 
         // Guard against undefined Clerk components (after all hooks)
         if (!SignedIn || !SignedOut) {

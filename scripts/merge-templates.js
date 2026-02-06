@@ -10,7 +10,7 @@
  *   node scripts/merge-templates.js --force  # Rebuild even if templates exist
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, lstatSync, realpathSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -109,6 +109,24 @@ function main() {
     process.exit(1);
   }
   console.log(`  Components: ${COMPONENTS_FILE} (${components.length} bytes)`);
+  console.log("");
+
+  // Validate riff symlink (riff/templates -> vibes/templates)
+  const riffTemplatesPath = join(PLUGIN_ROOT, "skills/riff/templates");
+  try {
+    const stat = lstatSync(riffTemplatesPath);
+    if (stat.isSymbolicLink()) {
+      const target = realpathSync(riffTemplatesPath);
+      const vibesTemplatesPath = join(PLUGIN_ROOT, "skills/vibes/templates");
+      if (!target.startsWith(realpathSync(vibesTemplatesPath))) {
+        console.warn(`  Warning: riff/templates symlink points to unexpected target: ${target}`);
+      }
+    } else {
+      console.warn("  Warning: skills/riff/templates exists but is not a symlink");
+    }
+  } catch {
+    console.warn("  Warning: skills/riff/templates symlink missing (expected -> ../vibes/templates)");
+  }
   console.log("");
 
   // Process each skill

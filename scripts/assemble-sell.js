@@ -38,63 +38,7 @@ import { TEMPLATES } from './lib/paths.js';
 import { stripForTemplate, stripImports } from './lib/strip-code.js';
 import { createBackup } from './lib/backup.js';
 import { prompt } from './lib/prompt.js';
-
-// Connect config placeholders (required - apps need Clerk auth for sync)
-const CONFIG_PLACEHOLDERS = {
-  '__VITE_API_URL__': 'VITE_API_URL',
-  '__VITE_CLOUD_URL__': 'VITE_CLOUD_URL',
-  '__VITE_CLERK_PUBLISHABLE_KEY__': 'VITE_CLERK_PUBLISHABLE_KEY'
-};
-
-/**
- * Parse .env file if it exists
- * Returns object with env var values
- */
-function loadEnvFile(dir) {
-  const envPath = resolve(dir, '.env');
-  if (!existsSync(envPath)) {
-    return {};
-  }
-
-  const content = readFileSync(envPath, 'utf8');
-  const env = {};
-
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-
-    const eqIndex = trimmed.indexOf('=');
-    if (eqIndex === -1) continue;
-
-    const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).trim();
-    env[key] = value;
-  }
-
-  return env;
-}
-
-/**
- * Validate that a Clerk publishable key has the correct format
- */
-function validateClerkKey(key) {
-  return key && (key.startsWith('pk_test_') || key.startsWith('pk_live_'));
-}
-
-/**
- * Replace Connect config placeholders with values from .env
- * Requires valid Clerk credentials - will fail if missing
- */
-function populateConnectConfig(html, envVars) {
-  let result = html;
-
-  for (const [placeholder, envKey] of Object.entries(CONFIG_PLACEHOLDERS)) {
-    const value = envVars[envKey] || '';
-    result = result.replace(new RegExp(placeholder, 'g'), value);
-  }
-
-  return result;
-}
+import { loadEnvFile, validateClerkKey, populateConnectConfig } from './lib/env-utils.js';
 
 // Parse command line arguments
 function parseArgs(argv) {
@@ -319,7 +263,7 @@ if (output.includes(adminPlaceholder)) {
 
 // Populate Connect config placeholders from .env (envVars loaded earlier)
 console.log('Connect mode: Clerk auth + cloud sync enabled');
-output = populateConnectConfig(output, envVars);
+output = populateConnectConfig(output, envVars, true);
 
 // Known safe patterns that aren't config placeholders
 // __PURE__ is a tree-shaking comment used by bundlers
