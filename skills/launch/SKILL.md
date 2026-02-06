@@ -99,6 +99,13 @@ fi
 
 If `CONNECT_READY`, you can skip the infra teammate and T2/T3 entirely. Read `.env` to get the existing Clerk publishable key.
 
+**Check for existing admin user ID (skip Phase 3.5 if present):**
+```bash
+grep CLERK_ADMIN_USER_ID .env 2>/dev/null
+```
+
+If found, store the value and use it in Phase 2.2 assembly (`--admin-ids '["user_xxx"]'`). Phase 3.5 can be skipped.
+
 **Check for existing app.jsx:**
 If `app.jsx` exists in the working directory, ask the user whether to reuse it or regenerate.
 
@@ -543,6 +550,8 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
   --admin-ids '[]'
 ```
 
+**Note:** Admin IDs default to `[]` here. If a `CLERK_ADMIN_USER_ID` was found in `.env` during Phase 0.1, use `--admin-ids '["user_xxx"]'` instead. Otherwise, admin access is configured in Phase 3.5 after the first deploy.
+
 ### 2.3 Validate Output
 
 Check for leftover placeholders:
@@ -594,6 +603,101 @@ Mark T7 completed.
 
 ---
 
+## Phase 3.5: Admin Setup
+
+**Skip this phase if `CLERK_ADMIN_USER_ID` was found in `.env` during Phase 0.1.**
+
+After the initial deploy, the admin dashboard won't work yet (no admin IDs configured). Guide the user through signing up and collecting their user ID.
+
+### 3.5.1 Guide Signup
+
+Tell the user:
+> Your app is live! Before we set up admin access, you need to create an account:
+>
+> 1. Open: `https://{domain}?subdomain=test`
+> 2. Sign up with your email
+> 3. Complete email verification (enter the code sent to your inbox)
+> 4. Create a passkey when prompted
+>
+> Once signed up, we'll grab your user ID for admin access.
+
+```
+AskUserQuestion:
+  Question: "Have you completed signup on the app?"
+  Header: "Signup"
+  Options:
+  - Label: "Yes, signed up"
+    Description: "I completed email verification and passkey creation"
+  - Label: "Skip admin setup"
+    Description: "I'll set up admin access later"
+  multiSelect: false
+```
+
+If "Skip admin setup": proceed to Phase 4 without admin.
+
+### 3.5.2 Collect User ID
+
+Tell the user:
+> Now let's get your admin user ID:
+>
+> 1. Go to [clerk.com/dashboard](https://clerk.com/dashboard)
+> 2. Open your app → click **Users** in the sidebar
+> 3. Click on your user (the one you just signed up with)
+> 4. Copy the **User ID** shown at the top (starts with `user_`)
+
+```
+AskUserQuestion:
+  Question: "Paste your Clerk User ID (starts with user_)"
+  Header: "User ID"
+  Options:
+  - Label: "I need help finding it"
+    Description: "Clerk Dashboard → your app → Users → click your name → User ID at top"
+  multiSelect: false
+```
+
+The user will type their ID via "Other". Validate it starts with `user_`. If invalid, ask again.
+
+### 3.5.3 Save & Re-deploy
+
+1. Save user ID to the project `.env`:
+   ```bash
+   echo "CLERK_ADMIN_USER_ID={userId}" >> .env
+   ```
+
+2. Re-run sell assembly with admin ID:
+   ```bash
+   node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
+     --clerk-key "{clerkPk}" \
+     --app-name "{appName}" \
+     --app-title "{appTitle}" \
+     --domain "{domain}" \
+     --billing-mode "{billingMode}" \
+     --tagline "{tagline}" \
+     --subtitle "{subtitle}" \
+     --features '{featuresJSON}' \
+     --admin-ids '["user_xxx"]'
+   ```
+
+3. Re-deploy to Cloudflare:
+   ```bash
+   node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
+     --name "{appName}" \
+     --file index.html \
+     --clerk-key "{clerkPk}" \
+     {aiKeyFlag}
+   ```
+
+4. Re-set webhook secret:
+   ```bash
+   echo "{webhookSecret}" | npx wrangler secret put CLERK_WEBHOOK_SECRET --name "{appName}"
+   ```
+
+Tell the user:
+> Admin access configured! The admin dashboard should now work at:
+> `https://{domain}?subdomain=admin`
+
+---
+
 ## Phase 4: Verify & Cleanup
 
 ### 4.1 Present URLs
@@ -609,7 +713,7 @@ Tell the user:
 > Open each one and confirm:
 > 1. Landing page loads with your title, tagline, and features
 > 2. Tenant route shows the auth gate (Clerk sign-in)
-> 3. Admin route loads the admin dashboard
+> 3. Admin route loads the admin dashboard (if Phase 3.5 was completed)
 
 Mark T8 completed after user confirms.
 
@@ -650,7 +754,6 @@ Present a final summary:
 ### Next steps:
 - Configure a custom domain (see CLAUDE.md DNS section)
 - Set up Clerk billing plans if using subscription mode
-- Add admin user IDs to the admin dashboard
 ```
 
 ---

@@ -125,10 +125,10 @@ AskUserQuestion:
 
 **For sell-ready fixture:** Collect additional configuration.
 
-First, check `~/.vibes/.env` for a cached Clerk user ID:
+First, check `test-vibes/.env` for a cached admin user ID:
 
 ```bash
-grep CLERK_USER_ID ~/.vibes/.env 2>/dev/null
+grep CLERK_ADMIN_USER_ID test-vibes/.env 2>/dev/null
 ```
 
 **If found**, offer to reuse it (mask the middle of the value in the prompt, e.g., `user_37ici...ohcY`):
@@ -139,14 +139,14 @@ AskUserQuestion:
   Header: "Admin ID"
   Options:
   - Label: "Yes, reuse"
-    Description: "Use the cached user ID from ~/.vibes/.env"
+    Description: "Use the cached user ID from test-vibes/.env"
   - Label: "Enter new"
     Description: "I'll paste a different user ID"
   - Label: "Skip admin"
     Description: "Deploy without admin access configured"
 ```
 
-If "Yes, reuse": use the stored value. If "Enter new": collect via the prompt below, then update `~/.vibes/.env`.
+If "Yes, reuse": use the stored value. If "Enter new": collect via the prompt below.
 
 **If not found** (or user chose "Enter new"):
 
@@ -161,25 +161,11 @@ AskUserQuestion:
     Description: "Deploy without admin access configured"
 ```
 
-After collecting a new user ID, offer to save it:
-
-```
-AskUserQuestion:
-  Question: "Save this user ID to ~/.vibes/.env for future projects?"
-  Header: "Cache"
-  Options:
-  - Label: "Yes, save"
-    Description: "Cache the user ID so you don't have to paste it again"
-  - Label: "No, skip"
-    Description: "Use for this session only"
-```
-
-If "Yes, save":
+After collecting a new user ID, save it to the project env:
 ```bash
-mkdir -p ~/.vibes
-grep -q CLERK_USER_ID ~/.vibes/.env 2>/dev/null && \
-  sed -i '' 's/^CLERK_USER_ID=.*/CLERK_USER_ID=<new>/' ~/.vibes/.env || \
-  echo "CLERK_USER_ID=<new>" >> ~/.vibes/.env
+grep -q CLERK_ADMIN_USER_ID test-vibes/.env 2>/dev/null && \
+  sed -i '' 's/^CLERK_ADMIN_USER_ID=.*/CLERK_ADMIN_USER_ID=<new>/' test-vibes/.env || \
+  echo "CLERK_ADMIN_USER_ID=<new>" >> test-vibes/.env
 ```
 
 Save the admin user ID for use in Phase 4.
@@ -200,7 +186,7 @@ set -a && source test-vibes/.env && set +a
 ```bash
 node scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html \
   --domain vibes-test.exe.xyz \
-  --admin-ids '["<admin-user-id>"]'
+  --admin-ids '["<admin-user-id>"]'  # read CLERK_ADMIN_USER_ID from test-vibes/.env
 ```
 If admin was skipped, omit `--admin-ids`. The `--domain` flag is always required.
 
