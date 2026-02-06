@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 # KV namespace for registry storage
 [[kv_namespaces]]
 binding = "REGISTRY_KV"
-id = "215847e525304ab29b9127c70672fc86"
+id = "f9ab5bd5c9a34b16bfa42731e38c7bff"
 preview_id = "0cde71d973844bca842d365797b7d43e"
 
 # Static assets (the generated index.html)
