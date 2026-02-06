@@ -230,4 +230,183 @@ AskUserQuestion:
     Description: "Something isn't right — I'll describe it"
 ```
 
-If "Has issues": help debug based on user's description.
+**If "Working":**
+
+Print a summary table:
+
+```
+| Phase       | Status |
+|-------------|--------|
+| Credentials | ✓      |
+| Connect     | ✓ <studio-name>.exe.xyz |
+| Assembly    | ✓ <fixture>.jsx → index.html |
+| Cloudflare  | ✓ <url> |
+| Browser     | ✓ User confirmed working |
+```
+
+```
+AskUserQuestion:
+  Question: "What next?"
+  Header: "Next"
+  Options:
+  - Label: "Test another fixture"
+    Description: "Go back to Phase 3 and pick a different fixture"
+  - Label: "Done"
+    Description: "All good — end the test session"
+```
+
+If "Test another fixture": go to Phase 3.
+
+**If "Has issues":** proceed to Phase 7.
+
+---
+
+### Phase 7: Diagnosis
+
+**You are a plugin developer testing your own code.** The test instance is disposable. Bugs found here are bugs in plugin source code — deploy scripts, templates, assembly logic, or skill instructions. Fix the plugin source, NOT the test instance.
+
+Ask the user to describe the issue. Then work through these diagnostic steps. Skip ahead when diagnosis is clear.
+
+**7.1 Browser console** — ask the user to check, or use browser automation tools if available:
+
+| Console Error | Likely Cause | Check File |
+|---------------|-------------|------------|
+| `Cannot read properties of null (reading 'useContext')` | Duplicate React instances | `skills/_base/template.html` import map |
+| `Failed to fetch` / CORS errors | Deploy script wrong URL or missing CORS headers | `scripts/deploy-connect.js`, `scripts/deploy-cloudflare.js` |
+| `Fireproof is not defined` | Missing import map entry | `skills/_base/template.html` import map |
+| `Unexpected token '<'` | Babel script block malformed | `scripts/assemble.js` |
+| 404 on `/api/` routes | nginx config or Connect not running | `scripts/deploy-connect.js` |
+
+**7.2 Network requests** — probe the deployed services:
+
+```bash
+# Test Connect Studio API
+curl -v https://<studio>.exe.xyz/api/
+
+# Test Cloudflare Worker
+curl -v https://vibes-test.<account>.workers.dev/
+```
+
+**7.3 Server-side** — SSH into the VM if network probes fail:
+
+```bash
+ssh <studio>.exe.xyz "docker ps"           # Check containers running
+ssh <studio>.exe.xyz "sudo nginx -t"       # Check nginx config
+ssh <studio>.exe.xyz "docker logs gateway"  # Check gateway logs
+```
+
+**7.4 Plugin source** — map symptoms to source files:
+
+| Symptom Category | Files to Read |
+|-----------------|---------------|
+| Assembly/template | `scripts/assemble.js`, `skills/_base/template.html`, relevant `template.delta.html` |
+| Deploy/hosting | `scripts/deploy-connect.js`, `scripts/deploy-cloudflare.js`, `scripts/deploy-exe.js` |
+| Auth/Clerk | `skills/_base/template.html` (Clerk script), `scripts/deploy-connect.js` (env vars) |
+| Import/module errors | `skills/_base/template.html` (import map), `cache/import-map.json` |
+
+### Phase 8: Root Cause Classification
+
+Before touching any file, state the classification:
+
+| Category | Signal | Fix Target | Example |
+|----------|--------|-----------|---------|
+| **A: Plugin source bug** | Deploy script produces wrong output | `scripts/*.js` | `deploy-connect.js` writes wrong URL |
+| **B: Template bug** | HTML output is structurally wrong | `skills/_base/template.html` or `template.delta.html` | Missing import map entry |
+| **C: Skill instruction bug** | Agent followed wrong steps | `skills/*/SKILL.md` | Wrong hook name in instructions |
+| **D: Fixture bug** | Only this fixture fails | `scripts/__tests__/fixtures/` | Bad JSX in test fixture |
+| **E: External/transient** | VM down, CDN outage, rate limit | None — retry | esm.sh 503, VM unreachable |
+
+```
+AskUserQuestion:
+  Question: "I believe this is Category <X>: <description>. The fix belongs in <file>. Proceed?"
+  Header: "Fix plan"
+  Options:
+  - Label: "Yes, fix it"
+    Description: "Apply the fix to plugin source"
+  - Label: "Wrong diagnosis"
+    Description: "I think the problem is something else"
+```
+
+If "Wrong diagnosis": ask what they think and re-diagnose.
+
+### Phase 9: Apply Fix and Verify
+
+**Fix the plugin source file, NOT the test instance.**
+
+1. Apply the fix to the identified source file
+2. If the fix touched templates or components, regenerate:
+   ```bash
+   node scripts/merge-templates.js --force   # If template.html or delta changed
+   node scripts/build-components.js --force  # If components/ changed
+   ```
+3. Re-run from the appropriate phase:
+
+| Category | Restart From |
+|----------|-------------|
+| A: Plugin source | Phase that uses the fixed script (2, 4, or 5) |
+| B: Template | Phase 4 (re-assemble) |
+| C: Skill instruction | Note the fix — no re-run needed |
+| D: Fixture | Phase 4 (re-assemble) |
+| E: External | Retry the failed phase |
+
+4. Present the URL and ask:
+
+```
+AskUserQuestion:
+  Question: "How does it look now?"
+  Header: "Verify"
+  Options:
+  - Label: "Fixed"
+    Description: "The issue is resolved"
+  - Label: "Still broken"
+    Description: "Same problem persists"
+  - Label: "Different issue"
+    Description: "Original issue fixed but something else is wrong"
+```
+
+If "Still broken" or "Different issue": loop back to Phase 7. After 3 loops, stop and say:
+> This needs hands-on investigation. Here's what I've tried so far: <summary>. Try debugging manually or open an issue.
+
+### Phase 10: Resolution Summary
+
+Write `test-vibes/FIX-REPORT.md`:
+
+```markdown
+# Fix Report
+
+**Date:** <date>
+**Fixture:** <fixture>
+**Category:** <A-E>
+
+## Symptom
+<What the user reported>
+
+## Root Cause
+<What was actually wrong>
+
+## Fix
+- **File:** <path>
+- **Change:** <one-line description>
+
+## Diagnosis Commands
+<Commands that revealed the issue>
+
+## Prevention
+<How to avoid this in the future>
+```
+
+```
+AskUserQuestion:
+  Question: "What next?"
+  Header: "Next"
+  Options:
+  - Label: "Test another fixture"
+    Description: "Go back to Phase 3 with the fix in place"
+  - Label: "Commit the fix"
+    Description: "Review and commit the plugin source changes"
+  - Label: "Done"
+    Description: "End the test session"
+```
+
+If "Commit the fix": show `git diff` of plugin source changes (exclude `test-vibes/`), suggest a commit message derived from the fix report.
+If "Test another fixture": go to Phase 3.
