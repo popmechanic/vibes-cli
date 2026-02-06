@@ -31,7 +31,7 @@ if (typeof document !== "undefined") {
       :root {
         --hm-menu-bg: var(--vibes-menu-bg);
         --hm-menu-text: var(--vibes-white);
-        --hm-content-bg: #1e1e1e;
+        --hm-content-bg: var(--vibes-bg-primary, #ffffff);
         --hm-shadow: rgba(0, 0, 0, 0.3);
         --hm-grid-line: rgba(255, 255, 255, 0.5);
       }
@@ -40,7 +40,7 @@ if (typeof document !== "undefined") {
         :root {
           --hm-menu-bg: #2a2a2a;
           --hm-menu-text: var(--vibes-gray-ultralight);
-          --hm-content-bg: var(--vibes-near-black);
+          --hm-content-bg: var(--vibes-bg-primary, #1a1a1a);
           --hm-shadow: rgba(255, 255, 255, 0.1);
         }
       }
@@ -54,7 +54,7 @@ export const hiddenMenuTheme = {
   colors: {
     menuBg: "var(--hm-menu-bg, var(--vibes-menu-bg))",
     menuText: "var(--hm-menu-text, var(--vibes-white))",
-    contentBg: "var(--hm-content-bg, #1e1e1e)",
+    contentBg: "var(--hm-content-bg, #ffffff)",
     shadow: "var(--hm-shadow, rgba(0, 0, 0, 0.3))",
     gridLineColor: "var(--hm-grid-line, rgba(255, 255, 255, 0.5))",
   },
