@@ -519,7 +519,7 @@ async function phase9WriteConnect(args) {
 
   writeConnectFile({
     studio: args.studio,
-    apiUrl: `https://${args.studio}.exe.xyz/api`,
+    apiUrl: `https://${args.studio}.exe.xyz/api/`,
     cloudUrl: `fpcloud://${args.studio}.exe.xyz?protocol=wss`,
     clerkPublishableKey: args.clerkPublishableKey
   });
