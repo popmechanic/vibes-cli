@@ -38,14 +38,8 @@ prompt → vibes app → Clerk setup → Connect deploy → sell transform → C
 
 It uses **Agent Teams** to parallelize independent steps. The key insight: app generation only needs the user's prompt, so it runs in parallel with Clerk setup (the longest manual step).
 
-## Canonical Workflow
-This skill implements the [Vibes Workflow Graph](../_base/WORKFLOW.md) via Agent Teams.
-Task mapping: G=T1, CR=T2, CO=T3, S=T4, A=T5, D=T6, AD=Phase 3.5, V=T8.
-See WORKFLOW.md "Context: Launch" for parallel lanes and skip logic.
-
 ### Dependency Graph
-See [WORKFLOW.md](../_base/WORKFLOW.md) for the canonical dependency graph.
-Launch-specific parallel lanes: T1 || T2->T3 || T4. All converge at T5 (assembly).
+Parallel lanes: T1 || T2->T3 || T4. All converge at T5 (assembly).
 
 ### Timing
 
@@ -768,5 +762,4 @@ After builder completes, scan app.jsx for these issues before running assembly:
 ---
 
 ## Skip Modes
-See [WORKFLOW.md](../_base/WORKFLOW.md) node registry "Skip If" column.
-Launch-specific: if .env has Clerk keys -> skip T2+T3. If app.jsx exists -> skip T1. If both -> skip T1-T4, go to Phase 2.
+If .env has Clerk keys -> skip T2+T3. If app.jsx exists -> skip T1. If both -> skip T1-T4, go to Phase 2.

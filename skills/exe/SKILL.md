@@ -343,7 +343,6 @@ ssh <app>.exe.xyz "head -20 /var/www/html/index.html"
 ---
 
 ### What's Next?
-<!-- Transitions map to WORKFLOW.md edges from node D -->
 After successful deployment, present these options using AskUserQuestion:
 
 ```
