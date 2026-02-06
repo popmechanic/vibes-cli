@@ -298,7 +298,7 @@ if (firepoolMatch) {
 }
 
 // Insert app code at placeholder
-const appPlaceholder = '__VIBES_APP_CODE__';
+const appPlaceholder = '// __VIBES_APP_CODE__';
 if (output.includes(appPlaceholder)) {
   output = output.replace(appPlaceholder, appCode);
 } else {

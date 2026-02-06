@@ -123,6 +123,21 @@ AskUserQuestion:
     Description: "/api/ai/chat endpoint + CORS — requires OpenRouter key"
 ```
 
+**For sell-ready fixture:** Collect additional configuration:
+
+```
+AskUserQuestion:
+  Question: "Paste your Clerk user ID for admin access (find it in Clerk Dashboard → Users)"
+  Header: "Admin ID"
+  Options:
+  - Label: "I need to find it"
+    Description: "Go to clerk.com → your app → Users → click your user → copy User ID (starts with user_)"
+  - Label: "Skip admin"
+    Description: "Deploy without admin access configured"
+```
+
+Save the admin user ID for use in Phase 4.
+
 ### Phase 4: Assembly
 
 Copy the selected fixture and assemble:
@@ -137,8 +152,11 @@ set -a && source test-vibes/.env && set +a
 
 **For sell-ready fixture:**
 ```bash
-node scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html
+node scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html \
+  --domain vibes-test.exe.xyz \
+  --admin-ids '["<admin-user-id>"]'
 ```
+If admin was skipped, omit `--admin-ids`. The `--domain` flag is always required.
 
 **For all other fixtures:**
 ```bash
@@ -173,7 +191,14 @@ Run the deploy:
 node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html
 ```
 
-If ai-proxy with key:
+**For sell-ready fixture:** Pass `--clerk-key` to configure JWT verification secrets on the Worker (required for `/claim` endpoint):
+```bash
+node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html \
+  --clerk-key $VITE_CLERK_PUBLISHABLE_KEY
+```
+Read the publishable key from `test-vibes/.env`. The `--clerk-key` flag automatically fetches the JWKS, converts to PEM, and sets `CLERK_PEM_PUBLIC_KEY` and `PERMITTED_ORIGINS` as Worker secrets.
+
+**For ai-proxy with key:**
 ```bash
 node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html --ai-key <key>
 ```
@@ -202,8 +227,10 @@ Deployed! Open these URLs:
 
 What to verify:
 - Landing page shows pricing/marketing content
+- Claim a subdomain — should succeed (tests /claim + JWT auth)
 - Tenant URL shows auth gate (Clerk sign-in)
-- Admin URL shows admin dashboard
+- Admin URL shows admin dashboard (if --admin-ids was configured)
+- Admin URL shows "Admin Access Required" (if --admin-ids was skipped)
 ```
 
 **For ai-proxy:**
