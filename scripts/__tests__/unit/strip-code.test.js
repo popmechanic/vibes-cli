@@ -11,6 +11,7 @@ import {
   stripExportDefault,
   stripConfig,
   stripConstants,
+  stripReactDestructuring,
   stripForTemplate
 } from '../../lib/strip-code.js';
 
@@ -183,6 +184,52 @@ const REMOVE_THIS = "no";`;
     const result = stripConstants(code, ['REMOVE_THIS']);
     expect(result).toContain('const KEEP_THIS');
     expect(result).not.toContain('const REMOVE_THIS');
+  });
+});
+
+describe('stripReactDestructuring', () => {
+  it('removes single-line React destructuring', () => {
+    const code = `const { useState } = React;
+function App() {}`;
+    const result = stripReactDestructuring(code);
+    expect(result).not.toContain('const { useState } = React');
+    expect(result).toContain('function App');
+  });
+
+  it('removes multi-hook destructuring', () => {
+    const code = `const { useState, useEffect, useRef } = React;
+function App() {}`;
+    const result = stripReactDestructuring(code);
+    expect(result).not.toContain('useState');
+    expect(result).toContain('function App');
+  });
+
+  it('removes multi-line React destructuring', () => {
+    const code = `const {
+  useState,
+  useEffect,
+  useRef
+} = React;
+function App() {}`;
+    const result = stripReactDestructuring(code);
+    expect(result).not.toContain('useState');
+    expect(result).toContain('function App');
+  });
+
+  it('does not strip non-React destructuring', () => {
+    const code = `const { dbName } = useTenant();
+const { doc, merge } = useDocument();`;
+    const result = stripReactDestructuring(code);
+    expect(result).toContain('const { dbName } = useTenant()');
+    expect(result).toContain('const { doc, merge } = useDocument()');
+  });
+
+  it('handles missing semicolon', () => {
+    const code = `const { useState } = React
+function App() {}`;
+    const result = stripReactDestructuring(code);
+    expect(result).not.toContain('const { useState } = React');
+    expect(result).toContain('function App');
   });
 });
 
