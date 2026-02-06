@@ -4,4 +4,5 @@ export interface Env {
   CLERK_WEBHOOK_SECRET: string;
   PERMITTED_ORIGINS?: string;
   RESERVED_SUBDOMAINS?: string;
+  OPENROUTER_API_KEY?: string;
 }
