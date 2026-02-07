@@ -54,7 +54,16 @@ describe("Registry Worker Integration", () => {
       expect(data.available).toBe(true);
     });
 
-    it("returns unavailable for reserved subdomain", async () => {
+    it("returns unavailable for reserved subdomain from env (empty KV)", async () => {
+      // KV is empty (default mock) — reserved subdomains come from env var
+      const res = await app.request("/check/admin", {}, mockEnv);
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.available).toBe(false);
+      expect(data.reason).toBe("reserved");
+    });
+
+    it("returns unavailable for reserved subdomain from KV", async () => {
       mockKV.get.mockResolvedValue(
         JSON.stringify({
           claims: {},

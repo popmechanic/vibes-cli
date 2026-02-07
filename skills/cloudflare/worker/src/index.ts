@@ -29,6 +29,12 @@ app.get("/check/:subdomain", async (c) => {
   const subdomain = c.req.param("subdomain");
   const kv = new RegistryKV(c.env.REGISTRY_KV);
   const registry = await kv.read();
+
+  // Apply reserved subdomains from config
+  if (c.env.RESERVED_SUBDOMAINS && !registry.reserved?.length) {
+    registry.reserved = c.env.RESERVED_SUBDOMAINS.split(",").map((s) => s.trim());
+  }
+
   const result = isSubdomainAvailable(registry, subdomain);
   return c.json(result);
 });
