@@ -629,12 +629,12 @@ ${'━'.repeat(60)}
   Your Connect Studio is live!
 
   Endpoints:
-    Token API:  https://${vmHost}/api
+    Token API:  https://${vmHost}/api/
     Cloud Sync: fpcloud://${vmHost}?protocol=wss
 
   Update your app's .env:
     VITE_CLERK_PUBLISHABLE_KEY=${args.clerkPublishableKey}
-    VITE_API_URL=https://${vmHost}/api
+    VITE_API_URL=https://${vmHost}/api/
     VITE_CLOUD_URL=fpcloud://${vmHost}?protocol=wss
 
   Check Docker status:
