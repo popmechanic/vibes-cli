@@ -289,7 +289,7 @@ When skills reference Claude Code tools, agents should substitute:
 | `.codex/vibes-codex` | `SKILLS` array (line ~45) |
 | `.codex/vibes-bootstrap.md` | Skills table |
 | `README.md` | Skills section |
-| `.claude-plugin/plugin.json` | `skills` array |
+| `commands/` | Add a command `.md` if the skill should be user-invocable |
 
 **Claude Code-only skills** (e.g., `launch` — requires Agent Teams) are excluded from `.codex/vibes-codex` and `.codex/vibes-bootstrap.md`. Add a note pointing Codex/OpenCode users to the sequential alternative.
 
