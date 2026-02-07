@@ -10,7 +10,7 @@ import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 // Path to the AI proxy script
-const AI_PROXY_PATH = join(__dirname, '../../lib/ai-proxy.js');
+const AI_PROXY_PATH = join(__dirname, '../../deployables/ai-proxy.js');
 
 describe('AI Proxy Deployment', () => {
   describe('proxy script exists and is valid', () => {

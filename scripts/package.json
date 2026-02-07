@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Sync scripts for vibes-cli plugin",
   "scripts": {
-"registry": "bun run registry-server.ts",
+"registry": "bun run deployables/registry-server.ts",
     "test": "vitest",
     "test:unit": "vitest run __tests__/unit",
     "test:integration": "vitest run __tests__/integration",
@@ -14,7 +14,6 @@
   "dependencies": {
     "esbuild": "^0.24.0",
     "jsonwebtoken": "^9.0.2",
-    "ssh2": "^1.15.0",
     "svix": "^1.44.0"
   },
   "devDependencies": {

@@ -160,6 +160,9 @@ async function proxyToOpenRouter(body, apiKey) {
 // Permitted origins for CORS (reuse PERMITTED_ORIGINS from registry if set)
 const CORS_ORIGINS = (process.env.PERMITTED_ORIGINS || "").split(",").filter(Boolean);
 
+// NOTE: This pattern matching logic is intentionally duplicated from lib/jwt-validation.js
+// because this file runs as a standalone Bun server on remote VMs.
+// The canonical tested version is in lib/jwt-validation.js — keep in sync.
 function getCorsOrigin(req) {
   const requestOrigin = req.headers.get("Origin") || "";
   if (CORS_ORIGINS.length === 0) return "*";

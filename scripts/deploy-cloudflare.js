@@ -119,8 +119,7 @@ async function main() {
   const clerkKeyIdx = args.indexOf("--clerk-key");
 
   if (nameIdx === -1) {
-    console.error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html> [--ai-key <key>] [--clerk-key <pk_test_...>]");
-    process.exit(1);
+    throw new Error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html> [--ai-key <key>] [--clerk-key <pk_test_...>]");
   }
 
   const name = args[nameIdx + 1];
@@ -138,8 +137,7 @@ async function main() {
   // 1. Copy the HTML file to public/
   const srcFile = resolve(process.cwd(), file);
   if (!existsSync(srcFile)) {
-    console.error(`File not found: ${srcFile}`);
-    process.exit(1);
+    throw new Error(`File not found: ${srcFile}`);
   }
   const destFile = resolve(publicDir, "index.html");
   console.log(`\nCopying ${basename(srcFile)} to public/`);
@@ -207,8 +205,7 @@ async function main() {
     // Parse the namespace ID from the output (JSON format: "id": "..." or TOML format: id = "...")
     const idMatch = createOutput.match(/"id"\s*:\s*"([^"]+)"/) || createOutput.match(/id\s*=\s*"([^"]+)"/);
     if (!idMatch) {
-      console.error("Failed to parse KV namespace ID from output:", createOutput);
-      process.exit(1);
+      throw new Error(`Failed to parse KV namespace ID from output: ${createOutput}`);
     }
     kvId = idMatch[1];
     console.log(`  Created KV namespace: ${kvName} (${kvId})`);
@@ -240,9 +237,10 @@ async function main() {
   // Set OpenRouter API key if provided
   if (aiKey) {
     console.log("\nSetting OPENROUTER_API_KEY secret...");
-    execSync(`echo "${aiKey}" | npx wrangler secret put OPENROUTER_API_KEY --name ${name}`, {
-      stdio: "inherit",
+    execSync(`npx wrangler secret put OPENROUTER_API_KEY --name ${name}`, {
+      input: aiKey,
       cwd: WORKER_DIR,
+      stdio: ['pipe', 'inherit', 'inherit'],
     });
     console.log("AI proxy enabled at /api/ai/chat");
   }
@@ -251,8 +249,7 @@ async function main() {
   if (clerkKey) {
     const clerkDomain = clerkDomainFromKey(clerkKey);
     if (!clerkDomain) {
-      console.error("Invalid Clerk publishable key format");
-      process.exit(1);
+      throw new Error("Invalid Clerk publishable key format");
     }
 
     console.log(`\nConfiguring Clerk JWT verification...`);
@@ -262,17 +259,19 @@ async function main() {
     console.log("  PEM key obtained");
 
     // Set CLERK_PEM_PUBLIC_KEY secret
-    execSync(`echo '${pem.replace(/'/g, "\\'")}' | npx wrangler secret put CLERK_PEM_PUBLIC_KEY --name ${name}`, {
-      stdio: "inherit",
+    execSync(`npx wrangler secret put CLERK_PEM_PUBLIC_KEY --name ${name}`, {
+      input: pem,
       cwd: WORKER_DIR,
+      stdio: ['pipe', 'inherit', 'inherit'],
     });
 
     // Set PERMITTED_ORIGINS — allow the worker URL patterns
     // Worker URLs are https://{name}.{account}.workers.dev
     const origins = `https://${name}.*.workers.dev,https://${clerkDomain}`;
-    execSync(`echo "${origins}" | npx wrangler secret put PERMITTED_ORIGINS --name ${name}`, {
-      stdio: "inherit",
+    execSync(`npx wrangler secret put PERMITTED_ORIGINS --name ${name}`, {
+      input: origins,
       cwd: WORKER_DIR,
+      stdio: ['pipe', 'inherit', 'inherit'],
     });
     console.log(`  Permitted origins: ${origins}`);
     console.log("  Clerk auth enabled for /claim endpoint");
