@@ -833,6 +833,12 @@ If you see these errors, React is being duplicated:
 
 `VibeContextProvider` is used internally by the vibes.diy platform for database naming. **Standalone apps do NOT need it** - just render your App component directly with the VibesSwitch toggle.
 
+### Fireproof _files Sync Bug
+
+The `_files` API stores blobs as separate CAR files that sync independently from document metadata. Second devices get 404s because metadata arrives before blobs.
+
+**Workaround:** Store images as Uint8Array on the document. See `cache/fireproof.txt` → "Working with Images". This will be reverted when Fireproof fixes file sync upstream.
+
 ### Sell Skill Deploy Issues (Future Improvements)
 
 The `/vibes:sell` deploy has several issues that need fixing in `scripts/deploy-exe.js`:

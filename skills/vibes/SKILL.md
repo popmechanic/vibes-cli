@@ -456,21 +456,43 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
 - **DON'T** use the old `useFireproof` with `toCloud()` - use `useFireproofClerk` instead
 - **DON'T** use white text on light backgrounds
 - **DON'T** use `call-ai` directly - use `useAI` hook instead (it handles proxying and limits)
-- **DON'T** import `ImgFile` - it is NOT exported from the bundle. Display stored files like this:
+- **DON'T** use Fireproof's `_files` API for images — it has a sync bug where blobs arrive after metadata, causing 404s on other devices.
+  Store image data as Uint8Array directly on documents:
   ```jsx
-  function StoredImage({ fileRef, alt, className }) {
+  // Convert file to Uint8Array (with resize)
+  async function fileToImageData(file, maxDim = 1200) {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const canvas = new OffscreenCanvas(bitmap.width * scale, bitmap.height * scale);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 });
+    return new Uint8Array(await blob.arrayBuffer());
+  }
+
+  // Display from Uint8Array
+  function StoredImage({ data, type = 'image/jpeg', alt, className }) {
     const [url, setUrl] = useState(null);
     useEffect(() => {
-      let objectUrl;
-      fileRef.file().then(f => {
-        objectUrl = URL.createObjectURL(f);
-        setUrl(objectUrl);
-      });
-      return () => objectUrl && URL.revokeObjectURL(objectUrl);
-    }, [fileRef]);
+      if (!data) return;
+      // Fireproof CBOR round-trips Uint8Array as plain objects with numeric keys
+      const bytes = data instanceof Uint8Array ? data : new Uint8Array(Object.values(data));
+      const objectUrl = URL.createObjectURL(new Blob([bytes], { type }));
+      setUrl(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl);
+    }, [data, type]);
     return url ? <img src={url} alt={alt} className={className} /> : null;
   }
-  // Usage: <StoredImage fileRef={doc._files.photo} alt="Photo" />
+  // Usage: <StoredImage data={doc.imageData} type={doc.imageType} alt="Photo" />
+  ```
+- **DON'T** spread `useDocument` doc into `database.put()` — internal CRDT metadata
+  contaminates the write and can corrupt the database (`missing block` errors).
+  Build documents with explicit fields instead:
+  ```jsx
+  // BAD — spreads internal metadata
+  await database.put({ ...doc, completed: true });
+
+  // GOOD — explicit fields only
+  await database.put({ _id: doc._id, type: doc.type, todo: doc.todo, completed: true });
   ```
 - **DON'T** wrap your app in `VibeContextProvider` - that's a vibes.diy platform-only component. Standalone apps use `useFireproofClerk()` directly.
 - **DON'T** panic if you see "Cannot read properties of null (reading 'useContext')" - the template already handles the React singleton via `?external=react,react-dom` in the import map. Check that the import map wasn't accidentally modified.
@@ -484,7 +506,7 @@ The shipped cache files contain detailed reference material. Read them when the 
 
 | Need | Signal in Prompt | Read This |
 |------|------------------|-----------|
-| File uploads | "upload", "images", "photos", "attachments" | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/fireproof.txt` → "Example Image Uploader" |
+| File uploads | "upload", "images", "photos", "attachments" | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/fireproof.txt` → "Working with Images" |
 | Auth / sync config | "Clerk", "Connect", "cloud sync", "login" | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/fireproof.txt` → "ClerkFireproofProvider Config" |
 | Sync status display | "online/offline", "connection status" | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/fireproof.txt` → "Sync Status Display" |
 | Full Neobrute design details | detailed design system, spacing, typography | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/style-prompt.txt` |
