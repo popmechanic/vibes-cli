@@ -327,6 +327,7 @@ Do NOT hardcode database names. `useTenant()` is provided by the sell template a
 9. Do NOT use AskUserQuestion — you have everything you need
 10. Do NOT import React or hooks — `React`, `useState`, `useEffect`, `useRef`, `useCallback`, `useMemo`, `createContext`, `useContext` are all globally available from the template. No import statement needed.
 11. Do NOT define a useTenant() fallback — `useTenant()` is provided by the sell template. Just call it directly: `const { dbName } = useTenant();`
+12. Do NOT use `window.__*__` dunder patterns — hooks and globals are direct function calls, not accessed via window properties.
 {aiInstructions}
 
 ## Write Output
