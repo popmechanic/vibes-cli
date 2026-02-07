@@ -1,9 +1,11 @@
 ---
 name: exe
-description: Deploy a Vibes app to exe.dev VM hosting. Uses nginx on persistent VMs with SSH automation. Supports client-side multi-tenancy via subdomain-based Fireproof database isolation.
+description: Self-contained deploy automation — invoke directly, do not decompose. Deploys a Vibes app to exe.dev VM hosting. Uses nginx on persistent VMs with SSH automation. Supports client-side multi-tenancy via subdomain-based Fireproof database isolation.
 license: MIT
 allowed-tools: Bash, Read, Glob, AskUserQuestion
 ---
+
+> **Plan mode**: If you are planning work, this entire skill is ONE plan step: "Invoke /vibes:exe". Do not decompose the steps below into separate plan tasks.
 
 ## Deploy to exe.dev
 

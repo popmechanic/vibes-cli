@@ -611,8 +611,22 @@ This plugin provides both skills and commands. Understanding when each is used:
 | `/vibes:riff` | User asks to "explore ideas", "generate variations", "riff on X" | Generates multiple app variations in parallel |
 | `/vibes:sell` | User asks to "monetize", "add billing", "make it SaaS" | Transforms app into multi-tenant SaaS |
 | `/vibes:launch` | User asks to "launch my app", "full pipeline", "build and deploy SaaS" | Full pipeline: app gen + auth + billing + deploy via Agent Teams |
+| `/vibes:connect` | User asks to "deploy Connect", "set up sync", "redeploy Studio" | Deploys Fireproof Connect Studio VM |
+| `/vibes:exe` | User asks to "deploy to exe", "push to exe.dev" | Deploys app to exe.dev VM hosting |
+| `/vibes:cloudflare` | User asks to "deploy to Cloudflare", "push to Workers" | Deploys app to Cloudflare Workers |
 
 Claude automatically selects the appropriate skill based on user intent. The skill description in the YAML frontmatter guides this selection.
+
+### Skills Are Atomic
+
+**Each skill is a self-contained automation.** When planning work, a skill invocation is always ONE plan step (e.g., "Invoke /vibes:connect"), never decomposed into its internal sub-steps.
+
+This matters because of the audience distinction:
+- **CLAUDE.md** is developer-only — not distributed to plugin users
+- **SKILL.md frontmatter descriptions** are what end users' agents see pre-invocation (always visible in skill listings)
+- **SKILL.md content** is loaded only on invocation, guiding execution
+
+The frontmatter description must signal atomicity (e.g., "Self-contained deploy automation — invoke directly, do not decompose") so the agent treats the skill as a single unit even in plan mode. Without this, agents read the SKILL.md during planning and extract internal steps as separate plan tasks.
 
 ### Commands (User-invoked)
 
@@ -629,6 +643,9 @@ Commands are explicitly invoked by the user with the `/` prefix.
 - **vibes vs design-reference**: "Build X" → vibes. "Match this design.html" or "use this mockup" → design-reference.
 - **vibes vs sell**: "Build X" → vibes. "Build X with billing" or "monetize my app" → sell.
 - **sell vs launch**: "Monetize this existing app" → sell (transforms existing app.jsx). "Build and deploy a SaaS from scratch" or "full pipeline" → launch (orchestrates everything end-to-end with Agent Teams).
+- **connect**: "Deploy Connect", "set up sync backend", "redeploy Studio" → connect.
+- **exe**: "Deploy to exe", "push my app to exe.dev" → exe.
+- **cloudflare**: "Deploy to Cloudflare", "push to Workers" → cloudflare.
 - **update**: Only when user explicitly runs `/vibes:update` on existing HTML files.
 - **test**: Only when user explicitly runs `/vibes:test` or asks to "test the plugin".
 

@@ -1,9 +1,11 @@
 ---
 name: connect
-description: Deploy Fireproof Connect to a dedicated Studio VM on exe.dev. Sets up cloud sync backend for all your Vibes apps.
+description: Self-contained deploy automation — invoke directly, do not decompose. Deploys Fireproof Connect to a dedicated Studio VM on exe.dev. Sets up cloud sync backend for all your Vibes apps.
 license: MIT
 allowed-tools: Bash, Read, Glob, AskUserQuestion
 ---
+
+> **Plan mode**: If you are planning work, this entire skill is ONE plan step: "Invoke /vibes:connect". Do not decompose the steps below into separate plan tasks.
 
 ## Deploy Connect Studio
 

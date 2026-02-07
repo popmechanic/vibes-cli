@@ -1,9 +1,11 @@
 ---
 name: design-reference
-description: Transform a design reference HTML file into a Vibes app. Use when user provides a design.html, mockup, or static prototype to match exactly.
+description: Self-contained design transformer — invoke directly, do not decompose. Transforms a design reference HTML file into a Vibes app. Use when user provides a design.html, mockup, or static prototype to match exactly.
 license: MIT
 allowed-tools: Read, Write, Bash, AskUserQuestion
 ---
+
+> **Plan mode**: If you are planning work, this entire skill is ONE plan step: "Invoke /vibes:design-reference". Do not decompose the steps below into separate plan tasks.
 
 **Display this ASCII art immediately when starting:**
 
