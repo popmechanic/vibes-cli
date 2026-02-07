@@ -31,6 +31,8 @@ When skills reference Claude Code tools, substitute your equivalent:
 
 > **Note:** The `launch` skill (full SaaS pipeline with Agent Teams) is available in Claude Code only. For Codex/OpenCode, run `vibes`, `sell`, `connect`, and `cloudflare` skills sequentially.
 
+**Skills are atomic.** Each skill is a self-contained automation. When planning work, invoke a skill as a single step — do not decompose it into internal sub-steps.
+
 **Critical Rules:**
 - Before building apps, check if a relevant skill applies
 - If a skill matches, load it with `vibes-codex use-skill <name>`

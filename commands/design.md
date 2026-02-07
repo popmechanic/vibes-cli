@@ -19,6 +19,8 @@ Transform a static HTML design file into a working Vibes app with Fireproof data
 
 - **design.html** (required): Path to your static HTML mockup file
 
+> **Note:** This command invokes the `design-reference` skill. The shorter `/vibes:design` is provided as a convenience alias.
+
 ## Core Principle
 
 > **Preserve and adapt, don't interpret and recreate.**
