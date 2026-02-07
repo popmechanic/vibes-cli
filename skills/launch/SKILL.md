@@ -325,6 +325,8 @@ Do NOT hardcode database names. `useTenant()` is provided by the sell template a
 7. All Fireproof imports come from "use-fireproof" (mapped by import map)
 8. Do NOT use TypeScript syntax — pure JSX only
 9. Do NOT use AskUserQuestion — you have everything you need
+10. Do NOT import React or hooks — `React`, `useState`, `useEffect`, `useRef`, `useCallback`, `useMemo`, `createContext`, `useContext` are all globally available from the template. No import statement needed.
+11. Do NOT define a useTenant() fallback — `useTenant()` is provided by the sell template. Just call it directly: `const { dbName } = useTenant();`
 {aiInstructions}
 
 ## Write Output
