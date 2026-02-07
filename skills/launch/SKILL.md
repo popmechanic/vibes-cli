@@ -1,10 +1,13 @@
 ---
 name: launch
-description: Full SaaS pipeline — generates a Vibes app, adds auth + billing,
-  and deploys live. Uses Agent Teams to parallelize for maximum speed.
+description: Self-contained SaaS pipeline — invoke directly, do not decompose.
+  Generates a Vibes app, adds auth + billing, and deploys live. Uses Agent Teams
+  to parallelize for maximum speed.
 license: MIT
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion, Task, Teammate, SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet
 ---
+
+> **Plan mode**: If you are planning work, this entire skill is ONE plan step: "Invoke /vibes:launch". Do not decompose the steps below into separate plan tasks.
 
 **Display this ASCII art immediately when starting:**
 

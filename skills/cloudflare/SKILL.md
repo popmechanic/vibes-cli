@@ -1,9 +1,11 @@
 ---
 name: cloudflare
-description: Deploy a Vibes app to Cloudflare Workers with subdomain registry. Uses KV for storage and native Web Crypto for JWT verification.
+description: Self-contained deploy automation — invoke directly, do not decompose. Deploys a Vibes app to Cloudflare Workers with subdomain registry. Uses KV for storage and native Web Crypto for JWT verification.
 license: MIT
 allowed-tools: Bash, Read, Glob, AskUserQuestion, Write
 ---
+
+> **Plan mode**: If you are planning work, this entire skill is ONE plan step: "Invoke /vibes:cloudflare". Do not decompose the steps below into separate plan tasks.
 
 ## Deploy to Cloudflare
 

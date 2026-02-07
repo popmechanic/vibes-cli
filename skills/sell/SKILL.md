@@ -1,9 +1,11 @@
 ---
 name: sell
-description: Transform a Vibes app into a multi-tenant SaaS with subdomain-based tenancy. Adds Clerk authentication, subscription gating, and generates a unified app with landing page, tenant routing, and admin dashboard.
+description: Self-contained SaaS automation — invoke directly, do not decompose. Transforms a Vibes app into a multi-tenant SaaS with subdomain-based tenancy. Adds Clerk authentication, subscription gating, and generates a unified app with landing page, tenant routing, and admin dashboard.
 license: MIT
 allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 ---
+
+> **Plan mode**: If you are planning work, this entire skill is ONE plan step: "Invoke /vibes:sell". Do not decompose the steps below into separate plan tasks.
 
 **Display this ASCII art immediately when starting:**
 
