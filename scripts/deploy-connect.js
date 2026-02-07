@@ -519,8 +519,8 @@ async function phase9WriteConnect(args) {
 
   writeConnectFile({
     studio: args.studio,
-    apiUrl: `https://${args.studio}.exe.xyz:8080/api/`,
-    cloudUrl: `fpcloud://${args.studio}.exe.xyz:8080?protocol=wss`,
+    apiUrl: `https://${args.studio}.exe.xyz/api/`,
+    cloudUrl: `fpcloud://${args.studio}.exe.xyz?protocol=wss`,
     clerkPublishableKey: args.clerkPublishableKey
   });
 
@@ -530,7 +530,7 @@ async function phase9WriteConnect(args) {
 async function verifyDeployment(args) {
   console.log('\nVerifying deployment...');
 
-  const url = `https://${args.studio}.exe.xyz:8080`;
+  const url = `https://${args.studio}.exe.xyz`;
 
   try {
     const controller = new AbortController();
@@ -629,13 +629,13 @@ ${'━'.repeat(60)}
   Your Connect Studio is live!
 
   Endpoints:
-    Token API:  https://${vmHost}:8080/api
-    Cloud Sync: fpcloud://${vmHost}:8080?protocol=wss
+    Token API:  https://${vmHost}/api
+    Cloud Sync: fpcloud://${vmHost}?protocol=wss
 
   Update your app's .env:
     VITE_CLERK_PUBLISHABLE_KEY=${args.clerkPublishableKey}
-    VITE_API_URL=https://${vmHost}:8080/api
-    VITE_CLOUD_URL=fpcloud://${vmHost}:8080?protocol=wss
+    VITE_API_URL=https://${vmHost}/api
+    VITE_CLOUD_URL=fpcloud://${vmHost}?protocol=wss
 
   Check Docker status:
     ssh ${vmHost} "cd /opt/fireproof && sudo docker compose ps"
