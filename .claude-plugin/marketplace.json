@@ -5,15 +5,15 @@
     "email": "marcus@vibes.diy"
   },
   "metadata": {
-    "description": "Vibes is the vibe coding web stack made for AI agents.",
-    "version": "0.1.48"
+    "description": "Vibes is a vibe coding framework for rapidly making secure web apps for clusters of small user groups.",
+    "version": "0.1.49"
   },
   "plugins": [
     {
       "name": "vibes",
       "source": "./",
-      "description": "Vibes is the vibe coding web stack made for AI agents.",
-      "version": "0.1.48",
+      "description": "Vibes is a vibe coding framework for rapidly making secure web apps for clusters of small user groups.",
+      "version": "0.1.49",
       "author": {
         "name": "Marcus Estes",
         "email": "marcus@vibes.diy"
