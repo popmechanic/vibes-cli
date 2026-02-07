@@ -228,6 +228,49 @@ for (const [placeholder, value] of Object.entries(replacements)) {
   output = output.split(placeholder).join(value);
 }
 
+// Populate Connect config placeholders from .env (envVars loaded earlier)
+// Must run before placeholder validation so Connect placeholders are replaced
+console.log('Connect mode: Clerk auth + cloud sync enabled');
+output = populateConnectConfig(output, envVars, true);
+
+// Known safe patterns that aren't config placeholders
+// __PURE__ is a tree-shaking comment used by bundlers
+// __esModule is used by transpilers for ES module compatibility
+// __VIBES_CONFIG__ is a runtime config object populated by the template
+// __CLERK_LOAD_ERROR__ is a runtime error variable
+// __VIBES_APP_CODE__ and __ADMIN_CODE__ are injection placeholders consumed below
+const SAFE_PLACEHOLDER_PATTERNS = [
+  '__PURE__',
+  '__esModule',
+  '__VIBES_CONFIG__',
+  '__CLERK_LOAD_ERROR__',
+  '__VIBES_APP_CODE__',
+  '__ADMIN_CODE__'
+];
+
+// Validate template BEFORE injecting app/admin code
+// This prevents user-generated dunder patterns from triggering false positives
+function validateSellTemplate(html) {
+  const errors = [];
+
+  // Check for unreplaced config placeholders using whitelist approach
+  const allMatches = html.match(/__[A-Z_]+__/g) || [];
+  const unreplaced = allMatches.filter(m => !SAFE_PLACEHOLDER_PATTERNS.includes(m));
+  if (unreplaced.length > 0) {
+    errors.push(`Unreplaced placeholders: ${[...new Set(unreplaced)].join(', ')}`);
+  }
+
+  return errors;
+}
+
+const templateErrors = validateSellTemplate(output);
+if (templateErrors.length > 0) {
+  console.error('Sell assembly failed (template validation):');
+  templateErrors.forEach(e => console.error(`  - ${e}`));
+  console.error('\nFix: Check your config options and .env file');
+  process.exit(1);
+}
+
 // Read and process app code - strip imports, exports, and template-provided constants
 const templateConstants = ['CLERK_PUBLISHABLE_KEY', 'APP_NAME', 'APP_DOMAIN', 'BILLING_MODE', 'FEATURES', 'APP_TAGLINE', 'ADMIN_USER_IDS'];
 let appCode = stripForTemplate(readFileSync(resolvedAppPath, 'utf8'), templateConstants);
@@ -261,40 +304,12 @@ if (output.includes(adminPlaceholder)) {
   console.log('Note: Template has inline admin dashboard, skipping admin component injection');
 }
 
-// Populate Connect config placeholders from .env (envVars loaded earlier)
-console.log('Connect mode: Clerk auth + cloud sync enabled');
-output = populateConnectConfig(output, envVars, true);
-
-// Known safe patterns that aren't config placeholders
-// __PURE__ is a tree-shaking comment used by bundlers
-// __esModule is used by transpilers for ES module compatibility
-// __VIBES_CONFIG__ is a runtime config object populated by the template
-// __CLERK_LOAD_ERROR__ is a runtime error variable
-const SAFE_PLACEHOLDER_PATTERNS = [
-  '__PURE__',
-  '__esModule',
-  '__VIBES_CONFIG__',
-  '__CLERK_LOAD_ERROR__'
-];
-
-// Validate output
-function validateSellAssembly(html, app, admin) {
+// Validate final output - lightweight check for App component
+function validateSellAssembly(html, app) {
   const errors = [];
 
   if (!app || app.trim().length === 0) {
     errors.push('App code is empty');
-  }
-
-  // Admin code is optional - template may have inline admin dashboard
-  // if (!admin || admin.trim().length === 0) {
-  //   errors.push('Admin code is empty');
-  // }
-
-  // Check for unreplaced placeholders using whitelist approach
-  const allMatches = html.match(/__[A-Z_]+__/g) || [];
-  const unreplaced = allMatches.filter(m => !SAFE_PLACEHOLDER_PATTERNS.includes(m));
-  if (unreplaced.length > 0) {
-    errors.push(`Unreplaced placeholders: ${[...new Set(unreplaced)].join(', ')}`);
   }
 
   if (!html.includes('export default function') && !html.includes('function App')) {
@@ -304,7 +319,7 @@ function validateSellAssembly(html, app, admin) {
   return errors;
 }
 
-const validationErrors = validateSellAssembly(output, appCode, adminCode);
+const validationErrors = validateSellAssembly(output, appCode);
 if (validationErrors.length > 0) {
   console.error('Sell assembly failed:');
   validationErrors.forEach(e => console.error(`  - ${e}`));

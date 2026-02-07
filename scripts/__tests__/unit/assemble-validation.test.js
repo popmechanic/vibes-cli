@@ -40,23 +40,39 @@ function validateAssembly(html, code) {
 }
 
 /**
- * Validate sell assembly output
- * Mirrors the logic in assemble-sell.js
+ * Validate sell template BEFORE app code injection
+ * Mirrors the pre-injection validation in assemble-sell.js
  */
-function validateSellAssembly(html, app, admin) {
+const SAFE_PLACEHOLDER_PATTERNS = [
+  '__PURE__',
+  '__esModule',
+  '__VIBES_CONFIG__',
+  '__CLERK_LOAD_ERROR__',
+  '__VIBES_APP_CODE__',
+  '__ADMIN_CODE__'
+];
+
+function validateSellTemplate(html) {
+  const errors = [];
+
+  const allMatches = html.match(/__[A-Z_]+__/g) || [];
+  const unreplaced = allMatches.filter(m => !SAFE_PLACEHOLDER_PATTERNS.includes(m));
+  if (unreplaced.length > 0) {
+    errors.push(`Unreplaced placeholders: ${[...new Set(unreplaced)].join(', ')}`);
+  }
+
+  return errors;
+}
+
+/**
+ * Validate sell assembly output (post-injection)
+ * Mirrors the post-injection validation in assemble-sell.js
+ */
+function validateSellAssembly(html, app) {
   const errors = [];
 
   if (!app || app.trim().length === 0) {
     errors.push('App code is empty');
-  }
-
-  if (!admin || admin.trim().length === 0) {
-    errors.push('Admin code is empty');
-  }
-
-  const unreplaced = html.match(/__[A-Z_]+__/g) || [];
-  if (unreplaced.length > 0) {
-    errors.push(`Unreplaced placeholders: ${[...new Set(unreplaced)].join(', ')}`);
   }
 
   if (!html.includes('export default function') && !html.includes('function App')) {
@@ -131,44 +147,69 @@ describe('validateAssembly', () => {
   });
 });
 
-describe('validateSellAssembly', () => {
-  it('returns no errors for valid sell assembly', () => {
-    const html = '<script>export default function App() { return null; }</script>';
-    const app = 'export default function App() {}';
-    const admin = 'function AdminDashboard() {}';
-    expect(validateSellAssembly(html, app, admin)).toEqual([]);
+describe('validateSellTemplate (pre-injection)', () => {
+  it('returns no errors for clean template', () => {
+    const html = '<html>// __VIBES_APP_CODE__ __ADMIN_CODE__</html>';
+    expect(validateSellTemplate(html)).toEqual([]);
   });
 
-  it('detects empty app code', () => {
-    const errors = validateSellAssembly('<html></html>', '', 'admin code');
-    expect(errors).toContain('App code is empty');
+  it('allows safe placeholder patterns', () => {
+    const html = '<html>/*#__PURE__*/ __esModule __VIBES_CONFIG__ __CLERK_LOAD_ERROR__</html>';
+    expect(validateSellTemplate(html)).toEqual([]);
   });
 
-  it('detects empty admin code', () => {
-    const errors = validateSellAssembly('<html></html>', 'app code', '');
-    expect(errors).toContain('Admin code is empty');
-  });
-
-  it('detects unreplaced placeholders', () => {
+  it('detects unreplaced config placeholders', () => {
     const html = '<html>__CLERK_KEY__ and __APP_NAME__</html>';
-    const errors = validateSellAssembly(html, 'app', 'admin');
+    const errors = validateSellTemplate(html);
     expect(errors.some(e => e.includes('Unreplaced placeholders'))).toBe(true);
     expect(errors.some(e => e.includes('__CLERK_KEY__'))).toBe(true);
   });
 
   it('deduplicates repeated placeholders', () => {
     const html = '<html>__TEST__ __TEST__ __TEST__</html>';
-    const errors = validateSellAssembly(html, 'app', 'admin');
+    const errors = validateSellTemplate(html);
     const placeholderError = errors.find(e => e.includes('Unreplaced'));
     // Should only list __TEST__ once
     expect(placeholderError.match(/__TEST__/g).length).toBe(1);
   });
 
-  it('reports multiple errors at once', () => {
-    const html = '<html>__PLACEHOLDER__</html>';
-    const errors = validateSellAssembly(html, '', '');
+  it('does not flag dunder patterns in app code (post-injection scenario)', () => {
+    // This is the key fix: validation runs on the template BEFORE app code injection,
+    // so user code like window.__SELL_HOOKS__ never triggers false positives
+    const templateBeforeInjection = '<html>// __VIBES_APP_CODE__</html>';
+    expect(validateSellTemplate(templateBeforeInjection)).toEqual([]);
+  });
+});
+
+describe('validateSellAssembly (post-injection)', () => {
+  it('returns no errors for valid sell assembly', () => {
+    const html = '<script>export default function App() { return null; }</script>';
+    const app = 'export default function App() {}';
+    expect(validateSellAssembly(html, app)).toEqual([]);
+  });
+
+  it('detects empty app code', () => {
+    const errors = validateSellAssembly('<html></html>', '');
     expect(errors).toContain('App code is empty');
-    expect(errors).toContain('Admin code is empty');
-    expect(errors.some(e => e.includes('Unreplaced'))).toBe(true);
+  });
+
+  it('detects missing App component', () => {
+    const html = '<html>const x = 1;</html>';
+    const errors = validateSellAssembly(html, 'const x = 1;');
+    expect(errors).toContain('No App component found');
+  });
+
+  it('does not check for unreplaced placeholders (that is pre-injection)', () => {
+    // Post-injection validation only checks for app code and App component
+    const html = '<html>window.__SELL_HOOKS__ export default function App() {}</html>';
+    const errors = validateSellAssembly(html, 'export default function App() {}');
+    expect(errors).toEqual([]);
+  });
+
+  it('reports multiple errors at once', () => {
+    const html = '<html></html>';
+    const errors = validateSellAssembly(html, '');
+    expect(errors).toContain('App code is empty');
+    expect(errors).toContain('No App component found');
   });
 });
