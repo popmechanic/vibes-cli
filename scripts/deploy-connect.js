@@ -48,7 +48,6 @@ function parseArgs(argv) {
     studio: null,
     clerkPublishableKey: null,
     clerkSecretKey: null,
-    sharedConnect: null, // null = ask, true = shared, false = same-vm
     dryRun: false,
     help: false
   };
@@ -61,10 +60,6 @@ function parseArgs(argv) {
       args.clerkPublishableKey = argv[++i];
     } else if (arg === '--clerk-secret-key' && argv[i + 1]) {
       args.clerkSecretKey = argv[++i];
-    } else if (arg === '--shared-connect') {
-      args.sharedConnect = true;
-    } else if (arg === '--same-vm') {
-      args.sharedConnect = false;
     } else if (arg === '--dry-run') {
       args.dryRun = true;
     } else if (arg === '--help' || arg === '-h') {
@@ -91,8 +86,6 @@ Required:
   --clerk-secret-key <key>         Clerk secret key (sk_test_... or sk_live_...)
 
 Optional:
-  --shared-connect                 Enable blob proxy for cross-VM app hosting (recommended)
-  --same-vm                        Apps will only be hosted on this same VM
   --dry-run                        Show what would be done without executing
   --help                           Show this help message
 
@@ -143,38 +136,6 @@ function deriveJwtUrl(publishableKey) {
       'Please find your JWKS URL in Clerk Dashboard > API Keys.'
     );
   }
-}
-
-/**
- * Prompt user for deployment intent if not specified via flags
- */
-async function promptDeploymentIntent() {
-  const readline = await import('readline');
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-
-  console.log(`
-How will you deploy apps?
-
-  1. Shared Connect (Recommended)
-     - One Connect serves apps across multiple VMs
-     - Best for users with multiple apps
-     - Enables blob proxy for cross-origin access
-
-  2. Same VM only
-     - Apps hosted on this same Studio VM only
-     - Simpler but limited to single VM
-`);
-
-  return new Promise((resolve) => {
-    rl.question('Select option [1]: ', (answer) => {
-      rl.close();
-      const choice = answer.trim() || '1';
-      resolve(choice === '2' ? false : true);
-    });
-  });
 }
 
 /**
@@ -323,6 +284,42 @@ async function phase4InstallDocker(args) {
   client.end();
 }
 
+async function phase4bPatchNginx(args) {
+  console.log('\nPhase 4b: Patch nginx for WebSocket on /fp...');
+
+  const vmHost = `${args.studio}.exe.xyz`;
+
+  if (args.dryRun) {
+    console.log('  [DRY RUN] Would add WebSocket upgrade headers to /fp block in nginx.conf');
+    return;
+  }
+
+  const client = await connect(vmHost);
+
+  // The upstream nginx.conf has WebSocket headers on /ws but NOT on /fp.
+  // Fireproof client uses /fp for WebSocket connections.
+  // Patch: after "proxy_set_header X-Forwarded-Proto $scheme;" in the /fp block,
+  // add the 4 WebSocket upgrade lines.
+  const sedCmd = `sudo sed -i '/location = \\/fp/,/}/ {
+    /proxy_set_header X-Forwarded-Proto/a\\
+        proxy_set_header Upgrade \\$http_upgrade;\\
+        proxy_set_header Connection \\$connection_upgrade;\\
+        proxy_read_timeout 86400s;\\
+        proxy_send_timeout 86400s;
+  }' /opt/fireproof/docker/nginx.conf`;
+
+  const result = await runCommand(client, sedCmd);
+
+  if (result.code !== 0) {
+    console.log(`  ⚠ nginx patch failed: ${result.stderr}`);
+    console.log('  WebSocket connections on /fp may not upgrade correctly.');
+  } else {
+    console.log('  ✓ nginx.conf patched with WebSocket headers on /fp');
+  }
+
+  client.end();
+}
+
 async function phase5GenerateCredentials(args) {
   console.log('\nPhase 5: Generate Security Credentials...');
 
@@ -363,9 +360,7 @@ async function phase6WriteEnv(args, credentials) {
 
   if (args.dryRun) {
     console.log('  [DRY RUN] Would write .env to /opt/fireproof/.env');
-    if (args.sharedConnect) {
-      console.log(`  [DRY RUN] BLOB_PROXY_URL=https://${vmHost}:8080`);
-    }
+    console.log(`  [DRY RUN] BLOB_PROXY_URL=https://${vmHost}`);
     return;
   }
 
@@ -390,14 +385,11 @@ DEVICE_ID_CA_PRIV_KEY=${credentials.devicePrivKey}
 DEVICE_ID_CA_CERT=${credentials.deviceCert}
 `;
 
-  // Add blob proxy URL for shared connect deployments
-  if (args.sharedConnect) {
-    envContent += `
+  // Blob proxy URL (exe.dev proxies 443 → 8080, so public URL has no port)
+  envContent += `
 # Blob Proxy (for cross-VM app hosting)
-BLOB_PROXY_URL=https://${vmHost}:8080
+BLOB_PROXY_URL=https://${vmHost}
 `;
-    console.log('  Blob proxy enabled for shared connect');
-  }
 
   // Write .env file
   console.log('  Writing .env...');
@@ -590,14 +582,8 @@ ${'━'.repeat(60)}
 ${'━'.repeat(60)}
 `);
 
-  // Prompt for deployment intent if not specified via flags
-  if (args.sharedConnect === null) {
-    args.sharedConnect = await promptDeploymentIntent();
-  }
-
   console.log(`  Studio: ${args.studio}`);
   console.log(`  Clerk Key: ${args.clerkPublishableKey.substring(0, 15)}...`);
-  console.log(`  Mode: ${args.sharedConnect ? 'Shared Connect (blob proxy enabled)' : 'Same VM only'}`);
   if (args.dryRun) console.log('  Dry Run: Yes');
 
   try {
@@ -606,6 +592,7 @@ ${'━'.repeat(60)}
     await phase2CreateVM(args);
     await phase3CloneRepo(args);
     await phase4InstallDocker(args);
+    await phase4bPatchNginx(args);
     const credentials = await phase5GenerateCredentials(args);
     await phase6WriteEnv(args, credentials);
     await phase7StartServices(args);
