@@ -151,7 +151,7 @@ function compare(analysis) {
   if (!cachedImportMap) {
     return {
       success: false,
-      error: 'Could not load plugin cache. Run "vibes sync" first.'
+      error: 'Could not load plugin cache. Check skills/vibes/cache/ exists.'
     };
   }
 

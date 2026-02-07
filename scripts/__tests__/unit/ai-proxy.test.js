@@ -249,5 +249,64 @@ describe('CORS Headers', () => {
   });
 });
 
+// ============== getCorsOrigin Logic (extracted from ai-proxy.js) ==============
+
+/**
+ * getCorsOrigin extracted for testing.
+ * Mirrors the logic in ai-proxy.js (and registry-server.ts).
+ */
+function getCorsOrigin(origins, requestOrigin) {
+  if (origins.length === 0) return "*";
+
+  const isAllowed = origins.some(pattern => {
+    if (pattern === requestOrigin) return true;
+    if (pattern.includes("*")) {
+      const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp("^" + escaped.replace(/\*/g, "[^.]+") + "$");
+      return regex.test(requestOrigin);
+    }
+    return false;
+  });
+
+  return isAllowed ? requestOrigin : origins[0];
+}
+
+describe('getCorsOrigin', () => {
+  it('returns "*" when no origins configured', () => {
+    expect(getCorsOrigin([], "https://anything.com")).toBe("*");
+  });
+
+  it('returns matching origin for exact match', () => {
+    const origins = ["https://myapp.com", "https://other.com"];
+    expect(getCorsOrigin(origins, "https://myapp.com")).toBe("https://myapp.com");
+  });
+
+  it('returns matching origin for wildcard match', () => {
+    const origins = ["https://*.domain.com"];
+    expect(getCorsOrigin(origins, "https://sub.domain.com")).toBe("https://sub.domain.com");
+  });
+
+  it('returns matching origin for wildcard with multiple configured', () => {
+    const origins = ["https://exact.com", "https://*.wildcard.com"];
+    expect(getCorsOrigin(origins, "https://tenant.wildcard.com")).toBe("https://tenant.wildcard.com");
+  });
+
+  it('returns first configured origin when no match', () => {
+    const origins = ["https://allowed.com", "https://also-allowed.com"];
+    expect(getCorsOrigin(origins, "https://not-allowed.com")).toBe("https://allowed.com");
+  });
+
+  it('does not match wildcard across dots', () => {
+    const origins = ["https://*.domain.com"];
+    // [^.]+ should not match "a.b" (multiple subdomain segments)
+    expect(getCorsOrigin(origins, "https://a.b.domain.com")).toBe("https://*.domain.com");
+  });
+
+  it('handles empty request origin', () => {
+    const origins = ["https://allowed.com"];
+    expect(getCorsOrigin(origins, "")).toBe("https://allowed.com");
+  });
+});
+
 // Export for use in integration tests if needed
 export { extractTenantFromJWT, createTestJWT };

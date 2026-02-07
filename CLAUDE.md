@@ -473,19 +473,49 @@ npm run test:e2e:server
 |------|---------|
 | `scripts/assemble.js` | Assembly script - inserts JSX into template |
 | `scripts/assemble-sell.js` | SaaS assembly script - generates multi-tenant app |
+| `scripts/assemble-vite.js` | Vite-based assembly (alternative to Babel for Connect apps) |
+| `scripts/assemble-all.js` | Batch assembler for riff directories |
 | `scripts/build-components.js` | Build components from local `components/` directory |
 | `scripts/merge-templates.js` | Merge base + delta templates into final templates |
 | `scripts/find-plugin.js` | Plugin directory lookup with validation |
 | `scripts/update.js` | Deterministic app updater |
+| `scripts/generate-riff.js` | Parallel riff generator - spawns claude -p for variations |
+| `scripts/generate-handoff.js` | Generate HANDOFF.md context document for remote Claude |
 | `scripts/deploy-exe.js` | App deployment to exe.dev (static files, AI proxy, registry) |
 | `scripts/deploy-connect.js` | Connect Studio deployment to exe.dev (Docker-based sync) |
-| `scripts/generate-riff.js` | Parallel riff generator - spawns claude -p for variations |
-| `scripts/assemble-all.js` | Batch assembler for riff directories |
-| `scripts/lib/exe-ssh.js` | SSH automation for exe.dev |
-| `scripts/lib/env-utils.js` | Shared .env loading, Clerk key validation, Connect config |
-| `scripts/__tests__/fixtures/` | Pre-written JSX test fixtures |
-| `skills/test/SKILL.md` | E2E integration test skill |
+| `scripts/deploy-cloudflare.js` | Cloudflare deployment script |
+| `scripts/deployables/registry-server.ts` | Bun server for subdomain registry + Clerk webhooks (deployed to VMs) |
+| `scripts/vitest.config.js` | Vitest test runner configuration |
+| `scripts/debug-cid.js` | Debug script for diagnosing CID [object Object] bug |
 | `scripts/package.json` | Node.js deps |
+| `scripts/lib/env-utils.js` | Shared .env loading, Clerk key validation, Connect config |
+| `scripts/lib/exe-ssh.js` | SSH automation for exe.dev |
+| `scripts/lib/paths.js` | Centralized path resolution for all plugin paths |
+| `scripts/lib/crypto-utils.js` | Session token and device CA key generation for Connect |
+| `scripts/lib/ensure-deps.js` | Auto-install npm dependencies on first run |
+| `scripts/lib/backup.js` | Timestamped backup utilities for file operations |
+| `scripts/lib/prompt.js` | Readline prompt utilities for interactive CLI |
+| `scripts/lib/strip-code.js` | Strip import/export statements from JSX before template injection |
+| `scripts/lib/resolve-workers-url.js` | Resolve full Cloudflare Workers URL for an app |
+| `scripts/lib/jwt-validation.js` | JWT validation utilities (azp matching, timing) |
+| `scripts/lib/auth-flows.js` | Auth flow state machines (signup, signin, gate) |
+| `scripts/lib/registry-logic.js` | Pure functions for subdomain registry operations (tested) |
+| `scripts/deployables/ai-proxy.js` | AI proxy server for OpenRouter (deployed to exe.dev VMs) |
+| `scripts/lib/template-merge.js` | Pure functions for merging base + delta templates |
+| `scripts/lib/component-transforms.js` | Pure functions for transforming component source code |
+| `scripts/lib/parsers.js` | Version extraction from CDN URLs |
+| `scripts/lib/analyze.js` | Update pipeline phase 1: detect versions and era markers |
+| `scripts/lib/compare.js` | Update pipeline phase 2: compare app against current plugin |
+| `scripts/lib/plan.js` | Update pipeline phase 3: format comparison into readable plan |
+| `scripts/lib/transforms/import-map.js` | Import map replacement transform for updates |
+| `scripts/lib/transforms/component-replace.js` | Component replacement transform for updates |
+| `scripts/lib/transforms/config-merge.js` | Sell CONFIG object merge transform for updates |
+| `scripts/updates/registry.js` | Central registry of all available update definitions |
+| `scripts/__tests__/fixtures/` | Pre-written JSX test fixtures |
+| `lib/resolve-paths.js` | Find plugin directory across install locations |
+| `bundles/fireproof-clerk-bundle.js` | Patched Fireproof client bundle (temporary workaround) |
+| `assets/` | Favicon, branding images, auth card designs |
+| `docs/plans/` | Architecture decision records and planning docs |
 | `components/` | Local TypeScript components - source of truth for UI/UX |
 | `components/AuthPopUp/` | Modal auth dialog (Amber's original design) |
 | `components/AuthScreen/` | Full-screen auth gate for sell template |
@@ -507,15 +537,12 @@ npm run test:e2e:server
 | `skills/sell/templates/unified.html` | Generated SaaS template |
 | `skills/sell/SKILL.md` | Sell skill for SaaS transformation |
 | `skills/design-reference/SKILL.md` | Design reference skill - mechanical HTML→React transformation |
-| `scripts/registry-server.ts` | Bun server for subdomain registry + Clerk webhooks |
-| `scripts/lib/jwt-validation.js` | JWT validation utilities (azp matching, timing) |
-| `scripts/lib/auth-flows.js` | Auth flow state machines (signup, signin, gate) |
 | `skills/launch/SKILL.md` | Launch skill - full SaaS pipeline with Agent Teams |
 | `skills/exe/SKILL.md` | exe.dev app deployment skill |
 | `skills/connect/SKILL.md` | Connect Studio deployment skill |
 | `skills/cloudflare/SKILL.md` | Cloudflare Workers deployment skill |
 | `skills/cloudflare/worker/` | Cloudflare Worker source (Hono, KV, Web Crypto JWT) |
-| `scripts/deploy-cloudflare.js` | Cloudflare deployment script |
+| `skills/test/SKILL.md` | E2E integration test skill |
 | `commands/update.md` | User-facing update command definition |
 
 ### Cache Locations
@@ -567,12 +594,12 @@ vibes.diy uses import maps - a browser-native feature (since March 2023) that ma
 | Bare specifier | `import "react"` | ✅ Yes |
 | Absolute path | `import "/react@19.2.1"` | ❌ No |
 
-When esm.sh bundles `use-vibes`, internal React imports become absolute paths:
+When esm.sh bundles `@fireproof/clerk`, internal React imports become absolute paths:
 ```javascript
 import "/react@>=19.1.0?target=es2022";  // Resolved relative to esm.sh origin
 ```
 
-**Result**: Our import map provides React 19.2.1, but use-vibes loads React 19.2.3 → TWO React instances → context fails.
+**Result**: Our import map provides React 19.2.1, but `@fireproof/clerk` loads React 19.2.3 → TWO React instances → context fails.
 
 ### The Solution: `?external=`
 
@@ -655,7 +682,7 @@ The `/vibes:sell` skill transforms apps into multi-tenant SaaS with Clerk auth a
 
 ### Key Components
 
-**Registry Server** (`scripts/registry-server.ts`):
+**Registry Server** (`scripts/deployables/registry-server.ts`):
 - `GET /registry.json` - Public read of claims, quotas, reserved subdomains
 - `GET /check/:subdomain` - Real-time availability checking
 - `POST /claim` - Authenticated claiming with quota enforcement (returns 402 if quota exceeded)
@@ -895,6 +922,8 @@ When releasing a new version, update the version number in **both** files to com
 2. `.claude-plugin/marketplace.json` - The marketplace metadata (in the `plugins` array)
 
 Both files must have matching version numbers.
+
+**Name fields:** `plugin.json` uses `"name": "vibes"` (the plugin's internal name). `marketplace.json` uses `"name": "vibes-cli"` at the top level (the public listing name on the marketplace), while the plugin entry inside its `plugins` array uses `"name": "vibes"` to match `plugin.json`.
 
 ## Commit Messages
 

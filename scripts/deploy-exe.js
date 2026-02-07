@@ -37,12 +37,12 @@ import { homedir } from 'os';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
-import { ensureSSH2 } from './lib/ensure-deps.js';
+import { ensureDeps } from './lib/ensure-deps.js';
 import { prompt, confirm } from './lib/prompt.js';
 
 const __filename = fileURLToPath(import.meta.url);
 
-await ensureSSH2(__filename);
+await ensureDeps(__filename);
 
 import {
   findSSHKey,
@@ -528,7 +528,7 @@ async function phase5AIProxy(args) {
 
     // Read and upload proxy script
     console.log('  Uploading AI proxy...');
-    const proxyPath = join(__dirname, 'lib', 'ai-proxy.js');
+    const proxyPath = join(__dirname, 'deployables', 'ai-proxy.js');
     if (!existsSync(proxyPath)) {
       throw new Error(`AI proxy script not found at ${proxyPath}`);
     }
@@ -543,10 +543,13 @@ async function phase5AIProxy(args) {
     ];
 
     for (const envVar of envVars) {
-      // Check if already set, if not add it
+      // Check if already set, if not add it (heredoc avoids shell interpretation of values)
       const varName = envVar.split('=')[0];
-      await runCommand(client, `grep -q "^${varName}=" /etc/environment || echo '${envVar}' | sudo tee -a /etc/environment`);
+      await runCommand(client, `grep -q "^${varName}=" /etc/environment || cat <<'VAREOF' | sudo tee -a /etc/environment\n${envVar}\nVAREOF`);
     }
+
+    // Ensure /opt/vibes/ is owned by exedev (service runs as exedev, not root)
+    await runCommand(client, 'sudo chown -R exedev:exedev /opt/vibes');
 
     // Create systemd service
     console.log('  Creating systemd service...');
@@ -556,7 +559,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=root
+User=exedev
 WorkingDirectory=/opt/vibes
 ExecStart=/usr/local/bin/bun run /opt/vibes/proxy.js
 Restart=always
@@ -716,7 +719,7 @@ ${missingLines}
 
     // Upload registry server
     console.log('  Uploading registry server...');
-    const registryServerPath = join(__dirname, 'registry-server.ts');
+    const registryServerPath = join(__dirname, 'deployables', 'registry-server.ts');
     if (!existsSync(registryServerPath)) {
       throw new Error(`Registry server not found at ${registryServerPath}`);
     }

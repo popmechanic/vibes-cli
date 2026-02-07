@@ -16,7 +16,7 @@ import jwt from "jsonwebtoken";
 import {
   isSubdomainAvailable as _isSubdomainAvailable,
   getUserClaims as _getUserClaims,
-} from "./lib/registry-logic.js";
+} from "../lib/registry-logic.js";
 
 // Configuration from environment
 const REGISTRY_PATH = process.env.REGISTRY_PATH || "/var/www/html/registry.json";
@@ -145,6 +145,9 @@ function verifyClerkJWT(authHeader: string | null): { userId: string } | null {
       return null;
     }
 
+    // NOTE: This pattern matching logic is intentionally duplicated from lib/jwt-validation.js
+    // because this file runs as a standalone Bun server on remote VMs.
+    // The canonical tested version is in lib/jwt-validation.js — keep in sync.
     // Validate authorized party if configured (supports wildcard patterns like *.domain.com)
     if (PERMITTED_ORIGINS.length > 0 && decoded.azp) {
       const azpMatches = PERMITTED_ORIGINS.some(pattern => {
@@ -218,6 +221,9 @@ const getUserClaims = _getUserClaims as (
  * Get CORS origin for a request
  * Restricts to PERMITTED_ORIGINS if configured, otherwise allows all
  */
+// NOTE: This pattern matching logic is intentionally duplicated from lib/jwt-validation.js
+// because this file runs as a standalone Bun server on remote VMs.
+// The canonical tested version is in lib/jwt-validation.js — keep in sync.
 function getCorsOrigin(req: Request): string {
   const requestOrigin = req.headers.get("Origin") || "";
   if (PERMITTED_ORIGINS.length === 0) return "*";
@@ -409,31 +415,43 @@ Bun.serve({
           });
         }
 
-        const registry = await readRegistry();
-
-        // Update the user's quota
-        registry.quotas = registry.quotas ?? {};
-        if (newQuantity > 0) {
-          registry.quotas[userId] = newQuantity;
-          console.log(`Updated quota for user ${userId}: ${newQuantity}`);
-        } else {
-          delete registry.quotas[userId];
-          console.log(`Removed quota for user ${userId}`);
+        // Acquire lock for read-modify-write atomicity
+        if (!await acquireLock()) {
+          return new Response(
+            JSON.stringify({ error: "Server busy, try again" }),
+            { status: 503, headers: { "Content-Type": "application/json" } }
+          );
         }
 
-        const userClaims = getUserClaims(registry, userId);
+        try {
+          const registry = await readRegistry();
 
-        // If user has more claims than their subscription allows, release excess (LIFO)
-        if (userClaims.length > newQuantity) {
-          const toRelease = userClaims.slice(0, userClaims.length - newQuantity);
-          console.log(`Releasing ${toRelease.length} subdomains for user ${userId}:`, toRelease);
-
-          for (const subdomain of toRelease) {
-            delete registry.claims[subdomain];
+          // Update the user's quota
+          registry.quotas = registry.quotas ?? {};
+          if (newQuantity > 0) {
+            registry.quotas[userId] = newQuantity;
+            console.log(`Updated quota for user ${userId}: ${newQuantity}`);
+          } else {
+            delete registry.quotas[userId];
+            console.log(`Removed quota for user ${userId}`);
           }
-        }
 
-        await writeRegistry(registry);
+          const userClaims = getUserClaims(registry, userId);
+
+          // If user has more claims than their subscription allows, release excess (LIFO)
+          if (userClaims.length > newQuantity) {
+            const toRelease = userClaims.slice(0, userClaims.length - newQuantity);
+            console.log(`Releasing ${toRelease.length} subdomains for user ${userId}:`, toRelease);
+
+            for (const subdomain of toRelease) {
+              delete registry.claims[subdomain];
+            }
+          }
+
+          await writeRegistry(registry);
+        } finally {
+          await releaseLock();
+        }
       }
 
       return new Response(JSON.stringify({ received: true }), {
