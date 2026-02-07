@@ -22,12 +22,12 @@ import { homedir } from 'os';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
-import { ensureSSH2 } from './lib/ensure-deps.js';
+import { ensureDeps } from './lib/ensure-deps.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-await ensureSSH2(__filename);
+await ensureDeps(__filename);
 
 import {
   findSSHKey,
@@ -401,9 +401,8 @@ BLOB_PROXY_URL=https://${vmHost}:8080
 
   // Write .env file
   console.log('  Writing .env...');
-  // Use heredoc to handle multiline content safely
-  const escapedContent = envContent.replace(/'/g, "'\\''");
-  await runCommand(client, `echo '${escapedContent}' > /opt/fireproof/.env`);
+  // Use heredoc with single-quoted delimiter to prevent variable expansion
+  await runCommand(client, `cat <<'ENVEOF' > /opt/fireproof/.env\n${envContent}\nENVEOF`);
   await runCommand(client, 'chmod 600 /opt/fireproof/.env');
 
   console.log('  ✓ Environment configured');
