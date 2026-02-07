@@ -682,22 +682,23 @@ Tell the user:
 
 ## Phase 4: Verify & Cleanup
 
-### 4.1 Present URLs
+### 4.1 Verify URLs
 
-Tell the user:
+Use AskUserQuestion with the URLs embedded in the question so the user can see them at the prompt:
 
-> Your app is live! Here are the URLs to verify:
->
-> - **Landing page**: `https://{domain}`
-> - **Tenant test**: `https://{domain}?subdomain=test`
-> - **Admin dashboard**: `https://{domain}?subdomain=admin`
->
-> Open each one and confirm:
-> 1. Landing page loads with your title, tagline, and features
-> 2. Tenant route shows the auth gate (Clerk sign-in)
-> 3. Admin route loads the admin dashboard (if Phase 3.5 was completed)
+```
+AskUserQuestion:
+  Question: "Your app is live! Open each URL and verify:\n\n- Landing: https://{domain}\n- Tenant: https://{domain}?subdomain=test\n- Admin: https://{domain}?subdomain=admin\n\nDoes everything look right?"
+  Header: "Verify"
+  Options:
+  - Label: "All working"
+    Description: "Landing page, tenant app, and admin dashboard all load correctly"
+  - Label: "Something's broken"
+    Description: "One or more URLs aren't working as expected"
+  multiSelect: false
+```
 
-Mark T8 completed after user confirms.
+Mark T8 completed after user confirms "All working". If "Something's broken", ask what's wrong and troubleshoot.
 
 ### 4.2 Shutdown Teammates
 
