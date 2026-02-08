@@ -292,7 +292,7 @@ Current diagnostics:
               fontSize: "15px",
               fontWeight: 700,
               letterSpacing: "0.12em",
-            }}>FIREPROOF DIAGNOSTICS</span>
+            }}>VIBES CHECK</span>
             <span style={{
               color: "#94a3b8",
               fontSize: "12px",
