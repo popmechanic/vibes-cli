@@ -2,8 +2,11 @@
  * Tests for env-utils validation helpers
  */
 
-import { describe, it, expect } from 'vitest';
-import { validateOpenRouterKey, validateClerkUserId, validateClerkKey } from '../../lib/env-utils.js';
+import { describe, it, expect, afterEach } from 'vitest';
+import { writeFileSync, mkdirSync, rmSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
+import { validateOpenRouterKey, validateClerkUserId, validateClerkKey, loadEnvFile } from '../../lib/env-utils.js';
 
 describe('validateOpenRouterKey', () => {
   it('accepts valid OpenRouter keys', () => {
@@ -57,5 +60,80 @@ describe('validateClerkKey', () => {
     expect(validateClerkKey(null)).toBeFalsy();
     expect(validateClerkKey(undefined)).toBeFalsy();
     expect(validateClerkKey('')).toBeFalsy();
+  });
+});
+
+describe('loadEnvFile', () => {
+  let tempDir;
+
+  function makeTempDir() {
+    tempDir = join(tmpdir(), 'env-utils-test-' + Date.now());
+    mkdirSync(tempDir, { recursive: true });
+    return tempDir;
+  }
+
+  afterEach(() => {
+    if (tempDir) {
+      rmSync(tempDir, { recursive: true, force: true });
+      tempDir = null;
+    }
+  });
+
+  it('strips double-quoted values', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, '.env'), 'KEY="value"\n');
+    const env = loadEnvFile(dir);
+    expect(env.KEY).toBe('value');
+  });
+
+  it('strips single-quoted values', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, '.env'), "KEY='value'\n");
+    const env = loadEnvFile(dir);
+    expect(env.KEY).toBe('value');
+  });
+
+  it('handles unquoted values', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, '.env'), 'KEY=value\n');
+    const env = loadEnvFile(dir);
+    expect(env.KEY).toBe('value');
+  });
+
+  it('preserves internal quotes', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, '.env'), `KEY="it's a test"\n`);
+    const env = loadEnvFile(dir);
+    expect(env.KEY).toBe("it's a test");
+  });
+
+  it('handles empty values', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, '.env'), 'KEY=\n');
+    const env = loadEnvFile(dir);
+    expect(env.KEY).toBe('');
+  });
+
+  it('skips comments and blank lines', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, '.env'), '# comment\n\nKEY=value\n# another comment\n');
+    const env = loadEnvFile(dir);
+    expect(Object.keys(env)).toEqual(['KEY']);
+    expect(env.KEY).toBe('value');
+  });
+
+  it('returns empty object when .env does not exist', () => {
+    const dir = makeTempDir();
+    const env = loadEnvFile(dir);
+    expect(env).toEqual({});
+  });
+
+  it('parses multiple keys', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, '.env'), 'A="hello"\nB=world\nC=\'quoted\'\n');
+    const env = loadEnvFile(dir);
+    expect(env.A).toBe('hello');
+    expect(env.B).toBe('world');
+    expect(env.C).toBe('quoted');
   });
 });

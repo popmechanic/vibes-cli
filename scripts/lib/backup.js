@@ -2,11 +2,11 @@
  * Shared Backup Utilities
  *
  * Consolidated backup logic for file operations.
- * Creates timestamped backups in format: file.YYYYMMDD-HHMMSS.bak.html
+ * Creates timestamped backups in format: file.YYYYMMDD-HHMMSS.bak.ext
  */
 
 import { existsSync, copyFileSync, readdirSync } from 'fs';
-import { dirname, join, basename } from 'path';
+import { dirname, join, basename, parse, format } from 'path';
 
 /**
  * Generate timestamp string for backup filenames
@@ -20,7 +20,7 @@ function getBackupTimestamp() {
 
 /**
  * Create a timestamped backup of an existing file
- * Creates: file.YYYYMMDD-HHMMSS.bak.html
+ * Creates: file.YYYYMMDD-HHMMSS.bak.ext (e.g., index.20250208-120000.bak.html)
  *
  * @param {string} filePath - Path to the file to backup
  * @returns {string|null} - Backup path if created, null if file doesn't exist
@@ -30,7 +30,12 @@ export function createBackup(filePath) {
     return null;
   }
   const timestamp = getBackupTimestamp();
-  const backupPath = filePath.replace(/\.html$/, `.${timestamp}.bak.html`);
+  const parsed = parse(filePath);
+  const backupPath = format({
+    dir: parsed.dir,
+    name: `${parsed.name}.${timestamp}.bak`,
+    ext: parsed.ext || '.bak'
+  });
   copyFileSync(filePath, backupPath);
   return backupPath;
 }
@@ -38,13 +43,14 @@ export function createBackup(filePath) {
 /**
  * Find the most recent backup for a file
  *
- * @param {string} filePath - Path to the original file
+ * @param {string} filePath - Path to the original file (any extension)
  * @returns {string|null} - Path to most recent backup, or null if none found
  */
 export function findLatestBackup(filePath) {
   const dir = dirname(filePath);
-  const baseName = basename(filePath, '.html');
-  const pattern = new RegExp(`^${baseName}\\.\\d{8}-\\d{6}\\.bak\\.html$`);
+  const parsed = parse(filePath);
+  const ext = parsed.ext ? `\\${parsed.ext}` : '\\.bak';
+  const pattern = new RegExp(`^${parsed.name}\\.\\d{8}-\\d{6}\\.bak${ext}$`);
 
   try {
     const entries = readdirSync(dir);
@@ -54,8 +60,8 @@ export function findLatestBackup(filePath) {
       .reverse(); // Most recent first
 
     if (backups.length === 0) {
-      // Fall back to legacy .bak.html format
-      const legacyBackup = `${baseName}.bak.html`;
+      // Fall back to legacy .bak.ext format
+      const legacyBackup = `${parsed.name}.bak${parsed.ext || '.bak'}`;
       if (entries.includes(legacyBackup)) {
         return join(dir, legacyBackup);
       }

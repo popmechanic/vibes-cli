@@ -13,6 +13,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { TEMPLATES } from './lib/paths.js';
+import { loadEnvFile, populateConnectConfig } from './lib/env-utils.js';
 
 const PLACEHOLDER = '// __VIBES_APP_CODE__';
 const templatePath = TEMPLATES.vibesBasic;
@@ -23,6 +24,7 @@ if (!existsSync(templatePath)) {
   process.exit(1);
 }
 const template = readFileSync(templatePath, 'utf8');
+const envVars = loadEnvFile(process.cwd());
 
 if (!template.includes(PLACEHOLDER)) {
   console.error(`Template missing placeholder: ${PLACEHOLDER}`);
@@ -49,7 +51,8 @@ const results = await Promise.all(
 
     try {
       const appCode = readFileSync(appPath, 'utf8').trim();
-      const output = template.replace(PLACEHOLDER, appCode);
+      const assembled = template.replace(PLACEHOLDER, appCode);
+      const output = populateConnectConfig(assembled, envVars);
       writeFileSync(outputPath, output);
       return { dir, success: true };
     } catch (e) {

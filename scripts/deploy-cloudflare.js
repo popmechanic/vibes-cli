@@ -13,43 +13,9 @@
 
 import { execSync } from "child_process";
 import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync, readFileSync, writeFileSync } from "fs";
-import { resolve, dirname, join, basename } from "path";
-import { fileURLToPath } from "url";
-import { homedir } from "os";
+import { resolve, join, basename } from "path";
 import { createPublicKey } from "crypto";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Resolve plugin root (works in dev and installed modes)
-function resolvePluginRoot() {
-  if (process.env.VIBES_PLUGIN_ROOT) {
-    return process.env.VIBES_PLUGIN_ROOT;
-  }
-  // Check if we're in the plugin directory
-  const devPath = resolve(__dirname, "..");
-  if (existsSync(join(devPath, "skills", "cloudflare"))) {
-    return devPath;
-  }
-  // Claude Code plugin cache location
-  const pluginCache = join(homedir(), ".claude/plugins/cache/vibes-cli/vibes");
-  if (existsSync(pluginCache)) {
-    const versions = readdirSync(pluginCache).filter(
-      (f) => !f.startsWith(".") && statSync(join(pluginCache, f)).isDirectory()
-    );
-    if (versions.length > 0) {
-      return join(pluginCache, versions[versions.length - 1]);
-    }
-  }
-  // Standard install location
-  const vibesPath = join(homedir(), ".vibes");
-  if (existsSync(join(vibesPath, "skills", "cloudflare"))) {
-    return vibesPath;
-  }
-  return devPath;
-}
-
-const PLUGIN_ROOT = resolvePluginRoot();
+import { PLUGIN_ROOT } from "./lib/paths.js";
 const WORKER_DIR = resolve(PLUGIN_ROOT, "skills/cloudflare/worker");
 
 function run(cmd, options = {}) {
