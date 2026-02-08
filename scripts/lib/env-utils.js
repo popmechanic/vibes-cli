@@ -37,7 +37,7 @@ export function loadEnvFile(dir) {
 
     const key = trimmed.slice(0, eqIndex).trim();
     const value = trimmed.slice(eqIndex + 1).trim();
-    env[key] = value;
+    env[key] = value.replace(/^["']|["']$/g, '');
   }
 
   return env;

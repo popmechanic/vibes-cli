@@ -2130,14 +2130,12 @@ if (typeof window !== 'undefined') {
             return await response.json();
 
           } catch (err) {
-            if (!error) {
-              setError({ code: 'NETWORK_ERROR', message: err.message || 'Network error' });
-            }
+            setError({ code: 'NETWORK_ERROR', message: err.message || 'Network error' });
             throw err;
           } finally {
             setLoading(false);
           }
-        }, [error]);
+        }, []);
 
         return { callAI: callAI, loading: loading, error: error, clearError: function() { setError(null); } };
       }
