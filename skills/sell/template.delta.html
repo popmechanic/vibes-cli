@@ -924,15 +924,18 @@
         const { ClerkFireproofProvider } = window.ClerkComponents;
 
         return (
-          <ClerkFireproofProvider
-            publishableKey={publishableKey}
-            config={{
-              apiUrl: vibesConfig.tokenApiUri,
-              cloudUrl: vibesConfig.cloudBackendUrl
-            }}
-          >
-            <AppRouter />
-          </ClerkFireproofProvider>
+          <>
+            <SyncStatusDot />
+            <ClerkFireproofProvider
+              publishableKey={publishableKey}
+              config={{
+                apiUrl: vibesConfig.tokenApiUri,
+                cloudUrl: vibesConfig.cloudBackendUrl
+              }}
+            >
+              <AppRouter />
+            </ClerkFireproofProvider>
+          </>
         );
       }
 
@@ -962,8 +965,19 @@
           window.useUser = clerkModule.useUser;
           window.ClerkComponents.useUser = clerkModule.useUser;
 
-          // Export Fireproof hook for user's App code
-          window.useFireproofClerk = clerkModule.useFireproofClerk;
+          // Export Fireproof hook for user's App code, with sync status bridge
+          var _originalUseFireproofClerk = clerkModule.useFireproofClerk;
+          window.useFireproofClerk = function(name, opts) {
+            var result = _originalUseFireproofClerk(name, opts);
+            var syncVal = result.syncStatus || 'idle';
+            React.useEffect(function() {
+              if (window.__VIBES_SYNC_STATUS__ !== syncVal) {
+                window.__VIBES_SYNC_STATUS__ = syncVal;
+                window.dispatchEvent(new CustomEvent('vibes-sync-status-change'));
+              }
+            }, [syncVal]);
+            return result;
+          };
         } catch (err) {
           console.error('Failed to load Clerk components:', err);
           window.__CLERK_LOAD_ERROR__ = err.message || String(err);
