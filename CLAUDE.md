@@ -11,7 +11,7 @@
 | Working on skills | The specific `skills/*/SKILL.md` file |
 | Generating app code | SKILL.md has patterns; for advanced features, read `cache/fireproof.txt` |
 | Working on scripts | `scripts/package.json` for deps, this file for architecture |
-| Debugging React errors | "Known Issues" section below |
+| Debugging React errors | "React Singleton Problem" section below; also `skills/vibes/SKILL.md` Common Mistakes |
 | Deploying to Cloudflare | `skills/cloudflare/SKILL.md` |
 | Testing plugin changes | `cd scripts && npm run test:fixtures` for structural tests; `/vibes:test` for full E2E |
 | Understanding skill sequencing | "Workflow Sequence" section below |
@@ -29,31 +29,6 @@ SKILL.md provides common patterns (useDocument, useLiveQuery, database.put/del) 
 | User context/identity | "user name", "profile", "who is logged in" | User Context, useUser() |
 | Complete example | "full example", "show me how" | Complete Example |
 | Migration from use-fireproof | "migrate", "update existing" | Differences from Standard Fireproof |
-
-### ClerkFireproofProvider Config Pattern
-
-Working configuration pattern for Vite apps with Clerk authentication:
-
-```tsx
-import { ClerkFireproofProvider } from "@necrodome/fireproof-clerk";
-
-const config = {
-  apiUrl: import.meta.env.VITE_API_URL || "http://localhost:8080/api/",
-  cloudUrl: import.meta.env.VITE_CLOUD_URL || "fpcloud://localhost:8080?protocol=ws",
-};
-
-<ClerkFireproofProvider publishableKey={CLERK_KEY} config={config}>
-  {/* app content */}
-</ClerkFireproofProvider>
-```
-
-**Environment Variables:**
-
-| Variable | Purpose | Production Example |
-|----------|---------|-------------------|
-| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk auth | `pk_test_...` or `pk_live_...` |
-| `VITE_API_URL` | Token API endpoint | `https://yourvm.exe.xyz/api` |
-| `VITE_CLOUD_URL` | Cloud sync (fpcloud protocol) | `fpcloud://yourvm.exe.xyz/backend?protocol=wss` |
 
 ### Architecture at a Glance
 
@@ -112,46 +87,7 @@ D → AD        Admin setup needs deployed app for signup
 D|AD → V      Verify needs live URL
 ```
 
-**Context: Launch (Agent Teams)**
-
-| Node | Task | Owner | BlockedBy |
-|------|------|-------|-----------|
-| G | T1 | builder | -- |
-| CR | T2 | lead | -- |
-| CO | T3 | infra | T2 |
-| S | T4 | lead | -- |
-| A | T5 | lead | T1, T3, T4 |
-| D | T6 | lead | T5 |
-| AD | Phase 3.5 | lead | T6 |
-| V | T8 | lead | T6 or AD |
-
-Parallel lanes: T1 ‖ T2→T3 ‖ T4. Converge at T5.
-Launch is prescriptive — runs G → S → A → D → AD → V in one shot, no iteration loops.
-
-**Context: Test (Sequential Fixtures)**
-
-| Node | Phase | Notes |
-|------|-------|-------|
-| CR | 1 | Check test-vibes/.env |
-| CO | 2 | Check test-vibes/.connect |
-| G | 3 | Fixture selection (not generation) |
-| A | 4 | assemble.js or assemble-sell.js |
-| D | 5 | deploy-cloudflare.js |
-| AD | 5.5 | sell-ready only, post-deploy |
-| V | 6 | Present URL + browser check |
-| -- | 7-12 | Test-specific: diagnosis, fix, unit tests, cleanup |
-
-**Context: Native Skills (Interactive)**
-
-| Skill | Entry Node | Valid Exits |
-|-------|-----------|-------------|
-| /vibes:vibes | G | ITERATE, G(design-ref), G(riff), S, A→D |
-| /vibes:design-reference | G | ITERATE, A→D |
-| /vibes:riff | G | ITERATE, S, A→D |
-| /vibes:sell | S | A→D→AD→V |
-| /vibes:connect | CO | G, A |
-| /vibes:cloudflare | D | V |
-| /vibes:exe | D | V |
+Skill-specific context tables (Launch task assignments, Test phases, Native Skills entry/exit nodes) live in their respective SKILL.md and LAUNCH-REFERENCE.md files.
 
 ### Template Inheritance Architecture
 
@@ -261,25 +197,6 @@ This plugin works with multiple coding agents, not just Claude Code.
 3. Standard git clone (`~/.vibes`)
 4. Development mode (relative to script)
 
-### vibes-codex CLI
-
-For agents without a plugin system:
-
-```bash
-~/.vibes/.codex/vibes-codex bootstrap     # Show bootstrap context + skills
-~/.vibes/.codex/vibes-codex use-skill vibes  # Load a skill
-~/.vibes/.codex/vibes-codex run assemble.js app.jsx index.html  # Run scripts
-~/.vibes/.codex/vibes-codex find-skills   # List available skills
-```
-
-### Tool Mappings (for non-Claude-Code agents)
-
-When skills reference Claude Code tools, agents should substitute:
-- `AskUserQuestion` → prompt user directly
-- `Skill` tool → `vibes-codex use-skill` command
-- `Task` tool with subagents → spawn parallel agents if available
-- `${CLAUDE_PLUGIN_ROOT}` → `~/.vibes`
-
 ### Adding or Removing Skills (Manual Checklist)
 
 **When you add, remove, or rename a skill**, update these files:
@@ -299,9 +216,7 @@ When skills reference Claude Code tools, agents should substitute:
 
 ## Package Versions
 
-This plugin uses `esm.sh/stable/` URLs with `@necrodome/fireproof-clerk@0.0.3` and React 19.2.4. The `/stable/` path provides pre-built, cached packages that avoid dependency resolution issues. The git-tracked `skills/vibes/cache/` contains the current versions and serves as the authoritative source.
-
-Menu components (VibesSwitch, VibesPanel, etc.) are built from local `components/` directory. Run `node scripts/build-components.js` to rebuild.
+The git-tracked `skills/vibes/cache/` is the authoritative source for current package versions (`esm.sh/stable/` URLs, `@necrodome/fireproof-clerk@0.0.3`, React 19.2.4).
 
 ## Critical Rules
 
@@ -317,41 +232,9 @@ When using `@necrodome/fireproof-clerk` via esm.sh, you MUST add `?external=reac
 
 **Why NOT `?alias=`:** The `?alias` parameter rewrites imports at esm.sh build time, but doesn't prevent esm.sh from resolving its own React version for internal dependencies. `?external` is more reliable for no-build workflows.
 
-### 2. Include ALL Import Entries
+### 2. Import Map Lives in Base Template
 
-The authoritative import map is defined in `skills/_base/template.html`. It currently uses a local bundle workaround (see "Temporary Workaround" section below). The full set of required entries:
-
-```json
-{
-  "react": "https://esm.sh/stable/react@19.2.4",
-  "react/jsx-runtime": "https://esm.sh/stable/react@19.2.4/jsx-runtime",
-  "react/jsx-dev-runtime": "https://esm.sh/stable/react@19.2.4/jsx-dev-runtime",
-  "react-dom": "https://esm.sh/stable/react-dom@19.2.4",
-  "react-dom/client": "https://esm.sh/stable/react-dom@19.2.4/client",
-  "multiformats": "https://esm.sh/stable/multiformats@13.3.1",
-  "multiformats/": "https://esm.sh/stable/multiformats@13.3.1/",
-  "@ipld/dag-cbor": "https://esm.sh/stable/@ipld/dag-cbor@9.2.2?external=multiformats",
-  "@ipld/dag-json": "https://esm.sh/stable/@ipld/dag-json@10.2.3?external=multiformats",
-  "@clerk/clerk-react": "https://esm.sh/stable/@clerk/clerk-react@5.59.2?external=react,react-dom",
-  "use-fireproof": "/fireproof-clerk-bundle.js",
-  "@fireproof/clerk": "/fireproof-clerk-bundle.js"
-}
-```
-
-**Notes:**
-- The `/stable/` path uses pre-built, cached versions from esm.sh that avoid on-the-fly dependency resolution issues
-- `?external=react,react-dom` is REQUIRED on any esm.sh package that depends on React
-- `use-fireproof` and `@fireproof/clerk` currently point to the local bundle (temporary workaround)
-- `multiformats`, `@ipld/dag-cbor`, `@ipld/dag-json` are required by Fireproof internals
-
-## Common Mistakes
-
-| Mistake | Consequence | Fix |
-|---------|-------------|-----|
-| Missing `?external=react,react-dom` on fireproof-clerk URLs | Multiple React instances, context errors | Add `?external=react,react-dom` to fireproof-clerk imports |
-| Not using `esm.sh/stable/` path | Dependency resolution issues | Use `/stable/` prefix for pre-built packages |
-| Missing `react/jsx-runtime` | Build errors | Check `skills/_base/template.html` for all required entries |
-| Editing base template without rebuilding | Generated templates out of date | Run `node scripts/merge-templates.js --force` |
+The authoritative import map is defined in `skills/_base/template.html` — read it there, not here. Key rule: `?external=react,react-dom` is REQUIRED on any esm.sh package that depends on React. After editing the base template, run `node scripts/merge-templates.js --force` to regenerate.
 
 ## Local Development
 
@@ -538,6 +421,9 @@ npm run test:e2e:server
 | `skills/sell/SKILL.md` | Sell skill for SaaS transformation |
 | `skills/design-reference/SKILL.md` | Design reference skill - mechanical HTML→React transformation |
 | `skills/launch/SKILL.md` | Launch skill - full SaaS pipeline with Agent Teams |
+| `skills/launch/LAUNCH-REFERENCE.md` | Launch architecture reference (dependency graph, timing, skip modes) |
+| `skills/launch/prompts/builder.md` | Builder agent prompt template with {placeholder} markers |
+| `skills/launch/prompts/infra.md` | Infra agent prompt template with {placeholder} markers |
 | `skills/exe/SKILL.md` | exe.dev app deployment skill |
 | `skills/connect/SKILL.md` | Connect Studio deployment skill |
 | `skills/cloudflare/SKILL.md` | Cloudflare Workers deployment skill |
@@ -571,13 +457,7 @@ There are two cache locations by design:
 
 ## Architecture: JSX + Babel
 
-The plugin now uses **JSX with Babel transpilation** (matching vibes.diy exactly):
-
-1. **Model outputs JSX** - Standard React syntax, faster to generate
-2. **Babel transpiles at runtime** - `<script type="text/babel">` in template
-3. **Assembly script** - `node scripts/assemble.js app.jsx index.html`
-
-This architecture matches vibes.diy and significantly improves generation speed.
+The plugin uses JSX with Babel runtime transpilation (matching vibes.diy). See `skills/_base/template.html` for the `<script type="text/babel">` pattern.
 
 ## The React Singleton Problem
 
@@ -620,224 +500,40 @@ The `?external=` parameter tells esm.sh to keep specified dependencies as **bare
 
 ### Correct Import Map
 
-See the "Include ALL Import Entries" section above for the current authoritative import map. The key points:
+See `skills/_base/template.html` for the current authoritative import map. The key points:
 - The `/stable/` path uses pre-built, cached versions that avoid dependency resolution issues
 - `?external=react,react-dom` ensures import map controls React
 - Currently uses a local bundle workaround for `use-fireproof` and `@fireproof/clerk`
 
-## Skills vs Commands
+## Skills Are Atomic
 
-This plugin provides both skills and commands. Understanding when each is used:
-
-### Skills (Auto-triggered by Claude)
-
-| Skill | Triggered When | Description |
-|-------|----------------|-------------|
-| `/vibes:vibes` | User asks to "build an app", "create a todo list", etc. | Generates a single Vibes app |
-| `/vibes:design-reference` | User provides a design.html or mockup file | Mechanically transforms design to Vibes app |
-| `/vibes:riff` | User asks to "explore ideas", "generate variations", "riff on X" | Generates multiple app variations in parallel |
-| `/vibes:sell` | User asks to "monetize", "add billing", "make it SaaS" | Transforms app into multi-tenant SaaS |
-| `/vibes:launch` | User asks to "launch my app", "full pipeline", "build and deploy SaaS" | Full pipeline: app gen + auth + billing + deploy via Agent Teams |
-| `/vibes:connect` | User asks to "deploy Connect", "set up sync", "redeploy Studio" | Deploys Fireproof Connect Studio VM |
-| `/vibes:exe` | User asks to "deploy to exe", "push to exe.dev" | Deploys app to exe.dev VM hosting |
-| `/vibes:cloudflare` | User asks to "deploy to Cloudflare", "push to Workers" | Deploys app to Cloudflare Workers |
-
-Claude automatically selects the appropriate skill based on user intent. The skill description in the YAML frontmatter guides this selection.
-
-### Skills Are Atomic
-
-**Each skill is a self-contained automation.** When planning work, a skill invocation is always ONE plan step (e.g., "Invoke /vibes:connect"), never decomposed into its internal sub-steps.
-
-This matters because of the audience distinction:
-- **CLAUDE.md** is developer-only — not distributed to plugin users
-- **SKILL.md frontmatter descriptions** are what end users' agents see pre-invocation (always visible in skill listings)
-- **SKILL.md content** is loaded only on invocation, guiding execution
+**Each skill is a self-contained automation.** When planning work, a skill invocation is always ONE plan step (e.g., "Invoke /vibes:connect"), never decomposed into its internal sub-steps. Skill selection and descriptions are driven by YAML frontmatter in each SKILL.md file.
 
 The frontmatter description must signal atomicity (e.g., "Self-contained deploy automation — invoke directly, do not decompose") so the agent treats the skill as a single unit even in plan mode. Without this, agents read the SKILL.md during planning and extract internal steps as separate plan tasks.
 
-### Commands (User-invoked)
-
-| Command | When to Use | Description |
-|---------|-------------|-------------|
-| `/vibes:update` | When existing app has outdated imports or patterns | Deterministic updater for existing apps |
-| `/vibes:test` | After template/assembly changes pass structural tests | E2E integration test with real deploy |
-
-Commands are explicitly invoked by the user with the `/` prefix.
-
-### Selection Logic
-
-- **vibes vs riff**: "Make me an app" → vibes (single). "Give me 5 variations" → riff (multiple).
-- **vibes vs design-reference**: "Build X" → vibes. "Match this design.html" or "use this mockup" → design-reference.
-- **vibes vs sell**: "Build X" → vibes. "Build X with billing" or "monetize my app" → sell.
-- **sell vs launch**: "Monetize this existing app" → sell (transforms existing app.jsx). "Build and deploy a SaaS from scratch" or "full pipeline" → launch (orchestrates everything end-to-end with Agent Teams).
-- **connect**: "Deploy Connect", "set up sync backend", "redeploy Studio" → connect.
-- **exe**: "Deploy to exe", "push my app to exe.dev" → exe.
-- **cloudflare**: "Deploy to Cloudflare", "push to Workers" → cloudflare.
-- **update**: Only when user explicitly runs `/vibes:update` on existing HTML files.
-- **test**: Only when user explicitly runs `/vibes:test` or asks to "test the plugin".
-
-## Sell Skill: Multi-Tenant SaaS
-
-The `/vibes:sell` skill transforms apps into multi-tenant SaaS with Clerk auth and billing.
-
-### Key Components
-
-**Registry Server** (`scripts/deployables/registry-server.ts`):
-- `GET /registry.json` - Public read of claims, quotas, reserved subdomains
-- `GET /check/:subdomain` - Real-time availability checking
-- `POST /claim` - Authenticated claiming with quota enforcement (returns 402 if quota exceeded)
-- `POST /webhook` - Clerk subscription webhooks for quota updates
-
-**Auth Flows** (in `unified.html`):
-- `PasskeySignupFlow`: email → verification → passkey creation → claim
-- `PasskeySigninFlow`: passkey-first with email fallback (link or code)
-- `ClaimPrompt`: for authenticated users, enforces passkey + quota before claim
-- `PasskeyGate`: wraps app, ensures user has passkey before access
-
-**Quota Enforcement**:
-- Quotas stored in `registry.json` via Clerk webhooks
-- `/claim` returns 402 when `userClaims.length >= quota`
-- ClaimPrompt shows "Upgrade Subscription" on 402 response
-- LIFO release when subscription quantity decreases
-
-### Registry Schema
-
-```json
-{
-  "claims": { "alice": { "userId": "user_123", "claimedAt": "2024-..." } },
-  "quotas": { "user_123": 3 },
-  "reserved": ["admin", "api", "www"],
-  "preallocated": {}
-}
-```
-
-### JWT Validation
-
-The registry server validates Clerk JWTs with:
-- Signature verification via `CLERK_PEM_PUBLIC_KEY`
-- Expiration and not-before checks
-- Authorized party (`azp`) validation with wildcard support (`https://*.domain.com`)
-
-### Environment Variables (Registry Server)
-
-| Variable | Purpose |
-|----------|---------|
-| `REGISTRY_PATH` | Path to registry.json (default: `/var/www/html/registry.json`) |
-| `CLERK_PEM_PUBLIC_KEY` | Clerk's PEM public key for JWT verification |
-| `CLERK_WEBHOOK_SECRET` | Svix webhook secret for signature verification |
-| `PERMITTED_ORIGINS` | Comma-separated allowed `azp` values (supports wildcards) |
-| `PORT` | Server port (default: 3001) |
-
 ## exe.dev Deployment
 
-Deploy static Vibes apps to exe.dev VM hosting. Uses pre-installed nginx on persistent VMs.
+App VMs serve static HTML via nginx. A separate Studio VM runs Fireproof Connect (Docker-based sync). See `skills/exe/SKILL.md` and `skills/connect/SKILL.md` for full deployment guides.
 
-### Architecture: Separate App and Connect VMs
+### Connect Studio Environment
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      User's Apps                             │
-├─────────────────────────────────────────────────────────────┤
-│  quicknotes.exe.xyz     │  todoapp.exe.xyz    │  ...        │
-│  (static HTML only)     │  (static HTML only) │             │
-│  Points to Studio →     │  Points to Studio → │             │
-└─────────────────────────┴─────────────────────┴─────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Studio VM                                 │
-│                 <name>-studio.exe.xyz                        │
-├─────────────────────────────────────────────────────────────┤
-│  /opt/fireproof/ (cloned from repo)                         │
-│  └── docker-compose.yaml + start.sh                         │
-│                                                              │
-│  Public URLs (port 8080 exposed via nginx):                  │
-│  - https://<studio>.exe.xyz/api                              │
-│  - fpcloud://<studio>.exe.xyz?protocol=wss                   │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Quick Start
-
-```bash
-# Deploy static app to exe.dev
-node scripts/deploy-exe.js --name myapp --file index.html
-
-# Deploy Fireproof Connect to a separate Studio VM
-node scripts/deploy-connect.js --studio mystudio \
-  --clerk-publishable-key "pk_test_..." \
-  --clerk-secret-key "sk_test_..."
-```
-
-### Connect Studio
-
-Use `deploy-connect.js` to deploy Fireproof Connect to a dedicated Studio VM:
-- **Token API**: `https://<studio>.exe.xyz/api`
-- **Cloud Sync**: `fpcloud://<studio>.exe.xyz?protocol=wss`
-
-Update your app's `.env` to point to the Studio:
+Point apps at the Studio VM:
 ```bash
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
 VITE_API_URL=https://<studio>.exe.xyz/api
 VITE_CLOUD_URL=fpcloud://<studio>.exe.xyz?protocol=wss
 ```
 
-The Studio runs Docker services from the upstream fireproof repo without local reimplementation.
-
 ### DNS Configuration for Custom Domains
-
-When using custom domains with exe.dev, configure DNS as follows:
 
 | Type | Name | Value |
 |------|------|-------|
 | ALIAS | @ | exe.xyz |
 | CNAME | * | yourapp.exe.xyz |
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         DNS ROUTING                              │
-├─────────────────────────────────────────────────────────────────┤
-│  yourdomain.com (apex)                                           │
-│  └─→ ALIAS: exe.xyz                                             │
-│      └─→ exe.dev proxy terminates SSL ✓                        │
-│                                                                  │
-│  *.yourdomain.com (wildcard)                                     │
-│  └─→ CNAME: yourapp.exe.xyz                                     │
-│      └─→ exe.dev proxy terminates SSL ✓                        │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Key points:**
-- Use ALIAS (not A record) for the apex domain - points to `exe.xyz`
-- Use CNAME for wildcard - points to your app's exe.xyz subdomain (e.g., `cosmic-garden.exe.xyz`)
-- exe.dev's proxy handles SSL termination for both apex and wildcard
-
-**Fallback option:** If your DNS provider doesn't support ALIAS records, use the `?subdomain=` query parameter:
-```
-https://yourdomain.com?subdomain=tenant
-```
-
-The `getRouteInfo()` function in unified.html detects this parameter and routes to the tenant app.
-
-### Multi-Tenant Support
-
-For apps needing tenant isolation, use client-side subdomain parsing:
-- Configure DNS: ALIAS @ → exe.xyz, CNAME * → yourapp.exe.xyz
-- JavaScript reads `window.location.hostname` OR `?subdomain=` param
-- Uses subdomain as Fireproof database prefix for data isolation
-
-### Prerequisites
-
-- SSH key in `~/.ssh/`
-- exe.dev account (run `ssh exe.dev` to create)
-
-### Related Files
-
-- `scripts/deploy-exe.js` - App deployment (static files, AI proxy, registry)
-- `scripts/deploy-connect.js` - Connect Studio deployment (Docker-based sync)
-- `scripts/lib/exe-ssh.js` - SSH helpers
-- `skills/exe/SKILL.md` - App deployment skill
-- `skills/connect/SKILL.md` - Connect deployment skill
+- Use ALIAS (not A record) for apex → `exe.xyz`; CNAME for wildcard → `yourapp.exe.xyz`
+- exe.dev's proxy handles SSL termination for both
+- Fallback: `?subdomain=` query parameter if DNS provider lacks ALIAS support
 
 ### Manual File Transfer to exe.dev VMs
 
@@ -863,25 +559,6 @@ scp myapp.exe.xyz:/var/www/html/index.html ./downloaded.html
 | Forgetting sudo for /var/www | Permission denied | Always `sudo cp` for www-data dirs |
 
 ## Known Issues
-
-### React Context Error Symptoms
-
-If you see these errors, React is being duplicated:
-- `TypeError: Cannot read properties of null (reading 'useContext')`
-- Page becomes unresponsive after focusing text inputs
-- Controlled inputs trigger infinite render loops
-
-**Fix:** Ensure `fireproof-clerk` imports have `?external=react,react-dom`
-
-### VibeContextProvider NOT Required
-
-`VibeContextProvider` is used internally by the vibes.diy platform for database naming. **Standalone apps do NOT need it** - just render your App component directly with the VibesSwitch toggle.
-
-### Fireproof _files Sync Bug
-
-The `_files` API stores blobs as separate CAR files that sync independently from document metadata. Second devices get 404s because metadata arrives before blobs.
-
-**Workaround:** Store images as Uint8Array on the document. See `cache/fireproof.txt` → "Working with Images". This will be reverted when Fireproof fixes file sync upstream.
 
 ### Sell Skill Deploy Issues (Future Improvements)
 
