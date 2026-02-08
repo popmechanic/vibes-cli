@@ -48,6 +48,7 @@ const SAFE_PLACEHOLDER_PATTERNS = [
   '__esModule',
   '__VIBES_CONFIG__',
   '__CLERK_LOAD_ERROR__',
+  '__VIBES_SYNC_STATUS__',
   '__VIBES_APP_CODE__',
   '__ADMIN_CODE__'
 ];

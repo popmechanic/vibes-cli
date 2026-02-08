@@ -150,6 +150,17 @@
         width: 100%;
         height: 100vh;
       }
+
+      /* Sync status indicator animations */
+      @keyframes vibes-sync-breathe {
+        0%, 100% { transform: scale(1); opacity: 0.9; }
+        50% { transform: scale(1.35); opacity: 0.5; }
+      }
+      @keyframes vibes-sync-bloom {
+        0% { transform: scale(1); box-shadow: 0 0 0 0 currentColor; }
+        50% { transform: scale(1.15); box-shadow: 0 0 8px 3px currentColor; }
+        100% { transform: scale(1); box-shadow: 0 0 0 0 currentColor; }
+      }
     </style>
   </head>
   <body>
@@ -2209,6 +2220,115 @@ if (typeof window !== 'undefined') {
       }
       window.LoadingError = LoadingError;
 
+      // === SyncStatusDot ===
+      // Renders a fixed-position sync status indicator in the top-right corner.
+      // Reads status from window.__VIBES_SYNC_STATUS__ via a custom event bridge.
+      // Activates automatically when the app calls useFireproofClerk().
+      var SYNC_STATUS_COLORS = {
+        idle: '#94a3b8',
+        connecting: '#eab308',
+        synced: '#22c55e',
+        reconnecting: '#eab308',
+        error: '#ef4444'
+      };
+      var SYNC_STATUS_LABELS = {
+        idle: '',
+        connecting: '',
+        synced: 'synced',
+        reconnecting: '',
+        error: 'offline'
+      };
+
+      function SyncStatusDot() {
+        var statusRef = React.useRef(window.__VIBES_SYNC_STATUS__ || 'idle');
+        var prevStatusRef = React.useRef('idle');
+        var _s = React.useState(0);
+        var forceUpdate = _s[1];
+
+        React.useEffect(function() {
+          function onStatusChange() {
+            var next = window.__VIBES_SYNC_STATUS__ || 'idle';
+            prevStatusRef.current = statusRef.current;
+            statusRef.current = next;
+            forceUpdate(function(n) { return n + 1; });
+          }
+          window.addEventListener('vibes-sync-status-change', onStatusChange);
+          return function() {
+            window.removeEventListener('vibes-sync-status-change', onStatusChange);
+          };
+        }, []);
+
+        var status = statusRef.current;
+        var color = SYNC_STATUS_COLORS[status] || '#94a3b8';
+        var label = SYNC_STATUS_LABELS[status] || '';
+        var isActive = status === 'connecting' || status === 'reconnecting';
+        var justSynced = status === 'synced' && prevStatusRef.current !== 'synced' && prevStatusRef.current !== 'idle';
+
+        // Container — fixed top-right, never intercepts clicks
+        var containerStyle = {
+          position: 'fixed',
+          top: '12px',
+          right: '12px',
+          zIndex: 50,
+          pointerEvents: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          fontSize: '11px',
+          fontWeight: '500',
+          letterSpacing: '0.02em',
+          userSelect: 'none',
+          transition: 'opacity 0.3s ease'
+        };
+
+        // Outer ring — provides a breathing glow for active states
+        var ringStyle = {
+          width: '10px',
+          height: '10px',
+          borderRadius: '50%',
+          backgroundColor: 'transparent',
+          border: '1.5px solid ' + color,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          animation: isActive ? 'vibes-sync-breathe 1.6s ease-in-out infinite' : 'none',
+          transition: 'border-color 0.4s ease'
+        };
+
+        // Inner dot — solid core
+        var dotStyle = {
+          width: '6px',
+          height: '6px',
+          borderRadius: '50%',
+          backgroundColor: color,
+          transition: 'background-color 0.4s ease, box-shadow 0.4s ease',
+          color: color,
+          animation: justSynced ? 'vibes-sync-bloom 0.6s ease-out' : 'none',
+          boxShadow: status === 'synced' ? '0 0 4px 1px ' + color : 'none'
+        };
+
+        // Label text — appears for 'synced' and 'error' states
+        var labelStyle = {
+          color: color,
+          opacity: label ? 0.85 : 0,
+          transition: 'opacity 0.3s ease, color 0.4s ease',
+          textTransform: 'lowercase'
+        };
+
+        return React.createElement('div', {
+          style: containerStyle,
+          'aria-hidden': 'true',
+          title: 'Sync: ' + status
+        },
+          React.createElement('div', { style: ringStyle },
+            React.createElement('div', { style: dotStyle })
+          ),
+          label ? React.createElement('span', { style: labelStyle }, label) : null
+        );
+      }
+      window.SyncStatusDot = SyncStatusDot;
+
       // === VibesPanel Event Handler Hook ===
       function useVibesPanelEvents(logPrefix) {
         React.useEffect(() => {
@@ -3168,15 +3288,18 @@ if (typeof window !== 'undefined') {
         const { ClerkFireproofProvider } = window.ClerkComponents;
 
         return (
-          <ClerkFireproofProvider
-            publishableKey={publishableKey}
-            config={{
-              apiUrl: vibesConfig.tokenApiUri,
-              cloudUrl: vibesConfig.cloudBackendUrl
-            }}
-          >
-            <AppRouter />
-          </ClerkFireproofProvider>
+          <>
+            <SyncStatusDot />
+            <ClerkFireproofProvider
+              publishableKey={publishableKey}
+              config={{
+                apiUrl: vibesConfig.tokenApiUri,
+                cloudUrl: vibesConfig.cloudBackendUrl
+              }}
+            >
+              <AppRouter />
+            </ClerkFireproofProvider>
+          </>
         );
       }
 
@@ -3206,8 +3329,19 @@ if (typeof window !== 'undefined') {
           window.useUser = clerkModule.useUser;
           window.ClerkComponents.useUser = clerkModule.useUser;
 
-          // Export Fireproof hook for user's App code
-          window.useFireproofClerk = clerkModule.useFireproofClerk;
+          // Export Fireproof hook for user's App code, with sync status bridge
+          var _originalUseFireproofClerk = clerkModule.useFireproofClerk;
+          window.useFireproofClerk = function(name, opts) {
+            var result = _originalUseFireproofClerk(name, opts);
+            var syncVal = result.syncStatus || 'idle';
+            React.useEffect(function() {
+              if (window.__VIBES_SYNC_STATUS__ !== syncVal) {
+                window.__VIBES_SYNC_STATUS__ = syncVal;
+                window.dispatchEvent(new CustomEvent('vibes-sync-status-change'));
+              }
+            }, [syncVal]);
+            return result;
+          };
         } catch (err) {
           console.error('Failed to load Clerk components:', err);
           window.__CLERK_LOAD_ERROR__ = err.message || String(err);
