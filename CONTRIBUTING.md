@@ -41,11 +41,8 @@ vibes-cli/
 │   ├── riff/SKILL.md        # Parallel variations
 │   ├── sell/SKILL.md        # SaaS transformation
 │   └── exe/SKILL.md         # exe.dev deployment
-├── commands/                # User-invoked commands
-│   └── update.md            # Update existing apps
 ├── scripts/                 # Node.js utilities
 │   ├── assemble.js          # JSX → HTML assembly
-│   ├── update.js            # App updater
 │   └── __tests__/           # Test suite
 ├── cache/                   # Working cache (gitignored)
 └── skills/vibes/cache/      # Default cache (git-tracked)
@@ -160,16 +157,6 @@ node merge-templates.js --force
 open index.html
 
 # Check console for errors
-```
-
-### Debug Sync Issues
-
-```bash
-# Check cache contents
-cat cache/import-map.json | jq '.imports'
-
-# Verify versions
-grep "0.24.3-dev" skills/vibes/cache/import-map.json
 ```
 
 ## Questions?

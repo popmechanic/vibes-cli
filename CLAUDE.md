@@ -281,14 +281,11 @@ npm run test:e2e:server
 scripts/__tests__/
 ├── unit/                           # Pure logic, no I/O
 │   ├── ai-proxy.test.js
-│   ├── analyze.test.js
 │   ├── assemble-validation.test.js
 │   ├── auth-flows.test.js          # State machine transitions
-│   ├── compare.test.js
 │   ├── component-transforms.test.js
 │   ├── generate-handoff.test.js
 │   ├── jwt-validation.test.js      # azp matching, timing validation
-│   ├── parsers.test.js
 │   ├── registry-logic.test.js
 │   ├── strip-code.test.js
 │   ├── template-merge.test.js
@@ -361,7 +358,6 @@ npm run test:e2e:server
 | `scripts/build-components.js` | Build components from local `components/` directory |
 | `scripts/merge-templates.js` | Merge base + delta templates into final templates |
 | `scripts/find-plugin.js` | Plugin directory lookup with validation |
-| `scripts/update.js` | Deterministic app updater |
 | `scripts/generate-riff.js` | Parallel riff generator - spawns claude -p for variations |
 | `scripts/generate-handoff.js` | Generate HANDOFF.md context document for remote Claude |
 | `scripts/deploy-exe.js` | App deployment to exe.dev (static files, AI proxy, registry) |
@@ -386,14 +382,6 @@ npm run test:e2e:server
 | `scripts/deployables/ai-proxy.js` | AI proxy server for OpenRouter (deployed to exe.dev VMs) |
 | `scripts/lib/template-merge.js` | Pure functions for merging base + delta templates |
 | `scripts/lib/component-transforms.js` | Pure functions for transforming component source code |
-| `scripts/lib/parsers.js` | Version extraction from CDN URLs |
-| `scripts/lib/analyze.js` | Update pipeline phase 1: detect versions and era markers |
-| `scripts/lib/compare.js` | Update pipeline phase 2: compare app against current plugin |
-| `scripts/lib/plan.js` | Update pipeline phase 3: format comparison into readable plan |
-| `scripts/lib/transforms/import-map.js` | Import map replacement transform for updates |
-| `scripts/lib/transforms/component-replace.js` | Component replacement transform for updates |
-| `scripts/lib/transforms/config-merge.js` | Sell CONFIG object merge transform for updates |
-| `scripts/updates/registry.js` | Central registry of all available update definitions |
 | `scripts/__tests__/fixtures/` | Pre-written JSX test fixtures |
 | `lib/resolve-paths.js` | Find plugin directory across install locations |
 | `bundles/fireproof-clerk-bundle.js` | Patched Fireproof client bundle (temporary workaround) |
@@ -429,7 +417,6 @@ npm run test:e2e:server
 | `skills/cloudflare/SKILL.md` | Cloudflare Workers deployment skill |
 | `skills/cloudflare/worker/` | Cloudflare Worker source (Hono, KV, Web Crypto JWT) |
 | `skills/test/SKILL.md` | E2E integration test skill |
-| `commands/update.md` | User-facing update command definition |
 
 ### Cache Locations
 

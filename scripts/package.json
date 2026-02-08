@@ -2,7 +2,7 @@
   "name": "vibes-scripts",
   "version": "1.0.0",
   "type": "module",
-  "description": "Sync scripts for vibes-cli plugin",
+  "description": "Build and deploy scripts for vibes-cli plugin",
   "scripts": {
 "registry": "bun run deployables/registry-server.ts",
     "test": "vitest",
