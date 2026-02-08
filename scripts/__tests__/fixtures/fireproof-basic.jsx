@@ -19,6 +19,21 @@ const STATUS_LABELS = {
   error:         "Error",
 };
 
+// ── AI Proxy status ──
+const AI_STATUS_COLORS = {
+  unconfigured:  "oklch(0.55 0.0 0)",      // gray
+  checking:      "oklch(0.75 0.16 85)",    // amber
+  available:     "oklch(0.72 0.19 145)",   // green
+  error:         "oklch(0.62 0.22 25)",    // red
+};
+
+const AI_STATUS_LABELS = {
+  unconfigured:  "Not Configured",
+  checking:      "Checking…",
+  available:     "Available",
+  error:         "Error",
+};
+
 // ── Neobrute keyframes (injected once) ──
 const KEYFRAMES = `
 @keyframes pulse-dot {
@@ -151,6 +166,41 @@ export default function App() {
     return m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
   };
 
+  // ── AI Proxy state ──
+  const [aiStatus, setAiStatus] = useState("checking");
+  const [aiError, setAiError] = useState(null);
+  const [vibeResult, setVibeResult] = useState(null);
+  const [vibeLoading, setVibeLoading] = useState(false);
+
+  // Probe AI proxy on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/ai/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "openai/gpt-4o-mini",
+            messages: [{ role: "user", content: "ping" }],
+            max_tokens: 1,
+          }),
+        });
+        if (cancelled) return;
+        if (res.ok) {
+          setAiStatus("available");
+        } else {
+          setAiStatus("error");
+          setAiError(`HTTP ${res.status}`);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setAiStatus("unconfigured");
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // Normalize (hook always returns a string, but guard against undefined)
   const status = syncStatus || "idle";
   const syncing = isSyncing ?? false;
@@ -162,6 +212,54 @@ export default function App() {
   const queryOk = Array.isArray(docs);
   const integrityOk = docs.every((d) => typeof d.ts === "number" && d.ts > 0);
   const syncOk = Object.keys(STATUS_COLORS).includes(status);
+  const aiOk = aiStatus === "available";
+
+  // Vibe Check function
+  const checkVibes = async () => {
+    setVibeLoading(true);
+    setVibeResult(null);
+    try {
+      const res = await fetch("/api/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "openai/gpt-4o-mini",
+          messages: [{
+            role: "user",
+            content: `You are the Vibe Oracle. Read these diagnostics and deliver a vibe check in exactly 3 lines:
+- Line 1: A one-word vibe (e.g., "IMMACULATE", "CONCERNING", "CHAOTIC")
+- Line 2: A poetic one-sentence interpretation of the system state
+- Line 3: A fortune-cookie-style prediction
+
+Current diagnostics:
+- Sync status: ${status}
+- Documents in database: ${docs.length}
+- React singleton: ${reactOk ? "ok" : "broken"}
+- Last sync error: ${syncError ? String(syncError) : "none"}
+- Uptime: ${fmtTime(uptime)}`
+          }],
+          max_tokens: 150,
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const text = data.choices?.[0]?.message?.content || data.message?.content || "";
+      const lines = text.trim().split("\n").filter(Boolean);
+      setVibeResult({
+        vibe: (lines[0] || "MYSTERIOUS").replace(/[*"]/g, ""),
+        reading: (lines[1] || "The system whispers in tongues unknown.").replace(/[*"]/g, ""),
+        fortune: (lines[2] || "Expect the unexpected.").replace(/[*"]/g, ""),
+      });
+    } catch (err) {
+      setVibeResult({
+        vibe: "ERROR",
+        reading: err.message,
+        fortune: "Try again when the stars align.",
+      });
+    } finally {
+      setVibeLoading(false);
+    }
+  };
 
   const isPulsing = status === "connecting" || status === "reconnecting";
 
@@ -407,6 +505,95 @@ export default function App() {
               </div>
             </div>
           </Panel>
+
+          {/* ── AI Proxy Panel ── */}
+          <Panel title="AI PROXY" style={{ animationDelay: "0.15s", gridColumn: "1 / -1" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              {/* Status dot + label */}
+              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                <div style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: "9999px",
+                  background: AI_STATUS_COLORS[aiStatus],
+                  border: "3px solid #0f172a",
+                  animation: aiStatus === "checking" ? "pulse-dot 1.4s ease-in-out infinite" : "none",
+                  flexShrink: 0,
+                }} />
+                <div>
+                  <div style={{ fontSize: "20px", fontWeight: 700, lineHeight: 1.1 }}>
+                    {AI_STATUS_LABELS[aiStatus]}
+                  </div>
+                  {aiError && (
+                    <div style={{ fontSize: "12px", color: "oklch(0.62 0.22 25)", marginTop: "2px" }}>
+                      {aiError}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Vibe Check button */}
+              <button
+                onClick={checkVibes}
+                disabled={aiStatus !== "available" || vibeLoading}
+                style={{
+                  padding: "12px 24px",
+                  background: aiStatus === "available" ? "#0f172a" : "#94a3b8",
+                  color: "#ffffff",
+                  border: "3px solid #0f172a",
+                  fontFamily: "inherit",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  cursor: aiStatus === "available" && !vibeLoading ? "pointer" : "not-allowed",
+                  textTransform: "uppercase",
+                  alignSelf: "flex-start",
+                  opacity: vibeLoading ? 0.7 : 1,
+                }}
+              >
+                {vibeLoading ? "Reading vibes…" : "Check Vibes"}
+              </button>
+
+              {/* Vibe result card */}
+              {vibeResult && (
+                <div style={{
+                  background: "#f8fafc",
+                  border: "3px solid #0f172a",
+                  padding: "20px",
+                  animation: "slide-up 0.3s ease-out both",
+                }}>
+                  <div style={{
+                    fontSize: "28px",
+                    fontWeight: 800,
+                    letterSpacing: "0.1em",
+                    marginBottom: "8px",
+                    color: vibeResult.vibe === "ERROR" ? "oklch(0.62 0.22 25)" : "#0f172a",
+                  }}>
+                    {vibeResult.vibe}
+                  </div>
+                  <div style={{
+                    fontSize: "14px",
+                    fontStyle: "italic",
+                    color: "#475569",
+                    marginBottom: "12px",
+                    lineHeight: 1.5,
+                  }}>
+                    {vibeResult.reading}
+                  </div>
+                  <div style={{
+                    background: "#ffffff",
+                    border: "2px solid #cbd5e1",
+                    padding: "10px 14px",
+                    fontSize: "13px",
+                    color: "#64748b",
+                    lineHeight: 1.4,
+                  }}>
+                    {vibeResult.fortune}
+                  </div>
+                </div>
+              )}
+            </div>
+          </Panel>
         </main>
 
         {/* ── Diagnostics Footer ── */}
@@ -426,6 +613,32 @@ export default function App() {
               <Check label="useLiveQuery" ok={queryOk} />
               <Check label="Data Integrity" ok={integrityOk} />
               <Check label="Sync Status" ok={syncOk} />
+              {/* AI Proxy: gray circle if unconfigured, green check if available, red X if error */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "6px 0",
+              }}>
+                <span style={{
+                  width: 20,
+                  height: 20,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: aiOk ? "oklch(0.72 0.19 145)" : aiStatus === "error" ? "oklch(0.62 0.22 25)" : "oklch(0.55 0.0 0)",
+                  border: "2px solid #0f172a",
+                  borderRadius: "9999px",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: aiOk ? "#0f172a" : "#ffffff",
+                }}>{aiOk ? "✓" : aiStatus === "error" ? "✗" : "○"}</span>
+                <span style={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: "13px",
+                  color: "#0f172a",
+                }}>AI Proxy</span>
+              </div>
             </div>
           </Panel>
         </footer>
