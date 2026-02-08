@@ -285,36 +285,117 @@ async function phase4InstallDocker(args) {
 }
 
 async function phase4bPatchNginx(args) {
-  console.log('\nPhase 4b: Patch nginx for WebSocket on /fp...');
+  console.log('\nPhase 4b: Patch nginx config (WebSocket, body size, CORS)...');
 
   const vmHost = `${args.studio}.exe.xyz`;
+  const nginxConf = '/opt/fireproof/docker/nginx.conf';
 
   if (args.dryRun) {
-    console.log('  [DRY RUN] Would add WebSocket upgrade headers to /fp block in nginx.conf');
+    console.log('  [DRY RUN] Would check nginx.conf and patch if needed:');
+    console.log('    - WebSocket upgrade headers on /fp block');
+    console.log('    - client_max_body_size (for blob uploads)');
+    console.log('    - CORS headers (allow cross-origin requests from Vibes apps)');
     return;
   }
 
   const client = await connect(vmHost);
 
-  // The upstream nginx.conf has WebSocket headers on /ws but NOT on /fp.
-  // Fireproof client uses /fp for WebSocket connections.
-  // Patch: after "proxy_set_header X-Forwarded-Proto $scheme;" in the /fp block,
-  // add the 4 WebSocket upgrade lines.
-  const sedCmd = `sudo sed -i '/location = \\/fp/,/}/ {
-    /proxy_set_header X-Forwarded-Proto/a\\
-        proxy_set_header Upgrade \\$http_upgrade;\\
-        proxy_set_header Connection \\$connection_upgrade;\\
-        proxy_read_timeout 86400s;\\
-        proxy_send_timeout 86400s;
-  }' /opt/fireproof/docker/nginx.conf`;
+  // Read the current config to detect what's already present
+  const configResult = await runCommand(client, `cat ${nginxConf}`);
+  const config = configResult.stdout || '';
 
-  const result = await runCommand(client, sedCmd);
+  // 1. WebSocket headers on /fp
+  // Detect: look for "Upgrade" inside the /fp location block
+  const fpBlock = config.match(/location = \/fp\s*\{[^}]+\}/s);
+  const hasWsOnFp = fpBlock && fpBlock[0].includes('Upgrade');
 
-  if (result.code !== 0) {
-    console.log(`  ⚠ nginx patch failed: ${result.stderr}`);
-    console.log('  WebSocket connections on /fp may not upgrade correctly.');
+  if (hasWsOnFp) {
+    console.log('  ✓ WebSocket headers on /fp already present (upstream)');
   } else {
-    console.log('  ✓ nginx.conf patched with WebSocket headers on /fp');
+    const wsSedCmd = `sudo sed -i '/location = \\/fp/,/}/ {
+      /proxy_set_header X-Forwarded-Proto/a\\
+          proxy_set_header Upgrade \\$http_upgrade;\\
+          proxy_set_header Connection \\$connection_upgrade;\\
+          proxy_read_timeout 86400s;\\
+          proxy_send_timeout 86400s;
+    }' ${nginxConf}`;
+
+    const wsResult = await runCommand(client, wsSedCmd);
+    if (wsResult.code !== 0) {
+      console.log(`  ⚠ WebSocket patch failed: ${wsResult.stderr}`);
+    } else {
+      console.log('  ✓ WebSocket headers added to /fp block');
+    }
+  }
+
+  // 2. Body size limit for blob uploads (photos, files)
+  // Detect: any client_max_body_size directive
+  const hasBodySize = config.includes('client_max_body_size');
+
+  if (hasBodySize) {
+    const match = config.match(/client_max_body_size\s+(\S+)/);
+    console.log(`  ✓ client_max_body_size already set to ${match ? match[1] : '(present)'} (upstream)`);
+  } else {
+    const bodySizeCmd = `sudo sed -i '/server {/a\\    client_max_body_size 100m;' ${nginxConf}`;
+
+    const bodySizeResult = await runCommand(client, bodySizeCmd);
+    if (bodySizeResult.code !== 0) {
+      console.log(`  ⚠ Body size patch failed: ${bodySizeResult.stderr}`);
+    } else {
+      console.log('  ✓ client_max_body_size set to 100m');
+    }
+  }
+
+  // 3. CORS headers
+  // Detect: any Access-Control-Allow-Origin directive (upstream may do it per-location or in http block)
+  const hasCors = config.includes('Access-Control-Allow-Origin');
+
+  if (hasCors) {
+    console.log('  ✓ CORS headers already present (upstream)');
+  } else {
+    // Add to http block so it applies to all locations (/blob, /api, /fp, /ws).
+    // Using * for origin because Clerk JWT auth is enforced by the Fireproof backend.
+    const corsCmd = `sudo sed -i '/http {/a\\    add_header Access-Control-Allow-Origin * always;\\n    add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;\\n    add_header Access-Control-Allow-Headers "DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range, Authorization" always;\\n    add_header Access-Control-Expose-Headers "Content-Length, Content-Range" always;' ${nginxConf}`;
+
+    const corsResult = await runCommand(client, corsCmd);
+    if (corsResult.code !== 0) {
+      console.log(`  ⚠ CORS patch failed: ${corsResult.stderr}`);
+    } else {
+      console.log('  ✓ CORS headers added to http block');
+    }
+  }
+
+  // 5. Strip upstream CORS headers to prevent duplication
+  // Upstream backends (dashboard, cloud-backend) add their own CORS headers.
+  // nginx http block also adds them, causing "multiple values" browser errors.
+  // proxy_hide_header strips upstream headers so nginx is the single CORS source.
+  const hasHideHeader = config.includes('proxy_hide_header Access-Control-Allow-Origin');
+
+  if (hasHideHeader) {
+    console.log('  ✓ proxy_hide_header directives already present');
+  } else {
+    const hideHeaderCmd = `sudo sed -i '/listen 8080;/a\\
+    \\\\n    # Strip upstream CORS headers to prevent duplication (nginx http block adds its own)\\
+    proxy_hide_header Access-Control-Allow-Origin;\\
+    proxy_hide_header Access-Control-Allow-Methods;\\
+    proxy_hide_header Access-Control-Allow-Headers;\\
+    proxy_hide_header Access-Control-Max-Age;' ${nginxConf}`;
+
+    const hideHeaderResult = await runCommand(client, hideHeaderCmd);
+    if (hideHeaderResult.code !== 0) {
+      console.log(`  ⚠ proxy_hide_header patch failed: ${hideHeaderResult.stderr}`);
+    } else {
+      console.log('  ✓ proxy_hide_header directives added to server block');
+    }
+  }
+
+  // 6. Validate the config (whether we patched or not)
+  const validateResult = await runCommand(client, `sudo docker exec fireproof-proxy nginx -t 2>&1 || sudo nginx -t 2>&1`);
+  if (validateResult.code !== 0) {
+    console.log(`  ⚠ nginx config validation failed: ${validateResult.stdout || validateResult.stderr}`);
+    console.log('  Deployment will continue — upstream nginx.conf structure may have changed.');
+  } else {
+    console.log('  ✓ nginx config validated');
   }
 
   client.end();
