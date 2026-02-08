@@ -209,27 +209,6 @@ Walks you through each step interactively: credentials, Connect setup, fixture s
 
 **Example prompt:** "Test the plugin" or "Run an integration test"
 
-## Commands
-
-Commands are **user-invoked** - run them explicitly when needed.
-
-### `update`
-
-Deterministically update an existing Vibes app's infrastructure (import maps, library versions, components) without regenerating your code.
-
-```bash
-# Analyze an app (dry-run)
-node scripts/update.js path/to/app.html
-
-# Apply updates
-node scripts/update.js path/to/app.html --apply
-
-# Batch update a directory
-node scripts/update.js ./apps/
-```
-
-Useful when you have production apps that need library updates but you don't want to regenerate from scratch.
-
 ## Why Vibes?
 
 Every vibe-coded project starts in the vibe zone - the AI understands you, progress is fast, each change moves the app forward.
