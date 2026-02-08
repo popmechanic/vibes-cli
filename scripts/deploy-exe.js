@@ -391,7 +391,7 @@ async function phase4cAuthCardsUpload(args) {
   console.log('\nPhase 4c: Auth Cards Upload...');
 
   const vmHost = `${args.name}.exe.xyz`;
-  const remoteDir = '/var/www/html/cards';
+  const remoteDir = '/var/www/html/assets/auth-cards';
 
   if (args.dryRun) {
     console.log(`  [DRY RUN] Would create ${remoteDir} and upload ${CARD_FILES.length} card images`);
@@ -426,7 +426,7 @@ async function phase4cAuthCardsUpload(args) {
       client2.end();
     }
 
-    console.log(`  ✓ ${CARD_FILES.length} card images uploaded to /cards/`);
+    console.log(`  ✓ ${CARD_FILES.length} card images uploaded to /assets/auth-cards/`);
   } catch (err) {
     // Non-fatal - auth screens work without cards, just shows buttons
     console.warn(`  Warning: Card upload failed: ${err.message}`);
@@ -456,7 +456,7 @@ async function phase4dFaviconUpload(args) {
   console.log('\nPhase 4d: Favicon Upload...');
 
   const vmHost = `${args.name}.exe.xyz`;
-  const remoteDir = '/var/www/html';
+  const remoteDir = '/var/www/html/assets/vibes-favicon';
 
   if (args.dryRun) {
     console.log(`  [DRY RUN] Would upload ${FAVICON_FILES.length} favicon files to ${remoteDir}`);
@@ -464,6 +464,11 @@ async function phase4dFaviconUpload(args) {
   }
 
   try {
+    // Create directory on server
+    const client0 = await connect(vmHost);
+    await runCommand(client0, `sudo mkdir -p ${remoteDir} && sudo chown www-data:www-data ${remoteDir}`);
+    client0.end();
+
     // Upload each favicon file
     for (const file of FAVICON_FILES) {
       const localPath = join(FAVICON_DIR, file);
