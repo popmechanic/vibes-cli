@@ -31,13 +31,13 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/file-service.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/file-service.js
 var init_file_service = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/file-service.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/file-service.js"() {
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/identity.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/identity.js
 function isCollection(node) {
   if (node && typeof node === "object")
     switch (node[NODE_TYPE]) {
@@ -60,7 +60,7 @@ function isNode(node) {
 }
 var ALIAS, DOC, MAP, PAIR, SCALAR, SEQ, NODE_TYPE, isAlias, isDocument, isMap, isPair, isScalar, isSeq, hasAnchor;
 var init_identity = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/identity.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/identity.js"() {
     ALIAS = /* @__PURE__ */ Symbol.for("yaml.alias");
     DOC = /* @__PURE__ */ Symbol.for("yaml.document");
     MAP = /* @__PURE__ */ Symbol.for("yaml.map");
@@ -78,7 +78,7 @@ var init_identity = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/visit.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/visit.js
 function visit(node, visitor) {
   const visitor_ = initVisitor(visitor);
   if (isDocument(node)) {
@@ -220,7 +220,7 @@ function replaceNode(key, path, node) {
 }
 var BREAK, SKIP, REMOVE;
 var init_visit = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/visit.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/visit.js"() {
     init_identity();
     BREAK = /* @__PURE__ */ Symbol("break visit");
     SKIP = /* @__PURE__ */ Symbol("skip children");
@@ -234,10 +234,10 @@ var init_visit = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/directives.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/directives.js
 var escapeChars, escapeTagName, Directives;
 var init_directives = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/directives.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/directives.js"() {
     init_identity();
     init_visit();
     escapeChars = {
@@ -404,7 +404,7 @@ var init_directives = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/anchors.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/anchors.js
 function anchorIsValid(anchor) {
   if (/[\x00-\x19\s,[\]{}]/.test(anchor)) {
     const sa = JSON.stringify(anchor);
@@ -463,13 +463,13 @@ function createNodeAnchors(doc, prefix) {
   };
 }
 var init_anchors = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/anchors.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/anchors.js"() {
     init_identity();
     init_visit();
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/applyReviver.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/applyReviver.js
 function applyReviver(reviver, obj, key, val) {
   if (val && typeof val === "object") {
     if (Array.isArray(val)) {
@@ -513,11 +513,11 @@ function applyReviver(reviver, obj, key, val) {
   return reviver.call(obj, key, val);
 }
 var init_applyReviver = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/applyReviver.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/applyReviver.js"() {
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/toJS.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/toJS.js
 function toJS(value, arg, ctx) {
   if (Array.isArray(value))
     return value.map((v, i) => toJS(v, String(i), ctx));
@@ -540,15 +540,15 @@ function toJS(value, arg, ctx) {
   return value;
 }
 var init_toJS = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/toJS.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/toJS.js"() {
     init_identity();
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Node.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Node.js
 var NodeBase;
 var init_Node = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Node.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Node.js"() {
     init_applyReviver();
     init_identity();
     init_toJS();
@@ -585,7 +585,7 @@ var init_Node = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Alias.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Alias.js
 function getAliasCount(doc, node, anchors) {
   if (isAlias(node)) {
     const source = node.resolve(doc);
@@ -608,7 +608,7 @@ function getAliasCount(doc, node, anchors) {
 }
 var Alias;
 var init_Alias = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Alias.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Alias.js"() {
     init_anchors();
     init_visit();
     init_identity();
@@ -698,10 +698,10 @@ var init_Alias = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Scalar.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Scalar.js
 var isScalarValue, Scalar;
 var init_Scalar = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Scalar.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Scalar.js"() {
     init_identity();
     init_Node();
     init_toJS();
@@ -726,7 +726,7 @@ var init_Scalar = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/createNode.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/createNode.js
 function findTagObject(value, tagName, tags) {
   if (tagName) {
     const match2 = tags.filter((t) => t.tag === tagName);
@@ -792,7 +792,7 @@ function createNode(value, tagName, ctx) {
 }
 var defaultTagPrefix;
 var init_createNode = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/createNode.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/createNode.js"() {
     init_Alias();
     init_identity();
     init_Scalar();
@@ -800,7 +800,7 @@ var init_createNode = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Collection.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Collection.js
 function collectionFromPath(schema4, path, value) {
   let v = value;
   for (let i = path.length - 1; i >= 0; --i) {
@@ -825,7 +825,7 @@ function collectionFromPath(schema4, path, value) {
 }
 var isEmptyPath, Collection;
 var init_Collection = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Collection.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Collection.js"() {
     init_createNode();
     init_identity();
     init_Node();
@@ -940,7 +940,7 @@ var init_Collection = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyComment.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyComment.js
 function indentComment(comment, indent) {
   if (/^\n+$/.test(comment))
     return comment.substring(1);
@@ -948,13 +948,13 @@ function indentComment(comment, indent) {
 }
 var stringifyComment, lineComment;
 var init_stringifyComment = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyComment.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyComment.js"() {
     stringifyComment = (str) => str.replace(/^(?!$)(?: $)?/gm, "#");
     lineComment = (str, indent, comment) => str.endsWith("\n") ? indentComment(comment, indent) : comment.includes("\n") ? "\n" + indentComment(comment, indent) : (str.endsWith(" ") ? "" : " ") + comment;
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/foldFlowLines.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/foldFlowLines.js
 function foldFlowLines(text2, indent, mode = "flow", { indentAtStart, lineWidth = 80, minContentWidth = 20, onFold, onOverflow } = {}) {
   if (!lineWidth || lineWidth < 0)
     return text2;
@@ -1079,14 +1079,14 @@ function consumeMoreIndentedLines(text2, i, indent) {
 }
 var FOLD_FLOW, FOLD_BLOCK, FOLD_QUOTED;
 var init_foldFlowLines = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/foldFlowLines.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/foldFlowLines.js"() {
     FOLD_FLOW = "flow";
     FOLD_BLOCK = "block";
     FOLD_QUOTED = "quoted";
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyString.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyString.js
 function lineLengthOverLimit(str, lineWidth, indentLength) {
   if (!lineWidth || lineWidth < 0)
     return false;
@@ -1350,7 +1350,7 @@ function stringifyString(item, ctx, onComment, onChompKeep) {
 }
 var getFoldOptions, containsDocumentMarker, blockEndNewlines;
 var init_stringifyString = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyString.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyString.js"() {
     init_Scalar();
     init_foldFlowLines();
     getFoldOptions = (ctx, isBlock2) => ({
@@ -1367,7 +1367,7 @@ var init_stringifyString = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringify.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringify.js
 function createStringifyContext(doc, options) {
   const opt = Object.assign({
     blockQuote: true,
@@ -1479,7 +1479,7 @@ function stringify(item, ctx, onComment, onChompKeep) {
 ${ctx.indent}${str}`;
 }
 var init_stringify = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringify.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringify.js"() {
     init_anchors();
     init_identity();
     init_stringifyComment();
@@ -1487,7 +1487,7 @@ var init_stringify = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyPair.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyPair.js
 function stringifyPair({ key, value }, ctx, onComment, onChompKeep) {
   const { allNullValues, doc, indent, indentStep, options: { commentString, indentSeq, simpleKeys } } = ctx;
   let keyComment = isNode(key) && key.comment || null;
@@ -1610,7 +1610,7 @@ ${ctx.indent}`;
   return str;
 }
 var init_stringifyPair = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyPair.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyPair.js"() {
     init_identity();
     init_Scalar();
     init_stringify();
@@ -1618,18 +1618,18 @@ var init_stringifyPair = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/log.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/log.js
 function warn(logLevel, warning) {
   if (logLevel === "debug" || logLevel === "warn") {
     console.warn(warning);
   }
 }
 var init_log = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/log.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/log.js"() {
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/merge.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/merge.js
 function addMergeToJSMap(ctx, map3, value) {
   value = ctx && isAlias(value) ? value.resolve(ctx.doc) : value;
   if (isSeq(value))
@@ -1665,7 +1665,7 @@ function mergeValue(ctx, map3, value) {
 }
 var MERGE_KEY, merge, isMergeKey;
 var init_merge = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/merge.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/merge.js"() {
     init_identity();
     init_Scalar();
     MERGE_KEY = "<<";
@@ -1683,7 +1683,7 @@ var init_merge = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/addPairToJSMap.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/addPairToJSMap.js
 function addPairToJSMap(ctx, map3, { key, value }) {
   if (isNode(key) && key.addToJSMap)
     key.addToJSMap(ctx, map3, value);
@@ -1736,7 +1736,7 @@ function stringifyKey(key, jsKey, ctx) {
   return JSON.stringify(jsKey);
 }
 var init_addPairToJSMap = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/addPairToJSMap.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/addPairToJSMap.js"() {
     init_log();
     init_merge();
     init_stringify();
@@ -1745,7 +1745,7 @@ var init_addPairToJSMap = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Pair.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Pair.js
 function createPair(key, value, ctx) {
   const k = createNode(key, void 0, ctx);
   const v = createNode(value, void 0, ctx);
@@ -1753,7 +1753,7 @@ function createPair(key, value, ctx) {
 }
 var Pair;
 var init_Pair = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Pair.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/Pair.js"() {
     init_createNode();
     init_stringifyPair();
     init_addPairToJSMap();
@@ -1783,7 +1783,7 @@ var init_Pair = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyCollection.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyCollection.js
 function stringifyCollection(collection, ctx, options) {
   const flow = ctx.inFlow ?? collection.flow;
   const stringify4 = flow ? stringifyFlowCollection : stringifyBlockCollection;
@@ -1918,14 +1918,14 @@ function addCommentBefore({ indent, options: { commentString } }, lines, comment
   }
 }
 var init_stringifyCollection = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyCollection.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyCollection.js"() {
     init_identity();
     init_stringify();
     init_stringifyComment();
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/YAMLMap.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/YAMLMap.js
 function findPair(items, key) {
   const k = isScalar(key) ? key.value : key;
   for (const it of items) {
@@ -1940,7 +1940,7 @@ function findPair(items, key) {
 }
 var YAMLMap;
 var init_YAMLMap = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/YAMLMap.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/YAMLMap.js"() {
     init_stringifyCollection();
     init_addPairToJSMap();
     init_Collection();
@@ -2067,10 +2067,10 @@ var init_YAMLMap = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/map.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/map.js
 var map;
 var init_map = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/map.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/map.js"() {
     init_identity();
     init_YAMLMap();
     map = {
@@ -2088,7 +2088,7 @@ var init_map = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/YAMLSeq.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/YAMLSeq.js
 function asItemIndex(key) {
   let idx = isScalar(key) ? key.value : key;
   if (idx && typeof idx === "string")
@@ -2097,7 +2097,7 @@ function asItemIndex(key) {
 }
 var YAMLSeq;
 var init_YAMLSeq = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/YAMLSeq.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/nodes/YAMLSeq.js"() {
     init_createNode();
     init_stringifyCollection();
     init_Collection();
@@ -2203,10 +2203,10 @@ var init_YAMLSeq = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/seq.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/seq.js
 var seq;
 var init_seq = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/seq.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/seq.js"() {
     init_identity();
     init_YAMLSeq();
     seq = {
@@ -2224,10 +2224,10 @@ var init_seq = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/string.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/string.js
 var string;
 var init_string = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/string.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/string.js"() {
     init_stringifyString();
     string = {
       identify: (value) => typeof value === "string",
@@ -2242,10 +2242,10 @@ var init_string = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/null.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/null.js
 var nullTag;
 var init_null = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/null.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/common/null.js"() {
     init_Scalar();
     nullTag = {
       identify: (value) => value == null,
@@ -2259,10 +2259,10 @@ var init_null = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/bool.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/bool.js
 var boolTag;
 var init_bool = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/bool.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/bool.js"() {
     init_Scalar();
     boolTag = {
       identify: (value) => typeof value === "boolean",
@@ -2282,7 +2282,7 @@ var init_bool = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyNumber.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyNumber.js
 function stringifyNumber({ format: format3, minFractionDigits, tag: tag2, value }) {
   if (typeof value === "bigint")
     return String(value);
@@ -2303,14 +2303,14 @@ function stringifyNumber({ format: format3, minFractionDigits, tag: tag2, value 
   return n;
 }
 var init_stringifyNumber = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyNumber.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyNumber.js"() {
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/float.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/float.js
 var floatNaN, floatExp, float;
 var init_float = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/float.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/float.js"() {
     init_Scalar();
     init_stringifyNumber();
     floatNaN = {
@@ -2350,7 +2350,7 @@ var init_float = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/int.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/int.js
 function intStringify(node, radix, prefix) {
   const { value } = node;
   if (intIdentify(value) && value >= 0)
@@ -2359,7 +2359,7 @@ function intStringify(node, radix, prefix) {
 }
 var intIdentify, intResolve, intOct, int, intHex;
 var init_int = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/int.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/int.js"() {
     init_stringifyNumber();
     intIdentify = (value) => typeof value === "bigint" || Number.isInteger(value);
     intResolve = (str, offset, radix, { intAsBigInt }) => intAsBigInt ? BigInt(str) : parseInt(str.substring(offset), radix);
@@ -2392,10 +2392,10 @@ var init_int = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/schema.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/schema.js
 var schema;
 var init_schema = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/schema.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/core/schema.js"() {
     init_map();
     init_null();
     init_seq();
@@ -2419,13 +2419,13 @@ var init_schema = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/json/schema.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/json/schema.js
 function intIdentify2(value) {
   return typeof value === "bigint" || Number.isInteger(value);
 }
 var stringifyJSON, jsonScalars, jsonError, schema2;
 var init_schema2 = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/json/schema.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/json/schema.js"() {
     init_Scalar();
     init_map();
     init_seq();
@@ -2485,10 +2485,10 @@ var init_schema2 = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/binary.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/binary.js
 var binary;
 var init_binary = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/binary.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/binary.js"() {
     init_Scalar();
     init_stringifyString();
     binary = {
@@ -2545,7 +2545,7 @@ var init_binary = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/pairs.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/pairs.js
 function resolvePairs(seq2, onError) {
   if (isSeq(seq2)) {
     for (let i = 0; i < seq2.items.length; ++i) {
@@ -2605,7 +2605,7 @@ function createPairs(schema4, iterable, ctx) {
 }
 var pairs;
 var init_pairs = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/pairs.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/pairs.js"() {
     init_identity();
     init_Pair();
     init_Scalar();
@@ -2620,10 +2620,10 @@ var init_pairs = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/omap.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/omap.js
 var YAMLOMap, omap;
 var init_omap = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/omap.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/omap.js"() {
     init_identity();
     init_toJS();
     init_YAMLMap();
@@ -2696,7 +2696,7 @@ var init_omap = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/bool.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/bool.js
 function boolStringify({ value, source }, ctx) {
   const boolObj = value ? trueTag : falseTag;
   if (source && boolObj.test.test(source))
@@ -2705,7 +2705,7 @@ function boolStringify({ value, source }, ctx) {
 }
 var trueTag, falseTag;
 var init_bool2 = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/bool.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/bool.js"() {
     init_Scalar();
     trueTag = {
       identify: (value) => value === true,
@@ -2726,10 +2726,10 @@ var init_bool2 = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/float.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/float.js
 var floatNaN2, floatExp2, float2;
 var init_float2 = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/float.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/float.js"() {
     init_Scalar();
     init_stringifyNumber();
     floatNaN2 = {
@@ -2772,7 +2772,7 @@ var init_float2 = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/int.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/int.js
 function intResolve2(str, offset, radix, { intAsBigInt }) {
   const sign = str[0];
   if (sign === "-" || sign === "+")
@@ -2806,7 +2806,7 @@ function intStringify2(node, radix, prefix) {
 }
 var intIdentify3, intBin, intOct2, int2, intHex2;
 var init_int2 = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/int.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/int.js"() {
     init_stringifyNumber();
     intIdentify3 = (value) => typeof value === "bigint" || Number.isInteger(value);
     intBin = {
@@ -2847,10 +2847,10 @@ var init_int2 = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/set.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/set.js
 var YAMLSet, set;
 var init_set = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/set.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/set.js"() {
     init_identity();
     init_Pair();
     init_YAMLMap();
@@ -2934,7 +2934,7 @@ var init_set = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/timestamp.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/timestamp.js
 function parseSexagesimal(str, asBigInt) {
   const sign = str[0];
   const parts = sign === "-" || sign === "+" ? str.substring(1) : str;
@@ -2970,7 +2970,7 @@ function stringifySexagesimal(node) {
 }
 var intTime, floatTime, timestamp;
 var init_timestamp = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/timestamp.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/timestamp.js"() {
     init_stringifyNumber();
     intTime = {
       identify: (value) => typeof value === "bigint" || Number.isInteger(value),
@@ -3019,10 +3019,10 @@ var init_timestamp = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/schema.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/schema.js
 var schema3;
 var init_schema3 = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/schema.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/yaml-1.1/schema.js"() {
     init_map();
     init_null();
     init_seq();
@@ -3062,7 +3062,7 @@ var init_schema3 = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/tags.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/tags.js
 function getTags(customTags, schemaName, addMergeTag) {
   const schemaTags = schemas.get(schemaName);
   if (schemaTags && !customTags) {
@@ -3099,7 +3099,7 @@ function getTags(customTags, schemaName, addMergeTag) {
 }
 var schemas, tagsByName, coreKnownTags;
 var init_tags = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/tags.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/tags.js"() {
     init_map();
     init_null();
     init_seq();
@@ -3154,10 +3154,10 @@ var init_tags = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/Schema.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/Schema.js
 var sortMapEntriesByKey, Schema;
 var init_Schema = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/Schema.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/schema/Schema.js"() {
     init_identity();
     init_map();
     init_seq();
@@ -3185,7 +3185,7 @@ var init_Schema = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyDocument.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyDocument.js
 function stringifyDocument(doc, options) {
   const lines = [];
   let hasDirectives = options.directives === true;
@@ -3256,14 +3256,14 @@ function stringifyDocument(doc, options) {
   return lines.join("\n") + "\n";
 }
 var init_stringifyDocument = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyDocument.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/stringify/stringifyDocument.js"() {
     init_identity();
     init_stringify();
     init_stringifyComment();
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/Document.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/Document.js
 function assertCollection(contents) {
   if (isCollection(contents))
     return true;
@@ -3271,7 +3271,7 @@ function assertCollection(contents) {
 }
 var Document;
 var init_Document = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/Document.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/doc/Document.js"() {
     init_Alias();
     init_Collection();
     init_identity();
@@ -3571,10 +3571,10 @@ var init_Document = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/errors.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/errors.js
 var YAMLError, YAMLParseError, YAMLWarning, prettifyError;
 var init_errors = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/errors.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/errors.js"() {
     YAMLError = class extends Error {
       constructor(name2, pos, code4, message2) {
         super();
@@ -3632,7 +3632,7 @@ ${pointer}
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-props.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-props.js
 function resolveProps(tokens, { flow, indicator, next, offset, onError, parentIndent, startOnNewline }) {
   let spaceBefore = false;
   let atNewline = startOnNewline;
@@ -3760,11 +3760,11 @@ function resolveProps(tokens, { flow, indicator, next, offset, onError, parentIn
   };
 }
 var init_resolve_props = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-props.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-props.js"() {
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-contains-newline.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-contains-newline.js
 function containsNewline(key) {
   if (!key)
     return null;
@@ -3800,11 +3800,11 @@ function containsNewline(key) {
   }
 }
 var init_util_contains_newline = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-contains-newline.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-contains-newline.js"() {
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-flow-indent-check.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-flow-indent-check.js
 function flowIndentCheck(indent, fc, onError) {
   if (fc?.type === "flow-collection") {
     const end = fc.end[0];
@@ -3815,12 +3815,12 @@ function flowIndentCheck(indent, fc, onError) {
   }
 }
 var init_util_flow_indent_check = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-flow-indent-check.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-flow-indent-check.js"() {
     init_util_contains_newline();
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-map-includes.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-map-includes.js
 function mapIncludes(ctx, items, search) {
   const { uniqueKeys } = ctx.options;
   if (uniqueKeys === false)
@@ -3829,12 +3829,12 @@ function mapIncludes(ctx, items, search) {
   return items.some((pair) => isEqual(pair.key, search));
 }
 var init_util_map_includes = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-map-includes.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-map-includes.js"() {
     init_identity();
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-block-map.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-block-map.js
 function resolveBlockMap({ composeNode: composeNode2, composeEmptyNode: composeEmptyNode2 }, ctx, bm, onError, tag2) {
   const NodeClass = tag2?.nodeClass ?? YAMLMap;
   const map3 = new NodeClass(ctx.schema);
@@ -3930,7 +3930,7 @@ function resolveBlockMap({ composeNode: composeNode2, composeEmptyNode: composeE
 }
 var startColMsg;
 var init_resolve_block_map = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-block-map.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-block-map.js"() {
     init_Pair();
     init_YAMLMap();
     init_resolve_props();
@@ -3941,7 +3941,7 @@ var init_resolve_block_map = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-block-seq.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-block-seq.js
 function resolveBlockSeq({ composeNode: composeNode2, composeEmptyNode: composeEmptyNode2 }, ctx, bs, onError, tag2) {
   const NodeClass = tag2?.nodeClass ?? YAMLSeq;
   const seq2 = new NodeClass(ctx.schema);
@@ -3983,14 +3983,14 @@ function resolveBlockSeq({ composeNode: composeNode2, composeEmptyNode: composeE
   return seq2;
 }
 var init_resolve_block_seq = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-block-seq.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-block-seq.js"() {
     init_YAMLSeq();
     init_resolve_props();
     init_util_flow_indent_check();
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-end.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-end.js
 function resolveEnd(end, offset, reqSpace, onError) {
   let comment = "";
   if (end) {
@@ -4027,11 +4027,11 @@ function resolveEnd(end, offset, reqSpace, onError) {
   return { comment, offset };
 }
 var init_resolve_end = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-end.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-end.js"() {
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-flow-collection.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-flow-collection.js
 function resolveFlowCollection({ composeNode: composeNode2, composeEmptyNode: composeEmptyNode2 }, ctx, fc, onError, tag2) {
   const isMap2 = fc.start.source === "{";
   const fcName = isMap2 ? "flow map" : "flow sequence";
@@ -4210,7 +4210,7 @@ function resolveFlowCollection({ composeNode: composeNode2, composeEmptyNode: co
 }
 var blockMsg, isBlock;
 var init_resolve_flow_collection = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-flow-collection.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-flow-collection.js"() {
     init_identity();
     init_Pair();
     init_YAMLMap();
@@ -4224,7 +4224,7 @@ var init_resolve_flow_collection = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-collection.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-collection.js
 function resolveCollection(CN2, ctx, token, onError, tagName, tag2) {
   const coll = token.type === "block-map" ? resolveBlockMap(CN2, ctx, token, onError, tag2) : token.type === "block-seq" ? resolveBlockSeq(CN2, ctx, token, onError, tag2) : resolveFlowCollection(CN2, ctx, token, onError, tag2);
   const Coll = coll.constructor;
@@ -4276,7 +4276,7 @@ function composeCollection(CN2, ctx, token, props, onError) {
   return node;
 }
 var init_compose_collection = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-collection.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-collection.js"() {
     init_identity();
     init_Scalar();
     init_YAMLMap();
@@ -4287,7 +4287,7 @@ var init_compose_collection = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-block-scalar.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-block-scalar.js
 function resolveBlockScalar(ctx, scalar, onError) {
   const start = scalar.offset;
   const header = parseBlockScalarHeader(scalar, ctx.options.strict, onError);
@@ -4463,12 +4463,12 @@ function splitLines(source) {
   return lines;
 }
 var init_resolve_block_scalar = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-block-scalar.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-block-scalar.js"() {
     init_Scalar();
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-flow-scalar.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-flow-scalar.js
 function resolveFlowScalar(scalar, strict, onError) {
   const { offset, type, source, end } = scalar;
   let _type;
@@ -4647,7 +4647,7 @@ function parseCharCode(source, offset, length2, onError) {
 }
 var escapeCodes;
 var init_resolve_flow_scalar = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-flow-scalar.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/resolve-flow-scalar.js"() {
     init_Scalar();
     init_resolve_end();
     escapeCodes = {
@@ -4686,7 +4686,7 @@ var init_resolve_flow_scalar = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-scalar.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-scalar.js
 function composeScalar(ctx, token, tagToken, onError) {
   const { value, type, comment, range } = token.type === "block-scalar" ? resolveBlockScalar(ctx, token, onError) : resolveFlowScalar(token, ctx.options.strict, onError);
   const tagName = tagToken ? ctx.directives.tagName(tagToken.source, (msg) => onError(tagToken, "TAG_RESOLVE_FAILED", msg)) : null;
@@ -4757,7 +4757,7 @@ function findScalarTagByTest({ atKey, directives, schema: schema4 }, value, toke
   return tag2;
 }
 var init_compose_scalar = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-scalar.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-scalar.js"() {
     init_identity();
     init_Scalar();
     init_resolve_block_scalar();
@@ -4765,7 +4765,7 @@ var init_compose_scalar = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-empty-scalar-position.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-empty-scalar-position.js
 function emptyScalarPosition(offset, before, pos) {
   if (before) {
     pos ?? (pos = before.length);
@@ -4789,11 +4789,11 @@ function emptyScalarPosition(offset, before, pos) {
   return offset;
 }
 var init_util_empty_scalar_position = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-empty-scalar-position.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/util-empty-scalar-position.js"() {
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-node.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-node.js
 function composeNode(ctx, token, props, onError) {
   const atKey = ctx.atKey;
   const { spaceBefore, comment, anchor, tag: tag2 } = props;
@@ -4881,7 +4881,7 @@ function composeAlias({ options }, { offset, source, end }, onError) {
 }
 var CN;
 var init_compose_node = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-node.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-node.js"() {
     init_Alias();
     init_identity();
     init_compose_collection();
@@ -4892,7 +4892,7 @@ var init_compose_node = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-doc.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-doc.js
 function composeDoc(options, directives, { offset, start, value, end }, onError) {
   const opts = Object.assign({ _directives: directives }, options);
   const doc = new Document(void 0, opts);
@@ -4925,7 +4925,7 @@ function composeDoc(options, directives, { offset, start, value, end }, onError)
   return doc;
 }
 var init_compose_doc = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-doc.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/compose-doc.js"() {
     init_Document();
     init_compose_node();
     init_resolve_end();
@@ -4933,7 +4933,7 @@ var init_compose_doc = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/composer.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/composer.js
 function getErrorPos(src2) {
   if (typeof src2 === "number")
     return [src2, src2 + 1];
@@ -4969,7 +4969,7 @@ function parsePrelude(prelude) {
 }
 var Composer;
 var init_composer = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/composer.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/compose/composer.js"() {
     init_directives();
     init_Document();
     init_errors();
@@ -5135,7 +5135,7 @@ ${end.comment}` : end.comment;
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst-scalar.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst-scalar.js
 function resolveAsScalar(token, strict = true, onError) {
   if (token) {
     const _onError = (pos, code4, message2) => {
@@ -5308,7 +5308,7 @@ function setFlowScalarValue(token, source, type) {
   }
 }
 var init_cst_scalar = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst-scalar.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst-scalar.js"() {
     init_resolve_block_scalar();
     init_resolve_flow_scalar();
     init_errors();
@@ -5316,7 +5316,7 @@ var init_cst_scalar = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst-stringify.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst-stringify.js
 function stringifyToken(token) {
   switch (token.type) {
     case "block-scalar": {
@@ -5371,12 +5371,12 @@ function stringifyItem({ start, key, sep, value }) {
 }
 var stringify2;
 var init_cst_stringify = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst-stringify.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst-stringify.js"() {
     stringify2 = (cst) => "type" in cst ? stringifyToken(cst) : stringifyItem(cst);
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst-visit.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst-visit.js
 function visit2(cst, visitor) {
   if ("type" in cst && cst.type === "document")
     cst = { start: cst.start, value: cst.value };
@@ -5408,7 +5408,7 @@ function _visit(path, item, visitor) {
 }
 var BREAK2, SKIP2, REMOVE2;
 var init_cst_visit = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst-visit.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst-visit.js"() {
     BREAK2 = /* @__PURE__ */ Symbol("break visit");
     SKIP2 = /* @__PURE__ */ Symbol("skip children");
     REMOVE2 = /* @__PURE__ */ Symbol("remove item");
@@ -5437,7 +5437,7 @@ var init_cst_visit = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst.js
 var cst_exports = {};
 __export(cst_exports, {
   BOM: () => BOM,
@@ -5529,7 +5529,7 @@ function tokenType(source) {
 }
 var BOM, DOCUMENT, FLOW_END, SCALAR2, isCollection2, isScalar2;
 var init_cst = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/cst.js"() {
     init_cst_scalar();
     init_cst_stringify();
     init_cst_visit();
@@ -5542,7 +5542,7 @@ var init_cst = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/lexer.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/lexer.js
 function isEmpty(ch) {
   switch (ch) {
     case void 0:
@@ -5557,7 +5557,7 @@ function isEmpty(ch) {
 }
 var hexDigits, tagChars, flowIndicatorChars, invalidAnchorChars, isNotAnchorChar, Lexer;
 var init_lexer = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/lexer.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/lexer.js"() {
     init_cst();
     hexDigits = new Set("0123456789ABCDEFabcdef");
     tagChars = new Set("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-#;/?:@&=+$_.!~*'()");
@@ -6120,10 +6120,10 @@ var init_lexer = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/line-counter.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/line-counter.js
 var LineCounter;
 var init_line_counter = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/line-counter.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/line-counter.js"() {
     LineCounter = class {
       constructor() {
         this.lineStarts = [];
@@ -6150,7 +6150,7 @@ var init_line_counter = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/parser.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/parser.js
 function includesToken(list, type) {
   for (let i = 0; i < list.length; ++i)
     if (list[i].type === type)
@@ -6236,7 +6236,7 @@ function fixFlowSeqItems(fc) {
 }
 var Parser;
 var init_parser = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/parser.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/parse/parser.js"() {
     init_cst();
     init_lexer();
     Parser = class {
@@ -7013,7 +7013,7 @@ var init_parser = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/public-api.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/public-api.js
 function parseOptions(options) {
   const prettyErrors = options.prettyErrors !== false;
   const lineCounter = options.lineCounter || prettyErrors && new LineCounter() || null;
@@ -7094,7 +7094,7 @@ function stringify3(value, replacer, options) {
   return new Document(value, _replacer, options).toString(options);
 }
 var init_public_api = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/public-api.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/public-api.js"() {
     init_composer();
     init_Document();
     init_errors();
@@ -7105,7 +7105,7 @@ var init_public_api = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/index.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/index.js
 var dist_exports = {};
 __export(dist_exports, {
   Alias: () => Alias,
@@ -7139,7 +7139,7 @@ __export(dist_exports, {
   visitAsync: () => visitAsync
 });
 var init_dist = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/index.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/dist/index.js"() {
     init_composer();
     init_Document();
     init_Schema();
@@ -7159,27 +7159,27 @@ var init_dist = __esm({
   }
 });
 
-// node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/index.js
+// ../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/index.js
 var browser_default;
 var init_browser = __esm({
-  "node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/index.js"() {
+  "../../node_modules/.pnpm/yaml@2.8.2/node_modules/yaml/browser/index.js"() {
     init_dist();
     init_dist();
     browser_default = dist_exports;
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/is-promise.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/is-promise.js
 function isPromise(a) {
   const mayBe = a;
   return mayBe instanceof Promise || !!(mayBe && mayBe !== null && typeof mayBe.then === "function" && typeof mayBe.catch === "function" && typeof mayBe.finally === "function");
 }
 var init_is_promise = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/is-promise.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/is-promise.js"() {
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/bin2text.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/bin2text.js
 function bin2text(hex3, lineFn, size = 0) {
   const arr = new Uint8Array(hex3.buffer, hex3.byteOffset, hex3.byteLength);
   let cutted = "  ";
@@ -7221,14 +7221,14 @@ function bin2string(hex3, size = 0) {
   return collector.join("\n");
 }
 var init_bin2text = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/bin2text.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/bin2text.js"() {
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/future.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/future.js
 var Future;
 var init_future = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/future.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/future.js"() {
     init_resolve_once();
     Future = class {
       #promise;
@@ -7260,7 +7260,7 @@ var init_future = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/result.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/result.js
 function exception2Result(fn) {
   try {
     const res = fn();
@@ -7276,7 +7276,7 @@ function exception2Result(fn) {
 }
 var Result, ResultOK, ResultError;
 var init_result = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/result.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/result.js"() {
     init_is_promise();
     Result = class _Result {
       static Ok(...args) {
@@ -7367,10 +7367,10 @@ var init_result = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/option.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/option.js
 var Option, Some, None;
 var init_option = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/option.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/option.js"() {
     Option = class _Option {
       static Some(...args) {
         return args.length >= 1 ? new Some(args[0]) : new Some(void 0);
@@ -7438,7 +7438,7 @@ var init_option = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/lru-map-set.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/lru-map-set.js
 function defaultRefresh(param2, map3) {
   if (param2.maxEntries > 0 && map3.size > param2.maxEntries) {
     const toDelete = [];
@@ -7458,7 +7458,7 @@ function defaultRefresh(param2, map3) {
 }
 var LRUSet, LRUMap;
 var init_lru_map_set = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/lru-map-set.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/lru-map-set.js"() {
     LRUSet = class {
       #lruMap;
       constructor(param2 = {}) {
@@ -7639,7 +7639,7 @@ var init_lru_map_set = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/to-sorted.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/to-sorted.js
 function toSortedRecursive(arrayOrObject, touchFn, cycleReferences = /* @__PURE__ */ new Set()) {
   function ref() {
     if (cycleReferences.has(arrayOrObject)) {
@@ -7695,11 +7695,11 @@ function toSorted(arrayOrObject, touchFn) {
   return toSortedRecursive(arrayOrObject, touchFn, /* @__PURE__ */ new Set());
 }
 var init_to_sorted = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/to-sorted.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/to-sorted.js"() {
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/sorted-object.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/sorted-object.js
 function toSortedArray(set3, touchFn) {
   if (!set3)
     return [];
@@ -7711,15 +7711,15 @@ function toSortedObject(set3, touchFn) {
   return Object.fromEntries(toSortedArray(set3, touchFn));
 }
 var init_sorted_object = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/sorted-object.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/sorted-object.js"() {
     init_to_sorted();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/keyed-ng.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/keyed-ng.js
 var KeyedNg;
 var init_keyed_ng = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/keyed-ng.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/keyed-ng.js"() {
     init_lru_map_set();
     init_sorted_object();
     KeyedNg = class {
@@ -7811,7 +7811,7 @@ var init_keyed_ng = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/runtime.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/runtime.js
 function isSet(value, ref = globalThis) {
   const [head, ...tail] = value.split(".");
   if (["object", "function"].includes(typeof ref) && ref && ["object", "function"].includes(typeof ref[head]) && ref[head]) {
@@ -7845,11 +7845,11 @@ function runtimeFn() {
   };
 }
 var init_runtime = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/runtime.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/runtime.js"() {
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/resolve-once.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/resolve-once.js
 function isAsyncResolveOnce(obj) {
   return obj.IsSome() && obj.Unwrap() instanceof AsyncResolveOnce;
 }
@@ -7859,7 +7859,7 @@ function Lazy(fn, opts) {
 }
 var ResolveSeq, SyncResolveOnce, AsyncResolveItem, AsyncResolveOnce, StateInstance, ResolveOnce, KeyedResolvOnce, LazyContainer;
 var init_resolve_once = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/resolve-once.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/resolve-once.js"() {
     init_future();
     init_is_promise();
     init_result();
@@ -8354,7 +8354,7 @@ var init_resolve_once = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/coerce-uint8.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/coerce-uint8.js
 function coerceIntoUint8(raw) {
   if (raw instanceof ArrayBuffer) {
     return Result.Ok(new Uint8Array(raw));
@@ -8381,16 +8381,16 @@ function coerceIntoUint8(raw) {
 }
 var globalBuffer;
 var init_coerce_uint8 = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/coerce-uint8.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/coerce-uint8.js"() {
     init_esm();
     globalBuffer = globalThis;
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/txt-en-decoder.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/txt-en-decoder.js
 var TxtOps, TxtEnDecoderSingleton;
 var init_txt_en_decoder = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/txt-en-decoder.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/txt-en-decoder.js"() {
     init_resolve_once();
     init_result();
     init_coerce_uint8();
@@ -8433,7 +8433,7 @@ var init_txt_en_decoder = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/is-json.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/is-json.js
 function isJSON(str) {
   if (possibleJSONre.test(str)) {
     try {
@@ -8446,15 +8446,15 @@ function isJSON(str) {
 }
 var possibleJSONre;
 var init_is_json = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/is-json.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/is-json.js"() {
     possibleJSONre = new RegExp('^\\s*(?:\\{.*\\}|\\[.*\\]|"(?:[^"\\\\]|\\\\.)*"|true|false|null|-?\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?)\\s*$');
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/types.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/types.js
 var _Required, _Optional, param, hasHostPartProtocols, Level, LogValue;
 var init_types = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/types.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/types.js"() {
     _Required = class {
       type = "REQUIRED";
     };
@@ -8491,7 +8491,7 @@ var init_types = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/mutable-url.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/mutable-url.js
 function* URLSearchParamsEntries(src2) {
   const entries4 = [];
   src2.forEach((v, k) => {
@@ -8503,7 +8503,7 @@ function* URLSearchParamsEntries(src2) {
 }
 var customInspectSymbol, urlRegex, ReadonlyURL, WritableURL;
 var init_mutable_url = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/mutable-url.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/mutable-url.js"() {
     init_result();
     init_types();
     customInspectSymbol = /* @__PURE__ */ Symbol.for("nodejs.util.inspect.custom");
@@ -8770,7 +8770,7 @@ var init_mutable_url = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/logger.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/logger.js
 function logValue(val, ctx) {
   return logValueInternal(val, {
     ...ctx,
@@ -8895,7 +8895,7 @@ function IsLogger(obj) {
   ].map((fn) => typeof obj[fn] === "function").reduce((a, b) => a && b, true);
 }
 var init_logger = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/logger.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/logger.js"() {
     init_is_promise();
     init_bin2text();
     init_txt_en_decoder();
@@ -8905,7 +8905,7 @@ var init_logger = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/relative-path.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/relative-path.js
 function splitPath(path) {
   const p = new Path();
   if (path === "") {
@@ -8994,7 +8994,7 @@ function relativePath(path, relative) {
 }
 var PartType, Path;
 var init_relative_path = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/relative-path.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/relative-path.js"() {
     PartType = {
       Slash: 1,
       Root: 3,
@@ -9050,7 +9050,7 @@ var init_relative_path = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/stripper.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/stripper.js
 function stripper(strip, obj) {
   const strips = Array.isArray(strip) ? strip : [strip];
   const restrips = strips.map((s) => {
@@ -9113,11 +9113,11 @@ function localStripper(path, restrips, obj, selfRef) {
   return ret;
 }
 var init_stripper = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/stripper.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/stripper.js"() {
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/uri.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/uri.js
 function match(iref, ioth) {
   const mr = {
     score: 0,
@@ -9285,7 +9285,7 @@ function isCoerceURI(value) {
 }
 var BuildURI, uriInstances, URI;
 var init_uri = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/uri.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/uri.js"() {
     init_result();
     init_mutable_url();
     init_resolve_once();
@@ -9568,13 +9568,13 @@ var init_uri = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/log-level-impl.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/log-level-impl.js
 function LevelHandlerSingleton() {
   return levelSingleton;
 }
 var LevelHandlerImpl, levelSingleton;
 var init_log_level_impl = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/log-level-impl.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/log-level-impl.js"() {
     init_option();
     init_types();
     LevelHandlerImpl = class {
@@ -9662,10 +9662,10 @@ var init_log_level_impl = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/sys-abstraction.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/sys-abstraction.js
 var TimeMode, RandomMode, IDMode;
 var init_sys_abstraction = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/sys-abstraction.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/sys-abstraction.js"() {
     TimeMode = {
       REAL: "real",
       CONST: "const",
@@ -9684,10 +9684,10 @@ var init_sys_abstraction = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/time.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/time.js
 var Time, TimeUnits;
 var init_time = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/time.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/time.js"() {
     Time = class {
       TimeSince(start) {
         const now = this.Now();
@@ -9705,10 +9705,10 @@ var init_time = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/web-env/web-env-actions.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/web-env/web-env-actions.js
 var once, BrowserEnvActions;
 var init_web_env_actions = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/web-env/web-env-actions.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/web-env/web-env-actions.js"() {
     once = void 0;
     BrowserEnvActions = class _BrowserEnvActions {
       env = /* @__PURE__ */ new Map();
@@ -9747,10 +9747,10 @@ var init_web_env_actions = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/deno-env/deno-env-actions.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/deno-env/deno-env-actions.js
 var once2, DenoEnvActions;
 var init_deno_env_actions = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/deno-env/deno-env-actions.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/deno-env/deno-env-actions.js"() {
     init_runtime();
     once2 = void 0;
     DenoEnvActions = class _DenoEnvActions {
@@ -9793,7 +9793,7 @@ var init_deno_env_actions = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/deno-env/deno-basic-sys-abstraction.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/deno-env/deno-basic-sys-abstraction.js
 function DenoBasicSysAbstraction(param2 = {}) {
   const ende = param2.TxtEnDecoder ?? TxtEnDecoderSingleton();
   baseBasicSysAbstraction = baseBasicSysAbstraction ?? new BaseBasicSysAbstraction({
@@ -9806,7 +9806,7 @@ function DenoBasicSysAbstraction(param2 = {}) {
 }
 var DenoRuntimeService, baseBasicSysAbstraction;
 var init_deno_basic_sys_abstraction = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/deno-env/deno-basic-sys-abstraction.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/deno-env/deno-basic-sys-abstraction.js"() {
     init_base_sys_abstraction();
     init_sys_env();
     init_txt_en_decoder();
@@ -9832,18 +9832,18 @@ var init_deno_basic_sys_abstraction = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/deno-env/index.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/deno-env/index.js
 var init_deno_env = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/deno-env/index.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/deno-env/index.js"() {
     init_deno_env_actions();
     init_deno_basic_sys_abstraction();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/node-env/node-env-actions.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/node-env/node-env-actions.js
 var once3, NodeEnvActions;
 var init_node_env_actions = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/node-env/node-env-actions.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/node-env/node-env-actions.js"() {
     init_runtime();
     once3 = void 0;
     NodeEnvActions = class _NodeEnvActions {
@@ -9885,7 +9885,7 @@ var init_node_env_actions = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/node-env/node-basic-sys-abstraction.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/node-env/node-basic-sys-abstraction.js
 function NodeBasicSysAbstraction(param2 = {}) {
   const ende = param2.TxtEnDecoder ?? TxtEnDecoderSingleton();
   baseSysAbstraction = baseSysAbstraction ?? new BaseBasicSysAbstraction({
@@ -9898,7 +9898,7 @@ function NodeBasicSysAbstraction(param2 = {}) {
 }
 var NodeRuntimeService, baseSysAbstraction;
 var init_node_basic_sys_abstraction = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/node-env/node-basic-sys-abstraction.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/node-env/node-basic-sys-abstraction.js"() {
     init_base_sys_abstraction();
     init_sys_env();
     init_txt_en_decoder();
@@ -9936,15 +9936,15 @@ var init_node_basic_sys_abstraction = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/node-env/index.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/node-env/index.js
 var init_node_env = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/node-env/index.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/node-env/index.js"() {
     init_node_env_actions();
     init_node_basic_sys_abstraction();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/cf-env/cf-basic-sys-abstraction.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/cf-env/cf-basic-sys-abstraction.js
 function consumeReadableStream(reader, writeFn) {
   reader.read().then(({ done, value }) => {
     if (done) {
@@ -9976,7 +9976,7 @@ function CFBasicSysAbstraction(param2) {
 }
 var CFRuntimeService, baseSysAbstraction2;
 var init_cf_basic_sys_abstraction = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/cf-env/cf-basic-sys-abstraction.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/cf-env/cf-basic-sys-abstraction.js"() {
     init_base_sys_abstraction();
     init_sys_env();
     init_txt_en_decoder();
@@ -10012,10 +10012,10 @@ var init_cf_basic_sys_abstraction = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/cf-env/cf-env-actions.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/cf-env/cf-env-actions.js
 var once4, CFEnvActions;
 var init_cf_env_actions = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/cf-env/cf-env-actions.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/cf-env/cf-env-actions.js"() {
     init_runtime();
     once4 = void 0;
     CFEnvActions = class _CFEnvActions {
@@ -10072,21 +10072,21 @@ var init_cf_env_actions = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/cf-env/index.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/cf-env/index.js
 var init_cf_env = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/cf-env/index.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/cf-env/index.js"() {
     init_cf_basic_sys_abstraction();
     init_cf_env_actions();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/import-meta-env.module.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/import-meta-env.module.js
 function wrapImportMetaEnv(ea) {
   return new ImportMetaEnv(ea);
 }
 var ImportMetaEnv;
 var init_import_meta_env_module = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/import-meta-env.module.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/import-meta-env.module.js"() {
     ImportMetaEnv = class {
       #wrap;
       importMetaEnv = import.meta.env || {};
@@ -10119,7 +10119,7 @@ var init_import_meta_env_module = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/get-params-result.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/get-params-result.js
 function getParamsResult(keys, getParam) {
   const keyDef = keys.flat().reduce((acc, i) => {
     if (typeof i === "string") {
@@ -10159,15 +10159,15 @@ function getParamsResult(keys, getParam) {
   return Result.Ok(result);
 }
 var init_get_params_result = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/get-params-result.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/get-params-result.js"() {
     init_esm();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/console-write-stream.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/console-write-stream.js
 var ConsoleWriterStreamDefaultWriter, ConsoleWriterStream;
 var init_console_write_stream = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/console-write-stream.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/console-write-stream.js"() {
     init_txt_en_decoder();
     ConsoleWriterStreamDefaultWriter = class {
       stream;
@@ -10248,7 +10248,7 @@ var init_console_write_stream = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/add-cement-do-not-export.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/add-cement-do-not-export.js
 function addCement(params) {
   return {
     cement: {
@@ -10266,7 +10266,7 @@ function addCement(params) {
   };
 }
 var init_add_cement_do_not_export = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/add-cement-do-not-export.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/add-cement-do-not-export.js"() {
     init_runtime();
     init_base_sys_abstraction();
     init_txt_en_decoder();
@@ -10276,7 +10276,7 @@ var init_add_cement_do_not_export = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/sys-env.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/sys-env.js
 function envFactory(opts = {}) {
   const withCement = addCement(opts);
   const found = envActions.find((fi) => fi.fn(withCement).active());
@@ -10305,7 +10305,7 @@ function isIterable(obj) {
 }
 var envActions, _envFactories, EnvImpl;
 var init_sys_env = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/sys-env.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/sys-env.js"() {
     init_deno_env();
     init_node_env();
     init_web_env();
@@ -10435,7 +10435,7 @@ var init_sys_env = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/web-env/web-basic-sys-abstraction.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/web-env/web-basic-sys-abstraction.js
 function WebBasicSysAbstraction(param2) {
   const ende = param2.TxtEnDecoder ?? TxtEnDecoderSingleton();
   baseBasicSysAbstraction2 = baseBasicSysAbstraction2 ?? new BaseBasicSysAbstraction({
@@ -10448,7 +10448,7 @@ function WebBasicSysAbstraction(param2) {
 }
 var WebSystemService, baseBasicSysAbstraction2;
 var init_web_basic_sys_abstraction = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/web-env/web-basic-sys-abstraction.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/web-env/web-basic-sys-abstraction.js"() {
     init_base_sys_abstraction();
     init_sys_env();
     init_txt_en_decoder();
@@ -10488,15 +10488,15 @@ var init_web_basic_sys_abstraction = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/web-env/index.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/web-env/index.js
 var init_web_env = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/web-env/index.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/web-env/index.js"() {
     init_web_env_actions();
     init_web_basic_sys_abstraction();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/base-sys-abstraction.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/base-sys-abstraction.js
 function TimeFactory(timeMode) {
   switch (timeMode) {
     case TimeMode.REAL:
@@ -10525,7 +10525,7 @@ function BasicSysAbstractionFactory(params) {
 }
 var SysTime, ConstTime, StepTime, RandomService, IdService, BaseBasicSysAbstraction, BaseSysAbstraction, WrapperBasicSysAbstraction, WrapperRuntimeSysAbstraction;
 var init_base_sys_abstraction = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/base-sys-abstraction.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/base-sys-abstraction.js"() {
     init_runtime();
     init_sys_abstraction();
     init_time();
@@ -10696,10 +10696,10 @@ var init_base_sys_abstraction = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/log-writer-impl.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/log-writer-impl.js
 var LogWriterStream;
 var init_log_writer_impl = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/log-writer-impl.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/log-writer-impl.js"() {
     LogWriterStream = class {
       _out;
       _toFlush = [];
@@ -10750,7 +10750,7 @@ var init_log_writer_impl = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/logger-impl.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/logger-impl.js
 function getLen(value, lvs) {
   if (Array.isArray(value)) {
     return logValue(() => value.length, lvs);
@@ -10779,7 +10779,7 @@ function toLogValueCtx(lvh) {
 }
 var JSONFormatter, YAMLFormatter, LoggerImpl, WithLoggerBuilder;
 var init_logger_impl = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/logger-impl.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/logger-impl.js"() {
     init_browser();
     init_logger();
     init_result();
@@ -11259,37 +11259,37 @@ var init_logger_impl = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/test/log-write-stream.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/test/log-write-stream.js
 var init_log_write_stream = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/test/log-write-stream.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/test/log-write-stream.js"() {
     init_esm();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/test/mock-logger.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/test/mock-logger.js
 var init_mock_logger = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/test/mock-logger.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/test/mock-logger.js"() {
     init_esm();
     init_log_write_stream();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/test/index.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/test/index.js
 var init_test = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/test/index.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/test/index.js"() {
     init_log_write_stream();
     init_mock_logger();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/tracer.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/tracer.js
 var init_tracer = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/tracer.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/tracer.js"() {
     init_is_promise();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/coerce-binary.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/coerce-binary.js
 function isArrayBuffer(value) {
   return value instanceof ArrayBuffer || Object.prototype.toString.call(value) === "[object ArrayBuffer]";
 }
@@ -11322,12 +11322,12 @@ function to_arraybuf(input, encoder2) {
   return u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength);
 }
 var init_coerce_binary = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/coerce-binary.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/coerce-binary.js"() {
     init_txt_en_decoder();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/crypto.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/crypto.js
 function randomBytes(crypto2) {
   return (size) => {
     const bytes = new Uint8Array(size);
@@ -11379,24 +11379,24 @@ function toCryptoRuntime(cryptoOpts = {}) {
   return runtime;
 }
 var init_crypto = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/crypto.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/crypto.js"() {
     init_coerce_binary();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/version.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/version.js
 var init_version = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/version.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/version.js"() {
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/http_header.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/http_header.js
 function hasForEach(unk) {
   return typeof unk.forEach == "function";
 }
 var HeadersImpl, HttpHeader;
 var init_http_header = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/http_header.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/http_header.js"() {
     HeadersImpl = class {
       impl = new Headers();
       constructor(init) {
@@ -11608,10 +11608,10 @@ var init_http_header = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/path-ops.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/path-ops.js
 var pathOpsImpl, pathOps;
 var init_path_ops = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/path-ops.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/path-ops.js"() {
     pathOpsImpl = class {
       join(...paths) {
         const parts = this.#parts(paths.filter((i) => i).join("/"));
@@ -11649,21 +11649,21 @@ var init_path_ops = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/json-en-decoder.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/json-en-decoder.js
 var init_json_en_decoder = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/json-en-decoder.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/json-en-decoder.js"() {
     init_result();
     init_txt_en_decoder();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/app-context.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/app-context.js
 function isAppContext(ctx) {
   return AppContext.is(ctx);
 }
 var AppContext;
 var init_app_context = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/app-context.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/app-context.js"() {
     AppContext = class _AppContext {
       ctx = /* @__PURE__ */ new Map();
       static is(ctx) {
@@ -11703,9 +11703,9 @@ var init_app_context = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/load-asset.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/load-asset.js
 var init_load_asset = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/load-asset.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/load-asset.js"() {
     init_path_ops();
     init_result();
     init_runtime();
@@ -11714,88 +11714,88 @@ var init_load_asset = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/promise-sleep.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/promise-sleep.js
 var init_promise_sleep = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/promise-sleep.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/promise-sleep.js"() {
     init_future();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/poller.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/poller.js
 var init_poller = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/poller.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/poller.js"() {
     init_future();
     init_promise_sleep();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/on-func.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/on-func.js
 var init_on_func = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/on-func.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/on-func.js"() {
     init_is_promise();
     init_result();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/timeouted.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/timeouted.js
 var init_timeouted = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/timeouted.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/timeouted.js"() {
     init_future();
     init_is_promise();
     init_promise_sleep();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/stream-map.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/stream-map.js
 var init_stream_map = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/stream-map.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/stream-map.js"() {
     init_is_promise();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/rebuffer.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/rebuffer.js
 var init_rebuffer = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/rebuffer.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/rebuffer.js"() {
     init_stream_map();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/stream2string.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/stream2string.js
 var init_stream2string = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/stream2string.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/stream2string.js"() {
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/string2stream.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/string2stream.js
 var init_string2stream = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/string2stream.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/string2stream.js"() {
     init_txt_en_decoder();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/fanout-write-stream.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/fanout-write-stream.js
 var init_fanout_write_stream = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/fanout-write-stream.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/fanout-write-stream.js"() {
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/uint8array-equal.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/uint8array-equal.js
 var init_uint8array_equal = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/uint8array-equal.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/uint8array-equal.js"() {
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/consume.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/consume.js
 var init_consume = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/consume.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/utils/consume.js"() {
     init_esm();
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/wait-for-value.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/wait-for-value.js
 var WaitingForValue;
 var init_wait_for_value = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/wait-for-value.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/wait-for-value.js"() {
     init_future();
     init_option();
     init_resolve_once();
@@ -11852,9 +11852,9 @@ var init_wait_for_value = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/index.js
+// ../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/index.js
 var init_esm = __esm({
-  "node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/index.js"() {
+  "../../node_modules/.pnpm/@adviser+cement@0.5.8_typescript@5.9.3/node_modules/@adviser/cement/esm/index.js"() {
     init_file_service();
     init_logger_impl();
     init_logger();
@@ -11910,7 +11910,7 @@ var init_esm = __esm({
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bytes.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bytes.js
 var bytes_exports = {};
 __export(bytes_exports, {
   coerce: () => coerce,
@@ -11966,12 +11966,12 @@ function toString(b) {
 }
 var empty;
 var init_bytes = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bytes.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bytes.js"() {
     empty = new Uint8Array(0);
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/codecs/raw.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/codecs/raw.js
 function encode(node) {
   return coerce(node);
 }
@@ -11980,13 +11980,13 @@ function decode(data) {
 }
 var code;
 var init_raw = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/codecs/raw.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/codecs/raw.js"() {
     init_bytes();
     code = 85;
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/vendor/base-x.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/vendor/base-x.js
 function base(ALPHABET, name2) {
   if (ALPHABET.length >= 255) {
     throw new TypeError("Alphabet too long");
@@ -12120,14 +12120,14 @@ function base(ALPHABET, name2) {
 }
 var src, _brrp__multiformats_scope_baseX, base_x_default;
 var init_base_x = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/vendor/base-x.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/vendor/base-x.js"() {
     src = base;
     _brrp__multiformats_scope_baseX = src;
     base_x_default = _brrp__multiformats_scope_baseX;
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base.js
 function or(left, right) {
   return new ComposedDecoder({
     ...left.decoders ?? { [left.prefix]: left },
@@ -12218,7 +12218,7 @@ function rfc4648({ name: name2, prefix, bitsPerChar, alphabet }) {
 }
 var Encoder, Decoder, ComposedDecoder, Codec;
 var init_base = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base.js"() {
     init_bytes();
     init_base_x();
     Encoder = class {
@@ -12310,10 +12310,10 @@ var init_base = __esm({
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base32.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base32.js
 var base32, base32upper, base32pad, base32padupper, base32hex, base32hexupper, base32hexpad, base32hexpadupper, base32z;
 var init_base32 = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base32.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base32.js"() {
     init_base();
     base32 = rfc4648({
       prefix: "b",
@@ -12372,10 +12372,10 @@ var init_base32 = __esm({
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base36.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base36.js
 var base36, base36upper;
 var init_base36 = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base36.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base36.js"() {
     init_base();
     base36 = baseX({
       prefix: "k",
@@ -12390,10 +12390,10 @@ var init_base36 = __esm({
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base58.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base58.js
 var base58btc, base58flickr;
 var init_base58 = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base58.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base58.js"() {
     init_base();
     base58btc = baseX({
       name: "base58btc",
@@ -12408,7 +12408,7 @@ var init_base58 = __esm({
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/vendor/varint.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/vendor/varint.js
 function encode3(num, out, offset) {
   out = out || [];
   offset = offset || 0;
@@ -12441,7 +12441,7 @@ function read(buf3, offset) {
 }
 var encode_1, MSB, REST, MSBALL, INT, decode3, MSB$1, REST$1, N1, N2, N3, N4, N5, N6, N7, N8, N9, length, varint, _brrp_varint, varint_default;
 var init_varint = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/vendor/varint.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/vendor/varint.js"() {
     encode_1 = encode3;
     MSB = 128;
     REST = 127;
@@ -12472,7 +12472,7 @@ var init_varint = __esm({
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/varint.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/varint.js
 function decode4(data, offset = 0) {
   const code4 = varint_default.decode(data, offset);
   return [code4, varint_default.decode.bytes];
@@ -12485,12 +12485,12 @@ function encodingLength(int4) {
   return varint_default.encodingLength(int4);
 }
 var init_varint2 = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/varint.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/varint.js"() {
     init_varint();
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/digest.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/digest.js
 function create(code4, digest) {
   const size = digest.byteLength;
   const sizeOffset = encodingLength(code4);
@@ -12521,7 +12521,7 @@ function equals2(a, b) {
 }
 var Digest;
 var init_digest = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/digest.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/digest.js"() {
     init_bytes();
     init_varint2();
     Digest = class {
@@ -12542,13 +12542,13 @@ var init_digest = __esm({
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/link/interface.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/link/interface.js
 var init_interface = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/link/interface.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/link/interface.js"() {
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/cid.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/cid.js
 function format(link, base2) {
   const { bytes, version: version2 } = link;
   switch (version2) {
@@ -12636,7 +12636,7 @@ function encodeCID(version2, code4, multihash) {
 }
 var cache, CID, DAG_PB_CODE, SHA_256_CODE, cidSymbol;
 var init_cid = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/cid.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/cid.js"() {
     init_base32();
     init_base36();
     init_base58();
@@ -12899,7 +12899,7 @@ var init_cid = __esm({
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/hasher.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/hasher.js
 function from3({ name: name2, code: code4, encode: encode14, minDigestLength, maxDigestLength }) {
   return new Hasher(name2, code4, encode14, minDigestLength, maxDigestLength);
 }
@@ -12914,7 +12914,7 @@ function createDigest(digest, code4, truncate) {
 }
 var DEFAULT_MIN_DIGEST_LENGTH, Hasher;
 var init_hasher = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/hasher.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/hasher.js"() {
     init_digest();
     DEFAULT_MIN_DIGEST_LENGTH = 20;
     Hasher = class {
@@ -12953,13 +12953,13 @@ var init_hasher = __esm({
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/sha2-browser.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/sha2-browser.js
 function sha(name2) {
   return async (data) => new Uint8Array(await crypto.subtle.digest(name2, data));
 }
 var sha256, sha512;
 var init_sha2_browser = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/sha2-browser.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/sha2-browser.js"() {
     init_hasher();
     sha256 = from3({
       name: "sha2-256",
@@ -12974,7 +12974,7 @@ var init_sha2_browser = __esm({
   }
 });
 
-// core/runtime/files.ts
+// ../../core/runtime/files.ts
 async function encodeFile(blob) {
   const data = await top_uint8(blob);
   const bytes = encode(data);
@@ -13000,7 +13000,7 @@ async function decodeFile(blocks, cid, meta3) {
   });
 }
 var init_files = __esm({
-  "core/runtime/files.ts"() {
+  "../../core/runtime/files.ts"() {
     "use strict";
     init_raw();
     init_cid();
@@ -13009,21 +13009,21 @@ var init_files = __esm({
   }
 });
 
-// core/types/base/indexer.ts
+// ../../core/types/base/indexer.ts
 var init_indexer = __esm({
-  "core/types/base/indexer.ts"() {
+  "../../core/types/base/indexer.ts"() {
     "use strict";
   }
 });
 
-// core/types/base/key-bag-if.ts
+// ../../core/types/base/key-bag-if.ts
 var init_key_bag_if = __esm({
-  "core/types/base/key-bag-if.ts"() {
+  "../../core/types/base/key-bag-if.ts"() {
     "use strict";
   }
 });
 
-// core/types/base/types.ts
+// ../../core/types/base/types.ts
 function isFalsy(value) {
   return value === false || value === null || value === void 0;
 }
@@ -13058,7 +13058,7 @@ function isNotFoundError(e) {
 }
 var NotFoundError, PARAM, DataAndMetaAndWalAndBaseStore;
 var init_types2 = __esm({
-  "core/types/base/types.ts"() {
+  "../../core/types/base/types.ts"() {
     "use strict";
     init_esm();
     NotFoundError = class extends Error {
@@ -13114,7 +13114,7 @@ var init_types2 = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/core.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/core.js
 // @__NO_SIDE_EFFECTS__
 function $constructor(name2, initializer3, params) {
   function init(inst, def) {
@@ -13174,7 +13174,7 @@ function config(newConfig) {
 }
 var NEVER, $brand, $ZodAsyncError, $ZodEncodeError, globalConfig;
 var init_core = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/core.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/core.js"() {
     NEVER = Object.freeze({
       status: "aborted"
     });
@@ -13194,7 +13194,7 @@ var init_core = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/util.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/util.js
 var util_exports = {};
 __export(util_exports, {
   BIGINT_FORMAT_RANGES: () => BIGINT_FORMAT_RANGES,
@@ -13798,7 +13798,7 @@ function uint8ArrayToHex(bytes) {
 }
 var EVALUATING, captureStackTrace, allowsEval, getParsedType, propertyKeyTypes, primitiveTypes, NUMBER_FORMAT_RANGES, BIGINT_FORMAT_RANGES, Class;
 var init_util = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/util.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/util.js"() {
     EVALUATING = /* @__PURE__ */ Symbol("evaluating");
     captureStackTrace = "captureStackTrace" in Error ? Error.captureStackTrace : (..._args) => {
     };
@@ -13878,7 +13878,7 @@ var init_util = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/errors.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/errors.js
 function flattenError(error48, mapper = (issue2) => issue2.message) {
   const fieldErrors = {};
   const formErrors = [];
@@ -13997,7 +13997,7 @@ function prettifyError2(error48) {
 }
 var initializer, $ZodError, $ZodRealError;
 var init_errors2 = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/errors.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/errors.js"() {
     init_core();
     init_util();
     initializer = (inst, def) => {
@@ -14021,10 +14021,10 @@ var init_errors2 = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/parse.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/parse.js
 var _parse, parse2, _parseAsync, parseAsync, _safeParse, safeParse, _safeParseAsync, safeParseAsync, _encode, encode4, _decode, decode6, _encodeAsync, encodeAsync, _decodeAsync, decodeAsync, _safeEncode, safeEncode, _safeDecode, safeDecode, _safeEncodeAsync, safeEncodeAsync, _safeDecodeAsync, safeDecodeAsync;
 var init_parse = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/parse.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/parse.js"() {
     init_core();
     init_errors2();
     init_util();
@@ -14117,7 +14117,7 @@ var init_parse = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/regexes.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/regexes.js
 var regexes_exports = {};
 __export(regexes_exports, {
   base64: () => base64,
@@ -14208,7 +14208,7 @@ function fixedBase64url(length2) {
 }
 var cuid, cuid2, ulid, xid, ksuid, nanoid, duration, extendedDuration, guid, uuid, uuid4, uuid6, uuid7, email, html5Email, rfc5322Email, unicodeEmail, idnEmail, browserEmail, _emoji, ipv4, ipv6, mac, cidrv4, cidrv6, base64, base64url, hostname, domain, e164, dateSource, date, string2, bigint, integer, number, boolean, _null, _undefined, lowercase, uppercase, hex, md5_hex, md5_base64, md5_base64url, sha1_hex, sha1_base64, sha1_base64url, sha256_hex, sha256_base64, sha256_base64url, sha384_hex, sha384_base64, sha384_base64url, sha512_hex, sha512_base64, sha512_base64url;
 var init_regexes = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/regexes.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/regexes.js"() {
     init_util();
     cuid = /^[cC][^\s-]{8,}$/;
     cuid2 = /^[0-9a-z]+$/;
@@ -14280,7 +14280,7 @@ var init_regexes = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/checks.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/checks.js
 function handleCheckPropertyResult(result, payload, property) {
   if (result.issues.length) {
     payload.issues.push(...prefixIssues(property, result.issues));
@@ -14288,7 +14288,7 @@ function handleCheckPropertyResult(result, payload, property) {
 }
 var $ZodCheck, numericOriginMap, $ZodCheckLessThan, $ZodCheckGreaterThan, $ZodCheckMultipleOf, $ZodCheckNumberFormat, $ZodCheckBigIntFormat, $ZodCheckMaxSize, $ZodCheckMinSize, $ZodCheckSizeEquals, $ZodCheckMaxLength, $ZodCheckMinLength, $ZodCheckLengthEquals, $ZodCheckStringFormat, $ZodCheckRegex, $ZodCheckLowerCase, $ZodCheckUpperCase, $ZodCheckIncludes, $ZodCheckStartsWith, $ZodCheckEndsWith, $ZodCheckProperty, $ZodCheckMimeType, $ZodCheckOverwrite;
 var init_checks = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/checks.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/checks.js"() {
     init_core();
     init_regexes();
     init_util();
@@ -14836,10 +14836,10 @@ var init_checks = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/doc.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/doc.js
 var Doc;
 var init_doc = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/doc.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/doc.js"() {
     Doc = class {
       constructor(args = []) {
         this.content = [];
@@ -14877,10 +14877,10 @@ var init_doc = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/versions.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/versions.js
 var version;
 var init_versions = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/versions.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/versions.js"() {
     version = {
       major: 4,
       minor: 3,
@@ -14889,7 +14889,7 @@ var init_versions = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/schemas.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/schemas.js
 function isValidBase64(data) {
   if (data === "")
     return true;
@@ -15249,7 +15249,7 @@ function handleRefineResult(result, payload, input, inst) {
 }
 var $ZodType, $ZodString, $ZodStringFormat, $ZodGUID, $ZodUUID, $ZodEmail, $ZodURL, $ZodEmoji, $ZodNanoID, $ZodCUID, $ZodCUID2, $ZodULID, $ZodXID, $ZodKSUID, $ZodISODateTime, $ZodISODate, $ZodISOTime, $ZodISODuration, $ZodIPv4, $ZodIPv6, $ZodMAC, $ZodCIDRv4, $ZodCIDRv6, $ZodBase64, $ZodBase64URL, $ZodE164, $ZodJWT, $ZodCustomStringFormat, $ZodNumber, $ZodNumberFormat, $ZodBoolean, $ZodBigInt, $ZodBigIntFormat, $ZodSymbol, $ZodUndefined, $ZodNull, $ZodAny, $ZodUnknown, $ZodNever, $ZodVoid, $ZodDate, $ZodArray, $ZodObject, $ZodObjectJIT, $ZodUnion, $ZodXor, $ZodDiscriminatedUnion, $ZodIntersection, $ZodTuple, $ZodRecord, $ZodMap, $ZodSet, $ZodEnum, $ZodLiteral, $ZodFile, $ZodTransform, $ZodOptional, $ZodExactOptional, $ZodNullable, $ZodDefault, $ZodPrefault, $ZodNonOptional, $ZodSuccess, $ZodCatch, $ZodNaN, $ZodPipe, $ZodCodec, $ZodReadonly, $ZodTemplateLiteral, $ZodFunction, $ZodPromise, $ZodLazy, $ZodCustom;
 var init_schemas = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/schemas.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/schemas.js"() {
     init_checks();
     init_core();
     init_doc();
@@ -16873,7 +16873,7 @@ var init_schemas = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ar.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ar.js
 function ar_default() {
   return {
     localeError: error()
@@ -16881,7 +16881,7 @@ function ar_default() {
 }
 var error;
 var init_ar = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ar.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ar.js"() {
     init_util();
     error = () => {
       const Sizable = {
@@ -16986,7 +16986,7 @@ var init_ar = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/az.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/az.js
 function az_default() {
   return {
     localeError: error2()
@@ -16994,7 +16994,7 @@ function az_default() {
 }
 var error2;
 var init_az = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/az.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/az.js"() {
     init_util();
     error2 = () => {
       const Sizable = {
@@ -17098,7 +17098,7 @@ var init_az = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/be.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/be.js
 function getBelarusianPlural(count, one, few, many) {
   const absCount = Math.abs(count);
   const lastDigit = absCount % 10;
@@ -17121,7 +17121,7 @@ function be_default() {
 }
 var error3;
 var init_be = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/be.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/be.js"() {
     init_util();
     error3 = () => {
       const Sizable = {
@@ -17261,7 +17261,7 @@ var init_be = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/bg.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/bg.js
 function bg_default() {
   return {
     localeError: error4()
@@ -17269,7 +17269,7 @@ function bg_default() {
 }
 var error4;
 var init_bg = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/bg.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/bg.js"() {
     init_util();
     error4 = () => {
       const Sizable = {
@@ -17388,7 +17388,7 @@ var init_bg = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ca.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ca.js
 function ca_default() {
   return {
     localeError: error5()
@@ -17396,7 +17396,7 @@ function ca_default() {
 }
 var error5;
 var init_ca = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ca.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ca.js"() {
     init_util();
     error5 = () => {
       const Sizable = {
@@ -17503,7 +17503,7 @@ var init_ca = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/cs.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/cs.js
 function cs_default() {
   return {
     localeError: error6()
@@ -17511,7 +17511,7 @@ function cs_default() {
 }
 var error6;
 var init_cs = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/cs.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/cs.js"() {
     init_util();
     error6 = () => {
       const Sizable = {
@@ -17621,7 +17621,7 @@ var init_cs = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/da.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/da.js
 function da_default() {
   return {
     localeError: error7()
@@ -17629,7 +17629,7 @@ function da_default() {
 }
 var error7;
 var init_da = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/da.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/da.js"() {
     init_util();
     error7 = () => {
       const Sizable = {
@@ -17743,7 +17743,7 @@ var init_da = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/de.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/de.js
 function de_default() {
   return {
     localeError: error8()
@@ -17751,7 +17751,7 @@ function de_default() {
 }
 var error8;
 var init_de = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/de.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/de.js"() {
     init_util();
     error8 = () => {
       const Sizable = {
@@ -17858,7 +17858,7 @@ var init_de = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/en.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/en.js
 function en_default() {
   return {
     localeError: error9()
@@ -17866,7 +17866,7 @@ function en_default() {
 }
 var error9;
 var init_en = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/en.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/en.js"() {
     init_util();
     error9 = () => {
       const Sizable = {
@@ -17973,7 +17973,7 @@ var init_en = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/eo.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/eo.js
 function eo_default() {
   return {
     localeError: error10()
@@ -17981,7 +17981,7 @@ function eo_default() {
 }
 var error10;
 var init_eo = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/eo.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/eo.js"() {
     init_util();
     error10 = () => {
       const Sizable = {
@@ -18089,7 +18089,7 @@ var init_eo = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/es.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/es.js
 function es_default() {
   return {
     localeError: error11()
@@ -18097,7 +18097,7 @@ function es_default() {
 }
 var error11;
 var init_es = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/es.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/es.js"() {
     init_util();
     error11 = () => {
       const Sizable = {
@@ -18228,7 +18228,7 @@ var init_es = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fa.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fa.js
 function fa_default() {
   return {
     localeError: error12()
@@ -18236,7 +18236,7 @@ function fa_default() {
 }
 var error12;
 var init_fa = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fa.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fa.js"() {
     init_util();
     error12 = () => {
       const Sizable = {
@@ -18349,7 +18349,7 @@ var init_fa = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fi.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fi.js
 function fi_default() {
   return {
     localeError: error13()
@@ -18357,7 +18357,7 @@ function fi_default() {
 }
 var error13;
 var init_fi = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fi.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fi.js"() {
     init_util();
     error13 = () => {
       const Sizable = {
@@ -18468,7 +18468,7 @@ var init_fi = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fr.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fr.js
 function fr_default() {
   return {
     localeError: error14()
@@ -18476,7 +18476,7 @@ function fr_default() {
 }
 var error14;
 var init_fr = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fr.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fr.js"() {
     init_util();
     error14 = () => {
       const Sizable = {
@@ -18583,7 +18583,7 @@ var init_fr = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fr-CA.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fr-CA.js
 function fr_CA_default() {
   return {
     localeError: error15()
@@ -18591,7 +18591,7 @@ function fr_CA_default() {
 }
 var error15;
 var init_fr_CA = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fr-CA.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/fr-CA.js"() {
     init_util();
     error15 = () => {
       const Sizable = {
@@ -18697,7 +18697,7 @@ var init_fr_CA = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/he.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/he.js
 function he_default() {
   return {
     localeError: error16()
@@ -18705,7 +18705,7 @@ function he_default() {
 }
 var error16;
 var init_he = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/he.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/he.js"() {
     init_util();
     error16 = () => {
       const TypeNames = {
@@ -18898,7 +18898,7 @@ var init_he = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/hu.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/hu.js
 function hu_default() {
   return {
     localeError: error17()
@@ -18906,7 +18906,7 @@ function hu_default() {
 }
 var error17;
 var init_hu = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/hu.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/hu.js"() {
     init_util();
     error17 = () => {
       const Sizable = {
@@ -19013,7 +19013,7 @@ var init_hu = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/hy.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/hy.js
 function getArmenianPlural(count, one, many) {
   return Math.abs(count) === 1 ? one : many;
 }
@@ -19031,7 +19031,7 @@ function hy_default() {
 }
 var error18;
 var init_hy = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/hy.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/hy.js"() {
     init_util();
     error18 = () => {
       const Sizable = {
@@ -19167,7 +19167,7 @@ var init_hy = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/id.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/id.js
 function id_default() {
   return {
     localeError: error19()
@@ -19175,7 +19175,7 @@ function id_default() {
 }
 var error19;
 var init_id = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/id.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/id.js"() {
     init_util();
     error19 = () => {
       const Sizable = {
@@ -19280,7 +19280,7 @@ var init_id = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/is.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/is.js
 function is_default() {
   return {
     localeError: error20()
@@ -19288,7 +19288,7 @@ function is_default() {
 }
 var error20;
 var init_is = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/is.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/is.js"() {
     init_util();
     error20 = () => {
       const Sizable = {
@@ -19396,7 +19396,7 @@ var init_is = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/it.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/it.js
 function it_default() {
   return {
     localeError: error21()
@@ -19404,7 +19404,7 @@ function it_default() {
 }
 var error21;
 var init_it = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/it.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/it.js"() {
     init_util();
     error21 = () => {
       const Sizable = {
@@ -19511,7 +19511,7 @@ var init_it = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ja.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ja.js
 function ja_default() {
   return {
     localeError: error22()
@@ -19519,7 +19519,7 @@ function ja_default() {
 }
 var error22;
 var init_ja = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ja.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ja.js"() {
     init_util();
     error22 = () => {
       const Sizable = {
@@ -19625,7 +19625,7 @@ var init_ja = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ka.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ka.js
 function ka_default() {
   return {
     localeError: error23()
@@ -19633,7 +19633,7 @@ function ka_default() {
 }
 var error23;
 var init_ka = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ka.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ka.js"() {
     init_util();
     error23 = () => {
       const Sizable = {
@@ -19744,7 +19744,7 @@ var init_ka = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/km.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/km.js
 function km_default() {
   return {
     localeError: error24()
@@ -19752,7 +19752,7 @@ function km_default() {
 }
 var error24;
 var init_km = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/km.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/km.js"() {
     init_util();
     error24 = () => {
       const Sizable = {
@@ -19861,17 +19861,17 @@ var init_km = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/kh.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/kh.js
 function kh_default() {
   return km_default();
 }
 var init_kh = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/kh.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/kh.js"() {
     init_km();
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ko.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ko.js
 function ko_default() {
   return {
     localeError: error25()
@@ -19879,7 +19879,7 @@ function ko_default() {
 }
 var error25;
 var init_ko = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ko.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ko.js"() {
     init_util();
     error25 = () => {
       const Sizable = {
@@ -19989,7 +19989,7 @@ var init_ko = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/lt.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/lt.js
 function getUnitTypeFromNumber(number4) {
   const abs = Math.abs(number4);
   const last = abs % 10;
@@ -20007,7 +20007,7 @@ function lt_default() {
 }
 var capitalizeFirstCharacter, error26;
 var init_lt = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/lt.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/lt.js"() {
     init_util();
     capitalizeFirstCharacter = (text2) => {
       return text2.charAt(0).toUpperCase() + text2.slice(1);
@@ -20199,7 +20199,7 @@ var init_lt = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/mk.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/mk.js
 function mk_default() {
   return {
     localeError: error27()
@@ -20207,7 +20207,7 @@ function mk_default() {
 }
 var error27;
 var init_mk = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/mk.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/mk.js"() {
     init_util();
     error27 = () => {
       const Sizable = {
@@ -20315,7 +20315,7 @@ var init_mk = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ms.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ms.js
 function ms_default() {
   return {
     localeError: error28()
@@ -20323,7 +20323,7 @@ function ms_default() {
 }
 var error28;
 var init_ms = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ms.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ms.js"() {
     init_util();
     error28 = () => {
       const Sizable = {
@@ -20429,7 +20429,7 @@ var init_ms = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/nl.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/nl.js
 function nl_default() {
   return {
     localeError: error29()
@@ -20437,7 +20437,7 @@ function nl_default() {
 }
 var error29;
 var init_nl = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/nl.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/nl.js"() {
     init_util();
     error29 = () => {
       const Sizable = {
@@ -20546,7 +20546,7 @@ var init_nl = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/no.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/no.js
 function no_default() {
   return {
     localeError: error30()
@@ -20554,7 +20554,7 @@ function no_default() {
 }
 var error30;
 var init_no = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/no.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/no.js"() {
     init_util();
     error30 = () => {
       const Sizable = {
@@ -20661,7 +20661,7 @@ var init_no = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ota.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ota.js
 function ota_default() {
   return {
     localeError: error31()
@@ -20669,7 +20669,7 @@ function ota_default() {
 }
 var error31;
 var init_ota = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ota.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ota.js"() {
     init_util();
     error31 = () => {
       const Sizable = {
@@ -20777,7 +20777,7 @@ var init_ota = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ps.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ps.js
 function ps_default() {
   return {
     localeError: error32()
@@ -20785,7 +20785,7 @@ function ps_default() {
 }
 var error32;
 var init_ps = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ps.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ps.js"() {
     init_util();
     error32 = () => {
       const Sizable = {
@@ -20898,7 +20898,7 @@ var init_ps = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/pl.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/pl.js
 function pl_default() {
   return {
     localeError: error33()
@@ -20906,7 +20906,7 @@ function pl_default() {
 }
 var error33;
 var init_pl = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/pl.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/pl.js"() {
     init_util();
     error33 = () => {
       const Sizable = {
@@ -21014,7 +21014,7 @@ var init_pl = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/pt.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/pt.js
 function pt_default() {
   return {
     localeError: error34()
@@ -21022,7 +21022,7 @@ function pt_default() {
 }
 var error34;
 var init_pt = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/pt.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/pt.js"() {
     init_util();
     error34 = () => {
       const Sizable = {
@@ -21129,7 +21129,7 @@ var init_pt = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ru.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ru.js
 function getRussianPlural(count, one, few, many) {
   const absCount = Math.abs(count);
   const lastDigit = absCount % 10;
@@ -21152,7 +21152,7 @@ function ru_default() {
 }
 var error35;
 var init_ru = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ru.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ru.js"() {
     init_util();
     error35 = () => {
       const Sizable = {
@@ -21292,7 +21292,7 @@ var init_ru = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/sl.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/sl.js
 function sl_default() {
   return {
     localeError: error36()
@@ -21300,7 +21300,7 @@ function sl_default() {
 }
 var error36;
 var init_sl = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/sl.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/sl.js"() {
     init_util();
     error36 = () => {
       const Sizable = {
@@ -21408,7 +21408,7 @@ var init_sl = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/sv.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/sv.js
 function sv_default() {
   return {
     localeError: error37()
@@ -21416,7 +21416,7 @@ function sv_default() {
 }
 var error37;
 var init_sv = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/sv.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/sv.js"() {
     init_util();
     error37 = () => {
       const Sizable = {
@@ -21525,7 +21525,7 @@ var init_sv = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ta.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ta.js
 function ta_default() {
   return {
     localeError: error38()
@@ -21533,7 +21533,7 @@ function ta_default() {
 }
 var error38;
 var init_ta = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ta.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ta.js"() {
     init_util();
     error38 = () => {
       const Sizable = {
@@ -21642,7 +21642,7 @@ var init_ta = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/th.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/th.js
 function th_default() {
   return {
     localeError: error39()
@@ -21650,7 +21650,7 @@ function th_default() {
 }
 var error39;
 var init_th = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/th.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/th.js"() {
     init_util();
     error39 = () => {
       const Sizable = {
@@ -21759,7 +21759,7 @@ var init_th = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/tr.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/tr.js
 function tr_default() {
   return {
     localeError: error40()
@@ -21767,7 +21767,7 @@ function tr_default() {
 }
 var error40;
 var init_tr = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/tr.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/tr.js"() {
     init_util();
     error40 = () => {
       const Sizable = {
@@ -21871,7 +21871,7 @@ var init_tr = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/uk.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/uk.js
 function uk_default() {
   return {
     localeError: error41()
@@ -21879,7 +21879,7 @@ function uk_default() {
 }
 var error41;
 var init_uk = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/uk.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/uk.js"() {
     init_util();
     error41 = () => {
       const Sizable = {
@@ -21986,17 +21986,17 @@ var init_uk = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ua.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ua.js
 function ua_default() {
   return uk_default();
 }
 var init_ua = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ua.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ua.js"() {
     init_uk();
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ur.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ur.js
 function ur_default() {
   return {
     localeError: error42()
@@ -22004,7 +22004,7 @@ function ur_default() {
 }
 var error42;
 var init_ur = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ur.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/ur.js"() {
     init_util();
     error42 = () => {
       const Sizable = {
@@ -22113,7 +22113,7 @@ var init_ur = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/uz.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/uz.js
 function uz_default() {
   return {
     localeError: error43()
@@ -22121,7 +22121,7 @@ function uz_default() {
 }
 var error43;
 var init_uz = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/uz.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/uz.js"() {
     init_util();
     error43 = () => {
       const Sizable = {
@@ -22229,7 +22229,7 @@ var init_uz = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/vi.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/vi.js
 function vi_default() {
   return {
     localeError: error44()
@@ -22237,7 +22237,7 @@ function vi_default() {
 }
 var error44;
 var init_vi = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/vi.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/vi.js"() {
     init_util();
     error44 = () => {
       const Sizable = {
@@ -22344,7 +22344,7 @@ var init_vi = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/zh-CN.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/zh-CN.js
 function zh_CN_default() {
   return {
     localeError: error45()
@@ -22352,7 +22352,7 @@ function zh_CN_default() {
 }
 var error45;
 var init_zh_CN = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/zh-CN.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/zh-CN.js"() {
     init_util();
     error45 = () => {
       const Sizable = {
@@ -22460,7 +22460,7 @@ var init_zh_CN = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/zh-TW.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/zh-TW.js
 function zh_TW_default() {
   return {
     localeError: error46()
@@ -22468,7 +22468,7 @@ function zh_TW_default() {
 }
 var error46;
 var init_zh_TW = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/zh-TW.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/zh-TW.js"() {
     init_util();
     error46 = () => {
       const Sizable = {
@@ -22574,7 +22574,7 @@ var init_zh_TW = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/yo.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/yo.js
 function yo_default() {
   return {
     localeError: error47()
@@ -22582,7 +22582,7 @@ function yo_default() {
 }
 var error47;
 var init_yo = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/yo.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/yo.js"() {
     init_util();
     error47 = () => {
       const Sizable = {
@@ -22688,7 +22688,7 @@ var init_yo = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/index.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/index.js
 var locales_exports = {};
 __export(locales_exports, {
   ar: () => ar_default,
@@ -22742,7 +22742,7 @@ __export(locales_exports, {
   zhTW: () => zh_TW_default
 });
 var init_locales = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/index.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/locales/index.js"() {
     init_ar();
     init_az();
     init_be();
@@ -22795,13 +22795,13 @@ var init_locales = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/registries.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/registries.js
 function registry() {
   return new $ZodRegistry();
 }
 var _a, $output, $input, $ZodRegistry, globalRegistry;
 var init_registries = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/registries.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/registries.js"() {
     $output = /* @__PURE__ */ Symbol("ZodOutput");
     $input = /* @__PURE__ */ Symbol("ZodInput");
     $ZodRegistry = class {
@@ -22849,7 +22849,7 @@ var init_registries = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/api.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/api.js
 // @__NO_SIDE_EFFECTS__
 function _string(Class2, params) {
   return new Class2({
@@ -23882,7 +23882,7 @@ function _stringFormat(Class2, format3, fnOrRegex, _params = {}) {
 }
 var TimePrecision;
 var init_api = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/api.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/api.js"() {
     init_checks();
     init_registries();
     init_schemas();
@@ -23897,7 +23897,7 @@ var init_api = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/to-json-schema.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/to-json-schema.js
 function initializeContext(params) {
   let target = params?.target ?? "draft-2020-12";
   if (target === "draft-4")
@@ -24237,7 +24237,7 @@ function isTransforming(_schema, _ctx) {
 }
 var createToJSONSchemaMethod, createStandardJSONSchemaMethod;
 var init_to_json_schema = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/to-json-schema.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/to-json-schema.js"() {
     init_registries();
     createToJSONSchemaMethod = (schema4, processors = {}) => (params) => {
       const ctx = initializeContext({ ...params, processors });
@@ -24255,7 +24255,7 @@ var init_to_json_schema = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/json-schema-processors.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/json-schema-processors.js
 function toJSONSchema(input, params) {
   if ("_idmap" in input) {
     const registry2 = input;
@@ -24292,7 +24292,7 @@ function toJSONSchema(input, params) {
 }
 var formatMap, stringProcessor, numberProcessor, booleanProcessor, bigintProcessor, symbolProcessor, nullProcessor, undefinedProcessor, voidProcessor, neverProcessor, anyProcessor, unknownProcessor, dateProcessor, enumProcessor, literalProcessor, nanProcessor, templateLiteralProcessor, fileProcessor, successProcessor, customProcessor, functionProcessor, transformProcessor, mapProcessor, setProcessor, arrayProcessor, objectProcessor, unionProcessor, intersectionProcessor, tupleProcessor, recordProcessor, nullableProcessor, nonoptionalProcessor, defaultProcessor, prefaultProcessor, catchProcessor, pipeProcessor, readonlyProcessor, promiseProcessor, optionalProcessor, lazyProcessor, allProcessors;
 var init_json_schema_processors = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/json-schema-processors.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/json-schema-processors.js"() {
     init_to_json_schema();
     init_util();
     formatMap = {
@@ -24813,10 +24813,10 @@ var init_json_schema_processors = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/json-schema-generator.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/json-schema-generator.js
 var JSONSchemaGenerator;
 var init_json_schema_generator = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/json-schema-generator.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/json-schema-generator.js"() {
     init_json_schema_processors();
     init_to_json_schema();
     JSONSchemaGenerator = class {
@@ -24895,14 +24895,14 @@ var init_json_schema_generator = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/json-schema.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/json-schema.js
 var json_schema_exports = {};
 var init_json_schema = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/json-schema.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/json-schema.js"() {
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/index.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/index.js
 var core_exports2 = {};
 __export(core_exports2, {
   $ZodAny: () => $ZodAny,
@@ -25180,7 +25180,7 @@ __export(core_exports2, {
   version: () => version
 });
 var init_core2 = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/index.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/core/index.js"() {
     init_core();
     init_parse();
     init_errors2();
@@ -25200,7 +25200,7 @@ var init_core2 = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/checks.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/checks.js
 var checks_exports2 = {};
 __export(checks_exports2, {
   endsWith: () => _endsWith,
@@ -25234,12 +25234,12 @@ __export(checks_exports2, {
   uppercase: () => _uppercase
 });
 var init_checks2 = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/checks.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/checks.js"() {
     init_core2();
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/iso.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/iso.js
 var iso_exports = {};
 __export(iso_exports, {
   ZodISODate: () => ZodISODate,
@@ -25265,7 +25265,7 @@ function duration2(params) {
 }
 var ZodISODateTime, ZodISODate, ZodISOTime, ZodISODuration;
 var init_iso = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/iso.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/iso.js"() {
     init_core2();
     init_schemas2();
     ZodISODateTime = /* @__PURE__ */ $constructor("ZodISODateTime", (inst, def) => {
@@ -25287,10 +25287,10 @@ var init_iso = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/errors.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/errors.js
 var initializer2, ZodError, ZodRealError;
 var init_errors3 = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/errors.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/errors.js"() {
     init_core2();
     init_core2();
     init_util();
@@ -25335,10 +25335,10 @@ var init_errors3 = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/parse.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/parse.js
 var parse3, parseAsync2, safeParse2, safeParseAsync2, encode5, decode7, encodeAsync2, decodeAsync2, safeEncode2, safeDecode2, safeEncodeAsync2, safeDecodeAsync2;
 var init_parse2 = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/parse.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/parse.js"() {
     init_core2();
     init_errors3();
     parse3 = /* @__PURE__ */ _parse(ZodRealError);
@@ -25356,7 +25356,7 @@ var init_parse2 = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/schemas.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/schemas.js
 var schemas_exports2 = {};
 __export(schemas_exports2, {
   ZodAny: () => ZodAny,
@@ -25980,7 +25980,7 @@ function preprocess(fn, schema4) {
 }
 var ZodType, _ZodString, ZodString, ZodStringFormat, ZodEmail, ZodGUID, ZodUUID, ZodURL, ZodEmoji, ZodNanoID, ZodCUID, ZodCUID2, ZodULID, ZodXID, ZodKSUID, ZodIPv4, ZodMAC, ZodIPv6, ZodCIDRv4, ZodCIDRv6, ZodBase64, ZodBase64URL, ZodE164, ZodJWT, ZodCustomStringFormat, ZodNumber, ZodNumberFormat, ZodBoolean, ZodBigInt, ZodBigIntFormat, ZodSymbol, ZodUndefined, ZodNull, ZodAny, ZodUnknown, ZodNever, ZodVoid, ZodDate, ZodArray, ZodObject, ZodUnion, ZodXor, ZodDiscriminatedUnion, ZodIntersection, ZodTuple, ZodRecord, ZodMap, ZodSet, ZodEnum, ZodLiteral, ZodFile, ZodTransform, ZodOptional, ZodExactOptional, ZodNullable, ZodDefault, ZodPrefault, ZodNonOptional, ZodSuccess, ZodCatch, ZodNaN, ZodPipe, ZodCodec, ZodReadonly, ZodTemplateLiteral, ZodLazy, ZodPromise, ZodFunction, ZodCustom, describe2, meta2, stringbool;
 var init_schemas2 = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/schemas.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/schemas.js"() {
     init_core2();
     init_core2();
     init_json_schema_processors();
@@ -26614,7 +26614,7 @@ var init_schemas2 = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/compat.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/compat.js
 function setErrorMap(map3) {
   config({
     customError: map3
@@ -26625,7 +26625,7 @@ function getErrorMap() {
 }
 var ZodIssueCode, ZodFirstPartyTypeKind;
 var init_compat = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/compat.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/compat.js"() {
     init_core2();
     init_core2();
     ZodIssueCode = {
@@ -26646,7 +26646,7 @@ var init_compat = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/from-json-schema.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/from-json-schema.js
 function detectVersion(schema4, defaultTarget) {
   const $schema = schema4.$schema;
   if ($schema === "https://json-schema.org/draft/2020-12/schema") {
@@ -27045,7 +27045,7 @@ function fromJSONSchema(schema4, params) {
 }
 var z, RECOGNIZED_KEYS;
 var init_from_json_schema = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/from-json-schema.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/from-json-schema.js"() {
     init_registries();
     init_checks2();
     init_iso();
@@ -27129,7 +27129,7 @@ var init_from_json_schema = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/coerce.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/coerce.js
 var coerce_exports = {};
 __export(coerce_exports, {
   bigint: () => bigint3,
@@ -27154,13 +27154,13 @@ function date4(params) {
   return _coercedDate(ZodDate, params);
 }
 var init_coerce = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/coerce.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/coerce.js"() {
     init_core2();
     init_schemas2();
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/external.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/external.js
 var external_exports = {};
 __export(external_exports, {
   $brand: () => $brand,
@@ -27401,7 +27401,7 @@ __export(external_exports, {
   xor: () => xor
 });
 var init_external = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/external.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/external.js"() {
     init_core2();
     init_schemas2();
     init_checks2();
@@ -27421,26 +27421,26 @@ var init_external = __esm({
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/index.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/index.js
 var init_classic = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/index.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/classic/index.js"() {
     init_external();
     init_external();
   }
 });
 
-// node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/index.js
+// ../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/index.js
 var init_v4 = __esm({
-  "node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/index.js"() {
+  "../../node_modules/.pnpm/zod@4.3.5/node_modules/zod/v4/index.js"() {
     init_classic();
     init_classic();
   }
 });
 
-// core/types/base/jwt-payload.zod.ts
+// ../../core/types/base/jwt-payload.zod.ts
 var JWTPayloadSchema, OpenJWTPayloadSchema;
 var init_jwt_payload_zod = __esm({
-  "core/types/base/jwt-payload.zod.ts"() {
+  "../../core/types/base/jwt-payload.zod.ts"() {
     "use strict";
     init_v4();
     JWTPayloadSchema = external_exports.object({
@@ -27469,10 +27469,10 @@ var init_jwt_payload_zod = __esm({
   }
 });
 
-// core/types/base/jwk-public.zod.ts
+// ../../core/types/base/jwk-public.zod.ts
 var JWKPublicSchema, KeyesJWKPublicSchema;
 var init_jwk_public_zod = __esm({
-  "core/types/base/jwk-public.zod.ts"() {
+  "../../core/types/base/jwk-public.zod.ts"() {
     "use strict";
     init_esm();
     init_v4();
@@ -27534,10 +27534,10 @@ var init_jwk_public_zod = __esm({
   }
 });
 
-// core/types/base/fp-device-id-payload.zod.ts
+// ../../core/types/base/fp-device-id-payload.zod.ts
 var SubjectSchema, ExtensionsSchema, FPDeviceIDCSRPayloadSchema, FPDeviceIDSessionSchema;
 var init_fp_device_id_payload_zod = __esm({
-  "core/types/base/fp-device-id-payload.zod.ts"() {
+  "../../core/types/base/fp-device-id-payload.zod.ts"() {
     "use strict";
     init_v4();
     init_jwk_public_zod();
@@ -27628,10 +27628,10 @@ var init_fp_device_id_payload_zod = __esm({
   }
 });
 
-// core/types/base/fp-ca-cert-payload.zod.ts
+// ../../core/types/base/fp-ca-cert-payload.zod.ts
 var CertificateSchema, CertificatePayloadSchema;
 var init_fp_ca_cert_payload_zod = __esm({
-  "core/types/base/fp-ca-cert-payload.zod.ts"() {
+  "../../core/types/base/fp-ca-cert-payload.zod.ts"() {
     "use strict";
     init_v4();
     init_fp_device_id_payload_zod();
@@ -27698,10 +27698,10 @@ var init_fp_ca_cert_payload_zod = __esm({
   }
 });
 
-// core/types/base/jwk-private.zod.ts
+// ../../core/types/base/jwk-private.zod.ts
 var JWKPrivateSchema, KeyesJWKPrivateSchema;
 var init_jwk_private_zod = __esm({
-  "core/types/base/jwk-private.zod.ts"() {
+  "../../core/types/base/jwk-private.zod.ts"() {
     "use strict";
     init_v4();
     JWKPrivateSchema = external_exports.object({
@@ -27770,17 +27770,17 @@ var init_jwk_private_zod = __esm({
   }
 });
 
-// core/types/base/device-id.ts
+// ../../core/types/base/device-id.ts
 var init_device_id = __esm({
-  "core/types/base/device-id.ts"() {
+  "../../core/types/base/device-id.ts"() {
     "use strict";
   }
 });
 
-// core/types/base/device-id-keybag-item.zod.ts
+// ../../core/types/base/device-id-keybag-item.zod.ts
 var CertJWTPayloadSchema, DeviceIdKeyBagItemSchema;
 var init_device_id_keybag_item_zod = __esm({
-  "core/types/base/device-id-keybag-item.zod.ts"() {
+  "../../core/types/base/device-id-keybag-item.zod.ts"() {
     "use strict";
     init_v4();
     init_jwk_private_zod();
@@ -27796,10 +27796,10 @@ var init_device_id_keybag_item_zod = __esm({
   }
 });
 
-// core/types/base/keybag-storage.zod.ts
+// ../../core/types/base/keybag-storage.zod.ts
 var V1StorageKeyItemSchema, V2KeysItemSchema, V2StorageKeyItemSchema, KeyedV2StorageKeyItemSchema, KeyedDeviceIdKeyBagItemSchema, KeyedJwtKeyBagItemSchema, KeyedItemSchema, LegacyKeyedItemSchema;
 var init_keybag_storage_zod = __esm({
-  "core/types/base/keybag-storage.zod.ts"() {
+  "../../core/types/base/keybag-storage.zod.ts"() {
     "use strict";
     init_v4();
     init_device_id_keybag_item_zod();
@@ -27839,10 +27839,10 @@ var init_keybag_storage_zod = __esm({
   }
 });
 
-// core/types/base/database-config.zod.ts
+// ../../core/types/base/database-config.zod.ts
 var StoreUrlsSchema, StoreUrlsOptsSchema, DatabaseConfigSchemaBase, DatabaseConfigSchema, DatabaseConfigWithNameSchema;
 var init_database_config_zod = __esm({
-  "core/types/base/database-config.zod.ts"() {
+  "../../core/types/base/database-config.zod.ts"() {
     "use strict";
     init_v4();
     StoreUrlsSchema = external_exports.object({
@@ -27881,9 +27881,9 @@ var init_database_config_zod = __esm({
   }
 });
 
-// core/types/base/index.ts
+// ../../core/types/base/index.ts
 var init_base2 = __esm({
-  "core/types/base/index.ts"() {
+  "../../core/types/base/index.ts"() {
     "use strict";
     init_indexer();
     init_key_bag_if();
@@ -27900,26 +27900,26 @@ var init_base2 = __esm({
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/codecs/json.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/codecs/json.js
 function encode6(node) {
   return textEncoder.encode(JSON.stringify(node));
 }
 var textEncoder, textDecoder, code2;
 var init_json = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/codecs/json.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/codecs/json.js"() {
     textEncoder = new TextEncoder();
     textDecoder = new TextDecoder();
     code2 = 512;
   }
 });
 
-// node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/types.js
+// ../../node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/types.js
 function isXXHSeed(value) {
   return typeof value === "number" || typeof value === "bigint" || value instanceof Uint32 || value instanceof Uint64;
 }
 var mask32, Uint32, mask64, Uint64, txtEncoder;
 var init_types3 = __esm({
-  "node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/types.js"() {
+  "../../node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/types.js"() {
     mask32 = 0xffffffffn;
     Uint32 = class _Uint32 {
       value;
@@ -28064,14 +28064,14 @@ var init_types3 = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/xxhash32.js
+// ../../node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/xxhash32.js
 function xxh_update(v, low, high) {
   const other = new Uint32().fromBits(low, high);
   return v.add(other.multiply(PRIME32_2)).rotl(13).multiply(PRIME32_1);
 }
 var PRIME32_1, PRIME32_2, PRIME32_3, PRIME32_4, PRIME32_5, nullBuffer, XXH32;
 var init_xxhash32 = __esm({
-  "node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/xxhash32.js"() {
+  "../../node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/xxhash32.js"() {
     init_types3();
     PRIME32_1 = new Uint32("2654435761");
     PRIME32_2 = new Uint32("2246822519");
@@ -28206,10 +28206,10 @@ var init_xxhash32 = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/xxhash64.js
+// ../../node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/xxhash64.js
 var PRIME64_1, PRIME64_2, PRIME64_3, PRIME64_4, PRIME64_5, nullBuffer2, XXH64;
 var init_xxhash64 = __esm({
-  "node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/xxhash64.js"() {
+  "../../node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/xxhash64.js"() {
     init_types3();
     PRIME64_1 = new Uint64("11400714785074694791");
     PRIME64_2 = new Uint64("14029467366897019727");
@@ -28371,10 +28371,10 @@ var init_xxhash64 = __esm({
   }
 });
 
-// node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/index.js
+// ../../node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/index.js
 var XXH;
 var init_esm2 = __esm({
-  "node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/index.js"() {
+  "../../node_modules/.pnpm/@adviser+ts-xxhash@1.0.2/node_modules/@adviser/ts-xxhash/esm/index.js"() {
     init_xxhash32();
     init_xxhash64();
     init_xxhash32();
@@ -28383,7 +28383,7 @@ var init_esm2 = __esm({
   }
 });
 
-// core/runtime/utils.ts
+// ../../core/runtime/utils.ts
 function globalLogger() {
   return _globalLogger.once(() => new LoggerImpl());
 }
@@ -28724,7 +28724,7 @@ function timerEnd(loggerOrHasLogger, tag2) {
 }
 var _globalLogger, registerFP_DEBUG, SuperThisImpl, pathOpsImpl2, pathOps2, txtOps, _onSuperThis, Hasher2;
 var init_utils = __esm({
-  "core/runtime/utils.ts"() {
+  "../../core/runtime/utils.ts"() {
     "use strict";
     init_esm();
     init_base2();
@@ -28883,7 +28883,7 @@ var init_utils = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/is.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/is.js
 function is(value) {
   if (value === null) {
     return "null";
@@ -28925,7 +28925,7 @@ function getObjectType(value) {
 }
 var typeofs, objectTypeNames;
 var init_is2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/is.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/is.js"() {
     typeofs = [
       "string",
       "number",
@@ -28971,10 +28971,10 @@ var init_is2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/token.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/token.js
 var Type, Token;
 var init_token = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/token.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/token.js"() {
     Type = class {
       /**
        * @param {number} major
@@ -29033,7 +29033,7 @@ var init_token = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/byte-utils.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/byte-utils.js
 function isBuffer2(buf3) {
   return useBuffer && globalThis.Buffer.isBuffer(buf3);
 }
@@ -29154,7 +29154,7 @@ function decodeCodePointsArray(codePoints) {
 }
 var useBuffer, textDecoder2, textEncoder2, toString2, fromString2, fromArray, slice, concat, alloc, MAX_ARGUMENTS_LENGTH;
 var init_byte_utils = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/byte-utils.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/byte-utils.js"() {
     useBuffer = globalThis.process && // @ts-ignore
     !globalThis.process.browser && // @ts-ignore
     globalThis.Buffer && // @ts-ignore
@@ -29292,10 +29292,10 @@ var init_byte_utils = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/bl.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/bl.js
 var defaultChunkSize, Bl;
 var init_bl = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/bl.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/bl.js"() {
     init_byte_utils();
     defaultChunkSize = 256;
     Bl = class {
@@ -29379,7 +29379,7 @@ var init_bl = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/common.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/common.js
 function assertEnoughData(data, pos, need) {
   if (data.length - pos < need) {
     throw new Error(`${decodeErrPrefix} not enough data for type`);
@@ -29387,7 +29387,7 @@ function assertEnoughData(data, pos, need) {
 }
 var decodeErrPrefix, encodeErrPrefix, uintMinorPrefixBytes;
 var init_common = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/common.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/common.js"() {
     decodeErrPrefix = "CBOR decode error:";
     encodeErrPrefix = "CBOR encode error:";
     uintMinorPrefixBytes = [];
@@ -29399,7 +29399,7 @@ var init_common = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/0uint.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/0uint.js
 function readUint8(data, offset, options) {
   assertEnoughData(data, offset, 1);
   const value = data[offset];
@@ -29496,7 +29496,7 @@ function encodeUintValue(buf3, major, uint) {
 }
 var uintBoundaries;
 var init_uint = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/0uint.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/0uint.js"() {
     init_token();
     init_common();
     uintBoundaries = [24, 256, 65536, 4294967296, BigInt("18446744073709551616")];
@@ -29527,7 +29527,7 @@ var init_uint = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/1negint.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/1negint.js
 function decodeNegint8(data, pos, _minor, options) {
   return new Token(Type.negint, -1 - readUint8(data, pos + 1, options), 2);
 }
@@ -29557,7 +29557,7 @@ function encodeNegint(buf3, token) {
 }
 var neg1b, pos1b;
 var init_negint = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/1negint.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/1negint.js"() {
     init_token();
     init_uint();
     init_common();
@@ -29589,7 +29589,7 @@ var init_negint = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/2bytes.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/2bytes.js
 function toToken(data, pos, prefix, length2) {
   assertEnoughData(data, pos, prefix + length2);
   const buf3 = slice(data, pos + prefix, pos + prefix + length2);
@@ -29629,7 +29629,7 @@ function compareBytes(b1, b2) {
   return b1.length < b2.length ? -1 : b1.length > b2.length ? 1 : compare(b1, b2);
 }
 var init_bytes2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/2bytes.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/2bytes.js"() {
     init_token();
     init_common();
     init_uint();
@@ -29644,7 +29644,7 @@ var init_bytes2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/3string.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/3string.js
 function toToken2(data, pos, prefix, length2, options) {
   const totLength = prefix + length2;
   assertEnoughData(data, pos, totLength);
@@ -29675,7 +29675,7 @@ function decodeString64(data, pos, _minor, options) {
 }
 var encodeString;
 var init_string2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/3string.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/3string.js"() {
     init_token();
     init_common();
     init_uint();
@@ -29685,7 +29685,7 @@ var init_string2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/4array.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/4array.js
 function toToken3(_data, _pos, prefix, length2) {
   return new Token(Type.array, length2, prefix);
 }
@@ -29718,7 +29718,7 @@ function encodeArray(buf3, token) {
   encodeUintValue(buf3, Type.array.majorEncoded, token.value);
 }
 var init_array = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/4array.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/4array.js"() {
     init_token();
     init_uint();
     init_common();
@@ -29729,7 +29729,7 @@ var init_array = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/5map.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/5map.js
 function toToken4(_data, _pos, prefix, length2) {
   return new Token(Type.map, length2, prefix);
 }
@@ -29762,7 +29762,7 @@ function encodeMap(buf3, token) {
   encodeUintValue(buf3, Type.map.majorEncoded, token.value);
 }
 var init_map2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/5map.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/5map.js"() {
     init_token();
     init_uint();
     init_common();
@@ -29773,7 +29773,7 @@ var init_map2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/6tag.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/6tag.js
 function decodeTagCompact(_data, _pos, minor, _options) {
   return new Token(Type.tag, minor, 1);
 }
@@ -29793,7 +29793,7 @@ function encodeTag(buf3, token) {
   encodeUintValue(buf3, Type.tag.majorEncoded, token.value);
 }
 var init_tag = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/6tag.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/6tag.js"() {
     init_token();
     init_uint();
     encodeTag.compareTokens = encodeUint.compareTokens;
@@ -29803,7 +29803,7 @@ var init_tag = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/7float.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/7float.js
 function decodeUndefined(_data, _pos, _minor, options) {
   if (options.allowUndefined === false) {
     throw new Error(`${decodeErrPrefix} undefined values are not supported`);
@@ -29953,7 +29953,7 @@ function readFloat64(ui8a3, pos) {
 }
 var MINOR_FALSE, MINOR_TRUE, MINOR_NULL, MINOR_UNDEFINED, buffer, dataView, ui8a;
 var init_float3 = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/7float.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/7float.js"() {
     init_token();
     init_common();
     init_uint();
@@ -29987,7 +29987,7 @@ var init_float3 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/jump.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/jump.js
 function invalidMinor(data, pos, minor) {
   throw new Error(`${decodeErrPrefix} encountered invalid minor (${minor}) for major ${data[pos] >>> 5}`);
 }
@@ -30037,7 +30037,7 @@ function quickEncodeToken(token) {
 }
 var jump, quick;
 var init_jump = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/jump.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/jump.js"() {
     init_token();
     init_uint();
     init_negint();
@@ -30159,7 +30159,7 @@ var init_jump = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/encode.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/encode.js
 function makeCborEncoders() {
   const encoders = [];
   encoders[Type.uint.major] = encodeUint;
@@ -30266,7 +30266,7 @@ function encode7(data, options) {
 }
 var defaultEncodeOptions, rfc8949EncodeOptions, cborEncoders, buf, Ref, simpleTokens, typeEncoders;
 var init_encode = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/encode.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/encode.js"() {
     init_is2();
     init_token();
     init_bl();
@@ -30502,7 +30502,7 @@ var init_encode = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/decode.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/decode.js
 function tokenToArray(token, tokeniser, options) {
   const arr = [];
   for (let i = 0; i < token.value; i++) {
@@ -30605,7 +30605,7 @@ function decode8(data, options) {
 }
 var defaultDecodeOptions, Tokeniser, DONE, BREAK3;
 var init_decode = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/decode.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/lib/decode.js"() {
     init_common();
     init_token();
     init_jump();
@@ -30651,16 +30651,16 @@ var init_decode = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/cborg.js
+// ../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/cborg.js
 var init_cborg = __esm({
-  "node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/cborg.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.2/node_modules/cborg/cborg.js"() {
     init_encode();
     init_decode();
     init_token();
   }
 });
 
-// core/runtime/keyed-crypto.ts
+// ../../core/runtime/keyed-crypto.ts
 function getGenerateIVFn(url2, opts) {
   const ivhash = opts.ivCalc || url2.getParam(PARAM.IV_HASH) || "hash";
   return generateIV[ivhash] || generateIV["hash"];
@@ -30678,7 +30678,7 @@ async function keyedCryptoFactory(url2, kb, sthis) {
 }
 var generateIV, BlockIvKeyIdCodec, cryptoAction, nullCodec, noCrypto;
 var init_keyed_crypto = __esm({
-  "core/runtime/keyed-crypto.ts"() {
+  "../../core/runtime/keyed-crypto.ts"() {
     "use strict";
     init_base2();
     init_utils();
@@ -30875,33 +30875,33 @@ var init_keyed_crypto = __esm({
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/interface.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/interface.js
 var init_interface2 = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/interface.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/interface.js"() {
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/interface.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/interface.js
 var init_interface3 = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/interface.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/hashes/interface.js"() {
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/codecs/interface.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/codecs/interface.js
 var init_interface4 = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/codecs/interface.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/codecs/interface.js"() {
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/block/interface.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/block/interface.js
 var init_interface5 = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/block/interface.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/block/interface.js"() {
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/interface.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/interface.js
 var init_interface6 = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/interface.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/interface.js"() {
     init_interface2();
     init_interface3();
     init_interface4();
@@ -30910,9 +30910,9 @@ var init_interface6 = __esm({
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/index.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/index.js
 var init_src = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/index.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/index.js"() {
     init_bytes();
     init_cid();
     init_digest();
@@ -30922,7 +30922,7 @@ var init_src = __esm({
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/block.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/block.js
 function readonly2({ enumerable = true, configurable = false } = {}) {
   return { enumerable, configurable, writable: false };
 }
@@ -31026,7 +31026,7 @@ async function decode9({ bytes, codec: codec2, hasher }) {
 }
 var Block;
 var init_block = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/block.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/block.js"() {
     init_src();
     Block = class {
       cid;
@@ -31061,7 +31061,7 @@ var init_block = __esm({
   }
 });
 
-// core/runtime/async-block-encode.ts
+// ../../core/runtime/async-block-encode.ts
 async function asyncBlockDecode({
   bytes,
   codec: codec2,
@@ -31134,7 +31134,7 @@ async function asyncBlockCreateUnsafe({
 }
 var Block2;
 var init_async_block_encode = __esm({
-  "core/runtime/async-block-encode.ts"() {
+  "../../core/runtime/async-block-encode.ts"() {
     "use strict";
     init_src();
     init_block();
@@ -31142,7 +31142,7 @@ var init_async_block_encode = __esm({
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/buffer_utils.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/buffer_utils.js
 function concat2(...buffers) {
   const size = buffers.reduce((acc, { length: length2 }) => acc + length2, 0);
   const buf3 = new Uint8Array(size);
@@ -31166,14 +31166,14 @@ function encode9(string5) {
 }
 var encoder, decoder, MAX_INT32;
 var init_buffer_utils = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/buffer_utils.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/buffer_utils.js"() {
     encoder = new TextEncoder();
     decoder = new TextDecoder();
     MAX_INT32 = 2 ** 32;
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/base64.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/base64.js
 function decodeBase64(encoded) {
   if (Uint8Array.fromBase64) {
     return Uint8Array.fromBase64(encoded);
@@ -31186,11 +31186,11 @@ function decodeBase64(encoded) {
   return bytes;
 }
 var init_base64 = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/base64.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/base64.js"() {
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/util/base64url.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/util/base64url.js
 function decode10(input) {
   if (Uint8Array.fromBase64) {
     return Uint8Array.fromBase64(typeof input === "string" ? input : decoder.decode(input), {
@@ -31209,16 +31209,16 @@ function decode10(input) {
   }
 }
 var init_base64url = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/util/base64url.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/util/base64url.js"() {
     init_buffer_utils();
     init_base64();
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/util/errors.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/util/errors.js
 var JOSEError, JWTClaimValidationFailed, JWTExpired, JOSEAlgNotAllowed, JOSENotSupported, JWSInvalid, JWTInvalid, JWSSignatureVerificationFailed;
 var init_errors4 = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/util/errors.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/util/errors.js"() {
     JOSEError = class extends Error {
       static code = "ERR_JOSE_GENERIC";
       code = "ERR_JOSE_GENERIC";
@@ -31280,7 +31280,7 @@ var init_errors4 = __esm({
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/crypto_key.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/crypto_key.js
 function getHashLength(hash2) {
   return parseInt(hash2.name.slice(4), 10);
 }
@@ -31367,13 +31367,13 @@ function checkSigCryptoKey(key, alg, usage) {
 }
 var unusable, isAlgorithm;
 var init_crypto_key = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/crypto_key.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/crypto_key.js"() {
     unusable = (name2, prop = "algorithm.name") => new TypeError(`CryptoKey does not support this operation, its ${prop} must be ${name2}`);
     isAlgorithm = (algorithm, name2) => algorithm.name === name2;
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/invalid_key_input.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/invalid_key_input.js
 function message(msg, actual, ...types) {
   types = types.filter(Boolean);
   if (types.length > 2) {
@@ -31397,16 +31397,16 @@ function message(msg, actual, ...types) {
 }
 var invalidKeyInput, withAlg;
 var init_invalid_key_input = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/invalid_key_input.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/invalid_key_input.js"() {
     invalidKeyInput = (actual, ...types) => message("Key must be ", actual, ...types);
     withAlg = (alg, actual, ...types) => message(`Key for the ${alg} algorithm must be `, actual, ...types);
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_key_like.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_key_like.js
 var isCryptoKey, isKeyObject, isKeyLike;
 var init_is_key_like = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_key_like.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_key_like.js"() {
     isCryptoKey = (key) => {
       if (key?.[Symbol.toStringTag] === "CryptoKey")
         return true;
@@ -31421,7 +31421,7 @@ var init_is_key_like = __esm({
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_disjoint.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_disjoint.js
 function isDisjoint(...headers) {
   const sources = headers.filter(Boolean);
   if (sources.length === 0 || sources.length === 1) {
@@ -31444,11 +31444,11 @@ function isDisjoint(...headers) {
   return true;
 }
 var init_is_disjoint = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_disjoint.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_disjoint.js"() {
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_object.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_object.js
 function isObject2(input) {
   if (!isObjectLike(input) || Object.prototype.toString.call(input) !== "[object Object]") {
     return false;
@@ -31464,12 +31464,12 @@ function isObject2(input) {
 }
 var isObjectLike;
 var init_is_object = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_object.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_object.js"() {
     isObjectLike = (value) => typeof value === "object" && value !== null;
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/check_key_length.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/check_key_length.js
 function checkKeyLength(alg, key) {
   if (alg.startsWith("RS") || alg.startsWith("PS")) {
     const { modulusLength } = key.algorithm;
@@ -31479,11 +31479,11 @@ function checkKeyLength(alg, key) {
   }
 }
 var init_check_key_length = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/check_key_length.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/check_key_length.js"() {
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/jwk_to_key.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/jwk_to_key.js
 function subtleMapping(jwk) {
   let algorithm;
   let keyUsages;
@@ -31593,12 +31593,12 @@ async function jwkToKey(jwk) {
   return crypto.subtle.importKey("jwk", keyData, algorithm, jwk.ext ?? (jwk.d || jwk.priv ? false : true), jwk.key_ops ?? keyUsages);
 }
 var init_jwk_to_key = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/jwk_to_key.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/jwk_to_key.js"() {
     init_errors4();
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/validate_crit.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/validate_crit.js
 function validateCrit(Err, recognizedDefault, recognizedOption, protectedHeader, joseHeader) {
   if (joseHeader.crit !== void 0 && protectedHeader?.crit === void 0) {
     throw new Err('"crit" (Critical) Header Parameter MUST be integrity protected');
@@ -31629,12 +31629,12 @@ function validateCrit(Err, recognizedDefault, recognizedOption, protectedHeader,
   return new Set(protectedHeader.crit);
 }
 var init_validate_crit = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/validate_crit.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/validate_crit.js"() {
     init_errors4();
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/validate_algorithms.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/validate_algorithms.js
 function validateAlgorithms(option, algorithms) {
   if (algorithms !== void 0 && (!Array.isArray(algorithms) || algorithms.some((s) => typeof s !== "string"))) {
     throw new TypeError(`"${option}" option must be an array of strings`);
@@ -31645,14 +31645,14 @@ function validateAlgorithms(option, algorithms) {
   return new Set(algorithms);
 }
 var init_validate_algorithms = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/validate_algorithms.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/validate_algorithms.js"() {
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_jwk.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_jwk.js
 var isJWK, isPrivateJWK, isPublicJWK, isSecretJWK;
 var init_is_jwk = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_jwk.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/is_jwk.js"() {
     init_is_object();
     isJWK = (key) => isObject2(key) && typeof key.kty === "string";
     isPrivateJWK = (key) => key.kty !== "oct" && (key.kty === "AKP" && typeof key.priv === "string" || typeof key.d === "string");
@@ -31661,7 +31661,7 @@ var init_is_jwk = __esm({
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/normalize_key.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/normalize_key.js
 async function normalizeKey(key, alg) {
   if (key instanceof Uint8Array) {
     return key;
@@ -31695,7 +31695,7 @@ async function normalizeKey(key, alg) {
 }
 var cache2, handleJWK, handleKeyObject;
 var init_normalize_key = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/normalize_key.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/normalize_key.js"() {
     init_is_jwk();
     init_base64url();
     init_jwk_to_key();
@@ -31840,7 +31840,7 @@ var init_normalize_key = __esm({
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/check_key_type.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/check_key_type.js
 function checkKeyType(alg, key, usage) {
   switch (alg.substring(0, 2)) {
     case "A1":
@@ -31856,7 +31856,7 @@ function checkKeyType(alg, key, usage) {
 }
 var tag, jwkMatchesOp, symmetricTypeCheck, asymmetricTypeCheck;
 var init_check_key_type = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/check_key_type.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/check_key_type.js"() {
     init_invalid_key_input();
     init_is_key_like();
     init_is_jwk();
@@ -31968,7 +31968,7 @@ var init_check_key_type = __esm({
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/subtle_dsa.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/subtle_dsa.js
 function subtleAlgorithm(alg, algorithm) {
   const hash2 = `SHA-${alg.slice(-3)}`;
   switch (alg) {
@@ -32000,12 +32000,12 @@ function subtleAlgorithm(alg, algorithm) {
   }
 }
 var init_subtle_dsa = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/subtle_dsa.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/subtle_dsa.js"() {
     init_errors4();
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/get_sign_verify_key.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/get_sign_verify_key.js
 async function getSigKey(alg, key, usage) {
   if (key instanceof Uint8Array) {
     if (!alg.startsWith("HS")) {
@@ -32017,13 +32017,13 @@ async function getSigKey(alg, key, usage) {
   return key;
 }
 var init_get_sign_verify_key = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/get_sign_verify_key.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/get_sign_verify_key.js"() {
     init_crypto_key();
     init_invalid_key_input();
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/verify.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/verify.js
 async function verify(alg, key, signature, data) {
   const cryptoKey = await getSigKey(alg, key, "verify");
   checkKeyLength(alg, cryptoKey);
@@ -32035,14 +32035,14 @@ async function verify(alg, key, signature, data) {
   }
 }
 var init_verify = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/verify.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/verify.js"() {
     init_subtle_dsa();
     init_check_key_length();
     init_get_sign_verify_key();
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/jws/flattened/verify.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/jws/flattened/verify.js
 async function flattenedVerify(jws, key, options) {
   if (!isObject2(jws)) {
     throw new JWSInvalid("Flattened JWS must be an object");
@@ -32144,7 +32144,7 @@ async function flattenedVerify(jws, key, options) {
   return result;
 }
 var init_verify2 = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/jws/flattened/verify.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/jws/flattened/verify.js"() {
     init_base64url();
     init_verify();
     init_errors4();
@@ -32158,7 +32158,7 @@ var init_verify2 = __esm({
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/jws/compact/verify.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/jws/compact/verify.js
 async function compactVerify(jws, key, options) {
   if (jws instanceof Uint8Array) {
     jws = decoder.decode(jws);
@@ -32178,14 +32178,14 @@ async function compactVerify(jws, key, options) {
   return result;
 }
 var init_verify3 = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/jws/compact/verify.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/jws/compact/verify.js"() {
     init_verify2();
     init_errors4();
     init_buffer_utils();
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/jwt_claims_set.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/jwt_claims_set.js
 function secs(str) {
   const matched = REGEX.exec(str);
   if (!matched || matched[4] && matched[1]) {
@@ -32321,7 +32321,7 @@ function validateClaimsSet(protectedHeader, encodedPayload, options = {}) {
 }
 var epoch, minute, hour, day, week, year, REGEX, normalizeTyp, checkAudiencePresence;
 var init_jwt_claims_set = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/jwt_claims_set.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/lib/jwt_claims_set.js"() {
     init_errors4();
     init_buffer_utils();
     init_is_object();
@@ -32350,7 +32350,7 @@ var init_jwt_claims_set = __esm({
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/jwt/verify.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/jwt/verify.js
 async function jwtVerify(jwt2, key, options) {
   const verified = await compactVerify(jwt2, key, options);
   if (verified.protectedHeader.crit?.includes("b64") && verified.protectedHeader.b64 === false) {
@@ -32364,14 +32364,14 @@ async function jwtVerify(jwt2, key, options) {
   return result;
 }
 var init_verify4 = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/jwt/verify.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/jwt/verify.js"() {
     init_verify3();
     init_jwt_claims_set();
     init_errors4();
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/util/decode_jwt.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/util/decode_jwt.js
 function decodeJwt(jwt2) {
   if (typeof jwt2 !== "string")
     throw new JWTInvalid("JWTs must use Compact JWS serialization, JWT must be a string");
@@ -32399,7 +32399,7 @@ function decodeJwt(jwt2) {
   return result;
 }
 var init_decode_jwt = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/util/decode_jwt.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/util/decode_jwt.js"() {
     init_base64url();
     init_buffer_utils();
     init_is_object();
@@ -32407,18 +32407,18 @@ var init_decode_jwt = __esm({
   }
 });
 
-// node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/index.js
+// ../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/index.js
 var init_webapi = __esm({
-  "node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/index.js"() {
+  "../../node_modules/.pnpm/jose@6.1.3/node_modules/jose/dist/webapi/index.js"() {
     init_verify4();
     init_decode_jwt();
   }
 });
 
-// core/runtime/sts-service/index.ts
+// ../../core/runtime/sts-service/index.ts
 var keysFromWellKnownJwksCache;
 var init_sts_service = __esm({
-  "core/runtime/sts-service/index.ts"() {
+  "../../core/runtime/sts-service/index.ts"() {
     "use strict";
     init_esm();
     init_base58();
@@ -32432,10 +32432,10 @@ var init_sts_service = __esm({
   }
 });
 
-// core/runtime/commit-queue.ts
+// ../../core/runtime/commit-queue.ts
 var CommitQueue;
 var init_commit_queue = __esm({
-  "core/runtime/commit-queue.ts"() {
+  "../../core/runtime/commit-queue.ts"() {
     "use strict";
     init_esm();
     CommitQueue = class {
@@ -32498,10 +32498,10 @@ var init_commit_queue = __esm({
   }
 });
 
-// core/runtime/task-manager.ts
+// ../../core/runtime/task-manager.ts
 var TaskManager;
 var init_task_manager = __esm({
-  "core/runtime/task-manager.ts"() {
+  "../../core/runtime/task-manager.ts"() {
     "use strict";
     init_utils();
     TaskManager = class {
@@ -32556,7 +32556,7 @@ var init_task_manager = __esm({
   }
 });
 
-// core/runtime/register-compact-strategy.ts
+// ../../core/runtime/register-compact-strategy.ts
 function registerCompactStrategy(compactStrategy) {
   const key = compactStrategy.name.toLowerCase();
   if (compactStrategyRegistry.has(key)) {
@@ -32581,16 +32581,16 @@ function getCompactStrategyThrow(name2 = "fireproof") {
 }
 var compactStrategyRegistry;
 var init_register_compact_strategy = __esm({
-  "core/runtime/register-compact-strategy.ts"() {
+  "../../core/runtime/register-compact-strategy.ts"() {
     "use strict";
     init_esm();
     compactStrategyRegistry = /* @__PURE__ */ new Map();
   }
 });
 
-// core/runtime/index.ts
+// ../../core/runtime/index.ts
 var init_runtime2 = __esm({
-  "core/runtime/index.ts"() {
+  "../../core/runtime/index.ts"() {
     "use strict";
     init_files();
     init_keyed_crypto();
@@ -32604,7 +32604,7 @@ var init_runtime2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/is.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/is.js
 function is2(value) {
   if (value === null) {
     return "null";
@@ -32646,7 +32646,7 @@ function getObjectType2(value) {
 }
 var typeofs2, objectTypeNames2;
 var init_is3 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/is.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/is.js"() {
     typeofs2 = [
       "string",
       "number",
@@ -32692,10 +32692,10 @@ var init_is3 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/token.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/token.js
 var Type2, Token2;
 var init_token2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/token.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/token.js"() {
     Type2 = class {
       /**
        * @param {number} major
@@ -32754,7 +32754,7 @@ var init_token2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/byte-utils.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/byte-utils.js
 function isBuffer4(buf3) {
   return useBuffer2 && globalThis.Buffer.isBuffer(buf3);
 }
@@ -32875,7 +32875,7 @@ function decodeCodePointsArray2(codePoints) {
 }
 var useBuffer2, textDecoder3, textEncoder3, toString3, fromString3, fromArray2, slice2, concat3, alloc2, MAX_ARGUMENTS_LENGTH2;
 var init_byte_utils2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/byte-utils.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/byte-utils.js"() {
     useBuffer2 = globalThis.process && // @ts-ignore
     !globalThis.process.browser && // @ts-ignore
     globalThis.Buffer && // @ts-ignore
@@ -33013,10 +33013,10 @@ var init_byte_utils2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/bl.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/bl.js
 var defaultChunkSize2, Bl2;
 var init_bl2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/bl.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/bl.js"() {
     init_byte_utils2();
     defaultChunkSize2 = 256;
     Bl2 = class {
@@ -33100,7 +33100,7 @@ var init_bl2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/common.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/common.js
 function assertEnoughData2(data, pos, need) {
   if (data.length - pos < need) {
     throw new Error(`${decodeErrPrefix2} not enough data for type`);
@@ -33108,7 +33108,7 @@ function assertEnoughData2(data, pos, need) {
 }
 var decodeErrPrefix2, encodeErrPrefix2, uintMinorPrefixBytes2;
 var init_common2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/common.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/common.js"() {
     decodeErrPrefix2 = "CBOR decode error:";
     encodeErrPrefix2 = "CBOR encode error:";
     uintMinorPrefixBytes2 = [];
@@ -33120,7 +33120,7 @@ var init_common2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/0uint.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/0uint.js
 function readUint82(data, offset, options) {
   assertEnoughData2(data, offset, 1);
   const value = data[offset];
@@ -33217,7 +33217,7 @@ function encodeUintValue2(buf3, major, uint) {
 }
 var uintBoundaries2;
 var init_uint2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/0uint.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/0uint.js"() {
     init_token2();
     init_common2();
     uintBoundaries2 = [24, 256, 65536, 4294967296, BigInt("18446744073709551616")];
@@ -33248,7 +33248,7 @@ var init_uint2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/1negint.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/1negint.js
 function decodeNegint82(data, pos, _minor, options) {
   return new Token2(Type2.negint, -1 - readUint82(data, pos + 1, options), 2);
 }
@@ -33278,7 +33278,7 @@ function encodeNegint2(buf3, token) {
 }
 var neg1b2, pos1b2;
 var init_negint2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/1negint.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/1negint.js"() {
     init_token2();
     init_uint2();
     init_common2();
@@ -33310,7 +33310,7 @@ var init_negint2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/2bytes.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/2bytes.js
 function toToken5(data, pos, prefix, length2) {
   assertEnoughData2(data, pos, prefix + length2);
   const buf3 = slice2(data, pos + prefix, pos + prefix + length2);
@@ -33350,7 +33350,7 @@ function compareBytes2(b1, b2) {
   return b1.length < b2.length ? -1 : b1.length > b2.length ? 1 : compare2(b1, b2);
 }
 var init_bytes3 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/2bytes.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/2bytes.js"() {
     init_token2();
     init_common2();
     init_uint2();
@@ -33365,7 +33365,7 @@ var init_bytes3 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/3string.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/3string.js
 function toToken6(data, pos, prefix, length2, options) {
   const totLength = prefix + length2;
   assertEnoughData2(data, pos, totLength);
@@ -33396,7 +33396,7 @@ function decodeString642(data, pos, _minor, options) {
 }
 var encodeString2;
 var init_string3 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/3string.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/3string.js"() {
     init_token2();
     init_common2();
     init_uint2();
@@ -33406,7 +33406,7 @@ var init_string3 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/4array.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/4array.js
 function toToken7(_data, _pos, prefix, length2) {
   return new Token2(Type2.array, length2, prefix);
 }
@@ -33439,7 +33439,7 @@ function encodeArray2(buf3, token) {
   encodeUintValue2(buf3, Type2.array.majorEncoded, token.value);
 }
 var init_array2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/4array.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/4array.js"() {
     init_token2();
     init_uint2();
     init_common2();
@@ -33450,7 +33450,7 @@ var init_array2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/5map.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/5map.js
 function toToken8(_data, _pos, prefix, length2) {
   return new Token2(Type2.map, length2, prefix);
 }
@@ -33483,7 +33483,7 @@ function encodeMap2(buf3, token) {
   encodeUintValue2(buf3, Type2.map.majorEncoded, token.value);
 }
 var init_map3 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/5map.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/5map.js"() {
     init_token2();
     init_uint2();
     init_common2();
@@ -33494,7 +33494,7 @@ var init_map3 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/6tag.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/6tag.js
 function decodeTagCompact2(_data, _pos, minor, _options) {
   return new Token2(Type2.tag, minor, 1);
 }
@@ -33514,7 +33514,7 @@ function encodeTag2(buf3, token) {
   encodeUintValue2(buf3, Type2.tag.majorEncoded, token.value);
 }
 var init_tag2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/6tag.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/6tag.js"() {
     init_token2();
     init_uint2();
     encodeTag2.compareTokens = encodeUint2.compareTokens;
@@ -33524,7 +33524,7 @@ var init_tag2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/7float.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/7float.js
 function decodeUndefined2(_data, _pos, _minor, options) {
   if (options.allowUndefined === false) {
     throw new Error(`${decodeErrPrefix2} undefined values are not supported`);
@@ -33674,7 +33674,7 @@ function readFloat642(ui8a3, pos) {
 }
 var MINOR_FALSE2, MINOR_TRUE2, MINOR_NULL2, MINOR_UNDEFINED2, buffer2, dataView2, ui8a2;
 var init_float4 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/7float.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/7float.js"() {
     init_token2();
     init_common2();
     init_uint2();
@@ -33708,7 +33708,7 @@ var init_float4 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/jump.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/jump.js
 function invalidMinor2(data, pos, minor) {
   throw new Error(`${decodeErrPrefix2} encountered invalid minor (${minor}) for major ${data[pos] >>> 5}`);
 }
@@ -33758,7 +33758,7 @@ function quickEncodeToken2(token) {
 }
 var jump2, quick2;
 var init_jump2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/jump.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/jump.js"() {
     init_token2();
     init_uint2();
     init_negint2();
@@ -33880,7 +33880,7 @@ var init_jump2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/encode.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/encode.js
 function makeCborEncoders2() {
   const encoders = [];
   encoders[Type2.uint.major] = encodeUint2;
@@ -33987,7 +33987,7 @@ function encode10(data, options) {
 }
 var defaultEncodeOptions2, rfc8949EncodeOptions2, cborEncoders2, buf2, Ref2, simpleTokens2, typeEncoders2;
 var init_encode2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/encode.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/encode.js"() {
     init_is3();
     init_token2();
     init_bl2();
@@ -34223,7 +34223,7 @@ var init_encode2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/decode.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/decode.js
 function tokenToArray2(token, tokeniser, options) {
   const arr = [];
   for (let i = 0; i < token.value; i++) {
@@ -34326,7 +34326,7 @@ function decode11(data, options) {
 }
 var defaultDecodeOptions2, Tokeniser2, DONE2, BREAK4;
 var init_decode2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/decode.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/decode.js"() {
     init_common2();
     init_token2();
     init_jump2();
@@ -34372,16 +34372,16 @@ var init_decode2 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/cborg.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/cborg.js
 var init_cborg2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/cborg.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/cborg.js"() {
     init_encode2();
     init_decode2();
     init_token2();
   }
 });
 
-// node_modules/.pnpm/@ipld+dag-cbor@9.2.5/node_modules/@ipld/dag-cbor/src/index.js
+// ../../node_modules/.pnpm/@ipld+dag-cbor@9.2.5/node_modules/@ipld/dag-cbor/src/index.js
 var src_exports = {};
 __export(src_exports, {
   code: () => code3,
@@ -34441,7 +34441,7 @@ function cidDecoder(bytes) {
 }
 var CID_CBOR_TAG, _encodeOptions, encodeOptions, _decodeOptions, decodeOptions, name, code3, encode11, decode12;
 var init_src2 = __esm({
-  "node_modules/.pnpm/@ipld+dag-cbor@9.2.5/node_modules/@ipld/dag-cbor/src/index.js"() {
+  "../../node_modules/.pnpm/@ipld+dag-cbor@9.2.5/node_modules/@ipld/dag-cbor/src/index.js"() {
     init_cborg2();
     init_cid();
     CID_CBOR_TAG = 42;
@@ -34486,9 +34486,9 @@ var init_src2 = __esm({
   }
 });
 
-// node_modules/.pnpm/charwise@3.0.1/node_modules/charwise/codec/number.js
+// ../../node_modules/.pnpm/charwise@3.0.1/node_modules/charwise/codec/number.js
 var require_number = __commonJS({
-  "node_modules/.pnpm/charwise@3.0.1/node_modules/charwise/codec/number.js"(exports) {
+  "../../node_modules/.pnpm/charwise@3.0.1/node_modules/charwise/codec/number.js"(exports) {
     exports.encode = function(number4) {
       if (isNaN(number4)) {
         return "DaN";
@@ -34546,9 +34546,9 @@ var require_number = __commonJS({
   }
 });
 
-// node_modules/.pnpm/charwise@3.0.1/node_modules/charwise/codec/object.js
+// ../../node_modules/.pnpm/charwise@3.0.1/node_modules/charwise/codec/object.js
 var require_object = __commonJS({
-  "node_modules/.pnpm/charwise@3.0.1/node_modules/charwise/codec/object.js"(exports) {
+  "../../node_modules/.pnpm/charwise@3.0.1/node_modules/charwise/codec/object.js"(exports) {
     var dictEscape = { "?": "?@", "!": "??", '"': "?%" };
     function escape(str) {
       if (!/[!"]/.test(str)) {
@@ -34642,9 +34642,9 @@ var require_object = __commonJS({
   }
 });
 
-// node_modules/.pnpm/charwise@3.0.1/node_modules/charwise/index.js
+// ../../node_modules/.pnpm/charwise@3.0.1/node_modules/charwise/index.js
 var require_charwise = __commonJS({
-  "node_modules/.pnpm/charwise@3.0.1/node_modules/charwise/index.js"(exports) {
+  "../../node_modules/.pnpm/charwise@3.0.1/node_modules/charwise/index.js"(exports) {
     var number4 = require_number();
     var object2 = require_object();
     var flip = exports.flip = function(n) {
@@ -34721,21 +34721,21 @@ var require_charwise = __commonJS({
   }
 });
 
-// core/types/blockstore/commit-queue-if.ts
+// ../../core/types/blockstore/commit-queue-if.ts
 var init_commit_queue_if = __esm({
-  "core/types/blockstore/commit-queue-if.ts"() {
+  "../../core/types/blockstore/commit-queue-if.ts"() {
     "use strict";
   }
 });
 
-// core/types/blockstore/fp-envelope-serialize.ts
+// ../../core/types/blockstore/fp-envelope-serialize.ts
 var init_fp_envelope_serialize = __esm({
-  "core/types/blockstore/fp-envelope-serialize.ts"() {
+  "../../core/types/blockstore/fp-envelope-serialize.ts"() {
     "use strict";
   }
 });
 
-// core/types/blockstore/fp-envelope.ts
+// ../../core/types/blockstore/fp-envelope.ts
 function Car2FPMsg(fpcar) {
   return Result.Ok({ type: FPEnvelopeTypes.CAR, payload: fpcar });
 }
@@ -34744,7 +34744,7 @@ function File2FPMsg(fpfile) {
 }
 var FPEnvelopeTypes;
 var init_fp_envelope = __esm({
-  "core/types/blockstore/fp-envelope.ts"() {
+  "../../core/types/blockstore/fp-envelope.ts"() {
     "use strict";
     init_esm();
     FPEnvelopeTypes = {
@@ -34756,21 +34756,21 @@ var init_fp_envelope = __esm({
   }
 });
 
-// core/types/blockstore/serde-gateway.ts
+// ../../core/types/blockstore/serde-gateway.ts
 var init_serde_gateway = __esm({
-  "core/types/blockstore/serde-gateway.ts"() {
+  "../../core/types/blockstore/serde-gateway.ts"() {
     "use strict";
   }
 });
 
-// core/types/blockstore/task-manager-if.ts
+// ../../core/types/blockstore/task-manager-if.ts
 var init_task_manager_if = __esm({
-  "core/types/blockstore/task-manager-if.ts"() {
+  "../../core/types/blockstore/task-manager-if.ts"() {
     "use strict";
   }
 });
 
-// core/types/blockstore/types.ts
+// ../../core/types/blockstore/types.ts
 function isFPBlockItem(fpb) {
   return fpb.item.type === "fp";
 }
@@ -34784,7 +34784,7 @@ function isCarBlockItemStale(ifp) {
 }
 var CarLog, BaseActiveStore, CarActiveStore, FileActiveStore, MetaActiveStore, WALActiveStore;
 var init_types4 = __esm({
-  "core/types/blockstore/types.ts"() {
+  "../../core/types/blockstore/types.ts"() {
     "use strict";
     CarLog = class {
       _logs = [];
@@ -34828,16 +34828,16 @@ var init_types4 = __esm({
   }
 });
 
-// core/types/blockstore/gateway.ts
+// ../../core/types/blockstore/gateway.ts
 var init_gateway = __esm({
-  "core/types/blockstore/gateway.ts"() {
+  "../../core/types/blockstore/gateway.ts"() {
     "use strict";
   }
 });
 
-// core/types/blockstore/index.ts
+// ../../core/types/blockstore/index.ts
 var init_blockstore = __esm({
-  "core/types/blockstore/index.ts"() {
+  "../../core/types/blockstore/index.ts"() {
     "use strict";
     init_commit_queue_if();
     init_fp_envelope_serialize();
@@ -34849,9 +34849,9 @@ var init_blockstore = __esm({
   }
 });
 
-// node_modules/.pnpm/varint@6.0.0/node_modules/varint/encode.js
+// ../../node_modules/.pnpm/varint@6.0.0/node_modules/varint/encode.js
 var require_encode = __commonJS({
-  "node_modules/.pnpm/varint@6.0.0/node_modules/varint/encode.js"(exports, module) {
+  "../../node_modules/.pnpm/varint@6.0.0/node_modules/varint/encode.js"(exports, module) {
     module.exports = encode14;
     var MSB2 = 128;
     var REST2 = 127;
@@ -34880,9 +34880,9 @@ var require_encode = __commonJS({
   }
 });
 
-// node_modules/.pnpm/varint@6.0.0/node_modules/varint/decode.js
+// ../../node_modules/.pnpm/varint@6.0.0/node_modules/varint/decode.js
 var require_decode = __commonJS({
-  "node_modules/.pnpm/varint@6.0.0/node_modules/varint/decode.js"(exports, module) {
+  "../../node_modules/.pnpm/varint@6.0.0/node_modules/varint/decode.js"(exports, module) {
     module.exports = read2;
     var MSB2 = 128;
     var REST2 = 127;
@@ -34903,9 +34903,9 @@ var require_decode = __commonJS({
   }
 });
 
-// node_modules/.pnpm/varint@6.0.0/node_modules/varint/length.js
+// ../../node_modules/.pnpm/varint@6.0.0/node_modules/varint/length.js
 var require_length = __commonJS({
-  "node_modules/.pnpm/varint@6.0.0/node_modules/varint/length.js"(exports, module) {
+  "../../node_modules/.pnpm/varint@6.0.0/node_modules/varint/length.js"(exports, module) {
     var N12 = Math.pow(2, 7);
     var N22 = Math.pow(2, 14);
     var N32 = Math.pow(2, 21);
@@ -34921,9 +34921,9 @@ var require_length = __commonJS({
   }
 });
 
-// node_modules/.pnpm/varint@6.0.0/node_modules/varint/index.js
+// ../../node_modules/.pnpm/varint@6.0.0/node_modules/varint/index.js
 var require_varint = __commonJS({
-  "node_modules/.pnpm/varint@6.0.0/node_modules/varint/index.js"(exports, module) {
+  "../../node_modules/.pnpm/varint@6.0.0/node_modules/varint/index.js"(exports, module) {
     module.exports = {
       encode: require_encode(),
       decode: require_decode(),
@@ -34932,7 +34932,7 @@ var require_varint = __commonJS({
   }
 });
 
-// core/gateways/file-node/to-array-buffer.ts
+// ../../core/gateways/file-node/to-array-buffer.ts
 function toArrayBuffer(buffer3) {
   if (typeof buffer3 === "string") {
     buffer3 = Buffer.from(buffer3);
@@ -34945,15 +34945,15 @@ function toArrayBuffer(buffer3) {
   return view;
 }
 var init_to_array_buffer = __esm({
-  "core/gateways/file-node/to-array-buffer.ts"() {
+  "../../core/gateways/file-node/to-array-buffer.ts"() {
     "use strict";
   }
 });
 
-// core/gateways/file-node/node-filesystem.ts
+// ../../core/gateways/file-node/node-filesystem.ts
 var NodeFileSystem;
 var init_node_filesystem = __esm({
-  "core/gateways/file-node/node-filesystem.ts"() {
+  "../../core/gateways/file-node/node-filesystem.ts"() {
     "use strict";
     init_to_array_buffer();
     NodeFileSystem = class {
@@ -34991,7 +34991,7 @@ var init_node_filesystem = __esm({
   }
 });
 
-// core/gateways/file-node/get-sys-file-system.ts
+// ../../core/gateways/file-node/get-sys-file-system.ts
 async function getSysFileSystem(url2) {
   return nfs.once(async () => {
     const nfs3 = new NodeFileSystem();
@@ -35001,7 +35001,7 @@ async function getSysFileSystem(url2) {
 }
 var nfs;
 var init_get_sys_file_system = __esm({
-  "core/gateways/file-node/get-sys-file-system.ts"() {
+  "../../core/gateways/file-node/get-sys-file-system.ts"() {
     "use strict";
     init_node_filesystem();
     init_esm();
@@ -35009,22 +35009,22 @@ var init_get_sys_file_system = __esm({
   }
 });
 
-// core/gateways/file-node/index.ts
+// ../../core/gateways/file-node/index.ts
 var file_node_exports = {};
 __export(file_node_exports, {
   getSysFileSystem: () => getSysFileSystem
 });
 var init_file_node = __esm({
-  "core/gateways/file-node/index.ts"() {
+  "../../core/gateways/file-node/index.ts"() {
     "use strict";
     init_get_sys_file_system();
   }
 });
 
-// core/gateways/file-deno/deno-filesystem.ts
+// ../../core/gateways/file-deno/deno-filesystem.ts
 var DenoFileSystem;
 var init_deno_filesystem = __esm({
-  "core/gateways/file-deno/deno-filesystem.ts"() {
+  "../../core/gateways/file-deno/deno-filesystem.ts"() {
     "use strict";
     init_esm();
     DenoFileSystem = class {
@@ -35081,7 +35081,7 @@ var init_deno_filesystem = __esm({
   }
 });
 
-// core/gateways/file-deno/get-sys-file-system.ts
+// ../../core/gateways/file-deno/get-sys-file-system.ts
 async function getSysFileSystem2(url2) {
   return nfs2.once(async () => {
     const nfs3 = new DenoFileSystem();
@@ -35091,7 +35091,7 @@ async function getSysFileSystem2(url2) {
 }
 var nfs2;
 var init_get_sys_file_system2 = __esm({
-  "core/gateways/file-deno/get-sys-file-system.ts"() {
+  "../../core/gateways/file-deno/get-sys-file-system.ts"() {
     "use strict";
     init_deno_filesystem();
     init_esm();
@@ -35099,28 +35099,28 @@ var init_get_sys_file_system2 = __esm({
   }
 });
 
-// core/gateways/file-deno/index.ts
+// ../../core/gateways/file-deno/index.ts
 var file_deno_exports = {};
 __export(file_deno_exports, {
   getSysFileSystem: () => getSysFileSystem2
 });
 var init_file_deno = __esm({
-  "core/gateways/file-deno/index.ts"() {
+  "../../core/gateways/file-deno/index.ts"() {
     "use strict";
     init_get_sys_file_system2();
   }
 });
 
-// node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/clock/api.js
+// ../../node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/clock/api.js
 var init_api2 = __esm({
-  "node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/clock/api.js"() {
+  "../../node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/clock/api.js"() {
   }
 });
 
-// node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/clock/index.js
+// ../../node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/clock/index.js
 var advance, EventBlock, EventFetcher, encodeEventBlock, compareBytes3, decodeEventBlock, contains, vis, shortLink;
 var init_clock = __esm({
-  "node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/clock/index.js"() {
+  "../../node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/clock/index.js"() {
     init_block();
     init_sha2_browser();
     init_src2();
@@ -35270,10 +35270,10 @@ var init_clock = __esm({
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base64.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base64.js
 var base643, base64pad, base64url3, base64urlpad;
 var init_base642 = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base64.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/bases/base64.js"() {
     init_base();
     base643 = rfc4648({
       prefix: "m",
@@ -35302,7 +35302,7 @@ var init_base642 = __esm({
   }
 });
 
-// node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/link.js
+// ../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/link.js
 function isLink(value) {
   if (value == null) {
     return false;
@@ -35321,13 +35321,13 @@ function parse4(source, base2) {
   return CID.parse(source, base2);
 }
 var init_link = __esm({
-  "node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/link.js"() {
+  "../../node_modules/.pnpm/multiformats@13.4.2/node_modules/multiformats/dist/src/link.js"() {
     init_cid();
     init_interface();
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/json/encode.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/json/encode.js
 function mapSorter3(e1, e2) {
   if (Array.isArray(e1[0]) || Array.isArray(e2[0])) {
     throw new Error(`${encodeErrPrefix2} complex map keys are not supported`);
@@ -35351,7 +35351,7 @@ function encode12(data, options) {
 }
 var JSONEncoder, defaultEncodeOptions3;
 var init_encode3 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/json/encode.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/json/encode.js"() {
     init_token2();
     init_encode2();
     init_common2();
@@ -35498,14 +35498,14 @@ var init_encode3 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/json/decode.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/json/decode.js
 function decode13(data, options) {
   options = Object.assign({ tokenizer: new Tokenizer(data, options) }, options);
   return decode11(data, options);
 }
 var Tokenizer;
 var init_decode3 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/json/decode.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/json/decode.js"() {
     init_decode2();
     init_token2();
     init_byte_utils2();
@@ -35907,15 +35907,15 @@ var init_decode3 = __esm({
   }
 });
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/json/json.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/json/json.js
 var init_json2 = __esm({
-  "node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/json/json.js"() {
+  "../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/json/json.js"() {
     init_encode3();
     init_decode3();
   }
 });
 
-// node_modules/.pnpm/@ipld+dag-json@10.2.5/node_modules/@ipld/dag-json/src/index.js
+// ../../node_modules/.pnpm/@ipld+dag-json@10.2.5/node_modules/@ipld/dag-json/src/index.js
 function toByteView2(buf3) {
   if (buf3 instanceof ArrayBuffer) {
     return new Uint8Array(buf3, 0, buf3.byteLength);
@@ -35976,7 +35976,7 @@ function numberEncoder2(num) {
 }
 var encodeOptions2, DagJsonTokenizer, decodeOptions2, encode13, decode14, format2, utf8Decoder, parse5, utf8Encoder;
 var init_src3 = __esm({
-  "node_modules/.pnpm/@ipld+dag-json@10.2.5/node_modules/@ipld/dag-json/src/index.js"() {
+  "../../node_modules/.pnpm/@ipld+dag-json@10.2.5/node_modules/@ipld/dag-json/src/index.js"() {
     init_cborg2();
     init_json2();
     init_src();
@@ -36098,7 +36098,7 @@ var init_src3 = __esm({
   }
 });
 
-// core/gateways/base/fp-envelope-serialize.ts
+// ../../core/gateways/base/fp-envelope-serialize.ts
 async function dbMetaEvent2Serialized(sthis, dbEvents) {
   return await Promise.all(
     dbEvents.map(async (dbEvent) => {
@@ -36229,7 +36229,7 @@ async function fpDeserialize(sthis, url2, intoRaw, pdecoder) {
 }
 var defaultEncoder, defaultDecoder;
 var init_fp_envelope_serialize2 = __esm({
-  "core/gateways/base/fp-envelope-serialize.ts"() {
+  "../../core/gateways/base/fp-envelope-serialize.ts"() {
     "use strict";
     init_esm();
     init_blockstore();
@@ -36255,7 +36255,7 @@ var init_fp_envelope_serialize2 = __esm({
   }
 });
 
-// core/gateways/base/def-serde-gateway.ts
+// ../../core/gateways/base/def-serde-gateway.ts
 function wrapRawCallback(sthis, url2, callback, decoder2) {
   return async (raw) => {
     const res = await fpDeserialize(sthis, url2, Result.Ok(raw), decoder2);
@@ -36271,7 +36271,7 @@ function subscribeKeyURL(url2) {
 }
 var subscribeFn, DefSerdeGateway;
 var init_def_serde_gateway = __esm({
-  "core/gateways/base/def-serde-gateway.ts"() {
+  "../../core/gateways/base/def-serde-gateway.ts"() {
     "use strict";
     init_esm();
     init_fp_envelope_serialize2();
@@ -36354,10 +36354,10 @@ var init_def_serde_gateway = __esm({
   }
 });
 
-// core/gateways/base/interceptor-gateway.ts
+// ../../core/gateways/base/interceptor-gateway.ts
 var PassThroughGateway, passThrougthGateway, InterceptorGateway;
 var init_interceptor_gateway = __esm({
-  "core/gateways/base/interceptor-gateway.ts"() {
+  "../../core/gateways/base/interceptor-gateway.ts"() {
     "use strict";
     init_esm();
     PassThroughGateway = class {
@@ -36500,10 +36500,10 @@ var init_interceptor_gateway = __esm({
   }
 });
 
-// core/gateways/base/uri-interceptor.ts
+// ../../core/gateways/base/uri-interceptor.ts
 var URIInterceptor;
 var init_uri_interceptor = __esm({
-  "core/gateways/base/uri-interceptor.ts"() {
+  "../../core/gateways/base/uri-interceptor.ts"() {
     "use strict";
     init_interceptor_gateway();
     URIInterceptor = class _URIInterceptor extends PassThroughGateway {
@@ -36558,7 +36558,7 @@ var init_uri_interceptor = __esm({
   }
 });
 
-// core/gateways/base/utils.ts
+// ../../core/gateways/base/utils.ts
 function getPath(url2, sthis) {
   const basePath = url2.pathname;
   const name2 = url2.getParam("name");
@@ -36584,22 +36584,22 @@ function getFileName(url2, sthis) {
   }
 }
 var init_utils2 = __esm({
-  "core/gateways/base/utils.ts"() {
+  "../../core/gateways/base/utils.ts"() {
     "use strict";
     init_runtime2();
   }
 });
 
-// core/gateways/base/indexeddb-version.ts
+// ../../core/gateways/base/indexeddb-version.ts
 var INDEXEDDB_VERSION;
 var init_indexeddb_version = __esm({
-  "core/gateways/base/indexeddb-version.ts"() {
+  "../../core/gateways/base/indexeddb-version.ts"() {
     "use strict";
     INDEXEDDB_VERSION = "v0.19-indexeddb";
   }
 });
 
-// core/gateways/base/meta-key-hack.ts
+// ../../core/gateways/base/meta-key-hack.ts
 async function V2SerializedMetaKeyExtractKey(ctx, v2) {
   const kb = await ctx.loader.keyBag();
   if (!kb) {
@@ -36649,7 +36649,7 @@ function encodeAsV2SerializedMetaKey(ctx, payload) {
   );
 }
 var init_meta_key_hack = __esm({
-  "core/gateways/base/meta-key-hack.ts"() {
+  "../../core/gateways/base/meta-key-hack.ts"() {
     "use strict";
     init_esm();
     init_base2();
@@ -36657,9 +36657,9 @@ var init_meta_key_hack = __esm({
   }
 });
 
-// core/gateways/base/index.ts
+// ../../core/gateways/base/index.ts
 var init_base3 = __esm({
-  "core/gateways/base/index.ts"() {
+  "../../core/gateways/base/index.ts"() {
     "use strict";
     init_fp_envelope_serialize2();
     init_def_serde_gateway();
@@ -36671,7 +36671,7 @@ var init_base3 = __esm({
   }
 });
 
-// node_modules/.pnpm/idb@8.0.3/node_modules/idb/build/index.js
+// ../../node_modules/.pnpm/idb@8.0.3/node_modules/idb/build/index.js
 function getIdbProxyableTypes() {
   return idbProxyableTypes || (idbProxyableTypes = [
     IDBDatabase,
@@ -36842,7 +36842,7 @@ function isIteratorProp(target, prop) {
 }
 var instanceOfAny, idbProxyableTypes, cursorAdvanceMethods, transactionDoneMap, transformCache, reverseTransformCache, idbProxyTraps, unwrap, readMethods, writeMethods, cachedMethods, advanceMethodProps, methodMap, advanceResults, ittrProxiedCursorToOriginalProxy, cursorIteratorTraps;
 var init_build = __esm({
-  "node_modules/.pnpm/idb@8.0.3/node_modules/idb/build/index.js"() {
+  "../../node_modules/.pnpm/idb@8.0.3/node_modules/idb/build/index.js"() {
     instanceOfAny = (object2, constructors) => constructors.some((c) => object2 instanceof c);
     transactionDoneMap = /* @__PURE__ */ new WeakMap();
     transformCache = /* @__PURE__ */ new WeakMap();
@@ -36909,10 +36909,10 @@ var init_build = __esm({
   }
 });
 
-// core/gateways/indexeddb/key-bag-indexeddb.ts
+// ../../core/gateways/indexeddb/key-bag-indexeddb.ts
 var KeyBagProviderIndexedDB;
 var init_key_bag_indexeddb = __esm({
-  "core/gateways/indexeddb/key-bag-indexeddb.ts"() {
+  "../../core/gateways/indexeddb/key-bag-indexeddb.ts"() {
     "use strict";
     init_build();
     init_esm();
@@ -36968,10 +36968,10 @@ var init_key_bag_indexeddb = __esm({
   }
 });
 
-// core/gateways/indexeddb/dummy-idb.ts
+// ../../core/gateways/indexeddb/dummy-idb.ts
 var ReadDummyIDBPObjectStore, ReadDummyIDBPDatabase;
 var init_dummy_idb = __esm({
-  "core/gateways/indexeddb/dummy-idb.ts"() {
+  "../../core/gateways/indexeddb/dummy-idb.ts"() {
     "use strict";
     ReadDummyIDBPObjectStore = class {
       //   readonly indexNames: TypedDOMStringList<string> = undefined as unknown as TypedDOMStringList<string>;
@@ -37117,7 +37117,7 @@ var init_dummy_idb = __esm({
   }
 });
 
-// core/gateways/indexeddb/gateway-impl.ts
+// ../../core/gateways/indexeddb/gateway-impl.ts
 function ensureVersion(url2) {
   return url2.build().defParam(PARAM.VERSION, INDEXEDDB_VERSION).URI();
 }
@@ -37195,7 +37195,7 @@ function getIndexedDBName(iurl, sthis) {
 }
 var onceIndexedDB, listDatabases, IndexedDBGateway;
 var init_gateway_impl = __esm({
-  "core/gateways/indexeddb/gateway-impl.ts"() {
+  "../../core/gateways/indexeddb/gateway-impl.ts"() {
     "use strict";
     init_build();
     init_esm();
@@ -37291,7 +37291,7 @@ var init_gateway_impl = __esm({
   }
 });
 
-// core/gateways/indexeddb/index.ts
+// ../../core/gateways/indexeddb/index.ts
 var indexeddb_exports = {};
 __export(indexeddb_exports, {
   GatewayImpl: () => IndexedDBGateway,
@@ -37299,7 +37299,7 @@ __export(indexeddb_exports, {
   KeyBagProviderIndexedDB: () => KeyBagProviderIndexedDB
 });
 var init_indexeddb = __esm({
-  "core/gateways/indexeddb/index.ts"() {
+  "../../core/gateways/indexeddb/index.ts"() {
     "use strict";
     init_key_bag_indexeddb();
     init_key_bag_indexeddb();
@@ -37307,9 +37307,9 @@ var init_indexeddb = __esm({
   }
 });
 
-// node_modules/.pnpm/ws@8.18.3_bufferutil@4.1.0_utf-8-validate@5.0.10/node_modules/ws/browser.js
+// ../../node_modules/.pnpm/ws@8.18.3_bufferutil@4.1.0_utf-8-validate@5.0.10/node_modules/ws/browser.js
 var require_browser = __commonJS({
-  "node_modules/.pnpm/ws@8.18.3_bufferutil@4.1.0_utf-8-validate@5.0.10/node_modules/ws/browser.js"(exports, module) {
+  "../../node_modules/.pnpm/ws@8.18.3_bufferutil@4.1.0_utf-8-validate@5.0.10/node_modules/ws/browser.js"(exports, module) {
     "use strict";
     module.exports = function() {
       throw new Error(
@@ -37319,13 +37319,13 @@ var require_browser = __commonJS({
   }
 });
 
-// use-fireproof/clerk/dist/npm/use-fireproof-clerk.js
+// dist/use-fireproof-clerk.js
 import { useCallback as useCallback5, useEffect as useEffect7, useState as useState7, useRef as useRef5 } from "react";
 
-// core/base/ledger.ts
+// ../../core/base/ledger.ts
 init_esm();
 
-// core/base/write-queue.ts
+// ../../core/base/write-queue.ts
 init_runtime2();
 init_base2();
 init_esm();
@@ -37392,22 +37392,22 @@ function writeQueue(sthis, worker, opts) {
   return new WriteQueueImpl(sthis, worker, opts);
 }
 
-// core/base/ledger.ts
+// ../../core/base/ledger.ts
 init_base2();
 init_runtime2();
 
-// core/base/indexer.ts
+// ../../core/base/indexer.ts
 init_base2();
 
-// core/base/indexer-helpers.ts
+// ../../core/base/indexer-helpers.ts
 init_sha2_browser();
 init_src2();
 var import_charwise = __toESM(require_charwise(), 1);
 
-// node_modules/.pnpm/prolly-trees@1.0.4/node_modules/prolly-trees/esm/src/base.js
+// ../../node_modules/.pnpm/prolly-trees@1.0.4/node_modules/prolly-trees/esm/src/base.js
 init_block();
 
-// node_modules/.pnpm/prolly-trees@1.0.4/node_modules/prolly-trees/esm/src/utils.js
+// ../../node_modules/.pnpm/prolly-trees@1.0.4/node_modules/prolly-trees/esm/src/utils.js
 var readUInt32LE = (buffer3) => {
   const offset = buffer3.byteLength - 4;
   return (buffer3[offset] | buffer3[offset + 1] << 8 | buffer3[offset + 2] << 16) + buffer3[offset + 3] * 16777216;
@@ -37455,7 +37455,7 @@ var CIDCounter = class {
   }
 };
 
-// node_modules/.pnpm/prolly-trees@1.0.4/node_modules/prolly-trees/esm/src/base.js
+// ../../node_modules/.pnpm/prolly-trees@1.0.4/node_modules/prolly-trees/esm/src/base.js
 var Entry = class {
   constructor({ key, address }, opts = {}) {
     this.key = key;
@@ -38281,7 +38281,7 @@ var create2 = async function* (obj) {
   }
 };
 
-// node_modules/.pnpm/prolly-trees@1.0.4/node_modules/prolly-trees/esm/src/map.js
+// ../../node_modules/.pnpm/prolly-trees@1.0.4/node_modules/prolly-trees/esm/src/map.js
 var MapEntry = class extends Entry {
   async identity() {
     const encoded = await this.codec.encode(await this.encodeNode());
@@ -38464,7 +38464,7 @@ function makeDecoder({ chunker, cache: cache3, getNode, codec: codec2, hasher, c
   };
 }
 
-// node_modules/.pnpm/prolly-trees@1.0.4/node_modules/prolly-trees/esm/src/db-index.js
+// ../../node_modules/.pnpm/prolly-trees@1.0.4/node_modules/prolly-trees/esm/src/db-index.js
 var compare3 = (a, b) => {
   const [aKey, aRef] = a;
   const [bKey, bRef] = b;
@@ -38588,7 +38588,7 @@ var load2 = (opts) => {
   return load(opts);
 };
 
-// node_modules/.pnpm/prolly-trees@1.0.4/node_modules/prolly-trees/esm/src/cache.js
+// ../../node_modules/.pnpm/prolly-trees@1.0.4/node_modules/prolly-trees/esm/src/cache.js
 var nocache = {
   has: () => false,
   get: () => {
@@ -38598,15 +38598,15 @@ var nocache = {
   }
 };
 
-// core/blockstore/store-factory.ts
+// ../../core/blockstore/store-factory.ts
 init_esm();
 
-// core/blockstore/store.ts
+// ../../core/blockstore/store.ts
 init_esm();
 init_blockstore();
 init_base2();
 
-// node_modules/.pnpm/yocto-queue@1.2.2/node_modules/yocto-queue/index.js
+// ../../node_modules/.pnpm/yocto-queue@1.2.2/node_modules/yocto-queue/index.js
 var Node2 = class {
   value;
   next;
@@ -38672,7 +38672,7 @@ var Queue = class {
   }
 };
 
-// vendor/p-limit/index.js
+// ../../vendor/p-limit/index.js
 function pLimit(concurrency) {
   validateConcurrency(concurrency);
   const queue = new Queue();
@@ -38743,12 +38743,12 @@ function validateConcurrency(concurrency) {
   }
 }
 
-// node_modules/.pnpm/@ipld+car@5.4.2/node_modules/@ipld/car/src/decoder.js
+// ../../node_modules/.pnpm/@ipld+car@5.4.2/node_modules/@ipld/car/src/decoder.js
 init_src2();
 init_cid();
 init_digest();
 
-// node_modules/.pnpm/@ipld+car@5.4.2/node_modules/@ipld/car/src/decoder-common.js
+// ../../node_modules/.pnpm/@ipld+car@5.4.2/node_modules/@ipld/car/src/decoder-common.js
 var import_varint2 = __toESM(require_varint(), 1);
 var CIDV0_BYTES = {
   SHA2_256: 18,
@@ -38801,7 +38801,7 @@ function getMultihashLength(bytes) {
   return mhLength;
 }
 
-// node_modules/.pnpm/@ipld+car@5.4.2/node_modules/@ipld/car/src/header-validator.js
+// ../../node_modules/.pnpm/@ipld+car@5.4.2/node_modules/@ipld/car/src/header-validator.js
 var Kinds = {
   Null: (
     /**
@@ -39062,7 +39062,7 @@ var CarV1HeaderOrV2Pragma = {
   toRepresentation: Reprs.CarV1HeaderOrV2Pragma
 };
 
-// node_modules/.pnpm/@ipld+car@5.4.2/node_modules/@ipld/car/src/decoder.js
+// ../../node_modules/.pnpm/@ipld+car@5.4.2/node_modules/@ipld/car/src/decoder.js
 async function readHeader(reader, strictVersion) {
   const length2 = decodeVarint(await reader.upTo(8), reader);
   if (length2 === 0) {
@@ -39283,7 +39283,7 @@ function limitReader(reader, byteLimit) {
   };
 }
 
-// node_modules/.pnpm/@ipld+car@5.4.2/node_modules/@ipld/car/src/reader-browser.js
+// ../../node_modules/.pnpm/@ipld+car@5.4.2/node_modules/@ipld/car/src/reader-browser.js
 var CarReader = class {
   /**
    * @constructs CarReader
@@ -39430,19 +39430,19 @@ async function decodeReaderComplete(reader) {
   return new CarReader(header, blocks);
 }
 
-// core/blockstore/loader.ts
+// ../../core/blockstore/loader.ts
 init_esm();
 init_blockstore();
 
-// core/keybag/key-bag-fingerprint-item.ts
+// ../../core/keybag/key-bag-fingerprint-item.ts
 init_esm();
 
-// core/keybag/internal-keys-by-fingerprint.ts
+// ../../core/keybag/internal-keys-by-fingerprint.ts
 init_esm();
 init_runtime2();
 init_base2();
 
-// core/keybag/key-with-fingerprint.ts
+// ../../core/keybag/key-with-fingerprint.ts
 init_esm();
 init_base58();
 function coerceMaterial(kb, material) {
@@ -39506,10 +39506,10 @@ var InternalKeyWithFingerPrint = class {
   }
 };
 
-// core/keybag/internal-keys-by-fingerprint.ts
+// ../../core/keybag/internal-keys-by-fingerprint.ts
 init_base58();
 
-// core/keybag/coerce-keyed-item.ts
+// ../../core/keybag/coerce-keyed-item.ts
 init_base2();
 async function toV2KeysItem(ctx, ki) {
   if (!ki.name) {
@@ -39600,7 +39600,7 @@ async function coerceKeyedItem(ctx, item) {
   return void 0;
 }
 
-// core/keybag/internal-keys-by-fingerprint.ts
+// ../../core/keybag/internal-keys-by-fingerprint.ts
 init_v4();
 function isInternalKeyUpsertResult(i) {
   return i.result.isOk() && isKeyUpsertResultModified(i.result.Ok());
@@ -39797,7 +39797,7 @@ var InternalKeysByFingerprint = class _InternalKeysByFingerprint {
   // }
 };
 
-// core/keybag/key-bag-fingerprint-item.ts
+// ../../core/keybag/key-bag-fingerprint-item.ts
 var InternalKeyBagFingerprintItem = class {
   name;
   keybag;
@@ -39819,7 +39819,7 @@ var InternalKeyBagFingerprintItem = class {
   }
 };
 
-// core/keybag/key-bag-memory.ts
+// ../../core/keybag/key-bag-memory.ts
 var memoryKeyBag = /* @__PURE__ */ new Map();
 var KeyBagProviderMemory = class {
   url;
@@ -39866,13 +39866,13 @@ var KeyBagProviderMemory = class {
   }
 };
 
-// core/keybag/key-bag-setup.ts
+// ../../core/keybag/key-bag-setup.ts
 init_esm();
 
-// core/gateways/file/key-bag-file.ts
+// ../../core/gateways/file/key-bag-file.ts
 init_base2();
 
-// core/gateways/file/sys-file-system-factory.ts
+// ../../core/gateways/file/sys-file-system-factory.ts
 init_esm();
 function sysFileSystemFactory(uri) {
   const rt = runtimeFn();
@@ -39886,7 +39886,7 @@ function sysFileSystemFactory(uri) {
   }
 }
 
-// core/gateways/file/key-bag-file.ts
+// ../../core/gateways/file/key-bag-file.ts
 var KeyBagProviderFile = class {
   async _prepare(id) {
     await this.sthis.start();
@@ -39938,10 +39938,10 @@ var KeyBagProviderFile = class {
   }
 };
 
-// core/gateways/file/version.ts
+// ../../core/gateways/file/version.ts
 var FILESTORE_VERSION = "v0.19-file";
 
-// core/gateways/file/gateway-impl.ts
+// ../../core/gateways/file/gateway-impl.ts
 init_esm();
 init_base3();
 init_base2();
@@ -40058,11 +40058,11 @@ var FileGateway = class {
   }
 };
 
-// core/keybag/key-bag-setup.ts
+// ../../core/keybag/key-bag-setup.ts
 init_runtime2();
 init_base2();
 
-// core/keybag/key-bag.ts
+// ../../core/keybag/key-bag.ts
 init_esm();
 init_runtime2();
 init_base2();
@@ -40254,7 +40254,7 @@ var KeyBag = class _KeyBag {
   }
 };
 
-// core/keybag/key-bag-setup.ts
+// ../../core/keybag/key-bag-setup.ts
 var keyBagProviderFactories = new Map(
   [
     {
@@ -40329,7 +40329,7 @@ async function getKeyBag(sthis, kbo = {}) {
   return _keyBags.get(rt.id()).once(() => KeyBag.create(rt));
 }
 
-// core/blockstore/loader-helpers.ts
+// ../../core/blockstore/loader-helpers.ts
 init_sha2_browser();
 init_src2();
 init_block();
@@ -40450,7 +40450,7 @@ async function parseCarFile(reader, logger) {
   return header.item.value.fp;
 }
 
-// core/blockstore/transaction.ts
+// ../../core/blockstore/transaction.ts
 init_blockstore();
 init_base2();
 init_esm();
@@ -40701,15 +40701,15 @@ var CompactionFetcher = class {
   }
 };
 
-// core/blockstore/loader.ts
+// ../../core/blockstore/loader.ts
 init_runtime2();
 init_base2();
 
-// node_modules/.pnpm/@ipld+car@5.4.2/node_modules/@ipld/car/src/buffer-writer.js
+// ../../node_modules/.pnpm/@ipld+car@5.4.2/node_modules/@ipld/car/src/buffer-writer.js
 init_src2();
 init_cborg2();
 
-// node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/length.js
+// ../../node_modules/.pnpm/cborg@4.3.0/node_modules/cborg/lib/length.js
 init_encode2();
 init_jump2();
 var cborEncoders3 = makeCborEncoders2();
@@ -40733,7 +40733,7 @@ function tokensToLength(tokens, encoders = cborEncoders3, options = defaultEncod
   }
 }
 
-// node_modules/.pnpm/@ipld+car@5.4.2/node_modules/@ipld/car/src/buffer-writer.js
+// ../../node_modules/.pnpm/@ipld+car@5.4.2/node_modules/@ipld/car/src/buffer-writer.js
 var import_varint3 = __toESM(require_varint(), 1);
 var CarBufferWriter = class {
   /**
@@ -40881,7 +40881,7 @@ var createWriter = (buffer3, options = {}) => {
   return writer;
 };
 
-// core/blockstore/commitor.ts
+// ../../core/blockstore/commitor.ts
 init_sha2_browser();
 init_runtime2();
 async function encodeCarFile(roots, t, codec2) {
@@ -40976,10 +40976,10 @@ async function prepareCarFiles(encoder2, threshold, rootBlock, t) {
   return carFiles;
 }
 
-// core/blockstore/loader.ts
+// ../../core/blockstore/loader.ts
 init_sha2_browser();
 
-// core/blockstore/attachable-store.ts
+// ../../core/blockstore/attachable-store.ts
 init_esm();
 init_blockstore();
 init_runtime2();
@@ -41345,7 +41345,7 @@ var AttachedRemotesImpl = class {
   }
 };
 
-// core/blockstore/loader.ts
+// ../../core/blockstore/loader.ts
 function carLogIncludesGroup(list, cids) {
   const cidSet = cids.map((cid) => cid.toString()).sort().join(",");
   return list.some(
@@ -41929,11 +41929,11 @@ var Loader = class {
   }
 };
 
-// core/blockstore/store.ts
+// ../../core/blockstore/store.ts
 init_clock();
 init_src3();
 
-// node_modules/.pnpm/is-network-error@1.3.0/node_modules/is-network-error/index.js
+// ../../node_modules/.pnpm/is-network-error@1.3.0/node_modules/is-network-error/index.js
 var objectToString = Object.prototype.toString;
 var isError = (value) => objectToString.call(value) === "[object Error]";
 var errorMessages = /* @__PURE__ */ new Set([
@@ -41971,7 +41971,7 @@ function isNetworkError(error48) {
   return errorMessages.has(message2);
 }
 
-// node_modules/.pnpm/p-retry@7.1.1/node_modules/p-retry/index.js
+// ../../node_modules/.pnpm/p-retry@7.1.1/node_modules/p-retry/index.js
 function validateRetries(retries) {
   if (typeof retries === "number") {
     if (retries < 0) {
@@ -42133,7 +42133,7 @@ async function pRetry(input, options = {}) {
   throw new Error("Retry attempts exhausted without throwing an error.");
 }
 
-// node_modules/.pnpm/p-map@7.0.4/node_modules/p-map/index.js
+// ../../node_modules/.pnpm/p-map@7.0.4/node_modules/p-map/index.js
 async function pMap(iterable, mapper, {
   concurrency = Number.POSITIVE_INFINITY,
   stopOnError = true,
@@ -42256,7 +42256,7 @@ async function pMap(iterable, mapper, {
 }
 var pMapSkip = /* @__PURE__ */ Symbol("skip");
 
-// core/blockstore/store.ts
+// ../../core/blockstore/store.ts
 init_runtime2();
 function guardVersion(url2) {
   if (!url2.hasParam("version")) {
@@ -42703,21 +42703,21 @@ var WALStoreImpl = class extends BaseStoreImpl {
   }
 };
 
-// core/blockstore/store-factory.ts
+// ../../core/blockstore/store-factory.ts
 init_base2();
 
-// core/blockstore/register-store-protocol.ts
+// ../../core/blockstore/register-store-protocol.ts
 init_esm();
 init_base2();
 
-// core/gateways/memory/gateway.ts
+// ../../core/gateways/memory/gateway.ts
 init_esm();
 init_base2();
 
-// core/gateways/memory/version.ts
+// ../../core/gateways/memory/version.ts
 var MEMORY_VERSION = "v0.19-memory";
 
-// core/gateways/memory/gateway.ts
+// ../../core/gateways/memory/gateway.ts
 init_runtime2();
 function cleanURI(uri) {
   return uri.build().cleanParams(
@@ -42812,14 +42812,14 @@ var MemoryGateway = class {
   }
 };
 
-// core/blockstore/register-store-protocol.ts
+// ../../core/blockstore/register-store-protocol.ts
 init_base3();
 
-// core/gateways/cloud/gateway.ts
+// ../../core/gateways/cloud/gateway.ts
 init_esm();
 init_base2();
 
-// core/types/protocols/cloud/msg-types.zod.ts
+// ../../core/types/protocols/cloud/msg-types.zod.ts
 init_v4();
 init_base2();
 var RoleSchema = external_exports.enum(["admin", "owner", "member"]);
@@ -42860,7 +42860,7 @@ var FPCloudClaimParseSchema = JWTPayloadSchema.extend({
   selected: TenantLedgerSchema
 }).readonly();
 
-// core/types/protocols/cloud/msg-types.ts
+// ../../core/types/protocols/cloud/msg-types.ts
 init_v4();
 var VERSION = "FP-MSG-1.0";
 function MsgIsError(rq) {
@@ -43208,7 +43208,7 @@ var ResOptionalSignedUrlSchema = MsgBaseSchema.extend({
   signedUrl: external_exports.string().optional()
 });
 
-// core/types/protocols/cloud/msg-types-data.ts
+// ../../core/types/protocols/cloud/msg-types-data.ts
 init_v4();
 function MsgIsResGetData(msg) {
   return msg.type === "resGetData" && MsgIsTenantLedger(msg);
@@ -43238,7 +43238,7 @@ var ResDelDataSchema = ResSignedUrlSchema.extend({
   type: external_exports.literal("resDelData")
 });
 
-// core/types/protocols/cloud/msg-types-meta.ts
+// ../../core/types/protocols/cloud/msg-types-meta.ts
 init_v4();
 function buildReqPutMeta(sthis, auth, signedUrlParam, meta3, gwCtx) {
   return {
@@ -43323,7 +43323,7 @@ var ResDelMetaSchema = ResOptionalSignedUrlSchema.extend({
   type: external_exports.literal("resDelMeta")
 });
 
-// core/types/protocols/cloud/msg-types-wal.ts
+// ../../core/types/protocols/cloud/msg-types-wal.ts
 init_v4();
 var ReqGetWALSchema = ResSignedUrlSchema.extend({
   type: external_exports.literal("reqGetWAL")
@@ -43344,7 +43344,7 @@ var ResDelWALSchema = ResSignedUrlSchema.extend({
   type: external_exports.literal("resDelWAL")
 });
 
-// core/types/protocols/cloud/gateway-control.ts
+// ../../core/types/protocols/cloud/gateway-control.ts
 init_esm();
 var ToCloudName = "toCloud";
 function hashableFPCloudRef(ref) {
@@ -43355,20 +43355,20 @@ function hashableFPCloudRef(ref) {
   return Object.fromEntries(keys.filter((k) => ref[k]).map((k) => [k, URI.from(ref[k]).toString()]));
 }
 
-// core/gateways/cloud/gateway.ts
+// ../../core/gateways/cloud/gateway.ts
 init_runtime2();
 init_base3();
 
-// core/protocols/cloud/http-connection.ts
+// ../../core/protocols/cloud/http-connection.ts
 init_esm();
 
-// core/protocols/cloud/msger.ts
+// ../../core/protocols/cloud/msger.ts
 init_esm();
 
-// core/protocols/cloud/ws-connection.ts
+// ../../core/protocols/cloud/ws-connection.ts
 init_esm();
 
-// core/protocols/cloud/msg-raw-connection-base.ts
+// ../../core/protocols/cloud/msg-raw-connection-base.ts
 var MsgRawConnectionBase = class {
   sthis;
   exchangedGestalt;
@@ -43392,7 +43392,7 @@ var MsgRawConnectionBase = class {
   }
 };
 
-// core/protocols/cloud/ws-connection.ts
+// ../../core/protocols/cloud/ws-connection.ts
 init_runtime2();
 var WaitForTids = class {
   waitForTids = /* @__PURE__ */ new Map();
@@ -43601,7 +43601,7 @@ var WSConnection = class extends MsgRawConnectionBase {
   // }
 };
 
-// core/protocols/cloud/msger.ts
+// ../../core/protocols/cloud/msger.ts
 init_runtime2();
 function selectRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -43969,7 +43969,7 @@ var VirtualConnected = class {
   }
 };
 
-// core/protocols/cloud/http-connection.ts
+// ../../core/protocols/cloud/http-connection.ts
 init_runtime2();
 function toHttpProtocol(uri) {
   const protocol = (uri.getParam("protocol") ?? uri.protocol).replace(/:$/, "");
@@ -44126,7 +44126,7 @@ var HttpConnection = class extends MsgRawConnectionBase {
   // }
 };
 
-// core/gateways/cloud/gateway.ts
+// ../../core/gateways/cloud/gateway.ts
 var VERSION2 = "v0.1-fp-cloud";
 var BaseGateway = class {
   logger;
@@ -44642,7 +44642,7 @@ var CloudGateway = class {
   }
 };
 
-// core/gateways/cloud/to-cloud.ts
+// ../../core/gateways/cloud/to-cloud.ts
 init_esm();
 init_runtime2();
 init_decode_jwt();
@@ -44877,7 +44877,7 @@ function toCloud(iopts) {
   });
 }
 
-// core/blockstore/register-store-protocol.ts
+// ../../core/blockstore/register-store-protocol.ts
 var OneSerdeGatewayFactoryItem = class {
   once = new ResolveOnce();
   item;
@@ -45002,7 +45002,7 @@ registerStoreProtocol({
   }
 });
 
-// core/blockstore/store-factory.ts
+// ../../core/blockstore/store-factory.ts
 init_base3();
 init_runtime2();
 async function getInterceptableGateway(ctx, url2, opt) {
@@ -45106,7 +45106,7 @@ function toStoreRuntime(sthis, endeOpts = {}) {
   };
 }
 
-// core/base/indexer-helpers.ts
+// ../../core/base/indexer-helpers.ts
 init_runtime2();
 function refCompare2(aRef, bRef) {
   if (Number.isNaN(aRef)) return -1;
@@ -45245,7 +45245,7 @@ function encodeKey(key) {
   return import_charwise.default.encode(key);
 }
 
-// core/base/indexer.ts
+// ../../core/base/indexer.ts
 init_runtime2();
 function refLedger(u) {
   return !!u.ledger;
@@ -45507,7 +45507,7 @@ var Index = class {
   }
 };
 
-// core/base/database.ts
+// ../../core/base/database.ts
 init_base2();
 init_runtime2();
 var DatabaseImpl = class {
@@ -45651,21 +45651,21 @@ var DatabaseImpl = class {
   }
 };
 
-// core/base/crdt.ts
+// ../../core/base/crdt.ts
 init_esm();
 
-// core/base/crdt-helpers.ts
+// ../../core/base/crdt-helpers.ts
 init_runtime2();
 init_link();
 init_block();
 init_sha2_browser();
 init_src2();
 
-// node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/crdt/index.js
+// ../../node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/crdt/index.js
 init_clock();
 init_clock();
 
-// node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/shard.js
+// ../../node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/shard.js
 init_link();
 init_block();
 init_sha2_browser();
@@ -45773,7 +45773,7 @@ var putEntry = (target, newEntry) => {
 };
 var isPrintableASCII = (s) => /^[\x20-\x7E]*$/.test(s);
 
-// node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/index.js
+// ../../node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/index.js
 var put = async (blocks, root2, key, value) => {
   const shards = new ShardFetcher(blocks);
   const rshard = await shards.get(root2);
@@ -46005,7 +46005,7 @@ var traverse = async (shards, shard, key) => {
   return [shard];
 };
 
-// node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/block.js
+// ../../node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/block.js
 init_link();
 var MemoryBlockstore = class {
   /** @type {Map<string, Uint8Array>} */
@@ -46070,14 +46070,14 @@ var MultiBlockFetcher = class {
   }
 };
 
-// node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/batch/shard.js
+// ../../node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/batch/shard.js
 var create6 = (init) => ({
   base: init?.base,
   entries: [...init?.entries ?? []],
   ...configure(init)
 });
 
-// node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/batch/index.js
+// ../../node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/batch/index.js
 var Batcher = class _Batcher {
   #committed = false;
   /**
@@ -46268,7 +46268,7 @@ var BatchCommittedError = class _BatchCommittedError extends Error {
   static code = "ERR_BATCH_COMMITTED";
 };
 
-// node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/crdt/index.js
+// ../../node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/crdt/index.js
 var put3 = async (blocks, head, key, value) => {
   const mblocks = new MemoryBlockstore();
   blocks = new MultiBlockFetcher(mblocks, blocks);
@@ -46506,10 +46506,10 @@ var findEvents = async (events, start, end, depth = 0) => {
   return acc.concat(...rest);
 };
 
-// core/base/crdt-helpers.ts
+// ../../core/base/crdt-helpers.ts
 init_clock();
 
-// node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/crdt/batch/index.js
+// ../../node_modules/.pnpm/@web3-storage+pail@0.6.2/node_modules/@web3-storage/pail/dist/src/crdt/batch/index.js
 init_clock();
 init_clock();
 var Batcher2 = class _Batcher {
@@ -46631,7 +46631,7 @@ var Batcher2 = class _Batcher {
 };
 var create8 = (blocks, head) => Batcher2.create({ blocks, head });
 
-// core/base/crdt-helpers.ts
+// ../../core/base/crdt-helpers.ts
 init_base2();
 function toString4(key, logger) {
   switch (typeof key) {
@@ -46919,15 +46919,15 @@ async function getBlock(blocks, cidString) {
   return new Block({ cid, value, bytes: block.bytes });
 }
 
-// core/base/crdt.ts
+// ../../core/base/crdt.ts
 init_base2();
 init_runtime2();
 
-// core/base/crdt-clock.ts
+// ../../core/base/crdt-clock.ts
 init_clock();
 init_base2();
 
-// core/base/apply-head-queue.ts
+// ../../core/base/apply-head-queue.ts
 function applyHeadQueue(worker, logger) {
   const queue = [];
   let isProcessing = false;
@@ -46972,7 +46972,7 @@ function applyHeadQueue(worker, logger) {
   };
 }
 
-// core/base/crdt-clock.ts
+// ../../core/base/crdt-clock.ts
 init_runtime2();
 var CRDTClockImpl = class {
   // todo: track local and remote clocks independently, merge on read
@@ -47125,7 +47125,7 @@ async function advanceBlocks(logger, newHead, tblocks, head) {
   return head;
 }
 
-// core/base/crdt.ts
+// ../../core/base/crdt.ts
 function tracerAction(opts, parent) {
   return (event) => {
     switch (event.event) {
@@ -47312,7 +47312,7 @@ var CRDTImpl = class {
   }
 };
 
-// core/base/ledger.ts
+// ../../core/base/ledger.ts
 var ledgers = new KeyedResolvOnce();
 function keyConfigOpts(sthis, name2, opts) {
   return JSON.stringify(
@@ -47569,12 +47569,12 @@ function fireproof(name2, opts) {
   return new DatabaseImpl(LedgerFactory(name2, opts));
 }
 
-// core/base/version.ts
+// ../../core/base/version.ts
 var PACKAGE_VERSION = Object.keys({
   __packageVersion__: "xxxx"
 })[0];
 
-// core/base/compact-strategies.ts
+// ../../core/base/compact-strategies.ts
 init_clock();
 init_runtime2();
 registerCompactStrategy({
@@ -47633,13 +47633,13 @@ registerCompactStrategy({
   }
 });
 
-// core/base/index.ts
+// ../../core/base/index.ts
 init_runtime2();
 
-// use-fireproof/base/react/use-fireproof.ts
+// ../base/react/use-fireproof.ts
 import { useMemo as useMemo5 } from "react";
 
-// use-fireproof/base/react/use-attach.ts
+// ../base/react/use-attach.ts
 init_esm();
 import { useEffect, useState } from "react";
 init_runtime2();
@@ -47712,7 +47712,7 @@ function createAttach(database, config2) {
   return attachState;
 }
 
-// use-fireproof/base/react/use-all-docs.ts
+// ../base/react/use-all-docs.ts
 import { useCallback, useEffect as useEffect2, useMemo, useRef, useState as useState2 } from "react";
 function createUseAllDocs(database) {
   return function useAllDocs(query = {}) {
@@ -47748,7 +47748,7 @@ function createUseAllDocs(database) {
   };
 }
 
-// use-fireproof/base/react/use-changes.ts
+// ../base/react/use-changes.ts
 import { useCallback as useCallback2, useEffect as useEffect3, useMemo as useMemo2, useRef as useRef2, useState as useState3 } from "react";
 function createUseChanges(database) {
   return function useChanges(since = [], opts = {}) {
@@ -47779,7 +47779,7 @@ function createUseChanges(database) {
   };
 }
 
-// use-fireproof/base/react/use-document.ts
+// ../base/react/use-document.ts
 init_runtime2();
 import { useCallback as useCallback3, useEffect as useEffect4, useMemo as useMemo3, useState as useState4, useRef as useRef3 } from "react";
 function createUseDocument(database) {
@@ -47921,7 +47921,7 @@ function createUseDocument(database) {
   };
 }
 
-// use-fireproof/base/react/use-live-query.ts
+// ../base/react/use-live-query.ts
 import { useCallback as useCallback4, useEffect as useEffect5, useMemo as useMemo4, useState as useState5 } from "react";
 function createUseLiveQuery(database) {
   return function useLiveQuery(mapFn, query = {}, initialRows = []) {
@@ -47955,7 +47955,7 @@ function createUseLiveQuery(database) {
   };
 }
 
-// use-fireproof/base/react/use-fireproof.ts
+// ../base/react/use-fireproof.ts
 init_runtime2();
 function useFireproof(name2 = "useFireproof", config2 = {}) {
   const strConfig = hashObjectSync(config2);
@@ -47968,7 +47968,7 @@ function useFireproof(name2 = "useFireproof", config2 = {}) {
   return { database, useLiveQuery, useDocument, useAllDocs, useChanges, attach };
 }
 
-// use-fireproof/base/react/img-file.ts
+// ../base/react/img-file.ts
 init_esm();
 import React, { useState as useState6, useEffect as useEffect6, useLayoutEffect, useRef as useRef4, useMemo as useMemo6 } from "react";
 var objectUrlCache = new LRUMap({
@@ -47976,17 +47976,17 @@ var objectUrlCache = new LRUMap({
   // Limit to 50 cached object URLs to manage memory
 });
 
-// use-fireproof/base/index.ts
+// ../base/index.ts
 init_base2();
 
-// use-fireproof/base/iframe-strategy.ts
+// ../base/iframe-strategy.ts
 init_esm();
 
-// use-fireproof/base/redirect-strategy.ts
+// ../base/redirect-strategy.ts
 init_esm();
 init_webapi();
 
-// node_modules/.pnpm/dompurify@3.3.1/node_modules/dompurify/dist/purify.es.mjs
+// ../../node_modules/.pnpm/dompurify@3.3.1/node_modules/dompurify/dist/purify.es.mjs
 var {
   entries: entries3,
   setPrototypeOf,
@@ -49005,10 +49005,10 @@ function createDOMPurify() {
 }
 var purify = createDOMPurify();
 
-// core/protocols/dashboard/index.ts
+// ../../core/protocols/dashboard/index.ts
 init_v4();
 
-// core/protocols/dashboard/msg-is.ts
+// ../../core/protocols/dashboard/msg-is.ts
 function hasType(jso, t) {
   return typeof jso === "object" && jso !== null && jso.type === t;
 }
@@ -49078,7 +49078,7 @@ var FAPIMsgImpl = class {
   }
 };
 
-// core/protocols/dashboard/msg-api.ts
+// ../../core/protocols/dashboard/msg-api.ts
 init_esm();
 var Api = class {
   apiUrl;
@@ -49133,7 +49133,7 @@ var Api = class {
   }
 };
 
-// core/protocols/dashboard/dashboard-api.ts
+// ../../core/protocols/dashboard/dashboard-api.ts
 init_esm();
 var DashboardApiImpl = class {
   cfg;
@@ -49278,7 +49278,7 @@ function clerkDashApi(clerk, iopts) {
   });
 }
 
-// core/protocols/dashboard/index.ts
+// ../../core/protocols/dashboard/index.ts
 var FPClerkClaimSchema = external_exports.object({
   payload: external_exports.object({
     // ...JWTPayloadSchema.shape,
@@ -49318,7 +49318,7 @@ var FPClerkClaimSchema = external_exports.object({
   }).partial()
 });
 
-// use-fireproof/base/redirect-strategy.ts
+// ../base/redirect-strategy.ts
 init_runtime2();
 function defaultOverlayHtml(redirectLink) {
   return `
@@ -49492,11 +49492,11 @@ var RedirectStrategy = class {
   }
 };
 
-// use-fireproof/base/index.ts
+// ../base/index.ts
 init_runtime2();
 var defaultRedirectStrategy = new RedirectStrategy();
 
-// use-fireproof/clerk/dist/npm/clerk-token-strategy.js
+// dist/clerk-token-strategy.js
 var ClerkTokenStrategy = class {
   dashApi;
   apiUrl;
@@ -49541,7 +49541,7 @@ var ClerkTokenStrategy = class {
   }
 };
 
-// use-fireproof/clerk/dist/npm/clerk-provider.js
+// dist/clerk-provider.js
 import { jsx as _jsx } from "react/jsx-runtime";
 import { createContext, useContext, useMemo as useMemo7 } from "react";
 import { ClerkProvider as BaseClerkProvider, useClerk } from "@clerk/clerk-react";
@@ -49573,11 +49573,16 @@ function useClerkFireproofContext() {
   return context;
 }
 
-// use-fireproof/clerk/dist/npm/use-fireproof-clerk.js
+// dist/use-fireproof-clerk.js
 var REFRESH_BEFORE_EXPIRY_MS = 5 * 60 * 1e3;
 var MIN_REFRESH_DELAY_MS = 30 * 1e3;
-var AUTH_ERROR_RETRY_DELAY_MS = 2 * 1e3;
+var BASE_RETRY_DELAY_MS = 2 * 1e3;
+var MAX_RETRY_DELAY_MS = 30 * 1e3;
+var MAX_RETRY_COUNT = 8;
 var DETACH_CLEANUP_DELAY_MS = 100;
+var SYNC_POLL_INTERVAL_MS = 2e3;
+var SYNC_STABLE_THRESHOLD = 3;
+var SYNC_POLL_MAX_MS = 20 * 1e3;
 function useFireproofClerk(name2) {
   const { config: config2, isSessionReady, dashApi } = useClerkFireproofContext();
   const [attachState, setAttachState] = useState7({ status: "detached" });
@@ -49586,6 +49591,11 @@ function useFireproofClerk(name2) {
   const attachingRef = useRef5(false);
   const refreshTimerRef = useRef5(null);
   const strategyRef = useRef5(null);
+  const retryCountRef = useRef5(0);
+  const attachStateRef = useRef5(attachState);
+  useEffect7(() => {
+    attachStateRef.current = attachState;
+  }, [attachState]);
   const fpResult = useFireproof(name2);
   const { database } = fpResult;
   const clearRefreshTimer = useCallback5(() => {
@@ -49602,13 +49612,14 @@ function useFireproofClerk(name2) {
     refreshTimerRef.current = setTimeout(doRefresh, delay);
   }, [clearRefreshTimer]);
   const performRefreshCycle = useCallback5(async () => {
-    if (attachState.status !== "attached" || !attachState.attached || !dashApi) {
+    const currentState = attachStateRef.current;
+    if (currentState.status !== "attached" || !currentState.attached || !dashApi) {
       return;
     }
     setSyncStatus("reconnecting");
     clearRefreshTimer();
     try {
-      await attachState.attached.detach();
+      await currentState.attached.detach();
       await new Promise((resolve) => setTimeout(resolve, DETACH_CLEANUP_DELAY_MS));
       const strategy = new ClerkTokenStrategy(dashApi, config2.apiUrl);
       strategyRef.current = strategy;
@@ -49623,6 +49634,7 @@ function useFireproofClerk(name2) {
       if (expiry) {
         scheduleTokenRefresh(expiry, () => performRefreshCycle());
       }
+      retryCountRef.current = 0;
       setAttachState({ status: "attached", attached });
       setSyncStatus("synced");
       setLastSyncError(void 0);
@@ -49632,9 +49644,9 @@ function useFireproofClerk(name2) {
       setLastSyncError(error48);
       setAttachState({ status: "error", error: error48 });
     }
-  }, [attachState, dashApi, config2, name2, database, clearRefreshTimer, scheduleTokenRefresh]);
+  }, [dashApi, config2, name2, database, clearRefreshTimer, scheduleTokenRefresh]);
   const doAttach = useCallback5(async () => {
-    if (!dashApi || attachingRef.current || attachState.status === "attached") {
+    if (!dashApi || attachingRef.current || attachStateRef.current.status === "attached") {
       return;
     }
     attachingRef.current = true;
@@ -49654,6 +49666,7 @@ function useFireproofClerk(name2) {
       if (expiry) {
         scheduleTokenRefresh(expiry, () => performRefreshCycle());
       }
+      retryCountRef.current = 0;
       setAttachState({ status: "attached", attached });
       setSyncStatus("synced");
       setLastSyncError(void 0);
@@ -49665,14 +49678,16 @@ function useFireproofClerk(name2) {
     } finally {
       attachingRef.current = false;
     }
-  }, [dashApi, database, config2, name2, attachState.status, scheduleTokenRefresh, performRefreshCycle]);
+  }, [dashApi, database, config2, name2, scheduleTokenRefresh, performRefreshCycle]);
   const doDetach = useCallback5(async () => {
-    if (attachState.status !== "attached" || !attachState.attached) {
+    const currentState = attachStateRef.current;
+    if (currentState.status !== "attached" || !currentState.attached) {
       return;
     }
     clearRefreshTimer();
+    retryCountRef.current = 0;
     try {
-      await attachState.attached.detach();
+      await currentState.attached.detach();
       setAttachState({ status: "detached" });
       setSyncStatus("idle");
     } catch (err) {
@@ -49682,7 +49697,7 @@ function useFireproofClerk(name2) {
       });
       setSyncStatus("error");
     }
-  }, [attachState, clearRefreshTimer]);
+  }, [clearRefreshTimer]);
   useEffect7(() => {
     if (isSessionReady && dashApi && attachState.status === "detached") {
       doAttach();
@@ -49695,29 +49710,82 @@ function useFireproofClerk(name2) {
   }, [isSessionReady, attachState.status, doDetach]);
   useEffect7(() => {
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && attachState.status === "attached" && strategyRef.current) {
+      if (document.visibilityState !== "visible")
+        return;
+      const currentStatus = attachStateRef.current.status;
+      if (currentStatus === "attached" && strategyRef.current) {
         const expiry = strategyRef.current.getLastTokenExpiry();
         if (expiry && Date.now() > expiry - REFRESH_BEFORE_EXPIRY_MS) {
           performRefreshCycle();
         }
+      } else if (currentStatus === "error") {
+        console.debug("[fireproof-clerk] Tab visible with error state, resetting retry budget");
+        retryCountRef.current = 0;
+        setAttachState({ status: "detached" });
+        setSyncStatus("idle");
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [attachState.status, performRefreshCycle]);
+  }, [performRefreshCycle]);
   useEffect7(() => {
-    if (attachState.status === "error" && attachState.error && isSessionReady) {
-      const msg = attachState.error.message.toLowerCase();
-      const isAuthError = msg.includes("timeout") || msg.includes("auth") || msg.includes("token") || msg.includes("expired") || msg.includes("unauthorized");
-      if (isAuthError) {
-        const timer = setTimeout(() => {
-          setAttachState({ status: "detached" });
-          setSyncStatus("idle");
-        }, AUTH_ERROR_RETRY_DELAY_MS);
-        return () => clearTimeout(timer);
-      }
+    if (attachState.status !== "error" || !isSessionReady)
+      return;
+    if (retryCountRef.current >= MAX_RETRY_COUNT) {
+      console.debug(`[fireproof-clerk] Max retries (${MAX_RETRY_COUNT}) reached, waiting for tab switch to reset`);
+      return;
     }
+    const delay = Math.min(BASE_RETRY_DELAY_MS * Math.pow(2, retryCountRef.current), MAX_RETRY_DELAY_MS);
+    retryCountRef.current += 1;
+    console.debug(`[fireproof-clerk] Retry ${retryCountRef.current}/${MAX_RETRY_COUNT} in ${delay}ms`, attachState.error?.message);
+    const timer = setTimeout(() => {
+      setAttachState({ status: "detached" });
+      setSyncStatus("idle");
+    }, delay);
+    return () => clearTimeout(timer);
   }, [attachState, isSessionReady]);
+  useEffect7(() => {
+    if (attachState.status !== "attached")
+      return;
+    let stopped = false;
+    let lastCount = -1;
+    let stableRuns = 0;
+    const poll = async () => {
+      if (stopped)
+        return;
+      try {
+        const { rows } = await database.allDocs();
+        const count = rows.length;
+        if (count === lastCount) {
+          stableRuns++;
+          if (stableRuns >= SYNC_STABLE_THRESHOLD) {
+            console.debug("[fireproof-clerk] Initial sync settled, polling stopped");
+            stopped = true;
+            return;
+          }
+        } else {
+          stableRuns = 0;
+        }
+        lastCount = count;
+      } catch {
+      }
+      if (!stopped) {
+        setTimeout(poll, SYNC_POLL_INTERVAL_MS);
+      }
+    };
+    const startTimer = setTimeout(poll, SYNC_POLL_INTERVAL_MS);
+    const maxTimer = setTimeout(() => {
+      if (!stopped) {
+        console.debug("[fireproof-clerk] Sync poll hit max duration, stopping");
+        stopped = true;
+      }
+    }, SYNC_POLL_MAX_MS);
+    return () => {
+      stopped = true;
+      clearTimeout(startTimer);
+      clearTimeout(maxTimer);
+    };
+  }, [attachState.status, database]);
   useEffect7(() => {
     return () => {
       clearRefreshTimer();
@@ -49734,7 +49802,7 @@ function useFireproofClerk(name2) {
   };
 }
 
-// use-fireproof/clerk/dist/npm/index.js
+// dist/index.js
 import { SignInButton, SignedIn, SignedOut, UserButton, useUser, useClerk as useClerk2 } from "@clerk/clerk-react";
 export {
   ClerkFireproofProvider,
@@ -49753,4 +49821,3 @@ export {
 dompurify/dist/purify.es.mjs:
   (*! @license DOMPurify 3.3.1 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.3.1/LICENSE *)
 */
-//# sourceMappingURL=fireproof-clerk-bundle.js.map
