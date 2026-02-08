@@ -11,8 +11,9 @@ node_modules/
 riff-*/
 RANKINGS.md
 
-# Working cache (gitignored - updated by sync script)
+# Working cache (gitignored)
 # Note: skills/vibes/cache/ is git-tracked and ships with the plugin as default values
+# Fireproof API docs live in docs/fireproof.txt (not cache)
 /cache/
 
 # Plan files
