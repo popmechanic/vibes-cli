@@ -209,6 +209,19 @@ Walks you through each step interactively: credentials, Connect setup, fixture s
 
 **Example prompt:** "Test the plugin" or "Run an integration test"
 
+## Commands
+
+Commands are **user-invoked** — run them explicitly when you want a specific skill.
+
+| Command | What it does |
+|---------|-------------|
+| `/vibes` | Generate a React web app with Fireproof database |
+| `/sell` | Transform an app into multi-tenant SaaS with Clerk auth and billing |
+| `/connect` | Deploy Fireproof Connect to a dedicated Studio VM on exe.dev |
+| `/cloudflare` | Deploy a Vibes app to Cloudflare Workers |
+| `/launch` | Build and deploy a SaaS app end-to-end using Agent Teams |
+| `/test` | Run end-to-end integration test with real deployment |
+
 ## Why Vibes?
 
 Every vibe-coded project starts in the vibe zone - the AI understands you, progress is fast, each change moves the app forward.
