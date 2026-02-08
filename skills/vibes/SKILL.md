@@ -136,7 +136,7 @@ import { useDocument } from "use-fireproof";  // WRONG - standalone import
 const { attach } = useFireproof("db", { attach: toCloud() });  // WRONG - old pattern
 ```
 
-**Sync Status**: `syncStatus` provides the current sync state as a string. Display it for user feedback.
+**Sync Status**: `syncStatus` provides the current sync state. Values: `"idle"`, `"connecting"`, `"synced"`, `"reconnecting"`, `"error"`. Display it for user feedback.
 
 **Connect Configuration**: Generated apps require Clerk authentication and cloud sync.
 The `assemble.js` script populates `window.__VIBES_CONFIG__` from your `.env` file.
@@ -498,7 +498,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
   ```
 - **DON'T** wrap your app in `VibeContextProvider` - that's a vibes.diy platform-only component. Standalone apps use `useFireproofClerk()` directly.
 - **DON'T** panic if you see "Cannot read properties of null (reading 'useContext')" - the template already handles the React singleton via `?external=react,react-dom` in the import map. Check that the import map wasn't accidentally modified.
-- **NOTE:** Apps use `/fireproof-clerk-bundle.js` - this is a temporary local bundle workaround for a CID bug in the npm package. Apps work correctly with it.
+- **NOTE:** Apps use `/fireproof-clerk-bundle.js` - this is a temporary local bundle that fixes a CID bug and includes sync improvements (retry backoff + automatic second-device sync). Apps work correctly with it.
 
 ---
 
@@ -508,9 +508,9 @@ The shipped cache files contain detailed reference material. Read them when the 
 
 | Need | Signal in Prompt | Read This |
 |------|------------------|-----------|
-| File uploads | "upload", "images", "photos", "attachments" | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/fireproof.txt` → "Working with Images" |
-| Auth / sync config | "Clerk", "Connect", "cloud sync", "login" | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/fireproof.txt` → "ClerkFireproofProvider Config" |
-| Sync status display | "online/offline", "connection status" | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/fireproof.txt` → "Sync Status Display" |
+| File uploads | "upload", "images", "photos", "attachments" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Working with Images" |
+| Auth / sync config | "Clerk", "Connect", "cloud sync", "login" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "ClerkFireproofProvider Config" |
+| Sync status display | "online/offline", "connection status" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Sync Status Display" |
 | Full Neobrute design details | detailed design system, spacing, typography | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/style-prompt.txt` |
 
 ---

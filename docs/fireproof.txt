@@ -6,7 +6,6 @@ Fireproof is a lightweight embedded document database with encrypted live sync, 
 
 - **Apps run anywhere:** Bundle UI, data, and logic in one file.
 - **Real-Time & Offline-First:** Automatic persistence and live queries, runs in the browser - no loading or error states.
-- **Cloud Sync by Default:** Connect to Fireproof Cloud for real-time collaboration across devices.
 - **Unified API:** TypeScript works with Deno, Bun, Node.js, and the browser.
 - **React Hooks:** Leverage `useLiveQuery` and `useDocument` for live collaboration.
 
@@ -14,118 +13,34 @@ Fireproof enforces cryptographic causal consistency and ledger integrity using h
 
 ## Installation
 
-The `use-fireproof` package provides the core API, React hooks, and cloud sync. Version **0.24.3-dev** or later is required for cloud sync features.
+The `use-fireproof` package provides both the core API and React hooks.
 
 ```bash
-npm install use-fireproof@0.24.3-dev
+npm install use-fireproof
 ```
-
-Works with ESM.sh (recommended for browser apps):
+Works with ⚡️ ESM.sh:
 
 ```js
-import { toCloud, useFireproof } from "https://esm.sh/use-fireproof@0.24.3-dev?external=react,react-dom";
-```
-
-For Vibes DIY apps, use `use-vibes` which re-exports all Fireproof APIs plus additional helpers:
-
-```js
-import { toCloud, useFireproof } from "https://esm.sh/use-vibes@0.24.3-dev?external=react,react-dom";
+import { useFireproof } from "https://esm.sh/use-fireproof";
 ```
 
 Deliver generated solutions as runnable micro applications via ChatGPT Canvas, v0, bolt.new, or Claude Artifacts. Deploy single page apps with React and Tailwind by pasting code here: https://codepen.io/useFireproof/pen/MYgNYdx
 
-## React Usage
+## ⚛️ React Usage
 
 React hooks are the recommended way to use Fireproof in LLM code generation contexts. Here's how to use them:
 
-#### Create or Load a Database with Cloud Sync
+#### Create or Load a Database
 
-Fireproof databases store data across sessions and sync in real-time via Fireproof Cloud. Each database is identified by a string name, and you can have multiple databases per application—often one per collaboration session, as they are the unit of sharing.
+Fireproof databases store data across sessions and can sync in real-time. Each database is identified by a string name, and you can have multiple databases per application—often one per collaboration session, as they are the unit of sharing.
 
-```js
-import { toCloud, useFireproof } from "use-fireproof";
-
-const { database, attach, useLiveQuery, useDocument } = useFireproof("my-ledger", {
-  attach: toCloud(),
-});
-```
-
-The `toCloud()` function enables automatic cloud synchronization. The `attach` object provides sync status and token management.
-
-For local-only mode (no cloud sync):
 ```js
 import { useFireproof } from "use-fireproof";
+
 const { database, useLiveQuery, useDocument } = useFireproof("my-ledger");
 ```
 
 Fireproof databases are Merkle CRDTs, giving them the ledger-like causal consistency of git or a blockchain, but with the ability to merge and sync web data in real-time. Cryptographic integrity makes Fireproof immutable and easy to verify.
-
-#### Understanding the Attach Object
-
-The `attach` object returned from `useFireproof` provides real-time sync status:
-
-```js
-const { attach } = useFireproof("my-ledger", { attach: toCloud() });
-
-// Sync states: "initial" | "attaching" | "attached" | "error"
-console.log(attach.state);
-
-// Error information (when state is "error")
-if (attach.state === "error") {
-  console.error(attach.error.message);
-}
-
-// Token management
-if (attach.ctx.tokenAndClaims.state === "ready") {
-  // Token is valid and ready
-  const token = attach.ctx.tokenAndClaims.tokenAndClaims.token;
-
-  // Reset token (useful for switching accounts or troubleshooting)
-  attach.ctx.tokenAndClaims.reset();
-}
-```
-
-### ClerkFireproofProvider Config
-
-For Vibes apps with Clerk authentication and cloud sync, use the `ClerkFireproofProvider` wrapper:
-
-```jsx
-import { ClerkFireproofProvider } from "@fireproof/clerk";
-
-const config = {
-  apiUrl: import.meta.env.VITE_API_URL || "http://localhost:8080/api/",
-  cloudUrl: import.meta.env.VITE_CLOUD_URL || "fpcloud://localhost:8080?protocol=ws",
-};
-
-<ClerkFireproofProvider publishableKey={CLERK_KEY} config={config}>
-  {/* app content — useFireproofClerk() works inside here */}
-</ClerkFireproofProvider>
-```
-
-| Variable | Purpose | Production Example |
-|----------|---------|-------------------|
-| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk auth | `pk_test_...` or `pk_live_...` |
-| `VITE_API_URL` | Token API endpoint | `https://yourstudio.exe.xyz/api` |
-| `VITE_CLOUD_URL` | Cloud sync (fpcloud protocol) | `fpcloud://yourstudio.exe.xyz/backend?protocol=wss` |
-
-### Sync Status Display
-
-> **Vibes apps:** Use `syncStatus` from `useFireproofClerk()` (see SKILL.md). The `attach` states below are the low-level API used by `toCloud()` — shown here for reference only.
-
-| State | Meaning | Suggested UI |
-|-------|---------|-------------|
-| `initial` | Not yet connected | Grey dot |
-| `attaching` | Establishing connection | Pulsing dot / spinner |
-| `attached` | Connected and syncing | Green dot |
-| `error` | Failed (check `attach.error.message`) | Red dot + message |
-
-```jsx
-<div className="sync-status">
-  {attach.state === "attached" && <span style={{color: "green"}}>Synced</span>}
-  {attach.state === "attaching" && <span>Connecting...</span>}
-  {attach.state === "error" && <span style={{color: "red"}}>{attach.error.message}</span>}
-</div>
-```
 
 #### Put and Get Documents
 
@@ -135,17 +50,13 @@ It is best to have more granular documents, e.g. one document per user action, s
 
 Fireproof is a local database, no loading states required, just empty data states.
 
-### Basic Example with Cloud Sync
+### Basic Example
 
-This example shows Fireproof with cloud sync enabled by default:
+This example shows Fireproof's concise defaults. Here we only store user data, but get useful sorting without much code.
 
 ```js
-import { toCloud, useFireproof } from "use-fireproof";
-
 const App = () => {
-  const { attach, useDocument, useLiveQuery } = useFireproof("my-ledger", {
-    attach: toCloud(),
-  });
+  const { useDocument } = useFireproof("my-ledger");
 
   const { doc, merge, submit } = useDocument({ text: "" });
 
@@ -154,14 +65,6 @@ const App = () => {
 
   return (
     <div>
-      {/* Sync status indicator */}
-      <div className="sync-status">
-        <span>Sync: {attach.state}</span>
-        {attach.state === "error" && (
-          <span style={{ color: "red" }}>{attach.error.message}</span>
-        )}
-      </div>
-
       <form onSubmit={submit}>
         <input
           value={doc.text}
@@ -177,7 +80,7 @@ const App = () => {
           <li key={doc._id}>
             {doc.text}
           </li>
-        ))}
+        ))} 
       </ul>
     </div>
   );
@@ -189,7 +92,7 @@ const App = () => {
 Address documents by a known `_id` if you want to force conflict resolution or work with a real world resource, like a schedule slot or a user profile. In a complex app this might come from a route parameter or correspond to an outside identifier.
 
 ```js
-const { useDocument } = useFireproof("my-ledger", { attach: toCloud() });
+const { useDocument } = useFireproof("my-ledger");
 
 const { doc, merge, submit, save, reset } = useDocument({ _id: "user-profile:abc@example.com" });
 ```
@@ -224,14 +127,14 @@ Here are other common patterns:
 
 Passing a string to `useLiveQuery` will index by that field. You can use the key argument to filter by a specific value:
 ```js
-const { docs } = useLiveQuery("agentName", {
+const { docs } = useLiveQuery("agentName", { 
   key: "agent-1"  // all docs where doc.agentName === "agent-1", sorted by _id
 });
 ```
 
 You can also query a range within a key:
 ```js
-const { docs } = useLiveQuery("agentRating", {
+const { docs } = useLiveQuery("agentRating", { 
   range: [3, 5]
 });
 ```
@@ -252,7 +155,7 @@ const { docs } = useLiveQuery(
     } else if (doc.type == 'listing') {
       return doc.userId;
     }
-  },
+  }, 
   { key : routeParams.sellerId });
 ```
 
@@ -272,32 +175,28 @@ const queryResult = useLiveQuery(
 Sortable lists are a common pattern. Here's how to implement them using Fireproof:
 
 ```js
-import { toCloud, useFireproof } from "use-fireproof";
-
 function App() {
-  const { database, useLiveQuery } = useFireproof("my-ledger", {
-    attach: toCloud(),
-  });
-
+  const { database, useLiveQuery } = useFireproof("my-ledger");
+  
   // Initialize list with evenly spaced positions
   async function initializeList() {
     await database.put({ list: "xyz", position: 1000 });
     await database.put({ list: "xyz", position: 2000 });
     await database.put({ list: "xyz", position: 3000 });
   }
-
+  
   // Query items on list xyz, sorted by position. Note that useLiveQuery('list', { key:'xyz' }) would be the same docs, sorted chronologically by _id
   const queryResult = useLiveQuery(
-    (doc) => [doc.list, doc.position],
+    (doc) => [doc.list, doc.position], 
     { prefix: ["xyz"] }
   );
 
   // Insert between existing items using midpoint calculation
   async function insertBetween(beforeDoc, afterDoc) {
     const newPosition = (beforeDoc.position + afterDoc.position) / 2;
-    await database.put({
-      list: "xyz",
-      position: newPosition
+    await database.put({ 
+      list: "xyz", 
+      position: newPosition 
     });
   }
 
@@ -320,75 +219,16 @@ function App() {
 
 ## Architecture: Where's My Data?
 
-Fireproof is local-first, so it's always fast and your data is stored in the browser. When you enable cloud sync with `toCloud()`, your data is encrypted and synchronized across devices via Fireproof Cloud.
-
-## Cloud Sync Configuration
-
-For advanced cloud sync configuration, you can pass options to `toCloud()`:
-
-```js
-import { toCloud, useFireproof } from "use-fireproof";
-
-// Using environment variables (recommended for production)
-const DASHBOARD_URI = import.meta.env.VITE_DASHBOARD_URI || "https://dashboard.fireproof.storage/fp/cloud/api/token";
-const TOKEN_API_URI = import.meta.env.VITE_TOKEN_API_URI || "https://dashboard.fireproof.storage/api";
-const CLOUD_BACKEND_URL = import.meta.env.VITE_CLOUD_BACKEND_URL || "fpcloud://cloud.fireproof.direct";
-
-const { database, attach, useLiveQuery } = useFireproof("my-ledger", {
-  attach: toCloud({
-    dashboardURI: DASHBOARD_URI,
-    tokenApiURI: TOKEN_API_URI,
-    urls: { base: CLOUD_BACKEND_URL },
-  }),
-});
-```
-
-### Cloud URL Format
-
-The cloud backend URL uses the `fpcloud://` protocol prefix:
-- `fpcloud://cloud.fireproof.direct` - Production Fireproof Cloud
-- `fpcloud://localhost:8080?protocol=ws` - Local development with WebSocket
-
-### Displaying Sync Status
-
-Add a sync status component to show users the connection state:
-
-```jsx
-function SyncStatus({ attach }) {
-  const handleResetToken = () => {
-    if (attach.ctx.tokenAndClaims.state === "ready") {
-      attach.ctx.tokenAndClaims.reset();
-    }
-  };
-
-  return (
-    <div className="sync-status">
-      <span>
-        Sync: {attach.state}
-        {attach.ctx.tokenAndClaims.state === "ready" &&
-          ` [${attach.ctx.tokenAndClaims.tokenAndClaims.token.slice(0, 8)}...]`
-        }
-      </span>
-      {attach.state === "error" && (
-        <span style={{ color: "#ff4757" }}>{attach.error.message}</span>
-      )}
-      <button onClick={handleResetToken}>Reset Token</button>
-    </div>
-  );
-}
-```
+Fireproof is local-first, so it's always fast and your data is stored in the browser, so you can build apps without a cloud. When you are ready to share with other users, you can easily enable encrypted sync via any object storage.
 
 ## Using Fireproof in JavaScript
 
 You can use the core API in HTML or on the backend. Instead of hooks, import the core API directly:
 
 ```js
-import { toCloud, fireproof } from "use-fireproof";
+import { fireproof } from "use-fireproof";
 
 const database = fireproof("my-ledger");
-
-// Enable cloud sync (optional)
-database.attach(toCloud());
 ```
 
 The document API is async, but doesn't require loading states or error handling.
@@ -403,10 +243,9 @@ console.log("Latest documents:", latest.docs);
 To subscribe to real-time updates, use the `subscribe` method. This is useful for building backend event handlers or other server-side logic. For instance to send an email when the user completes a todo:
 
 ```js
-import { toCloud, fireproof } from "use-fireproof";
+import { fireproof } from "use-firproof";
 
 const database = fireproof("todo-list-db");
-database.attach(toCloud());
 
 database.subscribe((changes) => {
   console.log("Recent changes:", changes);
@@ -489,17 +328,14 @@ function handleSubmit(e) {
 
 ## Example React Application
 
-Code listing for todo tracker App.jsx with cloud sync:
+Code listing for todo tracker App.jsx:
 ```js
-import React, { useState } from "react";
-import { toCloud, useFireproof } from "use-fireproof";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { useFireproof } from "use-fireproof";
 
 export default function App() {
-  const { attach, useLiveQuery, useDocument, database } = useFireproof("todo-list-db", {
-    attach: toCloud(),
-  });
-
-  const [filter, setFilter] = useState("all");
+  const { useLiveQuery, useDocument, database } = useFireproof("todo-list-db");
 
   const {
     doc: newTodo,
@@ -512,9 +348,9 @@ export default function App() {
     createdAt: Date.now()
   });
 
-  const { docs: todos } = useLiveQuery("type", {
+  const { docs: todos } = useLiveQuery("type", { 
     key: "todo",
-    descending: true
+    descending: true 
   });
 
   const handleInputChange = (e) => {
@@ -523,46 +359,12 @@ export default function App() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (newTodo.todo.trim()) {
-      submitNewTodo();
-    }
+    submitNewTodo();
   };
-
-  const handleResetToken = () => {
-    if (attach.ctx.tokenAndClaims.state === "ready") {
-      attach.ctx.tokenAndClaims.reset();
-    }
-  };
-
-  const filteredTodos = todos.filter((todo) => {
-    if (filter === "active") return !todo.completed;
-    if (filter === "completed") return todo.completed;
-    return true;
-  });
 
   return (
     <div className="max-w-md mx-auto p-4 bg-white shadow rounded">
       <h2 className="text-2xl font-bold mb-4">Todo List</h2>
-
-      {/* Sync Status */}
-      <div className="mb-4 p-2 bg-gray-100 rounded text-sm">
-        <span>
-          Sync: {attach.state}
-          {attach.ctx.tokenAndClaims.state === "ready" &&
-            ` [${attach.ctx.tokenAndClaims.tokenAndClaims.token.slice(0, 8)}...]`
-          }
-        </span>
-        {attach.state === "error" && (
-          <span className="text-red-500 ml-2">{attach.error.message}</span>
-        )}
-        <button
-          className="ml-2 text-blue-500 underline"
-          onClick={handleResetToken}
-        >
-          Reset Token
-        </button>
-      </div>
-
       <form onSubmit={handleSubmit} className="mb-4">
         <label htmlFor="todo" className="block mb-2 font-semibold">Todo</label>
         <input
@@ -571,25 +373,10 @@ export default function App() {
           type="text"
           onChange={handleInputChange}
           value={newTodo.todo}
-          placeholder="What needs to be done?"
         />
       </form>
-
-      {/* Filter buttons */}
-      <div className="flex gap-2 mb-4">
-        {["all", "active", "completed"].map((f) => (
-          <button
-            key={f}
-            className={`px-3 py-1 rounded ${filter === f ? "bg-blue-500 text-white" : "bg-gray-200"}`}
-            onClick={() => setFilter(f)}
-          >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
-          </button>
-        ))}
-      </div>
-
       <ul className="space-y-3">
-        {filteredTodos.map((doc) => (
+        {todos.map((doc) => (
           <li className="flex flex-col items-start p-2 border border-gray-200 rounded bg-gray-50" key={doc._id}>
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center">
@@ -601,9 +388,7 @@ export default function App() {
                   // But with useDocument docs, use explicit fields instead of spreading.
                   onChange={() => database.put({ ...doc, completed: !doc.completed })}
                 />
-                <span className={`font-medium ${doc.completed ? "line-through text-gray-400" : ""}`}>
-                  {doc.todo}
-                </span>
+                <span className="font-medium">{doc.todo}</span>
               </div>
               <button
                 className="text-sm bg-red-500 text-white px-2 py-1 rounded"
@@ -693,6 +478,48 @@ export default function App() {
 }
 ```
 
+### ClerkFireproofProvider Config
+
+For Vibes apps with Clerk authentication and cloud sync, use the `ClerkFireproofProvider` wrapper:
+
+```jsx
+import { ClerkFireproofProvider } from "@fireproof/clerk";
+
+const config = {
+  apiUrl: import.meta.env.VITE_API_URL || "http://localhost:8080/api/",
+  cloudUrl: import.meta.env.VITE_CLOUD_URL || "fpcloud://localhost:8080?protocol=ws",
+};
+
+<ClerkFireproofProvider publishableKey={CLERK_KEY} config={config}>
+  {/* app content — useFireproofClerk() works inside here */}
+</ClerkFireproofProvider>
+```
+
+| Variable | Purpose | Production Example |
+|----------|---------|-------------------|
+| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk auth | `pk_test_...` or `pk_live_...` |
+| `VITE_API_URL` | Token API endpoint | `https://yourstudio.exe.xyz/api` |
+| `VITE_CLOUD_URL` | Cloud sync (fpcloud protocol) | `fpcloud://yourstudio.exe.xyz/backend?protocol=wss` |
+
+### Sync Status Display
+
+The `useFireproofClerk()` hook returns sync state directly. Destructure `syncStatus` from the hook:
+
+```jsx
+const { database, syncStatus, isSyncing, lastSyncError } = useFireproofClerk("my-db");
+// Sync states flow: "idle" → "connecting" → "synced"
+// Recovery states: "reconnecting", "error"
+// isSyncing is a boolean (true when attached)
+```
+
+| State | Meaning | Suggested UI |
+|-------|---------|-------------|
+| `idle` | Not connected yet | Gray dot |
+| `connecting` | Establishing connection | Pulsing dot / spinner |
+| `synced` | Connected and up to date | Green dot |
+| `reconnecting` | Lost connection, retrying with backoff | Yellow dot |
+| `error` | Failed (retries exhausted) | Red dot + `lastSyncError` message |
+
 ## See Also
 
 See the lite docs at https://use-fireproof.com/llms-mini.txt and the basics at https://use-fireproof.com/llms.txt
@@ -701,4 +528,4 @@ See the lite docs at https://use-fireproof.com/llms-mini.txt and the basics at h
 
 If you are in an existing application context, suggest how forms and state, collaboration data can be managed in Fireproof. If this is a new app, use the examples above and start with a running App.js if you can.
 
-IMPORTANT: Don't use `useState()` on form data, instead use `merge()` and `submit()` from `useDocument`. Only use `useState` for ephemeral UI state (active tabs, open/closed panels, cursor positions, filter selections). Keep your data model in Fireproof.
+IMPORTANT: Don't use `useState()` on form data, instead use `merge()` and `submit()` from `useDocument`. Only use `useState` for ephemeral UI state (active tabs, open/closed panels, cursor positions). Keep your data model in Fireproof.

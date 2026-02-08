@@ -31,7 +31,6 @@ export const TEMPLATES = {
 export const CACHE_FILES = {
   importMap: join(CACHE_DIR, 'import-map.json'),
   stylePrompt: join(CACHE_DIR, 'style-prompt.txt'),
-  fireproof: join(CACHE_DIR, 'fireproof.txt'),
   vibesMenu: join(CACHE_DIR, 'vibes-menu.js'),
   cssVariables: join(CACHE_DIR, 'vibes-variables.css'),
 };

@@ -9,7 +9,7 @@
 | Task | Read First |
 |------|------------|
 | Working on skills | The specific `skills/*/SKILL.md` file |
-| Generating app code | SKILL.md has patterns; for advanced features, read `cache/fireproof.txt` |
+| Generating app code | SKILL.md has patterns; for advanced features, read `docs/fireproof.txt` |
 | Working on scripts | `scripts/package.json` for deps, this file for architecture |
 | Debugging React errors | "React Singleton Problem" section below; also `skills/vibes/SKILL.md` Common Mistakes |
 | Deploying to Cloudflare | `skills/cloudflare/SKILL.md` |
@@ -20,7 +20,7 @@
 
 SKILL.md provides common patterns (useDocument, useLiveQuery, database.put/del) and critical gotchas.
 
-**Read `cache/fireproof.txt` when the user's app needs:**
+**Read `docs/fireproof.txt` when the user's app needs:**
 
 | Feature | Signal in prompt | fireproof.txt section |
 |---------|------------------|----------------------|
@@ -405,7 +405,7 @@ npm run test:e2e:server
 | `components/BrutalistCard/` | Animated card with shred/collapse effects |
 | `cache/import-map.json` | Working cache - package versions |
 | `cache/style-prompt.txt` | Working cache - UI style guidance |
-| `cache/fireproof.txt` | Working cache - Fireproof API docs |
+| `docs/fireproof.txt` | Fireproof API reference documentation |
 | `cache/vibes-menu.js` | Built components from local source |
 | `cache/vibes-variables.css` | Working cache - CSS theme variables |
 | `skills/_base/template.html` | Base template with shared code (components, CSS, imports) |
@@ -438,7 +438,6 @@ There are two cache locations by design:
 1. **`/cache/`** (gitignored) - Working cache
    - `import-map.json` - Package versions and CDN URLs
    - `style-prompt.txt` - UI style guidance
-   - `fireproof.txt` - Fireproof API documentation
    - `vibes-menu.js` - Built components (from build-components.js)
    - `vibes-variables.css` - CSS theme variables
 
@@ -446,12 +445,15 @@ There are two cache locations by design:
    - Uses `esm.sh/stable/` URLs with `?external=react,react-dom`
    - **This is the authoritative source for current versions**
 
+3. **`docs/fireproof.txt`** - Fireproof API reference
+   - Contains `@fireproof/clerk` docs for authenticated sync
+   - Read when Connect is set up and apps need Clerk auth patterns
+
 **Build scripts:**
 - `build-components.js` - Builds vibes-menu.js from local `components/` directory
 - `merge-templates.js` - Combines base + delta templates into final templates
 
 **When to read cache files:**
-- `fireproof.txt` - Contains `@fireproof/clerk` docs for authenticated sync. Read when Connect is set up and apps need Clerk auth patterns.
 - `style-prompt.txt` - Read when you need UI/color guidance beyond what's in SKILL.md
 - `import-map.json` - Reference only; never hardcode these values
 
@@ -574,7 +576,12 @@ The `/vibes:sell` deploy has several issues that need fixing in `scripts/deploy-
 
 **Status**: Temporary workaround until `@necrodome/fireproof-clerk` is updated on npm.
 
-**Issue**: The `@necrodome/fireproof-clerk@0.0.3` package from esm.sh has a client-side CID stringification bug where blob URLs show `[object Object]` instead of proper CID strings.
+**Issues fixed** (vs `@necrodome/fireproof-clerk@0.0.3` from esm.sh):
+1. **CID stringification bug** — blob URLs show `[object Object]` instead of proper CID strings
+2. **Retry fix** — exponential backoff for all `attach()` errors (PR #1593)
+3. **Sync poll fix** — `allDocs()` polling after `attach()` to kick CRDT processing, so second-device sync works without manual refresh (PR #1593)
+
+See `docs/plans/sync-poll-fix.md` for technical details on the sync poll fix.
 
 **Current Workaround**:
 - `bundles/fireproof-clerk-bundle.js` contains the patched client code
