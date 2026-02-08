@@ -365,7 +365,6 @@ npm run test:e2e:server
 | `scripts/deploy-cloudflare.js` | Cloudflare deployment script |
 | `scripts/deployables/registry-server.ts` | Bun server for subdomain registry + Clerk webhooks (deployed to VMs) |
 | `scripts/vitest.config.js` | Vitest test runner configuration |
-| `scripts/debug-cid.js` | Debug script for diagnosing CID [object Object] bug |
 | `scripts/package.json` | Node.js deps |
 | `scripts/lib/env-utils.js` | Shared .env loading, Clerk key validation, Connect config |
 | `scripts/lib/exe-ssh.js` | SSH automation for exe.dev |
@@ -461,14 +460,14 @@ vibes.diy uses import maps - a browser-native feature (since March 2023) that ma
 | Import Type | Example | Import Map Intercepts? |
 |-------------|---------|------------------------|
 | Bare specifier | `import "react"` | ✅ Yes |
-| Absolute path | `import "/react@19.2.1"` | ❌ No |
+| Absolute path | `import "/react@19.2.4"` | ❌ No |
 
 When esm.sh bundles `@fireproof/clerk`, internal React imports become absolute paths:
 ```javascript
 import "/react@>=19.1.0?target=es2022";  // Resolved relative to esm.sh origin
 ```
 
-**Result**: Our import map provides React 19.2.1, but `@fireproof/clerk` loads React 19.2.3 → TWO React instances → context fails.
+**Result**: Our import map provides React 19.2.4, but `@fireproof/clerk` loads React 19.2.6 → TWO React instances → context fails.
 
 ### The Solution: `?external=`
 
@@ -483,8 +482,8 @@ The `?external=` parameter tells esm.sh to keep specified dependencies as **bare
 | Parameter | Syntax | Effect |
 |-----------|--------|--------|
 | `?external=` | `?external=react,react-dom` | **Recommended.** Keeps bare specifiers for import map resolution |
-| `?deps=` | `?deps=react@19.2.1` | Forces specific dependency versions at build time |
-| `?alias=` | `?alias=react:react@19.2.1` | Rewrites import specifiers at build time (less reliable for no-build) |
+| `?deps=` | `?deps=react@19.2.4` | Forces specific dependency versions at build time |
+| `?alias=` | `?alias=react:react@19.2.4` | Rewrites import specifiers at build time (less reliable for no-build) |
 | `*` prefix | `https://esm.sh/*pkg@ver` | Marks ALL deps as external (exposes internal deps) |
 
 ### Correct Import Map

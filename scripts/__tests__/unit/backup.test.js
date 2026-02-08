@@ -65,6 +65,39 @@ describe('createBackup', () => {
   });
 });
 
+describe('createBackup (non-HTML files)', () => {
+  it('creates backup for .jsx files with correct pattern', () => {
+    const dir = makeTempDir();
+    const filePath = join(dir, 'app.jsx');
+    writeFileSync(filePath, 'const App = () => <div/>;');
+
+    const backupPath = createBackup(filePath);
+    expect(backupPath).toMatch(/app\.\d{8}-\d{6}\.bak\.jsx$/);
+    expect(existsSync(backupPath)).toBe(true);
+    expect(readFileSync(backupPath, 'utf-8')).toBe('const App = () => <div/>;');
+  });
+
+  it('creates backup for .json files', () => {
+    const dir = makeTempDir();
+    const filePath = join(dir, 'config.json');
+    writeFileSync(filePath, '{"key":"value"}');
+
+    const backupPath = createBackup(filePath);
+    expect(backupPath).toMatch(/config\.\d{8}-\d{6}\.bak\.json$/);
+    expect(existsSync(backupPath)).toBe(true);
+  });
+
+  it('creates backup for extensionless files using .bak extension', () => {
+    const dir = makeTempDir();
+    const filePath = join(dir, 'Makefile');
+    writeFileSync(filePath, 'all: build');
+
+    const backupPath = createBackup(filePath);
+    expect(backupPath).toMatch(/Makefile\.\d{8}-\d{6}\.bak\.bak$/);
+    expect(existsSync(backupPath)).toBe(true);
+  });
+});
+
 describe('findLatestBackup', () => {
   it('returns null when no backups exist', () => {
     const dir = makeTempDir();
@@ -122,6 +155,34 @@ describe('findLatestBackup', () => {
   });
 });
 
+describe('findLatestBackup (non-HTML files)', () => {
+  it('finds the most recent .jsx backup', () => {
+    const dir = makeTempDir();
+    const filePath = join(dir, 'app.jsx');
+    writeFileSync(filePath, 'content');
+
+    const older = join(dir, 'app.20250101-100000.bak.jsx');
+    const newer = join(dir, 'app.20250201-120000.bak.jsx');
+    writeFileSync(older, 'old');
+    writeFileSync(newer, 'new');
+
+    const result = findLatestBackup(filePath);
+    expect(result).toBe(newer);
+  });
+
+  it('falls back to legacy .bak.jsx format', () => {
+    const dir = makeTempDir();
+    const filePath = join(dir, 'app.jsx');
+    writeFileSync(filePath, 'content');
+
+    const legacy = join(dir, 'app.bak.jsx');
+    writeFileSync(legacy, 'legacy backup');
+
+    const result = findLatestBackup(filePath);
+    expect(result).toBe(legacy);
+  });
+});
+
 describe('restoreFromBackup', () => {
   it('returns failure when no backup exists', () => {
     const dir = makeTempDir();
@@ -159,5 +220,19 @@ describe('restoreFromBackup', () => {
     const result = restoreFromBackup(filePath);
     expect(result.success).toBe(true);
     expect(result.backupPath).toBe(backup);
+  });
+
+  it('restores non-HTML files from backup', () => {
+    const dir = makeTempDir();
+    const filePath = join(dir, 'app.jsx');
+    writeFileSync(filePath, 'current content');
+
+    const backup = join(dir, 'app.20250115-143000.bak.jsx');
+    const backupContent = 'const App = () => <div>restored</div>;';
+    writeFileSync(backup, backupContent);
+
+    const result = restoreFromBackup(filePath);
+    expect(result.success).toBe(true);
+    expect(readFileSync(filePath, 'utf-8')).toBe(backupContent);
   });
 });
