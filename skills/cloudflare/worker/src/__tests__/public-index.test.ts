@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 
-const html = readFileSync(new URL("../../public/index.html", import.meta.url), "utf-8");
+const html = readFileSync(new URL("../../../../sell/templates/unified.html", import.meta.url), "utf-8");
 
 describe("public index billing gates", () => {
   it("removes JWT plan claim fast-paths", () => {
@@ -18,5 +18,9 @@ describe("public index billing gates", () => {
 
   it("retries subscription check after payment", () => {
     expect(html).toContain("pendingSubdomain");
+  });
+
+  it("forces a fresh registry fetch on first post-payment check", () => {
+    expect(html).toContain("force = attempt > 0 || pendingSubdomain");
   });
 });
