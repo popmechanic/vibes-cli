@@ -842,6 +842,50 @@
                     ))}
                   </div>
 
+                  {/* Paywall test checklist */}
+                  <div style={{
+                    background: 'var(--admin-card-bg)',
+                    borderRadius: '12px',
+                    border: '2px solid var(--admin-border)',
+                    boxShadow: '4px 4px 0 var(--admin-shadow)',
+                    padding: '1.25rem',
+                    marginBottom: '2rem'
+                  }}>
+                    <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--admin-text)', marginBottom: '0.5rem' }}>
+                      Paywall Test Checklist
+                    </h2>
+                    <p style={{ color: 'var(--admin-text-muted)', fontSize: '0.875rem', marginBottom: '0.75rem' }}>
+                      Use this quick checklist to force or bypass the paywall during testing.
+                    </p>
+                    <ol style={{
+                      margin: '0 0 0.75rem 1.25rem',
+                      padding: 0,
+                      color: 'var(--admin-text)',
+                      fontSize: '0.9rem',
+                      lineHeight: 1.5
+                    }}>
+                      <li>Find the target user ID (from Clerk or the claims table below).</li>
+                      <li>Click <strong>Revoke</strong> to force the paywall for that user.</li>
+                      <li>Have the user visit a <strong>new subdomain</strong> they do not already own.</li>
+                      <li>They should see the paywall and complete checkout.</li>
+                      <li>Click <strong>Grant</strong> to bypass the paywall for future tests.</li>
+                    </ol>
+                    <div style={{
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      color: 'var(--admin-text)',
+                      background: 'rgba(15, 23, 42, 0.04)',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: '8px',
+                      marginBottom: '0.5rem'
+                    }}>
+                      Revoke = paywall. Grant = bypass.
+                    </div>
+                    <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>
+                      If a user already owns a subdomain, they may be redirected instead of seeing the paywall.
+                    </div>
+                  </div>
+
                   {/* Quota tools */}
                   <div style={{
                     background: 'var(--admin-card-bg)',
