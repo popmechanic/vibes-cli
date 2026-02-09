@@ -13,6 +13,12 @@ import {
 
 const app = new Hono<{ Bindings: Env }>();
 
+const parseAdminIds = (value?: string): string[] =>
+  (value ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean);
+
 // CORS middleware
 app.use("*", cors());
 
@@ -105,6 +111,54 @@ app.post("/claim", async (c) => {
 
   await kv.write(registry);
   return c.json({ success: true, subdomain: result.subdomain }, 201);
+});
+
+// POST /admin/quotas - Admin-only quota toggles (testing)
+app.post("/admin/quotas", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const permittedOrigins = parsePermittedOrigins(c.env.PERMITTED_ORIGINS);
+
+  const authResult = await verifyClerkJWTDebug(authHeader, c.env.CLERK_PEM_PUBLIC_KEY, permittedOrigins);
+  if ("error" in authResult) {
+    return c.json(
+      {
+        error: "Unauthorized",
+        failReason: authResult.error,
+        permittedOrigins,
+      },
+      401
+    );
+  }
+  const auth = authResult;
+
+  const adminIds = parseAdminIds(c.env.ADMIN_USER_IDS);
+  if (adminIds.length === 0 || !adminIds.includes(auth.userId)) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
+  let body: { userId?: string; enabled?: boolean };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON" }, 400);
+  }
+
+  if (!body.userId || typeof body.enabled !== "boolean") {
+    return c.json({ error: "Missing userId or enabled flag" }, 400);
+  }
+
+  const kv = new RegistryKV(c.env.REGISTRY_KV);
+  const registry = await kv.read();
+  registry.quotas = registry.quotas ?? {};
+
+  if (body.enabled) {
+    registry.quotas[body.userId] = 1;
+  } else {
+    delete registry.quotas[body.userId];
+  }
+
+  await kv.write(registry);
+  return c.json({ success: true, quotas: registry.quotas });
 });
 
 // POST /webhook - Clerk subscription webhooks

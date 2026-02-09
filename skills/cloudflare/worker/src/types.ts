@@ -6,4 +6,5 @@ export interface Env {
   RESERVED_SUBDOMAINS?: string;
   OPENROUTER_API_KEY?: string;
   BILLING_MODE?: string;
+  ADMIN_USER_IDS?: string;
 }
