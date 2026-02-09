@@ -263,9 +263,79 @@ Current diagnostics:
 
   const isPulsing = status === "connecting" || status === "reconnecting";
 
+  const syncColor = STATUS_COLORS[status] || STATUS_COLORS.idle;
+  const syncLabel = {
+    idle: '', connecting: 'connecting', synced: 'synced',
+    reconnecting: 'reconnecting', error: 'offline',
+  }[status] || '';
+  const showBar = status !== 'idle';
+
   return (
     <>
-      <style>{KEYFRAMES}</style>
+      <style>{KEYFRAMES}{`
+        /* Hide the base template SyncStatusDot — this fixture renders its own */
+        [title^="Sync:"] { display: none !important; }
+      `}</style>
+
+      {/* ── Unified status bar (frosted glass) ── */}
+      {showBar && (
+        <div style={{
+          position: "fixed",
+          top: 12,
+          right: 12,
+          zIndex: 50,
+          pointerEvents: "none",
+          display: "flex",
+          alignItems: "center",
+          gap: 0,
+          background: "rgba(245, 245, 244, 0.6)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          borderRadius: 100,
+          border: "1px solid rgba(0,0,0,0.03)",
+          fontFamily: "'IBM Plex Mono', 'SF Mono', monospace",
+          fontSize: 12,
+          fontWeight: 500,
+          letterSpacing: "0.01em",
+          userSelect: "none",
+          transition: "opacity 0.3s ease",
+        }}>
+          {/* docs */}
+          <span style={{ padding: "6px 12px", color: "#64748b", display: "flex", gap: 4 }}>
+            <span>docs</span>
+            <span style={{ color: "#111" }}>{docs.length}</span>
+          </span>
+          <span style={{ width: 1, height: 14, background: "rgba(0,0,0,0.08)" }} />
+          {/* uptime */}
+          <span style={{ padding: "6px 12px", color: "#64748b", display: "flex", gap: 4 }}>
+            <span>up</span>
+            <span style={{ color: "#111" }}>{fmtTime(uptime)}</span>
+          </span>
+          <span style={{ width: 1, height: 14, background: "rgba(0,0,0,0.08)" }} />
+          {/* sync */}
+          <span style={{ padding: "6px 12px 6px 10px", display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ position: "relative", width: 8, height: 8 }}>
+              {status === "synced" && (
+                <span style={{
+                  position: "absolute", top: "50%", left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: "100%", height: "100%", borderRadius: "50%",
+                  background: syncColor,
+                  animation: "vibes-sync-pulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1)",
+                }} />
+              )}
+              <span style={{
+                position: "relative", display: "block",
+                width: 8, height: 8, borderRadius: "50%",
+                background: syncColor,
+                transition: "background-color 0.4s ease",
+              }} />
+            </span>
+            {syncLabel && <span style={{ color: "#111" }}>{syncLabel}</span>}
+          </span>
+        </div>
+      )}
+
       <div style={{
         ...GRAPH_BG,
         minHeight: "100vh",
@@ -286,7 +356,7 @@ Current diagnostics:
           top: 0,
           zIndex: 10,
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
             <span style={{
               color: "#ffffff",
               fontSize: "15px",
@@ -298,10 +368,6 @@ Current diagnostics:
               fontSize: "12px",
               fontWeight: 400,
             }}>{DB_NAME}</span>
-          </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <Badge label="docs" value={docs.length} />
-            <Badge label="uptime" value={fmtTime(uptime)} />
           </div>
         </header>
 
