@@ -256,24 +256,71 @@
       }
 
       // === Claim Prompt (for signed-in users on unclaimed subdomains) ===
-      function ClaimPrompt({ subdomain, onClaim, onCancel }) {
+      function ClaimPrompt({ subdomain, onClaim, onCancel, postPayment }) {
         const [claiming, setClaiming] = useState(false);
         const [isShredding, setIsShredding] = useState(false);
         const [error, setError] = useState(null);
+        const [quotaExceeded, setQuotaExceeded] = useState(false);
+        const [retryStatus, setRetryStatus] = useState(null); // null | 'retrying'
 
         const handleClaim = async () => {
           setClaiming(true);
           setError(null);
+          setQuotaExceeded(false);
+          setRetryStatus(null);
           try {
             const token = await window.Clerk?.session?.getToken();
             if (!token) throw new Error('Not authenticated');
             const result = await claimSubdomain(subdomain, token);
             if (result.success) {
-              // Trigger shredding animation before navigating
               setIsShredding(true);
-              setTimeout(() => {
-                onClaim?.();
-              }, 1200); // Match animation duration
+              setTimeout(() => { onClaim?.(); }, 1200);
+              return;
+            }
+            if (result.status === 402) {
+              // Post-payment: retry with delays for webhook propagation
+              if (postPayment) {
+                setRetryStatus('retrying');
+                for (let i = 0; i < 4; i++) {
+                  await new Promise(r => setTimeout(r, 3000));
+                  try {
+                    const freshToken = await window.Clerk?.session?.getToken({ skipCache: true });
+                    if (!freshToken) continue;
+                    const retryResult = await claimSubdomain(subdomain, freshToken);
+                    if (retryResult.success) {
+                      setRetryStatus(null);
+                      setIsShredding(true);
+                      setTimeout(() => { onClaim?.(); }, 1200);
+                      return;
+                    }
+                    if (retryResult.status !== 402) {
+                      setRetryStatus(null);
+                      setError(retryResult.error || 'Failed to claim subdomain');
+                      return;
+                    }
+                  } catch (_) { /* continue retrying */ }
+                }
+                setRetryStatus(null);
+                setQuotaExceeded(true);
+                return;
+              }
+              // Non-post-payment: existing single fresh-token retry for stale pla
+              const parts = token.split('.');
+              const payload = JSON.parse(atob(parts[1]));
+              if (!payload.pla) {
+                try {
+                  const freshToken = await window.Clerk?.session?.getToken({ skipCache: true });
+                  if (freshToken) {
+                    const retryResult = await claimSubdomain(subdomain, freshToken);
+                    if (retryResult.success) {
+                      setIsShredding(true);
+                      setTimeout(() => { onClaim?.(); }, 1200);
+                      return;
+                    }
+                  }
+                } catch (_) { /* fall through to upgrade prompt */ }
+              }
+              setQuotaExceeded(true);
             } else {
               setError(result.error || 'Failed to claim subdomain');
             }
@@ -284,25 +331,236 @@
           }
         };
 
+        if (quotaExceeded) {
+          return <UpgradePrompt redirectUrl={window.location.href} />;
+        }
+
         return (
           <AuthScreen
             title={`Claim ${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`}
-            message={error || "This subdomain is available! Would you like to claim it?"}
+            message={retryStatus === 'retrying' ? 'Processing your payment... this may take a moment.' : error || "This subdomain is available! Would you like to claim it?"}
             showCard={true}
             isShredding={isShredding}
             isError={!!error}
           >
             <div onClick={handleClaim}>
               <VibesButton variant={RED} buttonType="form" disabled={claiming}>
-                {claiming ? 'Claiming...' : 'Claim This Subdomain'}
+                {retryStatus === 'retrying' ? 'Processing payment...' : claiming ? 'Claiming...' : 'Claim This Subdomain'}
               </VibesButton>
             </div>
-            {onCancel && (
+            {onCancel && retryStatus !== 'retrying' && (
               <div onClick={onCancel} style={{ cursor: 'pointer', textAlign: 'center', color: '#666', fontSize: '0.875rem' }}>
                 Cancel
               </div>
             )}
           </AuthScreen>
+        );
+      }
+
+      // === Subscription Paywall (shown when user needs to subscribe) ===
+      function SubscriptionPaywall({ redirectUrl }) {
+        const { PricingTable } = window.ClerkComponents || {};
+
+        // Persist subdomain for post-payment redirect recovery
+        useEffect(() => {
+          if (routeInfo.subdomain) {
+            sessionStorage.setItem('vibes_pending_subdomain', routeInfo.subdomain);
+          }
+        }, []);
+
+        if (PricingTable) {
+          return (
+            <div style={{
+              minHeight: '100vh',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: '2rem',
+              background: '#ECECEC',
+              fontFamily: "'Space Grotesk', 'Inter', sans-serif",
+            }}>
+              <h2 style={{
+                fontSize: 'clamp(1.5rem, 4vw, 2.5rem)',
+                fontWeight: 700,
+                letterSpacing: '-0.04em',
+                marginBottom: '0.5rem',
+                textAlign: 'center',
+              }}>Subscribe to Continue</h2>
+              <p style={{
+                color: '#666',
+                marginBottom: '2rem',
+                textAlign: 'center',
+                fontSize: '1.1rem',
+              }}>Choose a plan to get started.</p>
+              <div style={{ width: '100%', maxWidth: '600px' }}>
+                <PricingTable
+                  newSubscriptionRedirectUrl={redirectUrl || window.location.href}
+                />
+              </div>
+            </div>
+          );
+        }
+
+        // Fallback when PricingTable is not available
+        return (
+          <AuthScreen
+            title="Subscription Required"
+            message="A subscription is required to use this app."
+            showCard={true}
+          >
+            <a
+              href={`https://accounts.clerk.dev/user/billing`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: 'none' }}
+            >
+              <VibesButton variant={RED} buttonType="form">
+                Manage Subscription
+              </VibesButton>
+            </a>
+          </AuthScreen>
+        );
+      }
+
+      // === Existing Subdomain Redirect (shown when quota full but user has a space) ===
+      function ExistingSubdomainRedirect({ userSubdomains }) {
+        const [showPricing, setShowPricing] = useState(false);
+        const ownedSub = userSubdomains[0];
+        const targetUrl = needsQueryParamRouting()
+          ? `${window.location.origin}?subdomain=${ownedSub}`
+          : `https://${ownedSub}.${APP_DOMAIN}`;
+
+        if (showPricing) {
+          return <UpgradePrompt redirectUrl={window.location.href} />;
+        }
+
+        return (
+          <AuthScreen
+            title="You Already Have a Space"
+            message={`Your subdomain is ${ownedSub}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN} — purchase another subscription to claim more.`}
+            showCard={true}
+          >
+            <a href={targetUrl} style={{ textDecoration: 'none' }}>
+              <VibesButton variant={RED} buttonType="form">
+                Go to My App
+              </VibesButton>
+            </a>
+            <div onClick={() => setShowPricing(true)} style={{ cursor: 'pointer' }}>
+              <VibesButton variant={YELLOW} buttonType="form">
+                Claim This Domain
+              </VibesButton>
+            </div>
+          </AuthScreen>
+        );
+      }
+
+      // === Upgrade Prompt (shown when claim returns 402 — quota exceeded) ===
+      function UpgradePrompt({ redirectUrl }) {
+        const { PricingTable } = window.ClerkComponents || {};
+
+        // Persist subdomain for post-payment redirect recovery
+        useEffect(() => {
+          if (routeInfo.subdomain) {
+            sessionStorage.setItem('vibes_pending_subdomain', routeInfo.subdomain);
+          }
+        }, []);
+
+        if (PricingTable) {
+          return (
+            <div style={{
+              minHeight: '100vh',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: '2rem',
+              background: '#ECECEC',
+              fontFamily: "'Space Grotesk', 'Inter', sans-serif",
+            }}>
+              <h2 style={{
+                fontSize: 'clamp(1.5rem, 4vw, 2.5rem)',
+                fontWeight: 700,
+                letterSpacing: '-0.04em',
+                marginBottom: '0.5rem',
+                textAlign: 'center',
+              }}>Upgrade Your Plan</h2>
+              <p style={{
+                color: '#666',
+                marginBottom: '2rem',
+                textAlign: 'center',
+                fontSize: '1.1rem',
+              }}>You've reached your subdomain limit. Upgrade to claim more.</p>
+              <div style={{ width: '100%', maxWidth: '600px' }}>
+                <PricingTable
+                  newSubscriptionRedirectUrl={redirectUrl || window.location.href}
+                />
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <AuthScreen
+            title="Upgrade Your Plan"
+            message="You've reached your subdomain limit. Upgrade your plan to claim more."
+            showCard={true}
+          >
+            <a
+              href={`https://accounts.clerk.dev/user/billing`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ textDecoration: 'none' }}
+            >
+              <VibesButton variant={RED} buttonType="form">
+                Upgrade Plan
+              </VibesButton>
+            </a>
+          </AuthScreen>
+        );
+      }
+
+      // === Subscription Gate (wraps tenant content, checks billing) ===
+      function SubscriptionGate({ children }) {
+        const [registryAllowed, setRegistryAllowed] = useState(null); // null=loading, true/false
+        const { sessionClaims, isLoaded } = window.useAuth();
+        const { user } = window.useUser();
+
+        // Registry fallback (runs once per user)
+        useEffect(() => {
+          if (BILLING_MODE !== 'required' || !user?.id) return;
+          if (ADMIN_USER_IDS.includes(user.id)) return;
+          // Skip registry if JWT already has plan claim
+          if (sessionClaims?.pla) return;
+          fetchRegistry().then(registry => {
+            const userQuota = (registry.quotas || {})[user.id];
+            setRegistryAllowed(userQuota !== undefined && userQuota > 0);
+          }).catch(() => setRegistryAllowed(false)); // fail closed — show paywall on error
+        }, [user?.id, sessionClaims?.pla]);
+
+        // Fast-pass checks (no loading state needed)
+        if (BILLING_MODE !== 'required') return children;
+        if (!isLoaded) {
+          return (
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="text-gray-500">Checking subscription...</div>
+            </div>
+          );
+        }
+        if (user?.id && ADMIN_USER_IDS.includes(user.id)) return children;
+
+        // Primary: JWT pla claim (instant, no API call)
+        if (sessionClaims?.pla) return children;
+
+        // Fallback: Registry quota
+        if (registryAllowed === true) return children;
+        if (registryAllowed === false) return <SubscriptionPaywall redirectUrl={window.location.href} />;
+
+        // Still loading registry — show spinner
+        return (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-gray-500">Checking subscription...</div>
+          </div>
         );
       }
 
@@ -329,10 +587,50 @@
 
       function ClaimPromptWrapper({ subdomain, onClaimSuccess }) {
         const { user } = window.useUser();
+        const { sessionClaims } = window.useAuth();
+        const [quotaCheck, setQuotaCheck] = useState({ loading: true, exceeded: false, userSubdomains: [] });
+
+        // If returning from payment flow, skip client-side quota check — let server decide
+        const pendingSub = sessionStorage.getItem('vibes_pending_subdomain');
+        const skipQuotaCheck = pendingSub === subdomain;
+
+        useEffect(() => {
+          if (skipQuotaCheck) {
+            sessionStorage.removeItem('vibes_pending_subdomain');
+            setQuotaCheck({ loading: false, exceeded: false, userSubdomains: [] });
+            return;
+          }
+          if (!user?.id) return;
+          fetchRegistry().then(registry => {
+            const userClaimEntries = Object.entries(registry.claims || {}).filter(([, c]) => c.userId === user.id);
+            const userSubdomains = userClaimEntries.map(([sub]) => sub);
+            const webhookQuota = registry.quotas?.[user.id];
+            const jwtQuota = (BILLING_MODE === 'required') ? (sessionClaims?.pla ? 1 : 0) : 999;
+            const quota = webhookQuota ?? jwtQuota;
+            setQuotaCheck({ loading: false, exceeded: userSubdomains.length >= quota, userSubdomains });
+          }).catch(() => setQuotaCheck({ loading: false, exceeded: false, userSubdomains: [] }));
+        }, [user?.id]);
+
+        if (quotaCheck.loading) {
+          return (
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="text-gray-500">Checking availability...</div>
+            </div>
+          );
+        }
+        if (quotaCheck.exceeded) {
+          // If user has existing subdomains, redirect them there instead of dead-end PricingTable
+          if (quotaCheck.userSubdomains.length > 0) {
+            return <ExistingSubdomainRedirect userSubdomains={quotaCheck.userSubdomains} />;
+          }
+          // No subdomains but quota full (edge case) — show upgrade prompt
+          return <UpgradePrompt redirectUrl={window.location.href} />;
+        }
         return (
           <ClaimPrompt
             subdomain={subdomain}
             onClaim={() => onClaimSuccess(user?.id)}
+            postPayment={skipQuotaCheck}
           />
         );
       }
@@ -390,7 +688,9 @@
           return (
             <>
               <SignedIn>
-                <ClaimPromptWrapper subdomain={subdomain} onClaimSuccess={onClaimSuccess} />
+                <SubscriptionGate>
+                  <ClaimPromptWrapper subdomain={subdomain} onClaimSuccess={onClaimSuccess} />
+                </SubscriptionGate>
               </SignedIn>
               <SignedOut>
                 <AuthGate />
@@ -403,7 +703,9 @@
         return (
           <>
             <SignedIn>
-              <TenantOwnerCheck subdomain={subdomain} ownerId={claimState.owner} />
+              <SubscriptionGate>
+                <TenantOwnerCheck subdomain={subdomain} ownerId={claimState.owner} />
+              </SubscriptionGate>
             </SignedIn>
             <SignedOut>
               <AuthGate />
@@ -416,6 +718,15 @@
       function AdminDashboardContent() {
         const { user } = window.useUser();
         const { UserButton } = window.ClerkComponents;
+        const [registry, setRegistry] = useState(null);
+        const [loading, setLoading] = useState(true);
+        const [error, setError] = useState(null);
+
+        useEffect(() => {
+          fetchRegistry()
+            .then(data => { setRegistry(data); setLoading(false); })
+            .catch(e => { setError(e.message); setLoading(false); });
+        }, []);
 
         if (!ADMIN_USER_IDS.includes(user?.id)) {
           return (
@@ -427,16 +738,109 @@
             </div>
           );
         }
+
+        const claims = registry?.claims || {};
+        const quotas = registry?.quotas || {};
+        const claimEntries = Object.entries(claims);
+        const uniqueUsers = new Set(claimEntries.map(([, c]) => c.userId));
+        const subscribedUsers = Object.keys(quotas).length;
+
         return (
-          <div className="min-h-screen bg-gray-50 p-8">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <div style={{ minHeight: '100vh', background: 'var(--admin-bg)', padding: '2rem', fontFamily: "'Inter', sans-serif" }}>
+            <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                <h1 style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--admin-text)', letterSpacing: '-0.02em' }}>Admin Dashboard</h1>
                 <UserButton />
               </div>
-              <div className="bg-white rounded-xl shadow p-6">
-                <p className="text-gray-600">Admin dashboard coming soon...</p>
-              </div>
+
+              {loading ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--admin-text-muted)' }}>Loading registry data...</div>
+              ) : error ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#ef4444' }}>Failed to load registry: {error}</div>
+              ) : (
+                <>
+                  {/* Stats cards */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                    {[
+                      { label: 'Claimed Subdomains', value: claimEntries.length },
+                      { label: 'Unique Users', value: uniqueUsers.size },
+                      { label: 'Subscribed Users', value: subscribedUsers },
+                      { label: 'Billing Mode', value: BILLING_MODE || 'none' }
+                    ].map((stat, i) => (
+                      <div key={i} style={{
+                        background: 'var(--admin-card-bg)',
+                        borderRadius: '12px',
+                        padding: '1.25rem',
+                        border: '2px solid var(--admin-border)',
+                        boxShadow: '4px 4px 0 var(--admin-shadow)'
+                      }}>
+                        <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--admin-text-muted)', marginBottom: '0.5rem' }}>{stat.label}</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--admin-text)' }}>{stat.value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Claims table */}
+                  <div style={{
+                    background: 'var(--admin-card-bg)',
+                    borderRadius: '12px',
+                    border: '2px solid var(--admin-border)',
+                    boxShadow: '4px 4px 0 var(--admin-shadow)',
+                    overflow: 'hidden',
+                    marginBottom: '2rem'
+                  }}>
+                    <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                      <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--admin-text)' }}>Claimed Subdomains</h2>
+                    </div>
+                    {claimEntries.length === 0 ? (
+                      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--admin-text-muted)' }}>No subdomains claimed yet.</div>
+                    ) : (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                              <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontWeight: 600, color: 'var(--admin-text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subdomain</th>
+                              <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontWeight: 600, color: 'var(--admin-text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>User ID</th>
+                              <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontWeight: 600, color: 'var(--admin-text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Claimed</th>
+                              <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontWeight: 600, color: 'var(--admin-text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quota</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {claimEntries.map(([sub, claim]) => (
+                              <tr key={sub} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                                <td style={{ padding: '0.75rem 1.25rem', fontWeight: 500, color: 'var(--admin-text)' }}>
+                                  {sub}.{APP_DOMAIN}
+                                </td>
+                                <td style={{ padding: '0.75rem 1.25rem', color: 'var(--admin-text-muted)', fontFamily: 'monospace', fontSize: '0.8rem' }}>
+                                  {claim.userId}
+                                </td>
+                                <td style={{ padding: '0.75rem 1.25rem', color: 'var(--admin-text-muted)' }}>
+                                  {claim.claimedAt ? new Date(claim.claimedAt).toLocaleDateString() : '—'}
+                                </td>
+                                <td style={{ padding: '0.75rem 1.25rem', color: 'var(--admin-text-muted)' }}>
+                                  {quotas[claim.userId] !== undefined ? quotas[claim.userId] : '—'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Links */}
+                  <div style={{ textAlign: 'center' }}>
+                    <a
+                      href="https://dashboard.clerk.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: 'var(--admin-text-muted)', fontSize: '0.875rem', textDecoration: 'underline' }}
+                    >
+                      Open Clerk Dashboard
+                    </a>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         );
@@ -536,7 +940,7 @@
             text-align: center;
             max-width: 1200px;
             width: 100%;
-            padding: 0 2rem;
+            padding: 6rem 2rem 0;
         }
 
         .landing-page h1 {
@@ -696,9 +1100,8 @@
         }
 
         .landing-page .footer-strip {
-            position: fixed;
-            bottom: 2rem;
             width: 100%;
+            padding: 4rem 0 2rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -751,6 +1154,74 @@
         .landing-page .status-taken { color: #ef4444; }
         .landing-page .status-error { color: #ef4444; }
 
+        .landing-page .pricing-section {
+            padding: 6rem 2rem 4rem;
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto;
+            opacity: 0;
+            animation: fadeUp 1s var(--easing) forwards 1s;
+        }
+
+        .landing-page .pricing-section h2 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            letter-spacing: -0.04em;
+            margin-bottom: 3rem;
+            color: var(--text-main);
+        }
+
+        .landing-page .features-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 auto 3rem;
+            max-width: 400px;
+            text-align: left;
+        }
+
+        .landing-page .features-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 0;
+            font-size: 1.1rem;
+            color: var(--text-main);
+            border-bottom: 1px solid rgba(0,0,0,0.06);
+        }
+
+        .landing-page .features-list li:last-child {
+            border-bottom: none;
+        }
+
+        .landing-page .check-icon {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            background: var(--text-main);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .landing-page .pricing-cta {
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 0.75rem;
+        }
+
+        .landing-page .pricing-trust {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            font-size: 0.8rem;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
         @media (max-width: 768px) {
             .landing-page h1 {
                 font-size: 3.5rem;
@@ -777,8 +1248,41 @@
                 max-width: 120px;
                 text-align: right;
             }
+            .landing-page .pricing-trust {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: center;
+            }
         }
       `;
+
+      // === Pricing Section (shown on landing page when billing is required) ===
+      function PricingSection() {
+        if (BILLING_MODE !== 'required' || !FEATURES || FEATURES.length === 0) return null;
+
+        return (
+          <div className="pricing-section">
+            <h2>What You Get</h2>
+            <ul className="features-list">
+              {FEATURES.map((feature, i) => (
+                <li key={i}>
+                  <span className="check-icon">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </span>
+                  {feature}
+                </li>
+              ))}
+            </ul>
+            <p className="pricing-cta">Get started — plans start after signup</p>
+            <div className="pricing-trust">
+              <span>Cancel anytime</span>
+              <span>No credit card to try</span>
+            </div>
+          </div>
+        );
+      }
 
       // === Landing Page Component (design reference transformation) ===
       function SellLandingPage() {
@@ -786,6 +1290,22 @@
         const [registryStatus, setRegistryStatus] = useState('checking');
         const { available, checking, error } = useSubdomainChecker(subdomain);
         const copyrightRef = useRef(null);
+
+        // Post-payment redirect recovery: if user was on a subdomain before
+        // Clerk payment redirect, restore it and navigate back
+        useEffect(() => {
+          const pending = sessionStorage.getItem('vibes_pending_subdomain');
+          if (pending) {
+            sessionStorage.removeItem('vibes_pending_subdomain');
+            const url = new URL(window.location.href);
+            if (needsQueryParamRouting()) {
+              url.searchParams.set('subdomain', pending);
+            } else {
+              url.hostname = `${pending}.${APP_DOMAIN}`;
+            }
+            window.location.href = url.toString();
+          }
+        }, []);
 
         // Check registry availability on mount
         useEffect(() => {
@@ -886,6 +1406,9 @@
                 </div>
               </main>
 
+              {/* Pricing section (only when billing is required) */}
+              <PricingSection />
+
               {/* Footer with attribution */}
               <div className="footer-strip">
                 <div className="footer-item">
@@ -944,7 +1467,8 @@
         try {
           const clerkModule = await import("@fireproof/clerk");
           // SignUpButton is not exported by fireproof-clerk bundle, import from @clerk/clerk-react directly
-          const { SignUpButton } = await import("@clerk/clerk-react");
+          const clerkReact = await import("@clerk/clerk-react");
+          const { SignUpButton } = clerkReact;
 
           window.ClerkFireproofProvider = clerkModule.ClerkFireproofProvider;
           window.ClerkComponents = {
@@ -960,6 +1484,11 @@
           window.SignInButton = clerkModule.SignInButton;
           window.SignUpButton = SignUpButton;  // From @clerk/clerk-react
           window.UserButton = clerkModule.UserButton;
+
+          // Billing components (beta — gracefully handle missing exports)
+          if (clerkReact.PricingTable) window.ClerkComponents.PricingTable = clerkReact.PricingTable;
+          if (clerkReact.useAuth) window.useAuth = clerkReact.useAuth;
+          if (clerkReact.Protect) window.ClerkComponents.Protect = clerkReact.Protect;
 
           // Export useUser hook for wrapper components that need user info
           window.useUser = clerkModule.useUser;

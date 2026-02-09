@@ -417,3 +417,42 @@ WHAT WORKS
 
 ══════════════════════════════════════════════════════════════════
 `);
+
+// Print billing-specific guidance when billing is enabled
+if ((options.billingMode || 'off') === 'required') {
+  console.log(`
+══════════════════════════════════════════════════════════════════
+  BILLING MODE: REQUIRED
+══════════════════════════════════════════════════════════════════
+
+  Your app requires paid subscriptions. Before users can access
+  tenant apps, they must subscribe through Clerk Billing.
+
+  CLERK DASHBOARD SETUP
+  ─────────────────────
+  1. Go to Clerk Dashboard → Billing → Get Started
+  2. Create at least one subscription plan
+  3. Connect your Stripe account (or use Stripe sandbox for testing)
+
+  TESTING WITH STRIPE SANDBOX
+  ───────────────────────────
+  Clerk dev instances auto-connect to Stripe sandbox — no Stripe
+  account needed for testing. Use these test card numbers:
+
+  ┌──────────────────────────┬─────────────────────────┐
+  │ Card Number              │ Result                  │
+  ├──────────────────────────┼─────────────────────────┤
+  │ 4242 4242 4242 4242      │ Success                 │
+  │ 4000 0000 0000 0002      │ Declined                │
+  │ 4000 0027 6000 3184      │ 3D Secure required      │
+  │ 4000 0000 0000 9995      │ Insufficient funds      │
+  └──────────────────────────┴─────────────────────────┘
+
+  Any future expiry date and any 3-digit CVC will work.
+
+  See CLERK-SETUP.md section "5.0 Development & Test Mode"
+  for a step-by-step first billing test walkthrough.
+
+══════════════════════════════════════════════════════════════════
+`);
+}

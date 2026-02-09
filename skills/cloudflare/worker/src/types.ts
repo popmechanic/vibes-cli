@@ -5,4 +5,5 @@ export interface Env {
   PERMITTED_ORIGINS?: string;
   RESERVED_SUBDOMAINS?: string;
   OPENROUTER_API_KEY?: string;
+  BILLING_MODE?: string;
 }
