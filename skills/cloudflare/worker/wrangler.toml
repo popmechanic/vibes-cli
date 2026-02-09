@@ -16,6 +16,8 @@ directory = "./public"
 [vars]
 # Default reserved subdomains
 RESERVED_SUBDOMAINS = "admin,api,www,billing"
+# Billing mode: "required" enforces subscription check on /claim
+BILLING_MODE = "required"
 
 # Secrets (set via `wrangler secret put`):
 # - CLERK_PEM_PUBLIC_KEY
