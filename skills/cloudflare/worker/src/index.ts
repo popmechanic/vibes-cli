@@ -74,14 +74,24 @@ app.post("/claim", async (c) => {
     registry.reserved = c.env.RESERVED_SUBDOMAINS.split(",").map((s) => s.trim());
   }
 
+  // Idempotent: if user already owns this subdomain, return success
+  const normalized = body.subdomain.toLowerCase().trim();
+  if (registry.claims?.[normalized]?.userId === auth.userId) {
+    return c.json({ success: true, subdomain: normalized }, 201);
+  }
+
   const availability = isSubdomainAvailable(registry, body.subdomain);
   if (!availability.available) {
     return c.json({ error: "Subdomain not available", reason: availability.reason }, 409);
   }
 
-  // Check quota
+  // Check quota — webhook-set quota is authoritative; JWT pla claim proves subscription; default is 0
   const userClaims = getUserClaims(registry, auth.userId);
-  const quota = registry.quotas?.[auth.userId] ?? 999;
+  const webhookQuota = registry.quotas?.[auth.userId];
+  const jwtQuota = (c.env.BILLING_MODE === 'required')
+    ? (auth.pla ? 1 : 0)   // subscribed = 1 claim, free = 0
+    : 999;                   // no billing = unlimited
+  const quota = webhookQuota ?? jwtQuota;
   if (userClaims.length >= quota) {
     return c.json(
       {
@@ -134,8 +144,9 @@ app.post("/webhook", async (c) => {
     event.type === "subscription.updated" ||
     event.type === "subscription.deleted"
   ) {
-    const userId = event.data.user_id;
-    const newQuantity = event.type === "subscription.deleted" ? 0 : (event.data.quantity ?? 1);
+    // Clerk Commerce nests user_id inside data.payer
+    const eventData = event.data as any;
+    const userId = eventData.payer?.user_id ?? eventData.user_id;
 
     if (!userId) {
       return c.json({ error: "Missing user_id" }, 400);
@@ -144,16 +155,27 @@ app.post("/webhook", async (c) => {
     const kv = new RegistryKV(c.env.REGISTRY_KV);
     const registry = await kv.read();
 
-    // Update quota
+    // Additive quota: each subscription.created adds 1 slot, each deleted removes 1
     registry.quotas = registry.quotas ?? {};
-    if (newQuantity > 0) {
-      registry.quotas[userId] = newQuantity;
-    } else {
-      delete registry.quotas[userId];
-    }
+    const currentQuota = registry.quotas[userId] ?? 0;
 
-    // Process subscription change (may release subdomains)
-    const result = processSubscriptionChange(registry, userId, newQuantity);
+    if (event.type === "subscription.created") {
+      // Each new subscription adds 1 subdomain slot
+      registry.quotas[userId] = currentQuota + 1;
+    } else if (event.type === "subscription.deleted") {
+      // Canceling removes 1 slot (floor at 0)
+      const newQuota = Math.max(currentQuota - 1, 0);
+      if (newQuota > 0) {
+        registry.quotas[userId] = newQuota;
+      } else {
+        delete registry.quotas[userId];
+      }
+    }
+    // subscription.updated: keep current quota (status changes don't affect slot count)
+
+    // Process subscription change (may release subdomains if quota dropped below claims)
+    const finalQuota = registry.quotas[userId] ?? 0;
+    const result = processSubscriptionChange(registry, userId, finalQuota);
     if (result.released.length > 0) {
       console.log(`Released ${result.released.length} subdomains for user ${userId}`);
     }

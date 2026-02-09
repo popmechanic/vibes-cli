@@ -114,6 +114,58 @@ echo "whsec_xxxxx" | npx wrangler secret put CLERK_WEBHOOK_SECRET --name myapp
 
 ---
 
+## 5.0 Development & Test Mode
+
+Clerk dev instances (`pk_test_*` keys) auto-connect to Stripe sandbox. You do **not** need a Stripe account to test billing flows.
+
+### Test Card Numbers
+
+| Card Number | Result |
+|-------------|--------|
+| `4242 4242 4242 4242` | Successful payment |
+| `4000 0000 0000 0002` | Declined |
+| `4000 0027 6000 3184` | 3D Secure authentication required |
+| `4000 0000 0000 9995` | Insufficient funds |
+
+For all test cards: use any future expiry date (e.g., `12/34`) and any 3-digit CVC (e.g., `123`).
+
+### First Billing Test Walkthrough
+
+1. **Assemble with billing enabled:**
+   ```bash
+   node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
+     --billing-mode required \
+     --clerk-key "pk_test_xxx" \
+     ... (other options)
+   ```
+
+2. **Create a plan in Clerk Dashboard:**
+   - Go to **Billing** > **Plans** > **Create Plan**
+   - Name it (e.g., `pro`) — plan names are case-sensitive
+   - Set a test price (e.g., $5/month)
+   - Save the plan
+
+3. **Deploy and visit your app:**
+   - Deploy with `/vibes:cloudflare` or `deploy-cloudflare.js`
+   - Open `https://{domain}` — the landing page should show a PricingTable
+
+4. **Test the subscription flow:**
+   - Click a plan to start checkout
+   - Enter test card `4242 4242 4242 4242`, any future expiry, any CVC
+   - Complete checkout — you should be redirected to the tenant app
+
+5. **Verify paywall enforcement:**
+   - Open a private/incognito window
+   - Visit `https://{domain}?subdomain=test` and sign in with a new account
+   - You should see the SubscriptionPaywall (not the app)
+
+6. **Test cancellation:**
+   - Go to Clerk Dashboard > Users > click the subscribed user
+   - Cancel their subscription
+   - Wait 10-15 seconds, then reload the tenant page — the user should see the paywall again
+
+---
+
 ## 5. Enable Clerk Billing (Required for `--billing-mode required`)
 
 If your app uses `--billing-mode required`, you must configure Clerk Billing:

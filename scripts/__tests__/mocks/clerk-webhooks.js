@@ -154,7 +154,10 @@ export function createSubscriptionCreatedEvent(options = {}) {
       billing_period: billingPeriod,
       amount,
       created_at: createdAt,
-      current_period_end: currentPeriodEnd
+      current_period_end: currentPeriodEnd,
+      // Clerk Commerce format: items array for subscription line items
+      items: [{ plan_id: planId, status: 'active', quantity: 1 }],
+      payer: { user_id: userId }
     },
     object: 'event'
   };
@@ -193,7 +196,42 @@ export function createSubscriptionUpdatedEvent(options = {}) {
       status,
       billing_period: billingPeriod,
       amount,
-      current_period_end: currentPeriodEnd
+      current_period_end: currentPeriodEnd,
+      items: [{ plan_id: planId, status, quantity: 1 }],
+      payer: { user_id: userId }
+    },
+    object: 'event'
+  };
+
+  const headers = generateSvixHeaders(payload, secret);
+
+  return {
+    payload,
+    headers,
+    request: createMockRequest(payload, headers)
+  };
+}
+
+/**
+ * Create subscription.deleted webhook event
+ */
+export function createSubscriptionDeletedEvent(options = {}) {
+  const {
+    subscriptionId = `sub_${Date.now()}`,
+    userId = `user_${Date.now()}`,
+    deletedAt = Date.now(),
+    secret = DEFAULT_SECRET
+  } = options;
+
+  const payload = {
+    type: 'subscription.deleted',
+    data: {
+      id: subscriptionId,
+      user_id: userId,
+      subscriber_id: userId,
+      status: 'deleted',
+      deleted_at: deletedAt,
+      payer: { user_id: userId }
     },
     object: 'event'
   };
