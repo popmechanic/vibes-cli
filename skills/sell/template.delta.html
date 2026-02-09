@@ -543,7 +543,8 @@
 
           const checkRegistry = async (attempt) => {
             try {
-              const registry = await fetchRegistry({ force: attempt > 0 });
+              const force = attempt > 0 || pendingSubdomain;
+              const registry = await fetchRegistry({ force });
               const userQuota = (registry.quotas || {})[user.id];
               if (userQuota !== undefined && userQuota > 0) {
                 if (!cancelled) setRegistryAllowed(true);
