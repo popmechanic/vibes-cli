@@ -176,5 +176,28 @@ describe('Assembly Pipeline', () => {
       const unreplaced = allPlaceholders.filter(p => !SAFE_PLACEHOLDERS.includes(p));
       expect(unreplaced).toEqual([]);
     });
+
+    it('includes paywall test checklist copy', () => {
+      const fixture = join(FIXTURES_DIR, 'sell-ready.jsx');
+      const appJsx = join(workDir, 'app.jsx');
+      const output = join(workDir, 'index.html');
+
+      copyFileSync(fixture, appJsx);
+
+      const cmd = [
+        `node ${join(SCRIPTS_DIR, 'assemble-sell.js')}`,
+        `"${appJsx}" "${output}"`,
+        `--app-name test-app`,
+        `--app-title "Test App"`,
+        `--domain test.workers.dev`,
+        `--billing-mode off`,
+      ].join(' ');
+
+      execSync(cmd, { stdio: 'pipe', cwd: workDir });
+
+      const html = readFileSync(output, 'utf8');
+      expect(html).toContain('Paywall Test Checklist');
+      expect(html).toContain('Revoke = paywall. Grant = bypass.');
+    });
   });
 });
