@@ -152,14 +152,9 @@
       }
 
       /* Sync status indicator animations */
-      @keyframes vibes-sync-breathe {
-        0%, 100% { transform: scale(1); opacity: 0.9; }
-        50% { transform: scale(1.35); opacity: 0.5; }
-      }
-      @keyframes vibes-sync-bloom {
-        0% { transform: scale(1); box-shadow: 0 0 0 0 currentColor; }
-        50% { transform: scale(1.15); box-shadow: 0 0 8px 3px currentColor; }
-        100% { transform: scale(1); box-shadow: 0 0 0 0 currentColor; }
+      @keyframes vibes-sync-pulse {
+        0% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
+        100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
       }
     </style>
   </head>
@@ -2233,22 +2228,20 @@ if (typeof window !== 'undefined') {
       };
       var SYNC_STATUS_LABELS = {
         idle: '',
-        connecting: '',
+        connecting: 'connecting',
         synced: 'synced',
-        reconnecting: '',
+        reconnecting: 'reconnecting',
         error: 'offline'
       };
 
       function SyncStatusDot() {
         var statusRef = React.useRef(window.__VIBES_SYNC_STATUS__ || 'idle');
-        var prevStatusRef = React.useRef('idle');
         var _s = React.useState(0);
         var forceUpdate = _s[1];
 
         React.useEffect(function() {
           function onStatusChange() {
             var next = window.__VIBES_SYNC_STATUS__ || 'idle';
-            prevStatusRef.current = statusRef.current;
             statusRef.current = next;
             forceUpdate(function(n) { return n + 1; });
           }
@@ -2261,10 +2254,10 @@ if (typeof window !== 'undefined') {
         var status = statusRef.current;
         var color = SYNC_STATUS_COLORS[status] || '#94a3b8';
         var label = SYNC_STATUS_LABELS[status] || '';
-        var isActive = status === 'connecting' || status === 'reconnecting';
-        var justSynced = status === 'synced' && prevStatusRef.current !== 'synced' && prevStatusRef.current !== 'idle';
+        var isIdle = status === 'idle';
+        var isSynced = status === 'synced';
 
-        // Container — fixed top-right, never intercepts clicks
+        // Pill container — fixed top-right, frosted glass
         var containerStyle = {
           position: 'fixed',
           top: '12px',
@@ -2273,47 +2266,57 @@ if (typeof window !== 'undefined') {
           pointerEvents: 'none',
           display: 'flex',
           alignItems: 'center',
-          gap: '6px',
+          gap: '8px',
+          background: 'rgba(245, 245, 244, 0.6)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          padding: '6px 12px',
+          borderRadius: '100px',
+          border: '1px solid rgba(0, 0, 0, 0.03)',
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          fontSize: '11px',
+          fontSize: '12px',
           fontWeight: '500',
-          letterSpacing: '0.02em',
+          letterSpacing: '0.01em',
           userSelect: 'none',
+          opacity: isIdle ? 0 : 1,
           transition: 'opacity 0.3s ease'
         };
 
-        // Outer ring — provides a breathing glow for active states
-        var ringStyle = {
-          width: '10px',
-          height: '10px',
-          borderRadius: '50%',
-          backgroundColor: 'transparent',
-          border: '1.5px solid ' + color,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          animation: isActive ? 'vibes-sync-breathe 1.6s ease-in-out infinite' : 'none',
-          transition: 'border-color 0.4s ease'
+        // Status light wrapper — relative for positioning pulse ring
+        var lightWrapperStyle = {
+          position: 'relative',
+          width: '8px',
+          height: '8px'
         };
 
-        // Inner dot — solid core
-        var dotStyle = {
-          width: '6px',
-          height: '6px',
+        // Pulse ring — only rendered when synced
+        var pulseRingStyle = {
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '100%',
+          height: '100%',
           borderRadius: '50%',
           backgroundColor: color,
-          transition: 'background-color 0.4s ease, box-shadow 0.4s ease',
-          color: color,
-          animation: justSynced ? 'vibes-sync-bloom 0.6s ease-out' : 'none',
-          boxShadow: status === 'synced' ? '0 0 4px 1px ' + color : 'none'
+          animation: 'vibes-sync-pulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1)'
         };
 
-        // Label text — appears for 'synced' and 'error' states
+        // Status light — 8px solid dot
+        var dotStyle = {
+          width: '8px',
+          height: '8px',
+          borderRadius: '50%',
+          backgroundColor: color,
+          position: 'relative',
+          transition: 'background-color 0.4s ease'
+        };
+
+        // Label text
         var labelStyle = {
-          color: color,
-          opacity: label ? 0.85 : 0,
-          transition: 'opacity 0.3s ease, color 0.4s ease',
-          textTransform: 'lowercase'
+          color: '#111111',
+          paddingTop: '1px',
+          letterSpacing: '0.01em'
         };
 
         return React.createElement('div', {
@@ -2321,7 +2324,8 @@ if (typeof window !== 'undefined') {
           'aria-hidden': 'true',
           title: 'Sync: ' + status
         },
-          React.createElement('div', { style: ringStyle },
+          React.createElement('div', { style: lightWrapperStyle },
+            isSynced ? React.createElement('div', { style: pulseRingStyle }) : null,
             React.createElement('div', { style: dotStyle })
           ),
           label ? React.createElement('span', { style: labelStyle }, label) : null
