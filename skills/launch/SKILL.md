@@ -103,9 +103,11 @@ If yes: check `grep OPENROUTER_API_KEY ~/.vibes/.env`. If found, offer reuse (ma
 - "I have one ready" — Already has passkeys and email auth
 - "I need to create one" — Walk me through setup
 
-If creating new: guide through clerk.com/dashboard — create app, enable Email + Passkey, configure email settings (require OFF, verify ON, link ON, code ON).
+If creating new: guide through clerk.com/dashboard — create app, enable Email + Passkey, configure email settings (require OFF, verify ON, link ON, code ON). Then set up JWT template and webhook:
 
-Then instruct: create JWT template named "fireproof" (default claims, save). Create webhook endpoint at `https://{domain}/webhook` subscribing to `subscription.created`, `subscription.updated`, `subscription.deleted`.
+**Ask [Clerk config]**: "Complete these two setup steps in Clerk Dashboard:\n\n1. **JWT Template**: JWT Templates → New Template → name it `fireproof`, add custom claim `email` → `{{user.primary_email_address}}`, save\n2. **Webhook**: Webhooks → Add Endpoint → URL `https://{domain}/webhook` → subscribe to `subscription.created`, `subscription.updated`, `subscription.deleted`\n\nHave you completed both?"
+- "Yes, both done" — JWT template 'fireproof' with email claim + webhook endpoint created
+- "I need help" — Walk me through it step by step
 
 Collect four credentials via Ask (user types actual values via Other):
 
