@@ -285,23 +285,25 @@ Description: "Shown in headers and landing page"
 
 ### Batch 2: Customization
 
+**When billing is enabled** (`billingMode === "required"`): These fields appear on a pricing section visible to potential customers before signup. Write them as marketing copy — benefit-driven, not technical.
+
 Use the AskUserQuestion tool with these 3 questions:
 
 ```
 Question 1: "Tagline for the landing page headline?"
 Header: "Tagline"
 Options: Generate 2 suggestions based on app context + user enters via "Other"
-Description: "Bold headline text. Can include <br> for line breaks (e.g., 'SHARE YOUR DAY.<br>MAKE IT SPECIAL.')"
+Description: "Bold headline text. Can include <br> for line breaks (e.g., 'SHARE YOUR DAY.<br>MAKE IT SPECIAL.'). When billing is on, this is the sales headline — make it benefit-driven."
 
 Question 2: "Subtitle text below the tagline?"
 Header: "Subtitle"
 Options: Generate 2 suggestions based on app context + user enters via "Other"
-Description: "Explanatory text below the headline (e.g., 'The easiest way to share wedding photos with guests.')"
+Description: "Explanatory text below the headline (e.g., 'The easiest way to share wedding photos with guests.'). When billing is on, this is the value proposition — answer 'why should I pay?'"
 
 Question 3: "What features should we highlight on the landing page?"
 Header: "Features"
 Options: User enters via "Other"
-Description: "Comma-separated list (e.g., 'Photo sharing, Guest uploads, Live gallery')"
+Description: "Comma-separated list (e.g., 'Photo sharing, Guest uploads, Live gallery'). When billing is on, these appear as a visual checklist on the pricing section. Each should be a compelling benefit statement, not technical jargon. Aim for 3-5 items."
 ```
 
 ### After Receiving Answers
@@ -544,7 +546,19 @@ Present this checklist to the user:
 > - [ ] Stripe connected
 > - [ ] Plans created with matching names: `pro`, `basic`, `monthly`, `yearly`, `starter`, or `free`
 
-### 6.4 Admin Setup (After First Signup)
+### 6.4 Billing Verification (if `--billing-mode required`)
+
+If billing mode is "required", verify the billing flow works:
+
+1. **Check landing page pricing**: Open `https://{domain}` and confirm the PricingTable is visible
+2. **Test paywall**: Open `https://{domain}?subdomain=test`, sign in, and confirm non-subscribed users see the SubscriptionPaywall
+3. **Test checkout**: Click a plan in the paywall, use test card `4242 4242 4242 4242` with any future expiry and any CVC
+4. **Verify access**: After subscribing, confirm the user can access the tenant app
+5. **Check webhook**: Cancel the subscription in Clerk Dashboard, then verify the subdomain is released in `/registry.json`
+
+If any step fails, check the Troubleshooting section for billing-specific issues.
+
+### 6.5 Admin Setup (After First Signup)
 
 Guide the user through admin setup:
 
@@ -638,16 +652,24 @@ function TenantProvider({ children, subdomain }) {
 }
 ```
 
-### SubscriptionGate with Billing Mode
+### SubscriptionGate
 
-The subscription gate respects the billing mode setting:
+Wraps tenant content and enforces billing mode:
 
 - **`off`**: Everyone gets free access after signing in
-- **`required`**: Users must subscribe via Clerk Billing
+- **`required`**: Users must subscribe via Clerk Billing before accessing tenant content
 
 Admins always bypass the subscription check.
 
 **SECURITY WARNING**: Do NOT add fallbacks like `|| ADMIN_USER_IDS.length === 0` to admin checks. An empty admin list means NO admin access, not "everyone is admin".
+
+### SubscriptionPaywall
+
+Shown to authenticated users who do not have an active subscription (when `billingMode === "required"`). Displays a pricing table via Clerk's `<PricingTable />` component so users can subscribe without leaving the app.
+
+### UpgradePrompt
+
+Optional component shown inside the tenant app when a user's plan has limited features. Use this for soft upsell messaging (e.g., "Upgrade to Pro for unlimited exports"). Not shown when `billingMode === "off"`.
 
 ---
 
@@ -744,6 +766,27 @@ The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk i
 - Fireproof Connect is not configured
 - Run `/vibes:connect` first to set up your sync backend
 - Then return to `/vibes:sell`
+
+### PricingTable not showing on landing page
+- Verify `--billing-mode required` was passed during assembly
+- Check browser console for Clerk Billing errors
+- Ensure at least one plan exists in Clerk Dashboard > Billing > Plans
+
+### Paywall shows but checkout fails
+- In dev mode, Clerk auto-connects to Stripe sandbox — no Stripe account needed
+- Use test card `4242 4242 4242 4242` with any future expiry date and any 3-digit CVC
+- If using production keys, ensure Stripe is connected in Clerk Dashboard > Billing > Stripe
+
+### User subscribed but still sees paywall
+- Clerk subscription webhooks may be delayed — wait 10-15 seconds and refresh
+- Verify webhook endpoint URL matches: `https://{domain}/webhook`
+- Check webhook events include `subscription.created` and `subscription.updated`
+- Check Worker logs: `npx wrangler tail --name {appName}`
+
+### Subscription canceled but subdomain not released
+- Verify webhook events include `subscription.deleted`
+- Check webhook secret is set: `npx wrangler secret list --name {appName}`
+- View Worker logs for webhook processing errors: `npx wrangler tail --name {appName}`
 
 ---
 

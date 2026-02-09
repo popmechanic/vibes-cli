@@ -12,8 +12,10 @@ import {
   createClaim
 } from '../../lib/registry-logic.js';
 import {
+  createSubscriptionCreatedEvent,
   createSubscriptionUpdatedEvent,
-  createSubscriptionCanceledEvent
+  createSubscriptionCanceledEvent,
+  createSubscriptionDeletedEvent
 } from '../mocks/clerk-webhooks.js';
 
 describe('Registry Webhook Integration', () => {
@@ -170,6 +172,124 @@ describe('Registry Webhook Integration', () => {
   });
 });
 
+describe('Additive Quota Model', () => {
+  let registry;
+
+  beforeEach(() => {
+    registry = {
+      claims: {},
+      quotas: {},
+      reserved: ['admin', 'api', 'www']
+    };
+  });
+
+  /**
+   * Simulates what the webhook handler does: increment/decrement quota,
+   * then call processSubscriptionChange with the final quota.
+   */
+  function simulateWebhook(registry, eventType, userId) {
+    registry.quotas = registry.quotas ?? {};
+    const currentQuota = registry.quotas[userId] ?? 0;
+
+    if (eventType === 'subscription.created') {
+      registry.quotas[userId] = currentQuota + 1;
+    } else if (eventType === 'subscription.deleted') {
+      const newQuota = Math.max(currentQuota - 1, 0);
+      if (newQuota > 0) {
+        registry.quotas[userId] = newQuota;
+      } else {
+        delete registry.quotas[userId];
+      }
+    }
+    // subscription.updated: no quota change
+
+    const finalQuota = registry.quotas[userId] ?? 0;
+    return processSubscriptionChange(registry, userId, finalQuota);
+  }
+
+  it('first subscription.created sets quota to 1', () => {
+    simulateWebhook(registry, 'subscription.created', 'user_1');
+    expect(registry.quotas['user_1']).toBe(1);
+  });
+
+  it('two subscription.created events set quota to 2', () => {
+    simulateWebhook(registry, 'subscription.created', 'user_1');
+    simulateWebhook(registry, 'subscription.created', 'user_1');
+    expect(registry.quotas['user_1']).toBe(2);
+  });
+
+  it('subscription.deleted decrements quota from 2 to 1', () => {
+    simulateWebhook(registry, 'subscription.created', 'user_1');
+    simulateWebhook(registry, 'subscription.created', 'user_1');
+    expect(registry.quotas['user_1']).toBe(2);
+
+    simulateWebhook(registry, 'subscription.deleted', 'user_1');
+    expect(registry.quotas['user_1']).toBe(1);
+  });
+
+  it('subscription.deleted from quota 1 removes quota entry', () => {
+    simulateWebhook(registry, 'subscription.created', 'user_1');
+    simulateWebhook(registry, 'subscription.deleted', 'user_1');
+    expect(registry.quotas['user_1']).toBeUndefined();
+  });
+
+  it('subscription.deleted at quota 0 does not go negative', () => {
+    simulateWebhook(registry, 'subscription.deleted', 'user_1');
+    expect(registry.quotas['user_1']).toBeUndefined();
+  });
+
+  it('subscription.updated does not change quota', () => {
+    simulateWebhook(registry, 'subscription.created', 'user_1');
+    expect(registry.quotas['user_1']).toBe(1);
+
+    simulateWebhook(registry, 'subscription.updated', 'user_1');
+    expect(registry.quotas['user_1']).toBe(1);
+  });
+
+  it('user with quota 2 can hold 2 claims without release', () => {
+    simulateWebhook(registry, 'subscription.created', 'user_1');
+    simulateWebhook(registry, 'subscription.created', 'user_1');
+
+    createClaim(registry, 'site-one', 'user_1');
+    createClaim(registry, 'site-two', 'user_1');
+
+    expect(getUserClaims(registry, 'user_1')).toHaveLength(2);
+
+    // No releases when quota matches claims
+    const result = processSubscriptionChange(registry, 'user_1', 2);
+    expect(result.released).toHaveLength(0);
+  });
+
+  it('deleting one subscription releases excess claim', () => {
+    // Subscribe twice, claim twice
+    simulateWebhook(registry, 'subscription.created', 'user_1');
+    simulateWebhook(registry, 'subscription.created', 'user_1');
+    createClaim(registry, 'site-one', 'user_1');
+    registry.claims['site-one'].claimedAt = '2025-01-01T00:00:00Z';
+    createClaim(registry, 'site-two', 'user_1');
+    registry.claims['site-two'].claimedAt = '2025-01-02T00:00:00Z';
+
+    // Delete one subscription → quota drops to 1, newest claim released
+    const result = simulateWebhook(registry, 'subscription.deleted', 'user_1');
+    expect(registry.quotas['user_1']).toBe(1);
+    expect(result.released).toEqual(['site-two']);
+    expect(getUserClaims(registry, 'user_1')).toEqual(['site-one']);
+  });
+
+  it('independent users have independent quotas', () => {
+    simulateWebhook(registry, 'subscription.created', 'user_1');
+    simulateWebhook(registry, 'subscription.created', 'user_1');
+    simulateWebhook(registry, 'subscription.created', 'user_2');
+
+    expect(registry.quotas['user_1']).toBe(2);
+    expect(registry.quotas['user_2']).toBe(1);
+
+    simulateWebhook(registry, 'subscription.deleted', 'user_1');
+    expect(registry.quotas['user_1']).toBe(1);
+    expect(registry.quotas['user_2']).toBe(1); // unaffected
+  });
+});
+
 describe('Webhook Event Structure', () => {
   it('creates valid subscription.updated event', () => {
     const event = createSubscriptionUpdatedEvent({
@@ -193,5 +313,27 @@ describe('Webhook Event Structure', () => {
     expect(event.payload.type).toBe('subscription.canceled');
     expect(event.payload.data.user_id).toBe('user_test');
     expect(event.payload.data.status).toBe('canceled');
+  });
+
+  it('creates valid subscription.created event with items and payer', () => {
+    const event = createSubscriptionCreatedEvent({
+      userId: 'user_test',
+      planId: 'pro'
+    });
+
+    expect(event.payload.type).toBe('subscription.created');
+    expect(event.payload.data.payer.user_id).toBe('user_test');
+    expect(event.payload.data.items).toHaveLength(1);
+    expect(event.payload.data.items[0].status).toBe('active');
+  });
+
+  it('creates valid subscription.deleted event', () => {
+    const event = createSubscriptionDeletedEvent({
+      userId: 'user_test'
+    });
+
+    expect(event.payload.type).toBe('subscription.deleted');
+    expect(event.payload.data.payer.user_id).toBe('user_test');
+    expect(event.payload.data.status).toBe('deleted');
   });
 });

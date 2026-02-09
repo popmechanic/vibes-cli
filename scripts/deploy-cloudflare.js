@@ -83,15 +83,17 @@ async function main() {
   const fileIdx = args.indexOf("--file");
   const aiKeyIdx = args.indexOf("--ai-key");
   const clerkKeyIdx = args.indexOf("--clerk-key");
+  const billingModeIdx = args.indexOf("--billing-mode");
 
   if (nameIdx === -1) {
-    throw new Error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html> [--ai-key <key>] [--clerk-key <pk_test_...>]");
+    throw new Error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html> [--ai-key <key>] [--clerk-key <pk_test_...>] [--billing-mode <required>]");
   }
 
   const name = args[nameIdx + 1];
   const file = fileIdx !== -1 ? args[fileIdx + 1] : "index.html";
   const aiKey = aiKeyIdx !== -1 ? args[aiKeyIdx + 1] : null;
   const clerkKey = clerkKeyIdx !== -1 ? args[clerkKeyIdx + 1] : null;
+  const billingMode = billingModeIdx !== -1 ? args[billingModeIdx + 1] : null;
 
   console.log(`Deploying ${name} to Cloudflare Workers...`);
   console.log(`Plugin root: ${PLUGIN_ROOT}`);
@@ -241,6 +243,17 @@ async function main() {
     });
     console.log(`  Permitted origins: ${origins}`);
     console.log("  Clerk auth enabled for /claim endpoint");
+  }
+
+  // Set BILLING_MODE if provided
+  if (billingMode) {
+    console.log(`\nSetting BILLING_MODE secret to "${billingMode}"...`);
+    execSync(`npx wrangler secret put BILLING_MODE --name ${name}`, {
+      input: billingMode,
+      cwd: WORKER_DIR,
+      stdio: ['pipe', 'inherit', 'inherit'],
+    });
+    console.log(`  Billing mode: ${billingMode}`);
   }
 
   // Extract the actual deployed URL from wrangler output (includes account subdomain)

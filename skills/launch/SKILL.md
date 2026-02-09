@@ -140,9 +140,13 @@ Mark T2 completed.
 - Billing: "Free (no billing)" or "Subscription required"
 - Title: "Derive from app name" or "Let me specify"
 
+**If billing is "Subscription required"**: Note that Clerk Billing must be configured in the Clerk Dashboard after deploy (plans, Stripe connection). Dev instances auto-connect to Stripe sandbox for testing.
+
 **Ask [Tagline]**: "Describe your app's tagline (short punchy phrase)"
 - "Generate one" — Create from app description
 - "Let me write it" — I'll provide it
+
+**When billing is "required"**: These fields appear on a pricing section visible to potential customers before signup. Optimize for marketing copy quality — benefit-driven language, not technical descriptions. Tagline = sales headline. Subtitle = value proposition ("why should I pay?"). Features = compelling benefit statements (3-5 items).
 
 Repeat pattern for subtitle and features list (3-5 bullet points).
 
@@ -186,9 +190,10 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
   --name "{appName}" \
   --file index.html \
   --clerk-key "{clerkPk}" \
+  --billing-mode "{billingMode}" \
   {aiKeyFlag}
 ```
-Where `{aiKeyFlag}` = `--ai-key "{openRouterKey}"` if set, omitted if null.
+Where `{aiKeyFlag}` = `--ai-key "{openRouterKey}"` if set, omitted if null. The `--billing-mode` flag configures the Worker's default subscription quota behavior.
 
 **Step D — Webhook secret:**
 ```bash
@@ -245,6 +250,9 @@ Tell user: Admin dashboard now works at `https://{domain}?subdomain=admin`
 **Ask [Verify]**: "Your app is live! Open each URL and verify:\n\n- Landing: https://{domain}\n- Tenant: https://{domain}?subdomain=test\n- Admin: https://{domain}?subdomain=admin\n\nDoes everything look right?"
 - "All working" — Everything loads correctly
 - "Something's broken" — Need to troubleshoot
+
+**If `billingMode === "required"`**: Also ask the user to verify billing:
+> "Check billing flow: Sign in at `https://{domain}?subdomain=test` — you should see a paywall with pricing. Use test card `4242 4242 4242 4242` (any future expiry, any CVC) to complete a test subscription. After subscribing, the tenant app should load."
 
 Mark T8 completed. If broken, ask what's wrong and troubleshoot.
 
