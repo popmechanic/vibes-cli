@@ -7,7 +7,6 @@ import { verifyClerkJWT, verifyClerkJWTDebug } from "./lib/crypto-jwt";
 import { parsePermittedOrigins } from "./lib/jwt-validation";
 import {
   isSubdomainAvailable,
-  getUserClaims,
   createClaim,
   processSubscriptionChange,
 } from "./lib/registry-logic";
@@ -85,20 +84,14 @@ app.post("/claim", async (c) => {
     return c.json({ error: "Subdomain not available", reason: availability.reason }, 409);
   }
 
-  // Check quota — webhook-set quota is authoritative; JWT pla claim proves subscription; default is 0
-  const userClaims = getUserClaims(registry, auth.userId);
-  const webhookQuota = registry.quotas?.[auth.userId];
-  const jwtQuota = (c.env.BILLING_MODE === 'required')
-    ? (auth.pla ? 1 : 0)   // subscribed = 1 claim, free = 0
-    : 999;                   // no billing = unlimited
-  const quota = webhookQuota ?? jwtQuota;
-  if (userClaims.length >= quota) {
+  // Subscription gate — any active subscription unlocks unlimited claims
+  const hasSubscription = (registry.quotas?.[auth.userId] ?? 0) > 0;
+  const billingRequired = c.env.BILLING_MODE === 'required';
+  if (billingRequired && !hasSubscription) {
     return c.json(
       {
         error: "Purchase required",
-        reason: "quota_exceeded",
-        current: userClaims.length,
-        quota,
+        reason: "no_subscription",
       },
       402
     );
@@ -155,27 +148,17 @@ app.post("/webhook", async (c) => {
     const kv = new RegistryKV(c.env.REGISTRY_KV);
     const registry = await kv.read();
 
-    // Additive quota: each subscription.created adds 1 slot, each deleted removes 1
+    // Subscription gate: track whether user has any active subscription
     registry.quotas = registry.quotas ?? {};
-    const currentQuota = registry.quotas[userId] ?? 0;
 
-    if (event.type === "subscription.created") {
-      // Each new subscription adds 1 subdomain slot
-      registry.quotas[userId] = currentQuota + 1;
+    if (event.type === "subscription.created" || event.type === "subscription.updated") {
+      registry.quotas[userId] = 1;
     } else if (event.type === "subscription.deleted") {
-      // Canceling removes 1 slot (floor at 0)
-      const newQuota = Math.max(currentQuota - 1, 0);
-      if (newQuota > 0) {
-        registry.quotas[userId] = newQuota;
-      } else {
-        delete registry.quotas[userId];
-      }
+      delete registry.quotas[userId];
     }
-    // subscription.updated: keep current quota (status changes don't affect slot count)
 
-    // Process subscription change (may release subdomains if quota dropped below claims)
-    const finalQuota = registry.quotas[userId] ?? 0;
-    const result = processSubscriptionChange(registry, userId, finalQuota);
+    // On cancellation, release all claims (quantity 0 releases everything)
+    const result = processSubscriptionChange(registry, userId, registry.quotas[userId] ?? 0);
     if (result.released.length > 0) {
       console.log(`Released ${result.released.length} subdomains for user ${userId}`);
     }

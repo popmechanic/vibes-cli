@@ -2415,9 +2415,10 @@ if (typeof window !== 'undefined') {
       const REGISTRY_CACHE_TTL = 5000;
       let registryServerAvailable = null;
 
-      async function fetchRegistry() {
+      async function fetchRegistry(options = {}) {
+        const { force } = options;
         const now = Date.now();
-        if (registryCache.data && (now - registryCache.fetchedAt) < REGISTRY_CACHE_TTL) {
+        if (!force && registryCache.data && (now - registryCache.fetchedAt) < REGISTRY_CACHE_TTL) {
           return registryCache.data;
         }
         try {
@@ -2672,22 +2673,6 @@ if (typeof window !== 'undefined') {
                 setQuotaExceeded(true);
                 return;
               }
-              // Non-post-payment: existing single fresh-token retry for stale pla
-              const parts = token.split('.');
-              const payload = JSON.parse(atob(parts[1]));
-              if (!payload.pla) {
-                try {
-                  const freshToken = await window.Clerk?.session?.getToken({ skipCache: true });
-                  if (freshToken) {
-                    const retryResult = await claimSubdomain(subdomain, freshToken);
-                    if (retryResult.success) {
-                      setIsShredding(true);
-                      setTimeout(() => { onClaim?.(); }, 1200);
-                      return;
-                    }
-                  }
-                } catch (_) { /* fall through to upgrade prompt */ }
-              }
               setQuotaExceeded(true);
             } else {
               setError(result.error || 'Failed to claim subdomain');
@@ -2891,20 +2876,43 @@ if (typeof window !== 'undefined') {
       // === Subscription Gate (wraps tenant content, checks billing) ===
       function SubscriptionGate({ children }) {
         const [registryAllowed, setRegistryAllowed] = useState(null); // null=loading, true/false
-        const { sessionClaims, isLoaded } = window.useAuth();
+        const { isLoaded } = window.useAuth();
         const { user } = window.useUser();
 
         // Registry fallback (runs once per user)
         useEffect(() => {
           if (BILLING_MODE !== 'required' || !user?.id) return;
           if (ADMIN_USER_IDS.includes(user.id)) return;
-          // Skip registry if JWT already has plan claim
-          if (sessionClaims?.pla) return;
-          fetchRegistry().then(registry => {
-            const userQuota = (registry.quotas || {})[user.id];
-            setRegistryAllowed(userQuota !== undefined && userQuota > 0);
-          }).catch(() => setRegistryAllowed(false)); // fail closed — show paywall on error
-        }, [user?.id, sessionClaims?.pla]);
+          const pendingSubdomain = sessionStorage.getItem('vibes_pending_subdomain');
+          const maxAttempts = pendingSubdomain ? 5 : 1;
+          let cancelled = false;
+          let retryTimeout = null;
+
+          const checkRegistry = async (attempt) => {
+            try {
+              const registry = await fetchRegistry({ force: attempt > 0 });
+              const userQuota = (registry.quotas || {})[user.id];
+              if (userQuota !== undefined && userQuota > 0) {
+                if (!cancelled) setRegistryAllowed(true);
+                return;
+              }
+            } catch (_) {
+              // handled below
+            }
+
+            if (attempt < maxAttempts - 1) {
+              retryTimeout = setTimeout(() => checkRegistry(attempt + 1), 3000);
+              return;
+            }
+            if (!cancelled) setRegistryAllowed(false);
+          };
+
+          checkRegistry(0);
+          return () => {
+            cancelled = true;
+            if (retryTimeout) clearTimeout(retryTimeout);
+          };
+        }, [user?.id]);
 
         // Fast-pass checks (no loading state needed)
         if (BILLING_MODE !== 'required') return children;
@@ -2916,9 +2924,6 @@ if (typeof window !== 'undefined') {
           );
         }
         if (user?.id && ADMIN_USER_IDS.includes(user.id)) return children;
-
-        // Primary: JWT pla claim (instant, no API call)
-        if (sessionClaims?.pla) return children;
 
         // Fallback: Registry quota
         if (registryAllowed === true) return children;
@@ -2955,7 +2960,6 @@ if (typeof window !== 'undefined') {
 
       function ClaimPromptWrapper({ subdomain, onClaimSuccess }) {
         const { user } = window.useUser();
-        const { sessionClaims } = window.useAuth();
         const [quotaCheck, setQuotaCheck] = useState({ loading: true, exceeded: false, userSubdomains: [] });
 
         // If returning from payment flow, skip client-side quota check — let server decide
@@ -2972,10 +2976,9 @@ if (typeof window !== 'undefined') {
           fetchRegistry().then(registry => {
             const userClaimEntries = Object.entries(registry.claims || {}).filter(([, c]) => c.userId === user.id);
             const userSubdomains = userClaimEntries.map(([sub]) => sub);
-            const webhookQuota = registry.quotas?.[user.id];
-            const jwtQuota = (BILLING_MODE === 'required') ? (sessionClaims?.pla ? 1 : 0) : 999;
-            const quota = webhookQuota ?? jwtQuota;
-            setQuotaCheck({ loading: false, exceeded: userSubdomains.length >= quota, userSubdomains });
+            const hasSubscription = (registry.quotas?.[user.id] ?? 0) > 0;
+            const needsBilling = BILLING_MODE === 'required';
+            setQuotaCheck({ loading: false, exceeded: needsBilling && !hasSubscription, userSubdomains });
           }).catch(() => setQuotaCheck({ loading: false, exceeded: false, userSubdomains: [] }));
         }, [user?.id]);
 
