@@ -263,6 +263,18 @@ const count = docs[0]?.value || 0;
 const increment = () => database.put({ _id: "counter", value: count + 1 });
 ```
 
+**WARNING — merge() + submit() timing trap:** Never `merge()` a computed value (like `Date.now()` or `crypto.randomUUID()`) and call `submit()` in the same event handler. React batches state updates, so `submit()` reads stale state and the merged field may be missing from the saved document. Use `database.put()` with explicit fields instead:
+
+```jsx
+// BAD — ts may not be saved due to React batching
+merge({ ts: Date.now() });
+submit();
+
+// GOOD — all fields written atomically
+await database.put({ text: doc.text, ts: Date.now(), type: "item" });
+reset();
+```
+
 ### useDocument - Form State (NOT useState)
 
 **IMPORTANT**: Don't use `useState()` for form data. Use `merge()` and `submit()` from `useDocument`. Only use `useState` for ephemeral UI state (active tabs, open/closed panels).
@@ -486,6 +498,9 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
   }
   // Usage: <StoredImage data={doc.imageData} type={doc.imageType} alt="Photo" />
   ```
+- **DON'T** call `merge()` and `submit()` in the same handler when adding computed fields
+  (timestamps, UUIDs, derived values). React batches the state update from `merge()`, so
+  `submit()` writes the old state. Use `database.put()` with explicit fields + `reset()` instead.
 - **DON'T** spread `useDocument` doc into `database.put()` — internal CRDT metadata
   contaminates the write and can corrupt the database (`missing block` errors).
   Build documents with explicit fields instead:
