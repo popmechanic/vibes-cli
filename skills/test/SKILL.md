@@ -164,7 +164,7 @@ set -a && source test-vibes/.env && set +a
 **For sell-ready fixture:**
 ```bash
 node scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html \
-  --domain vibes-test.exe.xyz \
+  --domain vibes-test.<account>.workers.dev \
   --admin-ids '["<admin-user-id>"]'  # read CLERK_ADMIN_USER_ID from test-vibes/.env
 ```
 If admin was skipped, omit `--admin-ids`. The `--domain` flag is always required.
@@ -340,7 +340,7 @@ grep -q CLERK_ADMIN_USER_ID test-vibes/.env 2>/dev/null && \
 set -a && source test-vibes/.env && set +a
 
 node scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html \
-  --domain vibes-test.exe.xyz \
+  --domain vibes-test.<account>.workers.dev \
   --admin-ids '["<userId>"]'
 ```
 
@@ -484,7 +484,7 @@ ssh <studio>.exe.xyz "docker logs gateway"  # Check gateway logs
 | Symptom Category | Files to Read |
 |-----------------|---------------|
 | Assembly/template | `scripts/assemble.js`, `skills/_base/template.html`, relevant `template.delta.html` |
-| Deploy/hosting | `scripts/deploy-connect.js`, `scripts/deploy-cloudflare.js`, `scripts/deploy-exe.js` |
+| Deploy/hosting | `scripts/deploy-cloudflare.js`, `scripts/deploy-connect.js` |
 | Auth/Clerk | `skills/_base/template.html` (Clerk script), `scripts/deploy-connect.js` (env vars) |
 | Import/module errors | `skills/_base/template.html` (import map), `cache/import-map.json` |
 
