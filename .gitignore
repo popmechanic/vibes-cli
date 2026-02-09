@@ -34,6 +34,7 @@ fireproof/
 # Local superpowers clone
 superpowers/
 skills/cloudflare/worker/public/
+.worktrees/
 
 # Netlify deploy artifacts
 .netlify-deploy/
