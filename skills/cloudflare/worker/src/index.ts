@@ -168,7 +168,7 @@ app.post("/webhook", async (c) => {
 app.post("/api/ai/chat", async (c) => {
   const apiKey = c.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    return c.json({ error: "AI not configured" }, 500);
+    return c.json({ error: "AI not configured" }, 501);
   }
 
   let body: unknown;

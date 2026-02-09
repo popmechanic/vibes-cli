@@ -21,15 +21,17 @@ const STATUS_LABELS = {
 
 // ── AI Proxy status ──
 const AI_STATUS_COLORS = {
-  unconfigured:  "oklch(0.55 0.0 0)",      // gray
-  checking:      "oklch(0.75 0.16 85)",    // amber
+  unconfigured:  "oklch(0.55 0.0 0)",      // gray — can't reach server
+  checking:      "oklch(0.75 0.16 85)",    // amber — probing
+  not_deployed:  "oklch(0.75 0.16 85)",    // amber — endpoint exists but not configured
   available:     "oklch(0.72 0.19 145)",   // green
-  error:         "oklch(0.62 0.22 25)",    // red
+  error:         "oklch(0.62 0.22 25)",    // red — deployed but broken
 };
 
 const AI_STATUS_LABELS = {
   unconfigured:  "Not Configured",
   checking:      "Checking…",
+  not_deployed:  "Not Deployed",
   available:     "Available",
   error:         "Error",
 };
@@ -189,6 +191,8 @@ export default function App() {
         if (cancelled) return;
         if (res.ok) {
           setAiStatus("available");
+        } else if (res.status === 501) {
+          setAiStatus("not_deployed");
         } else {
           setAiStatus("error");
           setAiError(`HTTP ${res.status}`);
@@ -226,17 +230,18 @@ export default function App() {
           model: "openai/gpt-4o-mini",
           messages: [{
             role: "user",
-            content: `You are the Vibe Oracle. Read these diagnostics and deliver a vibe check in exactly 3 lines:
-- Line 1: A one-word vibe (e.g., "IMMACULATE", "CONCERNING", "CHAOTIC")
-- Line 2: A poetic one-sentence interpretation of the system state
-- Line 3: A fortune-cookie-style prediction
+            content: `You are Vilém Flusser writing a terse field report about a software apparatus. Analyze the diagnostics below as if they were evidence of a programmatic system controlling its functionaries. Be dry, precise, and intellectually provocative — not poetic, not warm. Channel "Towards a Philosophy of Photography."
 
-Current diagnostics:
-- Sync status: ${status}
-- Documents in database: ${docs.length}
-- React singleton: ${reactOk ? "ok" : "broken"}
-- Last sync error: ${syncError ? String(syncError) : "none"}
-- Uptime: ${fmtTime(uptime)}`
+Format in exactly 3 lines:
+- Line 1: A short Flusser concept as a heading (e.g., "APPARATUS", "PROGRAM", "FUNCTIONARY", "TECHNICAL IMAGE")
+- Line 2: A 1-2 sentence analytical observation about what the system state reveals about the relationship between user and apparatus. Reference specific diagnostics.
+- Line 3: A sharp, uncomfortable conclusion in Flusser's style — the kind that makes engineers pause.
+
+Diagnostics:
+- Sync: ${status}
+- Documents stored: ${docs.length}
+- Uptime: ${fmtTime(uptime)}
+- Errors: ${syncError ? String(syncError) : "none"}`
           }],
           max_tokens: 150,
         }),
@@ -246,15 +251,15 @@ Current diagnostics:
       const text = data.choices?.[0]?.message?.content || data.message?.content || "";
       const lines = text.trim().split("\n").filter(Boolean);
       setVibeResult({
-        vibe: (lines[0] || "MYSTERIOUS").replace(/[*"]/g, ""),
-        reading: (lines[1] || "The system whispers in tongues unknown.").replace(/[*"]/g, ""),
-        fortune: (lines[2] || "Expect the unexpected.").replace(/[*"]/g, ""),
+        vibe: (lines[0] || "APPARATUS").replace(/[*"]/g, ""),
+        reading: (lines[1] || "The system stores without understanding what it stores.").replace(/[*"]/g, ""),
+        fortune: (lines[2] || "The functionary believes they operate the program. The program knows otherwise.").replace(/[*"]/g, ""),
       });
     } catch (err) {
       setVibeResult({
-        vibe: "ERROR",
+        vibe: "MALFUNCTION",
         reading: err.message,
-        fortune: "Try again when the stars align.",
+        fortune: "When the apparatus fails, the functionary briefly glimpses the program.",
       });
     } finally {
       setVibeLoading(false);
@@ -590,9 +595,20 @@ Current diagnostics:
                   <div style={{ fontSize: "20px", fontWeight: 700, lineHeight: 1.1 }}>
                     {AI_STATUS_LABELS[aiStatus]}
                   </div>
-                  {aiError && (
+                  {aiStatus === "not_deployed" && (
+                    <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px", lineHeight: 1.4 }}>
+                      The AI proxy hasn't been set up for this app yet.
+                      Deploy with <code style={{ background: "#f1f5f9", padding: "1px 4px", fontSize: "11px" }}>--ai-key</code> to enable it, then hit "Check Vibes" to test.
+                    </div>
+                  )}
+                  {aiStatus === "error" && aiError && (
                     <div style={{ fontSize: "12px", color: "oklch(0.62 0.22 25)", marginTop: "2px" }}>
                       {aiError}
+                    </div>
+                  )}
+                  {aiStatus === "unconfigured" && (
+                    <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
+                      Couldn't reach the server.
                     </div>
                   )}
                 </div>
@@ -617,7 +633,7 @@ Current diagnostics:
                   opacity: vibeLoading ? 0.7 : 1,
                 }}
               >
-                {vibeLoading ? "Reading vibes…" : "Check Vibes"}
+                {vibeLoading ? "Analyzing apparatus…" : "Check Vibes"}
               </button>
 
               {/* Vibe result card */}
@@ -692,12 +708,12 @@ Current diagnostics:
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background: aiOk ? "oklch(0.72 0.19 145)" : aiStatus === "error" ? "oklch(0.62 0.22 25)" : "oklch(0.55 0.0 0)",
+                  background: aiOk ? "oklch(0.72 0.19 145)" : aiStatus === "error" ? "oklch(0.62 0.22 25)" : (aiStatus === "not_deployed" || aiStatus === "checking") ? "oklch(0.75 0.16 85)" : "oklch(0.55 0.0 0)",
                   border: "2px solid #0f172a",
                   borderRadius: "9999px",
                   fontSize: "11px",
                   fontWeight: 700,
-                  color: aiOk ? "#0f172a" : "#ffffff",
+                  color: aiOk ? "#0f172a" : aiStatus === "error" ? "#ffffff" : "#0f172a",
                 }}>{aiOk ? "✓" : aiStatus === "error" ? "✗" : "○"}</span>
                 <span style={{
                   fontFamily: "'IBM Plex Mono', monospace",
