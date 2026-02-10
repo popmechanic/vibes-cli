@@ -4,18 +4,24 @@
  *
  * Usage:
  *   node scripts/deploy-cloudflare.js --name myapp --file index.html [--ai-key <openrouter-key>]
+ *     [--clerk-key <pk_test_...>] [--billing-mode <off|required>]
+ *     [--webhook-secret <whsec_...>] [--env-dir <dir>]
  *
  * Automatically copies:
  *   - index.html to public/
  *   - bundles/*.js to public/ (fireproof-clerk-bundle.js workaround)
  *   - assets/ to public/assets/ (images, icons)
+ *
+ * Clerk key and webhook secret auto-detected from .env if not provided via flags.
+ * --env-dir defaults to the parent directory of --file.
  */
 
 import { execSync } from "child_process";
 import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync, readFileSync, writeFileSync } from "fs";
-import { resolve, join, basename } from "path";
+import { resolve, join, basename, dirname } from "path";
 import { createPublicKey } from "crypto";
 import { PLUGIN_ROOT } from "./lib/paths.js";
+import { loadEnvFile } from "./lib/env-utils.js";
 const WORKER_DIR = resolve(PLUGIN_ROOT, "skills/cloudflare/worker");
 
 function run(cmd, options = {}) {
@@ -84,16 +90,41 @@ async function main() {
   const aiKeyIdx = args.indexOf("--ai-key");
   const clerkKeyIdx = args.indexOf("--clerk-key");
   const billingModeIdx = args.indexOf("--billing-mode");
+  const webhookSecretIdx = args.indexOf("--webhook-secret");
+  const envDirIdx = args.indexOf("--env-dir");
 
   if (nameIdx === -1) {
-    throw new Error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html> [--ai-key <key>] [--clerk-key <pk_test_...>] [--billing-mode <required>]");
+    throw new Error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html> [--ai-key <key>] [--clerk-key <pk_test_...>] [--billing-mode <off|required>] [--webhook-secret <whsec_...>] [--env-dir <dir>]");
   }
 
   const name = args[nameIdx + 1];
   const file = fileIdx !== -1 ? args[fileIdx + 1] : "index.html";
   const aiKey = aiKeyIdx !== -1 ? args[aiKeyIdx + 1] : null;
-  const clerkKey = clerkKeyIdx !== -1 ? args[clerkKeyIdx + 1] : null;
   const billingMode = billingModeIdx !== -1 ? args[billingModeIdx + 1] : null;
+
+  // Resolve env directory for .env auto-detection (defaults to --file's parent dir)
+  const envDir = envDirIdx !== -1
+    ? resolve(process.cwd(), args[envDirIdx + 1])
+    : dirname(resolve(process.cwd(), file));
+  const envVars = loadEnvFile(envDir);
+
+  // Clerk key: flag > .env auto-detect
+  let clerkKey = clerkKeyIdx !== -1 ? args[clerkKeyIdx + 1] : null;
+  if (!clerkKey && envVars.VITE_CLERK_PUBLISHABLE_KEY) {
+    clerkKey = envVars.VITE_CLERK_PUBLISHABLE_KEY;
+    console.log(`Clerk key: from ${envDir}/.env`);
+  } else if (clerkKey) {
+    console.log("Clerk key: from --clerk-key flag");
+  }
+
+  // Webhook secret: flag > .env auto-detect
+  let webhookSecret = webhookSecretIdx !== -1 ? args[webhookSecretIdx + 1] : null;
+  if (!webhookSecret && envVars.CLERK_WEBHOOK_SECRET) {
+    webhookSecret = envVars.CLERK_WEBHOOK_SECRET;
+    console.log(`Webhook secret: from ${envDir}/.env`);
+  } else if (webhookSecret) {
+    console.log("Webhook secret: from --webhook-secret flag");
+  }
 
   console.log(`Deploying ${name} to Cloudflare Workers...`);
   console.log(`Plugin root: ${PLUGIN_ROOT}`);
@@ -179,11 +210,18 @@ async function main() {
     console.log(`  Created KV namespace: ${kvName} (${kvId})`);
   }
 
-  // Rewrite wrangler.toml with the per-app KV namespace ID
-  const updatedToml = originalToml.replace(
+  // Rewrite wrangler.toml with the per-app KV namespace ID and billing mode
+  let updatedToml = originalToml.replace(
     /^id\s*=\s*"[^"]*"/m,
     `id = "${kvId}"`
   );
+  if (billingMode) {
+    updatedToml = updatedToml.replace(
+      /^BILLING_MODE\s*=\s*"[^"]*"/m,
+      `BILLING_MODE = "${billingMode}"`
+    );
+    console.log(`  Billing mode: ${billingMode} (patched in wrangler.toml)`);
+  }
   writeFileSync(wranglerToml, updatedToml);
 
   // Deploy with wrangler (capture output to extract URL)
@@ -245,15 +283,17 @@ async function main() {
     console.log("  Clerk auth enabled for /claim endpoint");
   }
 
-  // Set BILLING_MODE if provided
-  if (billingMode) {
-    console.log(`\nSetting BILLING_MODE secret to "${billingMode}"...`);
-    execSync(`npx wrangler secret put BILLING_MODE --name ${name}`, {
-      input: billingMode,
+  // Set CLERK_WEBHOOK_SECRET if provided
+  if (webhookSecret) {
+    console.log("\nSetting CLERK_WEBHOOK_SECRET secret...");
+    execSync(`npx wrangler secret put CLERK_WEBHOOK_SECRET --name ${name}`, {
+      input: webhookSecret,
       cwd: WORKER_DIR,
       stdio: ['pipe', 'inherit', 'inherit'],
     });
-    console.log(`  Billing mode: ${billingMode}`);
+    console.log("  Webhook secret configured");
+  } else if (clerkKey) {
+    console.log("\n⚠️  No webhook secret provided. Subscription billing won't work without it.");
   }
 
   // Extract the actual deployed URL from wrangler output (includes account subdomain)

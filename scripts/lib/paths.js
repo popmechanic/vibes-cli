@@ -14,7 +14,6 @@ const __dirname = dirname(__filename);
 // Plugin root is two levels up from scripts/lib/
 export const PLUGIN_ROOT = join(__dirname, '..', '..');
 export const CACHE_DIR = join(PLUGIN_ROOT, 'cache');
-export const CONFIG_DIR = join(PLUGIN_ROOT, 'config');
 
 /**
  * Template file paths
@@ -29,24 +28,8 @@ export const TEMPLATES = {
  * Cache file paths
  */
 export const CACHE_FILES = {
-  importMap: join(CACHE_DIR, 'import-map.json'),
   stylePrompt: join(CACHE_DIR, 'style-prompt.txt'),
   vibesMenu: join(CACHE_DIR, 'vibes-menu.js'),
-  cssVariables: join(CACHE_DIR, 'vibes-variables.css'),
-};
-
-/**
- * Shipped cache paths (git-tracked defaults)
- */
-export const SHIPPED_CACHE = {
-  importMap: join(PLUGIN_ROOT, 'skills/vibes/cache/import-map.json'),
-};
-
-/**
- * Config file paths
- */
-export const CONFIG_FILES = {
-  sources: join(CONFIG_DIR, 'sources.json'),
 };
 
 /**
