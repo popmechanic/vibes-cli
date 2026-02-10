@@ -463,6 +463,25 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
 
 ---
 
+## Sharing / Inviting Users
+
+The template includes a built-in invite UI in VibesPanel (the slide-out menu). For custom sharing in user app code, use the `useSharing` hook:
+
+```javascript
+const { inviteUser, listInvites, deleteInvite, findUser, ready } = window.useSharing();
+
+// Invite by email
+async function handleInvite(email) {
+  if (!ready) return;
+  const result = await inviteUser(email, 'read'); // 'read' or 'write'
+  console.log('Invited:', result);
+}
+```
+
+The hook is available on `window.useSharing` after Clerk loads. Check `ready` before calling methods.
+
+---
+
 ## Common Mistakes to Avoid
 
 - **DON'T** use `useState` for form fields - use `useDocument`
