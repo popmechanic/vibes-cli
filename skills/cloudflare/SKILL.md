@@ -45,7 +45,7 @@ node scripts/deploy-cloudflare.js --name myapp --file index.html
 
 This automatically:
 - Copies index.html to worker's public/
-- Copies bundles/*.js (fireproof-clerk-bundle.js workaround)
+- Copies bundles/*.js (fireproof-vibes-bridge.js + fireproof-clerk-bundle.js)
 - Copies assets/ directory (images, icons)
 - Runs wrangler deploy
 

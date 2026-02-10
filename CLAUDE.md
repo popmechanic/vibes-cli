@@ -385,7 +385,8 @@ npm run test:e2e:server
 | `scripts/lib/component-transforms.js` | Pure functions for transforming component source code |
 | `scripts/__tests__/fixtures/` | Pre-written JSX test fixtures |
 | `lib/resolve-paths.js` | Find plugin directory across install locations |
-| `bundles/fireproof-clerk-bundle.js` | Patched Fireproof client bundle (temporary workaround) |
+| `bundles/fireproof-clerk-bundle.js` | Patched Fireproof client bundle (CID fix, retry backoff, sync poll) |
+| `bundles/fireproof-vibes-bridge.js` | ES module bridge — wraps useFireproofClerk with sync status + onTock kick |
 | `assets/` | Favicon, branding images, auth card designs |
 | `docs/plans/` | Architecture decision records and planning docs |
 | `components/` | Local TypeScript components - source of truth for UI/UX |
@@ -623,31 +624,39 @@ The `/vibes:sell` deploy has several issues that need fixing in `scripts/deploy-
 
 3. **Admin dashboard is placeholder**: The sell template (`skills/sell/templates/unified.html`) has a stub admin that just says "Admin dashboard coming soon...". Need to build a real admin dashboard that fetches `/registry.json` and displays claims/users/stats.
 
-## Temporary Workaround: Local Fireproof Bundle
+## Temporary Workaround: Local Fireproof Bundle + Bridge
 
 **Status**: Temporary workaround until `@necrodome/fireproof-clerk` is updated on npm.
 
-**Issues fixed** (vs `@necrodome/fireproof-clerk@0.0.3` from esm.sh):
+**Two-file architecture**:
+- `bundles/fireproof-clerk-bundle.js` — patched client (CID fix, retry backoff, sync poll)
+- `bundles/fireproof-vibes-bridge.js` — ES module bridge that wraps the bundle
+
+The import map points `use-fireproof` → `/fireproof-vibes-bridge.js`. The bridge imports from `./fireproof-clerk-bundle.js` (relative path, bypasses import map) and re-exports everything, replacing `useFireproofClerk` with a wrapped version that adds:
+1. **Sync status bridge** — forwards `syncStatus` to `window.__VIBES_SYNC_STATUS__` + dispatches `vibes-sync-status-change` event for SyncStatusDot
+2. **onTock kick** — polls `allDocs()` after sync reaches "synced", then fires `noPayloadWatchers` to ensure `useLiveQuery` subscribers see new data
+
+**Bundle issues fixed** (vs `@necrodome/fireproof-clerk@0.0.3` from esm.sh):
 1. **CID stringification bug** — blob URLs show `[object Object]` instead of proper CID strings
 2. **Retry fix** — exponential backoff for all `attach()` errors (PR #1593)
 3. **Sync poll fix** — `allDocs()` polling after `attach()` to kick CRDT processing, so second-device sync works without manual refresh (PR #1593)
 
 See `docs/plans/sync-poll-fix.md` for technical details on the sync poll fix.
 
-**Current Workaround**:
-- `bundles/fireproof-clerk-bundle.js` contains the patched client code
-- `deploy-exe.js` automatically uploads this bundle alongside each app (phase 4b)
-- Template import map points to `/fireproof-clerk-bundle.js` instead of esm.sh
+**Deployment**:
+- `deploy-exe.js` automatically uploads both files alongside each app (phase 4b)
+- `deploy-cloudflare.js` copies `bundles/*.js` to the worker's public directory
 
 **To revert when upstream package is fixed**:
-1. Update import map in `skills/_base/template.html` to use esm.sh URL:
+1. Update import map in `skills/_base/template.html` to use esm.sh URLs:
    ```json
    "use-fireproof": "https://esm.sh/stable/@necrodome/fireproof-clerk@X.X.X?external=react,react-dom",
    "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@X.X.X?external=react,react-dom"
    ```
 2. Remove `phase4bBundleUpload` function and call from `scripts/deploy-exe.js`
-3. Delete `bundles/` directory
-4. Remove this section from CLAUDE.md
+3. Remove bundle copy step from `scripts/deploy-cloudflare.js`
+4. Delete `bundles/` directory
+5. Remove this section from CLAUDE.md
 
 ## Plugin Versioning
 
