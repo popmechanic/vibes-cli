@@ -173,8 +173,8 @@
           "@ipld/dag-cbor": "https://esm.sh/stable/@ipld/dag-cbor@9.2.2?external=multiformats",
           "@ipld/dag-json": "https://esm.sh/stable/@ipld/dag-json@10.2.3?external=multiformats",
           "@clerk/clerk-react": "https://esm.sh/stable/@clerk/clerk-react@5.59.2?external=react,react-dom",
-          "use-fireproof": "/fireproof-clerk-bundle.js",
-          "@fireproof/clerk": "/fireproof-clerk-bundle.js"
+          "use-fireproof": "/fireproof-vibes-bridge.js",
+          "@fireproof/clerk": "/fireproof-vibes-bridge.js"
         }
       }
     </script>
@@ -441,6 +441,82 @@
       }
       window.SyncStatusDot = SyncStatusDot;
 
+      // === SharingBridge ===
+      // Must be rendered inside ClerkFireproofProvider > SignedIn.
+      // Bridges vibes-share-request DOM events to the dashApi.
+      function SharingBridge() {
+        var ctx = window.useClerkFireproofContext();
+        var dashApi = ctx.dashApi;
+        var dashApiRef = React.useRef(null);
+        var ledgerCacheRef = React.useRef(null);
+        dashApiRef.current = dashApi;
+
+        React.useEffect(function() {
+          function handleShareRequest(e) {
+            var detail = e.detail;
+            var email = detail.email;
+            var api = dashApiRef.current;
+
+            if (!api) {
+              document.dispatchEvent(new CustomEvent('vibes-share-error', {
+                detail: { error: { message: 'Sharing not ready. Please try again.' } }
+              }));
+              return;
+            }
+
+            (async function() {
+              try {
+                // Discover ledger for this app
+                if (!ledgerCacheRef.current) {
+                  var rLedgers = await api.listLedgersByUser({});
+                  if (rLedgers.isErr()) throw new Error('Could not load ledger list');
+                  ledgerCacheRef.current = rLedgers.Ok().ledgers;
+                }
+                var ledgers = ledgerCacheRef.current;
+                var appHost = window.location.hostname;
+                var matchedLedger = ledgers.find(function(l) {
+                  return l.name && l.name.includes(appHost);
+                }) || ledgers[0];
+
+                if (!matchedLedger) {
+                  throw new Error('No synced database found. Please wait for sync to complete.');
+                }
+
+                var rInvite = await api.inviteUser({
+                  ticket: {
+                    query: { byEmail: email },
+                    invitedParams: {
+                      ledger: {
+                        id: matchedLedger.ledgerId,
+                        role: 'member',
+                        right: detail.right || 'read'
+                      }
+                    }
+                  }
+                });
+                if (rInvite.isErr()) throw rInvite.Err();
+
+                document.dispatchEvent(new CustomEvent('vibes-share-success', {
+                  detail: { email: email, message: 'Invitation sent to ' + email + '!' }
+                }));
+              } catch (err) {
+                document.dispatchEvent(new CustomEvent('vibes-share-error', {
+                  detail: { error: { message: err.message || 'Failed to send invitation.' } }
+                }));
+              }
+            })();
+          }
+
+          document.addEventListener('vibes-share-request', handleShareRequest);
+          return function() {
+            document.removeEventListener('vibes-share-request', handleShareRequest);
+          };
+        }, []);
+
+        return null;
+      }
+      window.SharingBridge = SharingBridge;
+
       // === VibesPanel Event Handler Hook ===
       function useVibesPanelEvents(logPrefix) {
         React.useEffect(() => {
@@ -450,25 +526,12 @@
           const handleSyncDisable = () => {
             console.log('[' + logPrefix + '] Sync disabled');
           };
-          const handleShareRequest = (e) => {
-            const { email, role, right, token } = e.detail;
-            console.log('[' + logPrefix + '] Share request:', { email, role, right });
-            // TODO: Implement actual share logic with Fireproof
-            // For now, simulate success after a delay
-            setTimeout(() => {
-              document.dispatchEvent(new CustomEvent('vibes-share-success', {
-                detail: { email: email, message: 'Invitation sent to ' + email + '!' }
-              }));
-            }, 1000);
-          };
 
           document.addEventListener('vibes-logout-request', handleLogout);
           document.addEventListener('vibes-sync-disable', handleSyncDisable);
-          document.addEventListener('vibes-share-request', handleShareRequest);
           return () => {
             document.removeEventListener('vibes-logout-request', handleLogout);
             document.removeEventListener('vibes-sync-disable', handleSyncDisable);
-            document.removeEventListener('vibes-share-request', handleShareRequest);
           };
         }, []);
       }
