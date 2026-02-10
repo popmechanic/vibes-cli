@@ -12,11 +12,48 @@
 
 import React from "react";
 export * from "./fireproof-clerk-bundle.js";
-import { useFireproofClerk as _originalUseFireproofClerk } from "./fireproof-clerk-bundle.js";
+import { useFireproofClerk as _originalUseFireproofClerk, useClerkFireproofContext } from "./fireproof-clerk-bundle.js";
 
 export function useFireproofClerk(name, opts) {
+  var ctx = useClerkFireproofContext();
+  var dashApi = ctx && ctx.dashApi;
   var result = _originalUseFireproofClerk(name, opts);
   var syncVal = result.syncStatus || "idle";
+
+  // Debug: log ledger list + check for invite param in URL
+  React.useEffect(function () {
+    if (!dashApi) return;
+    dashApi.listLedgersByUser({}).then(function (res) {
+      if (res.isOk()) {
+        console.log('[vibes-bridge] listLedgersByUser:', JSON.stringify(res.Ok(), null, 2));
+      } else {
+        console.log('[vibes-bridge] listLedgersByUser error:', res.Err());
+      }
+    });
+    // Check URL for ?invite=<id> param and auto-redeem
+    var params = new URLSearchParams(window.location.search);
+    var inviteId = params.get('invite');
+    if (inviteId) {
+      console.log('[vibes-bridge] Found invite param, redeeming:', inviteId);
+      dashApi.redeemInvite({ inviteId: inviteId }).then(function (rr) {
+        if (rr.isOk()) {
+          console.log('[vibes-bridge] Redeemed invite OK:', JSON.stringify(rr.Ok(), null, 2));
+          // Re-check ledgers after redeeming
+          dashApi.listLedgersByUser({}).then(function (res2) {
+            if (res2.isOk()) {
+              console.log('[vibes-bridge] listLedgersByUser (post-redeem):', JSON.stringify(res2.Ok(), null, 2));
+            }
+          });
+          // Clean up URL param
+          params.delete('invite');
+          var newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+          window.history.replaceState({}, '', newUrl);
+        } else {
+          console.log('[vibes-bridge] redeemInvite error:', rr.Err());
+        }
+      });
+    }
+  }, [dashApi]);
 
   // Sync status bridge: forward to window global + dispatch event for SyncStatusDot
   React.useEffect(function () {
