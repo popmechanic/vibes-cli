@@ -216,7 +216,7 @@ This plugin works with multiple coding agents, not just Claude Code.
 
 ## Package Versions
 
-The git-tracked `skills/vibes/cache/` is the authoritative source for current package versions (`esm.sh/stable/` URLs, `@necrodome/fireproof-clerk@0.0.3`, React 19.2.4).
+The import map in `skills/_base/template.html` is the authoritative source for current package versions (`esm.sh/stable/` URLs, `@necrodome/fireproof-clerk@0.0.3`, React 19.2.4).
 
 ## Critical Rules
 
@@ -390,11 +390,9 @@ npm run test:e2e:server
 | `components/AuthPopUp/` | Modal auth dialog (Amber's original design) |
 | `components/AuthScreen/` | Full-screen auth gate for sell template |
 | `components/BrutalistCard/` | Animated card with shred/collapse effects |
-| `cache/import-map.json` | Working cache - package versions |
 | `cache/style-prompt.txt` | Working cache - UI style guidance |
 | `docs/fireproof.txt` | Fireproof API reference documentation |
 | `cache/vibes-menu.js` | Built components from local source |
-| `cache/vibes-variables.css` | Working cache - CSS theme variables |
 | `skills/_base/template.html` | Base template with shared code (components, CSS, imports) |
 | `skills/vibes/template.delta.html` | Vibes-specific delta (Clerk auth wrapper) |
 | `skills/vibes/templates/index.html` | Generated vibes template |
@@ -422,16 +420,10 @@ npm run test:e2e:server
 There are two cache locations by design:
 
 1. **`/cache/`** (gitignored) - Working cache
-   - `import-map.json` - Package versions and CDN URLs
    - `style-prompt.txt` - UI style guidance
    - `vibes-menu.js` - Built components (from build-components.js)
-   - `vibes-variables.css` - CSS theme variables
 
-2. **`skills/vibes/cache/`** (git-tracked) - Default values shipped with the plugin
-   - Uses `esm.sh/stable/` URLs with `?external=react,react-dom`
-   - **This is the authoritative source for current versions**
-
-3. **`docs/fireproof.txt`** - Fireproof API reference
+2. **`docs/fireproof.txt`** - Fireproof API reference
    - Contains `@fireproof/clerk` docs for authenticated sync
    - Read when Connect is set up and apps need Clerk auth patterns
 
@@ -441,7 +433,6 @@ There are two cache locations by design:
 
 **When to read cache files:**
 - `style-prompt.txt` - Read when you need UI/color guidance beyond what's in SKILL.md
-- `import-map.json` - Reference only; never hardcode these values
 
 ## Architecture: JSX + Babel
 

@@ -39,45 +39,67 @@ import { stripForTemplate, stripImports } from './lib/strip-code.js';
 import { createBackup } from './lib/backup.js';
 import { prompt } from './lib/prompt.js';
 import { loadEnvFile, validateClerkKey, populateConnectConfig } from './lib/env-utils.js';
+import { APP_PLACEHOLDER } from './lib/assembly-utils.js';
+import { parseArgs as parseCliArgs, formatHelp } from './lib/cli-utils.js';
 
 // Parse command line arguments
-function parseArgs(argv) {
-  const args = {
-    appJsxPath: null,
-    outputPath: null,
-    options: {}
-  };
+const assembleSellSchema = [
+  { name: 'clerkKey', flag: '--clerk-key', type: 'string', description: 'Clerk publishable key (uses .env if not provided)' },
+  { name: 'appName', flag: '--app-name', type: 'string', description: 'App name for database naming (e.g., "wedding-photos")' },
+  { name: 'appTitle', flag: '--app-title', type: 'string', description: 'Display title (e.g., "Wedding Photos")' },
+  { name: 'domain', flag: '--domain', type: 'string', description: 'Root domain (e.g., "myapp.exe.xyz")' },
+  { name: 'billingMode', flag: '--billing-mode', type: 'string', description: 'Billing mode: "off" (free) or "required"' },
+  { name: 'features', flag: '--features', type: 'string', description: 'JSON array of feature strings' },
+  { name: 'tagline', flag: '--tagline', type: 'string', description: 'App tagline for landing page headline' },
+  { name: 'subtitle', flag: '--subtitle', type: 'string', description: 'Subheadline text below the tagline' },
+  { name: 'adminIds', flag: '--admin-ids', type: 'string', description: 'JSON array of Clerk user IDs with admin access' },
+  { name: 'reserved', flag: '--reserved', type: 'string', description: 'Comma-separated reserved subdomain names' },
+];
 
-  let i = 2;
-  while (i < argv.length) {
-    const arg = argv[i];
+const assembleSellMeta = {
+  name: 'Sell App Assembler',
+  description: 'Assembles a SaaS app from the sell template and user\'s app code.',
+  usage: 'node scripts/assemble-sell.js <app.jsx> [output.html] [options]',
+  examples: [
+    'node scripts/assemble-sell.js app.jsx index.html \\',
+    '  --clerk-key pk_test_xxx \\',
+    '  --app-name wedding-photos \\',
+    '  --app-title "Wedding Photos" \\',
+    '  --domain myapp.exe.xyz \\',
+    '  --admin-ids \'["user_xxx"]\'',
+  ],
+};
 
-    if (arg.startsWith('--')) {
-      const key = arg.slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase());
-      const value = argv[i + 1];
-      args.options[key] = value;
-      i += 2;
-    } else if (!args.appJsxPath) {
-      args.appJsxPath = arg;
-      i++;
-    } else if (!args.outputPath) {
-      args.outputPath = arg;
-      i++;
-    } else {
-      i++;
+function parseSellArgs(argv) {
+  const { args, positionals } = parseCliArgs(assembleSellSchema, argv.slice(2));
+
+  if (args._help) {
+    console.log('\n' + formatHelp(assembleSellMeta, assembleSellSchema));
+    process.exit(0);
+  }
+
+  // Build options object for backward compatibility with rest of script
+  const options = {};
+  for (const entry of assembleSellSchema) {
+    if (args[entry.name] != null) {
+      options[entry.name] = args[entry.name];
     }
   }
 
-  return args;
+  return {
+    appJsxPath: positionals[0] || null,
+    outputPath: positionals[1] || null,
+    options,
+  };
 }
 
-const { appJsxPath, outputPath, options } = parseArgs(process.argv);
+const { appJsxPath, outputPath, options } = parseSellArgs(process.argv);
 
 // Validate app.jsx path
 if (!appJsxPath) {
   console.error('Usage: node scripts/assemble-sell.js <app.jsx> [output.html] [options]');
   console.error('\nProvide the path to your app.jsx file.');
-  console.error('Run with no arguments to see full usage.');
+  console.error('Run with --help for full usage.');
   process.exit(1);
 }
 
@@ -287,11 +309,10 @@ if (firepoolMatch) {
 }
 
 // Insert app code at placeholder
-const appPlaceholder = '// __VIBES_APP_CODE__';
-if (output.includes(appPlaceholder)) {
-  output = output.replace(appPlaceholder, appCode);
+if (output.includes(APP_PLACEHOLDER)) {
+  output = output.replace(APP_PLACEHOLDER, appCode);
 } else {
-  console.error(`Template missing placeholder: ${appPlaceholder}`);
+  console.error(`Template missing placeholder: ${APP_PLACEHOLDER}`);
   process.exit(1);
 }
 

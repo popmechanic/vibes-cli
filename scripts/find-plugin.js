@@ -2,6 +2,8 @@
 /**
  * find-plugin.js - Find the vibes plugin directory with validation
  *
+ * Thin ESM wrapper around lib/resolve-paths.js (the canonical implementation).
+ *
  * Usage:
  *   node scripts/find-plugin.js          # Prints plugin path or exits with error
  *   node scripts/find-plugin.js --quiet  # Only prints path, no error messages
@@ -14,16 +16,20 @@
  *   const pluginDir = findPluginDir();
  */
 
-import { existsSync, readdirSync } from 'fs';
+import { createRequire } from 'node:module';
+import { existsSync } from 'fs';
 import { join } from 'path';
-import { homedir } from 'os';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const require = createRequire(import.meta.url);
+
+// Delegate to canonical implementation
+const { resolvePluginRoot } = require('../lib/resolve-paths.js');
 
 /**
  * Find the vibes plugin directory
- * Checks multiple sources in priority order:
- * 1. VIBES_PLUGIN_ROOT environment variable
- * 2. Claude Code plugin cache
- * 3. Standard git clone installation (~/.vibes)
+ * Delegates to lib/resolve-paths.js for path resolution.
  *
  * @param {object} options - Options
  * @param {boolean} options.quiet - Suppress error messages
@@ -31,57 +37,12 @@ import { homedir } from 'os';
  */
 export function findPluginDir(options = {}) {
   const { quiet = false } = options;
-  const home = homedir();
+  const root = resolvePluginRoot();
 
-  // Helper to validate a plugin directory
-  const isValidPluginDir = (dir) => {
-    return existsSync(join(dir, 'scripts', 'assemble.js'));
-  };
-
-  // 1. Check VIBES_PLUGIN_ROOT environment variable
-  if (process.env.VIBES_PLUGIN_ROOT) {
-    const envPath = process.env.VIBES_PLUGIN_ROOT;
-    if (isValidPluginDir(envPath)) {
-      return envPath.endsWith('/') ? envPath : envPath + '/';
-    }
+  if (root) {
+    return root.endsWith('/') ? root : root + '/';
   }
 
-  // 2. Check Claude Code plugin cache
-  const cacheBase = join(home, '.claude', 'plugins', 'cache', 'vibes-cli', 'vibes');
-  if (existsSync(cacheBase)) {
-    try {
-      const versions = readdirSync(cacheBase)
-        .filter(name => !name.startsWith('.'))
-        .sort((a, b) => {
-          // Version sort: split by dots and compare numerically
-          const partsA = a.split('.').map(n => parseInt(n, 10) || 0);
-          const partsB = b.split('.').map(n => parseInt(n, 10) || 0);
-          for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
-            const diff = (partsA[i] || 0) - (partsB[i] || 0);
-            if (diff !== 0) return diff;
-          }
-          return 0;
-        });
-
-      if (versions.length > 0) {
-        const latestVersion = versions[versions.length - 1];
-        const pluginDir = join(cacheBase, latestVersion) + '/';
-        if (isValidPluginDir(pluginDir)) {
-          return pluginDir;
-        }
-      }
-    } catch (e) {
-      // Continue to next check
-    }
-  }
-
-  // 3. Check standard git clone installation (~/.vibes)
-  const vibesPath = join(home, '.vibes');
-  if (isValidPluginDir(vibesPath)) {
-    return vibesPath + '/';
-  }
-
-  // Not found
   if (!quiet) {
     console.error('Error: Vibes plugin not found.');
     console.error('Install options:');
