@@ -20,53 +20,24 @@ export function useFireproofClerk(name, opts) {
   var result = _originalUseFireproofClerk(name, opts);
   var syncVal = result.syncStatus || "idle";
 
-  // Debug: log JWT payload + ledger list
+  // Auto-redeem invite from ?invite=<id> URL param
   React.useEffect(function () {
     if (!dashApi) return;
 
-    // Debug: decode Clerk JWT to verify params.email is present
-    if (window.Clerk && window.Clerk.session) {
-      window.Clerk.session.getToken({ template: 'with-email' }).then(function(token) {
-        if (token) {
-          try {
-            var parts = token.split('.');
-            var payload = JSON.parse(atob(parts[1]));
-            console.log('[vibes-bridge] JWT with-email payload:', JSON.stringify(payload, null, 2));
-          } catch(e) {
-            console.log('[vibes-bridge] JWT decode error:', e.message);
-          }
-        } else {
-          console.log('[vibes-bridge] No JWT token returned for template "with-email"');
-        }
-      }).catch(function(e) {
-        console.log('[vibes-bridge] JWT template error:', e.message);
-      });
-    }
-
-    dashApi.listLedgersByUser({}).then(function (res) {
-      if (res.isOk()) {
-        console.log('[vibes-bridge] listLedgersByUser:', JSON.stringify(res.Ok(), null, 2));
-      } else {
-        console.log('[vibes-bridge] listLedgersByUser error:', res.Err());
-      }
-    });
-
-    // Check URL for ?invite=<id> param and auto-redeem
     var params = new URLSearchParams(window.location.search);
     var inviteId = params.get('invite');
     if (inviteId) {
-      console.log('[vibes-bridge] Found invite param, redeeming:', inviteId);
+      console.debug('[vibes] Redeeming invite:', inviteId);
       dashApi.redeemInvite({ inviteId: inviteId }).then(function (rr) {
         if (rr.isOk()) {
-          console.log('[vibes-bridge] Redeemed invite OK:', JSON.stringify(rr.Ok(), null, 2));
+          console.debug('[vibes] Invite redeemed, reloading');
           // Clean up URL param and reload so token strategy picks up shared ledger
           params.delete('invite');
           var newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
           window.history.replaceState({}, '', newUrl);
-          // Reload to re-run token strategy with the new ledger membership
           window.location.reload();
         } else {
-          console.log('[vibes-bridge] redeemInvite error:', rr.Err());
+          console.warn('[vibes] redeemInvite failed:', rr.Err());
         }
       });
     }
