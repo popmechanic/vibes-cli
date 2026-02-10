@@ -78,7 +78,7 @@ export async function verifyClerkJWTDebug(
   authHeader: string | null,
   pemPublicKey: string,
   permittedOrigins: string[]
-): Promise<{ userId: string } | { error: string }> {
+): Promise<{ userId: string; plan?: string } | { error: string }> {
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return { error: "no_auth_header" };
   }
@@ -129,7 +129,10 @@ export async function verifyClerkJWTDebug(
       return { error: "no_sub_claim" };
     }
 
-    return { userId };
+    return {
+      userId,
+      plan: parsed.payload.pla as string | undefined,
+    };
   } catch (error) {
     return { error: `exception:${error}` };
   }
@@ -139,7 +142,7 @@ export async function verifyClerkJWT(
   authHeader: string | null,
   pemPublicKey: string,
   permittedOrigins: string[]
-): Promise<{ userId: string } | null> {
+): Promise<{ userId: string; plan?: string } | null> {
   const result = await verifyClerkJWTDebug(authHeader, pemPublicKey, permittedOrigins);
   if ('error' in result) {
     console.error("JWT verification failed:", result.error);

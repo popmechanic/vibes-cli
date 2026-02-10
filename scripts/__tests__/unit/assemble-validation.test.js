@@ -6,38 +6,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { APP_PLACEHOLDER, validateAssembly } from '../../lib/assembly-utils.js';
 
-// ============== Validation Logic (extracted from assemble.js) ==============
-
-const PLACEHOLDER = '// __VIBES_APP_CODE__';
-
-/**
- * Validate assembled output
- * Mirrors the logic in assemble.js
- */
-function validateAssembly(html, code) {
-  const errors = [];
-
-  if (!code || code.trim().length === 0) {
-    errors.push('App code is empty');
-  }
-
-  if (html.includes(PLACEHOLDER)) {
-    errors.push('Placeholder was not replaced');
-  }
-
-  if (!html.includes('export default function') && !html.includes('function App')) {
-    errors.push('No App component found');
-  }
-
-  const scriptOpens = (html.match(/<script/gi) || []).length;
-  const scriptCloses = (html.match(/<\/script>/gi) || []).length;
-  if (scriptOpens !== scriptCloses) {
-    errors.push(`Mismatched script tags: ${scriptOpens} opens, ${scriptCloses} closes`);
-  }
-
-  return errors;
-}
+const PLACEHOLDER = APP_PLACEHOLDER;
 
 /**
  * Validate sell template BEFORE app code injection
