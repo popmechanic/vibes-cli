@@ -196,8 +196,7 @@ describe('Assembly Pipeline', () => {
       execSync(cmd, { stdio: 'pipe', cwd: workDir });
 
       const html = readFileSync(output, 'utf8');
-      expect(html).toContain('Paywall Test Checklist');
-      expect(html).toContain('Revoke = paywall. Grant = bypass.');
+      expect(html).toContain('Subscription status is managed by Clerk Commerce');
     });
   });
 });

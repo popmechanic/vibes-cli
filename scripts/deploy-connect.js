@@ -21,8 +21,8 @@ import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { homedir } from 'os';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
 import { ensureDeps } from './lib/ensure-deps.js';
+import { parseArgs as parseCliArgs, formatHelp, handleHelpAndErrors } from './lib/cli-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -30,84 +30,72 @@ const __dirname = dirname(__filename);
 await ensureDeps(__filename);
 
 import {
-  findSSHKey,
   connect,
   runCommand,
-  createVM,
   setPublic,
   setPort,
-  testConnection
 } from './lib/exe-ssh.js';
+
+import {
+  preFlightSSH,
+  createAndSetupVM,
+  verifyDeployment as verifyURL
+} from './lib/deploy-utils.js';
 
 import { generateSessionTokens, generateDeviceCAKeys } from './lib/crypto-utils.js';
 
 // ============== Argument Parsing ==============
 
-function parseArgs(argv) {
-  const args = {
-    studio: null,
-    clerkPublishableKey: null,
-    clerkSecretKey: null,
-    dryRun: false,
-    help: false
-  };
+const deployConnectSchema = [
+  { name: 'studio', flag: '--studio', type: 'string', required: true, description: 'Studio VM name (becomes <codename>.exe.xyz)' },
+  { name: 'clerkPublishableKey', flag: '--clerk-publishable-key', type: 'string', required: true, description: 'Clerk publishable key (pk_test_... or pk_live_...)' },
+  { name: 'clerkSecretKey', flag: '--clerk-secret-key', type: 'string', required: true, description: 'Clerk secret key (sk_test_... or sk_live_...)' },
+  { name: 'dryRun', flag: '--dry-run', type: 'boolean', description: 'Show what would be done without executing' },
+];
 
-  for (let i = 2; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === '--studio' && argv[i + 1]) {
-      args.studio = argv[++i];
-    } else if (arg === '--clerk-publishable-key' && argv[i + 1]) {
-      args.clerkPublishableKey = argv[++i];
-    } else if (arg === '--clerk-secret-key' && argv[i + 1]) {
-      args.clerkSecretKey = argv[++i];
-    } else if (arg === '--dry-run') {
-      args.dryRun = true;
-    } else if (arg === '--help' || arg === '-h') {
-      args.help = true;
-    }
-  }
+const deployConnectMeta = {
+  name: 'Deploy Fireproof Connect to a Studio VM',
+  description: 'Deploys the full Fireproof sync stack to a dedicated exe.dev VM.',
+  usage: 'node scripts/deploy-connect.js --studio <codename> [options]',
+  sections: [
+    { title: 'Required', entries: deployConnectSchema.slice(0, 3) },
+    { title: 'Optional', entries: [...deployConnectSchema.slice(3), { flag: '--help', alias: '-h', type: 'boolean', description: 'Show this help message' }] },
+  ],
+  notes: [
+    'Prerequisites:',
+    '  - SSH key in ~/.ssh/ (id_ed25519, id_rsa, or id_ecdsa)',
+    '  - exe.dev account (run \'ssh exe.dev\' to create one)',
+    '  - Clerk account with API keys',
+    '',
+    'What It Does:',
+    '  1. Creates/connects to the Studio VM',
+    '  2. Clones fireproof repo (selem/docker-for-all branch)',
+    '  3. Generates security tokens (session tokens, CA keys)',
+    '  4. Creates .env with all credentials',
+    '  5. Runs ./docker/start.sh to start services',
+    '  6. Writes local .connect file for app configuration',
+  ],
+  examples: [
+    'node scripts/deploy-connect.js \\',
+    '  --studio marcus-studio \\',
+    '  --clerk-publishable-key "pk_test_abc123..." \\',
+    '  --clerk-secret-key "sk_test_xyz789..."',
+  ],
+};
+
+function parseArgs(argv) {
+  const { args } = parseCliArgs(deployConnectSchema, argv.slice(2));
+
+  // Map _help to help for backward compatibility
+  args.help = args._help || false;
+  delete args._help;
+  delete args._errors; // Errors handled in main()
 
   return args;
 }
 
 function printHelp() {
-  console.log(`
-Deploy Fireproof Connect to a Studio VM
-========================================
-
-Deploys the full Fireproof sync stack to a dedicated exe.dev VM.
-
-Usage:
-  node scripts/deploy-connect.js --studio <codename> [options]
-
-Required:
-  --studio <codename>              Studio VM name (becomes <codename>.exe.xyz)
-  --clerk-publishable-key <key>    Clerk publishable key (pk_test_... or pk_live_...)
-  --clerk-secret-key <key>         Clerk secret key (sk_test_... or sk_live_...)
-
-Optional:
-  --dry-run                        Show what would be done without executing
-  --help                           Show this help message
-
-Prerequisites:
-  - SSH key in ~/.ssh/ (id_ed25519, id_rsa, or id_ecdsa)
-  - exe.dev account (run 'ssh exe.dev' to create one)
-  - Clerk account with API keys
-
-What It Does:
-  1. Creates/connects to the Studio VM
-  2. Clones fireproof repo (selem/docker-for-all branch)
-  3. Generates security tokens (session tokens, CA keys)
-  4. Creates .env with all credentials
-  5. Runs ./docker/start.sh to start services
-  6. Writes local .connect file for app configuration
-
-Example:
-  node scripts/deploy-connect.js \\
-    --studio marcus-studio \\
-    --clerk-publishable-key "pk_test_abc123..." \\
-    --clerk-secret-key "sk_test_xyz789..."
-`);
+  console.log('\n' + formatHelp(deployConnectMeta, deployConnectSchema));
 }
 
 /**
@@ -160,12 +148,8 @@ clerk_publishable_key: ${config.clerkPublishableKey}
 async function phase1PreFlight(args) {
   console.log('\nPhase 1: Pre-flight checks...');
 
-  // Check SSH key
-  const sshKey = findSSHKey();
-  if (!sshKey) {
-    throw new Error('No SSH key found in ~/.ssh/. Please create an SSH key first.');
-  }
-  console.log(`  ✓ SSH key found: ${sshKey}`);
+  // SSH key + connection test (shared)
+  await preFlightSSH({ dryRun: args.dryRun });
 
   // Validate Clerk keys
   if (!args.clerkPublishableKey.startsWith('pk_test_') && !args.clerkPublishableKey.startsWith('pk_live_')) {
@@ -175,50 +159,11 @@ async function phase1PreFlight(args) {
     throw new Error('Clerk secret key must start with sk_test_ or sk_live_');
   }
   console.log('  ✓ Clerk keys validated');
-
-  // Test exe.dev connection
-  console.log('  Testing exe.dev connection...');
-  if (args.dryRun) {
-    console.log('  [DRY RUN] Would test SSH connection to exe.dev');
-  } else {
-    const connected = await testConnection();
-    if (!connected) {
-      throw new Error(`Cannot connect to exe.dev.
-
-Before deploying, please:
-1. Run: ssh exe.dev (to create account if needed, verify email)
-2. Then retry this deployment`);
-    }
-    console.log('  ✓ exe.dev connection OK');
-  }
 }
 
 async function phase2CreateVM(args) {
   console.log('\nPhase 2: VM Creation...');
-
-  if (args.dryRun) {
-    console.log(`  [DRY RUN] Would create VM: ${args.studio}`);
-    return;
-  }
-
-  console.log(`  Creating VM: ${args.studio}...`);
-  const result = await createVM(args.studio);
-
-  if (result.success) {
-    console.log(`  ✓ ${result.message}`);
-  } else {
-    throw new Error(`Failed to create VM: ${result.message}`);
-  }
-
-  // Add VM host key to known_hosts
-  const vmHost = `${args.studio}.exe.xyz`;
-  console.log(`  Adding ${vmHost} to known_hosts...`);
-  try {
-    execSync(`ssh-keyscan -H ${vmHost} >> ~/.ssh/known_hosts 2>/dev/null`, { timeout: 30000 });
-    console.log('  ✓ Host key added');
-  } catch {
-    console.log('  Warning: Could not add host key automatically');
-  }
+  await createAndSetupVM(args.studio, { dryRun: args.dryRun });
 }
 
 async function phase3CloneRepo(args) {
@@ -599,35 +544,14 @@ async function phase9WriteConnect(args) {
   console.log('  ✓ Configuration saved');
 }
 
-async function verifyDeployment(args) {
+async function verifyDeploymentPhase(args) {
   console.log('\nVerifying deployment...');
-
   const url = `https://${args.studio}.exe.xyz`;
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: { 'User-Agent': 'vibes-deploy-connect/1.0' }
-    });
-
-    clearTimeout(timeout);
-
-    if (response.ok || response.status === 404) {
-      // 404 is fine - nginx is responding, just no index.html
-      console.log(`  ✓ ${url} is responding (HTTP ${response.status})`);
-      return true;
-    } else {
-      console.log(`  ⚠ ${url} returned unexpected response: ${response.status}`);
-      return false;
-    }
-  } catch (err) {
-    console.log(`  ⚠ ${url} not responding yet: ${err.message}`);
-    console.log('  This may be due to DNS propagation. Try again in a few minutes.');
-    return false;
-  }
+  // 404 is fine for Connect - nginx is responding, just no index.html
+  return verifyURL(url, {
+    userAgent: 'vibes-deploy-connect/1.0',
+    acceptStatus: [200, 404]
+  });
 }
 
 // ============== Main ==============
@@ -684,7 +608,7 @@ ${'━'.repeat(60)}
     if (!args.dryRun) {
       console.log('\n  Waiting 5 seconds for deployment to propagate...');
       await new Promise(r => setTimeout(r, 5000));
-      await verifyDeployment(args);
+      await verifyDeploymentPhase(args);
     }
 
     const vmHost = `${args.studio}.exe.xyz`;

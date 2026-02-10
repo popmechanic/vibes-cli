@@ -16,32 +16,9 @@ import { resolve, dirname } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { createBackup } from './lib/backup.js';
 import { loadEnvFile, validateClerkKey, populateConnectConfig } from './lib/env-utils.js';
+import { APP_PLACEHOLDER, validateAssembly } from './lib/assembly-utils.js';
 
-const PLACEHOLDER = '// __VIBES_APP_CODE__';
-
-function validateAssembly(html, code) {
-  const errors = [];
-
-  if (!code || code.trim().length === 0) {
-    errors.push('App code is empty');
-  }
-
-  if (html.includes(PLACEHOLDER)) {
-    errors.push('Placeholder was not replaced');
-  }
-
-  if (!html.includes('export default function') && !html.includes('function App')) {
-    errors.push('No App component found');
-  }
-
-  const scriptOpens = (html.match(/<script/gi) || []).length;
-  const scriptCloses = (html.match(/<\/script>/gi) || []).length;
-  if (scriptOpens !== scriptCloses) {
-    errors.push(`Mismatched script tags: ${scriptOpens} opens, ${scriptCloses} closes`);
-  }
-
-  return errors;
-}
+const PLACEHOLDER = APP_PLACEHOLDER;
 
 function main() {
   // Parse args

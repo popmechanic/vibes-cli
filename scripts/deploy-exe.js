@@ -36,25 +36,30 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
 import { ensureDeps } from './lib/ensure-deps.js';
 import { prompt, confirm } from './lib/prompt.js';
+import { parseArgs as parseCliArgs, formatHelp, handleHelpAndErrors } from './lib/cli-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 
 await ensureDeps(__filename);
 
 import {
-  findSSHKey,
   connect,
   runCommand,
   runExeCommand,
   uploadFile,
   uploadFileWithSudo,
-  createVM,
   setPublic,
-  testConnection
 } from './lib/exe-ssh.js';
+
+import {
+  preFlightSSH,
+  createAndSetupVM,
+  ensureBun,
+  uploadFilesWithSudo,
+  verifyDeployment as verifyURL
+} from './lib/deploy-utils.js';
 
 import { generateHandoff, extractContextFromEnv } from './generate-handoff.js';
 
@@ -63,116 +68,93 @@ const CONFIG_PATH = join(homedir(), '.vibes-deploy-exe.json');
 
 // ============== Argument Parsing ==============
 
-function parseArgs(argv) {
-  const args = {
-    name: null,
-    domain: null,
-    file: 'index.html',
-    aiKey: null,
-    multiTenant: false,
-    tenantLimit: 5,
-    reserved: [],
-    preallocated: {},
-    clerkKey: null,
-    clerkWebhookSecret: null,
-    skipRegistry: false,
-    dryRun: false,
-    skipVerify: false,
-    help: false
-  };
+const deployExeSchema = [
+  { name: 'name', flag: '--name', type: 'string', required: true, description: 'VM name (required)' },
+  { name: 'domain', flag: '--domain', type: 'string', description: 'Custom domain for wildcard SSL setup' },
+  { name: 'file', flag: '--file', type: 'string', default: 'index.html', description: 'HTML file to deploy (default: index.html)' },
+  { name: 'dryRun', flag: '--dry-run', type: 'boolean', description: 'Show what would be done without executing' },
+  { name: 'skipVerify', flag: '--skip-verify', type: 'boolean', description: 'Skip verification step' },
+  { name: 'aiKey', flag: '--ai-key', type: 'string', description: 'OpenRouter API key for AI features' },
+  { name: 'multiTenant', flag: '--multi-tenant', type: 'boolean', description: 'Enable per-tenant AI usage tracking' },
+  { name: 'tenantLimit', flag: '--tenant-limit', type: 'string', default: '5', description: 'Credit limit per tenant in dollars (default: 5)' },
+  { name: 'clerkKey', flag: '--clerk-key', type: 'string', description: 'Clerk PEM public key for JWT verification' },
+  { name: 'clerkWebhookSecret', flag: '--clerk-webhook-secret', type: 'string', description: 'Clerk webhook signing secret' },
+  { name: 'skipRegistry', flag: '--skip-registry', type: 'boolean', description: 'Skip registry server (no subdomain claiming)' },
+  { name: 'reserved', flag: '--reserved', type: 'string', description: 'Comma-separated reserved subdomain names' },
+  { name: 'preallocated', flag: '--preallocated', type: 'string', description: 'Pre-claimed subdomains (format: sub:user_id)' },
+];
 
-  for (let i = 2; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === '--name' && argv[i + 1]) {
-      args.name = argv[++i];
-    } else if (arg === '--domain' && argv[i + 1]) {
-      args.domain = argv[++i];
-    } else if (arg === '--file' && argv[i + 1]) {
-      args.file = argv[++i];
-    } else if (arg === '--ai-key' && argv[i + 1]) {
-      args.aiKey = argv[++i];
-    } else if (arg === '--multi-tenant') {
-      args.multiTenant = true;
-    } else if (arg === '--tenant-limit' && argv[i + 1]) {
-      args.tenantLimit = parseFloat(argv[++i]) || 5;
-    } else if (arg === '--reserved' && argv[i + 1]) {
-      args.reserved = argv[++i].split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-    } else if (arg === '--preallocated' && argv[i + 1]) {
-      // Format: "subdomain:user_id,subdomain:user_id"
-      const pairs = argv[++i].split(',');
-      for (const pair of pairs) {
-        const [subdomain, userId] = pair.split(':').map(s => s.trim());
-        if (subdomain && userId) {
-          args.preallocated[subdomain.toLowerCase()] = userId;
-        }
-      }
-    } else if (arg === '--clerk-key' && argv[i + 1]) {
-      args.clerkKey = argv[++i];
-    } else if (arg === '--clerk-webhook-secret' && argv[i + 1]) {
-      args.clerkWebhookSecret = argv[++i];
-    } else if (arg === '--skip-registry') {
-      args.skipRegistry = true;
-    } else if (arg === '--dry-run') {
-      args.dryRun = true;
-    } else if (arg === '--skip-verify') {
-      args.skipVerify = true;
-    } else if (arg === '--help' || arg === '-h') {
-      args.help = true;
-    }
+const deployExeMeta = {
+  name: 'exe.dev Deployment Automation',
+  description: 'Deploys static Vibes apps to exe.dev VMs using nginx.',
+  usage: 'node scripts/deploy-exe.js --name <vmname> [options]',
+  sections: [
+    { title: 'Options', entries: deployExeSchema.slice(0, 5) },
+    { title: 'AI Proxy Options', entries: deployExeSchema.slice(5, 8) },
+    { title: 'Registry Options (for SaaS apps with subdomain claiming)', entries: deployExeSchema.slice(8) },
+    { title: 'Help', entries: [{ flag: '--help', alias: '-h', type: 'boolean', description: 'Show this help message' }] },
+  ],
+  examples: [
+    '# Deploy to new VM',
+    'node scripts/deploy-exe.js --name myapp',
+    '',
+    '# Deploy with custom domain setup',
+    'node scripts/deploy-exe.js --name myapp --domain myapp.com',
+    '',
+    '# Deploy a different HTML file',
+    'node scripts/deploy-exe.js --name myapp --file build/index.html',
+    '',
+    '# Deploy with AI proxy',
+    'node scripts/deploy-exe.js --name myapp --ai-key "sk-or-v1-..."',
+  ],
+  notes: [
+    'Prerequisites:',
+    '  - SSH key in ~/.ssh/ (id_ed25519, id_rsa, or id_ecdsa)',
+    '  - exe.dev account (run \'ssh exe.dev\' to create one)',
+    '',
+    'Note: For Fireproof Connect (sync backend), use deploy-connect.js instead.',
+  ],
+};
+
+function parseArgs(argv) {
+  const { args, positionals } = parseCliArgs(deployExeSchema, argv.slice(2));
+
+  // Post-process: tenant-limit is a number
+  if (args.tenantLimit) {
+    args.tenantLimit = parseFloat(args.tenantLimit) || 5;
   }
+
+  // Post-process: reserved is a comma-separated list
+  if (args.reserved) {
+    args.reserved = args.reserved.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  } else {
+    args.reserved = [];
+  }
+
+  // Post-process: preallocated is "subdomain:user_id,subdomain:user_id"
+  if (args.preallocated) {
+    const pairs = args.preallocated.split(',');
+    const result = {};
+    for (const pair of pairs) {
+      const [subdomain, userId] = pair.split(':').map(s => s.trim());
+      if (subdomain && userId) {
+        result[subdomain.toLowerCase()] = userId;
+      }
+    }
+    args.preallocated = result;
+  } else {
+    args.preallocated = {};
+  }
+
+  // Map _help to help for backward compatibility
+  args.help = args._help || false;
+  delete args._help;
 
   return args;
 }
 
 function printHelp() {
-  console.log(`
-exe.dev Deployment Automation
-==============================
-
-Deploys static Vibes apps to exe.dev VMs using nginx.
-
-Usage:
-  node scripts/deploy-exe.js --name <vmname> [options]
-
-Options:
-  --name <vmname>    VM name (required)
-  --domain <domain>  Custom domain for wildcard SSL setup
-  --file <path>      HTML file to deploy (default: index.html)
-  --dry-run          Show what would be done without executing
-  --skip-verify      Skip verification step
-  --help             Show this help message
-
-AI Proxy Options:
-  --ai-key <key>     OpenRouter API key for AI features
-  --multi-tenant     Enable per-tenant AI usage tracking
-  --tenant-limit <$> Credit limit per tenant in dollars (default: 5)
-
-Registry Options (for SaaS apps with subdomain claiming):
-  --clerk-key <pem>            Clerk PEM public key for JWT verification
-  --clerk-webhook-secret <s>   Clerk webhook signing secret
-  --skip-registry              Skip registry server (no subdomain claiming)
-  --reserved <list>            Comma-separated reserved subdomain names
-  --preallocated <list>        Pre-claimed subdomains (format: sub:user_id)
-
-Prerequisites:
-  - SSH key in ~/.ssh/ (id_ed25519, id_rsa, or id_ecdsa)
-  - exe.dev account (run 'ssh exe.dev' to create one)
-
-Examples:
-  # Deploy to new VM
-  node scripts/deploy-exe.js --name myapp
-
-  # Deploy with custom domain setup
-  node scripts/deploy-exe.js --name myapp --domain myapp.com
-
-  # Deploy a different HTML file
-  node scripts/deploy-exe.js --name myapp --file build/index.html
-
-  # Deploy with AI proxy
-  node scripts/deploy-exe.js --name myapp --ai-key "sk-or-v1-..."
-
-Note: For Fireproof Connect (sync backend), use deploy-connect.js instead.
-`);
+  console.log('\n' + formatHelp(deployExeMeta, deployExeSchema));
 }
 
 // ============== Configuration ==============
@@ -201,66 +183,19 @@ function saveConfig(config) {
 async function phase1PreFlight(args) {
   console.log('\nPhase 1: Pre-flight checks...');
 
-  // Check SSH key
-  const sshKey = findSSHKey();
-  if (!sshKey) {
-    throw new Error('No SSH key found in ~/.ssh/. Please create an SSH key first.');
-  }
-  console.log(`  ✓ SSH key found: ${sshKey}`);
+  // SSH key + connection test (shared)
+  await preFlightSSH({ dryRun: args.dryRun });
 
   // Check HTML file exists
   if (!existsSync(args.file)) {
     throw new Error(`HTML file not found: ${args.file}`);
   }
   console.log(`  ✓ HTML file found: ${args.file}`);
-
-  // Test exe.dev connection
-  console.log('  Testing exe.dev connection...');
-  if (args.dryRun) {
-    console.log('  [DRY RUN] Would test SSH connection to exe.dev');
-  } else {
-    const connected = await testConnection();
-    if (!connected) {
-      throw new Error(`Cannot connect to exe.dev.
-
-Before deploying, please:
-1. Run: ssh exe.dev (to create account if needed, verify email)
-2. Then retry this deployment
-
-The deployment will automatically:
-- Create the VM if it doesn't exist
-- Add the host key to known_hosts`);
-    }
-    console.log('  ✓ exe.dev connection OK');
-  }
 }
 
 async function phase2CreateVM(args) {
   console.log('\nPhase 2: VM Creation...');
-
-  if (args.dryRun) {
-    console.log(`  [DRY RUN] Would create VM: ${args.name}`);
-    return;
-  }
-
-  console.log(`  Creating VM: ${args.name}...`);
-  const result = await createVM(args.name);
-
-  if (result.success) {
-    console.log(`  ✓ ${result.message}`);
-  } else {
-    throw new Error(`Failed to create VM: ${result.message}`);
-  }
-
-  // Add VM host key to known_hosts to avoid interactive prompt
-  const vmHost = `${args.name}.exe.xyz`;
-  console.log(`  Adding ${vmHost} to known_hosts...`);
-  try {
-    execSync(`ssh-keyscan -H ${vmHost} >> ~/.ssh/known_hosts 2>/dev/null`, { timeout: 30000 });
-    console.log(`  ✓ Host key added`);
-  } catch (err) {
-    console.log(`  Warning: Could not add host key automatically. You may need to run: ssh ${vmHost}`);
-  }
+  await createAndSetupVM(args.name, { dryRun: args.dryRun });
 }
 
 async function phase3ServerSetup(args) {
@@ -514,18 +449,9 @@ async function phase5AIProxy(args) {
   }
 
   try {
-    const client = await connect(vmHost);
+    await ensureBun(vmHost);
 
-    // Install Bun if needed (copy to /usr/local/bin for system-wide access)
-    console.log('  Checking/installing Bun...');
-    const bunCheck = await runCommand(client, 'which bun || test -f /usr/local/bin/bun && echo "/usr/local/bin/bun" || echo "NOT_FOUND"');
-    if (bunCheck.stdout.includes('NOT_FOUND')) {
-      console.log('  Installing Bun...');
-      await runCommand(client, 'curl -fsSL https://bun.sh/install | bash');
-      // Copy to /usr/local/bin so all users (including www-data) can access it
-      await runCommand(client, 'sudo cp ~/.bun/bin/bun /usr/local/bin/bun && sudo chmod +x /usr/local/bin/bun');
-    }
-    console.log('  ✓ Bun installed');
+    const client = await connect(vmHost);
 
     // Create vibes directory
     await runCommand(client, 'sudo mkdir -p /opt/vibes /var/lib/vibes');
@@ -687,18 +613,9 @@ ${missingLines}
   }
 
   try {
-    const client = await connect(vmHost);
+    await ensureBun(vmHost);
 
-    // Install Bun if needed (copy to /usr/local/bin for system-wide access)
-    console.log('  Checking/installing Bun...');
-    const bunCheck = await runCommand(client, 'which bun || test -f /usr/local/bin/bun && echo "/usr/local/bin/bun" || echo "NOT_FOUND"');
-    if (bunCheck.stdout.includes('NOT_FOUND')) {
-      console.log('  Installing Bun...');
-      await runCommand(client, 'curl -fsSL https://bun.sh/install | bash');
-      // Copy to /usr/local/bin so all users (including www-data) can access it
-      await runCommand(client, 'sudo cp ~/.bun/bin/bun /usr/local/bin/bun && sudo chmod +x /usr/local/bin/bun');
-    }
-    console.log('  ✓ Bun installed');
+    const client = await connect(vmHost);
 
     // Install registry server dependencies
     console.log('  Installing dependencies...');
@@ -967,35 +884,10 @@ async function phase9CustomDomain(args) {
   }
 }
 
-async function verifyDeployment(args) {
+async function verifyDeploymentPhase(args) {
   console.log('\nVerifying deployment...');
-
   const url = `https://${args.name}.exe.xyz`;
-
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: { 'User-Agent': 'vibes-deploy-exe/1.0' }
-    });
-
-    clearTimeout(timeout);
-
-    const contentType = response.headers.get('content-type') || '';
-    if (response.ok && contentType.includes('text/html')) {
-      console.log(`  ✓ ${url} is responding (HTTP ${response.status})`);
-      return true;
-    } else {
-      console.log(`  ⚠ ${url} returned unexpected response: ${response.status}`);
-      return false;
-    }
-  } catch (err) {
-    console.log(`  ✗ ${url} is not responding: ${err.message}`);
-    console.log('  This may be due to DNS propagation. Try again in a few minutes.');
-    return false;
-  }
+  return verifyURL(url, { userAgent: 'vibes-deploy-exe/1.0' });
 }
 
 // ============== Main ==============
@@ -1054,7 +946,7 @@ ${'━'.repeat(60)}
     if (!args.skipVerify && !args.dryRun) {
       console.log('\n  Waiting 5 seconds for deployment to propagate...');
       await new Promise(r => setTimeout(r, 5000));
-      await verifyDeployment(args);
+      await verifyDeploymentPhase(args);
     }
 
     // Save deployment config
