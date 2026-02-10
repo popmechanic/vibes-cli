@@ -514,6 +514,10 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
 - **DON'T** wrap your app in `VibeContextProvider` - that's a vibes.diy platform-only component. Standalone apps use `useFireproofClerk()` directly.
 - **DON'T** panic if you see "Cannot read properties of null (reading 'useContext')" - the template already handles the React singleton via `?external=react,react-dom` in the import map. Check that the import map wasn't accidentally modified.
 - **NOTE:** Apps use `/fireproof-clerk-bundle.js` - this is a temporary local bundle that fixes a CID bug and includes sync improvements (retry backoff + automatic second-device sync). Apps work correctly with it.
+- **DON'T** hand-write `app.jsx` and assemble it manually — always generate through
+  `/vibes:vibes`, even for test or diagnostic apps. The skill generates code that's
+  compatible with the template by construction. Hand-written code may include imports
+  or patterns that conflict with the template's runtime setup.
 
 ---
 

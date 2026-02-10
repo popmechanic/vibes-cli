@@ -7,6 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { APP_PLACEHOLDER, validateAssembly } from '../../lib/assembly-utils.js';
+import { stripForTemplate } from '../../lib/strip-code.js';
 
 const PLACEHOLDER = APP_PLACEHOLDER;
 
@@ -116,6 +117,21 @@ describe('validateAssembly', () => {
     const errors = validateAssembly(html, '');
     expect(errors.length).toBeGreaterThanOrEqual(2);
     expect(errors).toContain('App code is empty');
+  });
+});
+
+describe('assembly with imports/exports', () => {
+  it('strips imports and export default from app code', () => {
+    const appWithImports = `import React, { useState } from "react";
+import { useFireproofClerk } from "use-fireproof";
+
+export default function App() {
+  return <div>Hello</div>;
+}`;
+    const stripped = stripForTemplate(appWithImports);
+    expect(stripped).not.toContain('import ');
+    expect(stripped).not.toContain('export default');
+    expect(stripped).toContain('function App()');
   });
 });
 
