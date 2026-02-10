@@ -571,6 +571,46 @@ scp myapp.exe.xyz:/var/www/html/index.html ./downloaded.html
 | `scp file vm:/var/www/html/` | Permission denied | Use temp + sudo pattern |
 | Forgetting sudo for /var/www | Permission denied | Always `sudo cp` for www-data dirs |
 
+## Sharing / Invite Architecture
+
+The sharing feature lets users invite others to collaborate on their Fireproof database via the VibesPanel invite UI.
+
+### DOM Event Bridge Pattern
+
+VibesPanel (inside HiddenMenuWrapper) dispatches DOM events. SharingBridge (rendered inside `ClerkFireproofProvider > SignedIn`) listens and calls `dashApi`:
+
+```
+VibesPanel → dispatches 'vibes-share-request' {email, right}
+SharingBridge → calls dashApi.inviteUser() via useClerkFireproofContext()
+SharingBridge → dispatches 'vibes-share-success' or 'vibes-share-error'
+VibesPanel → listens for result events, shows BrutalistCard feedback
+```
+
+**Why a bridge?** `useVibesPanelEvents()` runs outside `ClerkFireproofProvider` (it's called at AppWrapper top level), so it can't access `dashApi`. SharingBridge solves this by living inside the provider tree.
+
+### Ledger Discovery
+
+SharingBridge calls `dashApi.listLedgersByUser({})` to find the current app's ledger. It matches by hostname (ledger name contains `window.location.hostname`), falling back to the first ledger. The result is cached after the first call.
+
+### Available dashApi Methods
+
+| Method | Purpose |
+|--------|---------|
+| `inviteUser({ ticket })` | Send invitation by email |
+| `listLedgersByUser({})` | List user's ledgers for discovery |
+| `findUser({ query })` | Look up users |
+
+### useSharing Hook (for user app code)
+
+If the bundle exports `useSharing`, user apps can use it directly:
+
+```javascript
+const { useSharing } = window;
+const { inviteUser, listInvites, deleteInvite, findUser, ready } = useSharing();
+```
+
+The hook is conditionally exported via `window.useSharing` in the delta template's `initApp()`.
+
 ## Known Issues
 
 ### Sell Skill Deploy Issues (Future Improvements)

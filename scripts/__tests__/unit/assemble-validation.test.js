@@ -7,7 +7,6 @@
 
 import { describe, it, expect } from 'vitest';
 import { APP_PLACEHOLDER, validateAssembly } from '../../lib/assembly-utils.js';
-import { stripForTemplate } from '../../lib/strip-code.js';
 
 const PLACEHOLDER = APP_PLACEHOLDER;
 
@@ -120,18 +119,17 @@ describe('validateAssembly', () => {
   });
 });
 
-describe('assembly with imports/exports', () => {
-  it('strips imports and export default from app code', () => {
+describe('assembly preserves imports/exports', () => {
+  it('keeps imports and export default in app code (module script)', () => {
     const appWithImports = `import React, { useState } from "react";
 import { useFireproofClerk } from "use-fireproof";
 
 export default function App() {
   return <div>Hello</div>;
 }`;
-    const stripped = stripForTemplate(appWithImports);
-    expect(stripped).not.toContain('import ');
-    expect(stripped).not.toContain('export default');
-    expect(stripped).toContain('function App()');
+    // vibes template uses data-type="module", so imports resolve via import map
+    expect(appWithImports).toContain('import React');
+    expect(appWithImports).toContain('export default function App()');
   });
 });
 
