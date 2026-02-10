@@ -49539,7 +49539,7 @@ var ClerkTokenStrategy = class {
         });
         if (shared) {
           ledgerParam = shared.ledgerId;
-          console.log('[vibes] Using shared ledger:', shared.ledgerId, 'from user', userId);
+          console.debug('[vibes] Using shared ledger:', shared.ledgerId);
         }
       }
     } catch(e) {
