@@ -149,6 +149,49 @@ If "Skip admin": omit `--admin-ids` in Phase 4. Admin setup will be offered post
 
 **If not found:** No prompt needed. Admin will be set up post-deploy in Phase 5.5 after the user has a chance to sign up on the live app.
 
+### Phase 3.5: Sell Configuration (sell-ready only)
+
+**Condition:** Only runs when the user selected `sell-ready` in Phase 3.
+
+**Ask billing mode:**
+
+```
+AskUserQuestion:
+  Question: "Which billing mode should this sell test use?"
+  Header: "Billing"
+  Options:
+  - Label: "Free (billing off)"
+    Description: "Claims work without payment — tests auth + tenant routing only"
+  - Label: "Billing required"
+    Description: "Claims require active Clerk subscription — tests full paywall flow"
+```
+
+**If "Free":** Store `BILLING_MODE=off` in `test-vibes/.env`. Skip webhook setup. Proceed to Phase 4.
+
+**If "Billing required":** Store `BILLING_MODE=required` in `test-vibes/.env`. Then guide webhook setup:
+
+```
+AskUserQuestion:
+  Question: "Set up the Clerk webhook for billing:\n\n1. Go to clerk.com → your app → Webhooks → Add Endpoint\n2. URL: https://vibes-test.<account>.workers.dev/webhook\n3. Subscribe to: subscription.deleted\n4. Copy the Signing Secret (starts with whsec_)\n\nPaste the webhook signing secret:"
+  Header: "Webhook"
+  Options:
+  - Label: "I need help"
+    Description: "Walk me through the Clerk webhook setup"
+```
+
+If "I need help": walk them through each step in the Clerk dashboard, then re-ask the question.
+
+Validate the secret starts with `whsec_`. If not, ask again with a note that it should start with `whsec_`.
+
+Store as `CLERK_WEBHOOK_SECRET` in `test-vibes/.env`:
+```bash
+grep -q CLERK_WEBHOOK_SECRET test-vibes/.env 2>/dev/null && \
+  sed -i '' 's/^CLERK_WEBHOOK_SECRET=.*/CLERK_WEBHOOK_SECRET=<secret>/' test-vibes/.env || \
+  echo "CLERK_WEBHOOK_SECRET=<secret>" >> test-vibes/.env
+```
+
+Proceed to Phase 4.
+
 ### Phase 4: Assembly
 
 Copy the selected fixture and assemble:
@@ -260,12 +303,14 @@ Run the deploy:
 node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html
 ```
 
-**For sell-ready fixture:** Pass `--clerk-key` to configure JWT verification secrets on the Worker (required for `/claim` endpoint):
+**For sell-ready fixture:** Pass `--env-dir` to auto-detect Clerk key, and pass billing mode and webhook secret from `test-vibes/.env`:
 ```bash
 node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html \
-  --clerk-key $VITE_CLERK_PUBLISHABLE_KEY
+  --env-dir test-vibes \
+  --billing-mode $BILLING_MODE \
+  --webhook-secret $CLERK_WEBHOOK_SECRET  # only if billing required
 ```
-Read the publishable key from `test-vibes/.env`. The `--clerk-key` flag automatically fetches the JWKS, converts to PEM, and sets `CLERK_PEM_PUBLIC_KEY` and `PERMITTED_ORIGINS` as Worker secrets.
+Read `BILLING_MODE` and `CLERK_WEBHOOK_SECRET` from `test-vibes/.env`. The `--env-dir` flag auto-detects `VITE_CLERK_PUBLISHABLE_KEY` from `.env` (fetches JWKS, converts to PEM, sets `CLERK_PEM_PUBLIC_KEY` and `PERMITTED_ORIGINS` as Worker secrets). `--billing-mode` patches the `[vars]` in `wrangler.toml` before deploy. `--webhook-secret` sets `CLERK_WEBHOOK_SECRET` as a Worker secret.
 
 **For ai-proxy with key:**
 ```bash
@@ -348,7 +393,9 @@ node scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html \
 
 ```bash
 node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html \
-  --clerk-key $VITE_CLERK_PUBLISHABLE_KEY
+  --env-dir test-vibes \
+  --billing-mode $BILLING_MODE \
+  --webhook-secret $CLERK_WEBHOOK_SECRET  # only if billing required
 ```
 
 8. Confirm:
@@ -486,7 +533,7 @@ ssh <studio>.exe.xyz "docker logs gateway"  # Check gateway logs
 | Assembly/template | `scripts/assemble.js`, `skills/_base/template.html`, relevant `template.delta.html` |
 | Deploy/hosting | `scripts/deploy-cloudflare.js`, `scripts/deploy-connect.js` |
 | Auth/Clerk | `skills/_base/template.html` (Clerk script), `scripts/deploy-connect.js` (env vars) |
-| Import/module errors | `skills/_base/template.html` (import map), `cache/import-map.json` |
+| Import/module errors | `skills/_base/template.html` (import map) |
 
 ### Phase 8: Root Cause Classification
 
