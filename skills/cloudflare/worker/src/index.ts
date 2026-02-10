@@ -26,7 +26,8 @@ app.use("*", cors());
 app.get("/registry.json", async (c) => {
   const kv = new RegistryKV(c.env.REGISTRY_KV);
   const registry = await kv.read();
-  return c.json(registry);
+  const { quotas, ...publicRegistry } = registry;
+  return c.json(publicRegistry);
 });
 
 // GET /check/:subdomain - Check availability
@@ -90,17 +91,26 @@ app.post("/claim", async (c) => {
     return c.json({ error: "Subdomain not available", reason: availability.reason }, 409);
   }
 
-  // Subscription gate — any active subscription unlocks unlimited claims
-  const hasSubscription = (registry.quotas?.[auth.userId] ?? 0) > 0;
-  const billingRequired = c.env.BILLING_MODE === 'required';
-  if (billingRequired && !hasSubscription) {
-    return c.json(
-      {
-        error: "Purchase required",
-        reason: "no_subscription",
-      },
-      402
-    );
+  // Admin bypass — admins skip subscription check
+  const adminIds = parseAdminIds(c.env.ADMIN_USER_IDS);
+  const isAdmin = adminIds.includes(auth.userId);
+
+  // Subscription gate — check JWT pla claim (set by Clerk Commerce)
+  // pla format is "scope:slug" (e.g. "u:starter", "u:free")
+  // Reject missing plan or free plan — only paid plans pass
+  if (!isAdmin) {
+    const planSlug = auth.plan?.split(':')[1];
+    const hasActiveSubscription = !!planSlug && planSlug !== 'free';
+    const billingRequired = c.env.BILLING_MODE === 'required';
+    if (billingRequired && !hasActiveSubscription) {
+      return c.json(
+        {
+          error: "Purchase required",
+          reason: "no_subscription",
+        },
+        402
+      );
+    }
   }
 
   // Create the claim
@@ -180,18 +190,16 @@ app.post("/webhook", async (c) => {
     }) as typeof event;
   } catch (error) {
     console.error("Webhook verification failed:", error);
-    return c.json({ error: "Invalid webhook signature" }, 401);
+    console.error("Secret length:", c.env.CLERK_WEBHOOK_SECRET?.length, "prefix:", c.env.CLERK_WEBHOOK_SECRET?.substring(0, 10));
+    console.error("svix-id:", headers["svix-id"], "svix-timestamp:", headers["svix-timestamp"]);
+    console.error("payload length:", payload.length);
+    return c.json({ error: "Invalid webhook signature", debug: String(error) }, 401);
   }
 
   console.log("Received webhook event:", event.type);
 
-  // Handle subscription changes
-  if (
-    event.type === "subscription.created" ||
-    event.type === "subscription.updated" ||
-    event.type === "subscription.deleted"
-  ) {
-    // Clerk Commerce nests user_id inside data.payer
+  // Only process subscription.deleted — JWT claims are source of truth for active subscriptions
+  if (event.type === "subscription.deleted") {
     const eventData = event.data as any;
     const userId = eventData.payer?.user_id ?? eventData.user_id;
 
@@ -202,17 +210,8 @@ app.post("/webhook", async (c) => {
     const kv = new RegistryKV(c.env.REGISTRY_KV);
     const registry = await kv.read();
 
-    // Subscription gate: track whether user has any active subscription
-    registry.quotas = registry.quotas ?? {};
-
-    if (event.type === "subscription.created" || event.type === "subscription.updated") {
-      registry.quotas[userId] = 1;
-    } else if (event.type === "subscription.deleted") {
-      delete registry.quotas[userId];
-    }
-
-    // On cancellation, release all claims (quantity 0 releases everything)
-    const result = processSubscriptionChange(registry, userId, registry.quotas[userId] ?? 0);
+    // Release claims on hard cancellation
+    const result = processSubscriptionChange(registry, userId, 0);
     if (result.released.length > 0) {
       console.log(`Released ${result.released.length} subdomains for user ${userId}`);
     }
