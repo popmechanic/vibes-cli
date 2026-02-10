@@ -70,7 +70,7 @@ Invoke `/vibes:connect` to deploy Connect, then return here when complete.
 
 Do not default to ambient mood generators, floating orbs, or meditation apps unless explicitly requested.
 
-**Import Map Note**: The import map aliases `use-fireproof` to `@necrodome/fireproof-clerk`. Your code uses `import { useFireproofClerk } from "use-fireproof"` and the browser resolves this to the `@necrodome/fireproof-clerk` package, which provides Clerk authentication integration and cloud sync support. This is intentional—it ensures compatible versions and enables auth when Connect is configured.
+**Import Map Note**: The import map points `use-fireproof` to `/fireproof-vibes-bridge.js`, a bridge module that wraps the raw Fireproof bundle with sync status forwarding and an onTock kick effect. Your code uses `import { useFireproofClerk } from "use-fireproof"` and the browser resolves this through the bridge → `./fireproof-clerk-bundle.js`. This is intentional—the bridge ensures `useLiveQuery` subscribers see synced data and that `SyncStatusDot` gets live sync status via a window global.
 
 ## Core Rules
 
@@ -532,7 +532,7 @@ The hook is available on `window.useSharing` after Clerk loads. Check `ready` be
   ```
 - **DON'T** wrap your app in `VibeContextProvider` - that's a vibes.diy platform-only component. Standalone apps use `useFireproofClerk()` directly.
 - **DON'T** panic if you see "Cannot read properties of null (reading 'useContext')" - the template already handles the React singleton via `?external=react,react-dom` in the import map. Check that the import map wasn't accidentally modified.
-- **NOTE:** Apps use `/fireproof-clerk-bundle.js` - this is a temporary local bundle that fixes a CID bug and includes sync improvements (retry backoff + automatic second-device sync). Apps work correctly with it.
+- **NOTE:** Apps use `/fireproof-vibes-bridge.js` — this bridge module wraps the local Fireproof bundle with sync status forwarding + onTock kick. The bundle itself (`/fireproof-clerk-bundle.js`) is a temporary workaround that fixes a CID bug and includes sync improvements. Apps work correctly with it.
 - **DON'T** hand-write `app.jsx` and assemble it manually — always generate through
   `/vibes:vibes`, even for test or diagnostic apps. The skill generates code that's
   compatible with the template by construction. Hand-written code may include imports
