@@ -26,6 +26,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, cpSync, rmSync } fr
 import { dirname, join, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
+import { parseArgs as parseCliArgs, formatHelp } from './lib/cli-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -41,66 +42,43 @@ const findPluginDir = async () => {
   }
 };
 
-function parseArgs(argv) {
-  const args = {
-    input: null,
-    outputDir: null,
-    apiUrl: null,
-    cloudUrl: null,
-    clerkKey: null,
-    dbName: 'vibes-app',
-    skipBuild: false,
-    help: false
-  };
+const assembleViteSchema = [
+  { name: 'apiUrl', flag: '--api-url', type: 'string', description: 'Token API URL (Fireproof dashboard)' },
+  { name: 'cloudUrl', flag: '--cloud-url', type: 'string', description: 'Cloud sync URL (fpcloud:// protocol)' },
+  { name: 'clerkKey', flag: '--clerk-key', type: 'string', description: 'Clerk publishable key' },
+  { name: 'dbName', flag: '--db-name', type: 'string', default: 'vibes-app', description: 'Database name (default: vibes-app)' },
+  { name: 'skipBuild', flag: '--skip-build', type: 'boolean', description: 'Skip npm build step (for testing)' },
+];
 
-  for (let i = 2; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === '--api-url' && argv[i + 1]) {
-      args.apiUrl = argv[++i];
-    } else if (arg === '--cloud-url' && argv[i + 1]) {
-      args.cloudUrl = argv[++i];
-    } else if (arg === '--clerk-key' && argv[i + 1]) {
-      args.clerkKey = argv[++i];
-    } else if (arg === '--db-name' && argv[i + 1]) {
-      args.dbName = argv[++i];
-    } else if (arg === '--skip-build') {
-      args.skipBuild = true;
-    } else if (arg === '--help' || arg === '-h') {
-      args.help = true;
-    } else if (!args.input) {
-      args.input = arg;
-    } else if (!args.outputDir) {
-      args.outputDir = arg;
-    }
-  }
+const assembleViteMeta = {
+  name: 'Vite Assembly Script for Connect-enabled Vibes Apps',
+  description: 'Takes user\'s JSX/TSX code and assembles it into a Vite project for deployment.',
+  usage: 'node scripts/assemble-vite.js <input.jsx> <output-dir> [options]',
+  examples: [
+    'node scripts/assemble-vite.js app.jsx ./build \\',
+    '  --clerk-key pk_test_xxx \\',
+    '  --api-url https://vibes-connect.exe.xyz/api \\',
+    '  --cloud-url fpcloud://vibes-connect.exe.xyz/backend?protocol=wss',
+  ],
+};
+
+function parseArgs(argv) {
+  const { args, positionals } = parseCliArgs(assembleViteSchema, argv.slice(2));
+
+  // Map positionals to input and outputDir
+  args.input = positionals[0] || null;
+  args.outputDir = positionals[1] || null;
+
+  // Map _help to help for backward compatibility
+  args.help = args._help || false;
+  delete args._help;
+  delete args._errors;
 
   return args;
 }
 
 function printHelp() {
-  console.log(`
-Vite Assembly Script for Connect-enabled Vibes Apps
-====================================================
-
-Takes user's JSX/TSX code and assembles it into a Vite project for deployment.
-
-Usage:
-  node scripts/assemble-vite.js <input.jsx> <output-dir> [options]
-
-Options:
-  --api-url <url>    Token API URL (Fireproof dashboard)
-  --cloud-url <url>  Cloud sync URL (fpcloud:// protocol)
-  --clerk-key <key>  Clerk publishable key
-  --db-name <name>   Database name (default: vibes-app)
-  --skip-build       Skip npm build step (for testing)
-  --help             Show this help message
-
-Example:
-  node scripts/assemble-vite.js app.jsx ./build \\
-    --clerk-key pk_test_xxx \\
-    --api-url https://vibes-connect.exe.xyz/api \\
-    --cloud-url fpcloud://vibes-connect.exe.xyz/backend?protocol=wss
-`);
+  console.log('\n' + formatHelp(assembleViteMeta, assembleViteSchema));
 }
 
 /**

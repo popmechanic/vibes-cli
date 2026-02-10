@@ -11,34 +11,18 @@
 
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import { spawn, execSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'node:module';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const require = createRequire(import.meta.url);
 
-// Resolve vibes directory - supports env var, standard install, and dev mode
-function resolveVibesDir() {
-  // 1. Environment variable override
-  if (process.env.VIBES_PLUGIN_ROOT) {
-    return process.env.VIBES_PLUGIN_ROOT;
-  }
-  // 2. Standard installation (~/.vibes)
-  const vibesPath = path.join(os.homedir(), '.vibes');
-  if (fs.existsSync(path.join(vibesPath, 'skills', 'vibes', 'SKILL.md'))) {
-    return vibesPath;
-  }
-  // 3. Dev mode - relative to this script
-  const devPath = path.resolve(__dirname, '..');
-  if (fs.existsSync(path.join(devPath, 'skills', 'vibes', 'SKILL.md'))) {
-    return devPath;
-  }
-  // 4. Fallback to standard path (will show "not found" errors)
-  return vibesPath;
-}
+// Delegate to canonical implementation in lib/resolve-paths.js
+const { resolvePluginRoot } = require('../lib/resolve-paths.js');
 
-const vibesDir = resolveVibesDir();
+const vibesDir = resolvePluginRoot() || path.join(path.dirname(__dirname));
 const skillsDir = path.join(vibesDir, 'skills');
 const bootstrapFile = path.join(vibesDir, '.codex', 'vibes-bootstrap.md');
 
