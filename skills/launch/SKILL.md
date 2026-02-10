@@ -105,8 +105,8 @@ If yes: check `grep OPENROUTER_API_KEY ~/.vibes/.env`. If found, offer reuse (ma
 
 If creating new: guide through clerk.com/dashboard — create app, enable Email + Passkey, configure email settings (require OFF, verify ON, link ON, code ON). Then set up JWT template and webhook:
 
-**Ask [Clerk config]**: "Complete these two setup steps in Clerk Dashboard:\n\n1. **JWT Template**: JWT Templates → New Template → name it `fireproof`, add custom claim `email` → `{{user.primary_email_address}}`, save\n2. **Webhook**: Webhooks → Add Endpoint → URL `https://{domain}/webhook` → subscribe to `subscription.created`, `subscription.updated`, `subscription.deleted`\n\nHave you completed both?"
-- "Yes, both done" — JWT template 'fireproof' with email claim + webhook endpoint created
+**Ask [Clerk config]**: "Complete these two setup steps in Clerk Dashboard:\n\n1. **JWT Template**: JWT Templates → New Template → name it `fireproof`, paste this JSON as the custom claims (the `|| ''` fallbacks are required — Fireproof Studio rejects null names):\n```json\n{\n  \"params\": {\n    \"email\": \"{{user.primary_email_address}}\",\n    \"email_verified\": \"{{user.email_verified}}\",\n    \"external_id\": \"{{user.external_id}}\",\n    \"first\": \"{{user.first_name || ''}}\",\n    \"last\": \"{{user.last_name || ''}}\",\n    \"name\": \"{{user.full_name || ''}}\",\n    \"image_url\": \"{{user.image_url}}\",\n    \"public_meta\": \"{{user.public_metadata}}\"\n  },\n  \"role\": \"authenticated\",\n  \"userId\": \"{{user.id}}\"\n}\n```\n2. **Webhook**: Webhooks → Add Endpoint → URL `https://{domain}/webhook` → subscribe to `subscription.deleted`\n\nHave you completed both?"
+- "Yes, both done" — JWT template 'fireproof' with email/name claims + webhook endpoint created
 - "I need help" — Walk me through it step by step
 
 Collect four credentials via Ask (user types actual values via Other):
@@ -193,16 +193,12 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
   --file index.html \
   --clerk-key "{clerkPk}" \
   --billing-mode "{billingMode}" \
+  --webhook-secret "{webhookSecret}" \
   {aiKeyFlag}
 ```
-Where `{aiKeyFlag}` = `--ai-key "{openRouterKey}"` if set, omitted if null. The `--billing-mode` flag configures the Worker's default subscription quota behavior.
+Where `{aiKeyFlag}` = `--ai-key "{openRouterKey}"` if set, omitted if null. The `--billing-mode` flag controls whether the client enforces JWT-based plan checks. The `--webhook-secret` flag sets the Clerk webhook signing secret as a Wrangler secret.
 
-**Step D — Webhook secret:**
-```bash
-echo "{webhookSecret}" | npx wrangler secret put CLERK_WEBHOOK_SECRET --name "{appName}"
-```
-
-Run the cycle now with `{adminIds}` = `'[]'` (or `'["{existingAdminId}"]'` if found in pre-flight). Mark T5, T6, T7 completed.
+Run the cycle now with `{adminIds}` = `'[]'` (or `'["{existingAdminId}"]'` if found in pre-flight). Mark T5, T6 completed.
 
 ---
 
@@ -256,7 +252,7 @@ Tell user: Admin dashboard now works at `https://{domain}?subdomain=admin`
 **If `billingMode === "required"`**: Also ask the user to verify billing:
 > "Check billing flow: Sign in at `https://{domain}?subdomain=test` — you should see a paywall with pricing. Use test card `4242 4242 4242 4242` (any future expiry, any CVC) to complete a test subscription. After subscribing, the tenant app should load."
 
-Mark T8 completed. If broken, ask what's wrong and troubleshoot.
+Mark T7 completed. If broken, ask what's wrong and troubleshoot.
 
 ### 4.2 Shutdown
 

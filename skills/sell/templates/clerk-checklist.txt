@@ -25,15 +25,11 @@ The following steps cannot be automated and must be done in Clerk Dashboard:
      (Plan names must match those checked in your app's SubscriptionGate)
 
 □ 6. Set up webhook endpoint:
-     • URL: https://__APP_DOMAIN__/webhooks/clerk
+     • URL: https://__APP_DOMAIN__/webhook
      • Events to subscribe:
        ✓ user.created
        ✓ user.deleted
-       ✓ subscription.created (if using Clerk Billing)
-       ✓ subscription.updated
-       ✓ subscription.canceled
-       ✓ invoice.paid
-       ✓ invoice.payment_failed
+       ✓ subscription.deleted
 
 □ 7. Get your Admin User ID:
      • Sign up on your app: https://__APP_DOMAIN__

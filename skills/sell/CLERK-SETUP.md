@@ -99,17 +99,20 @@ The registry server listens for Clerk subscription webhooks to release subdomain
 1. In Clerk Dashboard, go to **Webhooks**
 2. Click **Add Endpoint**
 3. Enter your webhook URL: `https://{domain}/webhook`
-4. Select these events:
-   - `subscription.updated`
+4. Select this event:
    - `subscription.deleted`
 5. Copy the **Signing Secret**
 
 ### 4.2 Set Webhook Secret
 
-The webhook secret is set via Wrangler after deploying:
+The webhook secret is passed to deploy-cloudflare.js via the `--webhook-secret` flag:
 
 ```bash
-echo "whsec_xxxxx" | npx wrangler secret put CLERK_WEBHOOK_SECRET --name myapp
+node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
+  --name myapp \
+  --file index.html \
+  --clerk-key "pk_test_xxx" \
+  --webhook-secret "whsec_xxxxx"
 ```
 
 ---
@@ -196,6 +199,8 @@ If you prefer simple subscription tiers:
 - `free` - Free tier with limited features
 
 **Important:** Plan names are case-sensitive and must match exactly.
+
+**Required plan slug:** The client-side subscription gate checks `has({ plan: 'starter' })`. You must create a plan named `starter` in Clerk Dashboard for the paywall to pass. The server-side worker accepts any non-free plan slug from the JWT `pla` claim, but the client enforces `starter` specifically.
 
 ### 5.4 Configure Plan Details
 For each plan:
@@ -392,7 +397,7 @@ This error during signup means Clerk Email settings are wrong:
 1. Verify webhook URL is correct in Clerk Dashboard
 2. Check webhook secret was set: `npx wrangler secret list --name {appName}`
 3. View Worker logs: `npx wrangler tail --name {appName}`
-4. Verify webhook events are selected (subscription.updated, subscription.deleted)
+4. Verify webhook events are selected (subscription.deleted)
 
 ### Billing not working
 1. Verify plan names in Clerk match what your app checks

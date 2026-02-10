@@ -26,8 +26,7 @@ app.use("*", cors());
 app.get("/registry.json", async (c) => {
   const kv = new RegistryKV(c.env.REGISTRY_KV);
   const registry = await kv.read();
-  const { quotas, ...publicRegistry } = registry;
-  return c.json(publicRegistry);
+  return c.json(registry);
 });
 
 // GET /check/:subdomain - Check availability
@@ -98,6 +97,8 @@ app.post("/claim", async (c) => {
   // Subscription gate — check JWT pla claim (set by Clerk Commerce)
   // pla format is "scope:slug" (e.g. "u:starter", "u:free")
   // Reject missing plan or free plan — only paid plans pass
+  // COUPLING: client-side SubscriptionGate checks has({ plan: 'starter' })
+  // If you add plan slugs here, update the client check in template.delta.html too
   if (!isAdmin) {
     const planSlug = auth.plan?.split(':')[1];
     const hasActiveSubscription = !!planSlug && planSlug !== 'free';
@@ -123,54 +124,6 @@ app.post("/claim", async (c) => {
   return c.json({ success: true, subdomain: result.subdomain }, 201);
 });
 
-// POST /admin/quotas - Admin-only quota toggles (testing)
-app.post("/admin/quotas", async (c) => {
-  const authHeader = c.req.header("Authorization");
-  const permittedOrigins = parsePermittedOrigins(c.env.PERMITTED_ORIGINS);
-
-  const authResult = await verifyClerkJWTDebug(authHeader, c.env.CLERK_PEM_PUBLIC_KEY, permittedOrigins);
-  if ("error" in authResult) {
-    return c.json(
-      {
-        error: "Unauthorized",
-        failReason: authResult.error,
-        permittedOrigins,
-      },
-      401
-    );
-  }
-  const auth = authResult;
-
-  const adminIds = parseAdminIds(c.env.ADMIN_USER_IDS);
-  if (adminIds.length === 0 || !adminIds.includes(auth.userId)) {
-    return c.json({ error: "Forbidden" }, 403);
-  }
-
-  let body: { userId?: string; enabled?: boolean };
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: "Invalid JSON" }, 400);
-  }
-
-  if (!body.userId || typeof body.enabled !== "boolean") {
-    return c.json({ error: "Missing userId or enabled flag" }, 400);
-  }
-
-  const kv = new RegistryKV(c.env.REGISTRY_KV);
-  const registry = await kv.read();
-  registry.quotas = registry.quotas ?? {};
-
-  if (body.enabled) {
-    registry.quotas[body.userId] = 1;
-  } else {
-    delete registry.quotas[body.userId];
-  }
-
-  await kv.write(registry);
-  return c.json({ success: true, quotas: registry.quotas });
-});
-
 // POST /webhook - Clerk subscription webhooks
 app.post("/webhook", async (c) => {
   const payload = await c.req.text();
@@ -190,7 +143,7 @@ app.post("/webhook", async (c) => {
     }) as typeof event;
   } catch (error) {
     console.error("Webhook verification failed:", error);
-    console.error("Secret length:", c.env.CLERK_WEBHOOK_SECRET?.length, "prefix:", c.env.CLERK_WEBHOOK_SECRET?.substring(0, 10));
+    console.error("Secret length:", c.env.CLERK_WEBHOOK_SECRET?.length);
     console.error("svix-id:", headers["svix-id"], "svix-timestamp:", headers["svix-timestamp"]);
     console.error("payload length:", payload.length);
     return c.json({ error: "Invalid webhook signature", debug: String(error) }, 401);

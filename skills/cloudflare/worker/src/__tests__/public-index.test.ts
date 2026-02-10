@@ -16,11 +16,11 @@ describe("public index billing gates", () => {
     expect(html).not.toContain("jwtQuota");
   });
 
-  it("retries subscription check after payment", () => {
-    expect(html).toContain("pendingSubdomain");
+  it("uses has() for plan check instead of session claims", () => {
+    expect(html).toContain("has({ plan:");
   });
 
-  it("forces a fresh registry fetch on first post-payment check", () => {
-    expect(html).toContain("force = attempt > 0 || pendingSubdomain");
+  it("does not contain quota_exceeded error handling", () => {
+    expect(html).not.toContain("quota_exceeded");
   });
 });

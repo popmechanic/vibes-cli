@@ -2642,8 +2642,8 @@ if (typeof window !== 'undefined') {
               setTimeout(() => { onClaim?.(); }, 1200);
               return;
             }
-            if (result.reason === 'quota_exceeded') {
-              setError(`You've reached your limit of ${result.quota} subdomain${result.quota === 1 ? '' : 's'}. Upgrade your plan for more.`);
+            if (result.reason === 'no_subscription') {
+              setError('A subscription is required to claim a subdomain.');
             } else {
               setError(result.error || 'Failed to claim subdomain');
             }
@@ -2762,6 +2762,8 @@ if (typeof window !== 'undefined') {
 
       // === Subscription Gate using explicit has() check ===
       // Deny-by-default: non-admin users without a plan see SubscriptionPaywall
+      // COUPLING: Worker accepts any non-free plan slug via JWT pla claim.
+      // Client checks specifically for 'starter'. Create a plan named 'starter' in Clerk.
       function SubscriptionGate({ children, subdomain }) {
         const { user } = window.useUser();
         const { has, isLoaded } = window.useAuth();
@@ -2821,7 +2823,7 @@ if (typeof window !== 'undefined') {
         if (user?.id !== ownerId) return <NotOwnerRedirect subdomain={subdomain} />;
         // Owner: subscription gate protects the app
         return (
-          <SubscriptionGate>
+          <SubscriptionGate subdomain={subdomain}>
             <TenantProvider subdomain={subdomain}>
               <HiddenMenuWrapper menuContent={<VibesPanel />}>
                 <App />
