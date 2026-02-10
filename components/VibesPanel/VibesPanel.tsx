@@ -73,7 +73,7 @@ export function VibesPanel({
         detail: {
           email: email.trim(),
           role: "member",
-          right: "read",
+          right: "write",
           token,
         },
       }),
