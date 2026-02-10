@@ -67,8 +67,7 @@ The registry is stored in Cloudflare KV under the key `registry`. Schema:
 {
   "claims": { "subdomain": { "userId": "...", "claimedAt": "..." } },
   "reserved": ["admin", "api", "www"],
-  "preallocated": {},
-  "quotas": { "userId": 3 }
+  "preallocated": {}
 }
 ```
 

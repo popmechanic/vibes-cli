@@ -143,27 +143,11 @@ Before collecting credentials, the user must set up Clerk. Present these instruc
 >
 > Before we continue, you need to configure Clerk authentication:
 >
-> 1. **Create a Clerk Application** at [clerk.com](https://clerk.com)
->    - Choose "Email + Passkey" authentication
+> 1. **Create a Clerk Application** at [clerk.com](https://clerk.com) — choose "Email + Passkey" authentication
+> 2. **Configure Email Settings** — enable email signup with verification, and **set "Require email address" to OFF** (signup fails otherwise)
+> 3. **Configure Passkey Settings** — enable sign-in with passkey, autofill, passkey button, and add-passkey-to-account
 >
-> 2. **Configure Email Settings** (Dashboard → User & Authentication → Email):
->    | Setting | Value | Why |
->    |---------|-------|-----|
->    | Sign-up with email | ✅ ON | Users sign up via email |
->    | Require email address | ⬜ **OFF** | **CRITICAL** - signup fails if ON |
->    | Verify at sign-up | ✅ ON | Verify before session |
->    | Email verification code | ✅ Checked | Use code for verification |
->
-> 3. **Configure Passkey Settings** (Dashboard → User & Authentication → Passkeys):
->    | Setting | Value |
->    |---------|-------|
->    | Sign-in with passkey | ✅ ON |
->    | Allow autofill | ✅ ON |
->    | Show passkey button | ✅ ON |
->    | Add passkey to account | ✅ ON |
->
->
-> See [CLERK-SETUP.md](./CLERK-SETUP.md) for complete details.
+> See [CLERK-SETUP.md](./CLERK-SETUP.md) for the complete settings tables and step-by-step instructions.
 >
 > **When you're ready, I'll collect your Clerk credentials.**
 
@@ -211,7 +195,7 @@ The user can configure a custom domain later (see Step 5.2).
 
 Use AskUserQuestion:
 ```
-Question: "Create a webhook in Clerk: Go to Webhooks > Add Endpoint. Set the URL to: https://{domain}/webhook — Subscribe to these events: user.created, user.deleted, subscription.created, subscription.updated, subscription.deleted"
+Question: "Create a webhook in Clerk: Go to Webhooks > Add Endpoint. Set the URL to: https://{domain}/webhook — Subscribe to these events: user.created, user.deleted, subscription.deleted"
 Header: "Webhook"
 Options:
 - Label: "Webhook created"
@@ -456,20 +440,15 @@ The template uses neutral colors by default. To match the user's brand:
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
   --name wedding-photos \
   --file index.html \
-  --clerk-key "pk_test_xxx"
-```
-
-Then set the webhook secret as a Wrangler secret:
-
-```bash
-echo "whsec_xxx" | npx wrangler secret put CLERK_WEBHOOK_SECRET --name wedding-photos
+  --clerk-key "pk_test_xxx" \
+  --webhook-secret "whsec_xxx"
 ```
 
 **Required Flags for SaaS:**
-| Flag / Secret | Source | Purpose |
-|---------------|--------|---------|
+| Flag | Source | Purpose |
+|------|--------|---------|
 | `--clerk-key` | Clerk publishable key (pk_test_/pk_live_) | deploy-cloudflare.js auto-fetches PEM from JWKS endpoint |
-| `CLERK_WEBHOOK_SECRET` | Clerk webhook signing secret | Set via `wrangler secret put` after deploy |
+| `--webhook-secret` | Clerk webhook signing secret | deploy-cloudflare.js sets it as a Wrangler secret |
 
 **Without `--clerk-key`, the Worker won't be able to verify JWTs for subdomain claiming.**
 
@@ -501,7 +480,7 @@ After deployment, verify the registry is working:
 curl -s https://{domain}/registry.json | head -c 100
 ```
 
-**Expected output:** `{"claims":{},"quotas":{},"reserved":["admin","api","www"]...`
+**Expected output:** `{"claims":{},"reserved":["admin","api","www"]...`
 
 **If you see HTML instead of JSON:**
 - The Worker may not have deployed correctly
@@ -540,7 +519,7 @@ Present this checklist to the user:
 >
 > **Webhook** (Dashboard → Configure → Webhooks):
 > - [ ] Endpoint URL matches your deployment: `https://{domain}/webhook`
-> - [ ] Events selected: `user.created`, `user.deleted`, `subscription.*`
+> - [ ] Events selected: `user.created`, `user.deleted`, `subscription.deleted`
 >
 > **If using billing** (Dashboard → Billing):
 > - [ ] Stripe connected
@@ -584,8 +563,8 @@ Guide the user through admin setup:
 > node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
 >   --name {appName} \
 >   --file index.html \
->   --clerk-key "pk_test_xxx"
-> echo "whsec_xxx" | npx wrangler secret put CLERK_WEBHOOK_SECRET --name {appName}
+>   --clerk-key "pk_test_xxx" \
+>   --webhook-secret "whsec_xxx"
 > ```
 
 After collecting the user ID, save it to the project `.env`:
@@ -727,9 +706,9 @@ The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk i
 - Check that admin user ID is correct and in the `ADMIN_USER_IDS` array
 - Verify Clerk Billing is set up with matching plan names
 
-### Clerk not loading
-- Add your domain to Clerk's authorized domains
-- Check publishable key is correct (not secret key)
+### Clerk not loading / Passkey fails / "Verification incomplete" error
+- See [CLERK-SETUP.md Troubleshooting](./CLERK-SETUP.md#troubleshooting) for detailed Clerk auth fixes
+- Most common fix: set "Require email address" to **OFF** in Clerk Dashboard → Email settings
 
 ### Admin shows "Access Denied"
 - User ID not in --admin-ids array
@@ -740,27 +719,9 @@ The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk i
 - Verify `useTenant()` is used in the App component
 - Check `useFireproofClerk(dbName)` uses the tenant database name
 
-### Passkey creation fails
-- Ensure HTTPS is configured (passkeys require secure context)
-- For production: use `pk_live_*` key and add domain to allowed origins
-
-### "Verification incomplete (missing_requirements)" error
-1. Go to Clerk Dashboard → User & Authentication → Email
-2. Set "Require email address" to **OFF** (critical fix!)
-3. Ensure "Sign-up with email" is ON
-4. Ensure "Verify at sign-up" is ON with "Email verification code" checked
-
 ### Registry returns HTML instead of JSON
-- The Worker may not have deployed correctly
-- Deploy was run without `--clerk-key`
-- Re-deploy with the clerk key:
-  ```bash
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
-    --name myapp \
-    --file index.html \
-    --clerk-key "pk_test_xxx"
-  echo "whsec_xxx" | npx wrangler secret put CLERK_WEBHOOK_SECRET --name myapp
-  ```
+- Deploy was run without `--clerk-key` — re-deploy with it
+- See also [CLERK-SETUP.md Troubleshooting](./CLERK-SETUP.md#troubleshooting) for registry fetch errors
 
 ### Assembly fails with ".env file not found"
 - Fireproof Connect is not configured
@@ -780,7 +741,7 @@ The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk i
 ### User subscribed but still sees paywall
 - Clerk subscription webhooks may be delayed — wait 10-15 seconds and refresh
 - Verify webhook endpoint URL matches: `https://{domain}/webhook`
-- Check webhook events include `subscription.created` and `subscription.updated`
+- Subscription status is checked via JWT claims, not webhooks — verify Clerk Billing plan exists
 - Check Worker logs: `npx wrangler tail --name {appName}`
 
 ### Subscription canceled but subdomain not released

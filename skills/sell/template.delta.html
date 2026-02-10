@@ -126,27 +126,6 @@
         }
       }
 
-      async function updateUserQuota(userId, enabled) {
-        const token = await window.Clerk?.session?.getToken();
-        if (!token) {
-          return { success: false, error: 'Not authenticated', status: 401 };
-        }
-        try {
-          const res = await fetch('/admin/quotas', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ userId, enabled })
-          });
-          const data = await res.json();
-          return { ...data, status: res.status };
-        } catch (e) {
-          return { success: false, error: 'Failed to update quota', status: 500 };
-        }
-      }
-
       async function getSubdomainOwner(subdomain) {
         const registry = await fetchRegistry();
         const normalized = subdomain.toLowerCase().trim();
@@ -278,18 +257,14 @@
       }
 
       // === Claim Prompt (for signed-in users on unclaimed subdomains) ===
-      function ClaimPrompt({ subdomain, onClaim, onCancel, postPayment }) {
+      function ClaimPrompt({ subdomain, onClaim, onCancel }) {
         const [claiming, setClaiming] = useState(false);
         const [isShredding, setIsShredding] = useState(false);
         const [error, setError] = useState(null);
-        const [quotaExceeded, setQuotaExceeded] = useState(false);
-        const [retryStatus, setRetryStatus] = useState(null); // null | 'retrying'
 
         const handleClaim = async () => {
           setClaiming(true);
           setError(null);
-          setQuotaExceeded(false);
-          setRetryStatus(null);
           try {
             const token = await window.Clerk?.session?.getToken();
             if (!token) throw new Error('Not authenticated');
@@ -299,34 +274,8 @@
               setTimeout(() => { onClaim?.(); }, 1200);
               return;
             }
-            if (result.status === 402) {
-              // Post-payment: retry with delays for webhook propagation
-              if (postPayment) {
-                setRetryStatus('retrying');
-                for (let i = 0; i < 4; i++) {
-                  await new Promise(r => setTimeout(r, 3000));
-                  try {
-                    const freshToken = await window.Clerk?.session?.getToken({ skipCache: true });
-                    if (!freshToken) continue;
-                    const retryResult = await claimSubdomain(subdomain, freshToken);
-                    if (retryResult.success) {
-                      setRetryStatus(null);
-                      setIsShredding(true);
-                      setTimeout(() => { onClaim?.(); }, 1200);
-                      return;
-                    }
-                    if (retryResult.status !== 402) {
-                      setRetryStatus(null);
-                      setError(retryResult.error || 'Failed to claim subdomain');
-                      return;
-                    }
-                  } catch (_) { /* continue retrying */ }
-                }
-                setRetryStatus(null);
-                setQuotaExceeded(true);
-                return;
-              }
-              setQuotaExceeded(true);
+            if (result.reason === 'no_subscription') {
+              setError('A subscription is required to claim a subdomain.');
             } else {
               setError(result.error || 'Failed to claim subdomain');
             }
@@ -337,24 +286,20 @@
           }
         };
 
-        if (quotaExceeded) {
-          return <UpgradePrompt redirectUrl={window.location.href} />;
-        }
-
         return (
           <AuthScreen
             title={`Claim ${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`}
-            message={retryStatus === 'retrying' ? 'Processing your payment... this may take a moment.' : error || "This subdomain is available! Would you like to claim it?"}
+            message={error || "This subdomain is available! Would you like to claim it?"}
             showCard={true}
             isShredding={isShredding}
             isError={!!error}
           >
             <div onClick={handleClaim}>
               <VibesButton variant={RED} buttonType="form" disabled={claiming}>
-                {retryStatus === 'retrying' ? 'Processing payment...' : claiming ? 'Claiming...' : 'Claim This Subdomain'}
+                {claiming ? 'Claiming...' : 'Claim This Subdomain'}
               </VibesButton>
             </div>
-            {onCancel && retryStatus !== 'retrying' && (
+            {onCancel && (
               <div onClick={onCancel} style={{ cursor: 'pointer', textAlign: 'center', color: '#666', fontSize: '0.875rem' }}>
                 Cancel
               </div>
@@ -363,16 +308,12 @@
         );
       }
 
-      // === Subscription Paywall (shown when user needs to subscribe) ===
-      function SubscriptionPaywall({ redirectUrl }) {
+      // === Subscription Paywall (shown via Protect fallback when user needs to subscribe) ===
+      function SubscriptionPaywall({ subdomain }) {
         const { PricingTable } = window.ClerkComponents || {};
-
-        // Persist subdomain for post-payment redirect recovery
-        useEffect(() => {
-          if (routeInfo.subdomain) {
-            sessionStorage.setItem('vibes_pending_subdomain', routeInfo.subdomain);
-          }
-        }, []);
+        const displayDomain = subdomain
+          ? `${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`
+          : null;
 
         if (PricingTable) {
           return (
@@ -392,16 +333,16 @@
                 letterSpacing: '-0.04em',
                 marginBottom: '0.5rem',
                 textAlign: 'center',
-              }}>Subscribe to Continue</h2>
+              }}>{displayDomain ? `Subscribe to claim ${displayDomain}` : 'Subscribe to Continue'}</h2>
               <p style={{
                 color: '#666',
                 marginBottom: '2rem',
                 textAlign: 'center',
                 fontSize: '1.1rem',
-              }}>Choose a plan to get started.</p>
+              }}>{displayDomain ? 'Choose a plan to claim your subdomain.' : 'Choose a plan to get started.'}</p>
               <div style={{ width: '100%', maxWidth: '600px' }}>
                 <PricingTable
-                  newSubscriptionRedirectUrl={redirectUrl || window.location.href}
+                  newSubscriptionRedirectUrl={window.location.href}
                 />
               </div>
             </div>
@@ -429,22 +370,17 @@
         );
       }
 
-      // === Existing Subdomain Redirect (shown when quota full but user has a space) ===
+      // === Existing Subdomain Redirect (shown when user already has a space) ===
       function ExistingSubdomainRedirect({ userSubdomains }) {
-        const [showPricing, setShowPricing] = useState(false);
         const ownedSub = userSubdomains[0];
         const targetUrl = needsQueryParamRouting()
           ? `${window.location.origin}?subdomain=${ownedSub}`
           : `https://${ownedSub}.${APP_DOMAIN}`;
 
-        if (showPricing) {
-          return <UpgradePrompt redirectUrl={window.location.href} />;
-        }
-
         return (
           <AuthScreen
             title="You Already Have a Space"
-            message={`Your subdomain is ${ownedSub}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN} — purchase another subscription to claim more.`}
+            message={`Your subdomain is ${ownedSub}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`}
             showCard={true}
           >
             <a href={targetUrl} style={{ textDecoration: 'none' }}>
@@ -452,143 +388,33 @@
                 Go to My App
               </VibesButton>
             </a>
-            <div onClick={() => setShowPricing(true)} style={{ cursor: 'pointer' }}>
-              <VibesButton variant={YELLOW} buttonType="form">
-                Claim This Domain
-              </VibesButton>
-            </div>
           </AuthScreen>
         );
       }
 
-      // === Upgrade Prompt (shown when claim returns 402 — quota exceeded) ===
-      function UpgradePrompt({ redirectUrl }) {
-        const { PricingTable } = window.ClerkComponents || {};
-
-        // Persist subdomain for post-payment redirect recovery
-        useEffect(() => {
-          if (routeInfo.subdomain) {
-            sessionStorage.setItem('vibes_pending_subdomain', routeInfo.subdomain);
-          }
-        }, []);
-
-        if (PricingTable) {
-          return (
-            <div style={{
-              minHeight: '100vh',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: '2rem',
-              background: '#ECECEC',
-              fontFamily: "'Space Grotesk', 'Inter', sans-serif",
-            }}>
-              <h2 style={{
-                fontSize: 'clamp(1.5rem, 4vw, 2.5rem)',
-                fontWeight: 700,
-                letterSpacing: '-0.04em',
-                marginBottom: '0.5rem',
-                textAlign: 'center',
-              }}>Upgrade Your Plan</h2>
-              <p style={{
-                color: '#666',
-                marginBottom: '2rem',
-                textAlign: 'center',
-                fontSize: '1.1rem',
-              }}>You've reached your subdomain limit. Upgrade to claim more.</p>
-              <div style={{ width: '100%', maxWidth: '600px' }}>
-                <PricingTable
-                  newSubscriptionRedirectUrl={redirectUrl || window.location.href}
-                />
-              </div>
-            </div>
-          );
-        }
-
-        return (
-          <AuthScreen
-            title="Upgrade Your Plan"
-            message="You've reached your subdomain limit. Upgrade your plan to claim more."
-            showCard={true}
-          >
-            <a
-              href={`https://accounts.clerk.dev/user/billing`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ textDecoration: 'none' }}
-            >
-              <VibesButton variant={RED} buttonType="form">
-                Upgrade Plan
-              </VibesButton>
-            </a>
-          </AuthScreen>
-        );
-      }
-
-      // === Subscription Gate (wraps tenant content, checks billing) ===
-      function SubscriptionGate({ children }) {
-        const [registryAllowed, setRegistryAllowed] = useState(null); // null=loading, true/false
-        const { isLoaded } = window.useAuth();
+      // === Subscription Gate using explicit has() check ===
+      // Deny-by-default: non-admin users without a plan see SubscriptionPaywall
+      // COUPLING: Worker accepts any non-free plan slug via JWT pla claim.
+      // Client checks specifically for 'starter'. Create a plan named 'starter' in Clerk.
+      function SubscriptionGate({ children, subdomain }) {
         const { user } = window.useUser();
+        const { has, isLoaded } = window.useAuth();
+        const isAdmin = user?.id && ADMIN_USER_IDS.includes(user.id);
 
-        // Registry fallback (runs once per user)
-        useEffect(() => {
-          if (BILLING_MODE !== 'required' || !user?.id) return;
-          if (ADMIN_USER_IDS.includes(user.id)) return;
-          const pendingSubdomain = sessionStorage.getItem('vibes_pending_subdomain');
-          const maxAttempts = pendingSubdomain ? 5 : 1;
-          let cancelled = false;
-          let retryTimeout = null;
+        // Admin bypass
+        if (isAdmin) return children;
 
-          const checkRegistry = async (attempt) => {
-            try {
-              const force = attempt > 0 || pendingSubdomain;
-              const registry = await fetchRegistry({ force });
-              const userQuota = (registry.quotas || {})[user.id];
-              if (userQuota !== undefined && userQuota > 0) {
-                if (!cancelled) setRegistryAllowed(true);
-                return;
-              }
-            } catch (_) {
-              // handled below
-            }
-
-            if (attempt < maxAttempts - 1) {
-              retryTimeout = setTimeout(() => checkRegistry(attempt + 1), 3000);
-              return;
-            }
-            if (!cancelled) setRegistryAllowed(false);
-          };
-
-          checkRegistry(0);
-          return () => {
-            cancelled = true;
-            if (retryTimeout) clearTimeout(retryTimeout);
-          };
-        }, [user?.id]);
-
-        // Fast-pass checks (no loading state needed)
+        // No billing required — pass through
         if (BILLING_MODE !== 'required') return children;
-        if (!isLoaded) {
-          return (
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="text-gray-500">Checking subscription...</div>
-            </div>
-          );
-        }
-        if (user?.id && ADMIN_USER_IDS.includes(user.id)) return children;
 
-        // Fallback: Registry quota
-        if (registryAllowed === true) return children;
-        if (registryAllowed === false) return <SubscriptionPaywall redirectUrl={window.location.href} />;
+        // Wait for auth to fully load before making gate decisions
+        if (!isLoaded) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
 
-        // Still loading registry — show spinner
-        return (
-          <div className="min-h-screen flex items-center justify-center">
-            <div className="text-gray-500">Checking subscription...</div>
-          </div>
-        );
+        // Explicit plan check — deny by default
+        const hasPlan = has && has({ plan: 'starter' }) === true;
+        if (!hasPlan) return <SubscriptionPaywall subdomain={subdomain} />;
+
+        return children;
       }
 
       // === Not Owner Redirect ===
@@ -614,67 +440,29 @@
 
       function ClaimPromptWrapper({ subdomain, onClaimSuccess }) {
         const { user } = window.useUser();
-        const [quotaCheck, setQuotaCheck] = useState({ loading: true, exceeded: false, userSubdomains: [] });
 
-        // If returning from payment flow, skip client-side quota check — let server decide
-        const pendingSub = sessionStorage.getItem('vibes_pending_subdomain');
-        const skipQuotaCheck = pendingSub === subdomain;
-
-        useEffect(() => {
-          if (skipQuotaCheck) {
-            sessionStorage.removeItem('vibes_pending_subdomain');
-            setQuotaCheck({ loading: false, exceeded: false, userSubdomains: [] });
-            return;
-          }
-          if (!user?.id) return;
-          fetchRegistry().then(registry => {
-            const userClaimEntries = Object.entries(registry.claims || {}).filter(([, c]) => c.userId === user.id);
-            const userSubdomains = userClaimEntries.map(([sub]) => sub);
-            const hasSubscription = (registry.quotas?.[user.id] ?? 0) > 0;
-            const needsBilling = BILLING_MODE === 'required';
-            setQuotaCheck({ loading: false, exceeded: needsBilling && !hasSubscription, userSubdomains });
-          }).catch(() => setQuotaCheck({ loading: false, exceeded: false, userSubdomains: [] }));
-        }, [user?.id]);
-
-        if (quotaCheck.loading) {
-          return (
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="text-gray-500">Checking availability...</div>
-            </div>
-          );
-        }
-        if (quotaCheck.exceeded) {
-          // If user has existing subdomains, redirect them there instead of dead-end PricingTable
-          if (quotaCheck.userSubdomains.length > 0) {
-            return <ExistingSubdomainRedirect userSubdomains={quotaCheck.userSubdomains} />;
-          }
-          // No subdomains but quota full (edge case) — show upgrade prompt
-          return <UpgradePrompt redirectUrl={window.location.href} />;
-        }
         return (
           <ClaimPrompt
             subdomain={subdomain}
             onClaim={() => onClaimSuccess(user?.id)}
-            postPayment={skipQuotaCheck}
           />
         );
       }
 
-      function TenantOwnerCheck({ subdomain, ownerId }) {
+      function ClaimedSubdomainGate({ subdomain, ownerId }) {
         const { user } = window.useUser();
-
-        if (user?.id === ownerId) {
-          // Owner - show app with admin panel
-          return (
+        // Non-owner: redirect immediately, regardless of subscription status
+        if (user?.id !== ownerId) return <NotOwnerRedirect subdomain={subdomain} />;
+        // Owner: subscription gate protects the app
+        return (
+          <SubscriptionGate subdomain={subdomain}>
             <TenantProvider subdomain={subdomain}>
               <HiddenMenuWrapper menuContent={<VibesPanel />}>
                 <App />
               </HiddenMenuWrapper>
             </TenantProvider>
-          );
-        }
-        // Not owner
-        return <NotOwnerRedirect subdomain={subdomain} />;
+          </SubscriptionGate>
+        );
       }
 
       // === Tenant App Wrapper ===
@@ -713,7 +501,7 @@
           return (
             <>
               <SignedIn>
-                <SubscriptionGate>
+                <SubscriptionGate subdomain={subdomain}>
                   <ClaimPromptWrapper subdomain={subdomain} onClaimSuccess={onClaimSuccess} />
                 </SubscriptionGate>
               </SignedIn>
@@ -724,13 +512,11 @@
           );
         }
 
-        // Subdomain is claimed - check if user is owner
+        // Subdomain is claimed - check ownership first, then subscription
         return (
           <>
             <SignedIn>
-              <SubscriptionGate>
-                <TenantOwnerCheck subdomain={subdomain} ownerId={claimState.owner} />
-              </SubscriptionGate>
+              <ClaimedSubdomainGate subdomain={subdomain} ownerId={claimState.owner} />
             </SignedIn>
             <SignedOut>
               <AuthGate />
@@ -746,9 +532,6 @@
         const [registry, setRegistry] = useState(null);
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState(null);
-        const [quotaUserId, setQuotaUserId] = useState('');
-        const [quotaStatus, setQuotaStatus] = useState(null);
-        const [quotaBusy, setQuotaBusy] = useState(false);
 
         const refreshRegistry = useCallback((force = false) => {
           setLoading(true);
@@ -774,38 +557,8 @@
         }
 
         const claims = registry?.claims || {};
-        const quotas = registry?.quotas || {};
         const claimEntries = Object.entries(claims);
         const uniqueUsers = new Set(claimEntries.map(([, c]) => c.userId));
-        const subscribedUsers = Object.keys(quotas).length;
-        const quotaEntries = Object.entries(quotas);
-
-        const handleQuotaToggle = async (enabled, targetUserId) => {
-          const userId = (targetUserId || quotaUserId).trim();
-          if (!userId) {
-            setQuotaStatus({ type: 'error', message: 'Enter a user ID to update.' });
-            return;
-          }
-          setQuotaBusy(true);
-          setQuotaStatus(null);
-          try {
-            const result = await updateUserQuota(userId, enabled);
-            if (result.status !== 200) {
-              const message = result.error || 'Failed to update quota.';
-              setQuotaStatus({ type: 'error', message });
-            } else {
-              setQuotaStatus({
-                type: 'success',
-                message: enabled ? `Quota granted to ${userId}.` : `Quota revoked from ${userId}.`
-              });
-              await refreshRegistry(true);
-            }
-          } catch (e) {
-            setQuotaStatus({ type: 'error', message: e.message || 'Failed to update quota.' });
-          } finally {
-            setQuotaBusy(false);
-          }
-        };
 
         return (
           <div style={{ minHeight: '100vh', background: 'var(--admin-bg)', padding: '2rem', fontFamily: "'Inter', sans-serif" }}>
@@ -826,7 +579,6 @@
                     {[
                       { label: 'Claimed Subdomains', value: claimEntries.length },
                       { label: 'Unique Users', value: uniqueUsers.size },
-                      { label: 'Subscribed Users', value: subscribedUsers },
                       { label: 'Billing Mode', value: BILLING_MODE || 'none' }
                     ].map((stat, i) => (
                       <div key={i} style={{
@@ -842,7 +594,7 @@
                     ))}
                   </div>
 
-                  {/* Paywall test checklist */}
+                  {/* Info about billing */}
                   <div style={{
                     background: 'var(--admin-card-bg)',
                     borderRadius: '12px',
@@ -852,137 +604,12 @@
                     marginBottom: '2rem'
                   }}>
                     <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--admin-text)', marginBottom: '0.5rem' }}>
-                      Paywall Test Checklist
+                      Billing
                     </h2>
-                    <p style={{ color: 'var(--admin-text-muted)', fontSize: '0.875rem', marginBottom: '0.75rem' }}>
-                      Use this quick checklist to force or bypass the paywall during testing.
+                    <p style={{ color: 'var(--admin-text-muted)', fontSize: '0.875rem' }}>
+                      Subscription status is managed by Clerk Commerce. Users with an active plan
+                      can claim subdomains. Manage subscriptions in the Clerk Dashboard.
                     </p>
-                    <ol style={{
-                      margin: '0 0 0.75rem 1.25rem',
-                      padding: 0,
-                      color: 'var(--admin-text)',
-                      fontSize: '0.9rem',
-                      lineHeight: 1.5
-                    }}>
-                      <li>Find the target user ID (from Clerk or the claims table below).</li>
-                      <li>Click <strong>Revoke</strong> to force the paywall for that user.</li>
-                      <li>Have the user visit a <strong>new subdomain</strong> they do not already own.</li>
-                      <li>They should see the paywall and complete checkout.</li>
-                      <li>Click <strong>Grant</strong> to bypass the paywall for future tests.</li>
-                    </ol>
-                    <div style={{
-                      fontSize: '0.85rem',
-                      fontWeight: 600,
-                      color: 'var(--admin-text)',
-                      background: 'rgba(15, 23, 42, 0.04)',
-                      padding: '0.5rem 0.75rem',
-                      borderRadius: '8px',
-                      marginBottom: '0.5rem'
-                    }}>
-                      Revoke = paywall. Grant = bypass.
-                    </div>
-                    <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>
-                      If a user already owns a subdomain, they may be redirected instead of seeing the paywall.
-                    </div>
-                  </div>
-
-                  {/* Quota tools */}
-                  <div style={{
-                    background: 'var(--admin-card-bg)',
-                    borderRadius: '12px',
-                    border: '2px solid var(--admin-border)',
-                    boxShadow: '4px 4px 0 var(--admin-shadow)',
-                    padding: '1.25rem',
-                    marginBottom: '2rem'
-                  }}>
-                    <h2 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--admin-text)', marginBottom: '0.5rem' }}>
-                      Quota Tools
-                    </h2>
-                    <p style={{ color: 'var(--admin-text-muted)', fontSize: '0.875rem', marginBottom: '1rem' }}>
-                      Grant or revoke subscription access for testing. Requires worker ADMIN_USER_IDS to be set.
-                    </p>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-                      <input
-                        type="text"
-                        placeholder="user_..."
-                        value={quotaUserId}
-                        onChange={(e) => setQuotaUserId(e.target.value)}
-                        style={{
-                          flex: '1 1 220px',
-                          padding: '0.5rem 0.75rem',
-                          borderRadius: '8px',
-                          border: '1px solid rgba(0,0,0,0.15)',
-                          fontFamily: 'monospace',
-                          fontSize: '0.85rem'
-                        }}
-                      />
-                      <button
-                        onClick={() => handleQuotaToggle(true)}
-                        disabled={quotaBusy}
-                        style={{
-                          padding: '0.5rem 0.75rem',
-                          borderRadius: '8px',
-                          border: '1px solid rgba(0,0,0,0.2)',
-                          background: quotaBusy ? '#f1f5f9' : '#e2e8f0',
-                          cursor: quotaBusy ? 'not-allowed' : 'pointer'
-                        }}
-                      >
-                        Grant
-                      </button>
-                      <button
-                        onClick={() => handleQuotaToggle(false)}
-                        disabled={quotaBusy}
-                        style={{
-                          padding: '0.5rem 0.75rem',
-                          borderRadius: '8px',
-                          border: '1px solid rgba(0,0,0,0.2)',
-                          background: quotaBusy ? '#f1f5f9' : '#fee2e2',
-                          cursor: quotaBusy ? 'not-allowed' : 'pointer'
-                        }}
-                      >
-                        Revoke
-                      </button>
-                    </div>
-                    {quotaStatus && (
-                      <div style={{
-                        fontSize: '0.85rem',
-                        color: quotaStatus.type === 'error' ? '#ef4444' : '#16a34a'
-                      }}>
-                        {quotaStatus.message}
-                      </div>
-                    )}
-                    <div style={{ marginTop: '1rem' }}>
-                      <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--admin-text-muted)', marginBottom: '0.5rem' }}>
-                        Active Quotas
-                      </div>
-                      {quotaEntries.length === 0 ? (
-                        <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>No active quotas.</div>
-                      ) : (
-                        <div style={{ display: 'grid', gap: '0.5rem' }}>
-                          {quotaEntries.map(([id, value]) => (
-                            <div key={id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--admin-text)' }}>
-                                {id} ({value})
-                              </span>
-                              <button
-                                onClick={() => handleQuotaToggle(false, id)}
-                                disabled={quotaBusy}
-                                style={{
-                                  padding: '0.25rem 0.5rem',
-                                  borderRadius: '6px',
-                                  border: '1px solid rgba(0,0,0,0.2)',
-                                  background: quotaBusy ? '#f1f5f9' : '#fee2e2',
-                                  cursor: quotaBusy ? 'not-allowed' : 'pointer',
-                                  fontSize: '0.75rem'
-                                }}
-                              >
-                                Revoke
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
                   </div>
 
                   {/* Claims table */}
@@ -1007,7 +634,6 @@
                               <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontWeight: 600, color: 'var(--admin-text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Subdomain</th>
                               <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontWeight: 600, color: 'var(--admin-text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>User ID</th>
                               <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontWeight: 600, color: 'var(--admin-text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Claimed</th>
-                              <th style={{ textAlign: 'left', padding: '0.75rem 1.25rem', fontWeight: 600, color: 'var(--admin-text-muted)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quota</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1021,9 +647,6 @@
                                 </td>
                                 <td style={{ padding: '0.75rem 1.25rem', color: 'var(--admin-text-muted)' }}>
                                   {claim.claimedAt ? new Date(claim.claimedAt).toLocaleDateString() : '—'}
-                                </td>
-                                <td style={{ padding: '0.75rem 1.25rem', color: 'var(--admin-text-muted)' }}>
-                                  {quotas[claim.userId] !== undefined ? quotas[claim.userId] : '—'}
                                 </td>
                               </tr>
                             ))}
@@ -1496,22 +1119,6 @@
         const { available, checking, error } = useSubdomainChecker(subdomain);
         const copyrightRef = useRef(null);
 
-        // Post-payment redirect recovery: if user was on a subdomain before
-        // Clerk payment redirect, restore it and navigate back
-        useEffect(() => {
-          const pending = sessionStorage.getItem('vibes_pending_subdomain');
-          if (pending) {
-            sessionStorage.removeItem('vibes_pending_subdomain');
-            const url = new URL(window.location.href);
-            if (needsQueryParamRouting()) {
-              url.searchParams.set('subdomain', pending);
-            } else {
-              url.hostname = `${pending}.${APP_DOMAIN}`;
-            }
-            window.location.href = url.toString();
-          }
-        }, []);
-
         // Check registry availability on mount
         useEffect(() => {
           fetchRegistry().then(() => {
@@ -1710,6 +1317,35 @@
                 window.dispatchEvent(new CustomEvent('vibes-sync-status-change'));
               }
             }, [syncVal]);
+            // Workaround: Fireproof's fast-forward path sets clock.head without
+            // firing onTock. Poll allDocs and kick notifications when data appears.
+            React.useEffect(function() {
+              if (syncVal !== 'synced') return;
+              var db = result.database;
+              var kicked = false;
+              var poll = function() {
+                if (kicked) return;
+                db.allDocs().then(function(res) {
+                  if (kicked) return;
+                  if (res.rows.length > 0) {
+                    kicked = true;
+                    try {
+                      db.ledger.crdt.clock.noPayloadWatchers.forEach(function(fn) { fn(); });
+                      console.debug('[vibes] Kicked onTock after detecting', res.rows.length, 'docs');
+                    } catch (e) {
+                      console.debug('[vibes] onTock kick failed:', e);
+                    }
+                  } else if (!kicked) {
+                    setTimeout(poll, 2000);
+                  }
+                }).catch(function() {
+                  if (!kicked) setTimeout(poll, 2000);
+                });
+              };
+              var start = setTimeout(poll, 2000);
+              var max = setTimeout(function() { kicked = true; }, 20000);
+              return function() { kicked = true; clearTimeout(start); clearTimeout(max); };
+            }, [syncVal, result.database]);
             return result;
           };
         } catch (err) {

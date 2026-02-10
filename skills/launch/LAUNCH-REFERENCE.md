@@ -23,9 +23,8 @@ Parallel lanes: T1 || T2→T3 || T4. All converge at T5 (assembly).
 | T3 | Deploy Connect studio | T2 | infra |
 | T4 | Collect sell config | -- | lead |
 | T5 | Run sell assembly | T1, T3, T4 | lead |
-| T6 | Deploy to Cloudflare | T5 | lead |
-| T7 | Set webhook secret | T6 | lead |
-| T8 | Browser verification | T7 | lead |
+| T6 | Deploy to Cloudflare (includes webhook secret) | T5 | lead |
+| T7 | Browser verification | T6 | lead |
 
 ## Timing
 
@@ -36,7 +35,7 @@ Parallel lanes: T1 || T2→T3 || T4. All converge at T5 (assembly).
 | Deploy Connect | infra | Clerk pk + sk | ~5-10 min |
 | Sell config | lead (interactive) | nice-to-have | ~2 min |
 | Sell assembly | lead | app.jsx + .env + config | ~30 sec |
-| Cloudflare deploy | lead | sell index.html + secrets | ~2 min |
+| Cloudflare deploy (+ webhook secret) | lead | sell index.html + secrets | ~2 min |
 | Browser test | lead (interactive) | deployed URL | ~1 min |
 
 **Best case** (Clerk already configured): ~8-10 minutes

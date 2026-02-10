@@ -14,8 +14,9 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { loadEnvFile, populateConnectConfig } from './lib/env-utils.js';
+import { APP_PLACEHOLDER } from './lib/assembly-utils.js';
 
-const PLACEHOLDER = '// __VIBES_APP_CODE__';
+const PLACEHOLDER = APP_PLACEHOLDER;
 const templatePath = TEMPLATES.vibesBasic;
 
 // Read template once
