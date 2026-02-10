@@ -49523,7 +49523,30 @@ var ClerkTokenStrategy = class {
       return void 0;
     }
     const appId = opts.context.get("appId") || `clerk-${deviceId}`;
-    const rRes = await this.dashApi.ensureCloudToken({ appId });
+
+    // Check for shared ledger (role=member) before creating a new one
+    var ledgerParam = void 0;
+    try {
+      var rLedgers = await this.dashApi.listLedgersByUser({});
+      if (rLedgers.isOk()) {
+        var ledgers = rLedgers.Ok().ledgers || [];
+        var userId = rUser.Ok().userId;
+        // Find a ledger where this user is a member (not admin/owner)
+        var shared = ledgers.find(function(l) {
+          return l.users && l.users.some(function(u) {
+            return u.userId === userId && u.role === 'member';
+          });
+        });
+        if (shared) {
+          ledgerParam = shared.ledgerId;
+          console.log('[vibes] Using shared ledger:', shared.ledgerId, 'from user', userId);
+        }
+      }
+    } catch(e) {
+      // Shared ledger lookup is best-effort; fall through to default behavior
+    }
+
+    const rRes = await this.dashApi.ensureCloudToken({ appId, ledger: ledgerParam });
     if (rRes.isErr()) {
       logger.Error().Err(rRes).Msg("Failed to get cloud token");
       return void 0;
