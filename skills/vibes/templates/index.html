@@ -194,7 +194,7 @@
       // Auto-generated vibes menu components
 // Run: node scripts/build-components.js --force to regenerate
 // Source: /Users/marcusestes/Websites/VibesCLI/vibes-skill/components
-// Generated: 2026-02-09T19:40:24.044Z
+// Generated: 2026-02-10T08:02:58.473Z
 // Components: 25/25
 
 // === useMobile ===
@@ -1946,7 +1946,7 @@ function VibesPanel({
         detail: {
           email: email.trim(),
           role: "member",
-          right: "read",
+          right: "write",
           token
         }
       })
@@ -2381,15 +2381,29 @@ if (typeof window !== 'undefined') {
                       ledger: {
                         id: matchedLedger.ledgerId,
                         role: 'member',
-                        right: detail.right || 'read'
+                        right: detail.right || 'write'
                       }
                     }
                   }
                 });
                 if (rInvite.isErr()) throw rInvite.Err();
 
+                var inviteData = rInvite.Ok();
+                console.log('[vibes-sharing] inviteUser response:', JSON.stringify(inviteData, null, 2));
+                var inviteId = inviteData.invite && inviteData.invite.inviteId;
+                var shareLink = inviteId
+                  ? window.location.origin + '?invite=' + inviteId
+                  : null;
+
                 document.dispatchEvent(new CustomEvent('vibes-share-success', {
-                  detail: { email: email, message: 'Invitation sent to ' + email + '!' }
+                  detail: {
+                    email: email,
+                    inviteId: inviteId,
+                    shareLink: shareLink,
+                    message: shareLink
+                      ? 'Share this link: ' + shareLink
+                      : 'Invitation sent to ' + email + '!'
+                  }
                 }));
               } catch (err) {
                 document.dispatchEvent(new CustomEvent('vibes-share-error', {
