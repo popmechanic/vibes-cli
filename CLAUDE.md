@@ -15,6 +15,7 @@
 | Deploying to Cloudflare | `skills/cloudflare/SKILL.md` |
 | Testing plugin changes | `cd scripts && npm run test:fixtures` for structural tests; `/vibes:test` for full E2E |
 | Understanding skill sequencing | "Workflow Sequence" section below |
+| Editing SessionStart hook context | `hooks/session-context.md` for content; `hooks/session-start.sh` for logic |
 
 ### Fireproof API Reference
 
@@ -165,6 +166,7 @@ Never modify the original component files without explicit request. Bug fixes to
 | `scripts/*.js` | Node.js tools. Run locally, not loaded into Claude |
 | `cache/*` | Working cache (gitignored). Source of truth for versions |
 | `skills/*/cache/*` | Default cache (git-tracked). Stable fallback |
+| `hooks/*` | SessionStart hook infrastructure. Context injected every conversation |
 
 ---
 
@@ -414,6 +416,10 @@ npm run test:e2e:server
 | `skills/cloudflare/SKILL.md` | Cloudflare Workers deployment skill |
 | `skills/cloudflare/worker/` | Cloudflare Worker source (Hono, KV, Web Crypto JWT) |
 | `skills/test/SKILL.md` | E2E integration test skill |
+| `hooks/hooks.json` | SessionStart hook declaration |
+| `hooks/run-hook.cmd` | Cross-platform polyglot wrapper for hooks |
+| `hooks/session-start.sh` | SessionStart logic — reads context + detects project state |
+| `hooks/session-context.md` | Static framework awareness content injected every conversation |
 
 ### Cache Locations
 
@@ -483,6 +489,34 @@ See `skills/_base/template.html` for the current authoritative import map. The k
 - The `/stable/` path uses pre-built, cached versions that avoid dependency resolution issues
 - `?external=react,react-dom` ensures import map controls React
 - Currently uses a local bundle workaround for `use-fireproof` and `@fireproof/clerk`
+
+## Hooks (SessionStart)
+
+The plugin uses a `SessionStart` hook to inject framework awareness context into every conversation. This ensures agents always know what Vibes is, when to use each skill, and what technical rules to follow — even before any skill is invoked.
+
+### Hook Files
+
+| File | Purpose |
+|------|---------|
+| `hooks/hooks.json` | Hook declaration — triggers on startup, resume, clear, compact |
+| `hooks/run-hook.cmd` | Cross-platform polyglot wrapper (bash on Unix, Git Bash on Windows) |
+| `hooks/session-start.sh` | Main logic — reads context file, detects project state, outputs JSON |
+| `hooks/session-context.md` | Static framework awareness content (skill trigger table, workflow, rules) |
+
+### How It Works
+
+1. Claude Code fires `SessionStart` event
+2. `hooks.json` triggers `run-hook.cmd session-start.sh`
+3. `session-start.sh` reads `session-context.md` (static content)
+4. Script detects project state in `$PWD`: `.env` (Clerk keys? Connect URLs?), `app.jsx`, `index.html`
+5. Appends dynamic hints like "No .env found — run /vibes:connect first"
+6. Outputs JSON with `additionalContext` field → appears in system reminders
+
+### Editing Injected Context
+
+- **Static content**: Edit `hooks/session-context.md`. Keep under 100 lines — this is injected into every conversation.
+- **Dynamic detection**: Edit `hooks/session-start.sh`. Uses pure bash only (no sed/awk) for cross-platform compatibility.
+- **Testing**: Run `echo '{}' | bash hooks/session-start.sh` to verify valid JSON output. Test from directories with/without `.env` to verify state detection.
 
 ## Skills Are Atomic
 
