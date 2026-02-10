@@ -270,16 +270,19 @@ async function phase4FileUpload(args) {
   }
 }
 
-// TEMPORARY: Deploy local Fireproof bundle until upstream package is fixed
+// TEMPORARY: Deploy local Fireproof bundle + vibes bridge until upstream package is fixed
 // Issue: @necrodome/fireproof-clerk@0.0.3 from esm.sh has client-side CID stringification bug
 // Remove this phase when the npm package is updated with the fix
 // See: https://github.com/fireproof-storage/fireproof/issues/XXX
 async function phase4bBundleUpload(args) {
-  const BUNDLE_FILENAME = 'fireproof-clerk-bundle.js';
-  const BUNDLE_PATH = join(__dirname, '..', 'bundles', BUNDLE_FILENAME);
+  const BUNDLE_FILES = [
+    'fireproof-clerk-bundle.js',
+    'fireproof-vibes-bridge.js',
+  ];
+  const bundlesDir = join(__dirname, '..', 'bundles');
 
-  // Graceful skip if bundle not present
-  if (!existsSync(BUNDLE_PATH)) {
+  // Check that at least the main bundle exists
+  if (!existsSync(join(bundlesDir, BUNDLE_FILES[0]))) {
     console.log('\nPhase 4b: Bundle Upload... SKIPPED (bundle not found)');
     console.log('  Warning: Apps will use esm.sh package (may have CID bug)');
     return;
@@ -288,23 +291,31 @@ async function phase4bBundleUpload(args) {
   console.log('\nPhase 4b: Bundle Upload (temporary workaround)...');
 
   const vmHost = `${args.name}.exe.xyz`;
-  const remotePath = `/var/www/html/${BUNDLE_FILENAME}`;
 
   if (args.dryRun) {
-    console.log(`  [DRY RUN] Would upload ${BUNDLE_FILENAME} to ${vmHost}:${remotePath}`);
+    for (const file of BUNDLE_FILES) {
+      console.log(`  [DRY RUN] Would upload ${file} to ${vmHost}:/var/www/html/${file}`);
+    }
     return;
   }
 
   try {
-    const tmpPath = `/home/exedev/${BUNDLE_FILENAME}`;
-    await uploadFile(BUNDLE_PATH, vmHost, tmpPath);
+    for (const file of BUNDLE_FILES) {
+      const localPath = join(bundlesDir, file);
+      if (!existsSync(localPath)) {
+        console.warn(`  Warning: ${file} not found, skipping`);
+        continue;
+      }
+      const tmpPath = `/home/exedev/${file}`;
+      await uploadFile(localPath, vmHost, tmpPath);
 
-    const client = await connect(vmHost);
-    await runCommand(client, `sudo mv ${tmpPath} ${remotePath}`);
-    await runCommand(client, `sudo chown www-data:www-data ${remotePath}`);
-    client.end();
+      const client = await connect(vmHost);
+      await runCommand(client, `sudo mv ${tmpPath} /var/www/html/${file}`);
+      await runCommand(client, `sudo chown www-data:www-data /var/www/html/${file}`);
+      client.end();
+    }
 
-    console.log('  ✓ Bundle uploaded (temporary fix for CID bug)');
+    console.log(`  ✓ ${BUNDLE_FILES.length} bundle files uploaded`);
   } catch (err) {
     // Non-fatal - warn but don't fail deployment
     console.warn(`  Warning: Bundle upload failed: ${err.message}`);

@@ -60,6 +60,7 @@
                 <AuthGate />
               </SignedOut>
               <SignedIn>
+                <SharingBridge />
                 <HiddenMenuWrapper menuContent={<VibesPanel />}>
                   <App />
                 </HiddenMenuWrapper>
@@ -87,49 +88,12 @@
           window.SignedOut = clerkModule.SignedOut;
           window.SignInButton = clerkModule.SignInButton;
           window.UserButton = clerkModule.UserButton;
-          // Export Fireproof hook for user's App code, with sync status bridge
-          var _originalUseFireproofClerk = clerkModule.useFireproofClerk;
-          window.useFireproofClerk = function(name, opts) {
-            var result = _originalUseFireproofClerk(name, opts);
-            var syncVal = result.syncStatus || 'idle';
-            React.useEffect(function() {
-              if (window.__VIBES_SYNC_STATUS__ !== syncVal) {
-                window.__VIBES_SYNC_STATUS__ = syncVal;
-                window.dispatchEvent(new CustomEvent('vibes-sync-status-change'));
-              }
-            }, [syncVal]);
-            // Workaround: Fireproof's fast-forward path sets clock.head without
-            // firing onTock. Poll allDocs and kick notifications when data appears.
-            React.useEffect(function() {
-              console.log('[vibes] onTock kick effect, syncVal:', syncVal);
-              if (syncVal !== 'synced') return;
-              var db = result.database;
-              var kicked = false;
-              var poll = function() {
-                if (kicked) return;
-                db.allDocs().then(function(res) {
-                  if (kicked) return;
-                  if (res.rows.length > 0) {
-                    kicked = true;
-                    try {
-                      db.ledger.crdt.clock.noPayloadWatchers.forEach(function(fn) { fn(); });
-                      console.log('[vibes] Kicked onTock after detecting', res.rows.length, 'docs');
-                    } catch (e) {
-                      console.log('[vibes] onTock kick failed:', e);
-                    }
-                  } else if (!kicked) {
-                    setTimeout(poll, 2000);
-                  }
-                }).catch(function() {
-                  if (!kicked) setTimeout(poll, 2000);
-                });
-              };
-              var start = setTimeout(poll, 2000);
-              var max = setTimeout(function() { kicked = true; }, 20000);
-              return function() { kicked = true; clearTimeout(start); clearTimeout(max); };
-            }, [syncVal, result.database]);
-            return result;
-          };
+          // Export sharing APIs for user's App code and SharingBridge
+          window.useClerkFireproofContext = clerkModule.useClerkFireproofContext;
+          if (clerkModule.useSharing) window.useSharing = clerkModule.useSharing;
+
+          // Export Fireproof hook for user's App code (bridge module provides sync + onTock wrapping)
+          window.useFireproofClerk = clerkModule.useFireproofClerk;
         } catch (err) {
           console.error('Failed to load Clerk components:', err);
           window.__CLERK_LOAD_ERROR__ = err.message || String(err);

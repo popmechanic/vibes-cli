@@ -173,8 +173,8 @@
           "@ipld/dag-cbor": "https://esm.sh/stable/@ipld/dag-cbor@9.2.2?external=multiformats",
           "@ipld/dag-json": "https://esm.sh/stable/@ipld/dag-json@10.2.3?external=multiformats",
           "@clerk/clerk-react": "https://esm.sh/stable/@clerk/clerk-react@5.59.2?external=react,react-dom",
-          "use-fireproof": "/fireproof-clerk-bundle.js",
-          "@fireproof/clerk": "/fireproof-clerk-bundle.js"
+          "use-fireproof": "/fireproof-vibes-bridge.js",
+          "@fireproof/clerk": "/fireproof-vibes-bridge.js"
         }
       }
     </script>
@@ -2333,6 +2333,82 @@ if (typeof window !== 'undefined') {
       }
       window.SyncStatusDot = SyncStatusDot;
 
+      // === SharingBridge ===
+      // Must be rendered inside ClerkFireproofProvider > SignedIn.
+      // Bridges vibes-share-request DOM events to the dashApi.
+      function SharingBridge() {
+        var ctx = window.useClerkFireproofContext();
+        var dashApi = ctx.dashApi;
+        var dashApiRef = React.useRef(null);
+        var ledgerCacheRef = React.useRef(null);
+        dashApiRef.current = dashApi;
+
+        React.useEffect(function() {
+          function handleShareRequest(e) {
+            var detail = e.detail;
+            var email = detail.email;
+            var api = dashApiRef.current;
+
+            if (!api) {
+              document.dispatchEvent(new CustomEvent('vibes-share-error', {
+                detail: { error: { message: 'Sharing not ready. Please try again.' } }
+              }));
+              return;
+            }
+
+            (async function() {
+              try {
+                // Discover ledger for this app
+                if (!ledgerCacheRef.current) {
+                  var rLedgers = await api.listLedgersByUser({});
+                  if (rLedgers.isErr()) throw new Error('Could not load ledger list');
+                  ledgerCacheRef.current = rLedgers.Ok().ledgers;
+                }
+                var ledgers = ledgerCacheRef.current;
+                var appHost = window.location.hostname;
+                var matchedLedger = ledgers.find(function(l) {
+                  return l.name && l.name.includes(appHost);
+                }) || ledgers[0];
+
+                if (!matchedLedger) {
+                  throw new Error('No synced database found. Please wait for sync to complete.');
+                }
+
+                var rInvite = await api.inviteUser({
+                  ticket: {
+                    query: { byEmail: email },
+                    invitedParams: {
+                      ledger: {
+                        id: matchedLedger.ledgerId,
+                        role: 'member',
+                        right: detail.right || 'read'
+                      }
+                    }
+                  }
+                });
+                if (rInvite.isErr()) throw rInvite.Err();
+
+                document.dispatchEvent(new CustomEvent('vibes-share-success', {
+                  detail: { email: email, message: 'Invitation sent to ' + email + '!' }
+                }));
+              } catch (err) {
+                document.dispatchEvent(new CustomEvent('vibes-share-error', {
+                  detail: { error: { message: err.message || 'Failed to send invitation.' } }
+                }));
+              }
+            })();
+          }
+
+          document.addEventListener('vibes-share-request', handleShareRequest);
+          return function() {
+            document.removeEventListener('vibes-share-request', handleShareRequest);
+          };
+        }, []);
+
+        return null;
+      }
+      window.SharingBridge = SharingBridge;
+
       // === VibesPanel Event Handler Hook ===
       function useVibesPanelEvents(logPrefix) {
         React.useEffect(() => {
@@ -2342,25 +2418,12 @@ if (typeof window !== 'undefined') {
           const handleSyncDisable = () => {
             console.log('[' + logPrefix + '] Sync disabled');
           };
-          const handleShareRequest = (e) => {
-            const { email, role, right, token } = e.detail;
-            console.log('[' + logPrefix + '] Share request:', { email, role, right });
-            // TODO: Implement actual share logic with Fireproof
-            // For now, simulate success after a delay
-            setTimeout(() => {
-              document.dispatchEvent(new CustomEvent('vibes-share-success', {
-                detail: { email: email, message: 'Invitation sent to ' + email + '!' }
-              }));
-            }, 1000);
-          };
 
           document.addEventListener('vibes-logout-request', handleLogout);
           document.addEventListener('vibes-sync-disable', handleSyncDisable);
-          document.addEventListener('vibes-share-request', handleShareRequest);
           return () => {
             document.removeEventListener('vibes-logout-request', handleLogout);
             document.removeEventListener('vibes-sync-disable', handleSyncDisable);
-            document.removeEventListener('vibes-share-request', handleShareRequest);
           };
         }, []);
       }
@@ -2825,6 +2888,7 @@ if (typeof window !== 'undefined') {
         return (
           <SubscriptionGate subdomain={subdomain}>
             <TenantProvider subdomain={subdomain}>
+              <SharingBridge />
               <HiddenMenuWrapper menuContent={<VibesPanel />}>
                 <App />
               </HiddenMenuWrapper>
@@ -3670,52 +3734,16 @@ if (typeof window !== 'undefined') {
           if (clerkReact.useAuth) window.useAuth = clerkReact.useAuth;
           if (clerkReact.Protect) window.ClerkComponents.Protect = clerkReact.Protect;
 
+          // Export sharing APIs for user's App code and SharingBridge
+          window.useClerkFireproofContext = clerkModule.useClerkFireproofContext;
+          if (clerkModule.useSharing) window.useSharing = clerkModule.useSharing;
+
           // Export useUser hook for wrapper components that need user info
           window.useUser = clerkModule.useUser;
           window.ClerkComponents.useUser = clerkModule.useUser;
 
-          // Export Fireproof hook for user's App code, with sync status bridge
-          var _originalUseFireproofClerk = clerkModule.useFireproofClerk;
-          window.useFireproofClerk = function(name, opts) {
-            var result = _originalUseFireproofClerk(name, opts);
-            var syncVal = result.syncStatus || 'idle';
-            React.useEffect(function() {
-              if (window.__VIBES_SYNC_STATUS__ !== syncVal) {
-                window.__VIBES_SYNC_STATUS__ = syncVal;
-                window.dispatchEvent(new CustomEvent('vibes-sync-status-change'));
-              }
-            }, [syncVal]);
-            // Workaround: Fireproof's fast-forward path sets clock.head without
-            // firing onTock. Poll allDocs and kick notifications when data appears.
-            React.useEffect(function() {
-              if (syncVal !== 'synced') return;
-              var db = result.database;
-              var kicked = false;
-              var poll = function() {
-                if (kicked) return;
-                db.allDocs().then(function(res) {
-                  if (kicked) return;
-                  if (res.rows.length > 0) {
-                    kicked = true;
-                    try {
-                      db.ledger.crdt.clock.noPayloadWatchers.forEach(function(fn) { fn(); });
-                      console.debug('[vibes] Kicked onTock after detecting', res.rows.length, 'docs');
-                    } catch (e) {
-                      console.debug('[vibes] onTock kick failed:', e);
-                    }
-                  } else if (!kicked) {
-                    setTimeout(poll, 2000);
-                  }
-                }).catch(function() {
-                  if (!kicked) setTimeout(poll, 2000);
-                });
-              };
-              var start = setTimeout(poll, 2000);
-              var max = setTimeout(function() { kicked = true; }, 20000);
-              return function() { kicked = true; clearTimeout(start); clearTimeout(max); };
-            }, [syncVal, result.database]);
-            return result;
-          };
+          // Export Fireproof hook for user's App code (bridge module provides sync + onTock wrapping)
+          window.useFireproofClerk = clerkModule.useFireproofClerk;
         } catch (err) {
           console.error('Failed to load Clerk components:', err);
           window.__CLERK_LOAD_ERROR__ = err.message || String(err);
