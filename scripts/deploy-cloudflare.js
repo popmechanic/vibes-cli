@@ -4,7 +4,7 @@
  *
  * Usage:
  *   node scripts/deploy-cloudflare.js --name myapp --file index.html [--ai-key <openrouter-key>]
- *     [--clerk-key <pk_test_...>] [--billing-mode <off|required>]
+ *     [--clerk-key <pk_test_...>] [--billing-mode <off|required>] [--admin-ids <user_id1,user_id2>]
  *     [--webhook-secret <whsec_...>] [--env-dir <dir>]
  *
  * Automatically copies:
@@ -91,16 +91,18 @@ async function main() {
   const clerkKeyIdx = args.indexOf("--clerk-key");
   const billingModeIdx = args.indexOf("--billing-mode");
   const webhookSecretIdx = args.indexOf("--webhook-secret");
+  const adminIdsIdx = args.indexOf("--admin-ids");
   const envDirIdx = args.indexOf("--env-dir");
 
   if (nameIdx === -1) {
-    throw new Error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html> [--ai-key <key>] [--clerk-key <pk_test_...>] [--billing-mode <off|required>] [--webhook-secret <whsec_...>] [--env-dir <dir>]");
+    throw new Error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html> [--ai-key <key>] [--clerk-key <pk_test_...>] [--billing-mode <off|required>] [--admin-ids <user_id1,user_id2>] [--webhook-secret <whsec_...>] [--env-dir <dir>]");
   }
 
   const name = args[nameIdx + 1];
   const file = fileIdx !== -1 ? args[fileIdx + 1] : "index.html";
   const aiKey = aiKeyIdx !== -1 ? args[aiKeyIdx + 1] : null;
   const billingMode = billingModeIdx !== -1 ? args[billingModeIdx + 1] : null;
+  const adminIds = adminIdsIdx !== -1 ? args[adminIdsIdx + 1] : null;
 
   // Resolve env directory for .env auto-detection (defaults to --file's parent dir)
   const envDir = envDirIdx !== -1
@@ -221,6 +223,13 @@ async function main() {
       `BILLING_MODE = "${billingMode}"`
     );
     console.log(`  Billing mode: ${billingMode} (patched in wrangler.toml)`);
+  }
+  if (adminIds) {
+    updatedToml = updatedToml.replace(
+      /^ADMIN_USER_IDS\s*=\s*"[^"]*"/m,
+      `ADMIN_USER_IDS = "${adminIds}"`
+    );
+    console.log(`  Admin IDs: ${adminIds} (patched in wrangler.toml)`);
   }
   writeFileSync(wranglerToml, updatedToml);
 
