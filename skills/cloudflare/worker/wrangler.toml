@@ -19,7 +19,7 @@ RESERVED_SUBDOMAINS = "admin,api,www,billing"
 # Billing mode: "required" enforces subscription check on /claim
 BILLING_MODE = "required"
 # Admin IDs (comma-separated) for admin bypass on subscription gate
-ADMIN_USER_IDS = "user_37iciZd4FJyNArSOQpoPU3yohcY"
+ADMIN_USER_IDS = ""
 
 # Secrets (set via `wrangler secret put`):
 # - CLERK_PEM_PUBLIC_KEY
