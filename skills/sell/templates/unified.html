@@ -2405,6 +2405,26 @@ if (typeof window !== 'undefined') {
                       : 'Invitation sent to ' + email + '!'
                   }
                 }));
+
+                // Dual-write to KV registry (non-fatal)
+                try {
+                  var kvRegistryUrl = window.__VIBES_REGISTRY_URL__;
+                  if (kvRegistryUrl && !kvRegistryUrl.startsWith('__')) {
+                    var token = await window.Clerk?.session?.getToken();
+                    if (token) {
+                      var hostname = window.location.hostname;
+                      var parts = hostname.split('.');
+                      var kvSubdomain = parts.length > 2 ? parts[0] : hostname;
+                      fetch(kvRegistryUrl.replace(/\/$/, '') + '/invite', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        body: JSON.stringify({ subdomain: kvSubdomain, email: email, right: detail.right || 'write' })
+                      }).catch(function(e) { console.warn('[vibes-sharing] KV invite dual-write failed:', e); });
+                    }
+                  }
+                } catch (kvErr) {
+                  console.warn('[vibes-sharing] KV dual-write error:', kvErr);
+                }
               } catch (err) {
                 document.dispatchEvent(new CustomEvent('vibes-share-error', {
                   detail: { error: { message: err.message || 'Failed to send invitation.' } }
@@ -2470,7 +2490,8 @@ if (typeof window !== 'undefined') {
         tagline: "__APP_TAGLINE__",
         subtitle: "__APP_SUBTITLE__",
         adminUserIds: __ADMIN_USER_IDS__,
-        reservedSubdomains: __RESERVED_SUBDOMAINS__
+        reservedSubdomains: __RESERVED_SUBDOMAINS__,
+        registryUrl: "__REGISTRY_URL__"
       };
 
       // Convenience aliases
@@ -2483,6 +2504,20 @@ if (typeof window !== 'undefined') {
       const APP_SUBTITLE = CONFIG.subtitle;
       const ADMIN_USER_IDS = CONFIG.adminUserIds;
       const RESERVED_SUBDOMAINS = CONFIG.reservedSubdomains;
+      const REGISTRY_URL = CONFIG.registryUrl;
+
+      // Helper to resolve registry API URLs
+      function registryApiUrl(path) {
+        // If REGISTRY_URL is set and configured, use it as base
+        if (REGISTRY_URL && !REGISTRY_URL.startsWith('__')) {
+          return REGISTRY_URL.replace(/\/$/, '') + path;
+        }
+        // Fallback to relative path (same origin)
+        return path;
+      }
+
+      // Expose registry URL globally for SharingBridge KV dual-write
+      window.__VIBES_REGISTRY_URL__ = REGISTRY_URL;
 
       // Also use window config for Clerk (same pattern as vibes)
       const vibesConfig = window.__VIBES_CONFIG__ || {};
@@ -2499,7 +2534,7 @@ if (typeof window !== 'undefined') {
           return registryCache.data;
         }
         try {
-          const res = await fetch('/registry.json');
+          const res = await fetch(registryApiUrl('/registry.json'));
           if (!res.ok) throw new Error('Failed to fetch registry');
           registryCache.data = await res.json();
           registryCache.fetchedAt = now;
@@ -2525,7 +2560,7 @@ if (typeof window !== 'undefined') {
           return { available: false, reason: 'reserved' };
         }
         try {
-          const res = await fetch(`/check/${normalized}`);
+          const res = await fetch(registryApiUrl(`/check/${normalized}`));
           if (!res.ok) throw new Error('Check failed');
           return await res.json();
         } catch (e) {
@@ -2552,7 +2587,7 @@ if (typeof window !== 'undefined') {
           };
         }
         try {
-          const res = await fetch('/claim', {
+          const res = await fetch(registryApiUrl('/claim'), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -2896,9 +2931,32 @@ if (typeof window !== 'undefined') {
 
       function ClaimedSubdomainGate({ subdomain, ownerId }) {
         const { user } = window.useUser();
-        // Non-owner: redirect immediately, regardless of subscription status
-        if (user?.id !== ownerId) return <NotOwnerRedirect subdomain={subdomain} />;
-        // Owner: subscription gate protects the app
+        const [accessState, setAccessState] = useState({ loading: true, hasAccess: false, role: 'none' });
+
+        useEffect(() => {
+          // Owner fast path — no fetch needed
+          if (user?.id === ownerId) {
+            setAccessState({ loading: false, hasAccess: true, role: 'owner' });
+            return;
+          }
+          // Non-owner: check access via API
+          if (user?.id) {
+            fetch(registryApiUrl(`/check/${subdomain}/access?userId=${user.id}`))
+              .then(res => res.json())
+              .then(data => setAccessState({ loading: false, hasAccess: data.hasAccess, role: data.role }))
+              .catch(() => setAccessState({ loading: false, hasAccess: false, role: 'none' }));
+          } else {
+            setAccessState({ loading: false, hasAccess: false, role: 'none' });
+          }
+        }, [user?.id, subdomain, ownerId]);
+
+        if (accessState.loading) {
+          return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Checking access...</div>;
+        }
+
+        if (!accessState.hasAccess) return <NotOwnerRedirect subdomain={subdomain} />;
+
+        // Both owner and collaborator proceed to the app
         return (
           <SubscriptionGate subdomain={subdomain}>
             <TenantProvider subdomain={subdomain}>

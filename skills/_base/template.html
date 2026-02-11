@@ -513,6 +513,26 @@
                       : 'Invitation sent to ' + email + '!'
                   }
                 }));
+
+                // Dual-write to KV registry (non-fatal)
+                try {
+                  var kvRegistryUrl = window.__VIBES_REGISTRY_URL__;
+                  if (kvRegistryUrl && !kvRegistryUrl.startsWith('__')) {
+                    var token = await window.Clerk?.session?.getToken();
+                    if (token) {
+                      var hostname = window.location.hostname;
+                      var parts = hostname.split('.');
+                      var kvSubdomain = parts.length > 2 ? parts[0] : hostname;
+                      fetch(kvRegistryUrl.replace(/\/$/, '') + '/invite', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                        body: JSON.stringify({ subdomain: kvSubdomain, email: email, right: detail.right || 'write' })
+                      }).catch(function(e) { console.warn('[vibes-sharing] KV invite dual-write failed:', e); });
+                    }
+                  }
+                } catch (kvErr) {
+                  console.warn('[vibes-sharing] KV dual-write error:', kvErr);
+                }
               } catch (err) {
                 document.dispatchEvent(new CustomEvent('vibes-share-error', {
                   detail: { error: { message: err.message || 'Failed to send invitation.' } }

@@ -8,3 +8,25 @@ export interface Env {
   BILLING_MODE?: string;
   ADMIN_USER_IDS?: string;
 }
+
+// === Per-subdomain KV data model ===
+
+export interface Collaborator {
+  email: string;
+  userId?: string;
+  status: "invited" | "active";
+  right: "read" | "write";
+  invitedAt: string;
+  joinedAt?: string;
+}
+
+export interface SubdomainRecord {
+  ownerId: string;
+  claimedAt: string;
+  collaborators: Collaborator[];
+}
+
+export interface UserRecord {
+  subdomains: string[];
+  quota: number;
+}

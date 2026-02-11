@@ -54,6 +54,7 @@ const assembleSellSchema = [
   { name: 'subtitle', flag: '--subtitle', type: 'string', description: 'Subheadline text below the tagline' },
   { name: 'adminIds', flag: '--admin-ids', type: 'string', description: 'JSON array of Clerk user IDs with admin access' },
   { name: 'reserved', flag: '--reserved', type: 'string', description: 'Comma-separated reserved subdomain names' },
+  { name: 'registryUrl', flag: '--registry-url', type: 'string', description: 'Cloudflare Worker URL for registry API' },
 ];
 
 const assembleSellMeta = {
@@ -208,7 +209,8 @@ const replacements = {
   '__APP_DOMAIN__': domain,
   '__BILLING_MODE__': options.billingMode || 'off',
   '__APP_TAGLINE__': options.tagline || 'SHIP FASTER.<br>LOOK BETTER.',
-  '__APP_SUBTITLE__': options.subtitle || 'The first design-native framework for the next generation of SaaS. Zero config, infinite style.'
+  '__APP_SUBTITLE__': options.subtitle || 'The first design-native framework for the next generation of SaaS. Zero config, infinite style.',
+  '__REGISTRY_URL__': options.registryUrl || envVars.VITE_REGISTRY_URL || ''
 };
 
 // Handle JSON values - features
@@ -269,7 +271,8 @@ const SAFE_PLACEHOLDER_PATTERNS = [
   '__CLERK_LOAD_ERROR__',
   '__VIBES_SYNC_STATUS__',
   '__VIBES_APP_CODE__',
-  '__ADMIN_CODE__'
+  '__ADMIN_CODE__',
+  '__VIBES_REGISTRY_URL__'
 ];
 
 // Validate template BEFORE injecting app/admin code
