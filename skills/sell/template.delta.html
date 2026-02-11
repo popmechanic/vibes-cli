@@ -52,7 +52,8 @@
       }
 
       // Expose registry URL globally for SharingBridge KV dual-write
-      window.__VIBES_REGISTRY_URL__ = REGISTRY_URL;
+      // Fall back to current origin when registry lives on same Worker
+      window.__VIBES_REGISTRY_URL__ = REGISTRY_URL || window.location.origin;
 
       // Also use window config for Clerk (same pattern as vibes)
       const vibesConfig = window.__VIBES_CONFIG__ || {};

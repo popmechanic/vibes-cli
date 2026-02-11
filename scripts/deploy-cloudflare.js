@@ -325,12 +325,12 @@ async function main() {
     console.log("\n⚠️  No webhook secret provided. Subscription billing won't work without it.");
   }
 
-  // Seed config keys in KV
+  // Seed config keys in KV (use --namespace-id since --binding only works in dev)
   console.log("\nSeeding KV config...");
   const reservedList = reserved.length ? JSON.stringify(reserved) : '[]';
   const preallocatedObj = Object.keys(preallocated).length ? JSON.stringify(preallocated) : '{}';
-  run(`npx wrangler kv key put "config:reserved" '${reservedList}' --binding REGISTRY_KV --name ${name}`, { cwd: WORKER_DIR });
-  run(`npx wrangler kv key put "config:preallocated" '${preallocatedObj}' --binding REGISTRY_KV --name ${name}`, { cwd: WORKER_DIR });
+  run(`npx wrangler kv key put "config:reserved" '${reservedList}' --namespace-id ${kvId} --remote`, { cwd: WORKER_DIR });
+  run(`npx wrangler kv key put "config:preallocated" '${preallocatedObj}' --namespace-id ${kvId} --remote`, { cwd: WORKER_DIR });
   console.log(`  Reserved subdomains: ${reserved.length ? reserved.join(', ') : 'none'}`);
   console.log(`  Preallocated: ${Object.keys(preallocated).length ? Object.keys(preallocated).join(', ') : 'none'}`);
   console.log("  KV config seeded");

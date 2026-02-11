@@ -520,9 +520,10 @@
                   if (kvRegistryUrl && !kvRegistryUrl.startsWith('__')) {
                     var token = await window.Clerk?.session?.getToken();
                     if (token) {
+                      var qp = new URLSearchParams(window.location.search).get('subdomain');
                       var hostname = window.location.hostname;
                       var parts = hostname.split('.');
-                      var kvSubdomain = parts.length > 2 ? parts[0] : hostname;
+                      var kvSubdomain = qp || (parts.length > 2 ? parts[0] : hostname);
                       fetch(kvRegistryUrl.replace(/\/$/, '') + '/invite', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
