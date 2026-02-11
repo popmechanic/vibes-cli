@@ -6,6 +6,7 @@
  *   node scripts/deploy-cloudflare.js --name myapp --file index.html [--ai-key <openrouter-key>]
  *     [--clerk-key <pk_test_...>] [--billing-mode <off|required>] [--admin-ids <user_id1,user_id2>]
  *     [--webhook-secret <whsec_...>] [--env-dir <dir>]
+ *     [--reserved <list>] [--preallocated <list>]
  *
  * Automatically copies:
  *   - index.html to public/
@@ -93,9 +94,11 @@ async function main() {
   const webhookSecretIdx = args.indexOf("--webhook-secret");
   const adminIdsIdx = args.indexOf("--admin-ids");
   const envDirIdx = args.indexOf("--env-dir");
+  const reservedIdx = args.indexOf("--reserved");
+  const preallocatedIdx = args.indexOf("--preallocated");
 
   if (nameIdx === -1) {
-    throw new Error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html> [--ai-key <key>] [--clerk-key <pk_test_...>] [--billing-mode <off|required>] [--admin-ids <user_id1,user_id2>] [--webhook-secret <whsec_...>] [--env-dir <dir>]");
+    throw new Error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html> [--ai-key <key>] [--clerk-key <pk_test_...>] [--billing-mode <off|required>] [--admin-ids <user_id1,user_id2>] [--webhook-secret <whsec_...>] [--env-dir <dir>] [--reserved <list>] [--preallocated <list>]");
   }
 
   const name = args[nameIdx + 1];
@@ -103,6 +106,23 @@ async function main() {
   const aiKey = aiKeyIdx !== -1 ? args[aiKeyIdx + 1] : null;
   const billingMode = billingModeIdx !== -1 ? args[billingModeIdx + 1] : null;
   const adminIds = adminIdsIdx !== -1 ? args[adminIdsIdx + 1] : null;
+
+  // Parse reserved subdomains (comma-separated list)
+  const reserved = reservedIdx !== -1
+    ? args[reservedIdx + 1].split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+    : [];
+
+  // Parse preallocated subdomains ("sub:user_id,sub:user_id" → object)
+  const preallocated = {};
+  if (preallocatedIdx !== -1) {
+    const pairs = args[preallocatedIdx + 1].split(',');
+    for (const pair of pairs) {
+      const [subdomain, userId] = pair.split(':').map(s => s.trim());
+      if (subdomain && userId) {
+        preallocated[subdomain.toLowerCase()] = userId;
+      }
+    }
+  }
 
   // Resolve env directory for .env auto-detection (defaults to --file's parent dir)
   const envDir = envDirIdx !== -1
@@ -304,6 +324,16 @@ async function main() {
   } else if (clerkKey) {
     console.log("\n⚠️  No webhook secret provided. Subscription billing won't work without it.");
   }
+
+  // Seed config keys in KV
+  console.log("\nSeeding KV config...");
+  const reservedList = reserved.length ? JSON.stringify(reserved) : '[]';
+  const preallocatedObj = Object.keys(preallocated).length ? JSON.stringify(preallocated) : '{}';
+  run(`npx wrangler kv key put "config:reserved" '${reservedList}' --binding REGISTRY_KV --name ${name}`, { cwd: WORKER_DIR });
+  run(`npx wrangler kv key put "config:preallocated" '${preallocatedObj}' --binding REGISTRY_KV --name ${name}`, { cwd: WORKER_DIR });
+  console.log(`  Reserved subdomains: ${reserved.length ? reserved.join(', ') : 'none'}`);
+  console.log(`  Preallocated: ${Object.keys(preallocated).length ? Object.keys(preallocated).join(', ') : 'none'}`);
+  console.log("  KV config seeded");
 
   // Extract the actual deployed URL from wrangler output (includes account subdomain)
   const urlMatch = deployOutput.match(/https:\/\/[^\s]+\.workers\.dev/);

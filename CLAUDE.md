@@ -288,15 +288,13 @@ scripts/__tests__/
 │   ├── component-transforms.test.js
 │   ├── generate-handoff.test.js
 │   ├── jwt-validation.test.js      # azp matching, timing validation
-│   ├── registry-logic.test.js
 │   ├── strip-code.test.js
 │   ├── template-merge.test.js
 │   └── webhook-signature.test.js
 ├── integration/                    # Mocked external services
 │   ├── assembly-pipeline.test.js
 │   ├── deploy-ai-proxy.test.js
-│   ├── deploy-handoff.test.js
-│   └── registry-webhooks.test.js
+│   └── deploy-handoff.test.js
 ├── e2e/                            # Local server for manual testing
 │   └── local-server.js
 └── mocks/                          # Shared test doubles
@@ -362,10 +360,11 @@ npm run test:e2e:server
 | `scripts/find-plugin.js` | Plugin directory lookup with validation |
 | `scripts/generate-riff.js` | Parallel riff generator - spawns claude -p for variations |
 | `scripts/generate-handoff.js` | Generate HANDOFF.md context document for remote Claude |
-| `scripts/deploy-exe.js` | App deployment to exe.dev (static files, AI proxy, registry) |
+| `scripts/deploy-exe.js` | App deployment to exe.dev (static files, AI proxy) |
 | `scripts/deploy-connect.js` | Connect Studio deployment to exe.dev (Docker-based sync) |
 | `scripts/deploy-cloudflare.js` | Cloudflare deployment script |
-| `scripts/deployables/registry-server.ts` | Bun server for subdomain registry + Clerk webhooks (deployed to VMs) |
+| `skills/cloudflare/worker/src/lib/kv-storage.ts` | Per-subdomain key model with collaborator support |
+| `skills/cloudflare/worker/src/lib/registry-logic.ts` | Collaborator-aware subdomain registry logic |
 | `scripts/vitest.config.js` | Vitest test runner configuration |
 | `scripts/package.json` | Node.js deps |
 | `scripts/lib/env-utils.js` | Shared .env loading, Clerk key validation, Connect config |
@@ -379,7 +378,6 @@ npm run test:e2e:server
 | `scripts/lib/resolve-workers-url.js` | Resolve full Cloudflare Workers URL for an app |
 | `scripts/lib/jwt-validation.js` | JWT validation utilities (azp matching, timing) |
 | `scripts/lib/auth-flows.js` | Auth flow state machines (signup, signin, gate) |
-| `scripts/lib/registry-logic.js` | Pure functions for subdomain registry operations (tested) |
 | `scripts/deployables/ai-proxy.js` | AI proxy server for OpenRouter (deployed to exe.dev VMs) |
 | `scripts/lib/template-merge.js` | Pure functions for merging base + delta templates |
 | `scripts/lib/component-transforms.js` | Pure functions for transforming component source code |
@@ -620,9 +618,7 @@ The `/vibes:sell` deploy has several issues that need fixing in `scripts/deploy-
 
 1. **Port mismatch**: nginx is configured on port 80, but exe.dev requires ports 3000-9999. Fix: configure nginx to listen on port 8000 and run `ssh exe.dev share port <name> 8000`.
 
-2. **Missing nginx registry routes**: Deploy doesn't add proxy routes for `/claim`, `/check/`, `/webhook` to the registry server on port 3002. These routes need to be added to the nginx config.
-
-3. **Admin dashboard is placeholder**: The sell template (`skills/sell/templates/unified.html`) has a stub admin that just says "Admin dashboard coming soon...". Need to build a real admin dashboard that fetches `/registry.json` and displays claims/users/stats.
+2. **Admin dashboard is placeholder**: The sell template (`skills/sell/templates/unified.html`) has a stub admin that just says "Admin dashboard coming soon...". Need to build a real admin dashboard that fetches `/registry.json` and displays claims/users/stats.
 
 ## Temporary Workaround: Local Fireproof Bundle + Bridge
 
