@@ -194,7 +194,7 @@
       // Auto-generated vibes menu components
 // Run: node scripts/build-components.js --force to regenerate
 // Source: /Users/marcusestes/Websites/VibesCLI/vibes-skill/components
-// Generated: 2026-02-10T08:02:58.473Z
+// Generated: 2026-02-12T22:25:53.785Z
 // Components: 25/25
 
 // === useMobile ===
@@ -2390,19 +2390,10 @@ if (typeof window !== 'undefined') {
 
                 var inviteData = rInvite.Ok();
                 console.debug('[vibes-sharing] inviteUser response:', inviteData);
-                var inviteId = inviteData.invite && inviteData.invite.inviteId;
-                var shareLink = inviteId
-                  ? window.location.origin + '?invite=' + inviteId
-                  : null;
-
                 document.dispatchEvent(new CustomEvent('vibes-share-success', {
                   detail: {
                     email: email,
-                    inviteId: inviteId,
-                    shareLink: shareLink,
-                    message: shareLink
-                      ? 'Share this link: ' + shareLink
-                      : 'Invitation sent to ' + email + '!'
+                    message: 'Invited ' + email + '! They can now sign in to access this app.'
                   }
                 }));
 
