@@ -27,6 +27,7 @@ Do NOT hardcode database names. `useTenant()` is provided by the sell template a
 8. Do NOT use TypeScript syntax — pure JSX only
 9. Do NOT use AskUserQuestion — you have everything you need
 10. ZERO import statements — `React`, `useState`, `useEffect`, `useRef`, `useCallback`, `useMemo`, `createContext`, `useContext` are all globally available from the template. Never write `import` at the top of the file.
+    Your app.jsx will be transformed by the sell assembler, which strips all imports (they'd conflict with the sell template's own imports). React, hooks, and useFireproofClerk are provided by the template. When reading vibes/SKILL.md for patterns, use the hook/component patterns but ignore the import lines.
 11. Do NOT define a useTenant() fallback — `useTenant()` is a template global (injected by AppWrapper), NOT an importable module. Just call it directly: `const { dbName } = useTenant();` — no import needed.
 12. Do NOT use `window.__*__` dunder patterns — hooks and globals are direct function calls, not accessed via window properties.
 {aiInstructions}

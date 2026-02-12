@@ -96,6 +96,10 @@ Before writing code, reason about the design in `<design>` tags:
 </design>
 ```
 
+> **Assembly: generate (preserve)** — `assemble.js` injects your code as-is. Import and export statements work because the import map intercepts bare specifiers at runtime. Code examples below include imports.
+>
+> **If you're a launch/builder agent:** Sell transforms vibes artifacts by *stripping* imports. When generating app.jsx for the launch pipeline, omit all imports — the sell template provides everything. Follow builder.md rules; use only the patterns from examples below, not the import lines.
+
 ### Step 2: Output Code
 
 After reasoning, output the complete JSX in `<code>` tags:

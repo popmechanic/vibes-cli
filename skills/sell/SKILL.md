@@ -33,6 +33,8 @@ allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 
 ---
 
+> **Assembly: transform (strip)** — `assemble-sell.js` receives a vibes-generated app.jsx and adapts it for the sell template. It strips `import` statements, `export default`, React destructuring, and template constants — because the sell template already provides all of these. All dependencies (`React`, `useFireproofClerk`, `useTenant`, `useState`, etc.) are available as globals.
+
 ## ⛔ CRITICAL RULES - READ FIRST ⛔
 
 **DO NOT generate code manually.** This skill uses pre-built scripts:
