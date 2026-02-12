@@ -138,6 +138,14 @@ Mark T2 completed.
 
 ### 1.5 Sell Config (T4) — while infra deploys
 
+**Sell config is collected here but applied later by invoking `/vibes:sell` (or its assembly script) as an atomic step.** Do NOT hand-implement SaaS logic — the sell skill handles tenant routing, auth gating, billing, and admin setup.
+
+Choose billing mode based on monetization intent:
+- **"off" (free)** — all authenticated users get full access. Good for MVPs and internal tools.
+- **"required" (subscription)** — users must subscribe. Requires Clerk Billing (Dev instances auto-connect to Stripe sandbox).
+
+**Always ask the user** — do not assume a default.
+
 **Ask [Billing]**: "What billing mode for your SaaS?" AND **[Title]**: "App display title?"
 - Billing: "Free (no billing)" or "Subscription required"
 - Title: "Derive from app name" or "Let me specify"

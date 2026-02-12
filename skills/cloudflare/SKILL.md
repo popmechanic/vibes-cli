@@ -40,8 +40,10 @@ npx wrangler secret put CLERK_WEBHOOK_SECRET
 For deploying with static assets (index.html, bundles, assets):
 
 ```bash
-node scripts/deploy-cloudflare.js --name myapp --file index.html
+node scripts/deploy-cloudflare.js --name myapp --file index.html --clerk-key "pk_test_xxx"
 ```
+
+The `--clerk-key` flag auto-fetches the PEM public key from Clerk's JWKS endpoint and sets it as `CLERK_PEM_PUBLIC_KEY`. Without it, the Worker can't verify JWTs for authenticated endpoints like `/claim`.
 
 This automatically:
 - Copies index.html to worker's public/
@@ -150,7 +152,7 @@ Apps using the `useAI()` hook call `/api/ai/chat` on the same origin. The worker
 **Deploy with AI enabled:**
 
 ```bash
-node scripts/deploy-cloudflare.js --name myapp --file index.html --ai-key "sk-or-v1-your-key"
+node scripts/deploy-cloudflare.js --name myapp --file index.html --clerk-key "pk_test_xxx" --ai-key "sk-or-v1-your-key"
 ```
 
 The `--ai-key` flag sets the `OPENROUTER_API_KEY` secret on the worker after deployment. Without it, `/api/ai/chat` returns `{"error": "AI not configured"}`.
