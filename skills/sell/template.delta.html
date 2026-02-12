@@ -482,14 +482,38 @@
           if (user?.id) {
             fetch(registryApiUrl(`/check/${subdomain}/access?userId=${user.id}`))
               .then(res => res.json())
-              .then(data => {
-                if (!data.hasAccess) {
-                  console.warn('[ClaimedSubdomainGate] Access denied by API', { userId: user.id, ownerId, subdomain, data });
+              .then(async (data) => {
+                if (data.hasAccess) {
+                  setAccessState({ loading: false, hasAccess: true, role: data.role });
+                  return;
                 }
-                setAccessState({ loading: false, hasAccess: data.hasAccess, role: data.role });
+                // Access denied — try auto-join if user has an email-based invite
+                const email = user.primaryEmailAddress?.emailAddress;
+                if (email) {
+                  try {
+                    const token = await window.Clerk?.session?.getToken();
+                    if (token) {
+                      const joinRes = await fetch(registryApiUrl('/join'), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ subdomain, email })
+                      });
+                      if (joinRes.ok) {
+                        console.log('[ClaimedSubdomainGate] Auto-joined as collaborator', { email, subdomain });
+                        setAccessState({ loading: false, hasAccess: true, role: 'collaborator' });
+                        return;
+                      }
+                    }
+                  } catch (joinErr) {
+                    console.warn('[ClaimedSubdomainGate] Auto-join failed', { error: joinErr.message });
+                  }
+                }
+                // Genuine denial
+                console.warn('[ClaimedSubdomainGate] Access denied', { userId: user.id, ownerId, subdomain });
+                setAccessState({ loading: false, hasAccess: false, role: 'none' });
               })
               .catch((err) => {
-                console.error('[ClaimedSubdomainGate] Access check failed', { userId: user.id, subdomain, error: err.message });
+                console.error('[ClaimedSubdomainGate] Access check failed', { error: err.message });
                 setAccessState({ loading: false, hasAccess: false, role: 'error' });
               });
           } else {

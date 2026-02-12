@@ -498,19 +498,10 @@
 
                 var inviteData = rInvite.Ok();
                 console.debug('[vibes-sharing] inviteUser response:', inviteData);
-                var inviteId = inviteData.invite && inviteData.invite.inviteId;
-                var shareLink = inviteId
-                  ? window.location.origin + '?invite=' + inviteId
-                  : null;
-
                 document.dispatchEvent(new CustomEvent('vibes-share-success', {
                   detail: {
                     email: email,
-                    inviteId: inviteId,
-                    shareLink: shareLink,
-                    message: shareLink
-                      ? 'Share this link: ' + shareLink
-                      : 'Invitation sent to ' + email + '!'
+                    message: 'Invited ' + email + '! They can now sign in to access this app.'
                   }
                 }));
 
