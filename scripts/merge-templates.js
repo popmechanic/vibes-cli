@@ -32,13 +32,17 @@ const SKILLS = [
     name: "vibes",
     delta: join(PLUGIN_ROOT, "skills/vibes/template.delta.html"),
     output: join(PLUGIN_ROOT, "skills/vibes/templates/index.html"),
-    title: "Made on Vibes DIY"
+    title: "Made on Vibes DIY",
+    assemblyMode: "preserve",   // assemble.js: user code used as-is
+    assemblyRole: "generate"    // creates the initial artifact
   },
   {
     name: "sell",
     delta: join(PLUGIN_ROOT, "skills/sell/template.delta.html"),
     output: join(PLUGIN_ROOT, "skills/sell/templates/unified.html"),
-    title: "__APP_TITLE__"  // Sell uses dynamic title
+    title: "__APP_TITLE__",  // Sell uses dynamic title
+    assemblyMode: "strip",      // assemble-sell.js: user code adapted via stripForTemplate()
+    assemblyRole: "transform"   // transforms a vibes artifact into SaaS
   }
 ];
 
