@@ -344,6 +344,8 @@ If the app uses a hardcoded name, update it:
 2. Add `const { dbName } = useTenant();` before it
 3. Change to `useFireproofClerk(dbName)`
 
+`useTenant()` is a **template global** (injected by AppWrapper in the sell template), NOT an importable module. Call it directly — do NOT write `import { useTenant } from ...` anywhere in app.jsx.
+
 **Template-Provided Globals — do NOT redeclare these in app.jsx:**
 
 | Category | Globals |
@@ -431,6 +433,8 @@ The template uses neutral colors by default. To match the user's brand:
 ---
 
 ## Step 5: Deployment
+
+**Deploy Target: Cloudflare Workers.** SaaS apps always deploy to Cloudflare Workers (not exe.dev). The KV registry and subdomain routing require the CF Worker runtime.
 
 **Registry server credentials are REQUIRED for SaaS apps.**
 
