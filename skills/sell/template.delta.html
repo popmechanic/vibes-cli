@@ -466,10 +466,13 @@
       }
 
       function ClaimedSubdomainGate({ subdomain, ownerId }) {
-        const { user } = window.useUser();
+        const { user, isLoaded } = window.useUser();
         const [accessState, setAccessState] = useState({ loading: true, hasAccess: false, role: 'none' });
 
         useEffect(() => {
+          // Don't make access decisions until Clerk has loaded user data
+          if (!isLoaded) return;
+
           // Owner fast path — no fetch needed
           if (user?.id === ownerId) {
             setAccessState({ loading: false, hasAccess: true, role: 'owner' });
@@ -479,18 +482,39 @@
           if (user?.id) {
             fetch(registryApiUrl(`/check/${subdomain}/access?userId=${user.id}`))
               .then(res => res.json())
-              .then(data => setAccessState({ loading: false, hasAccess: data.hasAccess, role: data.role }))
-              .catch(() => setAccessState({ loading: false, hasAccess: false, role: 'none' }));
+              .then(data => {
+                if (!data.hasAccess) {
+                  console.warn('[ClaimedSubdomainGate] Access denied by API', { userId: user.id, ownerId, subdomain, data });
+                }
+                setAccessState({ loading: false, hasAccess: data.hasAccess, role: data.role });
+              })
+              .catch((err) => {
+                console.error('[ClaimedSubdomainGate] Access check failed', { userId: user.id, subdomain, error: err.message });
+                setAccessState({ loading: false, hasAccess: false, role: 'error' });
+              });
           } else {
+            console.warn('[ClaimedSubdomainGate] No user.id after Clerk loaded', { isLoaded, user, ownerId });
             setAccessState({ loading: false, hasAccess: false, role: 'none' });
           }
-        }, [user?.id, subdomain, ownerId]);
+        }, [isLoaded, user?.id, subdomain, ownerId]);
 
         if (accessState.loading) {
           return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Checking access...</div>;
         }
 
-        if (!accessState.hasAccess) return <NotOwnerRedirect subdomain={subdomain} />;
+        if (!accessState.hasAccess) {
+          if (accessState.role === 'error') {
+            return (
+              <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
+                <p>Could not verify access. Check your connection and try again.</p>
+                <button onClick={() => setAccessState({ loading: true, hasAccess: false, role: 'none' })} style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>
+                  Retry
+                </button>
+              </div>
+            );
+          }
+          return <NotOwnerRedirect subdomain={subdomain} />;
+        }
 
         // Both owner and collaborator proceed to the app
         return (
