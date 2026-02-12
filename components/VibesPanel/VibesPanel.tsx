@@ -36,6 +36,8 @@ export function VibesPanel({
     "idle" | "sending" | "success" | "error"
   >("idle");
   const [inviteMessage, setInviteMessage] = useState("");
+  const [inviteLink, setInviteLink] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const effectiveBaseURL = baseURL ?? (typeof window !== "undefined" ? window.location.origin : "https://vibes.diy");
 
@@ -45,6 +47,8 @@ export function VibesPanel({
       setEmail("");
       setInviteStatus("idle");
       setInviteMessage("");
+      setInviteLink("");
+      setLinkCopied(false);
     }
   };
 
@@ -85,12 +89,16 @@ export function VibesPanel({
       const customEvent = event as CustomEvent<{
         email: string;
         message?: string;
+        link?: string;
       }>;
       setInviteStatus("success");
       setInviteMessage(
         customEvent.detail?.message ||
           `Invitation sent to ${customEvent.detail?.email}!`,
       );
+      if (customEvent.detail?.link) {
+        setInviteLink(customEvent.detail.link);
+      }
     };
 
     const handleShareError = (event: Event) => {
@@ -110,6 +118,15 @@ export function VibesPanel({
       document.removeEventListener("vibes-share-error", handleShareError);
     };
   }, []);
+
+  const handleCopyLink = () => {
+    if (inviteLink) {
+      navigator.clipboard.writeText(inviteLink).then(() => {
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
+      });
+    }
+  };
 
   return (
     <div style={getOuterContainerStyle(style)} className={className}>
@@ -168,7 +185,22 @@ export function VibesPanel({
                   }
                   style={getInviteStatusStyle()}
                 >
-                  {inviteStatus === "sending" ? "Inviting..." : inviteMessage}
+                  {inviteStatus === "sending" ? "Inviting..." : (
+                    <>
+                      <div>{inviteMessage}</div>
+                      {inviteLink && (
+                        <div style={{ marginTop: '0.5rem' }}>
+                          <button onClick={handleCopyLink} style={{
+                            background: 'none', border: '2px solid currentColor', borderRadius: '6px',
+                            padding: '0.25rem 0.75rem', cursor: 'pointer', color: 'inherit',
+                            fontWeight: 600, fontSize: '0.85em'
+                          }}>
+                            {linkCopied ? 'Copied!' : 'Copy Invite Link'}
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </BrutalistCard>
               )}
               <VibesButton variant={GRAY} onClick={handleBackClick} icon="back">
