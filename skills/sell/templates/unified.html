@@ -194,7 +194,7 @@
       // Auto-generated vibes menu components
 // Run: node scripts/build-components.js --force to regenerate
 // Source: /Users/marcusestes/Websites/VibesCLI/vibes-skill/components
-// Generated: 2026-02-12T22:25:53.785Z
+// Generated: 2026-02-12T23:11:42.115Z
 // Components: 25/25
 
 // === useMobile ===
@@ -1917,6 +1917,8 @@ function VibesPanel({
   const [email, setEmail] = React.useState("");
   const [inviteStatus, setInviteStatus] = React.useState("idle");
   const [inviteMessage, setInviteMessage] = React.useState("");
+  const [inviteLink, setInviteLink] = React.useState("");
+  const [linkCopied, setLinkCopied] = React.useState(false);
   const effectiveBaseURL = baseURL ?? (typeof window !== "undefined" ? window.location.origin : "https://vibes.diy");
   const handleInviteClick = () => {
     if (mode === "default") {
@@ -1924,6 +1926,8 @@ function VibesPanel({
       setEmail("");
       setInviteStatus("idle");
       setInviteMessage("");
+      setInviteLink("");
+      setLinkCopied(false);
     }
   };
   const handleBackClick = () => {
@@ -1959,6 +1963,9 @@ function VibesPanel({
       setInviteMessage(
         customEvent.detail?.message || `Invitation sent to ${customEvent.detail?.email}!`
       );
+      if (customEvent.detail?.link) {
+        setInviteLink(customEvent.detail.link);
+      }
     };
     const handleShareError = (event) => {
       const customEvent = event;
@@ -1974,6 +1981,14 @@ function VibesPanel({
       document.removeEventListener("vibes-share-error", handleShareError);
     };
   }, []);
+  const handleCopyLink = () => {
+    if (inviteLink) {
+      navigator.clipboard.writeText(inviteLink).then(() => {
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2e3);
+      });
+    }
+  };
   return /* @__PURE__ */ React.createElement("div", { style: getOuterContainerStyle(style), className }, /* @__PURE__ */ React.createElement(
     LabelContainer,
     {
@@ -2028,7 +2043,16 @@ function VibesPanel({
         variant: inviteStatus === "sending" ? "default" : inviteStatus === "error" ? "error" : "success",
         style: getInviteStatusStyle()
       },
-      inviteStatus === "sending" ? "Inviting..." : inviteMessage
+      inviteStatus === "sending" ? "Inviting..." : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", null, inviteMessage), inviteLink && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "0.5rem" } }, /* @__PURE__ */ React.createElement("button", { onClick: handleCopyLink, style: {
+        background: "none",
+        border: "2px solid currentColor",
+        borderRadius: "6px",
+        padding: "0.25rem 0.75rem",
+        cursor: "pointer",
+        color: "inherit",
+        fontWeight: 600,
+        fontSize: "0.85em"
+      } }, linkCopied ? "Copied!" : "Copy Invite Link")))
     ), /* @__PURE__ */ React.createElement(VibesButton, { variant: GRAY, onClick: handleBackClick, icon: "back" }, "Back")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
       VibesButton,
       {
@@ -2390,10 +2414,18 @@ if (typeof window !== 'undefined') {
 
                 var inviteData = rInvite.Ok();
                 console.debug('[vibes-sharing] inviteUser response:', inviteData);
+
+                // Construct invite URL pointing to this subdomain
+                var qpSub = new URLSearchParams(window.location.search).get('subdomain');
+                var inviteUrl = qpSub
+                  ? window.location.origin + '?subdomain=' + encodeURIComponent(qpSub)
+                  : window.location.origin;
+
                 document.dispatchEvent(new CustomEvent('vibes-share-success', {
                   detail: {
                     email: email,
-                    message: 'Invited ' + email + '! They can now sign in to access this app.'
+                    message: 'Invited ' + email + '!',
+                    link: inviteUrl
                   }
                 }));
 
@@ -2925,6 +2957,9 @@ if (typeof window !== 'undefined') {
       function ClaimedSubdomainGate({ subdomain, ownerId }) {
         const { user, isLoaded } = window.useUser();
         const [accessState, setAccessState] = useState({ loading: true, hasAccess: false, role: 'none' });
+        const fpCtx = typeof window.useClerkFireproofContext === 'function'
+          ? window.useClerkFireproofContext() : null;
+        const dashApi = fpCtx && fpCtx.dashApi;
 
         useEffect(() => {
           // Don't make access decisions until Clerk has loaded user data
@@ -2941,6 +2976,13 @@ if (typeof window !== 'undefined') {
               .then(res => res.json())
               .then(async (data) => {
                 if (data.hasAccess) {
+                  // Redeem Connect invite for collaborators (retry path for pre-fix users)
+                  if (data.role === 'collaborator' && dashApi) {
+                    try {
+                      await dashApi.redeemInvite({});
+                      console.log('[ClaimedSubdomainGate] Connect invite redeemed (existing collab)');
+                    } catch (e) { /* non-fatal */ }
+                  }
                   setAccessState({ loading: false, hasAccess: true, role: data.role });
                   return;
                 }
@@ -2956,6 +2998,19 @@ if (typeof window !== 'undefined') {
                         body: JSON.stringify({ subdomain, email })
                       });
                       if (joinRes.ok) {
+                        // Redeem Connect invite to create LedgerUsers row (enables sync)
+                        if (dashApi) {
+                          try {
+                            const rRedeem = await dashApi.redeemInvite({});
+                            if (rRedeem.isOk()) {
+                              console.log('[ClaimedSubdomainGate] Connect invite redeemed');
+                            } else {
+                              console.warn('[ClaimedSubdomainGate] redeemInvite failed (sync may not work)', rRedeem.Err());
+                            }
+                          } catch (redeemErr) {
+                            console.warn('[ClaimedSubdomainGate] redeemInvite error (non-fatal)', redeemErr.message);
+                          }
+                        }
                         console.log('[ClaimedSubdomainGate] Auto-joined as collaborator', { email, subdomain });
                         setAccessState({ loading: false, hasAccess: true, role: 'collaborator' });
                         return;
@@ -2977,10 +3032,10 @@ if (typeof window !== 'undefined') {
             console.warn('[ClaimedSubdomainGate] No user.id after Clerk loaded', { isLoaded, user, ownerId });
             setAccessState({ loading: false, hasAccess: false, role: 'none' });
           }
-        }, [isLoaded, user?.id, subdomain, ownerId]);
+        }, [isLoaded, user?.id, subdomain, ownerId, dashApi]);
 
         if (accessState.loading) {
-          return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Checking access...</div>;
+          return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Setting up your access...</div>;
         }
 
         if (!accessState.hasAccess) {
