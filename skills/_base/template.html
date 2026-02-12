@@ -498,10 +498,18 @@
 
                 var inviteData = rInvite.Ok();
                 console.debug('[vibes-sharing] inviteUser response:', inviteData);
+
+                // Construct invite URL pointing to this subdomain
+                var qpSub = new URLSearchParams(window.location.search).get('subdomain');
+                var inviteUrl = qpSub
+                  ? window.location.origin + '?subdomain=' + encodeURIComponent(qpSub)
+                  : window.location.origin;
+
                 document.dispatchEvent(new CustomEvent('vibes-share-success', {
                   detail: {
                     email: email,
-                    message: 'Invited ' + email + '! They can now sign in to access this app.'
+                    message: 'Invited ' + email + '!',
+                    link: inviteUrl
                   }
                 }));
 

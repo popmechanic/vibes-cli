@@ -468,6 +468,9 @@
       function ClaimedSubdomainGate({ subdomain, ownerId }) {
         const { user, isLoaded } = window.useUser();
         const [accessState, setAccessState] = useState({ loading: true, hasAccess: false, role: 'none' });
+        const fpCtx = typeof window.useClerkFireproofContext === 'function'
+          ? window.useClerkFireproofContext() : null;
+        const dashApi = fpCtx && fpCtx.dashApi;
 
         useEffect(() => {
           // Don't make access decisions until Clerk has loaded user data
@@ -484,6 +487,13 @@
               .then(res => res.json())
               .then(async (data) => {
                 if (data.hasAccess) {
+                  // Redeem Connect invite for collaborators (retry path for pre-fix users)
+                  if (data.role === 'collaborator' && dashApi) {
+                    try {
+                      await dashApi.redeemInvite({});
+                      console.log('[ClaimedSubdomainGate] Connect invite redeemed (existing collab)');
+                    } catch (e) { /* non-fatal */ }
+                  }
                   setAccessState({ loading: false, hasAccess: true, role: data.role });
                   return;
                 }
@@ -499,6 +509,19 @@
                         body: JSON.stringify({ subdomain, email })
                       });
                       if (joinRes.ok) {
+                        // Redeem Connect invite to create LedgerUsers row (enables sync)
+                        if (dashApi) {
+                          try {
+                            const rRedeem = await dashApi.redeemInvite({});
+                            if (rRedeem.isOk()) {
+                              console.log('[ClaimedSubdomainGate] Connect invite redeemed');
+                            } else {
+                              console.warn('[ClaimedSubdomainGate] redeemInvite failed (sync may not work)', rRedeem.Err());
+                            }
+                          } catch (redeemErr) {
+                            console.warn('[ClaimedSubdomainGate] redeemInvite error (non-fatal)', redeemErr.message);
+                          }
+                        }
                         console.log('[ClaimedSubdomainGate] Auto-joined as collaborator', { email, subdomain });
                         setAccessState({ loading: false, hasAccess: true, role: 'collaborator' });
                         return;
@@ -520,10 +543,10 @@
             console.warn('[ClaimedSubdomainGate] No user.id after Clerk loaded', { isLoaded, user, ownerId });
             setAccessState({ loading: false, hasAccess: false, role: 'none' });
           }
-        }, [isLoaded, user?.id, subdomain, ownerId]);
+        }, [isLoaded, user?.id, subdomain, ownerId, dashApi]);
 
         if (accessState.loading) {
-          return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Checking access...</div>;
+          return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Setting up your access...</div>;
         }
 
         if (!accessState.hasAccess) {
