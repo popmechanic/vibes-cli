@@ -42,6 +42,7 @@ const COMPONENT_SOURCES = {
   "GitHubIcon": "icons/GitHubIcon.tsx",
   "MoonIcon": "icons/MoonIcon.tsx",
   "SunIcon": "icons/SunIcon.tsx",
+  "DesignIcon": "icons/DesignIcon.tsx",
 
   // New components (in dependency order)
   "BrutalistCard.styles": "BrutalistCard/BrutalistCard.styles.ts",
@@ -199,6 +200,7 @@ if (typeof window !== 'undefined') {
   window.GitHubIcon = GitHubIcon;
   window.MoonIcon = MoonIcon;
   window.SunIcon = SunIcon;
+  window.DesignIcon = DesignIcon;
 }
 `;
 

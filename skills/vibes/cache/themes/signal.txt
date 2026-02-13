@@ -1,0 +1,547 @@
+THEME: signal
+NAME: Signal Interface
+MOOD: Minimal, dark, technical, focused
+
+DESCRIPTION:
+A near-black interface aesthetic with white-only accents. No color at all —
+pure grayscale on deep black. Features bracket-corner card frames, numbered
+sections with inline divider lines, canvas-based visualizations (waveforms,
+particle fields, node graphs), text scramble animations, and scroll-triggered
+section dimming. Feels like an audio processing tool, a signal analyzer, or
+a cognitive interface — deeply technical but elegantly sparse. The crosshair
+cursor signals precision.
+
+BEST FOR:
+  - Audio/music tools, synthesizers, sound design interfaces
+  - AI/ML product pages, cognitive tools
+  - Developer tools, CLI-inspired interfaces
+  - Monitoring dashboards, system status pages
+  - Note-taking apps, knowledge management tools
+  - Any app that should feel like a focused instrument
+
+NOT FOR:
+  - Colorful consumer apps (pure grayscale only)
+  - E-commerce or product showcase (no visual richness)
+  - Playful/casual apps (too austere and focused)
+  - Content-heavy editorial (reading on near-black is fatiguing)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Use bordered-left stat lists (mono, key-value pairs
+    with flex justify-between). Tiny labels, tight spacing. Group under
+    numbered section headers.
+  - If app has FORMS: Transparent inputs with bottom border only (#1a1a1a).
+    Focus state: white border. Submit as .btn-primary (outline, fills on hover).
+    Keep forms inside bracket-corner card frames.
+  - If app has LISTS: Each item in a bracket-corner card. Dim inactive items
+    (opacity 0.3). Number items with [00], [01], [02] prefix in mono.
+  - If app has CARDS: Use bracket-corner frames (4 corner L-shapes that expand
+    on hover/active). Background: #0a0a0a. Hover: #0e0e0e. Always 16:9 aspect.
+  - If app has MULTIPLE SECTIONS: Full-viewport sections stacked vertically
+    with #1a1a1a top borders. Scroll-triggered dimming via IntersectionObserver
+    (0.3 opacity when not in viewport center).
+  - If app has VISUALIZATIONS: Canvas-based. Waveform bars, floating node dots,
+    particle fields. Always grayscale — no colored data series.
+
+COLOR TOKENS:
+  The signal palette is extremely dark with white-only accents. No accent
+  color — white is the accent. Multiple shades of near-black create depth.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.05 0 0);                 /* near-black #050505 */
+    --comp-text: oklch(0.92 0 0);               /* light gray #eaeaea */
+    --comp-border: oklch(0.14 0 0);             /* dark border #1a1a1a */
+    --comp-accent: oklch(1.00 0 0);             /* pure white (accent IS white) */
+    --comp-accent-text: oklch(0.00 0 0);        /* black on white */
+    --comp-muted: oklch(0.40 0 0);              /* mid gray #666 */
+    --color-background: oklch(0.03 0 0);        /* deepest black */
+    --grid-color: transparent;                   /* no grid */
+  }
+  ```
+
+  Card surface colors:
+  ```css
+  --comp-card: oklch(0.06 0 0);                 /* card bg #0a0a0a */
+  --comp-card-hover: oklch(0.08 0 0);           /* card hover #0e0e0e */
+  ```
+
+  Gray scale for labels/metadata:
+  ```css
+  --gray-500: oklch(0.45 0 0);                  /* section labels */
+  --gray-600: oklch(0.35 0 0);                  /* tertiary text */
+  --gray-700: oklch(0.28 0 0);                  /* barely visible */
+  --gray-800: oklch(0.18 0 0);                  /* inline dividers */
+  ```
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the signal aesthetic.
+  Study the patterns (bracket corners, section numbering, dimming,
+  canvas visuals) to understand the mood, then design your own version.
+
+  ```css
+  /* ── Signal Core ── */
+  /*
+    Load fonts via Google Fonts:
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap');
+
+    Font roles:
+    - Inter: headings (300-500 weight), body text, descriptions
+    - Space Mono: section numbers, labels, metadata, buttons, status text
+  */
+
+  body {
+    background: var(--comp-bg);
+    color: var(--comp-text);
+    font-family: 'Inter', sans-serif;
+    cursor: crosshair;
+  }
+
+  .mono {
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* ── Nav (mix-blend-mode: difference) ── */
+  .nav-signal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 50;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    mix-blend-mode: difference;
+  }
+
+  /* ── Section Numbering ── */
+  /*
+    Every section gets a numbered label in mono:
+      [ 00 ] ── LABEL TEXT
+    The inline divider is a 1px-tall element, not a border.
+  */
+  .section-number {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .section-number .divider {
+    height: 1px;
+    width: 2rem;
+    background: var(--gray-800);
+  }
+
+  /* ── Hero Typography ── */
+  .hero-title {
+    font-size: clamp(3rem, 8vw, 6rem);
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    font-weight: 500;
+    color: white;
+  }
+
+  /* ── Full-Viewport Sections ── */
+  .signal-section {
+    min-height: 80vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    border-top: 1px solid var(--comp-border);
+  }
+
+  /* ── Section Dimming (scroll-triggered) ── */
+  /*
+    Sections start dimmed and become fully opaque when scrolled into view.
+    Use IntersectionObserver with threshold: 0.5 to toggle.
+  */
+  .section-container {
+    transition: opacity 0.5s ease;
+  }
+  .section-container.dimmed {
+    opacity: 0.3;
+  }
+
+  /* ── Bracket-Corner Card Frames ── */
+  .bracket-card {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: var(--comp-card);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.5s;
+  }
+  .bracket-card:hover {
+    background: var(--comp-card-hover);
+  }
+  .bracket-corner {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-color: white;
+    border-style: solid;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    opacity: 0.5;
+  }
+  .bracket-card:hover .bracket-corner,
+  .active-card .bracket-corner {
+    opacity: 1;
+    width: 24px;
+    height: 24px;
+  }
+  .bl-tl { top: 0; left: 0; border-width: 1px 0 0 1px; }
+  .bl-tr { top: 0; right: 0; border-width: 1px 1px 0 0; }
+  .bl-br { bottom: 0; right: 0; border-width: 0 1px 1px 0; }
+  .bl-bl { bottom: 0; left: 0; border-width: 0 0 1px 1px; }
+
+  /* ── Viewport Corner Marks ── */
+  .viewport-corners .corner {
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    border-color: white;
+    border-style: solid;
+    opacity: 0.3;
+  }
+  .corner-tl { top: 1.5rem; left: 1.5rem; border-width: 1px 0 0 1px; }
+  .corner-tr { top: 1.5rem; right: 1.5rem; border-width: 1px 1px 0 0; }
+  .corner-bl { bottom: 1.5rem; left: 1.5rem; border-width: 0 0 1px 1px; }
+  .corner-br { bottom: 1.5rem; right: 1.5rem; border-width: 0 1px 1px 0; }
+
+  /* ── CTA Button (outline, fills on hover) ── */
+  .btn-signal {
+    background: transparent;
+    border: 1px solid oklch(1 0 0 / 0.2);
+    color: white;
+    padding: 12px 24px;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+  }
+  .btn-signal:hover {
+    background: white;
+    color: black;
+    border-color: white;
+  }
+  /* Dot accents on hover */
+  .btn-signal::before,
+  .btn-signal::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: white;
+    transition: all 0.3s ease;
+    opacity: 0;
+  }
+  .btn-signal:hover::before { opacity: 1; top: -2px; left: -2px; }
+  .btn-signal:hover::after { opacity: 1; bottom: -2px; right: -2px; }
+
+  /* ── Text Link (underline style) ── */
+  .link-signal {
+    color: white;
+    border-bottom: 1px solid white;
+    padding-bottom: 0.25rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: opacity 0.15s;
+    cursor: pointer;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+  .link-signal:hover {
+    opacity: 0.7;
+  }
+
+  /* ── Stat List (bordered-left) ── */
+  .stat-list {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--gray-500);
+    border-left: 1px solid var(--gray-800);
+    padding-left: 1rem;
+  }
+  .stat-list li {
+    display: flex;
+    justify-content: space-between;
+    width: 12rem;
+    margin-bottom: 0.5rem;
+  }
+
+  /* ── Canvas Container (for waveforms, particles, nodes) ── */
+  .canvas-frame {
+    width: 100%;
+    height: 100%;
+    opacity: 0.6;
+  }
+
+  /* ── Card Metadata Label ── */
+  .card-meta {
+    position: absolute;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--gray-500);
+  }
+  .card-meta-bl { bottom: 1rem; left: 1rem; }
+  .card-meta-tr { top: 1rem; right: 1rem; text-align: right; }
+
+  /* ── Entrance Animation ── */
+  .fade-in-up {
+    animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  @keyframes fadeInUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Footer ── */
+  .footer-signal {
+    width: 100%;
+    padding: 8rem 1.5rem;
+    border-top: 1px solid var(--comp-border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .footer-cta {
+    font-size: clamp(3rem, 7vw, 4.5rem);
+    font-weight: 500;
+    color: white;
+    letter-spacing: -0.05em;
+    margin-bottom: 3rem;
+  }
+
+  /* ── Mobile Responsive ── */
+  @media (max-width: 768px) {
+    .hero-title {
+      font-size: clamp(2.5rem, 12vw, 4rem);
+    }
+    .signal-section .content-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - Near-black background (#050505) — NOT pure black, slightly lifted
+  - White is the ONLY accent — no colors at all, pure grayscale
+  - Multiple gray shades create hierarchy (500, 600, 700, 800)
+  - Bracket-corner frames on cards — L-shaped borders at four corners
+  - Section numbering: [ 00 ], [ 01 ], [ 02 ] with inline 1px divider lines
+  - Scroll-triggered dimming: out-of-view sections at 0.3 opacity
+  - Crosshair cursor on body — signals precision instrument
+  - mix-blend-mode: difference on fixed nav (stays visible over any section)
+  - Card backgrounds are barely-visible dark (#0a0a0a → #0e0e0e on hover)
+  - Canvas-based visualizations preferred over static imagery
+  - Heading weight: 500 (medium, not bold) with tight letter-spacing
+  - Body text: gray-400, 1.125rem, relaxed line-height
+  - All metadata/labels in Space Mono, 10-12px, uppercase, wide tracking
+  - Viewport corner marks (small L-shapes at page corners, 0.3 opacity)
+  - Buttons: outline style with 4px dot accents appearing on hover
+  - No border-radius anywhere — all sharp corners and right angles
+  - Minimal borders — only #1a1a1a section dividers and card bracket corners
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. Vary the layout, canvas types, and
+  content arrangement based on the app's content.
+
+  ```jsx
+  function App() {
+    const waveformRef = React.useRef(null);
+
+    // Scroll-triggered section dimming
+    React.useEffect(() => {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.remove('dimmed');
+          } else {
+            entry.target.classList.add('dimmed');
+          }
+        });
+      }, { threshold: 0.5 });
+
+      document.querySelectorAll('.section-container').forEach(sec => {
+        observer.observe(sec);
+      });
+
+      return () => observer.disconnect();
+    }, []);
+
+    // Canvas waveform visualization
+    React.useEffect(() => {
+      const canvas = waveformRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let offset = 0;
+
+      const resize = () => {
+        canvas.width = canvas.parentElement.offsetWidth;
+        canvas.height = canvas.parentElement.offsetHeight;
+      };
+      resize();
+      window.addEventListener('resize', resize);
+
+      const draw = () => {
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        const cy = canvas.height / 2;
+        for (let i = 0; i < canvas.width; i += 5) {
+          const amp = Math.sin(i * 0.02 + offset) * (Math.sin(offset * 0.5) * 40);
+          ctx.moveTo(i, cy - amp);
+          ctx.lineTo(i, cy + amp);
+        }
+        ctx.stroke();
+        offset += 0.05;
+        requestAnimationFrame(draw);
+      };
+      draw();
+
+      return () => window.removeEventListener('resize', resize);
+    }, []);
+
+    return (
+      <div style={{ background: "var(--comp-bg)", cursor: "crosshair" }}>
+        {/* Fixed nav with blend mode */}
+        <nav className="nav-signal">
+          <span className="mono" style={{ fontSize: "0.75rem", opacity: 0.6 }}>
+            [ APP V.1.0 ]
+          </span>
+          <button className="btn-signal">Action</button>
+        </nav>
+
+        {/* Hero — full viewport */}
+        <header className="viewport-corners" style={{
+          position: "relative",
+          width: "100%",
+          height: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-end",
+          padding: "3rem",
+          overflow: "hidden"
+        }}>
+          {/* Corner marks */}
+          <div className="corner corner-tl" />
+          <div className="corner corner-tr" />
+          <div className="corner corner-bl" />
+          <div className="corner corner-br" />
+
+          <div style={{ position: "relative", zIndex: 10 }}>
+            <div className="section-number">
+              <span>[ 00 ]</span>
+              <div className="divider" />
+              <span>SIGNAL DETECTED</span>
+            </div>
+            <h1 className="hero-title">
+              Main<br />
+              Headline.
+            </h1>
+          </div>
+        </header>
+
+        {/* Content sections */}
+        {sections.map((section, i) => (
+          <section key={i} className="signal-section">
+            <div className="section-container dimmed" style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "6rem",
+              maxWidth: "80rem",
+              alignItems: "center"
+            }}>
+              <div>
+                <div className="section-number">
+                  <span>[ {String(i + 1).padStart(2, '0')} ]</span>
+                  <div className="divider" />
+                  <span>{section.label}</span>
+                </div>
+                <h2 style={{ fontSize: "clamp(2rem, 5vw, 3rem)", fontWeight: 400, marginBottom: "1.5rem" }}>
+                  {section.title}
+                </h2>
+                <p style={{ color: "var(--gray-500)", fontSize: "1.125rem", lineHeight: 1.625 }}>
+                  {section.description}
+                </p>
+              </div>
+
+              <div className="bracket-card">
+                <div className="bracket-corner bl-tl" />
+                <div className="bracket-corner bl-tr" />
+                <div className="bracket-corner bl-br" />
+                <div className="bracket-corner bl-bl" />
+                <canvas ref={i === 0 ? waveformRef : null} className="canvas-frame" />
+                <div className="card-meta card-meta-bl">INPUT_SOURCE: STREAM_{i}</div>
+              </div>
+            </div>
+          </section>
+        ))}
+
+        {/* Footer CTA */}
+        <footer className="footer-signal">
+          <h2 className="footer-cta">Closing headline.</h2>
+          <button className="btn-signal">Primary Action</button>
+          <div className="mono" style={{ fontSize: 10, color: "var(--gray-700)", marginTop: "6rem" }}>
+            [ SYSTEM IDLE ]
+          </div>
+        </footer>
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like the interface of a precision instrument. The near-black
+  background absorbs everything, leaving only white text and bracket-corner
+  frames floating in the void. Sections fade in and out like radio stations
+  being tuned — dimmed at 0.3 opacity until you scroll them into focus. The
+  crosshair cursor is always present, reminding you this is a tool, not a toy.
+  Canvas visualizations pulse quietly — waveforms oscillate, nodes drift and
+  occasionally flare white, text scrambles between words. The aesthetic is
+  restrained to the point of tension: everything is grayscale, everything is
+  sharp-cornered, everything is labeled in tiny monospace. Yet the bracket-corner
+  frames expanding on hover and the blend-mode nav reveal a latent elegance.
+  Each signal app should feel like it was designed by someone who cares more
+  about the data than the decoration.
+
+ANIMATIONS:
+  Signal theme uses PRECISE, TECHNICAL animations:
+  - Fade-in-up: translateY(20px) → 0, opacity 0 → 1, cubic-bezier(0.16, 1, 0.3, 1)
+  - Section dimming: opacity 0.3 ↔ 1.0 via IntersectionObserver (threshold 0.5)
+  - Bracket corners: width/height 12px → 24px on hover (0.4s cubic-bezier)
+  - Canvas waveform: continuous oscillation (offset += 0.05 per frame)
+  - Node dots: random repositioning every 2-3s with occasional white flare
+  - Text scramble: cycle through words with random character resolution
+  - Button hover: bg transparent → white, dot accents fade in at corners
+  - Card hover: bg #0a0a0a → #0e0e0e (0.5s transition)
+  - All transitions use cubic-bezier(0.16, 1, 0.3, 1) — fast start, gentle land
+
+SVG ELEMENTS:
+  Signal theme AVOIDS static SVGs in favor of canvas and DOM elements:
+  - Canvas: waveform bars, particle clouds, oscillating lines
+  - DOM: floating dots (div elements with rounded-full, positioned absolutely)
+  - Bracket corners: pure CSS borders, no SVGs needed
+  - If SVGs are needed: extremely minimal — thin 1px strokes, white only
+  - No icons, illustrations, or decorative shapes
+  - Crosshair cursor via CSS, not SVG
+  - Everything is generated/animated, never static
