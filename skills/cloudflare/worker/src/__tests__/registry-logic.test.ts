@@ -3,6 +3,8 @@ import type { SubdomainRecord } from "../types";
 import {
   isSubdomainAvailable,
   createSubdomainRecord,
+  freezeSubdomain,
+  unfreezeSubdomain,
   addCollaborator,
   activateCollaborator,
   removeCollaborator,
@@ -20,6 +22,7 @@ function makeRecord(overrides: Partial<SubdomainRecord> = {}): SubdomainRecord {
     ownerId: "user_owner",
     claimedAt: "2026-02-08T00:00:00Z",
     collaborators: [],
+    status: 'active',
     ...overrides,
   };
 }
@@ -79,11 +82,46 @@ describe("isSubdomainAvailable (per-key model)", () => {
 });
 
 describe("createSubdomainRecord", () => {
-  it("creates a new record with empty collaborators", () => {
+  it("creates a new record with empty collaborators and active status", () => {
     const record = createSubdomainRecord("user_abc");
     expect(record.ownerId).toBe("user_abc");
     expect(record.collaborators).toEqual([]);
     expect(record.claimedAt).toBeTruthy();
+    expect(record.status).toBe('active');
+  });
+});
+
+describe("freezeSubdomain", () => {
+  it("sets status to frozen and adds frozenAt timestamp", () => {
+    const record = makeRecord();
+    const frozen = freezeSubdomain(record);
+    expect(frozen.status).toBe('frozen');
+    expect(frozen.frozenAt).toBeTruthy();
+    expect(frozen.ownerId).toBe(record.ownerId);
+    expect(frozen.collaborators).toEqual(record.collaborators);
+  });
+
+  it("does not mutate original record", () => {
+    const record = makeRecord();
+    freezeSubdomain(record);
+    expect(record.status).toBe('active');
+  });
+});
+
+describe("unfreezeSubdomain", () => {
+  it("sets status to active and removes frozenAt", () => {
+    const record = makeRecord({ status: 'frozen', frozenAt: '2026-02-10T00:00:00Z' });
+    const unfrozen = unfreezeSubdomain(record);
+    expect(unfrozen.status).toBe('active');
+    expect(unfrozen.frozenAt).toBeUndefined();
+    expect(unfrozen.ownerId).toBe(record.ownerId);
+  });
+
+  it("does not mutate original record", () => {
+    const record = makeRecord({ status: 'frozen', frozenAt: '2026-02-10T00:00:00Z' });
+    unfreezeSubdomain(record);
+    expect(record.status).toBe('frozen');
+    expect(record.frozenAt).toBe('2026-02-10T00:00:00Z');
   });
 });
 
@@ -252,7 +290,7 @@ describe("hasAccess", () => {
   it("owner has access with role owner", () => {
     const record = makeRecord({ ownerId: "user_owner" });
     const result = hasAccess(record, "user_owner");
-    expect(result).toEqual({ hasAccess: true, role: "owner" });
+    expect(result).toEqual({ hasAccess: true, role: "owner", frozen: false });
   });
 
   it("active collaborator has access with role collaborator", () => {
@@ -269,7 +307,7 @@ describe("hasAccess", () => {
       ],
     });
     const result = hasAccess(record, "user_bob");
-    expect(result).toEqual({ hasAccess: true, role: "collaborator" });
+    expect(result).toEqual({ hasAccess: true, role: "collaborator", frozen: false });
   });
 
   it("invited (not active) collaborator does NOT have access", () => {
@@ -285,13 +323,19 @@ describe("hasAccess", () => {
       ],
     });
     const result = hasAccess(record, "user_bob");
-    expect(result).toEqual({ hasAccess: false, role: "none" });
+    expect(result).toEqual({ hasAccess: false, role: "none", frozen: false });
   });
 
   it("non-member has no access", () => {
     const record = makeRecord();
     const result = hasAccess(record, "user_stranger");
-    expect(result).toEqual({ hasAccess: false, role: "none" });
+    expect(result).toEqual({ hasAccess: false, role: "none", frozen: false });
+  });
+
+  it("frozen record reports frozen=true", () => {
+    const record = makeRecord({ status: 'frozen', frozenAt: '2026-02-10T00:00:00Z' });
+    const result = hasAccess(record, "user_owner");
+    expect(result).toEqual({ hasAccess: true, role: "owner", frozen: true });
   });
 });
 

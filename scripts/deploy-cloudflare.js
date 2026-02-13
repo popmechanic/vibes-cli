@@ -325,6 +325,18 @@ async function main() {
     console.log("\n⚠️  No webhook secret provided. Subscription billing won't work without it.");
   }
 
+  // Set CLERK_SECRET_KEY for JWT custom claims (optional optimization)
+  let clerkSecretKey = envVars.CLERK_SECRET_KEY || null;
+  if (clerkSecretKey) {
+    console.log("\nSetting CLERK_SECRET_KEY secret...");
+    execSync(`npx wrangler secret put CLERK_SECRET_KEY --name ${name}`, {
+      input: clerkSecretKey,
+      cwd: WORKER_DIR,
+      stdio: ['pipe', 'inherit', 'inherit'],
+    });
+    console.log("  Clerk secret key configured (JWT custom claims enabled)");
+  }
+
   // Seed config keys in KV (use --namespace-id since --binding only works in dev)
   console.log("\nSeeding KV config...");
   const reservedList = reserved.length ? JSON.stringify(reserved) : '[]';
