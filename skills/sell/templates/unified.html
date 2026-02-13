@@ -2391,8 +2391,16 @@ if (typeof window !== 'undefined') {
                 }
                 var ledgers = ledgerCacheRef.current;
                 var appHost = window.location.hostname;
+                var qpSub = new URLSearchParams(window.location.search).get('subdomain');
                 var matchedLedger = ledgers.find(function(l) {
-                  return l.name && l.name.includes(appHost);
+                  if (!l.name) return false;
+                  if (l.name.includes(appHost)) return true;
+                  // Workers.dev fallback: match by worker-name + subdomain
+                  if (qpSub) {
+                    var workerName = appHost.split('.')[0];
+                    if (l.name.includes(workerName + '-' + qpSub)) return true;
+                  }
+                  return false;
                 }) || ledgers[0];
 
                 if (!matchedLedger) {
@@ -2416,12 +2424,15 @@ if (typeof window !== 'undefined') {
                 var inviteData = rInvite.Ok();
                 console.debug('[vibes-sharing] inviteUser response:', inviteData);
 
+                // Extract invite ticket ID for auto-redemption
+                var inviteId = inviteData.inviteId || (inviteData.ticket && inviteData.ticket.id) || '';
+
                 // Construct invite URL pointing to this subdomain, including ledger ID for sync
-                var qpSub = new URLSearchParams(window.location.search).get('subdomain');
                 var ledgerId = matchedLedger.ledgerId;
+                var inviteParam = inviteId ? '&invite=' + encodeURIComponent(inviteId) : '';
                 var inviteUrl = qpSub
-                  ? window.location.origin + '?subdomain=' + encodeURIComponent(qpSub) + '&ledger=' + encodeURIComponent(ledgerId)
-                  : window.location.origin + '?ledger=' + encodeURIComponent(ledgerId);
+                  ? window.location.origin + '?subdomain=' + encodeURIComponent(qpSub) + '&ledger=' + encodeURIComponent(ledgerId) + inviteParam
+                  : window.location.origin + '?ledger=' + encodeURIComponent(ledgerId) + inviteParam;
 
                 // Dual-write to KV registry (awaited, non-fatal)
                 try {
@@ -2436,7 +2447,7 @@ if (typeof window !== 'undefined') {
                       var kvRes = await fetch(kvRegistryUrl.replace(/\/$/, '') + '/invite', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                        body: JSON.stringify({ subdomain: kvSubdomain, email: email, right: detail.right || 'write' })
+                        body: JSON.stringify({ subdomain: kvSubdomain, email: email, right: detail.right || 'write', ledgerId: matchedLedger.ledgerId })
                       });
                       if (!kvRes.ok) {
                         var kvBody = await kvRes.text();
@@ -2945,6 +2956,14 @@ if (typeof window !== 'undefined') {
         const { has } = window.useAuth ? window.useAuth() : {};
         const [state, setState] = useState({ phase: 'init', role: null, frozen: false, error: null });
         const resolvedRef = useRef(false);
+        const [clerkTimedOut, setClerkTimedOut] = useState(false);
+
+        // Clerk initialization timeout — if isLoaded stays false for 15s, offer reload
+        useEffect(() => {
+          if (isLoaded) return;
+          const timer = setTimeout(() => setClerkTimedOut(true), 15000);
+          return () => clearTimeout(timer);
+        }, [isLoaded]);
 
         // Hook must be called unconditionally (Rules of Hooks)
         window.useVibesPanelEvents('Sell');
@@ -2960,6 +2979,7 @@ if (typeof window !== 'undefined') {
         }, [user?.id]);
 
         useEffect(() => {
+          console.log('[vibes-timing] gate useEffect: isLoaded=' + isLoaded + ', user=' + !!user?.id);
           if (!isLoaded || resolvedRef.current) return;
 
           // Read shared ledger context from URL/localStorage
@@ -2975,7 +2995,9 @@ if (typeof window !== 'undefined') {
 
           // Not signed in — still need to know if subdomain is claimed
           if (!user?.id) {
-            fetch(registryApiUrl(`/resolve/${subdomain}`))
+            const anonCtrl = new AbortController();
+            const anonTimeout = setTimeout(() => anonCtrl.abort(), 10000);
+            fetch(registryApiUrl(`/resolve/${subdomain}`), { signal: anonCtrl.signal })
               .then(res => res.json())
               .then(data => {
                 resolvedRef.current = true;
@@ -2984,7 +3006,8 @@ if (typeof window !== 'undefined') {
               .catch(() => {
                 resolvedRef.current = true;
                 setState({ phase: 'error', role: null, frozen: false, error: 'Failed to resolve access' });
-              });
+              })
+              .finally(() => clearTimeout(anonTimeout));
             return;
           }
 
@@ -3008,29 +3031,53 @@ if (typeof window !== 'undefined') {
           let resolveUrl = registryApiUrl(`/resolve/${subdomain}?userId=${user.id}`);
           if (email) resolveUrl += `&email=${encodeURIComponent(email)}`;
 
+          const resolveCtrl = new AbortController();
+          const resolveTimeout = setTimeout(() => resolveCtrl.abort(), 10000);
+
           const headers = {};
-          window.Clerk?.session?.getToken().then(token => {
+          Promise.race([
+            window.Clerk?.session?.getToken(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('getToken timeout')), 5000))
+          ]).then(token => {
             if (token) headers['Authorization'] = `Bearer ${token}`;
-            return fetch(resolveUrl, { headers });
-          }).catch(() => fetch(resolveUrl)).then(res => res.json())
+            return fetch(resolveUrl, { headers, signal: resolveCtrl.signal });
+          }).catch(() => fetch(resolveUrl, { signal: resolveCtrl.signal })).then(res => res.json())
           .then(async (data) => {
             let role = data.role;
             const frozen = data.frozen || false;
 
+            // Bridge ledgerId from /resolve for collaborators (enables shared ledger sync without invite link)
+            if (data.ledgerId) {
+              window.__VIBES_SHARED_LEDGER__ = data.ledgerId;
+              try { localStorage.setItem(storageKey, data.ledgerId); } catch(e) {}
+            }
+
             // Step 3: Handle 'invited' — auto-join
             if (role === 'invited') {
               try {
-                const token = await window.Clerk?.session?.getToken();
+                const token = await Promise.race([
+                  window.Clerk?.session?.getToken(),
+                  new Promise((_, reject) => setTimeout(() => reject(new Error('getToken timeout')), 5000))
+                ]);
                 if (token) {
+                  const joinCtrl = new AbortController();
+                  const joinTimeout = setTimeout(() => joinCtrl.abort(), 10000);
                   const joinRes = await fetch(registryApiUrl('/join'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ subdomain, email })
+                    body: JSON.stringify({ subdomain, email }),
+                    signal: joinCtrl.signal
                   });
+                  clearTimeout(joinTimeout);
                   if (joinRes.ok) {
                     role = 'collaborator';
                     if (dashApi) {
-                      try { await dashApi.redeemInvite({}); } catch(e) { /* non-fatal */ }
+                      try {
+                        await Promise.race([
+                          dashApi.redeemInvite({}),
+                          new Promise((_, r) => setTimeout(() => r(new Error('redeemInvite timeout')), 5000))
+                        ]);
+                      } catch(e) { /* non-fatal */ }
                     }
                   }
                 }
@@ -3041,7 +3088,12 @@ if (typeof window !== 'undefined') {
 
             // Retry Connect invite redemption for existing collaborators
             if (role === 'collaborator' && dashApi) {
-              try { await dashApi.redeemInvite({}); } catch(e) { /* non-fatal */ }
+              try {
+                await Promise.race([
+                  dashApi.redeemInvite({}),
+                  new Promise((_, r) => setTimeout(() => r(new Error('redeemInvite timeout')), 5000))
+                ]);
+              } catch(e) { /* non-fatal */ }
             }
 
             resolvedRef.current = true;
@@ -3050,7 +3102,8 @@ if (typeof window !== 'undefined') {
           .catch((err) => {
             resolvedRef.current = true;
             setState({ phase: 'error', role: null, frozen: false, error: err.message });
-          });
+          })
+          .finally(() => clearTimeout(resolveTimeout));
         }, [isLoaded, user?.id, subdomain, dashApi]);
 
         // --- Render based on state ---
@@ -3060,8 +3113,18 @@ if (typeof window !== 'undefined') {
           return <LoadingError error="Clerk components not loaded. Please refresh the page." />;
         }
 
-        // Loading state with delayed fade-in
+        // Loading state — show reload prompt if Clerk init takes >15s
         if (state.phase === 'init') {
+          if (clerkTimedOut && !isLoaded) {
+            return (
+              <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
+                <p style={{ color: '#94a3b8' }}>Taking longer than expected...</p>
+                <button onClick={() => window.location.reload()} style={{ padding: '0.5rem 1rem', cursor: 'pointer', borderRadius: '4px', border: '1px solid #ccc' }}>
+                  Reload
+                </button>
+              </div>
+            );
+          }
           return (
             <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, animation: 'vibesDelayedFadeIn 0.3s ease 0.2s forwards' }}>
               <div style={{ color: '#94a3b8' }}>Loading...</div>
@@ -3949,10 +4012,13 @@ if (typeof window !== 'undefined') {
 
       // === Initialize App ===
       async function initApp() {
+        const t0 = performance.now();
         try {
           const clerkModule = await import("@fireproof/clerk");
+          console.log('[vibes-timing] bundle loaded:', Math.round(performance.now() - t0) + 'ms');
           // SignUpButton is not exported by fireproof-clerk bundle, import from @clerk/clerk-react directly
           const clerkReact = await import("@clerk/clerk-react");
+          console.log('[vibes-timing] clerk-react loaded:', Math.round(performance.now() - t0) + 'ms');
           const { SignUpButton } = clerkReact;
 
           window.ClerkFireproofProvider = clerkModule.ClerkFireproofProvider;
@@ -3992,6 +4058,7 @@ if (typeof window !== 'undefined') {
 
         const rootElement = document.getElementById("container");
         ReactDOMClient.createRoot(rootElement).render(<AppWrapper />);
+        console.log('[vibes-timing] React rendered:', Math.round(performance.now() - t0) + 'ms');
       }
 
       initApp();

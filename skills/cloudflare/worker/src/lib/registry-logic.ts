@@ -104,7 +104,8 @@ export function unfreezeSubdomain(record: SubdomainRecord): SubdomainRecord {
 export function addCollaborator(
   record: SubdomainRecord,
   email: string,
-  right: "read" | "write" = "write"
+  right: "read" | "write" = "write",
+  ledgerId?: string
 ): SubdomainRecord {
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -121,6 +122,7 @@ export function addCollaborator(
     status: "invited",
     right,
     invitedAt: new Date().toISOString(),
+    ...(ledgerId ? { ledgerId } : {}),
   };
 
   return {
