@@ -14,6 +14,9 @@ import {
   activateCollaborator,
   hasAccess,
   hasAccessByEmail,
+  parsePlanQuotas,
+  getQuotaForPlan,
+  isQuotaExceeded,
 } from "./lib/registry-logic";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -153,18 +156,58 @@ app.post("/claim", async (c) => {
     }
   }
 
+  // Read user record once — reused for quota check and user index update
+  let userRecord = await kv.getUser(auth.userId);
+
+  // Quota enforcement — check per-plan subdomain limits
+  if (!isAdmin) {
+    const quotas = parsePlanQuotas(c.env.PLAN_QUOTAS);
+    const quota = getQuotaForPlan(auth.plan, quotas);
+    if (quota !== null) {
+      let ownedCount: number;
+      if (userRecord?.ownedSubdomains) {
+        ownedCount = userRecord.ownedSubdomains.length;
+      } else if (userRecord?.subdomains) {
+        // Lazy migration: count owned subdomains from the full list
+        const owned: string[] = [];
+        for (const sub of userRecord.subdomains) {
+          const subRecord = await kv.getSubdomain(sub);
+          if (subRecord && subRecord.ownerId === auth.userId) {
+            owned.push(sub);
+          }
+        }
+        ownedCount = owned.length;
+        // Write migrated ownedSubdomains back and update local reference
+        userRecord = { ...userRecord, ownedSubdomains: owned };
+        await kv.putUser(auth.userId, userRecord);
+      } else {
+        ownedCount = 0;
+      }
+      if (isQuotaExceeded(ownedCount, quota)) {
+        return c.json(
+          { error: "Quota exceeded", reason: "quota_exceeded", current: ownedCount, limit: quota },
+          403
+        );
+      }
+    }
+  }
+
   // Create the claim
   const newRecord = createSubdomainRecord(auth.userId);
   await kv.putSubdomain(normalized, newRecord);
 
   // Update user index
-  const userRecord = await kv.getUser(auth.userId);
   const subdomains = userRecord?.subdomains || [];
   if (!subdomains.includes(normalized)) {
     subdomains.push(normalized);
   }
+  const ownedSubdomains = userRecord?.ownedSubdomains || [];
+  if (!ownedSubdomains.includes(normalized)) {
+    ownedSubdomains.push(normalized);
+  }
   await kv.putUser(auth.userId, {
     subdomains,
+    ownedSubdomains,
     quota: userRecord?.quota ?? 3,
   });
 

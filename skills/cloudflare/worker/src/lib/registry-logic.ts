@@ -5,6 +5,26 @@
 
 import type { SubdomainRecord, Collaborator } from "../types";
 
+// === Quota enforcement ===
+
+export function parsePlanQuotas(raw?: string): Record<string, number> {
+  if (!raw) return {};
+  try { return JSON.parse(raw); }
+  catch { return {}; }
+}
+
+export function getQuotaForPlan(plan: string | undefined, quotas: Record<string, number>): number | null {
+  if (!plan) return null;
+  const slug = plan.split(':')[1]; // "u:starter" → "starter"
+  if (!slug || !(slug in quotas)) return null; // unknown plan = unlimited (backward compat)
+  return quotas[slug];
+}
+
+export function isQuotaExceeded(ownedCount: number, quota: number | null): boolean {
+  if (quota === null) return false; // null = unlimited
+  return ownedCount >= quota;
+}
+
 // === Legacy types (kept for backward compat with /registry.json) ===
 
 export interface Claim {

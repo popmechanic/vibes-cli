@@ -55,6 +55,7 @@ const assembleSellSchema = [
   { name: 'adminIds', flag: '--admin-ids', type: 'string', description: 'JSON array of Clerk user IDs with admin access' },
   { name: 'reserved', flag: '--reserved', type: 'string', description: 'Comma-separated reserved subdomain names' },
   { name: 'registryUrl', flag: '--registry-url', type: 'string', description: 'Cloudflare Worker URL for registry API' },
+  { name: 'planQuotas', flag: '--plan-quotas', type: 'string', description: 'JSON map of plan slug to max subdomains (e.g., \'{"starter":1,"growth":3}\')' },
 ];
 
 const assembleSellMeta = {
@@ -210,7 +211,8 @@ const replacements = {
   '__BILLING_MODE__': options.billingMode || 'off',
   '__APP_TAGLINE__': options.tagline || 'SHIP FASTER.<br>LOOK BETTER.',
   '__APP_SUBTITLE__': options.subtitle || 'The first design-native framework for the next generation of SaaS. Zero config, infinite style.',
-  '__REGISTRY_URL__': options.registryUrl || envVars.VITE_REGISTRY_URL || ''
+  '__REGISTRY_URL__': options.registryUrl || envVars.VITE_REGISTRY_URL || '',
+  '__PLAN_QUOTAS__': options.planQuotas || '{}'
 };
 
 // Handle JSON values - features
