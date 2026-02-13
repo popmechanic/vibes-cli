@@ -82,6 +82,26 @@ describe("GET /resolve/:subdomain", () => {
     expect(data).toEqual({ role: "collaborator", frozen: false });
   });
 
+  it("returns ledgerId for collaborator with stored ledgerId", async () => {
+    seedSubdomain("mysite", {
+      ownerId: "user_1",
+      claimedAt: "2025-01-01",
+      collaborators: [{
+        email: "bob@x.com",
+        userId: "user_2",
+        status: "active",
+        right: "write",
+        invitedAt: "2025-01-01",
+        joinedAt: "2025-01-02",
+        ledgerId: "ledger_abc123",
+      }],
+    });
+    const res = await app.request("/resolve/mysite?userId=user_2", {}, makeMockEnv());
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toEqual({ role: "collaborator", frozen: false, ledgerId: "ledger_abc123" });
+  });
+
   it("returns none for unknown userId", async () => {
     seedSubdomain("mysite", {
       ownerId: "user_1",

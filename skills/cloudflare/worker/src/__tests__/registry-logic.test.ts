@@ -171,6 +171,18 @@ describe("addCollaborator", () => {
     expect(record.collaborators).toHaveLength(0);
     expect(updated.collaborators).toHaveLength(1);
   });
+
+  it("stores ledgerId on the collaborator when provided", () => {
+    const record = makeRecord();
+    const updated = addCollaborator(record, "bob@example.com", "write", "ledger_xyz");
+    expect(updated.collaborators[0].ledgerId).toBe("ledger_xyz");
+  });
+
+  it("omits ledgerId when not provided", () => {
+    const record = makeRecord();
+    const updated = addCollaborator(record, "bob@example.com", "write");
+    expect(updated.collaborators[0].ledgerId).toBeUndefined();
+  });
 });
 
 describe("activateCollaborator", () => {
