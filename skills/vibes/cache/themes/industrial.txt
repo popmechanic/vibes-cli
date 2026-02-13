@@ -1,0 +1,528 @@
+THEME: industrial
+NAME: Industrial HUD
+MOOD: Technical, high-contrast, precision, modernist
+
+DESCRIPTION:
+A bold showcase layout inspired by industrial design systems and technical
+documentation. Features giant display typography in a hero section, a floating
+visual element with parallax hover, a sidebar+list content deck, and HUD-style
+metadata. Uses a concrete/acid-green palette with monospace accents. Feels
+like a high-end product spec sheet or modernist cookbook.
+
+BEST FOR:
+  - Product showcases, feature pages, landing pages
+  - Recipe apps, food/drink catalogs
+  - Spec sheets, technical documentation viewers
+  - Single-item detail pages with supporting data
+  - Menu/ordering apps with featured items
+  - Any app with a clear "hero item" + supporting list
+
+NOT FOR:
+  - Multi-item collections without a clear hero (use archive)
+  - Complex forms with many fields (sidebar has limited space)
+  - Chat/messaging interfaces
+  - Pure CRUD data entry (use default)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Replace interactive-list rows with a proper table.
+    Keep the sidebar for context/metadata. Use the `.table` component class
+    inside the list area.
+  - If app has MULTIPLE ITEMS: Use the hero section for a "featured" item
+    and the interactive-list for the rest. Rotate the hero on click/timer.
+  - If app has FORMS: Place the form in the sidebar area (deck-sidebar).
+    Keep it compact with stacked inputs. The list shows results/history.
+  - If app has NO IMAGES: Replace dish-visual with a large SVG illustration
+    or animated icon. The circular container still works for abstract visuals.
+  - If app has CHARTS: Place a chart SVG inside the hero section. Use the
+    sidebar for legend/controls and the list for data rows.
+
+COLOR TOKENS:
+  The industrial palette is light with high contrast. Concrete gray
+  background, acid green accent, pure black text.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.88 0.01 90);           /* concrete gray */
+    --comp-text: oklch(0.05 0.01 0);           /* near-black */
+    --comp-border: oklch(0.05 0.01 0);         /* pure black borders */
+    --comp-accent: oklch(0.90 0.20 110);       /* acid green/yellow */
+    --comp-accent-text: oklch(0.05 0.01 0);    /* black text on accent */
+    --comp-muted: oklch(0.40 0.01 0);          /* gray metadata */
+    --color-background: oklch(0.85 0.01 90);   /* concrete page */
+    --grid-color: oklch(0.05 0.01 0 / 0.05);  /* subtle grid */
+  }
+  ```
+
+  For DARK industrial variant:
+  ```css
+  :root {
+    --comp-bg: oklch(0.10 0.01 0);
+    --comp-text: oklch(0.85 0.01 90);
+    --comp-border: oklch(0.85 0.01 90);
+    --comp-accent: oklch(0.90 0.20 110);
+    --comp-accent-text: oklch(0.05 0.01 0);
+    --comp-muted: oklch(0.50 0.01 0);
+    --color-background: oklch(0.06 0.01 0);
+  }
+  ```
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the industrial aesthetic.
+  Study the patterns (borders, typography, spacing) to understand the
+  mood, then design your own version for each app.
+
+  ```css
+  /* ── Industrial Layout ── */
+  .layout-wrapper {
+    display: grid;
+    grid-template-rows: auto 1fr auto auto;
+    min-height: 100vh;
+    max-width: 1400px;
+    margin: 0 auto;
+    border-left: 1px solid var(--comp-border);
+    border-right: 1px solid var(--comp-border);
+    background: var(--comp-bg);
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* ── HUD Header ── */
+  .hud-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    border-bottom: 1px solid var(--comp-border);
+    height: 56px;
+    align-items: center;
+    padding: 0 1.5rem;
+  }
+  .hud-crosshair {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 500;
+    font-size: 0.85rem;
+    letter-spacing: -0.02em;
+  }
+  .hud-target {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--comp-border);
+    border-radius: 50%;
+    position: relative;
+    display: grid;
+    place-items: center;
+  }
+  .hud-target::before,
+  .hud-target::after {
+    content: '';
+    position: absolute;
+    background: var(--comp-border);
+  }
+  .hud-target::before { width: 100%; height: 1px; }
+  .hud-target::after { height: 100%; width: 1px; }
+  .hud-code {
+    font-weight: 900;
+    font-size: 1.5rem;
+    text-align: right;
+    letter-spacing: -0.04em;
+  }
+  .v-separator {
+    width: 1px;
+    height: 100%;
+    background: var(--comp-border);
+    margin: 0 1.5rem;
+  }
+
+  /* ── Hero Section ── */
+  .hero-section {
+    position: relative;
+    height: 65vh;
+    min-height: 400px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--comp-border);
+  }
+  .giant-type {
+    font-weight: 900;
+    font-size: clamp(5rem, 16vw, 18rem);
+    line-height: 0.85;
+    text-transform: uppercase;
+    letter-spacing: -0.06em;
+    white-space: nowrap;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    text-align: center;
+    z-index: 1;
+    pointer-events: none;
+    color: var(--comp-text);
+    opacity: 0.9;
+  }
+
+  /* ── Floating Visual (circle artifact) ── */
+  .dish-visual {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    overflow: hidden;
+    z-index: 2;
+    border: 1px solid oklch(0.90 0 0 / 0.3);
+    box-shadow:
+      inset 0 0 20px oklch(1 0 0 / 0.3),
+      8px 16px 40px oklch(0 0 0 / 0.15);
+    animation: heroFloat 6s ease-in-out infinite;
+    transition: transform 0.1s ease;
+  }
+  .dish-visual img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(100%) contrast(120%);
+    mix-blend-mode: multiply;
+  }
+  .gloss-highlight {
+    position: absolute;
+    top: 10%;
+    right: 15%;
+    width: 60px;
+    height: 30px;
+    background: white;
+    border-radius: 50%;
+    filter: blur(8px);
+    transform: rotate(-45deg);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  @keyframes heroFloat {
+    0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+    50% { transform: translate(-50%, -50%) translateY(-12px); }
+  }
+
+  /* ── Hero Metadata ── */
+  .meta-coords {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 1.5rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    line-height: 1.2;
+    z-index: 4;
+    color: var(--comp-text);
+  }
+  .meta-label {
+    font-size: 0.6rem;
+    font-weight: 500;
+    opacity: 0.5;
+    margin-bottom: 4px;
+    display: block;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .recipe-meta-grid {
+    position: absolute;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    text-align: right;
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1.4;
+    z-index: 4;
+    color: var(--comp-text);
+  }
+
+  /* ── Content Deck ── */
+  .content-deck {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 35vh;
+    background: var(--comp-accent);
+    color: var(--comp-accent-text);
+  }
+  @media (max-width: 768px) {
+    .content-deck {
+      grid-template-columns: 1fr;
+    }
+    .deck-sidebar {
+      border-right: none;
+      border-bottom: 1px solid var(--comp-border);
+    }
+    .giant-type {
+      font-size: 16vw;
+      white-space: normal;
+      line-height: 0.8;
+    }
+    .dish-visual { width: 200px; height: 200px; }
+    .list-row { grid-template-columns: 30px 1fr; }
+    .row-meta { display: none; }
+  }
+
+  .deck-sidebar {
+    padding: 2rem;
+    border-right: 1px solid var(--comp-border);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+  .recipe-title-block h2 {
+    font-size: 1.25rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    letter-spacing: -0.02em;
+  }
+  .recipe-title-block h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .geo-data {
+    font-size: 0.6rem;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    margin-top: 1.5rem;
+    line-height: 1.5;
+    opacity: 0.6;
+    text-transform: uppercase;
+  }
+
+  /* ── Interactive List ── */
+  .interactive-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .list-row {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid var(--comp-border);
+    align-items: baseline;
+    cursor: pointer;
+    transition: background 0.1s linear, padding-left 0.15s ease;
+    gap: 0.5rem;
+  }
+  .list-row:hover {
+    background: oklch(1 0 0 / 0.3);
+    padding-left: 2.5rem;
+  }
+  .list-row:last-child { border-bottom: none; }
+  .row-idx {
+    font-size: 0.7rem;
+    font-weight: 500;
+    opacity: 0.5;
+    letter-spacing: 0.05em;
+  }
+  .row-content {
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .row-meta {
+    font-size: 0.65rem;
+    font-weight: 500;
+    text-align: right;
+    letter-spacing: 0.05em;
+    opacity: 0.6;
+    white-space: nowrap;
+  }
+
+  /* ── Brand Strip (footer) ── */
+  .brand-strip {
+    border-top: 1px solid var(--comp-border);
+    padding: 1.25rem 2rem;
+    background: var(--comp-accent);
+    display: flex;
+    gap: 3rem;
+    align-items: center;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+  .brand-logo {
+    font-weight: 700;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-transform: uppercase;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── Floating Action Button ── */
+  .fab-primary {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 56px;
+    height: 56px;
+    background: var(--comp-text);
+    color: var(--comp-accent);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    z-index: 50;
+    box-shadow: 0 8px 20px oklch(0 0 0 / 0.2);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: none;
+  }
+  .fab-primary:hover {
+    transform: scale(1.1) rotate(90deg);
+  }
+
+  /* ── Sticker Badge (optional hero accent) ── */
+  .sticker-badge {
+    position: absolute;
+    width: 52px;
+    height: 52px;
+    background: var(--comp-accent);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    z-index: 5;
+    font-size: 1.2rem;
+    color: var(--comp-accent-text);
+    box-shadow: 0 4px 12px oklch(0 0 0 / 0.1);
+    transform: rotate(12deg);
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - Zero border-radius — all sharp corners, no rounding
+  - Thick borders (2px+) for structure and emphasis
+  - Monospace font for metadata, labels, and technical text
+  - Uppercase + tight letter-spacing on headings
+  - Font weight extremes: 900 for titles, 500 for body
+  - Precise, mechanical animations (linear easing, snappy timing)
+  - Padding-left shift on hover (not lift or scale)
+  - HUD-style metadata in brackets or with labels
+  - Geometric SVG decorations (crosshairs, grids, targets)
+  - High contrast: near-black on acid green, or inverse
+  - Everything feels engineered and intentional
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. Vary the layout, data display, and
+  HUD elements based on the app's content.
+
+  ```jsx
+  function App() {
+    // Mouse parallax on hero visual
+    const handleHeroMouse = useCallback((e) => {
+      const visual = document.getElementById("heroVisual");
+      if (!visual) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width - 0.5) * 24;
+      const y = ((e.clientY - rect.top) / rect.height - 0.5) * 24;
+      visual.style.transform =
+        `translate(calc(-50% + ${x}px), calc(-50% + ${y}px)) rotateX(${-y * 0.5}deg) rotateY(${x * 0.5}deg)`;
+    }, []);
+
+    return (
+      <div className="layout-wrapper">
+        {/* HUD Header */}
+        <header className="hud-header">
+          <div className="hud-crosshair">
+            <div className="hud-target" />
+            <span>{/* APP CATEGORY */}</span>
+          </div>
+          <div className="v-separator" />
+          <div className="hud-code">{/* CODE/ID */}</div>
+        </header>
+
+        {/* Hero Section */}
+        <section className="hero-section" onMouseMove={handleHeroMouse}>
+          <div className="giant-type">
+            {/* BIG HERO TEXT */}
+          </div>
+          <div className="dish-visual" id="heroVisual">
+            {/* Image or SVG visual */}
+            <div className="gloss-highlight" />
+          </div>
+          <div className="meta-coords">
+            <span className="meta-label">{/* LABEL */}</span>
+            {/* VALUE */}
+          </div>
+          <div className="recipe-meta-grid">
+            {/* Right-side metadata */}
+          </div>
+        </section>
+
+        {/* Content Deck */}
+        <main className="content-deck">
+          <aside className="deck-sidebar">
+            <div className="recipe-title-block">
+              <h2>{/* Subtitle */}</h2>
+              <h1>{/* Main Title */}</h1>
+              <div style={{ width: 60, height: 2, background: "currentColor", margin: "0.75rem 0" }} />
+              <p style={{ fontSize: "0.85rem", fontWeight: 500, lineHeight: 1.4 }}>
+                {/* Description */}
+              </p>
+            </div>
+            <div className="geo-data">
+              {/* Location or extra metadata */}
+            </div>
+          </aside>
+
+          <div className="interactive-list">
+            {items.map((item, i) => (
+              <div key={item._id} className="list-row">
+                <span className="row-idx">{String(i + 1).padStart(2, "0")}</span>
+                <span className="row-content">{item.name}</span>
+                <span className="row-meta">{item.detail}</span>
+              </div>
+            ))}
+          </div>
+        </main>
+
+        {/* Brand Strip */}
+        <footer className="brand-strip">
+          {/* Footer items with icons */}
+        </footer>
+
+        {/* FAB */}
+        <button className="fab-primary" onClick={handleMainAction}>
+          {/* Icon SVG */}
+        </button>
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like a technical spec sheet or a control panel.
+  Precision over decoration. The visual interest comes from typography
+  scale contrast (giant hero text vs tiny labels), geometric shapes,
+  and the tension between black and the accent color. Each industrial
+  app should feel like it was designed by an engineer with taste.
+
+ANIMATIONS:
+  Industrial theme uses PRECISE, MECHANICAL animations:
+  - Hero visual float: `translateY` 6s infinite (subtle bob)
+  - Mouse parallax on hero: `rotateX/Y` via JS (responsive, technical feel)
+  - List row hover: `padding-left` shift + background fade (snappy 0.1s)
+  - FAB hover: `scale(1.1) rotate(90deg)` with spring easing
+  - Stagger list entrance: `fadeUp` with tight delays (30ms apart)
+  - Giant type: optional slow `letter-spacing` breathe animation
+
+SVG ELEMENTS:
+  Industrial theme uses GEOMETRIC, TECHNICAL SVGs:
+  - Crosshair/target HUD icons (circle + lines)
+  - Simple line icons for brand strip
+  - Optional: grid overlay lines in hero section
+  - Do NOT use organic shapes, waves, or illustrated scenes
+  - Keep all strokes at consistent weight (2px)
+  - Use currentColor for monochrome flexibility

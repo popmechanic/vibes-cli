@@ -13,68 +13,8 @@
     <script src="https://unpkg.com/@babel/standalone@7.26.0/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
-      :root {
-        /* Core colors */
-        --vibes-black: #0f172a;
-        --vibes-white: #ffffff;
-        --vibes-near-black: #1a1a1a;
-        --vibes-cream: #fffff0;
+      /* === DESIGN_TOKENS_PLACEHOLDER === */
 
-        /* Gray scale */
-        --vibes-gray-lightest: #f1f5f9;
-        --vibes-gray-ultralight: #f8fafc;
-        --vibes-gray-mid: #555555;
-
-        /* Menu colors */
-        --vibes-menu-bg: #CCCDC8;
-        --vibes-menu-grid: rgba(255, 255, 255, 0.5);
-
-        /* Button variant colors */
-        --vibes-variant-blue: #009ACE;
-        --vibes-variant-red: #DA291C;
-        --vibes-variant-yellow: #eab308;
-        --vibes-variant-gray: #6b7280;
-
-        /* Button styling */
-        --vibes-button-bg: var(--vibes-cream);
-        --vibes-button-text: var(--vibes-near-black);
-        --vibes-button-border: var(--vibes-near-black);
-        --vibes-button-icon-bg: #fff;
-        --vibes-button-icon-fill: #2a2a2a;
-
-        /* Dark-aware button variants (for components using ignoreDarkMode=false) */
-        --vibes-button-bg-dark-aware: var(--vibes-cream);
-        --vibes-button-text-dark-aware: var(--vibes-near-black);
-        --vibes-button-border-dark-aware: var(--vibes-near-black);
-        --vibes-button-icon-bg-dark-aware: var(--vibes-white);
-
-        /* Card colors */
-        --vibes-card-bg: var(--vibes-cream);
-        --vibes-card-text: var(--vibes-near-black);
-        --vibes-card-border: var(--vibes-near-black);
-
-        /* Status colors */
-        --vibes-green: #22c55e;
-        --vibes-red-accent: #ef4444;
-        --vibes-yellow-accent: #eab308;
-        --vibes-shadow-color: rgba(0, 0, 0, 0.2);
-
-        /* Text colors */
-        --vibes-text-primary: var(--vibes-near-black);
-
-        /* Landing page theming (customize these for brand) */
-        --landing-accent: #0f172a;
-        --landing-accent-hover: #1e293b;
-
-        /* Admin dashboard theming */
-        --admin-bg: oklch(0.97 0.01 250);
-        --admin-card-bg: white;
-        --admin-text: #0f172a;
-        --admin-text-muted: #64748b;
-        --admin-accent: oklch(0.6 0.2 145);
-        --admin-border: #0f172a;
-        --admin-shadow: #0f172a;
-      }
       @media (prefers-color-scheme: dark) {
         :root {
           --vibes-button-bg-dark-aware: #2a2a2a;
@@ -139,16 +79,6 @@
         background-color: transparent !important;
         padding: 0 !important;
         border: none !important;
-      }
-
-      body {
-        margin: 0;
-        padding: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      }
-      #container {
-        width: 100%;
-        height: 100vh;
       }
 
       /* Sync status indicator animations */

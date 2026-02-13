@@ -1,0 +1,477 @@
+VIBES THEME CATALOG
+===================
+
+Available layout themes for app generation. Each theme defines a MOOD and
+PERSONALITY — not a rigid template. Read the theme file for design principles,
+color tokens, and reference styles, then interpret freely for each app.
+
+CREATIVE LIBERTY
+----------------
+
+Themes are mood boards, not cookie-cutter layouts. Two apps using the same
+theme should FEEL related but LOOK different. The LLM should:
+
+  - USE the color tokens exactly (they define the mood identity)
+  - FOLLOW the design principles (border style, typography feel, animation tempo)
+  - INVENT unique layouts, card designs, and visual details per app
+  - VARY hover effects, empty states, decorative elements, spacing
+  - KEEP the same functional components across themes (so switching works)
+
+The reference CSS in each theme file is ONE possible interpretation.
+Study it to understand the aesthetic, then create your own version.
+
+THEME COUNT: 1 TO 3
+--------------------
+
+The user chooses how many themes (1-3). The LLM must:
+
+  1. Read this catalog and the user's prompt
+  2. Pick the MOST SUITABLE themes (up to the requested count)
+  3. Read ONLY the selected theme files — do NOT read files you won't use
+  4. Generate completely different layouts per theme (not just color swaps)
+  5. If 2+ themes: wire up useVibesTheme() for runtime switching
+
+IMPORTANT — Lazy file reads:
+  - Read this catalog FIRST (it's small, just summaries)
+  - THEN read only the theme files you selected
+  - Each theme file is large — reading unnecessary ones wastes time and tokens
+
+The selection criteria:
+  - Match app content type to each theme's BEST FOR list
+  - Eliminate themes listed as NOT FOR this app type
+  - If 2+ themes: prefer variety — themes should feel distinct from each other
+  - Default is always a safe pick but don't default to it blindly
+
+Example selections (3 themes):
+  "Recipe book app"       → scrapbook, archive, industrial
+  "Crypto dashboard"      → vault, industrial, poster
+  "Todo list with tags"   → default, archive, scrapbook
+  "SaaS landing page"     → poster, industrial, vault
+  "Biotech portfolio"     → specimen, poster, archive
+  "Personal diary"        → scrapbook, archive, default
+  "Audio processing app"  → signal, industrial, specimen
+  "AI note-taking tool"   → signal, vault, default
+  "Photography portfolio" → atelier, archive, poster
+  "Creative agency site"  → atelier, poster, specimen
+  "Fitness tracker"       → chrono, signal, default
+  "Breathing exercise app" → chrono, signal, scrapbook
+  "Fantasy football app"  → pitch, vault, default
+  "Sports betting tracker"→ pitch, vault, signal
+  "Game stats dashboard"  → pitch, industrial, chrono
+  "Fashion lookbook"      → broadsheet, atelier, specimen
+  "Streetwear drop page"  → broadsheet, poster, industrial
+  "E-commerce landing"    → broadsheet, industrial, poster
+  "Trivia quiz app"       → capsule, default, signal
+  "Onboarding wizard"     → capsule, chrono, default
+  "Poll/voting app"       → capsule, pitch, default
+  "Artist link-in-bio"    → zine, scrapbook, broadsheet
+  "Band event flyer"      → zine, poster, broadsheet
+  "Indie brand page"      → zine, specimen, poster
+  "DMX lighting app"      → console, signal, industrial
+  "Drum machine"          → console, signal, chrono
+  "Smart home panel"      → console, chrono, signal
+  "Planet encyclopedia"   → atlas, archive, specimen
+  "API documentation"     → atlas, signal, default
+  "Field guide app"       → atlas, archive, scrapbook
+  "Meditation timer"      → dial, chrono, signal
+  "Pomodoro focus app"    → dial, signal, chrono
+  "White noise generator" → dial, console, signal
+  "Habit tracker app"     → sensor, chrono, default
+  "Hydration log"         → sensor, chrono, signal
+  "Daily streak counter"  → sensor, pitch, default
+  "Modernist recipe app"  → slab, industrial, archive
+  "Product spec sheet"    → slab, industrial, poster
+  "Cocktail menu page"    → slab, atelier, archive
+  "Virtual pet app"       → hearth, capsule, chrono
+  "RPG character sheet"   → hearth, vault, sensor
+  "Team roster manager"   → hearth, pitch, default
+
+THEME CATALOG
+---------------------
+
+| Theme ID    | Name              | Mood                        | Best For                                                      |
+|-------------|-------------------|-----------------------------|---------------------------------------------------------------|
+| default     | Neo-Brutalist     | Bold, graphic, utilitarian  | General-purpose CRUD, dashboards, form-heavy apps             |
+| archive     | Editorial Archive | Quiet, refined, documentary | Portfolios, catalogs, collections, galleries, timelines       |
+| industrial  | Industrial HUD    | Technical, high-contrast    | Product showcases, single-item focus, recipes, specs, landing |
+| vault       | Vault Terminal    | Premium, dark, institutional | Financial dashboards, payments, trading, analytics, wallets   |
+| scrapbook   | Handmade Scrapbook| Warm, playful, personal      | Journals, recipes, memory boards, wishlists, invitations      |
+| poster      | Poster Editorial  | Cinematic, typographic, studio | SaaS landings, portfolios, product launches, case studies     |
+| specimen    | Specimen Lab      | Clinical, stark, monochrome    | Biotech, fashion editorial, art projects, service catalogs    |
+| signal      | Signal Interface  | Minimal, dark, technical       | Audio tools, AI products, dev tools, monitoring, focus apps   |
+| atelier     | Atelier Studio    | Warm, cinematic, refined       | Creative agencies, photography, art galleries, luxury brands  |
+| chrono      | Chrono Neumorphic | Tactile, soft, physical        | Health trackers, timers, weather, smart home, music players   |
+| pitch       | Pitch Scoreboard  | Athletic, data-rich, editorial   | Sports analytics, betting, leaderboards, image+data dashboards|
+| broadsheet  | Broadsheet Grid   | Stark, structured, Swiss-brutalist | Fashion editorial, e-commerce heroes, magazine layouts, brands|
+| capsule     | Capsule Split     | Contained, playful-modern, rounded | Quiz apps, onboarding, surveys, games, two-panel interactions |
+| zine        | Zine Cut          | Chaotic, punk, DIY, ransom-note    | Link-in-bio, artist pages, events, indie brands, personal sites|
+| console     | Console Rack      | Skeuomorphic, aluminum, hardware   | Audio tools, synths, controllers, IoT panels, hardware UIs    |
+| atlas       | Atlas Reference   | Editorial, encyclopedic, bold-color| Reference databases, knowledge bases, data catalogs, docs     |
+| dial        | Dial Apparatus    | Minimal-industrial, Braun-inspired, matte-dark | Timers, meditation, single-purpose utilities, focus tools     |
+| sensor      | Sensor Dashboard  | Dark-telemetry, red-lit, data-dense              | Habit trackers, streaks, health metrics, IoT readouts, analytics|
+| slab        | Slab Concrete     | Industrial-graphic, concrete-and-acid            | Recipe pages, product showcases, spec sheets, landing pages     |
+| hearth      | Hearth Sim        | Cozy-game, purple-and-gold, life-sim             | Character managers, pet apps, RPG trackers, roster dashboards   |
+
+HOW TO CHOOSE
+-------------
+
+Ask: "What is the app's primary content?"
+
+  DATA ENTRY / FORMS / CRUD
+    → default (card-based, form-friendly, flexible grid)
+
+  VISUAL COLLECTION / GALLERY / TIMELINE
+    → archive (split-pane, list index, image thumbnails)
+
+  SINGLE HERO ITEM / SHOWCASE / LANDING
+    → industrial (giant type, hero visual, sidebar detail)
+
+  FINANCIAL / TRADING / ANALYTICS / PAYMENTS
+    → vault (glass cards, gold accents, ambient depth)
+
+  PERSONAL / JOURNAL / RECIPES / MEMORIES
+    → scrapbook (paper notes, polaroids, handwriting fonts)
+
+  LANDING PAGE / PRODUCT LAUNCH / PORTFOLIO
+    → poster (massive display type, film grain, editorial grid)
+
+  SCIENCE / FASHION / ART / MANIFESTO
+    → specimen (stark monochrome, viewport-scale type, generative canvas)
+
+  AUDIO / AI / DEVELOPER TOOLS / MONITORING
+    → signal (bracket-corner cards, canvas waveforms, section dimming)
+
+  CREATIVE STUDIO / PHOTOGRAPHY / LUXURY / ART
+    → atelier (warm parchment, 3D point clouds, selective blur cursor)
+
+  HEALTH / FITNESS / TIMER / SMART HOME / DEVICE
+    → chrono (neumorphic dials, glass buttons, chrome gradients)
+
+  SPORTS / BETTING / LEADERBOARDS / PERFORMANCE DATA
+    → pitch (image-backed cards, yellow highlight cells, activity feed)
+
+  FASHION / E-COMMERCE HERO / MAGAZINE / EDITORIAL GRID
+    → broadsheet (bordered grid-cells, mega bg type, inverted hovers)
+
+  QUIZ / GAME / ONBOARDING / SURVEY / TWO-PANEL
+    → capsule (split panels, pill buttons, large display numbers, topo SVGs)
+
+  LINK-IN-BIO / ARTIST PAGE / ZINE / PUNK / DIY
+    → zine (ransom-note fonts, irregular clip-paths, tape overlays, scribble SVGs)
+
+  HARDWARE CONTROLLER / SYNTH / MIXER / IOT PANEL
+    → console (aluminum case, colored knobs, fader banks, LED toggles, screen)
+
+  REFERENCE / ENCYCLOPEDIA / KNOWLEDGE BASE / DATA CATALOG
+    → atlas (bold color panel, multi-column data grid, serif/sans, gradient orb)
+
+  TIMER / MEDITATION / SINGLE-PURPOSE / FOCUSED UTILITY
+    → dial (single rotary knob, LCD readout, speaker grille, matte chassis)
+
+  HABIT TRACKER / STREAKS / HEALTH METRICS / PERSONAL ANALYTICS
+    → sensor (tile grid, sparklines, segmented progress, red glow accents)
+
+  RECIPE / PRODUCT SHOWCASE / SPEC SHEET / HERO + LIST
+    → slab (concrete bg, acid-yellow deck, giant type, glassmorphic plate, numbered rows)
+
+  CHARACTER MANAGER / PET APP / GAME UI / ROSTER / LIFE SIM
+    → hearth (purple gradient, gold accents, stat bars, mood bubbles, plumbob SVGs)
+
+SIGNALS IN USER PROMPT
+----------------------
+
+archive signals:  "portfolio", "catalog", "archive", "collection", "gallery",
+                  "timeline", "inventory", "registry", "journal", "log",
+                  "library", "museum", "history", "memorial"
+
+industrial signals: "showcase", "product page", "recipe", "landing",
+                    "menu", "spec sheet", "presentation", "feature page",
+                    "single item", "hero", "display"
+
+scrapbook signals: "journal", "diary", "recipe", "scrapbook", "memory",
+                   "love note", "gift", "invitation", "RSVP", "bucket list",
+                   "wishlist", "meal plan", "grocery", "personal", "handmade",
+                   "mood tracker", "gratitude", "photo album", "zine"
+
+chrono signals:    "tracker", "timer", "stopwatch", "countdown", "health",
+                   "fitness", "cycle", "period", "weather", "barometer",
+                   "smart home", "thermostat", "music player", "device",
+                   "gauge", "meter", "instrument", "neumorphic", "clock"
+
+atelier signals:   "creative", "studio", "agency", "photography", "film",
+                   "gallery", "art", "exhibition", "luxury", "brand",
+                   "architecture", "design firm", "portfolio showcase",
+                   "curated", "experience", "visual", "production"
+
+signal signals:    "audio", "sound", "music", "synthesizer", "waveform",
+                   "AI tool", "cognitive", "neural", "monitoring", "status",
+                   "developer tool", "CLI", "terminal", "instrument",
+                   "focus", "deep work", "notes", "knowledge graph"
+
+specimen signals:  "lab", "biotech", "research", "science", "experimental",
+                   "fashion", "editorial", "lookbook", "manifesto", "statement",
+                   "minimalist", "monochrome", "typography", "art project",
+                   "catalog", "specimen", "clinical", "futuristic"
+
+poster signals:    "landing page", "SaaS", "launch", "product page", "portfolio",
+                   "agency", "studio", "case study", "startup", "pitch",
+                   "announcement", "changelog", "developer tool", "API",
+                   "marketing site", "brand page", "company site"
+
+vault signals:     "finance", "payment", "wallet", "trading", "exchange",
+                   "banking", "staking", "portfolio value", "offramp",
+                   "swap", "analytics", "KPI", "settlement", "invoice",
+                   "transaction", "balance", "crypto", "defi"
+
+atlas signals:     "reference", "encyclopedia", "knowledge base", "wiki",
+                   "database", "catalog", "data sheet", "spec sheet",
+                   "documentation", "guide", "handbook", "compendium",
+                   "taxonomy", "glossary", "directory", "index",
+                   "planet", "science reference", "field guide", "atlas"
+
+console signals:   "controller", "mixer", "synthesizer", "synth", "DMX",
+                   "hardware", "rack", "module", "fader", "knob",
+                   "channel strip", "MIDI", "audio interface", "effects",
+                   "pedal", "drum machine", "sequencer", "IoT panel",
+                   "control surface", "instrument", "EQ", "compressor"
+
+zine signals:      "link in bio", "linktree", "artist page", "zine", "punk",
+                   "DIY", "underground", "indie", "flyer", "show",
+                   "event", "band", "musician", "mixtape", "collage",
+                   "cut and paste", "personal page", "bio link", "links",
+                   "raw", "lo-fi", "handmade", "chaotic", "glitch art"
+
+capsule signals:   "quiz", "trivia", "riddle", "game", "onboarding",
+                   "survey", "poll", "vote", "flashcard", "study",
+                   "wizard", "step-by-step", "multi-step", "two-panel",
+                   "split view", "before after", "leaderboard", "score",
+                   "interactive", "challenge", "question", "answer"
+
+broadsheet signals: "fashion", "editorial", "e-commerce", "lookbook", "collection",
+                   "shop", "apparel", "magazine", "grid layout", "brutalist",
+                   "Swiss design", "Helvetica", "hero image", "structured",
+                   "seasonal", "capsule", "drop", "streetwear", "brand site"
+
+dial signals:      "timer", "meditation", "pomodoro", "alarm", "clock",
+                   "single purpose", "Braun", "Dieter Rams", "minimal device",
+                   "focus tool", "breathing", "countdown", "metronome",
+                   "tuner", "one thing", "concentration", "mono-function",
+                   "appliance", "zen", "ambient", "white noise"
+
+sensor signals:    "habit", "streak", "tracker", "daily", "routine",
+                   "hydration", "fitness log", "health metrics", "goal",
+                   "sensor", "telemetry", "readout", "check-in",
+                   "mood tracker", "sleep log", "steps", "calories",
+                   "personal analytics", "IoT", "monitor", "recurring"
+
+slab signals:      "recipe", "ingredient", "cooking", "gastronomy", "modernist",
+                   "product showcase", "spec sheet", "single item", "hero visual",
+                   "concrete", "industrial design", "graphic design", "case study",
+                   "catalog detail", "lookbook detail", "feature page",
+                   "numbered list", "acid yellow", "hi-vis"
+
+hearth signals:    "character", "pet", "avatar", "Sims", "life sim", "game UI",
+                   "RPG", "stats", "roster", "household", "party", "companion",
+                   "creature", "Tamagotchi", "virtual pet", "mood", "needs",
+                   "inventory", "skills tree", "level up", "team manager",
+                   "profile cards", "stat bars", "health bar"
+
+pitch signals:     "sports", "betting", "scoreboard", "leaderboard", "match",
+                   "game", "team", "player", "stats", "performance",
+                   "fantasy", "scouting", "analytics dashboard", "odds",
+                   "standings", "league", "season", "roster", "draft",
+                   "highlight", "image grid", "metrics"
+
+default signals:   "dashboard", "tracker", "todo", "planner", "form",
+                   "CRUD", "admin", "manager", "organizer", "tool",
+                   anything not matching the above
+
+INCOMPATIBILITIES
+-----------------
+
+archive:
+  - NOT for chat/messaging apps (no message thread support)
+  - NOT for pure data entry forms (no prominent form area)
+  - If app needs tables → adapt list-items into table rows (see theme file)
+  - If app needs charts → place them in the featured-pane area
+
+industrial:
+  - NOT for multi-item collections (hero section is single-focus)
+  - NOT for complex forms (sidebar has limited space)
+  - If app needs a list of items → use the interactive-list area
+  - If app needs images → use the hero dish-visual pattern
+
+chrono:
+  - NOT for text-heavy editorial content (neumorphic competes with reading)
+  - NOT for complex data dashboards (soft shadows get busy with many elements)
+  - NOT for creative portfolios (too utilitarian/device-focused)
+  - If app needs charts → circular/radial gauges only, no bar/line charts
+  - If app needs forms → neumorphic inset inputs with rounded corners
+  - If app needs controls → circular glass buttons with layered chrome effects
+
+atelier:
+  - NOT for data-heavy dashboards (warm palette distracts from data)
+  - NOT for CRUD/form-heavy apps (contemplative mood, no form patterns)
+  - NOT for developer tools (too artistic)
+  - NOT for fast-paced consumer apps (mood is too slow and cinematic)
+  - If app needs interaction → use selective blur mask as discovery mechanic
+  - If app needs 3D → Three.js point clouds in accent color, auto-rotating
+
+signal:
+  - NOT for colorful consumer apps (pure grayscale only)
+  - NOT for content-heavy reading apps (near-black bg is fatiguing for long text)
+  - NOT for playful/casual experiences (too austere)
+  - If app needs forms → bottom-border inputs inside bracket-corner cards
+  - If app needs data → bordered-left stat lists in mono, key-value pairs
+  - If app needs visualization → canvas-based waveforms/particles, never static charts
+
+specimen:
+  - NOT for colorful apps (pure monochrome, zero color)
+  - NOT for data-heavy dashboards with charts (no color differentiation)
+  - NOT for casual/playful apps (too austere)
+  - NOT for e-commerce with product images (type dominates, images secondary)
+  - If app needs forms → bottom-border-only inputs, all uppercase, no button chrome
+  - If app needs lists → numbered service-item grid with + prefix sub-items
+
+poster:
+  - NOT for data-entry CRUD apps (no form patterns in the aesthetic)
+  - NOT for playful/casual apps (too editorial and serious)
+  - NOT for content-heavy editorial text layouts (use archive)
+  - If app needs forms → outline inputs with accent border, narrow col-span
+  - If app needs stats → use display font at massive scale (signature pattern)
+  - If app needs images → always grayscale + contrast + blend mode treatment
+
+scrapbook:
+  - NOT for enterprise/admin tools (too playful and personal)
+  - NOT for data-heavy dashboards (handwriting fonts reduce readability at scale)
+  - NOT for technical documentation (mood is too casual)
+  - If app needs tables → use lined-paper rows with dashed borders
+  - If app needs charts → hand-drawn style SVG paths with wobbly lines
+
+vault:
+  - NOT for playful/casual apps (mood is too serious/premium)
+  - NOT for bright colorful UIs (dark mode only)
+  - NOT for content-heavy editorial layouts (use archive)
+  - If app needs tables → glass card containers with monospace data
+  - If app needs charts → gold primary series, purple secondary
+
+atlas:
+  - NOT for quick-action CRUD apps (too editorial, not enough form patterns)
+  - NOT for playful/casual consumer apps (too serious and reference-like)
+  - NOT for real-time dashboards with many updating widgets (static feel)
+  - NOT for apps that need full-width layouts (committed to split-panel)
+  - If app needs forms → minimal inputs in content panel, bottom-border only
+  - If app needs lists → nav-items in brand panel or link-rows in content panel
+  - If app needs categories → multi-column data grid with Roman numeral headers
+
+console:
+  - NOT for content-heavy editorial or text layouts (no reading patterns)
+  - NOT for e-commerce or product showcases (too device-specific)
+  - NOT for data dashboards with tables and charts (use vault or pitch)
+  - NOT for mobile-first apps (hardware layout needs width)
+  - NOT for simple CRUD forms (too specialized for general data entry)
+  - If app needs sliders → vertical fader-track + fader-cap pattern
+  - If app needs dials → knob-socket + colored knob-cap, joystick interaction
+  - If app needs toggles → black buttons with green LED indicator dots
+  - If app needs display → black screen with monospace overlays and canvas viz
+
+zine:
+  - NOT for enterprise or professional tools (too chaotic and informal)
+  - NOT for data-heavy dashboards (ransom fonts reduce readability at scale)
+  - NOT for complex multi-section apps (single-column only)
+  - NOT for e-commerce with product grids (too visually noisy)
+  - NOT for long-form reading (mixed fonts fatigue the eye)
+  - If app needs forms → inputs in irregularly-clipped containers, handwriting labels
+  - If app needs lists → stacked link-items with irregular clip-paths, random rotation
+  - If app needs images → always grayscale + contrast, irregular clip-path, tape overlay
+
+capsule:
+  - NOT for data-heavy dashboards with many widgets (split panel too constrained)
+  - NOT for content-heavy editorial or blog layouts (limited scrollable area)
+  - NOT for complex multi-section apps needing full-width layouts
+  - NOT for e-commerce with product grids (too few items visible at once)
+  - If app needs forms → inputs in interaction panel, pill-shape submit, no input borders
+  - If app needs lists → vertical stack with padding-left hover shift, thin dividers
+  - If app needs images → hero image in visual panel (dark left), interaction stays text-only
+
+broadsheet:
+  - NOT for data-heavy dashboards with many metrics (grid cells get overwhelming)
+  - NOT for playful/casual consumer apps (too austere and rigid)
+  - NOT for complex forms with many fields (bordered cells compete with inputs)
+  - NOT for apps with lots of small interactive elements (borders dominate)
+  - If app needs tables → each row is a grid-row, each cell bordered, header inverted
+  - If app needs forms → inputs inside bordered cells, no input borders, cell IS the border
+  - If app needs images → always grayscale + contrast, color reveals on hover
+
+pitch:
+  - NOT for playful/casual apps (too serious and data-heavy)
+  - NOT for content-heavy editorial text layouts (use archive)
+  - NOT for bright colorful UIs (dark mode only, forest-green locked)
+  - NOT for simple CRUD with no visual content (use default)
+  - If app needs forms → dark green inset inputs, yellow accent on focus
+  - If app needs lists → activity feed sidebar with timestamps and tags
+  - If app needs images → always grayscale + multiply blend + green overlay
+
+dial:
+  - NOT for multi-section dashboards (single-knob paradigm, one function only)
+  - NOT for content-heavy editorial or text layouts (no reading patterns)
+  - NOT for e-commerce or product showcases (too device-specific)
+  - NOT for data-heavy CRUD with tables and forms (one control only)
+  - NOT for multi-step workflows (each screen = one readout, one knob)
+  - If app needs input → rotary knob interaction (turn to adjust, press to confirm)
+  - If app needs display → LCD screen with orange monospace readouts
+  - If app needs navigation → knob-turn cycles through modes, press selects
+
+sensor:
+  - NOT for content-heavy editorial or reading apps (dark + mono fatigues)
+  - NOT for playful/casual consumer apps (too technical and austere)
+  - NOT for e-commerce or product showcases (no visual richness)
+  - NOT for creative portfolios or photography (red glow competes with imagery)
+  - If app needs tables → convert rows into tile cards with accent-num + sparkline
+  - If app needs forms → transparent inputs with inset-stroke, accent on focus
+  - If app needs charts → inline SVG polyline sparklines on dot-grid, no axes
+
+slab:
+  - NOT for complex multi-section dashboards (hero+list is the pattern)
+  - NOT for dark-mode apps (light concrete surface is fundamental)
+  - NOT for playful/casual consumer apps (too graphic-design austere)
+  - NOT for data-heavy CRUD with many forms (limited form patterns)
+  - If app needs tables → numbered list rows (index + content + meta), black grid-line dividers
+  - If app needs forms → black bottom-border inputs on concrete, acid-yellow focus, mono labels
+  - If app needs images → circular glassmorphic crop, grayscale + multiply, float animation
+
+hearth:
+  - NOT for professional/enterprise dashboards (too playful and game-like)
+  - NOT for content-heavy editorial or reading apps (rounded style distracts)
+  - NOT for financial or trading apps (mood is too casual for money)
+  - NOT for minimalist or austere apps (deliberately warm and decorated)
+  - If app needs tables → character cards with portrait + info + status indicator
+  - If app needs forms → pill-radius inputs on translucent purple, gold focus border
+  - If app needs progress → pill stat bars, color-coded green/yellow/red with label inside
+
+default:
+  - Works for everything but looks generic on showcase/portfolio apps
+  - No split-pane layout — uses standard card grid
+
+FILE LOCATIONS
+--------------
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/default.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/archive.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/industrial.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/vault.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/scrapbook.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/poster.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/specimen.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/signal.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/atelier.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/chrono.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/pitch.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/broadsheet.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/capsule.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/zine.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/console.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/atlas.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/dial.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/sensor.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/slab.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/hearth.txt

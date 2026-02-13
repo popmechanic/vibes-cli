@@ -1,0 +1,496 @@
+THEME: zine
+NAME: Zine Cut
+MOOD: Chaotic, punk, DIY, ransom-note
+
+DESCRIPTION:
+A black-and-white cut-and-paste zine aesthetic where every element looks like
+it was torn from a different magazine and glued down at a careless angle.
+Ransom-note typography mixes 5-6 different fonts per headline — each character
+gets its own font, size, rotation, and treatment (inverted, bordered, scratched,
+clip-pathed). Everything is slightly rotated at random angles. Clip-path polygons
+with irregular corners replace rectangles — nothing is straight, nothing is clean.
+Profile images are grayscale with high contrast and held down with tape. Link
+buttons have different irregular shapes, alternating between inverted (black bg)
+and outlined. Hand-drawn SVG arrows and scribbles decorate the margins. Social
+icons have blob-shaped border-radius. The whole thing vibrates with chaotic
+energy on a quiet off-white paper background.
+
+BEST FOR:
+  - Link-in-bio pages, personal landing pages
+  - Artist portfolios, musician pages, zine archives
+  - Event/show announcements, flyer-style pages
+  - Underground / indie brand sites
+  - Creative personal sites with attitude
+  - Small apps with personality (mood trackers, mini-blogs, lists)
+  - Any single-column app that needs raw, handmade energy
+
+NOT FOR:
+  - Enterprise or professional tools (too chaotic and informal)
+  - Data-heavy dashboards (ransom fonts reduce readability at scale)
+  - Complex multi-section apps (single-column only)
+  - E-commerce with product grids (too visually noisy for shopping)
+  - Long-form reading (mixed fonts fatigue the eye)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Avoid traditional tables. Use stacked card-items
+    with irregular clip-paths instead. Each row is a separate "torn" card
+    at a random rotation. Index numbers in a different font per row.
+  - If app has FORMS: Each input sits in its own irregularly-clipped
+    container. Labels use ransom-note mixed fonts. Submit button is a
+    large irregularly-shaped block with inverted colors. Placeholder
+    text in a handwriting font.
+  - If app has LISTS: Vertical stack of link-items with irregular clip-path
+    backgrounds. Alternate between inverted and outlined. Random rotation
+    (-2deg to +2deg) on each item. Hover normalizes rotation to 0.
+  - If app has IMAGES: Always grayscale + high contrast. Irregular polygon
+    clip-path (never rectangular). Add a tape overlay div at the top.
+    Hover: scale(1.05) + rotate(5deg) with bouncy easing.
+  - If app has MULTIPLE SECTIONS: Stack vertically with hand-drawn SVG
+    dividers (scribble lines, arrows). Section headers use ransom-note
+    mixed-font style. Large decorative characters (?, !, &) at low
+    opacity in the margins.
+  - If app has A HERO: Use ransom-note title where EACH CHARACTER is
+    wrapped in its own span with a unique font/rotation/treatment.
+    This is the signature visual of this theme.
+
+COLOR TOKENS:
+  The zine palette is near-black ink on off-white paper. Pure monochrome
+  with a slight warm tint on the paper (not pure white). The only "color"
+  comes from the paper warmth and the contrast between inverted (black bg)
+  and outlined (white bg) elements.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.96 0.005 100);            /* off-white paper */
+    --comp-text: oklch(0.05 0 0);                /* near-black ink */
+    --comp-border: oklch(0.05 0 0);              /* ink borders */
+    --comp-accent: oklch(0.05 0 0);              /* ink IS the accent */
+    --comp-accent-text: oklch(0.96 0.005 100);   /* paper on ink */
+    --comp-muted: oklch(0.05 0 0 / 0.3);         /* faded ink */
+    --color-background: oklch(0.96 0.005 100);   /* paper body */
+    --grid-color: transparent;                    /* no grid */
+  }
+  ```
+
+  For elements on INVERTED (ink) backgrounds:
+  ```css
+  --zine-inverted-bg: oklch(0.05 0 0);          /* ink block */
+  --zine-inverted-text: oklch(0.96 0.005 100);  /* paper text */
+  ```
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the zine aesthetic.
+  Study the patterns (ransom-note characters, irregular clip-paths,
+  random rotations, mixed fonts) to understand the mood, then design
+  your own version for each app.
+
+  ```css
+  /* ── Zine Core ── */
+  @import url('https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Bangers&family=Courier+Prime:wght@700&family=Permanent+Marker&family=Rock+Salt&family=Special+Elite&display=swap');
+
+  :root {
+    --f-marker: 'Permanent Marker', cursive;
+    --f-type: 'Special Elite', cursive;
+    --f-fat: 'Abril Fatface', cursive;
+    --f-loud: 'Bangers', cursive;
+    --f-mono: 'Courier Prime', monospace;
+    --f-scratch: 'Rock Salt', cursive;
+  }
+
+  body {
+    font-family: var(--f-type);
+    background: var(--comp-bg);
+    color: var(--comp-text);
+    margin: 0;
+  }
+
+  /*
+    Typography — THE SIGNATURE ELEMENT:
+    - Ransom-note titles: each character is a separate element
+    - Each char gets a different font from the 6-font stack
+    - Each char gets a random rotation (-5deg to +5deg)
+    - Some chars are inverted (ink bg, paper text)
+    - Some chars are bordered (ink border, transparent bg)
+    - Some chars have irregular clip-paths
+    - Body text: Special Elite (typewriter feel)
+    - The chaos is INTENTIONAL and CONTROLLED
+  */
+
+  /* ── Layout Wrapper ── */
+  .chaos-wrapper {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+
+  /* ── Ransom-Note Title ── */
+  .ransom-title {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px;
+    margin-bottom: 2rem;
+    transform: rotate(-2deg);
+  }
+  .char {
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 2.5rem;
+    line-height: 1;
+    text-transform: uppercase;
+    border: 2px solid transparent;
+  }
+  /* Alternate treatments per character */
+  .char:nth-child(2n) {
+    font-family: var(--f-fat);
+    background: var(--comp-text);
+    color: var(--comp-bg);
+    transform: rotate(3deg);
+  }
+  .char:nth-child(2n+1) {
+    font-family: var(--f-marker);
+    font-size: 3rem;
+    transform: rotate(-2deg) translateY(5px);
+  }
+  .char:nth-child(3n) {
+    font-family: var(--f-loud);
+    font-size: 3.5rem;
+    border: 3px solid var(--comp-text);
+    background: transparent;
+    color: var(--comp-text);
+    transform: rotate(5deg);
+  }
+  .char:nth-child(4n) {
+    font-family: var(--f-type);
+    background: var(--comp-text);
+    color: var(--comp-bg);
+    clip-path: polygon(0 0, 100% 5%, 95% 100%, 5% 95%);
+    transform: rotate(-5deg);
+  }
+  .char:nth-child(5n) {
+    font-family: var(--f-scratch);
+    border-bottom: 4px solid var(--comp-text);
+    background: transparent;
+    color: var(--comp-text);
+    font-size: 2rem;
+    transform: rotate(0deg);
+  }
+
+  /* ── Profile Image ── */
+  .profile-img-wrapper {
+    width: 140px;
+    height: 140px;
+    position: relative;
+  }
+  .profile-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    clip-path: polygon(5% 5%, 95% 0%, 100% 90%, 85% 100%, 5% 95%, 0% 50%);
+    filter: grayscale(100%) contrast(120%);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 2px solid var(--comp-text);
+    background: var(--comp-text);
+  }
+  .profile-img:hover {
+    transform: scale(1.05) rotate(5deg);
+  }
+
+  /* ── Tape Overlay ── */
+  .profile-tape {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-2deg);
+    width: 60px;
+    height: 25px;
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(2px);
+    z-index: 10;
+  }
+
+  /* ── Bio Block (inverted) ── */
+  .bio-block {
+    font-family: var(--f-type);
+    text-align: center;
+    font-size: 1rem;
+    max-width: 300px;
+    line-height: 1.4;
+    background: var(--comp-text);
+    color: var(--comp-bg);
+    padding: 0.5rem;
+    transform: rotate(1deg);
+    clip-path: polygon(0% 2%, 2% 0%, 98% 1%, 100% 0%, 100% 98%, 98% 100%, 2% 99%, 0% 100%);
+  }
+
+  /* ── Link Stack ── */
+  .link-stack {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  .link-item {
+    position: relative;
+    text-decoration: none;
+    color: var(--comp-text);
+    font-family: var(--f-marker);
+    font-size: 1.5rem;
+    padding: 1rem 2rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  /* Link background shapes */
+  .link-bg {
+    position: absolute;
+    inset: 0;
+    background: #fff;
+    border: 3px solid var(--comp-text);
+    z-index: -1;
+    transition: all 0.2s ease;
+  }
+
+  /* Variant 1: inverted, torn polygon */
+  .link-item:nth-child(odd) .link-bg {
+    clip-path: polygon(2% 4%, 98% 0%, 100% 95%, 95% 100%, 2% 98%, 0% 10%);
+    background: var(--comp-text);
+  }
+  .link-item:nth-child(odd) { color: var(--comp-bg); }
+
+  /* Variant 2: outlined, different polygon */
+  .link-item:nth-child(even) .link-bg {
+    clip-path: polygon(0% 0%, 96% 2%, 100% 90%, 98% 100%, 4% 96%, 0% 100%);
+  }
+
+  /* Link hovers */
+  .link-item:hover {
+    transform: scale(1.02);
+  }
+  .link-item:hover .link-bg {
+    transform: rotate(0deg) scale(1.05);
+    background: var(--comp-bg);
+    border: 3px solid var(--comp-text);
+  }
+  .link-item:nth-child(odd):hover {
+    color: var(--comp-text);
+  }
+  .link-item:active {
+    transform: scale(0.95);
+  }
+
+  /* ── Social Icons (blob-shaped) ── */
+  .social-icon {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid var(--comp-text);
+    border-radius: 50% 40% 60% 30% / 40% 50% 60% 50%;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--comp-text);
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    background: #fff;
+  }
+  .social-icon:hover {
+    border-radius: 50%;
+    background: var(--comp-text);
+    color: var(--comp-bg);
+    transform: rotate(360deg);
+  }
+
+  /* ── "NEW!" Badge ── */
+  .badge-new {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: var(--comp-text);
+    color: var(--comp-bg);
+    font-family: var(--f-loud);
+    font-size: 1rem;
+    padding: 0.2rem 0.5rem;
+    transform: rotate(15deg);
+    clip-path: polygon(0% 0%, 100% 0%, 100% 80%, 50% 100%, 0% 80%);
+    animation: jitter 2s infinite;
+  }
+  @keyframes jitter {
+    0% { transform: rotate(15deg) scale(1); }
+    25% { transform: rotate(20deg) scale(1.1); }
+    50% { transform: rotate(10deg) scale(1); }
+    75% { transform: rotate(18deg) scale(0.9); }
+    100% { transform: rotate(15deg) scale(1); }
+  }
+
+  /* ── Decorative Background Characters ── */
+  .deco-char {
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.1;
+  }
+
+  /* ── Mobile — already mobile-first ── */
+  @media (min-width: 600px) {
+    .chaos-wrapper {
+      padding: 3rem 2rem;
+    }
+    .char { font-size: 3rem; }
+    .char:nth-child(2n+1) { font-size: 3.5rem; }
+    .char:nth-child(3n) { font-size: 4rem; }
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - CONTROLLED CHAOS — everything looks random but is carefully composed
+  - Near-black ink (#050505) on off-white paper (#f4f4f0) — not pure B&W
+  - Ransom-note mixed-font titles are the SIGNATURE element. Each character
+    is individually styled with a different font, rotation, and treatment.
+  - 6 fonts minimum in the stack: one serif display (Abril Fatface), one
+    marker (Permanent Marker), one typewriter (Special Elite), one loud/comic
+    (Bangers), one monospace (Courier Prime), one scratchy (Rock Salt)
+  - Irregular clip-path polygons on EVERYTHING — no rectangles allowed.
+    Corners should be off by 2-5% from true 0/100 positions.
+  - Random rotations on all elements: -5deg to +5deg
+  - Alternating inverted (ink bg) and outlined (white bg, ink border) blocks
+  - Images: always grayscale + high contrast, irregular clip-path, tape overlay
+  - Borders: 3px solid var(--comp-text) — thick, visible, hand-drawn feel
+  - Some borders are dashed for variety
+  - Single-column layout, max-width 480px — this is a vertical scroll page
+  - Blob-shaped border-radius on social icons (50% 40% 60% 30% / 40% 50% 60% 50%)
+  - Hover effects are bouncy/elastic: cubic-bezier(0.175, 0.885, 0.32, 1.275)
+  - No shadows except tape overlays — flatness is the aesthetic
+  - Decorative characters (?, !, &, *) at 10% opacity in the margins
+  - Hand-drawn SVG arrows and scribbles as margin decorations
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. The critical element is the ransom-note
+  title pattern — always include that. Vary the clip-paths, font assignments,
+  and decoration placement per app.
+
+  ```jsx
+  function App() {
+    // Helper: wrap each character in a styled span
+    const ransomTitle = (text) => (
+      <div className="ransom-title">
+        {text.split('').map((ch, i) => (
+          ch === ' '
+            ? <div key={i} style={{ width: 15 }} />
+            : <div key={i} className="char">{ch}</div>
+        ))}
+      </div>
+    );
+
+    // Random rotation for link items
+    const randomRot = () => `rotate(${(Math.random() * 4 - 2).toFixed(1)}deg)`;
+
+    return (
+      <div className="chaos-wrapper">
+        {/* Decorative SVG scribbles */}
+        <svg className="deco" style={{ position: "absolute", top: 180, right: 10, width: 60, transform: "rotate(20deg)" }}
+          viewBox="0 0 100 100">
+          <path d="M10,10 Q50,50 90,90 M90,90 L70,50 M90,90 L50,80"
+            fill="none" stroke="currentColor" strokeWidth="4"
+            strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+
+        {/* Ransom-note title */}
+        {ransomTitle("APP NAME")}
+
+        {/* Profile section */}
+        <section className="profile-section" style={{ position: "relative", marginBottom: "3rem", width: "100%", display: "flex", justifyContent: "center" }}>
+          <div className="profile-img-wrapper">
+            <div className="profile-tape" />
+            <img src={profileUrl} alt="" className="profile-img" />
+          </div>
+        </section>
+
+        {/* Bio block */}
+        <div className="bio-block">
+          Short bio text. <em>Tagline here.</em>
+        </div>
+
+        {/* Link stack */}
+        <nav className="link-stack" style={{ marginTop: "2rem" }}>
+          {items.map((item, i) => (
+            <a key={item._id}
+               className="link-item"
+               href={item.url}
+               style={{ transform: randomRot() }}>
+              <div className="link-bg" />
+              {item.title}
+              {item.isNew && <div className="badge-new">NEW!</div>}
+            </a>
+          ))}
+        </nav>
+
+        {/* Social icons */}
+        <footer style={{ display: "flex", gap: "1.5rem", marginTop: "3rem" }}>
+          <a href="#" className="social-icon">Ig</a>
+          <a href="#" className="social-icon">X</a>
+          <a href="#" className="social-icon">@</a>
+        </footer>
+
+        {/* Decorative background characters */}
+        <div className="deco-char" style={{ fontFamily: "var(--f-scratch)", fontSize: "4rem", bottom: 20, right: 20, transform: "rotate(-30deg)" }}>
+          &amp;
+        </div>
+        <div className="deco-char" style={{ fontFamily: "var(--f-loud)", fontSize: "5rem", top: 100, left: -10, transform: "rotate(10deg)" }}>
+          ?!
+        </div>
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like a zine someone photocopied at 3am and stapled together
+  in a parking lot. Every letter in the title looks like it was cut from a
+  different magazine and glued down crooked. Images are high-contrast
+  black-and-white held in place with scotch tape. Link buttons are torn
+  paper shapes — some black, some outlined, all slightly askew. The fonts
+  clash intentionally: a serif display face next to a marker scrawl next to
+  a typewriter. Social icons are blob-shaped because circles are too perfect.
+  There's a hand-drawn arrow pointing somewhere, a scribble in the margin,
+  a faded ampersand ghosting behind the content. The whole page vibrates
+  with barely-contained energy — a jittering "NEW!" badge, a profile photo
+  that bounces when you hover. And yet it all works because the chaos is
+  composed. The off-white paper grounds everything. The ink is consistent.
+  The column is narrow and centered. Each zine app should feel like it was
+  made by someone with too many fonts installed and absolutely no restraint.
+
+ANIMATIONS:
+  Zine theme uses BOUNCY, ELASTIC, JITTERY animations:
+  - Profile hover: scale(1.05) rotate(5deg) with cubic-bezier(0.175, 0.885, 0.32, 1.275)
+  - Link hover: scale(1.02) + background normalize (0.2s ease)
+  - Link active: scale(0.95) — press-down feel
+  - Social icon hover: rotate(360deg) + border-radius normalize with
+    cubic-bezier(0.68, -0.55, 0.27, 1.55) — overshoots and bounces
+  - Badge jitter: continuous 2s keyframe oscillating rotation/scale — always on
+  - Page load: no entrance animations — zines don't fade in, they HIT you
+  - Random rotation on link items set via JS on mount
+  - BOUNCY EASING is the signature: cubic-bezier with negative/overshoot values
+  - Never use smooth/slow easing — everything should feel snappy and physical
+
+SVG ELEMENTS:
+  Zine theme uses HAND-DRAWN, SCRIBBLED SVGs:
+  - Curved arrows: quadratic bezier paths with round stroke-linecap
+  - Scribble lines: parallel wavy paths (like someone testing a pen)
+  - Stroke width: 2-4px — visible but not heavy
+  - Stroke: currentColor (inherits ink color)
+  - Fill: none — always outlines, never filled
+  - Position: absolute, in the margins, rotated at random angles
+  - No geometric shapes, no icons, no technical elements
+  - Everything should look like it was drawn with a marker on paper
+  - Stars, x-marks, and underline scribbles are also valid decorations
+  - Keep SVG count low (2-3 per page) — zines aren't over-decorated

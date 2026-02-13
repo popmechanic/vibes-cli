@@ -1,0 +1,50 @@
+THEME: default
+NAME: Neo-Brutalist
+MOOD: Bold, graphic, utilitarian
+
+DESCRIPTION:
+The standard Vibes layout. Card-based grid with thick borders, hard shadows,
+and a utilitarian aesthetic. Mobile-first responsive. Best for general-purpose
+apps that need flexibility — forms, dashboards, trackers, CRUD.
+
+BEST FOR:
+  - Data entry apps, forms, CRUD
+  - Dashboards with multiple data views
+  - Trackers, planners, organizers
+  - Multi-section apps with tabs
+  - Apps that need flexibility above visual flair
+
+NOT FOR:
+  - Visual portfolios / galleries (use archive)
+  - Single-item showcases / landing pages (use industrial)
+
+DESIGN PRINCIPLES:
+  - Rounded corners (8-14px on cards, 6px on buttons/inputs)
+  - Soft offset shadows or glows for depth
+  - Generous padding and spacing
+  - Warm, inviting color palette (amber/gold dark themes work well)
+  - Aurora/gradient background effects welcome
+  - Playful hover effects: lift, scale, bounce, glow
+  - Standard card grid, no split-pane or hero section
+
+  Use the pre-styled component catalog (card, btn, input, badge, tabs, etc.)
+  but style them with personality. Two default-themed apps should look like
+  siblings, not twins.
+
+TOKEN OVERRIDES:
+  Use `--comp-*` tokens in `:root`. Choose warm/cool/vibrant palettes
+  that match the app's purpose. The tokens below are ONE example:
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.18 0.04 60);
+    --comp-accent: oklch(0.72 0.18 70);
+    /* ... adapt hues, saturation, lightness to your app */
+  }
+  ```
+
+PERSONALITY:
+  This theme feels approachable and fun. Like a well-designed indie app.
+  Use animations generously — entrance fades, hover bounces, micro-
+  interactions that make the UI feel alive. Rounded shapes and soft edges.
+  Let the brand personality of the specific app guide your choices.

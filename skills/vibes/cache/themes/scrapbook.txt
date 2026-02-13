@@ -1,0 +1,470 @@
+THEME: scrapbook
+NAME: Handmade Scrapbook
+MOOD: Warm, playful, personal, crafty
+
+DESCRIPTION:
+A hand-drawn scrapbook aesthetic with paper textures, wobbly borders, polaroid
+cards, and handwriting fonts. Features lemon-yellow highlights, mint-green desk
+backgrounds, and SVG sticker decorations. Feels like a love note, a zine, or
+a page torn from someone's journal — intimate, charming, and intentionally
+imperfect.
+
+BEST FOR:
+  - Personal projects (love notes, gift pages, memory boards)
+  - Recipe apps, meal planners, grocery lists
+  - Journals, diaries, mood trackers
+  - Scrapbooks, photo albums, memory timelines
+  - Invitations, event planning, RSVP pages
+  - Wishlists, bucket lists, goal trackers
+  - Any app that should feel handmade and personal
+
+NOT FOR:
+  - Financial dashboards or trading UIs (too playful)
+  - Enterprise tools, admin panels (not serious enough)
+  - Technical documentation or spec sheets
+  - E-commerce storefronts (use default or industrial)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Replace with lined-paper rows (dashed bottom borders,
+    handwriting font). Use alternating subtle tilt on rows. No rigid grid —
+    let it feel like a hand-ruled page.
+  - If app has FORMS: Use dashed-underline inputs (border-bottom: 2px dashed).
+    Focus state fills with pale yellow. Labels in handwriting font above.
+    Group fields inside "paper-note" card containers.
+  - If app has LISTS: Use polaroid-style cards in a loose grid. Each card
+    gets a random slight rotation (±2deg). Hover straightens and lifts.
+    Captions use a secondary handwriting font.
+  - If app has MULTIPLE SECTIONS: Stack as separate paper notes on the desk
+    surface. Vary rotations slightly. Use SVG sticker decorations between.
+  - If app has NO IMAGES: Fill polaroid image areas with colored backgrounds
+    (lemon yellow, soft pink, pale blue) and simple line-art SVG doodles.
+  - If app has CHARTS: Use hand-drawn style SVG lines (slightly wobbly paths).
+    Bar charts with paper-texture fills. Keep the imperfect aesthetic.
+
+COLOR TOKENS:
+  The scrapbook palette is warm and soft. Mint-green background like a craft
+  desk, cream paper for content, lemon-yellow for highlights, dark ink for text.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.95 0.03 130);           /* mint green desk */
+    --comp-text: oklch(0.12 0.01 0);            /* dark ink */
+    --comp-border: oklch(0.12 0.01 0);          /* ink borders */
+    --comp-accent: oklch(0.93 0.12 95);         /* lemon yellow */
+    --comp-accent-text: oklch(0.12 0.01 0);     /* dark ink on yellow */
+    --comp-muted: oklch(0.45 0.01 0);           /* soft gray ink */
+    --color-background: oklch(0.93 0.03 130);   /* mint desk surface */
+    --grid-color: transparent;                   /* no grid — organic feel */
+  }
+  ```
+
+  Paper white (for card/note backgrounds):
+  ```css
+  --comp-paper: oklch(0.99 0.01 90);            /* warm cream white */
+  ```
+
+  For DARK scrapbook variant (chalkboard):
+  ```css
+  :root {
+    --comp-bg: oklch(0.20 0.02 150);
+    --comp-text: oklch(0.95 0.01 90);
+    --comp-border: oklch(0.85 0.01 90);
+    --comp-accent: oklch(0.90 0.12 95);
+    --comp-accent-text: oklch(0.12 0.01 0);
+    --comp-muted: oklch(0.60 0.01 0);
+    --color-background: oklch(0.15 0.02 150);
+    --comp-paper: oklch(0.25 0.02 150);
+  }
+  ```
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the scrapbook aesthetic.
+  Study the patterns (wobbly borders, paper textures, tilted elements) to
+  understand the mood, then design your own version for each app.
+
+  ```css
+  /* ── Desk Surface (page wrapper) ── */
+  .desk-surface {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4rem 2rem;
+    box-sizing: border-box;
+    background-color: var(--comp-bg);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
+  }
+
+  /* ── Paper Note (main content card) ── */
+  .paper-note {
+    background-color: var(--comp-paper);
+    width: 100%;
+    max-width: 800px;
+    position: relative;
+    padding: 4rem;
+    box-sizing: border-box;
+    border: 2.5px solid var(--comp-border);
+    border-radius: 2px 255px 3px 25px / 255px 5px 225px 3px;
+    box-shadow:
+      10px 10px 0px oklch(0 0 0 / 0.1),
+      5px 5px 15px oklch(0 0 0 / 0.05);
+    transform: rotate(-1deg);
+    transition: transform 0.3s ease;
+  }
+  .paper-note:hover {
+    transform: rotate(0deg) scale(1.01);
+  }
+
+  /* ── Wobbly Border-Radius Pattern ── */
+  /*
+    The signature scrapbook border uses CSS border-radius shorthand
+    with 8 values to create an organic, hand-drawn rectangle feel:
+      border-radius: A B C D / E F G H;
+    Mix large values (200-255px) with small (2-5px) for wobbly edges.
+    Example patterns:
+      border-radius: 2px 255px 3px 25px / 255px 5px 225px 3px;
+      border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+      border-radius: 15px 255px 2px 255px / 255px 2px 255px 15px;
+    Vary per element — no two should match exactly.
+  */
+
+  /* ── Handwriting Typography ── */
+  /*
+    Use Google Fonts handwriting families. Load via @import:
+    @import url('https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&family=Indie+Flower&family=Sue+Ellen+Francisco&display=swap');
+
+    Font roles:
+    - Gloria Hallelujah: headings, titles, button text (bold, expressive)
+    - Indie Flower: body text, paragraphs, labels (readable, friendly)
+    - Sue Ellen Francisco: captions, small notes, metadata (casual, loose)
+  */
+  h1, h2, h3, .heading-font {
+    font-family: 'Gloria Hallelujah', cursive;
+  }
+  body, p, label, .body-font {
+    font-family: 'Indie Flower', cursive;
+  }
+  .caption-font {
+    font-family: 'Sue Ellen Francisco', cursive;
+  }
+
+  /* ── Giant Heading ── */
+  h1 {
+    font-size: 5rem;
+    line-height: 0.8;
+    margin: 0 0 2rem 0;
+    text-align: center;
+    transform: rotate(-2deg);
+  }
+
+  /* ── Highlighter Effect ── */
+  .highlight {
+    position: relative;
+    z-index: 1;
+  }
+  .highlight::after {
+    content: '';
+    position: absolute;
+    bottom: 10px;
+    left: -10px;
+    width: 110%;
+    height: 25px;
+    background: var(--comp-accent);
+    z-index: -1;
+    border-radius: 4px;
+    transform: skew(-10deg) rotate(-2deg);
+    opacity: 0.8;
+  }
+  .inline-highlight {
+    background-image: linear-gradient(
+      to right,
+      oklch(0.93 0.12 95 / 0.8),
+      oklch(0.93 0.12 95 / 0.6)
+    );
+    padding: 0 5px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+    border-radius: 3px;
+  }
+
+  /* ── Section Heading ── */
+  h2 {
+    font-size: 2rem;
+    margin-top: 3rem;
+    border-bottom: 2px solid var(--comp-border);
+    display: inline-block;
+    padding-bottom: 0.5rem;
+    border-radius: 0 0 100% 0;
+  }
+
+  /* ── Body Text ── */
+  p {
+    font-size: 1.5rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
+
+  /* ── Polaroid Card Grid ── */
+  .memory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 2rem;
+    margin: 3rem 0;
+  }
+  .polaroid {
+    background: white;
+    padding: 1rem 1rem 3rem 1rem;
+    border: 2.5px solid var(--comp-border);
+    box-shadow: 4px 4px 0px oklch(0 0 0 / 0.15);
+    transform: rotate(2deg);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-align: center;
+  }
+  .polaroid:nth-child(even) {
+    transform: rotate(-1.5deg);
+  }
+  .polaroid:hover {
+    transform: scale(1.05) rotate(0deg) !important;
+    box-shadow: 8px 8px 0px oklch(0 0 0 / 0.1);
+    z-index: 10;
+  }
+  .polaroid-img {
+    background-color: var(--comp-accent);
+    height: 150px;
+    width: 100%;
+    border: 2px solid var(--comp-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .polaroid-caption {
+    font-family: 'Sue Ellen Francisco', cursive;
+    font-size: 1.5rem;
+    color: var(--comp-muted);
+    margin-top: 1rem;
+  }
+
+  /* ── Dashed Input Fields ── */
+  .sketch-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 2px dashed var(--comp-border);
+    font-family: 'Indie Flower', cursive;
+    font-size: 1.5rem;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+    outline: none;
+    color: var(--comp-muted);
+  }
+  .sketch-input::placeholder {
+    color: oklch(0.60 0.01 0);
+    font-style: italic;
+  }
+  .sketch-input:focus {
+    border-bottom-style: solid;
+    background-color: oklch(0.93 0.12 95 / 0.2);
+  }
+
+  /* ── Wobbly Button ── */
+  .btn-scrapbook {
+    display: inline-block;
+    background: var(--comp-accent);
+    font-family: 'Gloria Hallelujah', cursive;
+    font-size: 1.5rem;
+    padding: 1rem 3rem;
+    border: 2.5px solid var(--comp-border);
+    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    cursor: pointer;
+    color: var(--comp-accent-text);
+    transition: all 0.1s ease;
+    position: relative;
+    box-shadow: 4px 4px 0 var(--comp-border);
+  }
+  .btn-scrapbook:hover {
+    background: oklch(0.96 0.08 95);
+    transform: translate(-1px, -1px);
+    box-shadow: 6px 6px 0 var(--comp-border);
+  }
+  .btn-scrapbook:active {
+    transform: translate(4px, 4px);
+    box-shadow: 0px 0px 0 var(--comp-border);
+  }
+
+  /* ── Fieldset Box ── */
+  .sketch-fieldset {
+    border: 2px solid var(--comp-border);
+    padding: 1.5rem;
+    background: white;
+    border-radius: 4px;
+    transform: rotate(1deg);
+    position: relative;
+  }
+  .sketch-fieldset::before {
+    content: attr(data-label);
+    position: absolute;
+    top: -15px;
+    left: 20px;
+    background: white;
+    padding: 0 10px;
+    font-family: 'Gloria Hallelujah', cursive;
+    font-weight: bold;
+  }
+
+  /* ── Sticker Decorations ── */
+  .sticker {
+    position: absolute;
+    z-index: 10;
+    pointer-events: none;
+  }
+  .sticker-top-left {
+    top: -40px;
+    left: -40px;
+    width: 120px;
+    transform: rotate(-15deg);
+  }
+  .sticker-bottom-right {
+    bottom: -30px;
+    right: -20px;
+    width: 100px;
+    transform: rotate(15deg);
+  }
+
+  /* ── Mobile Responsive ── */
+  @media (max-width: 768px) {
+    .paper-note {
+      padding: 2rem;
+      width: 95%;
+    }
+    h1 {
+      font-size: 3rem;
+    }
+    .sticker-top-left {
+      width: 80px;
+      top: -20px;
+      left: -10px;
+    }
+    .memory-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - Wobbly, organic border-radius — NEVER use uniform rounding
+  - Hard ink-black borders (2-2.5px) with chunky box-shadows
+  - Handwriting fonts ONLY — no sans-serif, no monospace
+  - Three font tiers: heading (bold cursive), body (friendly cursive), caption (loose cursive)
+  - Paper texture on content areas, noise texture on desk background
+  - Slight rotations on EVERYTHING (cards ±2deg, sections ±1deg, headings ±2deg)
+  - Polaroid-style cards instead of standard card components
+  - Highlighter marker effects (skewed yellow rectangles behind text)
+  - Dashed underlines for inputs (like ruled notebook paper)
+  - Box-shadow offset creates a "lifted paper" look — always ink-colored
+  - Active state on buttons moves them DOWN (paper pressing effect)
+  - SVG doodle decorations: simple line-art stickers scattered on the page
+  - Everything should feel like it was made by hand, not generated
+  - Imperfection is the aesthetic — asymmetry, wonky angles, uneven spacing
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. Vary the layout, decorations, and
+  content arrangement based on the app's purpose.
+
+  ```jsx
+  function App() {
+    return (
+      <div className="desk-surface">
+        <div className="paper-note">
+          {/* Decorative sticker */}
+          <div className="sticker sticker-top-left floating">
+            <svg viewBox="0 0 100 100">
+              {/* Simple doodle SVG — fruit, star, heart, etc. */}
+            </svg>
+          </div>
+
+          {/* Heading with highlighter */}
+          <h1>
+            The <span className="highlight">Title</span>
+          </h1>
+
+          {/* Body text */}
+          <p>
+            Description with <span className="inline-highlight">highlighted words</span>.
+          </p>
+
+          {/* Content grid */}
+          <h2>Section</h2>
+          <div className="memory-grid">
+            {items.map((item, i) => (
+              <div
+                key={item._id}
+                className="polaroid"
+                style={{ transform: `rotate(${i % 2 === 0 ? 2 : -1.5}deg)` }}
+              >
+                <div className="polaroid-img">
+                  {/* Image, emoji, or SVG doodle */}
+                </div>
+                <div className="polaroid-caption">{item.name}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Form section */}
+          <div className="sketch-fieldset" data-label="Add New">
+            <input
+              type="text"
+              className="sketch-input"
+              placeholder="Type something..."
+            />
+            <button className="btn-scrapbook">
+              Save It!
+            </button>
+          </div>
+
+          {/* Bottom sticker */}
+          <div className="sticker sticker-bottom-right">
+            <svg viewBox="0 0 100 100">
+              {/* Another doodle */}
+            </svg>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like opening a handmade gift. Every element has a slight
+  wobble, a tiny tilt, a marker-highlighted word — as if someone spent an
+  afternoon cutting and gluing things onto a page just for you. The paper
+  texture is warm cream, the ink is dark but never harsh, and the lemon-yellow
+  highlights pop like sunlight through a window. Polaroid cards tilt and
+  shuffle on hover like photos spread on a table. Buttons feel like they're
+  stamped onto the page — they press down satisfyingly on click. The whole
+  experience should feel analog, personal, and just a little bit messy in
+  the most endearing way.
+
+ANIMATIONS:
+  Scrapbook theme uses GENTLE, ORGANIC animations:
+  - Float: translateY bob 4s ease-in-out infinite (for sticker decorations)
+  - Polaroid hover: random rotation ±2deg + scale(1.05) (JS-driven for variety)
+  - Paper note hover: rotate to 0deg + slight scale (settling into place)
+  - Button press: translate DOWN + shadow collapse (paper stamping feel)
+  - Input focus: dashed→solid border + pale yellow background fade
+  - Page entrance: optional gentle paper-unfold or slide-up with rotation
+  - NEVER use mechanical/linear easing — everything should ease-in-out
+  - Animations are slow and gentle (0.2-0.3s for interactions, 3-4s for ambient)
+
+SVG ELEMENTS:
+  Scrapbook theme uses HAND-DRAWN, DOODLE-STYLE SVGs:
+  - Simple line art: fruits, hearts, stars, flowers, arrows, speech bubbles
+  - Organic shapes with irregular paths (not perfect circles/squares)
+  - Stroke-based, not filled — thin lines (2-3px) that look hand-drawn
+  - Use as decorative stickers scattered on the paper note
+  - Fill sparingly — use accent color (lemon yellow) or leave unfilled
+  - Small detail dots (opacity 0.2) for texture
+  - Wobbly leaf/stem details with curved paths
+  - Keep SVGs simple (under 10 path elements each)
+  - Position absolutely as stickers with slight rotations

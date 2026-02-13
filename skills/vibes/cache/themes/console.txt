@@ -1,0 +1,605 @@
+THEME: console
+NAME: Console Rack
+MOOD: Skeuomorphic, aluminum, hardware, tactile
+
+DESCRIPTION:
+A brushed-aluminum hardware controller UI that looks like a real piece of
+rack-mounted equipment. Features physical-feeling controls: colored rotary knobs
+in recessed sockets, vertical channel-strip faders with draggable caps, round
+tactile buttons with 3D depth shadows, LED toggle indicators with green glow,
+and a small black screen with Three.js waveform visualizations. The device case
+floats centered on a light gray background with heavy drop shadows. Controls are
+color-coded by function (blue, ochre, grey, orange, white). Labels are uppercase
+monospace at 10px. Everything has physical depth — inset socket shadows, button
+press animations (translateY), knob grab cursors. The screen shows animated data
+driven by control positions. Inspired by DMX controllers, audio mixers, and
+modular synthesizer panels.
+
+BEST FOR:
+  - Audio/music tools, synthesizers, drum machines
+  - Lighting controllers, DMX interfaces
+  - Hardware control surfaces, MIDI mappers
+  - Instrument tuners, effects processors
+  - IoT device dashboards, smart home control panels
+  - Any app that benefits from a physical hardware metaphor
+  - Interactive tools with sliders, knobs, and toggle switches
+
+NOT FOR:
+  - Content-heavy editorial or text layouts (no reading patterns)
+  - E-commerce or product showcases (too device-specific)
+  - Data dashboards with tables and charts (use vault or pitch)
+  - Mobile-first apps (hardware layout needs width)
+  - Simple CRUD forms (too specialized for general data entry)
+
+ADAPTATION NOTES:
+  - If app has SLIDERS/RANGES: Use fader-track + fader-cap pattern. Vertical
+    orientation preferred. Track has inset shadow, cap has 3D box-shadow. Group
+    into channel strips with label above and toggle button below.
+  - If app has DIALS/KNOBS: Use knob-socket + knob-cap pattern. Socket is
+    recessed (inset shadow), cap floats with drop shadow. Color-code caps
+    by function. Joystick interaction (drag within socket bounds).
+  - If app has BUTTONS: Round btn-round for labeled actions, btn-lozenge
+    for toggles. Press animation: translateY(3px) + shadow collapse.
+    Toggle buttons: black body with LED indicator dot (green glow when active).
+  - If app has A DISPLAY: Black screen (border: 4px solid #000) with Three.js
+    or canvas visualization. Monospace overlay text for readouts. Header/footer
+    bars with rgba(0,0,0,0.3) background.
+  - If app has DATA: Show on the screen display with monospace readouts.
+    Format as key:value pairs (CH:8 VAL:186). Uppercase, 10px.
+  - If app has LISTS: Treat as channel strips — vertical columns with a
+    label, a control element, and a status indicator.
+  - If app has NAVIGATION: Use page buttons (rounded rectangle, flat color)
+    or labeled round buttons. No traditional nav bars.
+  - If app needs GROUPING: Left section (controls, screen) + right section
+    (fader bank). Separated by a subtle vertical divider line.
+
+COLOR TOKENS:
+  The console palette is aluminum gray with colored control caps and a black
+  screen. The aluminum gradient gives warmth. Colored knob caps provide the
+  only real color, and each color maps to a function.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.93 0.003 265);           /* aluminum light */
+    --comp-text: oklch(0.28 0 0);                /* dark ink */
+    --comp-border: oklch(0.82 0.005 265);        /* aluminum border */
+    --comp-accent: oklch(0.58 0.20 35);          /* cap orange (primary) */
+    --comp-accent-text: oklch(1.00 0 0);         /* white on accent */
+    --comp-muted: oklch(0.55 0 0);               /* subtle ink */
+    --color-background: oklch(0.98 0 0);         /* light gray body */
+    --grid-color: transparent;                    /* no grid */
+  }
+  ```
+
+  Control cap colors (color-code by function):
+  ```css
+  --console-cap-blue: oklch(0.28 0.05 240);     /* #1e3246 — navigation */
+  --console-cap-ochre: oklch(0.66 0.10 75);     /* #b59257 — secondary */
+  --console-cap-grey: oklch(0.60 0 0);          /* #858585 — utility */
+  --console-cap-orange: oklch(0.58 0.20 35);    /* #e84a1b — primary/active */
+  --console-cap-white: oklch(0.95 0 0);         /* #f0f0f2 — default */
+  ```
+
+  Screen and LED:
+  ```css
+  --console-screen-bg: oklch(0.07 0 0);         /* near-black screen */
+  --console-led-green: oklch(0.85 0.30 140);    /* #4af626 active LED */
+  ```
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the console aesthetic.
+  Study the patterns (aluminum case, recessed sockets, 3D button shadows,
+  fader tracks, LED toggles) to understand the mood, then design your
+  own version for each app.
+
+  ```css
+  /* ── Console Core ── */
+  :root {
+    --font-tech: 'Courier New', Courier, monospace;
+    --font-ui: system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    background: var(--color-background);
+    font-family: var(--font-ui);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    margin: 0;
+  }
+
+  /* ── Device Case (aluminum enclosure) ── */
+  .device-case {
+    background: linear-gradient(to bottom, var(--comp-bg), oklch(0.91 0.003 265));
+    width: 1000px;
+    height: 520px;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow:
+      0 50px 100px -20px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+      0 0 0 1px #ccc;
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 2px;
+    position: relative;
+  }
+
+  /* Vertical divider between sections */
+  .device-case::after {
+    content: '';
+    position: absolute;
+    left: 284px;
+    top: 24px;
+    bottom: 24px;
+    width: 1px;
+    background: rgba(0, 0, 0, 0.1);
+    border-right: 1px solid rgba(255, 255, 255, 0.5);
+  }
+
+  /* ── Speaker Grille ── */
+  .grille {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 3px;
+    width: 60px;
+  }
+  .grille-dot {
+    width: 2px;
+    height: 2px;
+    background: #444;
+    border-radius: 50%;
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5);
+  }
+
+  /* ── Screen Display ── */
+  .screen-display {
+    background: var(--console-screen-bg);
+    height: 140px;
+    width: 100%;
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+    border: 4px solid #000;
+    box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+  }
+  .screen-ui {
+    padding: 8px 12px;
+    color: white;
+    font-family: var(--font-tech);
+    font-size: 10px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: space-between;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .screen-header, .screen-footer {
+    display: flex;
+    justify-content: space-between;
+    opacity: 0.8;
+    background: rgba(0, 0, 0, 0.3);
+  }
+
+  /* ── Round Button ── */
+  .btn-round {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--console-cap-white);
+    border: none;
+    box-shadow: 0 3px 0 #c2c2c4, 0 4px 4px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: var(--comp-text);
+    cursor: pointer;
+    transition: transform 0.05s ease, box-shadow 0.05s ease;
+    position: relative;
+    font-family: var(--font-tech);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+  }
+  .btn-round:active {
+    transform: translateY(3px);
+    box-shadow: 0 0 0 #c2c2c4, inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  /* Highlight reflection */
+  .btn-round::after {
+    content: '';
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.02), rgba(255, 255, 255, 0.2));
+    position: absolute;
+    pointer-events: none;
+  }
+
+  /* ── Knob Socket + Cap ── */
+  .knob-socket {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: oklch(0.90 0.003 265);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 1px 0 rgba(255, 255, 255, 0.8);
+    position: relative;
+  }
+  .knob-cap {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow:
+      0 4px 6px rgba(0, 0, 0, 0.3),
+      0 8px 12px rgba(0, 0, 0, 0.1),
+      inset 0 2px 3px rgba(255, 255, 255, 0.3),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+    cursor: grab;
+    z-index: 10;
+  }
+  .knob-cap:active { cursor: grabbing; }
+  /* Cap colors */
+  .knob-blue { background: var(--console-cap-blue); }
+  .knob-ochre { background: var(--console-cap-ochre); }
+  .knob-grey { background: var(--console-cap-grey); }
+  .knob-orange { background: var(--console-cap-orange); }
+  .knob-white { background: var(--console-cap-white); }
+  /* Cap highlight overlay */
+  .knob-cap::after {
+    content: '';
+    position: absolute;
+    top: 15%; left: 15%; right: 15%; bottom: 15%;
+    border-radius: 50%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(0, 0, 0, 0.1));
+    pointer-events: none;
+  }
+
+  /* ── Encoder Unit (knob + label) ── */
+  .encoder-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* ── Label ── */
+  .label {
+    font-family: var(--font-tech);
+    font-size: 10px;
+    color: var(--comp-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+    pointer-events: none;
+  }
+
+  /* ── Fader Track + Cap ── */
+  .fader-track {
+    width: 16px;
+    height: 180px;
+    background: oklch(0.87 0.003 265);
+    border-radius: 8px;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.15);
+    position: relative;
+    display: flex;
+    justify-content: center;
+  }
+  .fader-track::before {
+    content: '';
+    position: absolute;
+    top: 10px; bottom: 10px;
+    width: 2px;
+    background: rgba(0, 0, 0, 0.1);
+  }
+  .fader-cap {
+    width: 36px;
+    height: 54px;
+    background: var(--console-cap-white);
+    border-radius: 8px;
+    position: absolute;
+    bottom: 0;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15), 0 2px 0 #c2c2c4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    z-index: 5;
+    touch-action: none;
+  }
+  .fader-cap:active { cursor: grabbing; }
+  .fader-cap::after {
+    content: '';
+    width: 20px;
+    height: 2px;
+    background: #ccc;
+    box-shadow: 0 2px 0 #fff;
+  }
+
+  /* ── Channel Strip ── */
+  .channel-strip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+
+  /* ── LED Toggle Button ── */
+  .btn-toggle {
+    width: 36px;
+    height: 36px;
+    background: #1a1a1a;
+    border-radius: 50%;
+    border: none;
+    box-shadow: 0 2px 0 #000;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.1s;
+  }
+  .btn-toggle::after {
+    content: '';
+    position: absolute;
+    top: 14px; left: 14px;
+    width: 8px; height: 8px;
+    background: #333;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+  .btn-toggle.active::after {
+    background: var(--console-led-green);
+    box-shadow: 0 0 8px var(--console-led-green),
+                inset 0 -1px 2px rgba(255, 255, 255, 0.4);
+  }
+  .btn-toggle:active {
+    transform: translateY(2px);
+    box-shadow: none;
+  }
+
+  /* ── Page Button (rounded rectangle) ── */
+  .btn-page {
+    background: var(--console-cap-white);
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-family: var(--font-tech);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--comp-text);
+    box-shadow: 0 3px 0 #c2c2c4, 0 4px 4px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    transition: transform 0.05s ease;
+  }
+  .btn-page:active {
+    transform: translateY(3px);
+    box-shadow: none;
+  }
+
+  /* ── Fader Bank Grid ── */
+  .fader-bank {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 12px;
+    height: 100%;
+    align-items: end;
+  }
+
+  /* ── Encoder Row ── */
+  .encoder-row {
+    display: flex;
+    gap: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    position: relative;
+  }
+  .encoder-row::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0; right: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  /* ── Rotated Branding ── */
+  .branding {
+    position: absolute;
+    right: -40px;
+    top: 50%;
+    transform: rotate(90deg) translateY(-50%);
+    font-family: var(--font-ui);
+    color: #666;
+    font-size: 12px;
+    letter-spacing: 1px;
+    opacity: 0.5;
+  }
+
+  /* ── Mobile Responsive ── */
+  @media (max-width: 1100px) {
+    .device-case {
+      width: 100%;
+      height: auto;
+      grid-template-columns: 1fr;
+      max-width: 500px;
+    }
+    .fader-bank {
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .fader-track { height: 120px; }
+    .device-case::after { display: none; }
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - THE DEVICE IS THE DESIGN — the app is a physical object on a surface
+  - Aluminum gradient background on the device case (light to slightly darker)
+  - Heavy multi-layer box-shadows for 3D physicality on EVERYTHING:
+    - Buttons: 0 3px 0 (edge shadow) + 0 4px 4px (drop shadow)
+    - Knob caps: 0 4px 6px + 0 8px 12px + inset highlights
+    - Fader tracks: inset 0 2px 6px (recessed channel)
+    - Device case: 0 50px 100px -20px (floating off surface)
+  - Button press: translateY(3px) + shadow collapse to 0 — feels like pushing
+  - Knob caps are COLOR-CODED by function — assign distinct colors per control
+  - All labels: Courier New monospace, 10px, uppercase, letter-spacing 0.5px
+  - Label text-shadow: 0 1px 0 rgba(255,255,255,0.8) — embossed into aluminum
+  - Small black screen with 4px black border — the only dark area
+  - Screen overlay text: white monospace at 10px, key:value format
+  - LED indicators: #4af626 green with 0 0 8px glow when active
+  - Speaker grille: grid of 2px dots — purely decorative, establishes hardware feel
+  - Border-radius: 12px on device case, 50% on knobs/buttons, 6-8px on faders/pages
+  - No visible grid or background pattern — the device surface IS the background
+  - Centered on screen — the device case has fixed dimensions, not fluid layout
+  - user-select: none on everything — this is a control surface, not text content
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. Vary the control layout, knob count,
+  and fader channels based on the app's purpose.
+
+  ```jsx
+  function App() {
+    const [values, setValues] = React.useState({});
+    const [activeChannels, setActiveChannels] = React.useState(new Set());
+
+    const toggleChannel = (ch) => {
+      setActiveChannels(prev => {
+        const next = new Set(prev);
+        next.has(ch) ? next.delete(ch) : next.add(ch);
+        return next;
+      });
+    };
+
+    return (
+      <div className="device-case">
+        {/* Left Section: screen + controls */}
+        <div className="section-left">
+          {/* Speaker grille */}
+          <div className="grille">
+            {Array.from({ length: 36 }).map((_, i) => (
+              <div key={i} className="grille-dot" />
+            ))}
+          </div>
+
+          {/* Screen display */}
+          <div className="screen-display">
+            <canvas ref={canvasRef} style={{ position: "absolute", inset: 0 }} />
+            <div className="screen-ui">
+              <div className="screen-header">
+                <span>APP-NAME</span>
+                <span>CH:{selectedCh} VAL:{currentVal}</span>
+              </div>
+              <div className="screen-footer">
+                <span>MODE: DEFAULT</span>
+                <span>SYNC: INT</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Page buttons */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <button className="btn-page">PAGE 1</button>
+            <button className="btn-page">PAGE 2</button>
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+            <button className="btn-round">M1</button>
+            <button className="btn-round">M2</button>
+            <button className="btn-round">REC</button>
+            <button className="btn-round" style={{ color: "var(--console-cap-orange)" }}>PLAY</button>
+          </div>
+        </div>
+
+        {/* Right Section: knobs + faders */}
+        <div className="section-right">
+          {/* Encoder row */}
+          <div className="encoder-row">
+            {[
+              { label: "PAN", color: "knob-blue" },
+              { label: "TILT", color: "knob-ochre" },
+              { label: "DIM", color: "knob-grey" },
+              { label: "FX", color: "knob-orange" },
+            ].map(knob => (
+              <div key={knob.label} className="encoder-unit">
+                <div className="knob-socket">
+                  <div className={`knob-cap ${knob.color}`} />
+                </div>
+                <span className="label">{knob.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Fader bank */}
+          <div className="fader-bank">
+            {channels.map((ch, i) => (
+              <div key={ch._id} className="channel-strip">
+                <span className="label">{String(i + 1).padStart(2, '0')}</span>
+                <div className="fader-track">
+                  <div
+                    className="fader-cap"
+                    style={{ bottom: `${ch.value}%` }}
+                  />
+                </div>
+                <button
+                  className={`btn-toggle ${activeChannels.has(i) ? 'active' : ''}`}
+                  onClick={() => toggleChannel(i)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like picking up a professional lighting controller from
+  a flight case. The brushed aluminum is cool to the touch. The colored knob
+  caps are smooth, heavy, and satisfying to turn. The faders slide with just
+  the right amount of resistance. The small black screen glows with orange
+  and white waveforms that respond to your inputs. LED indicators pulse
+  green when channels are active. Every button has physical travel — you push
+  down 3 pixels and feel the shadow disappear. The speaker grille dots are
+  purely decorative but establish the hardware language immediately. Labels
+  are Courier New at 10px, embossed into the aluminum with a subtle white
+  text-shadow. This is not a webpage — it's a device. Each console app
+  should feel like it was manufactured by a German audio equipment company
+  that takes industrial design very seriously.
+
+ANIMATIONS:
+  Console theme uses PHYSICAL, MECHANICAL animations:
+  - Button press: translateY(3px) + box-shadow collapse (0.05s ease) — INSTANT
+  - Knob drag: no easing during drag, bouncy snap-back on release
+    (0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275))
+  - Fader drag: no easing, direct 1:1 movement with cursor
+  - LED toggle: background-color transition (0.2s ease) with box-shadow glow
+  - Screen visualization: requestAnimationFrame continuous render (Three.js/canvas)
+  - NO page transitions, no entrance animations, no ambient motion
+  - Controls respond INSTANTLY — 0.05s or less on user interaction
+  - The ONLY ambient animation is the screen visualization
+  - Everything else is a direct response to user input
+
+SVG ELEMENTS:
+  Console theme uses FUNCTIONAL, ICON SVGs:
+  - Simple transport icons: play triangle, stop square, circle (record)
+  - Line icons: single horizontal line for minus/mute
+  - All icons are solid fill (currentColor), never outlined
+  - Icon sizes: 12-14px inside buttons
+  - No decorative SVGs — every SVG is a button icon
+  - No abstract patterns, no backgrounds, no ornamental elements
+  - Color: currentColor (inherits from button text color)
+  - SVGs should look like labels silk-screened onto hardware buttons

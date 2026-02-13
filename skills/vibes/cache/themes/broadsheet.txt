@@ -1,0 +1,559 @@
+THEME: broadsheet
+NAME: Broadsheet Grid
+MOOD: Stark, structured, editorial, Swiss-brutalist
+
+DESCRIPTION:
+A black-and-white grid-based editorial layout where every element lives inside
+bordered cells. Inspired by Swiss International Typographic Style and brutalist
+fashion editorials. Features viewport-filling mega background typography (solid +
+outline), three-column hero layouts with grayscale photography, rotating circular
+stamp badges with SVG text paths, and scrolling outline-text marquees. The grid
+is the design — 1px black borders divide everything into precise rectangles.
+Nav links are bordered cells. Content panels are bordered columns. The marquee
+is a bordered strip. Nothing escapes the grid. Helvetica Neue is the only font.
+
+BEST FOR:
+  - Fashion editorial, lookbooks, seasonal collections
+  - E-commerce landing pages with hero imagery
+  - Portfolio sites with strong visual identity
+  - Magazine-style layouts, editorial homepages
+  - Brand sites that need structured authority
+  - Product launches with a single hero focus
+  - Any app where rigid grid structure IS the aesthetic
+
+NOT FOR:
+  - Data-heavy dashboards with many metrics (grid cells get overwhelming)
+  - Playful/casual consumer apps (too austere and rigid)
+  - Complex forms with many fields (bordered cells compete with inputs)
+  - Apps with lots of small interactive elements (grid borders dominate)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Natural fit — each row is a grid-row, each cell is a
+    grid-cell with borders. Headers invert (black bg, white text). No
+    alternating row colors — borders alone create structure.
+  - If app has FORMS: Each input group is a bordered grid-cell. Labels are
+    uppercase 11px above. Inputs have no background, no border — only the
+    cell border provides the visual container. Submit is a full-width
+    bordered cell with inverted hover (black bg, white text).
+  - If app has LISTS: Vertical stack of bordered grid-rows. Each item is a
+    flex row with bordered cells for index, content, and action. Hover
+    inverts the entire row (black bg, white text).
+  - If app has IMAGES: Center in a grid-cell with no padding. Always
+    grayscale + high contrast. Color on hover as a reveal effect.
+    Never rounded — images fill their rectangular grid-cell.
+  - If app has MULTIPLE SECTIONS: Stack vertically — each section is a
+    bordered region. Sections separated by a marquee strip or a nav-like
+    grid-row acting as a section divider.
+  - If app has A HERO/LANDING: Three-column layout — narrow side panels
+    with metadata, wide center with hero image. Mega background type
+    behind everything. Rotating stamp badge in the corner.
+  - If app has NAVIGATION: Nav is a grid-row of bordered cells. Each link
+    is a cell. Brand cell inverts (black bg, white text, always). Hover
+    inverts individual cells. Utility actions (search, cart, account)
+    grouped at the right.
+
+COLOR TOKENS:
+  The broadsheet palette is pure black and white. No color at all — not even
+  gray. Visual interest comes entirely from the grid structure, type scale,
+  and the tension between solid and outline typography.
+
+  ```css
+  :root {
+    --comp-bg: oklch(1.00 0 0);                 /* pure white */
+    --comp-text: oklch(0.00 0 0);               /* pure black */
+    --comp-border: oklch(0.00 0 0);             /* black borders */
+    --comp-accent: oklch(0.00 0 0);             /* black IS the accent */
+    --comp-accent-text: oklch(1.00 0 0);        /* white on black */
+    --comp-muted: oklch(0.00 0 0 / 0.4);        /* 40% black */
+    --color-background: oklch(1.00 0 0);        /* white page */
+    --grid-color: transparent;                   /* no background grid */
+  }
+  ```
+
+  For DARK broadsheet variant (inverted):
+  ```css
+  :root {
+    --comp-bg: oklch(0.00 0 0);
+    --comp-text: oklch(1.00 0 0);
+    --comp-border: oklch(1.00 0 0);
+    --comp-accent: oklch(1.00 0 0);
+    --comp-accent-text: oklch(0.00 0 0);
+    --comp-muted: oklch(1.00 0 0 / 0.4);
+    --color-background: oklch(0.00 0 0);
+  }
+  ```
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the broadsheet aesthetic.
+  Study the patterns (bordered grid-cells, mega background type, inverted
+  hovers, three-column hero) to understand the mood, then design your own
+  version for each app.
+
+  ```css
+  /* ── Broadsheet Core ── */
+  :root {
+    --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --border-width: 1px;
+    --s-nav: 50px;
+  }
+
+  body {
+    background: var(--comp-bg);
+    color: var(--comp-text);
+    font-family: var(--font-main);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /*
+    Typography scale:
+    - Mega background: 18vw (fills viewport, behind content)
+    - Marquee: 52px outline text
+    - Section/side titles: 14px bold uppercase
+    - Body: 12px
+    - Nav/labels: 11px uppercase, 0.5px letter-spacing
+    - All text: uppercase
+  */
+
+  /* ── Grid Primitives ── */
+  .grid-row {
+    display: flex;
+    width: 100%;
+    border-bottom: var(--border-width) solid var(--comp-border);
+  }
+
+  .grid-cell {
+    border-right: var(--border-width) solid var(--comp-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    position: relative;
+  }
+  .grid-cell:last-child {
+    border-right: none;
+  }
+
+  /* ── Nav Bar (as grid-row) ── */
+  .nav-broadsheet {
+    height: var(--s-nav);
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .nav-link {
+    text-decoration: none;
+    color: var(--comp-text);
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    transition: background 0.2s, color 0.2s;
+  }
+  .nav-link:hover {
+    background: var(--comp-text);
+    color: var(--comp-bg);
+  }
+
+  /* Brand cell: always inverted */
+  .brand-cell {
+    flex-basis: 300px;
+    background: var(--comp-text);
+    color: var(--comp-bg);
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: -1px;
+  }
+
+  /* Utility cells (account, search, cart) */
+  .utility-cell {
+    width: 100px;
+    text-align: center;
+    border-left: var(--border-width) solid var(--comp-border);
+    border-right: none;
+  }
+
+  /* ── Mega Background Type ── */
+  .mega-bg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    text-align: center;
+    z-index: 1;
+    pointer-events: none;
+    line-height: 0.8;
+    white-space: nowrap;
+  }
+  .mega-type {
+    font-size: 18vw;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    display: block;
+    text-transform: uppercase;
+  }
+  .mega-type--solid {
+    color: var(--comp-text);
+  }
+  .mega-type--outline {
+    color: transparent;
+    -webkit-text-stroke: 1px var(--comp-text);
+  }
+
+  /* ── Three-Column Hero ── */
+  .hero-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-grid {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    height: 100%;
+  }
+  .col-side {
+    width: 25%;
+    border-right: var(--border-width) solid var(--comp-border);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 24px;
+  }
+  .col-side.right {
+    border-right: none;
+    border-left: var(--border-width) solid var(--comp-border);
+  }
+  .col-center {
+    width: 50%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* ── Hero Image ── */
+  .hero-image {
+    width: 80%;
+    height: 85%;
+    object-fit: cover;
+    display: block;
+    filter: grayscale(100%) contrast(110%);
+    transition: filter 0.3s ease;
+  }
+  .hero-image:hover {
+    filter: grayscale(0%) contrast(100%);
+  }
+
+  /* ── Rotating Stamp Badge ── */
+  .stamp-container {
+    position: absolute;
+    top: 40px;
+    right: 40px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: stamp-rotate 10s linear infinite;
+    background: var(--comp-bg);
+    border: 1px solid var(--comp-text);
+    z-index: 10;
+  }
+  .stamp-center {
+    width: 10px;
+    height: 10px;
+    background: var(--comp-text);
+    border-radius: 50%;
+  }
+  @keyframes stamp-rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* ── Side Panel Content ── */
+  .side-title {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+  .side-desc {
+    font-size: 12px;
+    line-height: 1.5;
+    max-width: 200px;
+  }
+
+  /* ── Marquee Strip ── */
+  .marquee-strip {
+    height: 80px;
+    border-top: var(--border-width) solid var(--comp-border);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .marquee-content {
+    display: inline-block;
+    animation: marquee-scroll 20s linear infinite;
+  }
+  .marquee-text {
+    font-size: 52px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: transparent;
+    -webkit-text-stroke: 1px var(--comp-text);
+    margin-right: 60px;
+    letter-spacing: 2px;
+  }
+  @keyframes marquee-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* ── Marquee Nav Arrows ── */
+  .marquee-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    border-right: var(--border-width) solid var(--comp-border);
+    font-size: 32px;
+    font-weight: 100;
+    height: 100%;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .marquee-arrow:hover {
+    background: var(--comp-text);
+    color: var(--comp-bg);
+  }
+  .marquee-arrow:last-child {
+    border-right: none;
+    border-left: var(--border-width) solid var(--comp-border);
+  }
+
+  /* ── Inverted Hover (signature interaction) ── */
+  .invert-hover {
+    transition: background 0.2s, color 0.2s;
+    cursor: pointer;
+  }
+  .invert-hover:hover {
+    background: var(--comp-text);
+    color: var(--comp-bg);
+  }
+
+  /* ── Action Arrow ── */
+  .arrow-group {
+    display: flex;
+    gap: 4px;
+    font-family: monospace;
+    letter-spacing: -2px;
+    font-size: 24px;
+    font-weight: 300;
+  }
+
+  /* ── Mobile Responsive ── */
+  @media (max-width: 768px) {
+    .mega-bg { display: none; }
+    .hero-grid { flex-direction: column; }
+    .col-side {
+      width: 100%;
+      border-right: none;
+      border-bottom: 1px solid var(--comp-border);
+      height: auto;
+      padding: 16px;
+      flex-direction: row;
+      align-items: center;
+    }
+    .col-center {
+      width: 100%;
+      height: 50vh;
+      order: -1;
+      border-bottom: 1px solid var(--comp-border);
+    }
+    .side-desc { display: none; }
+    .hero-image { width: 100%; height: 100%; }
+    .marquee-text { font-size: 32px; }
+    .mega-type { font-size: 28vw; }
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - THE GRID IS THE DESIGN — 1px black borders on everything, always visible
+  - Pure black and white — no color, no gray backgrounds, no tints
+  - ALL TEXT UPPERCASE — no exceptions
+  - Helvetica Neue only — no secondary font, no display face, no monospace
+    except for arrow groups
+  - Inverted hover is the ONLY interaction pattern — black bg, white text
+  - No border-radius anywhere EXCEPT the rotating stamp badge (circle)
+  - No shadows, no gradients, no blur, no opacity variations on backgrounds
+  - Mega background type at 18vw — solid + outline variants, behind content
+  - Outline text (-webkit-text-stroke: 1px) for marquees and background type
+  - Three-column hero: 25% / 50% / 25% with bordered columns
+  - Images are always grayscale + high contrast, color reveals on hover
+  - Nav is a grid-row of equal-height bordered cells, not a floating bar
+  - Font weight: 900 for brand and mega type, 700 for titles, 600 for nav,
+    300/100 for decorative arrows
+  - Letter-spacing: tight (-0.02em to -1px) on large type, wide (0.5px+) on small
+  - Content is secondary to structure — the borders and grid ARE the visual design
+  - White space is created by the grid cells, not by margins or padding
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. Vary the column widths, cell arrangement,
+  and marquee content based on the app's purpose.
+
+  ```jsx
+  function App() {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+        {/* Nav as grid-row */}
+        <nav className="grid-row nav-broadsheet">
+          <div className="grid-cell" style={{ flex: 1 }}>
+            <a className="nav-link" href="#">SECTION</a>
+          </div>
+          <div className="grid-cell" style={{ flex: 1 }}>
+            <a className="nav-link" href="#">EDITORIAL</a>
+          </div>
+          <div className="grid-cell brand-cell">
+            <a className="nav-link" style={{ color: "var(--comp-bg)", background: "var(--comp-text)" }}>
+              APP NAME
+            </a>
+          </div>
+          <div className="grid-cell utility-cell">
+            <a className="nav-link" href="#">SEARCH</a>
+          </div>
+          <div className="grid-cell utility-cell">
+            <a className="nav-link" href="#">CART (0)</a>
+          </div>
+        </nav>
+
+        {/* Hero */}
+        <div className="hero-container">
+          {/* Mega background type */}
+          <div className="mega-bg">
+            <span className="mega-type mega-type--solid">KEYWORD</span>
+            <span className="mega-type mega-type--outline">TAGLINE</span>
+          </div>
+
+          {/* Three-column hero grid */}
+          <div className="hero-grid">
+            <div className="col-side">
+              <div>
+                <div className="side-title">LABEL 01<br />SUBTITLE</div>
+                <div className="side-desc">
+                  Brief description text for the left panel context.
+                </div>
+              </div>
+              <div className="arrow-group">&lt;&lt;&lt;</div>
+            </div>
+
+            <div className="col-center">
+              {/* Rotating stamp */}
+              <div className="stamp-container">
+                <div className="stamp-center" />
+                <svg className="circular-text" viewBox="0 0 100 100">
+                  <path id="cp" d="M 50,50 m -38,0 a 38,38 0 1,1 76,0 a 38,38 0 1,1 -76,0" fill="none" />
+                  <text>
+                    <textPath href="#cp" style={{ fontSize: "11px", fontWeight: "bold", letterSpacing: "2px" }}>
+                      NEW ARRIVALS • NEW ARRIVALS •
+                    </textPath>
+                  </text>
+                </svg>
+              </div>
+
+              <img
+                src="https://images.unsplash.com/photo-example"
+                alt=""
+                className="hero-image"
+              />
+            </div>
+
+            <div className="col-side right">
+              <div>
+                <div className="side-title">OBJECT 01<br />DETAIL</div>
+              </div>
+              <div style={{ marginTop: "auto", width: "100%" }}>
+                <div className="side-title" style={{ borderBottom: "1px solid var(--comp-text)", paddingBottom: 8, marginBottom: 16 }}>
+                  AVAILABLE NOW
+                </div>
+                <div className="invert-hover" style={{ display: "flex", justifyContent: "space-between", padding: "8px 0" }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase" }}>
+                    View Collection
+                  </span>
+                  <span style={{ fontSize: 20 }}>→</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Marquee strip */}
+          <div className="marquee-strip">
+            <div className="marquee-arrow">←</div>
+            <div style={{ flexGrow: 1, overflow: "hidden", height: "100%", display: "flex", alignItems: "center" }}>
+              <div className="marquee-content">
+                <span className="marquee-text">APP TAGLINE HERE</span>
+                <span className="marquee-text">//</span>
+                <span className="marquee-text">SECONDARY MESSAGE</span>
+                <span className="marquee-text">//</span>
+                <span className="marquee-text">APP TAGLINE HERE</span>
+                <span className="marquee-text">//</span>
+                <span className="marquee-text">SECONDARY MESSAGE</span>
+              </div>
+            </div>
+            <div className="marquee-arrow">→</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like a brutalist fashion magazine that was designed on a
+  drafting table with a T-square. Every element snaps to the grid. Every border
+  is visible. The layout IS the design — take away the content and the empty
+  grid cells still look intentional. Mega typography fills the viewport behind
+  everything, half solid, half outline, like a watermark on newsprint. The hero
+  image sits in its cell, drained of color, high-contrast, revealing its
+  saturation only when you hover — a reward for interaction. A rotating stamp
+  badge spins slowly in the corner like a seal of approval. The scrolling
+  marquee at the bottom runs outline text in an endless loop, flanked by
+  bordered arrow cells. Navigation links invert on hover — full black cell,
+  white text — the most satisfying click target in web design. The whole
+  experience is rigid, confident, and unapologetically structured. Each
+  broadsheet app should feel like it was typeset by a Swiss designer who
+  considers whitespace a structural material.
+
+ANIMATIONS:
+  Broadsheet theme uses RESTRAINED, MECHANICAL animations:
+  - Stamp badge: continuous rotation, 10s linear infinite (the only always-on motion)
+  - Marquee: translateX scroll, 20s linear infinite (continuous, steady pace)
+  - Hover invert: background + color transition, 0.2s (snappy, immediate)
+  - Image reveal: filter transition (grayscale → color) 0.3s ease
+  - Page load: no entrance animations — content is simply present
+  - NEVER use scaling, bouncing, floating, or elastic easing
+  - NEVER use opacity fades on content — things are either there or not
+  - The stamp rotation and marquee scroll are the only ambient motion
+  - All interactive transitions are 0.2-0.3s — fast and decisive
+
+SVG ELEMENTS:
+  Broadsheet theme uses FUNCTIONAL, TYPOGRAPHIC SVGs:
+  - Circular text paths for rotating stamp badges (textPath on circle)
+  - Simple arrows (← →) as text, not SVG paths
+  - Monospace arrow groups (<<<, >>>) for directional indicators
+  - No decorative illustrations, no icons, no abstract shapes
+  - If icons are needed: pure geometric — squares, circles, arrows only
+  - All SVGs should be black on white (or inverted), never colored
+  - Stamp badges: 120px circle, 11px uppercase text, 2px letter-spacing
+  - The circular text path is the signature SVG element of this theme

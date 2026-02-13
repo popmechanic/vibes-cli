@@ -78,6 +78,15 @@ If detected: **Ask [AI features]**: "Does this app need AI features?"
 
 If yes: check `grep OPENROUTER_API_KEY ~/.vibes/.env`. If found, offer reuse (mask key). Otherwise collect via Ask and offer to cache to `~/.vibes/.env`. Store as `openRouterKey` (or null if no AI).
 
+### 0.4 Theme Count
+
+**Ask [Themes]**: "How many different themes do you want? (each = a completely different layout)"
+- "1 theme" — Fastest generation, single layout
+- "2 themes" — Two switchable layouts
+- "3 themes (Recommended)" — Three switchable layouts for maximum variety
+
+Store as `themeCount` (1, 2, or 3).
+
 ---
 
 ## Phase 1: Spawn Team & Parallel Work
@@ -91,7 +100,7 @@ If yes: check `grep OPENROUTER_API_KEY ~/.vibes/.env`. If found, offer reuse (ma
 ### 1.2 Spawn Builder (T1)
 
 1. Read `{pluginRoot}/skills/launch/prompts/builder.md`
-2. Substitute: `{appPrompt}`, `{appName}`, `{pluginRoot}`
+2. Substitute: `{appPrompt}`, `{appName}`, `{pluginRoot}`, `{themeCount}`
 3. Set `{aiInstructions}`: if `openRouterKey` is set, add rule about `useAI` hook (see vibes SKILL.md "AI Features"). If null, leave empty.
 4. Spawn: Task tool, `team_name="launch-{appName}"`, `name="builder"`, `subagent_type="general-purpose"`
 

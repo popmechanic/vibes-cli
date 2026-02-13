@@ -96,6 +96,86 @@ Before writing code, reason about the design in `<design>` tags:
 </design>
 ```
 
+### Step 1.5: Read Design Tokens (MANDATORY)
+
+**You MUST read this file before generating code:**
+```
+Read file: ${CLAUDE_PLUGIN_ROOT}/cache/design-tokens.txt
+```
+The token catalog defines all available CSS custom properties: `colors`, `radius`, `shadows`, `spacing`, `typography`, `vibes-core`, `vibes-buttons`, `vibes-grid`. It also includes the VIBES_THEME_CSS with `.btn` button classes, the grid/frame page styles, and a **Component Catalog** with bare HTML structures (card, input, badge, table, tabs, accordion, dialog, etc.).
+
+**In your generated code:**
+- Use `var(--token-name)` references — NOT hardcoded color values
+- Use `--color-*` for semantic colors, `--radius-*` for border-radius, `--shadow-brutalist-*` for neo-brutalist shadows
+- Use `className="btn"` for buttons (pre-styled neo-brutalist)
+- Use `className="grid-background"` on your app's root container for the default content grid background
+- **Pick components from the catalog** (card, input, badge, table, etc.), then write CSS for their class names using the design tokens
+- Override `--color-*` tokens in a `:root` style block for per-app theming
+
+### Step 1.75: Ask Theme Count & Select Layout Themes
+
+**Ask [Themes]**: "How many different themes do you want? (each theme = a completely different layout)"
+- "1 theme" — Fastest generation, single layout
+- "2 themes" — Two switchable layouts
+- "3 themes (Recommended)" — Three switchable layouts for maximum variety
+
+Store the answer as `themeCount` (1, 2, or 3).
+
+**Read the theme catalog FIRST** (it's small — just descriptions, not full theme files):
+```
+Read file: ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/catalog.txt
+```
+
+The catalog has 6 themes. Pick exactly `themeCount` themes based on:
+- The app's content type and primary purpose
+- Each theme's BEST FOR and NOT FOR lists
+- If picking 2+: variety — the themes should feel distinct from each other
+- Default is always a safe pick but don't default to it blindly
+
+**ONLY THEN read the theme files you actually need** — one at a time, only for the themes you selected:
+```
+Read file: ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/{selected-theme}.txt
+```
+Do NOT read theme files you won't use. Each file is large, so reading unnecessary ones wastes time.
+
+**Each theme file provides:**
+- Color token overrides (`:root` values — use these exactly, they define the mood)
+- Design principles (border style, typography, spacing, animation tempo)
+- Reference CSS (study the aesthetic, then create your own interpretation)
+- Personality notes (how the theme FEELS — guide your creative choices)
+- Animation and SVG guidelines
+
+**CRITICAL — Different layouts, not just different colors (when themeCount > 1):**
+Each theme MUST have a completely different HTML/JSX layout structure.
+- Different page organization (split-pane vs. stacked sections vs. sidebar+main)
+- Different element hierarchy (what's prominent, what's secondary)
+- Different navigation patterns (tabs vs. nav links vs. HUD bar)
+- Same data, same handlers, same state — different visual presentation
+
+Use `if (theme === "xxx")` branches in the render to return entirely different JSX trees per theme. CSS-only differences (just swapping colors/fonts on the same HTML) are NOT sufficient.
+
+**If themeCount is 1**, skip `useVibesTheme()` and the theme branching. Just generate one layout using the selected theme's design principles.
+
+**CREATIVE LIBERTY:** Themes are mood boards, not templates. Two apps using the same theme should FEEL related but LOOK different. Use the color tokens exactly (they're the mood identity), follow the design principles, but invent unique layouts, card designs, hover effects, and decorative elements for each app. The reference CSS is ONE interpretation — don't copy it verbatim.
+
+**Component consistency (when themeCount > 1):** All themes must use the same React state, event handlers, and data hooks. They differ only in JSX structure and CSS. This ensures theme switching works at runtime via `useVibesTheme()`.
+
+**REQUIRED — Register themes for the menu (when themeCount > 1):**
+The VibesPanel (settings menu) dynamically reads `window.__VIBES_THEMES__` to render theme-switch buttons. You MUST register your chosen themes at the top of app.jsx (before any component definitions):
+
+```jsx
+window.__VIBES_THEMES__ = [
+  { id: "scrapbook", name: "Scrapbook" },
+  { id: "default", name: "Neo-Brutalist" },
+];
+```
+
+Replace the `id` and `name` values with your actual selected themes. The `id` must match the theme IDs used in your `useVibesTheme()` hook and `if (theme === "xxx")` branches. The `name` is the human-readable label shown on the button. If `window.__VIBES_THEMES__` is not set, the menu falls back to hardcoded default/archive/industrial buttons which won't match your themes.
+
+**If themeCount is 1**, skip `window.__VIBES_THEMES__` — the design button won't show theme options.
+
+**If the user explicitly requests specific themes**, always follow their choice. Otherwise, pick the best fits from the catalog.
+
 ### Step 2: Output Code
 
 After reasoning, output the complete JSX in `<code>` tags:
@@ -110,10 +190,15 @@ export default function App() {
   // ... component logic
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] p-4">
+    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-text)] p-4">
       {/* Sync status indicator (optional) */}
       <div className="text-xs text-gray-500 mb-2">Sync: {syncStatus}</div>
-      {/* Your app UI */}
+      {/* Use --app-* tokens for surfaces and accents */}
+      <div className="bg-[var(--app-surface)] border-4 border-[var(--app-border)] p-4">
+        <button className="px-4 py-2 bg-[var(--app-accent)] text-white hover:bg-[var(--app-accent-hover)]">
+          Action
+        </button>
+      </div>
     </div>
   );
 }
@@ -338,23 +423,23 @@ export default function App() {
   const { docs } = useLiveQuery("type", { key: "item" });
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] p-4">
+    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-text)] p-4">
       {/* Optional sync status indicator */}
       <div className="text-xs text-gray-500 mb-2">Sync: {syncStatus}</div>
       <form onSubmit={submit} className="mb-4">
         <input
           value={doc.text}
           onChange={(e) => merge({ text: e.target.value })}
-          className="w-full px-4 py-3 border-4 border-[#0f172a]"
+          className="w-full px-4 py-3 border-4 border-[var(--app-border)]"
         />
-        <button type="submit" className="mt-2 px-4 py-2 bg-[#0f172a] text-[#f1f5f9]">
+        <button type="submit" className="mt-2 px-4 py-2 bg-[var(--app-accent)] text-white hover:bg-[var(--app-accent-hover)]">
           Add
         </button>
       </form>
       {docs.map(item => (
-        <div key={item._id} className="p-2 mb-2 bg-white border-4 border-[#0f172a]">
+        <div key={item._id} className="p-2 mb-2 bg-[var(--app-surface)] border-4 border-[var(--app-border)]">
           {item.text}
-          <button onClick={() => database.del(item._id)} className="ml-2 text-red-500">
+          <button onClick={() => database.del(item._id)} className="ml-2 text-[var(--vibes-red-accent)]">
             Delete
           </button>
         </div>
@@ -546,6 +631,7 @@ The shipped cache files contain detailed reference material. Read them when the 
 
 | Need | Signal in Prompt | Read This |
 |------|------------------|-----------|
+| Design tokens & theming | colors, theme, tokens, brand colors, styling | `${CLAUDE_PLUGIN_ROOT}/cache/design-tokens.txt` |
 | File uploads | "upload", "images", "photos", "attachments" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Working with Images" |
 | Auth / sync config | "Clerk", "Connect", "cloud sync", "login" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "ClerkFireproofProvider Config" |
 | Sync status display | "online/offline", "connection status" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Sync Status Display" |

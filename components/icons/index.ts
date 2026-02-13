@@ -7,3 +7,4 @@ export { GoogleIcon } from "./GoogleIcon.js";
 export { GitHubIcon } from "./GitHubIcon.js";
 export { MoonIcon } from "./MoonIcon.js";
 export { SunIcon } from "./SunIcon.js";
+export { DesignIcon } from "./DesignIcon.js";
