@@ -86,7 +86,17 @@ export function createSubdomainRecord(
     ownerId: userId,
     claimedAt: new Date().toISOString(),
     collaborators: [],
+    status: 'active',
   };
+}
+
+export function freezeSubdomain(record: SubdomainRecord): SubdomainRecord {
+  return { ...record, status: 'frozen', frozenAt: new Date().toISOString() };
+}
+
+export function unfreezeSubdomain(record: SubdomainRecord): SubdomainRecord {
+  const { frozenAt, ...rest } = record;
+  return { ...rest, status: 'active' };
 }
 
 // === Collaborator management ===
@@ -160,19 +170,20 @@ export function removeCollaborator(
 export function hasAccess(
   record: SubdomainRecord,
   userId: string
-): { hasAccess: boolean; role: "owner" | "collaborator" | "none" } {
+): { hasAccess: boolean; role: "owner" | "collaborator" | "none"; frozen: boolean } {
+  const frozen = record.status === 'frozen';
   if (record.ownerId === userId) {
-    return { hasAccess: true, role: "owner" };
+    return { hasAccess: true, role: "owner", frozen };
   }
 
   const collaborator = record.collaborators.find(
     (c) => c.userId === userId && c.status === "active"
   );
   if (collaborator) {
-    return { hasAccess: true, role: "collaborator" };
+    return { hasAccess: true, role: "collaborator", frozen };
   }
 
-  return { hasAccess: false, role: "none" };
+  return { hasAccess: false, role: "none", frozen };
 }
 
 export function hasAccessByEmail(
@@ -199,6 +210,7 @@ export function isSubdomainAvailableLegacy(
         ownerId: existingClaim.userId,
         claimedAt: existingClaim.claimedAt,
         collaborators: [],
+        status: 'active',
       }
     : null;
   return isSubdomainAvailable(

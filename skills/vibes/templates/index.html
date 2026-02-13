@@ -156,6 +156,7 @@
         0% { transform: translate(-50%, -50%) scale(1); opacity: 0.5; }
         100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
       }
+      @keyframes vibesDelayedFadeIn { to { opacity: 1 } }
     </style>
   </head>
   <body>
@@ -2422,15 +2423,7 @@ if (typeof window !== 'undefined') {
                   ? window.location.origin + '?subdomain=' + encodeURIComponent(qpSub) + '&ledger=' + encodeURIComponent(ledgerId)
                   : window.location.origin + '?ledger=' + encodeURIComponent(ledgerId);
 
-                document.dispatchEvent(new CustomEvent('vibes-share-success', {
-                  detail: {
-                    email: email,
-                    message: 'Invited ' + email + '!',
-                    link: inviteUrl
-                  }
-                }));
-
-                // Dual-write to KV registry (non-fatal)
+                // Dual-write to KV registry (awaited, non-fatal)
                 try {
                   var kvRegistryUrl = window.__VIBES_REGISTRY_URL__;
                   if (kvRegistryUrl && !kvRegistryUrl.startsWith('__')) {
@@ -2440,16 +2433,32 @@ if (typeof window !== 'undefined') {
                       var hostname = window.location.hostname;
                       var parts = hostname.split('.');
                       var kvSubdomain = qp || (parts.length > 2 ? parts[0] : hostname);
-                      fetch(kvRegistryUrl.replace(/\/$/, '') + '/invite', {
+                      var kvRes = await fetch(kvRegistryUrl.replace(/\/$/, '') + '/invite', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
                         body: JSON.stringify({ subdomain: kvSubdomain, email: email, right: detail.right || 'write' })
-                      }).catch(function(e) { console.warn('[vibes-sharing] KV invite dual-write failed:', e); });
+                      });
+                      if (!kvRes.ok) {
+                        var kvBody = await kvRes.text();
+                        console.error('[vibes-sharing] KV invite failed:', kvRes.status, kvRes.statusText, '| body:', kvBody, '| subdomain:', kvSubdomain, '| email:', email);
+                      } else {
+                        console.log('[vibes-sharing] KV invite written successfully for', email, 'on', kvSubdomain);
+                      }
+                    } else {
+                      console.warn('[vibes-sharing] KV invite skipped: no Clerk session token available');
                     }
                   }
                 } catch (kvErr) {
-                  console.warn('[vibes-sharing] KV dual-write error:', kvErr);
+                  console.error('[vibes-sharing] KV dual-write error:', kvErr, '| email:', email);
                 }
+
+                document.dispatchEvent(new CustomEvent('vibes-share-success', {
+                  detail: {
+                    email: email,
+                    message: 'Invited ' + email + '!',
+                    link: inviteUrl
+                  }
+                }));
               } catch (err) {
                 document.dispatchEvent(new CustomEvent('vibes-share-error', {
                   detail: { error: { message: err.message || 'Failed to send invitation.' } }

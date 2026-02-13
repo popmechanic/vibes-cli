@@ -48,11 +48,36 @@ describe("RegistryKV", () => {
       };
       await kv.putSubdomain("alice", record);
       const result = await kv.getSubdomain("alice");
-      expect(result).toEqual(record);
+      // normalizeRecord adds status: 'active' if missing
+      expect(result).toEqual({ ...record, status: 'active' });
       expect(mockKV.put).toHaveBeenCalledWith(
         "subdomain:alice",
         JSON.stringify(record)
       );
+    });
+
+    it("normalizes legacy records without status field", async () => {
+      // Simulate a legacy record missing `status`
+      await mockKV.put("subdomain:legacy", JSON.stringify({
+        ownerId: "user_old",
+        claimedAt: "2025-01-01T00:00:00Z",
+      }));
+      const result = await kv.getSubdomain("legacy");
+      expect(result?.status).toBe('active');
+      expect(result?.collaborators).toEqual([]);
+    });
+
+    it("preserves frozen status on read", async () => {
+      await kv.putSubdomain("frozen-site", {
+        ownerId: "user_abc",
+        claimedAt: "2026-02-08T00:00:00Z",
+        collaborators: [],
+        status: 'frozen',
+        frozenAt: '2026-02-10T00:00:00Z',
+      });
+      const result = await kv.getSubdomain("frozen-site");
+      expect(result?.status).toBe('frozen');
+      expect(result?.frozenAt).toBe('2026-02-10T00:00:00Z');
     });
 
     it("deletes a subdomain record", async () => {

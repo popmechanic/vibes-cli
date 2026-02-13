@@ -142,12 +142,6 @@
         }
       }
 
-      async function getSubdomainOwner(subdomain) {
-        const registry = await fetchRegistry();
-        const normalized = subdomain.toLowerCase().trim();
-        return registry.claims?.[normalized]?.userId || registry.preallocated?.[normalized] || null;
-      }
-
       // === Route Detection ===
       function getRouteInfo() {
         const hostname = window.location.hostname;
@@ -386,28 +380,6 @@
         );
       }
 
-      // === Existing Subdomain Redirect (shown when user already has a space) ===
-      function ExistingSubdomainRedirect({ userSubdomains }) {
-        const ownedSub = userSubdomains[0];
-        const targetUrl = needsQueryParamRouting()
-          ? `${window.location.origin}?subdomain=${ownedSub}`
-          : `https://${ownedSub}.${APP_DOMAIN}`;
-
-        return (
-          <AuthScreen
-            title="You Already Have a Space"
-            message={`Your subdomain is ${ownedSub}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`}
-            showCard={true}
-          >
-            <a href={targetUrl} style={{ textDecoration: 'none' }}>
-              <VibesButton variant={RED} buttonType="form">
-                Go to My App
-              </VibesButton>
-            </a>
-          </AuthScreen>
-        );
-      }
-
       // === Subscription Gate using explicit has() check ===
       // Deny-by-default: non-admin users without a plan see SubscriptionPaywall
       // COUPLING: Worker accepts any non-free plan slug via JWT pla claim.
@@ -433,16 +405,19 @@
         return children;
       }
 
-      // === Not Owner Redirect ===
-      function NotOwnerRedirect({ subdomain }) {
+      // === Access Denied ===
+      function AccessDenied({ subdomain }) {
+        const displayDomain = `${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`;
+        const landingUrl = needsQueryParamRouting() ? window.location.origin : `https://${APP_DOMAIN}`;
+
         return (
           <AuthScreen
             title="Access Denied"
-            message={`${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN} belongs to another user.`}
+            message={`${displayDomain} belongs to another user.`}
             showCard={true}
             isError={true}
           >
-            <a href={needsQueryParamRouting() ? window.location.origin : `https://${APP_DOMAIN}`} style={{ textDecoration: 'none' }}>
+            <a href={landingUrl} style={{ textDecoration: 'none' }}>
               <VibesButton variant={YELLOW} buttonType="form">
                 Get Your Own
               </VibesButton>
@@ -465,15 +440,30 @@
         );
       }
 
-      function ClaimedSubdomainGate({ subdomain, ownerId }) {
+      // === Unified Access Gate (single /resolve call replaces multi-gate cascade) ===
+      function UnifiedAccessGate({ subdomain }) {
         const { user, isLoaded } = window.useUser();
-        const [accessState, setAccessState] = useState({ loading: true, hasAccess: false, role: 'none' });
+        const { has } = window.useAuth ? window.useAuth() : {};
+        const [state, setState] = useState({ phase: 'init', role: null, frozen: false, error: null });
+        const resolvedRef = useRef(false);
+
+        // Hook must be called unconditionally (Rules of Hooks)
+        window.useVibesPanelEvents('Sell');
+
         const fpCtx = typeof window.useClerkFireproofContext === 'function'
           ? window.useClerkFireproofContext() : null;
         const dashApi = fpCtx && fpCtx.dashApi;
 
+        // Reset resolution state when user identity changes (e.g., sign-in after anonymous visit)
         useEffect(() => {
-          // Read ledger ID: URL param first, then localStorage fallback
+          resolvedRef.current = false;
+          setState({ phase: 'init', role: null, frozen: false, error: null });
+        }, [user?.id]);
+
+        useEffect(() => {
+          if (!isLoaded || resolvedRef.current) return;
+
+          // Read shared ledger context from URL/localStorage
           const urlLedger = new URLSearchParams(window.location.search).get('ledger');
           const storageKey = `vibes-shared-ledger-${subdomain}`;
           if (urlLedger) {
@@ -484,148 +474,124 @@
             if (stored) window.__VIBES_SHARED_LEDGER__ = stored;
           }
 
-          // Don't make access decisions until Clerk has loaded user data
-          if (!isLoaded) return;
-
-          // Owner fast path — no fetch needed
-          if (user?.id === ownerId) {
-            setAccessState({ loading: false, hasAccess: true, role: 'owner' });
+          // Not signed in — still need to know if subdomain is claimed
+          if (!user?.id) {
+            fetch(registryApiUrl(`/resolve/${subdomain}`))
+              .then(res => res.json())
+              .then(data => {
+                resolvedRef.current = true;
+                setState({ phase: 'resolved', role: data.role || 'none', frozen: data.frozen || false, error: null });
+              })
+              .catch(() => {
+                resolvedRef.current = true;
+                setState({ phase: 'error', role: null, frozen: false, error: 'Failed to resolve access' });
+              });
             return;
           }
-          // Non-owner: check access via API
-          if (user?.id) {
-            fetch(registryApiUrl(`/check/${subdomain}/access?userId=${user.id}`))
-              .then(res => res.json())
-              .then(async (data) => {
-                if (data.hasAccess) {
-                  // Redeem Connect invite for collaborators (retry path for pre-fix users)
-                  if (data.role === 'collaborator' && dashApi) {
-                    try {
-                      await dashApi.redeemInvite({});
-                      console.log('[ClaimedSubdomainGate] Connect invite redeemed (existing collab)');
-                    } catch (e) { /* non-fatal */ }
-                  }
-                  setAccessState({ loading: false, hasAccess: true, role: data.role });
-                  return;
-                }
-                // Access denied — try auto-join if user has an email-based invite
-                const email = user.primaryEmailAddress?.emailAddress;
-                if (email) {
-                  try {
-                    const token = await window.Clerk?.session?.getToken();
-                    if (token) {
-                      const joinRes = await fetch(registryApiUrl('/join'), {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({ subdomain, email })
-                      });
-                      if (joinRes.ok) {
-                        // Redeem Connect invite to create LedgerUsers row (enables sync)
-                        if (dashApi) {
-                          try {
-                            const rRedeem = await dashApi.redeemInvite({});
-                            console.log('[vibes-debug] redeemInvite result:', JSON.stringify(rRedeem.isOk() ? rRedeem.Ok() : rRedeem.Err()));
-                            if (rRedeem.isOk()) {
-                              console.log('[ClaimedSubdomainGate] Connect invite redeemed');
-                            } else {
-                              console.warn('[ClaimedSubdomainGate] redeemInvite failed (sync may not work)', rRedeem.Err());
-                            }
-                          } catch (redeemErr) {
-                            console.warn('[ClaimedSubdomainGate] redeemInvite error (non-fatal)', redeemErr.message);
-                          }
-                        }
-                        console.log('[ClaimedSubdomainGate] Auto-joined as collaborator', { email, subdomain });
-                        setAccessState({ loading: false, hasAccess: true, role: 'collaborator' });
-                        return;
-                      }
+
+          // Step 1: Check JWT custom claims for instant resolution
+          // Only use JWT shortcut for owners (can derive frozen from their own plan).
+          // Collaborators must hit /resolve — their own plan doesn't reflect the owner's billing state.
+          const vibesClaims = user.publicMetadata?.vibes_subdomains;
+          if (vibesClaims && vibesClaims[subdomain]) {
+            const claim = vibesClaims[subdomain];
+            if (claim.role === 'owner') {
+              resolvedRef.current = true;
+              const isFrozen = has && has({ plan: 'starter' }) === false && BILLING_MODE === 'required';
+              setState({ phase: 'resolved', role: 'owner', frozen: isFrozen, error: null });
+              return;
+            }
+            // Collaborator claim exists but we can't trust frozen state from JWT — fall through to /resolve
+          }
+
+          // Step 2: Fall back to /resolve endpoint
+          const email = user.primaryEmailAddress?.emailAddress;
+          let resolveUrl = registryApiUrl(`/resolve/${subdomain}?userId=${user.id}`);
+          if (email) resolveUrl += `&email=${encodeURIComponent(email)}`;
+
+          const headers = {};
+          window.Clerk?.session?.getToken().then(token => {
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            return fetch(resolveUrl, { headers });
+          }).catch(() => fetch(resolveUrl)).then(res => res.json())
+          .then(async (data) => {
+            let role = data.role;
+            const frozen = data.frozen || false;
+
+            // Step 3: Handle 'invited' — auto-join
+            if (role === 'invited') {
+              try {
+                const token = await window.Clerk?.session?.getToken();
+                if (token) {
+                  const joinRes = await fetch(registryApiUrl('/join'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ subdomain, email })
+                  });
+                  if (joinRes.ok) {
+                    role = 'collaborator';
+                    if (dashApi) {
+                      try { await dashApi.redeemInvite({}); } catch(e) { /* non-fatal */ }
                     }
-                  } catch (joinErr) {
-                    console.warn('[ClaimedSubdomainGate] Auto-join failed', { error: joinErr.message });
                   }
                 }
-                // Genuine denial
-                console.warn('[ClaimedSubdomainGate] Access denied', { userId: user.id, ownerId, subdomain });
-                setAccessState({ loading: false, hasAccess: false, role: 'none' });
-              })
-              .catch((err) => {
-                console.error('[ClaimedSubdomainGate] Access check failed', { error: err.message });
-                setAccessState({ loading: false, hasAccess: false, role: 'error' });
-              });
-          } else {
-            console.warn('[ClaimedSubdomainGate] No user.id after Clerk loaded', { isLoaded, user, ownerId });
-            setAccessState({ loading: false, hasAccess: false, role: 'none' });
-          }
-        }, [isLoaded, user?.id, subdomain, ownerId, dashApi]);
+              } catch (e) {
+                console.warn('[UnifiedAccessGate] Auto-join failed:', e.message);
+              }
+            }
 
-        if (accessState.loading) {
-          return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Setting up your access...</div>;
-        }
+            // Retry Connect invite redemption for existing collaborators
+            if (role === 'collaborator' && dashApi) {
+              try { await dashApi.redeemInvite({}); } catch(e) { /* non-fatal */ }
+            }
 
-        if (!accessState.hasAccess) {
-          if (accessState.role === 'error') {
-            return (
-              <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
-                <p>Could not verify access. Check your connection and try again.</p>
-                <button onClick={() => setAccessState({ loading: true, hasAccess: false, role: 'none' })} style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>
-                  Retry
-                </button>
-              </div>
-            );
-          }
-          return <NotOwnerRedirect subdomain={subdomain} />;
-        }
-
-        // Both owner and collaborator proceed to the app
-        return (
-          <SubscriptionGate subdomain={subdomain}>
-            <TenantProvider subdomain={subdomain}>
-              <SharingBridge />
-              <HiddenMenuWrapper menuContent={<VibesPanel />}>
-                <App />
-              </HiddenMenuWrapper>
-            </TenantProvider>
-          </SubscriptionGate>
-        );
-      }
-
-      // === Tenant App Wrapper ===
-      function TenantApp({ subdomain }) {
-        const [claimState, setClaimState] = useState({ loading: true, owner: null });
-        const { SignedIn, SignedOut } = window.ClerkComponents || {};
-
-        // Hook must be called unconditionally at top of component (Rules of Hooks)
-        window.useVibesPanelEvents('Sell');
-
-        useEffect(() => {
-          getSubdomainOwner(subdomain).then(owner => {
-            setClaimState({ loading: false, owner });
+            resolvedRef.current = true;
+            setState({ phase: 'resolved', role, frozen, error: null });
+          })
+          .catch((err) => {
+            resolvedRef.current = true;
+            setState({ phase: 'error', role: null, frozen: false, error: err.message });
           });
-        }, [subdomain]);
+        }, [isLoaded, user?.id, subdomain, dashApi]);
 
-        // Guard against undefined Clerk components (after all hooks)
+        // --- Render based on state ---
+
+        const { SignedIn, SignedOut } = window.ClerkComponents || {};
         if (!SignedIn || !SignedOut) {
           return <LoadingError error="Clerk components not loaded. Please refresh the page." />;
         }
 
-        if (claimState.loading) {
+        // Loading state with delayed fade-in
+        if (state.phase === 'init') {
           return (
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="text-gray-500">Loading...</div>
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, animation: 'vibesDelayedFadeIn 0.3s ease 0.2s forwards' }}>
+              <div style={{ color: '#94a3b8' }}>Loading...</div>
             </div>
           );
         }
 
-        const onClaimSuccess = (userId) => {
-          setClaimState({ loading: false, owner: userId });
-        };
+        // Error state
+        if (state.phase === 'error') {
+          return (
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
+              <p>Could not verify access. Check your connection and try again.</p>
+              <button onClick={() => { resolvedRef.current = false; setState({ phase: 'init', role: null, frozen: false, error: null }); }} style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>
+                Retry
+              </button>
+            </div>
+          );
+        }
 
-        // Subdomain is unclaimed
-        if (!claimState.owner) {
+        // Resolved states
+        const { role, frozen } = state;
+
+        // Unclaimed subdomain
+        if (role === 'unclaimed') {
           return (
             <>
               <SignedIn>
                 <SubscriptionGate subdomain={subdomain}>
-                  <ClaimPromptWrapper subdomain={subdomain} onClaimSuccess={onClaimSuccess} />
+                  <ClaimPromptWrapper subdomain={subdomain} onClaimSuccess={() => { resolvedRef.current = false; setState({ phase: 'init', role: null, frozen: false, error: null }); }} />
                 </SubscriptionGate>
               </SignedIn>
               <SignedOut>
@@ -635,17 +601,102 @@
           );
         }
 
-        // Subdomain is claimed - check ownership first, then subscription
+        // Owner or collaborator with frozen subdomain
+        if ((role === 'owner' || role === 'collaborator') && frozen) {
+          return (
+            <>
+              <SignedIn>
+                <ResubscribePaywall subdomain={subdomain} role={role} />
+              </SignedIn>
+              <SignedOut>
+                <AuthGate />
+              </SignedOut>
+            </>
+          );
+        }
+
+        // Owner or collaborator with active subdomain — show the app
+        if (role === 'owner' || role === 'collaborator') {
+          return (
+            <>
+              <SignedIn>
+                <TenantProvider subdomain={subdomain}>
+                  <SharingBridge />
+                  <HiddenMenuWrapper menuContent={<VibesPanel />}>
+                    <App />
+                  </HiddenMenuWrapper>
+                </TenantProvider>
+              </SignedIn>
+              <SignedOut>
+                <AuthGate />
+              </SignedOut>
+            </>
+          );
+        }
+
+        // No access
         return (
           <>
             <SignedIn>
-              <ClaimedSubdomainGate subdomain={subdomain} ownerId={claimState.owner} />
+              <AccessDenied subdomain={subdomain} />
             </SignedIn>
             <SignedOut>
               <AuthGate />
             </SignedOut>
           </>
         );
+      }
+
+      // === Resubscribe Paywall (shown when subdomain is frozen) ===
+      function ResubscribePaywall({ subdomain, role }) {
+        const { PricingTable } = window.ClerkComponents || {};
+        const displayDomain = `${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`;
+
+        if (role === 'owner') {
+          if (PricingTable) {
+            return (
+              <div style={{
+                minHeight: '100vh', display: 'flex', flexDirection: 'column',
+                justifyContent: 'center', alignItems: 'center', padding: '2rem',
+                background: '#ECECEC', fontFamily: "'Space Grotesk', 'Inter', sans-serif",
+              }}>
+                <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 700, letterSpacing: '-0.04em', marginBottom: '0.5rem', textAlign: 'center' }}>
+                  Your subscription has expired
+                </h2>
+                <p style={{ color: '#666', marginBottom: '0.5rem', textAlign: 'center', fontSize: '1.1rem' }}>
+                  Resubscribe to restore access to {displayDomain}.
+                </p>
+                <p style={{ color: '#10b981', marginBottom: '2rem', textAlign: 'center', fontSize: '0.95rem' }}>
+                  Your data is safe and will be restored instantly.
+                </p>
+                <div style={{ width: '100%', maxWidth: '600px' }}>
+                  <PricingTable newSubscriptionRedirectUrl={window.location.href} />
+                </div>
+              </div>
+            );
+          }
+          return (
+            <AuthScreen title="Subscription Expired" message="Your subscription has expired. Resubscribe to restore access. Your data is safe." showCard={true}>
+              <a href="https://accounts.clerk.dev/user/billing" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <VibesButton variant={RED} buttonType="form">Manage Subscription</VibesButton>
+              </a>
+            </AuthScreen>
+          );
+        }
+
+        // Collaborator sees "ask the owner" message
+        return (
+          <AuthScreen title="App Paused" message={`${displayDomain} is currently paused. Ask the owner to resubscribe to restore access. Your data is safe.`} showCard={true}>
+            <div style={{ textAlign: 'center', color: '#666', fontSize: '0.875rem' }}>
+              The subscription for this app has expired.
+            </div>
+          </AuthScreen>
+        );
+      }
+
+      // === Tenant App Wrapper ===
+      function TenantApp({ subdomain }) {
+        return <UnifiedAccessGate subdomain={subdomain} />;
       }
 
       // === Admin Dashboard Content (uses useUser hook) ===

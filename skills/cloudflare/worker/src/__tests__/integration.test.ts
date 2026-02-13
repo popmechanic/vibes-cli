@@ -123,6 +123,7 @@ describe("Registry Worker Integration", () => {
       const data = await res.json();
       expect(data.hasAccess).toBe(false);
       expect(data.role).toBe("none");
+      expect(data.frozen).toBe(false);
     });
 
     it("returns owner access", async () => {
@@ -135,6 +136,7 @@ describe("Registry Worker Integration", () => {
       const data = await res.json();
       expect(data.hasAccess).toBe(true);
       expect(data.role).toBe("owner");
+      expect(data.frozen).toBe(false);
     });
 
     it("returns collaborator access for active collaborator", async () => {
@@ -158,6 +160,7 @@ describe("Registry Worker Integration", () => {
       const data = await res.json();
       expect(data.hasAccess).toBe(true);
       expect(data.role).toBe("collaborator");
+      expect(data.frozen).toBe(false);
     });
 
     it("returns no access for non-member", async () => {
@@ -169,6 +172,26 @@ describe("Registry Worker Integration", () => {
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.hasAccess).toBe(false);
+      expect(data.frozen).toBe(false);
+    });
+
+    it("returns frozen=true for frozen subdomain", async () => {
+      mockKV._store.set(
+        "subdomain:mysite",
+        JSON.stringify({
+          ownerId: "user_1",
+          claimedAt: "2025-01-01",
+          collaborators: [],
+          status: "frozen",
+          frozenAt: "2025-02-01T00:00:00Z",
+        })
+      );
+      const res = await app.request("/check/mysite/access?userId=user_1", {}, makeMockEnv());
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.frozen).toBe(true);
+      expect(data.role).toBe("owner");
+      expect(data.hasAccess).toBe(true);
     });
   });
 

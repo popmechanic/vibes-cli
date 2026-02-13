@@ -2,6 +2,7 @@ export interface Env {
   REGISTRY_KV: KVNamespace;
   CLERK_PEM_PUBLIC_KEY: string;
   CLERK_WEBHOOK_SECRET: string;
+  CLERK_SECRET_KEY?: string;
   PERMITTED_ORIGINS?: string;
   RESERVED_SUBDOMAINS?: string;
   OPENROUTER_API_KEY?: string;
@@ -24,6 +25,8 @@ export interface SubdomainRecord {
   ownerId: string;
   claimedAt: string;
   collaborators: Collaborator[];
+  status: 'active' | 'frozen';
+  frozenAt?: string;
 }
 
 export interface UserRecord {
