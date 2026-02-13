@@ -16,6 +16,10 @@ import type { Registry } from "./registry-logic";
 
 const LEGACY_KEY = "registry";
 
+function normalizeRecord(raw: any): SubdomainRecord {
+  return { ...raw, status: raw.status || 'active', collaborators: raw.collaborators || [] };
+}
+
 export class RegistryKV {
   constructor(private kv: KVNamespace) {}
 
@@ -24,7 +28,7 @@ export class RegistryKV {
   async getSubdomain(subdomain: string): Promise<SubdomainRecord | null> {
     const data = await this.kv.get(`subdomain:${subdomain}`);
     if (!data) return null;
-    return JSON.parse(data);
+    return normalizeRecord(JSON.parse(data));
   }
 
   async putSubdomain(
@@ -120,6 +124,7 @@ export class RegistryKV {
         ownerId: claim.userId,
         claimedAt: claim.claimedAt,
         collaborators: [],
+        status: 'active',
       };
       await this.putSubdomain(subdomain, record);
 
