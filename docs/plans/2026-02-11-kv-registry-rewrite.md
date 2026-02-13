@@ -39,7 +39,7 @@ Value: {
 }
 
 Key: "user:user_abc123"
-Value: { subdomains: ["alice"], quota: 3 }
+Value: { subdomains: ["alice"], ownedSubdomains: ["alice"], quota: 3 }
 
 Key: "config:reserved"
 Value: ["admin", "api", "www"]
@@ -62,7 +62,7 @@ The `subdomain:` key is authoritative. The `user:` key is a secondary index (can
 
 | Endpoint | What Changed |
 |----------|-------------|
-| `POST /claim` | Writes per-key `subdomain:<name>` + `user:<userId>` instead of blob |
+| `POST /claim` | Writes per-key `subdomain:<name>` + `user:<userId>` instead of blob; enforces per-plan quota (0.1.59) |
 | `GET /check/:subdomain` | Reads per-key instead of blob |
 | `GET /registry.json` | Reconstructs old format from `kv.list({ prefix: 'subdomain:' })` |
 | `POST /webhook` | Reads `user:<userId>` to find subdomains, deletes each per-key |
@@ -142,7 +142,7 @@ The `registryApiUrl()` helper in the sell delta uses relative paths as fallback,
 
 ## Testing
 
-507 tests pass (425 scripts + 82 worker).
+561 tests pass (425 scripts + 136 worker).
 
 ### E2E Verified on https://vibes-test.marcus-e.workers.dev
 
@@ -160,3 +160,4 @@ The `registryApiUrl()` helper in the sell delta uses relative paths as fallback,
 1. **exe.dev sell apps need a separately-deployed CF Worker** — no auto-provisioning yet. Pass `--registry-url` to deploy-exe.js.
 2. **Full invite-join-gate loop** depends on upstream `redeemInvite` fix in Fireproof Connect (Dashboard returns success but doesn't create LedgerUsers row). The KV side works (`POST /invite` writes, `POST /join` activates, gate checks access), but the browser flow stalls at invite redemption.
 3. **KV eventual consistency** — two users claiming the same subdomain simultaneously could theoretically both succeed. Single-threaded Worker isolate mitigates this in practice. Upgrade to Durable Objects for strict consistency if needed.
+4. **Per-plan quota enforcement** added in 0.1.59 (`533747a4`). `/claim` checks `PLAN_QUOTAS` env var against user's `ownedSubdomains` count. See `docs/plans/access-control.md` for full details.
