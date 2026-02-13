@@ -1,0 +1,536 @@
+THEME: vault
+NAME: Vault Terminal
+MOOD: Premium, dark, institutional, confident
+
+DESCRIPTION:
+A luxury fintech/trading terminal aesthetic. Deep indigo backgrounds with warm
+gold accents over frosted glass cards. Features orbital animations, ambient
+light orbs, and gradient typography. Feels like a premium private banking
+dashboard or institutional trading interface — sophisticated, high-trust,
+and quietly expensive.
+
+BEST FOR:
+  - Financial dashboards, payment flows, wallet interfaces
+  - Trading/exchange UIs, token swaps, staking panels
+  - Analytics dashboards with KPIs and live data
+  - Onboarding flows, multi-step wizards
+  - Status/monitoring dashboards with real-time updates
+  - Any app that needs to convey trust and authority
+
+NOT FOR:
+  - Playful/casual apps (mood is too serious)
+  - Content-heavy editorial layouts (use archive)
+  - Product showcases with big hero imagery (use industrial)
+  - Bright/colorful creative tools
+
+ADAPTATION NOTES:
+  - If app has TABLES: Use glass-panel cards for table containers. Gold
+    accent on header row. Alternating row backgrounds with subtle opacity.
+    Monospace font for numeric columns.
+  - If app has FORMS: Place inside frosted-glass cards. Gold-bordered
+    focus states on inputs. Group fields into logical sections with
+    subtle dividers. Submit buttons use gold gradient.
+  - If app has LISTS: Each row gets a glass-panel with hover lift. Gold
+    accent for active/selected state. Monospace index numbers.
+  - If app has CHARTS: Dark panel background. Gold for primary data series,
+    purple (#a87ee6) for secondary. Grid lines at --border-subtle opacity.
+  - If app has NO DATA YET: Use ambient orbs + orbital animation as hero
+    visual. Center a glass card with CTA button.
+  - If app has MULTIPLE SECTIONS: Use glass cards on the dark background.
+    Section headers in uppercase technical labels with gold accent bar.
+
+COLOR TOKENS:
+  The vault palette is deeply dark with warm gold highlights. Indigo-tinted
+  blacks give depth. Gold accent is warm (not yellow) and used sparingly.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.12 0.03 280);          /* deep indigo */
+    --comp-text: oklch(0.93 0.02 80);          /* warm white */
+    --comp-border: oklch(0.65 0.15 80 / 0.12); /* gold-tinted border */
+    --comp-accent: oklch(0.72 0.15 75);        /* warm gold */
+    --comp-accent-text: oklch(0.10 0.03 280);  /* deep indigo on gold */
+    --comp-muted: oklch(0.50 0.04 290);        /* muted lavender */
+    --color-background: oklch(0.08 0.03 280);  /* deepest indigo */
+    --grid-color: oklch(1 0 0 / 0.04);         /* faint white grid */
+  }
+  ```
+
+  Secondary accent (for charts, secondary data, decorative elements):
+  ```css
+  --comp-accent-secondary: oklch(0.55 0.18 300); /* soft purple */
+  ```
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the vault aesthetic.
+  Study the patterns (glass effects, gold accents, ambient depth) to
+  understand the mood, then design your own version for each app.
+
+  ```css
+  /* ── Vault Layout ── */
+  .layout-wrapper {
+    min-height: 100vh;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: var(--color-background);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ── Ambient Background ── */
+  .ambient-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .ambient-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.25;
+  }
+  .orb-gold {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, var(--comp-accent) 0%, transparent 70%);
+    top: -15%;
+    right: -5%;
+    animation: drift 12s ease-in-out infinite;
+  }
+  .orb-purple {
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle, var(--comp-accent-secondary) 0%, transparent 70%);
+    bottom: -10%;
+    left: -5%;
+    animation: drift 15s ease-in-out infinite reverse;
+  }
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-30px, 20px); }
+  }
+
+  /* ── Subtle Grid ── */
+  .grid-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background-image:
+      linear-gradient(var(--grid-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 80px 80px;
+    opacity: 0.5;
+    z-index: 1;
+  }
+
+  /* ── Nav Bar ── */
+  .nav-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 1.25rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    background: linear-gradient(180deg, var(--color-background) 0%, transparent 100%);
+  }
+  .nav-logo {
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: -0.03em;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .nav-logo::before {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background: var(--comp-accent);
+    border-radius: 2px;
+    transform: rotate(45deg);
+    box-shadow: 0 0 12px var(--comp-accent);
+  }
+  .nav-link {
+    color: var(--comp-muted);
+    text-decoration: none;
+    font-size: 0.85rem;
+    transition: color 0.3s;
+  }
+  .nav-link:hover {
+    color: var(--comp-accent);
+  }
+
+  /* ── Glass Card ── */
+  .glass-card {
+    background: oklch(0.12 0.03 280 / 0.7);
+    backdrop-filter: blur(24px);
+    border: 1px solid var(--comp-border);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow:
+      0 24px 64px oklch(0 0 0 / 0.5),
+      0 0 0 1px oklch(0.72 0.15 75 / 0.05),
+      inset 0 1px 0 oklch(1 0 0 / 0.04);
+    position: relative;
+    z-index: 10;
+  }
+
+  /* ── Glass Card Corner Accents ── */
+  .glass-card::before,
+  .glass-card::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-color: var(--comp-accent);
+    opacity: 0.3;
+  }
+  .glass-card::before {
+    top: -1px;
+    left: -1px;
+    border-top: 1px solid;
+    border-left: 1px solid;
+    border-radius: 20px 0 0 0;
+  }
+  .glass-card::after {
+    bottom: -1px;
+    right: -1px;
+    border-bottom: 1px solid;
+    border-right: 1px solid;
+    border-radius: 0 0 20px 0;
+  }
+
+  /* ── Technical Labels ── */
+  .tech-label {
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--comp-muted);
+    font-weight: 500;
+  }
+
+  /* ── Stat Block ── */
+  .stat-value {
+    font-family: "Space Mono", monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 2rem;
+    font-weight: 500;
+    color: var(--comp-accent);
+  }
+  .stat-row {
+    display: flex;
+    gap: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--comp-border);
+  }
+
+  /* ── Input Fields ── */
+  .vault-input {
+    background: transparent;
+    border: none;
+    color: var(--comp-text);
+    font-size: 2rem;
+    font-weight: 500;
+    width: 100%;
+    font-family: "Space Mono", monospace;
+    outline: none;
+  }
+  .vault-input:focus {
+    caret-color: var(--comp-accent);
+  }
+
+  /* ── Badges ── */
+  .vault-badge {
+    font-size: 0.8rem;
+    color: var(--comp-accent);
+    font-weight: 600;
+    background: oklch(0.72 0.15 75 / 0.1);
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid var(--comp-border);
+    letter-spacing: 0.05em;
+  }
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: oklch(0.72 0.15 75 / 0.08);
+    border-radius: 6px;
+    border: 1px solid var(--comp-border);
+  }
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--comp-accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--comp-accent);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* ── Primary Button ── */
+  .btn-vault {
+    background: linear-gradient(135deg, var(--comp-accent), oklch(0.65 0.15 65));
+    color: var(--comp-accent-text);
+    border: none;
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-vault::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.2), transparent);
+    transition: left 0.5s ease;
+  }
+  .btn-vault:hover::before {
+    left: 100%;
+  }
+  .btn-vault:hover {
+    box-shadow: 0 8px 32px oklch(0.72 0.15 75 / 0.35);
+    transform: translateY(-2px);
+  }
+
+  /* ── Secondary Button ── */
+  .btn-vault-secondary {
+    background: oklch(1 0 0 / 0.08);
+    color: var(--comp-text);
+    border: 1px solid oklch(1 0 0 / 0.1);
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .btn-vault-secondary:hover {
+    background: oklch(1 0 0 / 0.15);
+    border-color: oklch(1 0 0 / 0.2);
+  }
+
+  /* ── List Rows ── */
+  .vault-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--comp-border);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border-radius: 8px;
+    margin-bottom: 2px;
+  }
+  .vault-row:hover {
+    background: oklch(0.72 0.15 75 / 0.06);
+    transform: translateX(4px);
+  }
+
+  /* ── Dividers ── */
+  .vault-divider {
+    height: 1px;
+    background: var(--comp-border);
+    margin: 1rem 0;
+  }
+  .vault-divider-diamond {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: -0.5rem 0;
+    position: relative;
+    z-index: 1;
+  }
+  .vault-divider-diamond::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: var(--comp-accent);
+    transform: rotate(45deg);
+    opacity: 0.4;
+  }
+
+  /* ── Dashboard Grid ── */
+  .vault-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    position: relative;
+    z-index: 10;
+  }
+
+  /* ── Hero Typography ── */
+  .vault-hero-text {
+    font-size: clamp(3rem, 8vw, 5rem);
+    font-weight: 600;
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--comp-text) 0%, var(--comp-accent) 50%, oklch(0.65 0.15 65) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% 200%;
+    animation: shimmer 6s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  /* ── Mobile Responsive ── */
+  @media (max-width: 768px) {
+    .layout-wrapper {
+      padding: 1rem;
+    }
+    .vault-grid {
+      grid-template-columns: 1fr;
+    }
+    .stat-row {
+      flex-wrap: wrap;
+      gap: 1.5rem;
+    }
+    .vault-hero-text {
+      font-size: 2.5rem;
+    }
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - Generous border-radius (12-24px) — smooth, premium feel
+  - Glass morphism: backdrop-filter blur on cards, semi-transparent backgrounds
+  - Gold is the ONLY color accent — used sparingly for emphasis
+  - Purple is a secondary atmospheric color (orbs, secondary data), never interactive
+  - Warm whites (not pure #fff) — always slightly cream/parchment tinted
+  - Borders are gold-tinted at very low opacity, not pure gray
+  - Depth through layering: ambient orbs → grid → cards → content
+  - Monospace for all numeric values (prices, rates, stats)
+  - Uppercase technical labels with wide letter-spacing for metadata
+  - Corner accent borders on glass cards (subtle gold at two diagonal corners)
+  - No heavy borders — everything is airy and atmospheric
+  - Dark mode ONLY — this theme does not work on light backgrounds
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. Vary the layout, card arrangement, and
+  decorative elements based on the app's content.
+
+  ```jsx
+  function App() {
+    return (
+      <div className="layout-wrapper">
+        {/* Ambient depth */}
+        <div className="ambient-bg">
+          <div className="ambient-orb orb-gold" />
+          <div className="ambient-orb orb-purple" />
+        </div>
+        <div className="grid-bg" />
+
+        {/* Nav */}
+        <nav className="nav-bar">
+          <div className="nav-logo">APP_NAME</div>
+          <div style={{ display: "flex", gap: "2rem" }}>
+            <a className="nav-link" href="#">Section 1</a>
+            <a className="nav-link" href="#">Section 2</a>
+          </div>
+          <button className="btn-vault-secondary">Connect</button>
+        </nav>
+
+        {/* Hero */}
+        <section style={{ textAlign: "center", paddingTop: "8rem", position: "relative", zIndex: 10 }}>
+          <div className="status-badge" style={{ marginBottom: "1.5rem" }}>
+            <div className="status-dot" />
+            <span className="tech-label" style={{ color: "var(--comp-accent)" }}>LIVE</span>
+          </div>
+          <h1 className="vault-hero-text">
+            MAIN HEADING
+          </h1>
+          <p style={{ color: "var(--comp-muted)", maxWidth: 420, margin: "1.5rem auto" }}>
+            Subheading description text goes here.
+          </p>
+        </section>
+
+        {/* Content Grid */}
+        <div className="vault-grid" style={{ marginTop: "3rem" }}>
+          <div className="glass-card">
+            <span className="tech-label">SECTION</span>
+            <div className="stat-value">42.5k</div>
+            {/* Card content */}
+          </div>
+
+          <div className="glass-card">
+            <span className="tech-label">ACTIVITY</span>
+            {items.map((item, i) => (
+              <div key={item._id} className="vault-row">
+                <span style={{ fontFamily: "monospace", opacity: 0.4 }}>
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span>{item.name}</span>
+                <span className="vault-badge">{item.status}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Fixed CTA */}
+        <div style={{ position: "fixed", bottom: "2rem", left: "50%", transform: "translateX(-50%)", zIndex: 50 }}>
+          <button className="btn-vault" onClick={handleAction}>
+            Primary Action
+          </button>
+        </div>
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like a private bank's client portal. Everything whispers
+  money — the gold is warm but never gaudy, the glass cards float over deep
+  space, the ambient orbs breathe slowly like a sleeping vault. Numbers are
+  monospace and precise. Labels are tiny, uppercase, and serious. The visual
+  interest comes from depth and layering (orbs behind grid behind cards),
+  gold gradient text that shimmers, and the tension between the vast dark
+  background and the intimate frosted-glass cards. Each vault app should
+  feel like it was designed for someone who doesn't need to ask the price.
+
+ANIMATIONS:
+  Vault theme uses SLOW, CONFIDENT animations:
+  - Ambient orbs: drift 12-15s ease-in-out infinite (barely perceptible)
+  - Hero text: shimmer gradient shift 6s ease-in-out infinite
+  - Status dot: pulse opacity 2s ease-in-out infinite
+  - Button hover: shine sweep pseudo-element 0.5s + translateY(-2px)
+  - Card hover: subtle lift with expanding gold glow shadow
+  - List row hover: translateX(4px) shift + gold-tinted background
+  - Page load: fade-up cards with stagger (200ms apart, 0.6s duration)
+  - Everything is smooth and unhurried — never snappy or mechanical
+
+SVG ELEMENTS:
+  Vault theme uses MINIMAL, GEOMETRIC SVGs:
+  - Diamond shapes (rotated squares) as markers and dividers
+  - Thin-stroke chevrons and arrows for navigation
+  - Simple status indicators (dots, rings)
+  - Optional: orbital ring decorations around hero elements
+  - Do NOT use thick borders, crosshairs, or technical HUD elements
+  - Keep strokes thin (1-1.5px) and colors at --comp-accent or --comp-muted
+  - Use currentColor for flexibility, gold for emphasis

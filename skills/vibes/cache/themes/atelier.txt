@@ -1,0 +1,529 @@
+THEME: atelier
+NAME: Atelier Studio
+MOOD: Warm, cinematic, refined, sensory
+
+DESCRIPTION:
+A warm creative studio aesthetic with parchment backgrounds, burnt orange
+accents, and Three.js point cloud visuals. Features a selective blur layer
+that follows the cursor (revealing sharp 3D content underneath), custom
+crosshair cursor with accent-colored dot and trailing circle, noise texture
+overlay, and serif/script typography. Feels like a high-end creative agency
+portfolio or a film studio's website — warm, tactile, and deeply sensory.
+The interaction model is exploratory: the cursor becomes a lens revealing
+detail through a blur mask.
+
+BEST FOR:
+  - Creative agency/studio portfolios
+  - Photography and film showcase sites
+  - Art gallery and exhibition pages
+  - Brand identity presentations
+  - Architecture and design firm sites
+  - Luxury product launches
+  - Any app that should feel like a curated experience
+
+NOT FOR:
+  - Data-heavy dashboards (warm palette distracts from data)
+  - CRUD/form-heavy apps (no form patterns in the aesthetic)
+  - Developer tools or technical interfaces (too artistic)
+  - Fast-paced consumer apps (contemplative mood is too slow)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Avoid tables entirely. Present data as curated
+    cards or specimen entries with serif labels. If unavoidable, use
+    thin borders in muted color with generous padding.
+  - If app has FORMS: Minimal inputs with bottom borders in muted color.
+    Serif labels above. Submit as .btn-primary (filled accent). Keep
+    forms centered and narrow.
+  - If app has LISTS: Present as curated gallery entries. Each item gets
+    generous spacing. Hover reveals detail via opacity/blur transition.
+  - If app has IMAGES: Full-bleed or large format. Apply grayscale or
+    sepia filter with accent color overlay. Use Three.js point clouds
+    for abstract representations.
+  - If app has MULTIPLE SECTIONS: Single full-viewport hero with scroll
+    indicator. Additional sections use generous vertical spacing.
+    Transitions between sections use slow fade/blur animations.
+  - If app has 3D CONTENT: Use Three.js point clouds or particle systems
+    in accent color on parchment background. OrbitControls with auto-rotate.
+
+COLOR TOKENS:
+  The atelier palette is warm and earthy. Parchment background, dark brown
+  text, burnt orange accent. Everything feels sun-warmed and analog.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.95 0.03 70);              /* warm parchment */
+    --comp-text: oklch(0.25 0.04 30);             /* dark brown ink */
+    --comp-border: oklch(0.25 0.04 30 / 0.15);   /* subtle brown border */
+    --comp-accent: oklch(0.65 0.18 55);           /* burnt orange */
+    --comp-accent-text: oklch(1.00 0 0);          /* white on accent */
+    --comp-muted: oklch(0.50 0.04 30);            /* muted brown */
+    --color-background: oklch(0.96 0.03 70);      /* lightest parchment */
+    --grid-color: transparent;                     /* no grid */
+  }
+  ```
+
+  Secondary accent (for glows, hover states):
+  ```css
+  --comp-accent-secondary: oklch(0.60 0.15 40);  /* coral/salmon */
+  --comp-golden: oklch(0.72 0.15 80);             /* warm gold */
+  ```
+
+  For DARK atelier variant (darkroom):
+  ```css
+  :root {
+    --comp-bg: oklch(0.12 0.02 30);
+    --comp-text: oklch(0.90 0.03 70);
+    --comp-border: oklch(0.90 0.03 70 / 0.15);
+    --comp-accent: oklch(0.65 0.18 55);
+    --comp-accent-text: oklch(0.12 0.02 30);
+    --comp-muted: oklch(0.55 0.04 30);
+    --color-background: oklch(0.08 0.02 30);
+  }
+  ```
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the atelier aesthetic.
+  Study the patterns (warm palette, selective blur, custom cursor, serif
+  type, 3D point clouds) to understand the mood, then design your own.
+
+  ```css
+  /* ── Atelier Core ── */
+  /*
+    Load fonts via Google Fonts:
+    @import url('https://fonts.googleapis.com/css2?family=Italianno&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+
+    Font roles:
+    - Playfair Display: headings, brand text (serif, elegant, italic for brand)
+    - Space Mono: labels, metadata, buttons, coordinates (technical contrast)
+    - Italianno: decorative accents, large script flourishes (sparingly)
+  */
+
+  body {
+    background: var(--comp-bg);
+    color: var(--comp-text);
+    font-family: 'Playfair Display', serif;
+    cursor: none;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  .mono {
+    font-family: 'Space Mono', monospace;
+  }
+
+  .script {
+    font-family: 'Italianno', cursive;
+  }
+
+  /* ── Noise Texture Overlay ── */
+  .noise-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3;
+    opacity: 0.15;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+    filter: contrast(120%);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+
+  /* ── Selective Blur Layer ── */
+  /*
+    A full-screen blur layer with a radial mask centered on the cursor.
+    The cursor position clears the blur, revealing sharp content beneath.
+    Update --x and --y via JS on mousemove.
+  */
+  .layer-blur {
+    position: fixed;
+    inset: 0;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 2;
+    pointer-events: none;
+    mask-image: radial-gradient(
+      circle 200px at var(--x, 50%) var(--y, 50%),
+      transparent 0%,
+      black 100%
+    );
+    -webkit-mask-image: radial-gradient(
+      circle 200px at var(--x, 50%) var(--y, 50%),
+      transparent 0%,
+      black 100%
+    );
+  }
+
+  /* ── Custom Cursor ── */
+  .cursor-dot {
+    position: fixed;
+    width: 4px;
+    height: 4px;
+    background: var(--comp-accent);
+    z-index: 9999;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+  .cursor-outline {
+    position: fixed;
+    width: 40px;
+    height: 40px;
+    border: 1px solid oklch(0.65 0.18 55 / 0.4);
+    border-radius: 50%;
+    z-index: 9999;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: width 0.2s, height 0.2s, border-color 0.2s;
+    mix-blend-mode: color-burn;
+  }
+  /* Crosshair lines inside cursor outline */
+  .cursor-outline::before,
+  .cursor-outline::after {
+    content: '';
+    position: absolute;
+    background: var(--comp-accent);
+  }
+  .cursor-outline::before {
+    top: 50%;
+    left: -20%;
+    right: -20%;
+    height: 1px;
+  }
+  .cursor-outline::after {
+    left: 50%;
+    top: -20%;
+    bottom: -20%;
+    width: 1px;
+  }
+  /* Expand cursor on interactive elements */
+  .cursor-hover .cursor-outline {
+    width: 60px;
+    height: 60px;
+    border-color: var(--comp-accent);
+  }
+
+  /* ── Three.js Container ── */
+  .three-container {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+  }
+
+  /* ── UI Layer (over 3D) ── */
+  .ui-layer {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 4rem 5rem;
+    pointer-events: none;
+  }
+
+  /* ── Header ── */
+  .header-atelier {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    border-bottom: 1px solid var(--comp-border);
+    padding-bottom: 1.5rem;
+    pointer-events: auto;
+  }
+  .brand-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    font-style: italic;
+  }
+  .nav-link {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--comp-text);
+    text-decoration: none;
+    transition: color 0.3s, text-shadow 0.3s;
+  }
+  .nav-link:hover {
+    color: var(--comp-accent);
+    text-shadow: 0 0 8px oklch(0.65 0.18 55 / 0.4);
+  }
+
+  /* ── Hero Typography ── */
+  .hero-main {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3.5rem, 7vw, 7rem);
+    line-height: 0.85;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+  .hero-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--comp-accent);
+    text-align: center;
+  }
+
+  /* ── CTA Buttons ── */
+  .btn-atelier {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 1.2rem 2.5rem;
+    border: none;
+    transition: all 0.4s cubic-bezier(0.2, 0, 0.2, 1);
+    text-decoration: none;
+    display: inline-block;
+    cursor: none;
+  }
+  .btn-atelier-primary {
+    background: var(--comp-accent);
+    color: white;
+    font-weight: 700;
+  }
+  .btn-atelier-primary:hover {
+    background: var(--comp-accent-secondary);
+    box-shadow: 0 0 30px oklch(0.65 0.18 55 / 0.4);
+    transform: translateY(-2px);
+  }
+  .btn-atelier-secondary {
+    background: transparent;
+    border: 1px solid var(--comp-border);
+    color: var(--comp-text);
+  }
+  .btn-atelier-secondary:hover {
+    border-color: var(--comp-text);
+    background: oklch(0.65 0.18 55 / 0.08);
+    transform: translateY(-2px);
+  }
+
+  /* ── Coordinates Label ── */
+  .coords-label {
+    font-family: 'Space Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: var(--comp-muted);
+    border-left: 1px solid var(--comp-golden);
+    padding-left: 1rem;
+    line-height: 1.4;
+  }
+  .coords-label::before {
+    content: '||| || | |||';
+    display: block;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
+    color: var(--comp-accent);
+    opacity: 0.8;
+  }
+
+  /* ── Entrance Animation ── */
+  @keyframes fadeInSlow {
+    from { opacity: 0; filter: blur(10px); }
+    to { opacity: 1; filter: blur(0); }
+  }
+  .fade-blur-in {
+    opacity: 0;
+    animation: fadeInSlow 3s cubic-bezier(0.2, 0, 0.2, 1) forwards;
+  }
+
+  /* ── Scroll Indicator ── */
+  .scroll-chevron {
+    width: 15px;
+    height: 15px;
+    border-bottom: 2px solid var(--comp-accent);
+    border-right: 2px solid var(--comp-accent);
+    transform: rotate(45deg);
+  }
+
+  /* ── Mobile Responsive ── */
+  @media (max-width: 768px) {
+    .hero-main {
+      font-size: 3.5rem;
+    }
+    .ui-layer {
+      padding: 2rem;
+    }
+    .coords-label {
+      display: none;
+    }
+    .cursor-dot,
+    .cursor-outline {
+      display: none;
+    }
+    body {
+      cursor: auto;
+    }
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - Warm parchment background — never cool white or stark white
+  - Burnt orange is the ONLY accent color — used for highlights, cursors, CTAs
+  - Serif for headings (Playfair Display), monospace for labels (Space Mono)
+  - Script font (Italianno) used VERY sparingly — only for decorative flourishes
+  - Custom cursor is mandatory: accent-colored dot + trailing crosshair circle
+  - cursor: none on body — the custom cursor replaces the system cursor
+  - Noise texture overlay at low opacity (0.15) with mix-blend-mode: overlay
+  - Selective blur layer following cursor — reveals sharp 3D content underneath
+  - Three.js point clouds in accent color on parchment background
+  - All text in dark brown (not black) for warmth
+  - Borders are thin and muted — never prominent, always warm-tinted
+  - Fade-in animations use blur(10px) → blur(0) for a cinematic reveal
+  - Generous padding (4-5rem) — content floats in space
+  - Full-viewport hero — no scroll initially, content fills the screen
+  - Monospace metadata with barcode-like decorative prefixes
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. Vary the 3D content, typography scale,
+  and interaction patterns based on the app's content.
+
+  ```jsx
+  function App() {
+    const cursorDotRef = React.useRef(null);
+    const cursorOutlineRef = React.useRef(null);
+    const blurLayerRef = React.useRef(null);
+    const threeContainerRef = React.useRef(null);
+
+    // Custom cursor + blur mask
+    React.useEffect(() => {
+      let mouseX = window.innerWidth / 2;
+      let mouseY = window.innerHeight / 2;
+      let cursorX = mouseX, cursorY = mouseY;
+
+      const onMove = (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        if (cursorDotRef.current) {
+          cursorDotRef.current.style.left = `${mouseX}px`;
+          cursorDotRef.current.style.top = `${mouseY}px`;
+        }
+      };
+      document.addEventListener('mousemove', onMove);
+
+      const animate = () => {
+        cursorX += (mouseX - cursorX) * 0.1;
+        cursorY += (mouseY - cursorY) * 0.1;
+        if (cursorOutlineRef.current) {
+          cursorOutlineRef.current.style.left = `${cursorX}px`;
+          cursorOutlineRef.current.style.top = `${cursorY}px`;
+        }
+        if (blurLayerRef.current) {
+          const xPct = (cursorX / window.innerWidth) * 100;
+          const yPct = (cursorY / window.innerHeight) * 100;
+          blurLayerRef.current.style.setProperty('--x', `${xPct}%`);
+          blurLayerRef.current.style.setProperty('--y', `${yPct}%`);
+        }
+        requestAnimationFrame(animate);
+      };
+      animate();
+
+      return () => document.removeEventListener('mousemove', onMove);
+    }, []);
+
+    // Three.js point cloud (see SKILL.md for Three.js setup)
+    React.useEffect(() => {
+      // Initialize Three.js scene with point cloud in accent color
+      // Use OrbitControls with autoRotate for ambient motion
+    }, []);
+
+    return (
+      <div style={{ height: "100vh", width: "100vw", overflow: "hidden", cursor: "none" }}>
+        {/* Three.js canvas */}
+        <div ref={threeContainerRef} className="three-container" />
+
+        {/* Blur + noise layers */}
+        <div className="layer-sharp" />
+        <div ref={blurLayerRef} className="layer-blur" />
+        <div className="noise-overlay" />
+
+        {/* UI content */}
+        <div className="ui-layer">
+          <header className="header-atelier">
+            <span className="brand-text">BRAND</span>
+            <div style={{ display: "flex", gap: "3rem" }}>
+              <a className="nav-link" href="#">Section</a>
+              <a className="nav-link" href="#">About</a>
+            </div>
+          </header>
+
+          <main className="hero-text" style={{
+            position: "absolute",
+            top: "45%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            textAlign: "center",
+            width: "100%"
+          }}>
+            <h1 className="hero-main fade-blur-in" style={{ animationDelay: "0.5s" }}>
+              Main<br />Headline
+            </h1>
+            <p className="hero-sub fade-blur-in" style={{ animationDelay: "1.2s", marginTop: "2rem" }}>
+              Subheading text here
+            </p>
+            <div style={{ display: "flex", gap: "1.5rem", justifyContent: "center", marginTop: "3rem" }}>
+              <a className="btn-atelier btn-atelier-primary" href="#">Primary</a>
+              <a className="btn-atelier btn-atelier-secondary" href="#">Secondary</a>
+            </div>
+          </main>
+
+          <div className="coords-label" style={{ position: "absolute", bottom: "4rem", left: "5rem" }}>
+            EST. 2024 / STUDIO
+          </div>
+        </div>
+
+        {/* Custom cursor */}
+        <div ref={cursorDotRef} className="cursor-dot" />
+        <div ref={cursorOutlineRef} className="cursor-outline" />
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like stepping into a sun-warmed gallery where every
+  surface has texture. The parchment background has visible noise grain.
+  A 3D point cloud rotates slowly in burnt orange, like embers suspended
+  in amber. The blur layer creates a sense of discovery — move the cursor
+  and a window of clarity opens in the haze, revealing the sharp detail
+  beneath. The custom cursor is a precision instrument: a small accent dot
+  leads, a crosshair circle follows with eased lag. Typography is serif
+  and elegant (Playfair Display), while all technical labels are in
+  monospace (Space Mono) — the tension between art and precision. Buttons
+  glow with warm halos on hover. Fade-in animations use blur transitions,
+  as if the content is being developed in a photographic darkroom. Each
+  atelier app should feel like it was crafted in a studio where someone
+  cares about the light falling on every surface.
+
+ANIMATIONS:
+  Atelier theme uses SLOW, CINEMATIC animations:
+  - Fade-blur-in: opacity 0 + blur(10px) → 1 + blur(0), 3s with gentle easing
+  - Three.js auto-rotate: OrbitControls at 0.8 speed (barely perceptible)
+  - Custom cursor: dot instant, outline eased at 0.1 factor (trailing lag)
+  - Blur mask: follows cursor position via CSS custom properties (real-time)
+  - Button hover: translateY(-2px) + glow box-shadow pulse (2s infinite)
+  - Nav hover: color shift + text-shadow glow (0.3s)
+  - Scroll indicator: bounce keyframes (2s infinite)
+  - Entrance stagger: 0.5s, 1.2s, 1.8s delays for hero elements
+  - Everything uses cubic-bezier(0.2, 0, 0.2, 1) — fluid, never snappy
+
+SVG ELEMENTS:
+  Atelier theme uses THREE.JS instead of SVGs for visual content:
+  - Point clouds (PCDLoader or procedural BufferGeometry) in accent color
+  - Particle systems using THREE.Points with small point sizes (0.003)
+  - OrbitControls with damping for smooth interaction
+  - If SVGs are needed: thin decorative lines, accent-colored chevrons
+  - Noise texture is an inline SVG used as CSS background-image
+  - No icons — use monospace text labels instead
+  - No illustrations — use 3D point clouds for abstract visuals
+  - Keep any SVGs extremely minimal and warm-toned
