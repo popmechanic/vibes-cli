@@ -473,6 +473,17 @@
         const dashApi = fpCtx && fpCtx.dashApi;
 
         useEffect(() => {
+          // Read ledger ID: URL param first, then localStorage fallback
+          const urlLedger = new URLSearchParams(window.location.search).get('ledger');
+          const storageKey = `vibes-shared-ledger-${subdomain}`;
+          if (urlLedger) {
+            window.__VIBES_SHARED_LEDGER__ = urlLedger;
+            try { localStorage.setItem(storageKey, urlLedger); } catch(e) {}
+          } else {
+            const stored = localStorage.getItem(storageKey);
+            if (stored) window.__VIBES_SHARED_LEDGER__ = stored;
+          }
+
           // Don't make access decisions until Clerk has loaded user data
           if (!isLoaded) return;
 
@@ -513,6 +524,7 @@
                         if (dashApi) {
                           try {
                             const rRedeem = await dashApi.redeemInvite({});
+                            console.log('[vibes-debug] redeemInvite result:', JSON.stringify(rRedeem.isOk() ? rRedeem.Ok() : rRedeem.Err()));
                             if (rRedeem.isOk()) {
                               console.log('[ClaimedSubdomainGate] Connect invite redeemed');
                             } else {
