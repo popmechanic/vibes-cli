@@ -2745,6 +2745,18 @@ if (typeof window !== 'undefined') {
 
       // __VIBES_APP_CODE__
 
+      // === Module-level gate cache (survives React remounts from ClerkProvider) ===
+      const _gateCache = {};  // keyed by "userId:subdomain", stores { phase, role, frozen }
+
+      // Module-level subdomain check — starts before React renders, immune to remount
+      const _subdomainCheck = { promise: null, result: null };
+      if (routeInfo.route === 'tenant' && routeInfo.subdomain) {
+        _subdomainCheck.promise = fetch(registryApiUrl('/check/' + routeInfo.subdomain))
+          .then(function(r) { return r.json(); })
+          .then(function(d) { _subdomainCheck.result = d; return d; })
+          .catch(function() { _subdomainCheck.result = { available: true }; return _subdomainCheck.result; });
+      }
+
       // === Auth Gate (for signed-out users) ===
       function AuthGate({ onSignUp }) {
         const { SignInButton, SignUpButton } = window.ClerkComponents || {};
@@ -2949,19 +2961,38 @@ if (typeof window !== 'undefined') {
         );
       }
 
-      // === Unified Access Gate (single /resolve call replaces multi-gate cascade) ===
+      // === Unified Access Gate (JWT-primary resolution with module-level cache) ===
       function UnifiedAccessGate({ subdomain }) {
         const { user, isLoaded } = window.useUser();
         const { has } = window.useAuth ? window.useAuth() : {};
-        const [state, setState] = useState({ phase: 'init', role: null, frozen: false, error: null });
-        const resolvedRef = useRef(false);
+
+        // Initialize from cache if available (survives remounts)
+        const [state, setState] = useState(function() {
+          if (user?.id) {
+            var cached = _gateCache[user.id + ':' + subdomain];
+            if (cached && cached.phase === 'resolved') return cached;
+          }
+          // Also check anon cache
+          var anonCached = _gateCache['__anon__:' + subdomain];
+          if (anonCached && anonCached.phase === 'resolved') return anonCached;
+          return { phase: 'init', role: null, frozen: false, error: null };
+        });
+
+        const resolvedForRef = useRef(null);
         const [clerkTimedOut, setClerkTimedOut] = useState(false);
 
-        // Clerk initialization timeout — if isLoaded stays false for 15s, offer reload
-        useEffect(() => {
+        // Write-through setState that caches to module level
+        const setGateState = useCallback(function(newState) {
+          var key = (user?.id || '__anon__') + ':' + subdomain;
+          _gateCache[key] = newState;
+          setState(newState);
+        }, [user?.id, subdomain]);
+
+        // Clerk initialization timeout
+        useEffect(function() {
           if (isLoaded) return;
-          const timer = setTimeout(() => setClerkTimedOut(true), 15000);
-          return () => clearTimeout(timer);
+          var timer = setTimeout(function() { setClerkTimedOut(true); }, 15000);
+          return function() { clearTimeout(timer); };
         }, [isLoaded]);
 
         // Hook must be called unconditionally (Rules of Hooks)
@@ -2969,150 +3000,237 @@ if (typeof window !== 'undefined') {
 
         const fpCtx = typeof window.useClerkFireproofContext === 'function'
           ? window.useClerkFireproofContext() : null;
-        const dashApi = fpCtx && fpCtx.dashApi;
+        const dashApiRef = useRef(null);
+        dashApiRef.current = fpCtx?.dashApi || null;
 
-        // Reset resolution state when user identity changes (e.g., sign-in after anonymous visit)
-        useEffect(() => {
-          resolvedRef.current = false;
-          setState({ phase: 'init', role: null, frozen: false, error: null });
-        }, [user?.id]);
+        // Main resolution effect
+        useEffect(function() {
+          var userKey = (user?.id || '__anon__') + ':' + subdomain;
+          console.log('[vibes-timing] gate useEffect: isLoaded=' + isLoaded + ', user=' + !!user?.id + ', resolvedFor=' + resolvedForRef.current + ', key=' + userKey);
+          if (!isLoaded) return;
+          if (resolvedForRef.current === userKey) return;
 
-        useEffect(() => {
-          console.log('[vibes-timing] gate useEffect: isLoaded=' + isLoaded + ', user=' + !!user?.id);
-          if (!isLoaded || resolvedRef.current) return;
+          // Check module-level cache (survives remount)
+          var cached = _gateCache[userKey];
+          if (cached && cached.phase === 'resolved') {
+            console.log('[vibes-timing] cache hit:', JSON.stringify(cached));
+            resolvedForRef.current = userKey;
+            setState(cached);
+            return;
+          }
 
           // Read shared ledger context from URL/localStorage
-          const urlLedger = new URLSearchParams(window.location.search).get('ledger');
-          const storageKey = `vibes-shared-ledger-${subdomain}`;
+          var urlLedger = new URLSearchParams(window.location.search).get('ledger');
+          var storageKey = 'vibes-shared-ledger-' + subdomain;
           if (urlLedger) {
             window.__VIBES_SHARED_LEDGER__ = urlLedger;
             try { localStorage.setItem(storageKey, urlLedger); } catch(e) {}
           } else {
-            const stored = localStorage.getItem(storageKey);
+            var stored = localStorage.getItem(storageKey);
             if (stored) window.__VIBES_SHARED_LEDGER__ = stored;
           }
 
-          // Not signed in — still need to know if subdomain is claimed
+          // === Path 1: Not signed in ===
           if (!user?.id) {
-            const anonCtrl = new AbortController();
-            const anonTimeout = setTimeout(() => anonCtrl.abort(), 10000);
-            fetch(registryApiUrl(`/resolve/${subdomain}`), { signal: anonCtrl.signal })
-              .then(res => res.json())
-              .then(data => {
-                resolvedRef.current = true;
-                setState({ phase: 'resolved', role: data.role || 'none', frozen: data.frozen || false, error: null });
+            // Use module-level check if available (no /resolve needed for anon)
+            if (_subdomainCheck.result) {
+              resolvedForRef.current = userKey;
+              var role = _subdomainCheck.result.available ? 'unclaimed' : 'none';
+              var resolved = { phase: 'resolved', role: role, frozen: false, error: null };
+              setGateState(resolved);
+              return;
+            }
+            // Module-level check still pending — subscribe
+            if (_subdomainCheck.promise) {
+              _subdomainCheck.promise.then(function(data) {
+                resolvedForRef.current = userKey;
+                var role = data.available ? 'unclaimed' : 'none';
+                setGateState({ phase: 'resolved', role: role, frozen: false, error: null });
+              });
+              return;
+            }
+            // No module-level check (shouldn't happen for tenant route, but fallback)
+            var anonCtrl = new AbortController();
+            var anonTimeout = setTimeout(function() { anonCtrl.abort(); }, 10000);
+            fetch(registryApiUrl('/resolve/' + subdomain), { signal: anonCtrl.signal })
+              .then(function(res) { return res.json(); })
+              .then(function(data) {
+                resolvedForRef.current = userKey;
+                setGateState({ phase: 'resolved', role: data.role || 'none', frozen: data.frozen || false, error: null });
               })
-              .catch(() => {
-                resolvedRef.current = true;
-                setState({ phase: 'error', role: null, frozen: false, error: 'Failed to resolve access' });
+              .catch(function() {
+                resolvedForRef.current = userKey;
+                setGateState({ phase: 'error', role: null, frozen: false, error: 'Failed to resolve access' });
               })
-              .finally(() => clearTimeout(anonTimeout));
+              .finally(function() { clearTimeout(anonTimeout); });
             return;
           }
 
-          // Step 1: Check JWT custom claims for instant resolution
-          // Only use JWT shortcut for owners (can derive frozen from their own plan).
-          // Collaborators must hit /resolve — their own plan doesn't reflect the owner's billing state.
-          const vibesClaims = user.publicMetadata?.vibes_subdomains;
+          // === Path 2: Signed in + JWT claims present ===
+          var vibesClaims = user.publicMetadata?.vibes_subdomains;
+          console.log('[vibes-timing] JWT claims:', JSON.stringify(vibesClaims));
           if (vibesClaims && vibesClaims[subdomain]) {
-            const claim = vibesClaims[subdomain];
+            var claim = vibesClaims[subdomain];
+
             if (claim.role === 'owner') {
-              resolvedRef.current = true;
-              const isFrozen = has && has({ plan: 'starter' }) === false && BILLING_MODE === 'required';
-              setState({ phase: 'resolved', role: 'owner', frozen: isFrozen, error: null });
+              console.log('[vibes-timing] JWT shortcut: owner');
+              resolvedForRef.current = userKey;
+              var isFrozen = has && has({ plan: 'starter' }) === false && BILLING_MODE === 'required';
+              setGateState({ phase: 'resolved', role: 'owner', frozen: isFrozen, error: null });
               return;
             }
-            // Collaborator claim exists but we can't trust frozen state from JWT — fall through to /resolve
+
+            if (claim.role === 'collaborator') {
+              console.log('[vibes-timing] JWT shortcut: collaborator, frozen=' + claim.frozen);
+              resolvedForRef.current = userKey;
+              // Read frozen directly from JWT claim (set by worker webhook)
+              var isFrozen = claim.frozen === true;
+              setGateState({ phase: 'resolved', role: 'collaborator', frozen: isFrozen, error: null });
+              return;
+            }
           }
 
-          // Step 2: Fall back to /resolve endpoint
-          const email = user.primaryEmailAddress?.emailAddress;
-          let resolveUrl = registryApiUrl(`/resolve/${subdomain}?userId=${user.id}`);
-          if (email) resolveUrl += `&email=${encodeURIComponent(email)}`;
+          // === Path 3: Signed in + no JWT claims ===
+          // Need to determine: is subdomain unclaimed (show ClaimPrompt) or claimed by someone else?
+          // For taken subdomains, also check if user is invited (via /resolve)
 
-          const resolveCtrl = new AbortController();
-          const resolveTimeout = setTimeout(() => resolveCtrl.abort(), 10000);
-
-          const headers = {};
-          Promise.race([
-            window.Clerk?.session?.getToken(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('getToken timeout')), 5000))
-          ]).then(token => {
-            if (token) headers['Authorization'] = `Bearer ${token}`;
-            return fetch(resolveUrl, { headers, signal: resolveCtrl.signal });
-          }).catch(() => fetch(resolveUrl, { signal: resolveCtrl.signal })).then(res => res.json())
-          .then(async (data) => {
-            let role = data.role;
-            const frozen = data.frozen || false;
-
-            // Bridge ledgerId from /resolve for collaborators (enables shared ledger sync without invite link)
-            if (data.ledgerId) {
-              window.__VIBES_SHARED_LEDGER__ = data.ledgerId;
-              try { localStorage.setItem(storageKey, data.ledgerId); } catch(e) {}
+          var doResolve = function(checkResult) {
+            if (checkResult && checkResult.available) {
+              // Subdomain is unclaimed — show ClaimPrompt
+              resolvedForRef.current = userKey;
+              setGateState({ phase: 'resolved', role: 'unclaimed', frozen: false, error: null });
+              return;
             }
 
-            // Step 3: Handle 'invited' — auto-join
-            if (role === 'invited') {
-              try {
-                const token = await Promise.race([
-                  window.Clerk?.session?.getToken(),
-                  new Promise((_, reject) => setTimeout(() => reject(new Error('getToken timeout')), 5000))
-                ]);
-                if (token) {
-                  const joinCtrl = new AbortController();
-                  const joinTimeout = setTimeout(() => joinCtrl.abort(), 10000);
-                  const joinRes = await fetch(registryApiUrl('/join'), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify({ subdomain, email }),
-                    signal: joinCtrl.signal
-                  });
-                  clearTimeout(joinTimeout);
-                  if (joinRes.ok) {
-                    role = 'collaborator';
-                    if (dashApi) {
-                      try {
-                        await Promise.race([
-                          dashApi.redeemInvite({}),
-                          new Promise((_, r) => setTimeout(() => r(new Error('redeemInvite timeout')), 5000))
-                        ]);
-                      } catch(e) { /* non-fatal */ }
-                    }
-                  }
-                }
-              } catch (e) {
-                console.warn('[UnifiedAccessGate] Auto-join failed:', e.message);
+            // Subdomain is taken — need /resolve to check if user is invited
+            var email = user.primaryEmailAddress?.emailAddress;
+            var resolveUrl = registryApiUrl('/resolve/' + subdomain + '?userId=' + user.id);
+            if (email) resolveUrl += '&email=' + encodeURIComponent(email);
+            console.log('[vibes-timing] fetching /resolve for access check:', resolveUrl);
+
+            var resolveCtrl = new AbortController();
+            var resolveTimeout = setTimeout(function() { resolveCtrl.abort(); }, 10000);
+
+            // Try to get auth token for /resolve
+            var tokenPromise = window.Clerk?.session?.getToken
+              ? Promise.race([
+                  window.Clerk.session.getToken(),
+                  new Promise(function(_, reject) { setTimeout(function() { reject(new Error('getToken timeout')); }, 5000); })
+                ])
+              : Promise.resolve(null);
+
+            tokenPromise.then(function(token) {
+              var headers = {};
+              if (token) headers['Authorization'] = 'Bearer ' + token;
+              return fetch(resolveUrl, { headers: headers, signal: resolveCtrl.signal });
+            }).catch(function() {
+              return fetch(resolveUrl, { signal: resolveCtrl.signal });
+            }).then(function(res) {
+              return res.json();
+            }).then(function(data) {
+              console.log('[vibes-timing] /resolve data:', JSON.stringify(data));
+              var role = data.role || 'none';
+              var frozen = data.frozen || false;
+
+              // Bridge ledgerId for collaborators
+              if (data.ledgerId) {
+                window.__VIBES_SHARED_LEDGER__ = data.ledgerId;
+                try { localStorage.setItem(storageKey, data.ledgerId); } catch(e) {}
               }
-            }
 
-            // Retry Connect invite redemption for existing collaborators
-            if (role === 'collaborator' && dashApi) {
-              try {
-                await Promise.race([
-                  dashApi.redeemInvite({}),
-                  new Promise((_, r) => setTimeout(() => r(new Error('redeemInvite timeout')), 5000))
-                ]);
-              } catch(e) { /* non-fatal */ }
-            }
+              resolvedForRef.current = userKey;
+              setGateState({ phase: 'resolved', role: role, frozen: frozen, error: null });
+            }).catch(function(err) {
+              resolvedForRef.current = userKey;
+              setGateState({ phase: 'error', role: null, frozen: false, error: err.message });
+            }).finally(function() { clearTimeout(resolveTimeout); });
+          };
 
-            resolvedRef.current = true;
-            setState({ phase: 'resolved', role, frozen, error: null });
-          })
-          .catch((err) => {
-            resolvedRef.current = true;
-            setState({ phase: 'error', role: null, frozen: false, error: err.message });
-          })
-          .finally(() => clearTimeout(resolveTimeout));
-        }, [isLoaded, user?.id, subdomain, dashApi]);
+          if (_subdomainCheck.result) {
+            doResolve(_subdomainCheck.result);
+          } else if (_subdomainCheck.promise) {
+            _subdomainCheck.promise.then(doResolve);
+          } else {
+            // No module-level check — do inline check
+            fetch(registryApiUrl('/check/' + subdomain))
+              .then(function(r) { return r.json(); })
+              .then(doResolve)
+              .catch(function() { doResolve({ available: false }); });
+          }
+        }, [isLoaded, user?.id, subdomain]);
+
+        // Separate effect: auto-join for invited users (non-blocking, post-resolution)
+        useEffect(function() {
+          if (state.phase !== 'resolved') return;
+          if (state.role !== 'invited') return;
+          if (!user?.id) return;
+
+          var email = user.primaryEmailAddress?.emailAddress;
+          if (!email) return;
+
+          (async function() {
+            try {
+              var token = await Promise.race([
+                window.Clerk?.session?.getToken(),
+                new Promise(function(_, reject) { setTimeout(function() { reject(new Error('getToken timeout')); }, 5000); })
+              ]);
+              if (!token) return;
+
+              var joinCtrl = new AbortController();
+              var joinTimeout = setTimeout(function() { joinCtrl.abort(); }, 10000);
+              var joinRes = await fetch(registryApiUrl('/join'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ subdomain: subdomain, email: email }),
+                signal: joinCtrl.signal
+              });
+              clearTimeout(joinTimeout);
+
+              if (joinRes.ok) {
+                // Upgrade role to collaborator
+                setGateState({ phase: 'resolved', role: 'collaborator', frozen: state.frozen, error: null });
+
+                // Try Connect invite redemption (non-fatal)
+                if (dashApiRef.current) {
+                  try {
+                    await Promise.race([
+                      dashApiRef.current.redeemInvite({}),
+                      new Promise(function(_, r) { setTimeout(function() { r(new Error('redeemInvite timeout')); }, 5000); })
+                    ]);
+                  } catch(e) { /* non-fatal */ }
+                }
+              }
+            } catch(e) {
+              console.warn('[UnifiedAccessGate] Auto-join failed:', e.message);
+            }
+          })();
+        }, [state.phase, state.role, user?.id, subdomain]);
+
+        // Separate effect: retry Connect invite for existing collaborators (non-blocking)
+        useEffect(function() {
+          if (state.phase !== 'resolved') return;
+          if (state.role !== 'collaborator') return;
+          if (!dashApiRef.current) return;
+
+          (async function() {
+            try {
+              await Promise.race([
+                dashApiRef.current.redeemInvite({}),
+                new Promise(function(_, r) { setTimeout(function() { r(new Error('redeemInvite timeout')); }, 5000); })
+              ]);
+            } catch(e) { /* non-fatal */ }
+          })();
+        }, [state.phase, state.role]);
 
         // --- Render based on state ---
+        console.log('[vibes-timing] render: phase=' + state.phase + ', role=' + state.role);
 
         const { SignedIn, SignedOut } = window.ClerkComponents || {};
         if (!SignedIn || !SignedOut) {
           return <LoadingError error="Clerk components not loaded. Please refresh the page." />;
         }
 
-        // Loading state — show reload prompt if Clerk init takes >15s
+        // Loading state
         if (state.phase === 'init') {
           if (clerkTimedOut && !isLoaded) {
             return (
@@ -3136,23 +3254,22 @@ if (typeof window !== 'undefined') {
           return (
             <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
               <p>Could not verify access. Check your connection and try again.</p>
-              <button onClick={() => { resolvedRef.current = false; setState({ phase: 'init', role: null, frozen: false, error: null }); }} style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>
+              <button onClick={() => { resolvedForRef.current = null; var key = (user?.id || '__anon__') + ':' + subdomain; delete _gateCache[key]; setState({ phase: 'init', role: null, frozen: false, error: null }); }} style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>
                 Retry
               </button>
             </div>
           );
         }
 
-        // Resolved states
+        // Resolved states — same render logic as before
         const { role, frozen } = state;
 
-        // Unclaimed subdomain
         if (role === 'unclaimed') {
           return (
             <>
               <SignedIn>
                 <SubscriptionGate subdomain={subdomain}>
-                  <ClaimPromptWrapper subdomain={subdomain} onClaimSuccess={() => { resolvedRef.current = false; setState({ phase: 'init', role: null, frozen: false, error: null }); }} />
+                  <ClaimPromptWrapper subdomain={subdomain} onClaimSuccess={() => { resolvedForRef.current = null; var key = (user?.id || '__anon__') + ':' + subdomain; delete _gateCache[key]; setState({ phase: 'init', role: null, frozen: false, error: null }); }} />
                 </SubscriptionGate>
               </SignedIn>
               <SignedOut>
@@ -3162,7 +3279,6 @@ if (typeof window !== 'undefined') {
           );
         }
 
-        // Owner or collaborator with frozen subdomain
         if ((role === 'owner' || role === 'collaborator') && frozen) {
           return (
             <>
@@ -3176,7 +3292,6 @@ if (typeof window !== 'undefined') {
           );
         }
 
-        // Owner or collaborator with active subdomain — show the app
         if (role === 'owner' || role === 'collaborator') {
           return (
             <>
@@ -3195,7 +3310,6 @@ if (typeof window !== 'undefined') {
           );
         }
 
-        // No access
         return (
           <>
             <SignedIn>

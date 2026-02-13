@@ -170,7 +170,7 @@ app.post("/claim", async (c) => {
 
   if (c.env.CLERK_SECRET_KEY) {
     c.executionCtx.waitUntil(
-      updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, auth.userId, normalized, 'owner')
+      updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, auth.userId, normalized, 'owner', false)
     );
   }
 
@@ -274,7 +274,7 @@ app.post("/join", async (c) => {
 
   if (c.env.CLERK_SECRET_KEY) {
     c.executionCtx.waitUntil(
-      updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, auth.userId, normalized, 'collaborator')
+      updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, auth.userId, normalized, 'collaborator', record.status === 'frozen')
     );
   }
 
@@ -321,8 +321,19 @@ app.post("/webhook", async (c) => {
       for (const subdomain of userRecord.subdomains) {
         const record = await kv.getSubdomain(subdomain);
         if (record && record.ownerId === userId && record.status !== 'frozen') {
-          await kv.putSubdomain(subdomain, freezeSubdomain(record));
+          const frozenRecord = freezeSubdomain(record);
+          await kv.putSubdomain(subdomain, frozenRecord);
           console.log(`Froze subdomain: ${subdomain} for user ${userId}`);
+
+          // Propagate frozen status to Clerk publicMetadata
+          if (c.env.CLERK_SECRET_KEY) {
+            await updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, userId, subdomain, 'owner', true);
+            for (const collab of frozenRecord.collaborators) {
+              if (collab.userId) {
+                await updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, collab.userId, subdomain, 'collaborator', true);
+              }
+            }
+          }
         }
       }
     }
@@ -333,8 +344,19 @@ app.post("/webhook", async (c) => {
       for (const subdomain of userRecord.subdomains) {
         const record = await kv.getSubdomain(subdomain);
         if (record && record.ownerId === userId && record.status === 'frozen') {
-          await kv.putSubdomain(subdomain, unfreezeSubdomain(record));
+          const unfrozenRecord = unfreezeSubdomain(record);
+          await kv.putSubdomain(subdomain, unfrozenRecord);
           console.log(`Unfroze subdomain: ${subdomain} for user ${userId}`);
+
+          // Propagate unfrozen status to Clerk publicMetadata
+          if (c.env.CLERK_SECRET_KEY) {
+            await updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, userId, subdomain, 'owner', false);
+            for (const collab of unfrozenRecord.collaborators) {
+              if (collab.userId) {
+                await updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, collab.userId, subdomain, 'collaborator', false);
+              }
+            }
+          }
         }
       }
     }
@@ -438,7 +460,8 @@ async function updateClerkSubdomainClaims(
   secretKey: string,
   userId: string,
   subdomain: string,
-  role: 'owner' | 'collaborator'
+  role: 'owner' | 'collaborator',
+  frozen: boolean = false
 ): Promise<void> {
   try {
     const userRes = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
@@ -449,7 +472,7 @@ async function updateClerkSubdomainClaims(
     const currentMeta = userData.public_metadata || {};
     const vibesSubdomains = currentMeta.vibes_subdomains || {};
 
-    vibesSubdomains[subdomain] = { role };
+    vibesSubdomains[subdomain] = { role, frozen };
 
     await fetch(`https://api.clerk.com/v1/users/${userId}/metadata`, {
       method: 'PATCH',
