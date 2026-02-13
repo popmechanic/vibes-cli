@@ -188,7 +188,7 @@ app.post("/invite", async (c) => {
   }
   const auth = authResult;
 
-  let body: { subdomain?: string; email?: string; right?: "read" | "write" };
+  let body: { subdomain?: string; email?: string; right?: "read" | "write"; ledgerId?: string };
   try {
     body = await c.req.json();
   } catch {
@@ -211,7 +211,7 @@ app.post("/invite", async (c) => {
     return c.json({ error: "Only the owner can invite collaborators" }, 403);
   }
 
-  const updated = addCollaborator(record, body.email, body.right || "write");
+  const updated = addCollaborator(record, body.email, body.right || "write", body.ledgerId);
   await kv.putSubdomain(normalized, updated);
 
   return c.json({ success: true, subdomain: normalized }, 200);
@@ -407,6 +407,13 @@ app.get("/resolve/:subdomain", async (c) => {
   if (userId) {
     const result = hasAccess(record, userId);
     if (result.role !== "none") {
+      // For collaborators, find and return their stored ledgerId
+      if (result.role === "collaborator") {
+        const collab = record.collaborators.find(
+          (col) => col.userId === userId && col.status === "active"
+        );
+        return c.json({ role: result.role, frozen, ...(collab?.ledgerId ? { ledgerId: collab.ledgerId } : {}) });
+      }
       return c.json({ role: result.role, frozen });
     }
     // userId had no direct access — check email fallback

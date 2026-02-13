@@ -475,8 +475,16 @@
                 }
                 var ledgers = ledgerCacheRef.current;
                 var appHost = window.location.hostname;
+                var qpSub = new URLSearchParams(window.location.search).get('subdomain');
                 var matchedLedger = ledgers.find(function(l) {
-                  return l.name && l.name.includes(appHost);
+                  if (!l.name) return false;
+                  if (l.name.includes(appHost)) return true;
+                  // Workers.dev fallback: match by worker-name + subdomain
+                  if (qpSub) {
+                    var workerName = appHost.split('.')[0];
+                    if (l.name.includes(workerName + '-' + qpSub)) return true;
+                  }
+                  return false;
                 }) || ledgers[0];
 
                 if (!matchedLedger) {
@@ -500,12 +508,15 @@
                 var inviteData = rInvite.Ok();
                 console.debug('[vibes-sharing] inviteUser response:', inviteData);
 
+                // Extract invite ticket ID for auto-redemption
+                var inviteId = inviteData.inviteId || (inviteData.ticket && inviteData.ticket.id) || '';
+
                 // Construct invite URL pointing to this subdomain, including ledger ID for sync
-                var qpSub = new URLSearchParams(window.location.search).get('subdomain');
                 var ledgerId = matchedLedger.ledgerId;
+                var inviteParam = inviteId ? '&invite=' + encodeURIComponent(inviteId) : '';
                 var inviteUrl = qpSub
-                  ? window.location.origin + '?subdomain=' + encodeURIComponent(qpSub) + '&ledger=' + encodeURIComponent(ledgerId)
-                  : window.location.origin + '?ledger=' + encodeURIComponent(ledgerId);
+                  ? window.location.origin + '?subdomain=' + encodeURIComponent(qpSub) + '&ledger=' + encodeURIComponent(ledgerId) + inviteParam
+                  : window.location.origin + '?ledger=' + encodeURIComponent(ledgerId) + inviteParam;
 
                 // Dual-write to KV registry (awaited, non-fatal)
                 try {
@@ -520,7 +531,7 @@
                       var kvRes = await fetch(kvRegistryUrl.replace(/\/$/, '') + '/invite', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                        body: JSON.stringify({ subdomain: kvSubdomain, email: email, right: detail.right || 'write' })
+                        body: JSON.stringify({ subdomain: kvSubdomain, email: email, right: detail.right || 'write', ledgerId: matchedLedger.ledgerId })
                       });
                       if (!kvRes.ok) {
                         var kvBody = await kvRes.text();
