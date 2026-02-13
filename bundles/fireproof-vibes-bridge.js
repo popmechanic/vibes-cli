@@ -14,9 +14,61 @@ import React from "react";
 export * from "./fireproof-clerk-bundle.js";
 import { useFireproofClerk as _originalUseFireproofClerk, useClerkFireproofContext } from "./fireproof-clerk-bundle.js";
 
+var _patchedApis = typeof WeakSet !== 'undefined' ? new WeakSet() : { has: function(){return false;}, add: function(){} };
+
 export function useFireproofClerk(name, opts) {
   var ctx = useClerkFireproofContext();
   var dashApi = ctx && ctx.dashApi;
+  // Patch dashApi to route to shared ledger. Three tiers:
+  // 1. Fast path: req.ledger already set (bundle found member ledger)
+  // 2. Fast path: __VIBES_SHARED_LEDGER__ set (collaborator via /resolve, or cached discovery)
+  // 3. Slow path: listLedgersByUser discovery (covers owner case — role=admin not found by bundle)
+  if (dashApi && !_patchedApis.has(dashApi)) {
+    _patchedApis.add(dashApi);
+    var _origEnsure = dashApi.ensureCloudToken.bind(dashApi);
+    dashApi.ensureCloudToken = function (req) {
+      // Fast path 1: explicit ledger already provided
+      if (req.ledger) return _origEnsure(req);
+
+      // Fast path 2: window global set (from /resolve or previous discovery)
+      if (typeof window !== 'undefined' && window.__VIBES_SHARED_LEDGER__) {
+        req = Object.assign({}, req, { ledger: window.__VIBES_SHARED_LEDGER__ });
+        console.debug('[vibes] Routing to shared ledger:', window.__VIBES_SHARED_LEDGER__);
+        return _origEnsure(req);
+      }
+
+      // Slow path: discover via listLedgersByUser (covers owner case)
+      return dashApi.listLedgersByUser({}).then(function (rLedgers) {
+        if (rLedgers.isOk()) {
+          var ledgers = rLedgers.Ok().ledgers || [];
+          var appHost = typeof window !== 'undefined' ? window.location.hostname : '';
+          var qpSub = typeof window !== 'undefined'
+            ? new URLSearchParams(window.location.search).get('subdomain')
+            : null;
+
+          var matched = ledgers.find(function (l) {
+            if (!l.name) return false;
+            if (appHost && l.name.includes(appHost)) return true;
+            if (qpSub) {
+              var workerName = appHost.split('.')[0];
+              if (l.name.includes(workerName + '-' + qpSub)) return true;
+            }
+            return false;
+          }) || ledgers[0];
+
+          if (matched) {
+            if (typeof window !== 'undefined') window.__VIBES_SHARED_LEDGER__ = matched.ledgerId;
+            req = Object.assign({}, req, { ledger: matched.ledgerId });
+            console.debug('[vibes] Discovered ledger:', matched.ledgerId, 'via', matched.name);
+          }
+        }
+        return _origEnsure(req);
+      }).catch(function () {
+        return _origEnsure(req);
+      });
+    };
+  }
+
   var result = _originalUseFireproofClerk(name, opts);
   var syncVal = result.syncStatus || "idle";
 
