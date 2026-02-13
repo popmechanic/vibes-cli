@@ -461,7 +461,6 @@
         const [state, setState] = useState(function() {
           // Check subdomain-only key first (always written, survives remounts)
           var subCached = _gateCache[subdomain];
-          console.log('[vibes-timing] useState init: sub=' + subdomain + ', cached=' + (subCached ? subCached.phase : 'miss') + ', keys=' + Object.keys(_gateCache).join(','));
           if (subCached && subCached.phase === 'resolved') return subCached;
           if (user?.id) {
             var cached = _gateCache[user.id + ':' + subdomain];
@@ -501,13 +500,11 @@
         // Main resolution effect
         useEffect(function() {
           var userKey = (user?.id || '__anon__') + ':' + subdomain;
-          console.log('[vibes-timing] gate useEffect: isLoaded=' + isLoaded + ', user=' + !!user?.id + ', resolvedFor=' + resolvedForRef.current + ', key=' + userKey);
           if (resolvedForRef.current === userKey) return;
 
           // Cache check BEFORE isLoaded — survives Clerk remounts
           var cached = _gateCache[userKey] || _gateCache[subdomain];
           if (cached && cached.phase === 'resolved') {
-            console.log('[vibes-timing] cache hit (pre-isLoaded):', JSON.stringify(cached));
             resolvedForRef.current = userKey;
             setState(cached);
             return;
@@ -564,12 +561,10 @@
 
           // === Path 2: Signed in + JWT claims present ===
           var vibesClaims = user.publicMetadata?.vibes_subdomains;
-          console.log('[vibes-timing] JWT claims:', JSON.stringify(vibesClaims));
           if (vibesClaims && vibesClaims[subdomain]) {
             var claim = vibesClaims[subdomain];
 
             if (claim.role === 'owner') {
-              console.log('[vibes-timing] JWT shortcut: owner');
               resolvedForRef.current = userKey;
               var isFrozen = has && has({ plan: 'starter' }) === false && BILLING_MODE === 'required';
               setGateState({ phase: 'resolved', role: 'owner', frozen: isFrozen, error: null });
@@ -577,7 +572,6 @@
             }
 
             if (claim.role === 'collaborator') {
-              console.log('[vibes-timing] JWT shortcut: collaborator, frozen=' + claim.frozen);
               resolvedForRef.current = userKey;
               // Read frozen directly from JWT claim (set by worker webhook)
               var isFrozen = claim.frozen === true;
@@ -602,8 +596,6 @@
             var email = user.primaryEmailAddress?.emailAddress;
             var resolveUrl = registryApiUrl('/resolve/' + subdomain + '?userId=' + user.id);
             if (email) resolveUrl += '&email=' + encodeURIComponent(email);
-            console.log('[vibes-timing] fetching /resolve for access check:', resolveUrl);
-
             var resolveCtrl = new AbortController();
             var resolveTimeout = setTimeout(function() { resolveCtrl.abort(); }, 10000);
 
@@ -624,7 +616,6 @@
             }).then(function(res) {
               return res.json();
             }).then(function(data) {
-              console.log('[vibes-timing] /resolve data:', JSON.stringify(data));
               var role = data.role || 'none';
               var frozen = data.frozen || false;
 
@@ -723,7 +714,6 @@
         if (state.phase === 'init') {
           var directCached = _gateCache[subdomain];
           if (directCached && directCached.phase === 'resolved') {
-            console.log('[vibes-timing] render-time cache recovery:', JSON.stringify(directCached));
             resolvedForRef.current = (user?.id || '__anon__') + ':' + subdomain;
             setState(directCached);
             return null;  // Current render discarded; React re-renders with resolved state
@@ -731,8 +721,6 @@
         }
 
         // --- Render based on state ---
-        console.log('[vibes-timing] render: phase=' + state.phase + ', role=' + state.role);
-
         const { SignedIn, SignedOut } = window.ClerkComponents || {};
         if (!SignedIn || !SignedOut) {
           return <LoadingError error="Clerk components not loaded. Please refresh the page." />;
@@ -1636,10 +1624,8 @@
         const t0 = performance.now();
         try {
           const clerkModule = await import("@fireproof/clerk");
-          console.log('[vibes-timing] bundle loaded:', Math.round(performance.now() - t0) + 'ms');
           // SignUpButton is not exported by fireproof-clerk bundle, import from @clerk/clerk-react directly
           const clerkReact = await import("@clerk/clerk-react");
-          console.log('[vibes-timing] clerk-react loaded:', Math.round(performance.now() - t0) + 'ms');
           const { SignUpButton } = clerkReact;
 
           window.ClerkFireproofProvider = clerkModule.ClerkFireproofProvider;
@@ -1679,7 +1665,6 @@
 
         const rootElement = document.getElementById("container");
         ReactDOMClient.createRoot(rootElement).render(<AppWrapper />);
-        console.log('[vibes-timing] React rendered:', Math.round(performance.now() - t0) + 'ms');
       }
 
       initApp();
