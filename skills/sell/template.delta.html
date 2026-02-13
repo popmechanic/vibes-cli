@@ -459,11 +459,14 @@
 
         // Initialize from cache if available (survives remounts)
         const [state, setState] = useState(function() {
+          // Check subdomain-only key first (always written, survives remounts)
+          var subCached = _gateCache[subdomain];
+          console.log('[vibes-timing] useState init: sub=' + subdomain + ', cached=' + (subCached ? subCached.phase : 'miss') + ', keys=' + Object.keys(_gateCache).join(','));
+          if (subCached && subCached.phase === 'resolved') return subCached;
           if (user?.id) {
             var cached = _gateCache[user.id + ':' + subdomain];
             if (cached && cached.phase === 'resolved') return cached;
           }
-          // Also check anon cache
           var anonCached = _gateCache['__anon__:' + subdomain];
           if (anonCached && anonCached.phase === 'resolved') return anonCached;
           return { phase: 'init', role: null, frozen: false, error: null };
@@ -476,6 +479,7 @@
         const setGateState = useCallback(function(newState) {
           var key = (user?.id || '__anon__') + ':' + subdomain;
           _gateCache[key] = newState;
+          _gateCache[subdomain] = newState;  // subdomain-only fallback survives remounts
           setState(newState);
         }, [user?.id, subdomain]);
 
@@ -498,17 +502,18 @@
         useEffect(function() {
           var userKey = (user?.id || '__anon__') + ':' + subdomain;
           console.log('[vibes-timing] gate useEffect: isLoaded=' + isLoaded + ', user=' + !!user?.id + ', resolvedFor=' + resolvedForRef.current + ', key=' + userKey);
-          if (!isLoaded) return;
           if (resolvedForRef.current === userKey) return;
 
-          // Check module-level cache (survives remount)
-          var cached = _gateCache[userKey];
+          // Cache check BEFORE isLoaded — survives Clerk remounts
+          var cached = _gateCache[userKey] || _gateCache[subdomain];
           if (cached && cached.phase === 'resolved') {
-            console.log('[vibes-timing] cache hit:', JSON.stringify(cached));
+            console.log('[vibes-timing] cache hit (pre-isLoaded):', JSON.stringify(cached));
             resolvedForRef.current = userKey;
             setState(cached);
             return;
           }
+
+          if (!isLoaded) return;
 
           // Read shared ledger context from URL/localStorage
           var urlLedger = new URLSearchParams(window.location.search).get('ledger');
@@ -713,6 +718,18 @@
           })();
         }, [state.phase, state.role]);
 
+        // --- Render-time cache recovery (survives Clerk remounts) ---
+        // React 18+: setState during render → discard current output, re-render immediately
+        if (state.phase === 'init') {
+          var directCached = _gateCache[subdomain];
+          if (directCached && directCached.phase === 'resolved') {
+            console.log('[vibes-timing] render-time cache recovery:', JSON.stringify(directCached));
+            resolvedForRef.current = (user?.id || '__anon__') + ':' + subdomain;
+            setState(directCached);
+            return null;  // Current render discarded; React re-renders with resolved state
+          }
+        }
+
         // --- Render based on state ---
         console.log('[vibes-timing] render: phase=' + state.phase + ', role=' + state.role);
 
@@ -734,8 +751,9 @@
             );
           }
           return (
-            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, animation: 'vibesDelayedFadeIn 0.3s ease 0.2s forwards' }}>
-              <div style={{ color: '#94a3b8' }}>Loading...</div>
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+              <div style={{ background: 'red', color: 'white', padding: '8px 16px', borderRadius: '4px', fontWeight: 'bold', marginBottom: '1rem' }}>BUILD 2026-02-13C</div>
+              <div style={{ color: '#94a3b8', opacity: 0, animation: 'vibesDelayedFadeIn 0.3s ease 0.2s forwards' }}>Loading...</div>
             </div>
           );
         }
@@ -745,7 +763,7 @@
           return (
             <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
               <p>Could not verify access. Check your connection and try again.</p>
-              <button onClick={() => { resolvedForRef.current = null; var key = (user?.id || '__anon__') + ':' + subdomain; delete _gateCache[key]; setState({ phase: 'init', role: null, frozen: false, error: null }); }} style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>
+              <button onClick={() => { resolvedForRef.current = null; var key = (user?.id || '__anon__') + ':' + subdomain; delete _gateCache[key]; delete _gateCache[subdomain]; setState({ phase: 'init', role: null, frozen: false, error: null }); }} style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>
                 Retry
               </button>
             </div>
@@ -760,7 +778,7 @@
             <>
               <SignedIn>
                 <SubscriptionGate subdomain={subdomain}>
-                  <ClaimPromptWrapper subdomain={subdomain} onClaimSuccess={() => { resolvedForRef.current = null; var key = (user?.id || '__anon__') + ':' + subdomain; delete _gateCache[key]; setState({ phase: 'init', role: null, frozen: false, error: null }); }} />
+                  <ClaimPromptWrapper subdomain={subdomain} onClaimSuccess={() => { resolvedForRef.current = (user?.id || '__anon__') + ':' + subdomain; setGateState({ phase: 'resolved', role: 'owner', frozen: false, error: null }); }} />
                 </SubscriptionGate>
               </SignedIn>
               <SignedOut>
