@@ -49526,58 +49526,28 @@ var ClerkTokenStrategy = class {
 
     // Check for shared ledger (role=member) before creating a new one
     var ledgerParam = void 0;
-
-    // Priority: client-side ledger override (from invite URL, localStorage, or /resolve)
-    if (typeof window !== 'undefined' && window.__VIBES_SHARED_LEDGER__) {
-      ledgerParam = window.__VIBES_SHARED_LEDGER__;
-      console.log('[vibes-debug] Using client-bridged shared ledger:', ledgerParam);
-    }
-
-    // Fallback: search for shared ledger via API (only if no client override)
-    if (!ledgerParam) {
-      try {
-        var rLedgers = await this.dashApi.listLedgersByUser({});
-        console.log('[vibes-debug] listLedgersByUser result:', JSON.stringify(rLedgers.isOk() ? rLedgers.Ok() : rLedgers.Err()));
-        if (rLedgers.isOk()) {
-          var ledgers = rLedgers.Ok().ledgers || [];
-          var userId = rLedgers.Ok().userId;
-          console.log('[vibes-debug] Looking for role=member for userId:', userId, 'across', ledgers.length, 'ledgers');
-          ledgers.forEach(function(l, i) {
-            console.log('[vibes-debug] Ledger', i, ':', l.ledgerId, l.name, 'users:', JSON.stringify(l.users));
+    try {
+      var rLedgers = await this.dashApi.listLedgersByUser({});
+      if (rLedgers.isOk()) {
+        var ledgers = rLedgers.Ok().ledgers || [];
+        var userId = rUser.Ok().userId;
+        // Find a ledger where this user is a member (not admin/owner)
+        var shared = ledgers.find(function(l) {
+          return l.users && l.users.some(function(u) {
+            return u.userId === userId && u.role === 'member';
           });
-          // Find a ledger where this user is a member (not admin/owner)
-          var shared = ledgers.find(function(l) {
-            return l.users && l.users.some(function(u) {
-              return u.userId === userId && u.role === 'member';
-            });
-          });
-          if (shared) {
-            ledgerParam = shared.ledgerId;
-            console.log('[vibes-debug] Using shared ledger:', shared.ledgerId);
-          } else {
-            console.log('[vibes-debug] No shared ledger found, will create fork');
-          }
+        });
+        if (shared) {
+          ledgerParam = shared.ledgerId;
+          console.debug('[vibes] Using shared ledger:', shared.ledgerId);
         }
-      } catch(e) {
-        console.log('[vibes-debug] listLedgersByUser error:', e);
       }
+    } catch(e) {
+      // Shared ledger lookup is best-effort; fall through to default behavior
     }
-    console.log('[vibes-debug] Calling ensureCloudToken with ledger:', ledgerParam);
 
     const rRes = await this.dashApi.ensureCloudToken({ appId, ledger: ledgerParam });
     if (rRes.isErr()) {
-      if (ledgerParam) {
-        console.warn('[vibes-debug] Shared ledger token failed, falling back to own ledger');
-        if (typeof window !== 'undefined') delete window.__VIBES_SHARED_LEDGER__;
-        const rFallback = await this.dashApi.ensureCloudToken({ appId });
-        if (!rFallback.isErr()) {
-          const fallbackRes = rFallback.Ok();
-          if (fallbackRes.expiresDate) {
-            this.lastExpiryMs = new Date(fallbackRes.expiresDate).getTime();
-          }
-          return { token: fallbackRes.cloudToken, ...fallbackRes };
-        }
-      }
       logger.Error().Err(rRes).Msg("Failed to get cloud token");
       return void 0;
     }
@@ -49630,8 +49600,8 @@ function useClerkFireproofContext() {
 var REFRESH_BEFORE_EXPIRY_MS = 5 * 60 * 1e3;
 var MIN_REFRESH_DELAY_MS = 30 * 1e3;
 var BASE_RETRY_DELAY_MS = 2 * 1e3;
-var MAX_RETRY_DELAY_MS = 10 * 1e3;
-var MAX_RETRY_COUNT = 3;
+var MAX_RETRY_DELAY_MS = 30 * 1e3;
+var MAX_RETRY_COUNT = 8;
 var DETACH_CLEANUP_DELAY_MS = 100;
 var SYNC_POLL_INTERVAL_MS = 2e3;
 var SYNC_STABLE_THRESHOLD = 3;

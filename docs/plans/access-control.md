@@ -78,8 +78,8 @@ For returning users who already claimed/joined a subdomain, the Worker writes `p
 ```json
 {
   "vibes_subdomains": {
-    "my-app": { "role": "owner" },
-    "other-app": { "role": "collaborator" }
+    "my-app": { "role": "owner", "frozen": false },
+    "other-app": { "role": "collaborator", "frozen": false }
   }
 }
 ```
@@ -90,6 +90,8 @@ For returning users who already claimed/joined a subdomain, the Worker writes `p
 ```
 
 The client reads JWT claims first (instant, no fetch). If claims are missing (first visit, or Clerk not configured), it falls back to `/resolve`. This is optional — guarded by `if (c.env.CLERK_SECRET_KEY)` on the Worker side.
+
+JWT claims include a `frozen` boolean per subdomain, propagated by webhook freeze/unfreeze to both owner AND collaborator users. This enables the JWT shortcut for collaborators (not just owners) — a collaborator returning to a frozen app sees the paywall instantly without a `/resolve` fetch.
 
 ## New Worker Endpoints
 
@@ -119,9 +121,18 @@ A middleware in `index.ts` auto-detects the old monolithic `"registry"` key on f
 
 Previously: Three sequential async gates (owner fetch → access check → subscription check), each with its own loading interstitial.
 
-Now: Single `UnifiedAccessGate` component with a two-phase resolution:
-1. Check JWT custom claims (`user.publicMetadata.vibes_subdomains[subdomain]`) — instant, no fetch
-2. Fall back to `GET /resolve/:subdomain` with userId + email + JWT Bearer
+Now: Single `UnifiedAccessGate` component with module-level cache and three-tier resolution:
+
+**Resolution tiers** (checked in order):
+1. **Cache hit** — `_gateCache[userId:subdomain]` or `_gateCache[subdomain]` → instant, no fetch
+2. **JWT claims** — `user.publicMetadata.vibes_subdomains[subdomain]` → synchronous from Clerk session
+3. **Async fetch** — `GET /resolve/:subdomain` or `GET /check/:subdomain/access` → network round-trip
+
+**Module-level cache** (`_gateCache`): Dual-keyed by `userId:subdomain` (primary) and `subdomain` (fallback). Survives ClerkProvider remounts since it lives outside React's component tree. Updated by `setGateState` which writes both keys.
+
+**Render-time cache recovery**: React 18 pattern — if `state.phase === 'init'` but cache has a resolved entry, `setState` during render discards the current render output and immediately re-renders with cached state. This prevents stale `'unclaimed'` from the initial useState from overriding a cached `'owner'` result.
+
+**Direct claim transition**: `onClaimSuccess` calls `setGateState({phase:'resolved', role:'owner'})` directly instead of resetting to `phase:'init'`. This was the fix for the stuck-after-claim bug (29ea3e2f) — resetting to init triggered render-time cache recovery of the stale pre-claim state, creating an infinite loop.
 
 State machine: `phase: 'init' → 'resolved' | 'error'`, `role: 'unclaimed'|'owner'|'collaborator'|'invited'|'none'`, `frozen: boolean`
 
@@ -133,6 +144,28 @@ Rendering decisions:
 - Signed out → AuthGate
 
 Components removed: `SubdomainAccessGate`, `getSubdomainOwner()`, the three-gate cascade.
+
+### Cache Architecture
+
+The gate uses module-level variables (outside React) to persist resolved state across ClerkProvider remounts:
+
+| Variable | Key Format | Purpose |
+|----------|-----------|---------|
+| `_gateCache` | `userId:subdomain` | Primary cache — set by `setGateState`, read by useState initializer and render-time recovery |
+| `_gateCache` | `subdomain` | Fallback cache — always written alongside primary key, used when userId isn't available yet |
+| `_subdomainCheck` | (single promise) | Module-level fetch that fires before React renders for tenant routes |
+| `resolvedForRef` | `userId:subdomain` string | Ref tracking which user+subdomain combo has been resolved, prevents duplicate fetches |
+
+**Lifecycle:**
+1. On first mount, `useState` initializer checks `_gateCache[userId:subdomain]` — cache hit skips all resolution
+2. If cache misses, `useEffect` runs three-tier resolution and calls `setGateState` (writes cache + setState)
+3. On ClerkProvider remount (e.g., Clerk token refresh), component unmounts and re-mounts — but `_gateCache` survives because it's module-scoped
+4. New mount's `useState` initializer finds cached state → instant render, no flash
+
+**Claim flow:**
+1. User clicks "Claim" → `POST /claim` succeeds
+2. `onClaimSuccess` calls `setGateState({phase:'resolved', role:'owner'})` directly
+3. Cache is updated atomically with state — no window for stale recovery
 
 ### SharingBridge (base template)
 
@@ -226,3 +259,4 @@ New test files:
 2. **Full invite-join-gate loop** depends on upstream `redeemInvite` fix in Fireproof Connect (Dashboard returns success but doesn't create LedgerUsers row). The KV side works (`POST /invite` writes, `POST /join` activates, gate checks access), but the browser flow stalls at invite redemption.
 3. **KV eventual consistency** — two users claiming the same subdomain simultaneously could theoretically both succeed. Single-threaded Worker isolate mitigates this in practice. Upgrade to Durable Objects for strict consistency if needed.
 4. **JWT custom claims propagation** — `publicMetadata.vibes_subdomains` is written via Clerk Backend API after `/claim` and `/join`. Session tokens refresh every ~60 seconds, so the first visit after claiming/joining still hits `/resolve`. Subsequent visits use cached JWT claims for instant access.
+5. **Shared ledger sync for collaborators** depends on upstream `redeemInvite` fix. The sell template writes `window.__VIBES_SHARED_LEDGER__` from `/resolve` responses and invite URLs, but the bundle does not read this global (bundle was reverted to pre-shared-ledger state). These writes are harmless no-ops. When the upstream fix lands, the bundle can be re-patched to use the global for collaborator ledger routing.
