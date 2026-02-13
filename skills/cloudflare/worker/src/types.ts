@@ -19,6 +19,7 @@ export interface Collaborator {
   right: "read" | "write";
   invitedAt: string;
   joinedAt?: string;
+  ledgerId?: string;
 }
 
 export interface SubdomainRecord {
