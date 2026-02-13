@@ -96,6 +96,7 @@ async function main() {
   const envDirIdx = args.indexOf("--env-dir");
   const reservedIdx = args.indexOf("--reserved");
   const preallocatedIdx = args.indexOf("--preallocated");
+  const planQuotasIdx = args.indexOf("--plan-quotas");
 
   if (nameIdx === -1) {
     throw new Error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html> [--ai-key <key>] [--clerk-key <pk_test_...>] [--billing-mode <off|required>] [--admin-ids <user_id1,user_id2>] [--webhook-secret <whsec_...>] [--env-dir <dir>] [--reserved <list>] [--preallocated <list>]");
@@ -123,6 +124,9 @@ async function main() {
       }
     }
   }
+
+  // Plan quotas: JSON map of plan slug to max subdomains
+  const planQuotas = planQuotasIdx !== -1 ? args[planQuotasIdx + 1] : null;
 
   // Resolve env directory for .env auto-detection (defaults to --file's parent dir)
   const envDir = envDirIdx !== -1
@@ -250,6 +254,13 @@ async function main() {
       `ADMIN_USER_IDS = "${adminIds}"`
     );
     console.log(`  Admin IDs: ${adminIds} (patched in wrangler.toml)`);
+  }
+  if (planQuotas) {
+    updatedToml = updatedToml.replace(
+      /^PLAN_QUOTAS\s*=\s*"[^"]*"/m,
+      `PLAN_QUOTAS = '${planQuotas}'`
+    );
+    console.log(`  Plan quotas: ${planQuotas} (patched in wrangler.toml)`);
   }
   writeFileSync(wranglerToml, updatedToml);
 

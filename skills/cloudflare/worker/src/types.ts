@@ -8,6 +8,7 @@ export interface Env {
   OPENROUTER_API_KEY?: string;
   BILLING_MODE?: string;
   ADMIN_USER_IDS?: string;
+  PLAN_QUOTAS?: string;  // JSON: {"starter":1,"growth":3,"pro":10}
 }
 
 // === Per-subdomain KV data model ===
@@ -32,5 +33,6 @@ export interface SubdomainRecord {
 
 export interface UserRecord {
   subdomains: string[];
+  ownedSubdomains?: string[];  // owned-only (for quota counting, lazy-migrated)
   quota: number;
 }

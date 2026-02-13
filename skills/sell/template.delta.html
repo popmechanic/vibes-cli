@@ -26,7 +26,8 @@
         subtitle: "__APP_SUBTITLE__",
         adminUserIds: __ADMIN_USER_IDS__,
         reservedSubdomains: __RESERVED_SUBDOMAINS__,
-        registryUrl: "__REGISTRY_URL__"
+        registryUrl: "__REGISTRY_URL__",
+        planQuotas: __PLAN_QUOTAS__
       };
 
       // Convenience aliases
@@ -40,6 +41,8 @@
       const ADMIN_USER_IDS = CONFIG.adminUserIds;
       const RESERVED_SUBDOMAINS = CONFIG.reservedSubdomains;
       const REGISTRY_URL = CONFIG.registryUrl;
+      const PLAN_QUOTAS = CONFIG.planQuotas;
+      const PLAN_SLUGS = Object.keys(PLAN_QUOTAS);
 
       // Helper to resolve registry API URLs
       function registryApiUrl(path) {
@@ -296,7 +299,9 @@
               setTimeout(() => { onClaim?.(); }, 1200);
               return;
             }
-            if (result.reason === 'no_subscription') {
+            if (result.reason === 'quota_exceeded') {
+              setError(`You've reached your limit of ${result.limit} subdomain${result.limit > 1 ? 's' : ''}. Upgrade your plan to claim more.`);
+            } else if (result.reason === 'no_subscription') {
               setError('A subscription is required to claim a subdomain.');
             } else {
               setError(result.error || 'Failed to claim subdomain');
@@ -410,8 +415,9 @@
         // Wait for auth to fully load before making gate decisions
         if (!isLoaded) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
 
-        // Explicit plan check — deny by default
-        const hasPlan = has && has({ plan: 'starter' }) === true;
+        // Multi-plan check — use configured plan slugs, fall back to 'starter'
+        const slugsToCheck = PLAN_SLUGS.length > 0 ? PLAN_SLUGS : ['starter'];
+        const hasPlan = has && slugsToCheck.some(slug => has({ plan: slug }) === true);
         if (!hasPlan) return <SubscriptionPaywall subdomain={subdomain} />;
 
         return children;
@@ -566,7 +572,8 @@
 
             if (claim.role === 'owner') {
               resolvedForRef.current = userKey;
-              var isFrozen = has && has({ plan: 'starter' }) === false && BILLING_MODE === 'required';
+              var slugsToCheck = PLAN_SLUGS.length > 0 ? PLAN_SLUGS : ['starter'];
+              var isFrozen = has && BILLING_MODE === 'required' && !slugsToCheck.some(function(slug) { return has({ plan: slug }) === true; });
               setGateState({ phase: 'resolved', role: 'owner', frozen: isFrozen, error: null });
               return;
             }

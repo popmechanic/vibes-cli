@@ -10,6 +10,9 @@ import {
   removeCollaborator,
   hasAccess,
   hasAccessByEmail,
+  parsePlanQuotas,
+  getQuotaForPlan,
+  isQuotaExceeded,
   // Legacy wrappers
   isSubdomainAvailableLegacy,
   createClaim,
@@ -439,5 +442,82 @@ describe("legacy compatibility wrappers", () => {
       expect(result.released).toHaveLength(2);
       expect(Object.keys(registry.claims)).toHaveLength(0);
     });
+  });
+});
+
+describe("parsePlanQuotas", () => {
+  it("returns empty object for undefined", () => {
+    expect(parsePlanQuotas(undefined)).toEqual({});
+  });
+
+  it("returns empty object for empty string", () => {
+    expect(parsePlanQuotas("")).toEqual({});
+  });
+
+  it("returns empty object for invalid JSON", () => {
+    expect(parsePlanQuotas("not-json{")).toEqual({});
+  });
+
+  it("parses valid JSON", () => {
+    expect(parsePlanQuotas('{"starter":1,"growth":3,"pro":10}')).toEqual({
+      starter: 1,
+      growth: 3,
+      pro: 10,
+    });
+  });
+});
+
+describe("getQuotaForPlan", () => {
+  const quotas = { starter: 1, growth: 3, pro: 10 };
+
+  it("returns quota for known plan", () => {
+    expect(getQuotaForPlan("u:starter", quotas)).toBe(1);
+  });
+
+  it("returns quota for growth plan", () => {
+    expect(getQuotaForPlan("u:growth", quotas)).toBe(3);
+  });
+
+  it("returns null for undefined plan", () => {
+    expect(getQuotaForPlan(undefined, quotas)).toBeNull();
+  });
+
+  it("returns null for unknown plan slug", () => {
+    expect(getQuotaForPlan("u:unknown", quotas)).toBeNull();
+  });
+
+  it("returns null for free plan (not in quotas)", () => {
+    expect(getQuotaForPlan("u:free", quotas)).toBeNull();
+  });
+
+  it("returns null when quotas is empty", () => {
+    expect(getQuotaForPlan("u:starter", {})).toBeNull();
+  });
+});
+
+describe("isQuotaExceeded", () => {
+  it("returns false when below quota", () => {
+    expect(isQuotaExceeded(0, 1)).toBe(false);
+  });
+
+  it("returns true when at quota", () => {
+    expect(isQuotaExceeded(1, 1)).toBe(true);
+  });
+
+  it("returns true when above quota", () => {
+    expect(isQuotaExceeded(4, 3)).toBe(true);
+  });
+
+  it("returns false when count equals quota minus one", () => {
+    expect(isQuotaExceeded(2, 3)).toBe(false);
+  });
+
+  it("returns true when at exact quota boundary", () => {
+    expect(isQuotaExceeded(3, 3)).toBe(true);
+  });
+
+  it("returns false when quota is null (unlimited)", () => {
+    expect(isQuotaExceeded(0, null)).toBe(false);
+    expect(isQuotaExceeded(100, null)).toBe(false);
   });
 });

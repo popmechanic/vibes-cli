@@ -154,8 +154,21 @@ export default function App() {
     database, useLiveQuery, useDocument,
     syncStatus, isSyncing, lastSyncError,
   } = useFireproofClerk(dbName);
+  const { user } = (typeof useUser === "function" ? useUser() : {});
+  const userEmail = user?.primaryEmailAddress?.emailAddress || null;
   const [text, setText] = useState("");
+  const [ledgerId, setLedgerId] = useState(window.__VIBES_SHARED_LEDGER__ || null);
   const { docs } = useLiveQuery("type", { key: "note" });
+
+  // Poll for ledger ID (set async by UnifiedAccessGate after /resolve)
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (window.__VIBES_SHARED_LEDGER__ && window.__VIBES_SHARED_LEDGER__ !== ledgerId) {
+        setLedgerId(window.__VIBES_SHARED_LEDGER__);
+      }
+    }, 2000);
+    return () => clearInterval(id);
+  }, [ledgerId]);
 
   // Uptime timer
   const [uptime, setUptime] = useState(0);
@@ -409,6 +422,14 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                 gap: "6px 16px",
                 fontSize: "13px",
               }}>
+                <span style={{ color: "#64748b" }}>user</span>
+                <span style={{ fontWeight: 600 }}>{userEmail || "not signed in"}</span>
+                <span style={{ color: "#64748b" }}>database</span>
+                <span style={{ fontWeight: 600 }}>{dbName}</span>
+                <span style={{ color: "#64748b" }}>ledger</span>
+                <span style={{ fontWeight: 600, fontSize: "12px", wordBreak: "break-all" }}>
+                  {ledgerId || "default (no shared ledger)"}
+                </span>
                 <span style={{ color: "#64748b" }}>isSyncing</span>
                 <span style={{ fontWeight: 600 }}>{String(syncing)}</span>
                 <span style={{ color: "#64748b" }}>lastSyncError</span>
