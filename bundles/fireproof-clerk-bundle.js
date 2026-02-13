@@ -49528,9 +49528,14 @@ var ClerkTokenStrategy = class {
     var ledgerParam = void 0;
     try {
       var rLedgers = await this.dashApi.listLedgersByUser({});
+      console.log('[vibes-debug] listLedgersByUser result:', JSON.stringify(rLedgers.isOk() ? rLedgers.Ok() : rLedgers.Err()));
       if (rLedgers.isOk()) {
         var ledgers = rLedgers.Ok().ledgers || [];
-        var userId = rUser.Ok().userId;
+        var userId = rLedgers.Ok().userId;
+        console.log('[vibes-debug] Looking for role=member for userId:', userId, 'across', ledgers.length, 'ledgers');
+        ledgers.forEach(function(l, i) {
+          console.log('[vibes-debug] Ledger', i, ':', l.ledgerId, l.name, 'users:', JSON.stringify(l.users));
+        });
         // Find a ledger where this user is a member (not admin/owner)
         var shared = ledgers.find(function(l) {
           return l.users && l.users.some(function(u) {
@@ -49539,12 +49544,20 @@ var ClerkTokenStrategy = class {
         });
         if (shared) {
           ledgerParam = shared.ledgerId;
-          console.debug('[vibes] Using shared ledger:', shared.ledgerId);
+          console.log('[vibes-debug] Using shared ledger:', shared.ledgerId);
+        } else {
+          console.log('[vibes-debug] No shared ledger found, will create fork');
         }
       }
     } catch(e) {
-      // Shared ledger lookup is best-effort; fall through to default behavior
+      console.log('[vibes-debug] listLedgersByUser error:', e);
     }
+    // Fallback: use ledger ID from invite URL (set by ClaimedSubdomainGate)
+    if (!ledgerParam && typeof window !== 'undefined' && window.__VIBES_SHARED_LEDGER__) {
+      ledgerParam = window.__VIBES_SHARED_LEDGER__;
+      console.log('[vibes-debug] Using URL-bridged shared ledger:', ledgerParam);
+    }
+    console.log('[vibes-debug] Calling ensureCloudToken with ledger:', ledgerParam);
 
     const rRes = await this.dashApi.ensureCloudToken({ appId, ledger: ledgerParam });
     if (rRes.isErr()) {

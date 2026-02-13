@@ -2415,11 +2415,12 @@ if (typeof window !== 'undefined') {
                 var inviteData = rInvite.Ok();
                 console.debug('[vibes-sharing] inviteUser response:', inviteData);
 
-                // Construct invite URL pointing to this subdomain
+                // Construct invite URL pointing to this subdomain, including ledger ID for sync
                 var qpSub = new URLSearchParams(window.location.search).get('subdomain');
+                var ledgerId = matchedLedger.ledgerId;
                 var inviteUrl = qpSub
-                  ? window.location.origin + '?subdomain=' + encodeURIComponent(qpSub)
-                  : window.location.origin;
+                  ? window.location.origin + '?subdomain=' + encodeURIComponent(qpSub) + '&ledger=' + encodeURIComponent(ledgerId)
+                  : window.location.origin + '?ledger=' + encodeURIComponent(ledgerId);
 
                 document.dispatchEvent(new CustomEvent('vibes-share-success', {
                   detail: {
