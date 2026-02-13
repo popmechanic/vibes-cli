@@ -38,3 +38,6 @@ skills/cloudflare/worker/public/
 
 # Netlify deploy artifacts
 .netlify-deploy/
+
+# Wrangler local state
+.wrangler/
