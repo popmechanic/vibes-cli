@@ -1,8 +1,8 @@
 S# Registry Rewrite: Per-Subdomain Cloudflare KV
 
-**Version:** 0.1.56
-**Date:** 2026-02-11
-**Commits:** `ee011dcb`, `0e0e562d`, `be4f526c`, `79864673`
+**Version:** 0.1.56 → 0.1.59
+**Date:** 2026-02-11 (registry rewrite), 2026-02-13 (quota enforcement)
+**Commits:** `ee011dcb`, `0e0e562d`, `be4f526c`, `79864673`, `533747a4`
 
 ## What Changed
 
@@ -41,7 +41,7 @@ Value: {
 }
 
 Key: "user:user_abc123"
-Value: { subdomains: ["alice"], quota: 3 }
+Value: { subdomains: ["alice"], ownedSubdomains: ["alice"], quota: 3 }
 
 Key: "config:reserved"
 Value: ["admin", "api", "www"]
@@ -70,6 +70,15 @@ When the owner resubscribes (`subscription.created`/`subscription.updated` webho
 - Everything is instantly restored — owner, collaborators, data. No reclaiming, no re-inviting.
 
 A collaborator's subscription is theirs — it lets them claim their own subdomain but does NOT unfreeze someone else's frozen subdomain.
+
+### Per-Plan Quota Enforcement (0.1.59)
+
+The Worker enforces per-plan subdomain quotas via the `PLAN_QUOTAS` environment variable (JSON map of plan slug → max subdomains, e.g. `{"starter":3,"pro":10}`). On `/claim`, the handler checks the user's `ownedSubdomains` count against their plan's limit. If exceeded, returns 403 with `{ reason: "quota_exceeded", current, limit }`.
+
+- **Admins bypass** the check entirely (existing admin logic)
+- **Unknown/missing plans** default to unlimited for backward compatibility
+- The `ownedSubdomains` field on `UserRecord` is lazily migrated from `subdomains` on first write
+- `parsePlanQuotas()`, `getQuotaForPlan()`, `isQuotaExceeded()` are pure functions in `registry-logic.ts`
 
 ## JWT Custom Claims
 
@@ -106,7 +115,7 @@ JWT claims include a `frozen` boolean per subdomain, propagated by webhook freez
 
 | Endpoint | What Changed |
 |----------|-------------|
-| `POST /claim` | Writes per-key `subdomain:<name>` + `user:<userId>` instead of blob |
+| `POST /claim` | Writes per-key `subdomain:<name>` + `user:<userId>` instead of blob; enforces per-plan quota via `PLAN_QUOTAS` env var |
 | `GET /check/:subdomain` | Reads per-key instead of blob |
 | `GET /registry.json` | Reconstructs old format from `kv.list({ prefix: 'subdomain:' })` |
 | `POST /webhook` | Freezes subdomain records on subscription.deleted; unfreezes on subscription.created/updated |
@@ -144,6 +153,11 @@ Rendering decisions:
 - Signed out → AuthGate
 
 Components removed: `SubdomainAccessGate`, `getSubdomainOwner()`, the three-gate cascade.
+
+### Quota Enforcement UI (0.1.59)
+
+- **SubscriptionGate** checks all plan slugs from `CONFIG.planQuotas` (not just hardcoded `'starter'`). `isFrozen` detection uses the same multi-plan logic. This fixed the bug where SubscriptionGate failed to detect subscriptions for plans other than `'starter'`.
+- **ClaimPrompt** handles `quota_exceeded` responses from `/claim`: shows "You've reached the limit of N apps on your current plan" instead of a generic error.
 
 ### Cache Architecture
 
@@ -185,7 +199,8 @@ The `registryApiUrl()` helper in the sell delta uses relative paths as fallback,
 
 - KV namespace is created/found per app (e.g., `myapp-registry`)
 - After deploying the Worker, config keys are seeded via `wrangler kv key put --namespace-id <id> --remote`
-- Supports `--reserved` and `--preallocated` flags
+- Supports `--reserved`, `--preallocated`, and `--plan-quotas` flags
+- `--plan-quotas` patches `PLAN_QUOTAS` into `wrangler.toml` `[vars]` section
 
 ### deploy-exe.js
 
@@ -195,8 +210,9 @@ The `registryApiUrl()` helper in the sell delta uses relative paths as fallback,
 
 ### assemble-sell.js
 
-- Added `--registry-url` flag
+- Added `--registry-url` and `--plan-quotas` flags
 - `__REGISTRY_URL__` placeholder in sell delta CONFIG gets replaced during assembly
+- `__PLAN_QUOTAS__` placeholder gets replaced with JSON quota map
 - Falls back to `VITE_REGISTRY_URL` env var, then empty string (same-origin fallback)
 
 ## Files Changed
@@ -232,13 +248,25 @@ The `registryApiUrl()` helper in the sell delta uses relative paths as fallback,
 - `skills/sell/template.delta.html` — `UnifiedAccessGate`, `ResubscribePaywall`, removed `SubdomainAccessGate`
 - `scripts/deploy-cloudflare.js` — `CLERK_SECRET_KEY` secret handling
 
+### Quota Enforcement (2026-02-13)
+- `skills/cloudflare/worker/src/lib/registry-logic.ts` — `parsePlanQuotas()`, `getQuotaForPlan()`, `isQuotaExceeded()`
+- `skills/cloudflare/worker/src/types.ts` — `ownedSubdomains` on `UserRecord`
+- `skills/cloudflare/worker/src/index.ts` — quota check in `/claim` handler
+- `skills/cloudflare/worker/wrangler.toml` — `PLAN_QUOTAS` var
+- `skills/sell/template.delta.html` — multi-plan SubscriptionGate, quota_exceeded ClaimPrompt
+- `scripts/assemble-sell.js` — `--plan-quotas` flag, `__PLAN_QUOTAS__` placeholder
+- `scripts/deploy-cloudflare.js` — `--plan-quotas` flag, wrangler.toml patching
+- `skills/cloudflare/worker/src/__tests__/quota-enforcement.test.ts` — 11 integration tests
+- `skills/cloudflare/worker/src/__tests__/registry-logic.test.ts` — 24 unit tests added
+
 ## Testing
 
-~530+ tests pass (425+ scripts + 100+ worker).
+561 tests pass (425 scripts + 136 worker).
 
 New test files:
 - `resolve-endpoint.test.ts` — /resolve endpoint behavior (unclaimed, owner, collaborator, frozen, invited, no identity)
-- Updated `registry-logic.test.ts` — freeze/unfreeze functions, hasAccess with frozen flag
+- `quota-enforcement.test.ts` — 11 integration tests for quota check on /claim (at limit, below, above, no quotas, admin bypass)
+- Updated `registry-logic.test.ts` — freeze/unfreeze functions, hasAccess with frozen flag, 24 quota pure function tests
 - Updated `kv-storage.test.ts` — normalizeRecord for legacy records
 - Updated `integration.test.ts` — webhook freeze/unfreeze behavior
 
@@ -252,6 +280,7 @@ New test files:
 - `/registry.json` backward compat works
 - KV config seeding works during deploy
 - Sync, AI proxy, React singleton all green
+- Quota enforcement: free user hitting limit gets 403, subscriber can claim up to plan limit
 
 ## Current Limitations
 
@@ -260,3 +289,4 @@ New test files:
 3. **KV eventual consistency** — two users claiming the same subdomain simultaneously could theoretically both succeed. Single-threaded Worker isolate mitigates this in practice. Upgrade to Durable Objects for strict consistency if needed.
 4. **JWT custom claims propagation** — `publicMetadata.vibes_subdomains` is written via Clerk Backend API after `/claim` and `/join`. Session tokens refresh every ~60 seconds, so the first visit after claiming/joining still hits `/resolve`. Subsequent visits use cached JWT claims for instant access.
 5. **Shared ledger sync for collaborators** depends on upstream `redeemInvite` fix. The sell template writes `window.__VIBES_SHARED_LEDGER__` from `/resolve` responses and invite URLs, but the bundle does not read this global (bundle was reverted to pre-shared-ledger state). These writes are harmless no-ops. When the upstream fix lands, the bundle can be re-patched to use the global for collaborator ledger routing.
+6. **Quota downgrade enforcement** — quotas are only checked on new `/claim` requests. If a user downgrades from pro (10 apps) to starter (3 apps) while owning 8 subdomains, existing subdomains are not frozen. Future work: webhook handler for `subscription.updated` that freezes excess subdomains on downgrade.
