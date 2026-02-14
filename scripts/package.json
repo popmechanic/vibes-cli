@@ -4,7 +4,6 @@
   "type": "module",
   "description": "Build and deploy scripts for vibes-cli plugin",
   "scripts": {
-"registry": "bun run deployables/registry-server.ts",
     "test": "vitest",
     "test:unit": "vitest run __tests__/unit",
     "test:integration": "vitest run __tests__/integration",
