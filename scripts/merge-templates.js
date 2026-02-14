@@ -22,7 +22,7 @@ const PLUGIN_ROOT = join(__dirname, "..");
 const CACHE_DIR = join(PLUGIN_ROOT, "cache");
 
 // Paths
-const BASE_TEMPLATE = join(PLUGIN_ROOT, "skills/_base/template.html");
+const BASE_TEMPLATE = join(PLUGIN_ROOT, "templates/base/template.html");
 const COMPONENTS_FILE = join(CACHE_DIR, "vibes-menu.js");
 
 // Skills to generate templates for
