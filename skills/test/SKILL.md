@@ -502,9 +502,9 @@ Ask the user to describe the issue. Then work through these diagnostic steps. Sk
 
 | Console Error | Likely Cause | Check File |
 |---------------|-------------|------------|
-| `Cannot read properties of null (reading 'useContext')` | Duplicate React instances | `skills/_base/template.html` import map |
+| `Cannot read properties of null (reading 'useContext')` | Duplicate React instances | `templates/base/template.html` import map |
 | `Failed to fetch` / CORS errors | Deploy script wrong URL or missing CORS headers | `scripts/deploy-connect.js`, `scripts/deploy-cloudflare.js` |
-| `Fireproof is not defined` | Missing import map entry | `skills/_base/template.html` import map |
+| `Fireproof is not defined` | Missing import map entry | `templates/base/template.html` import map |
 | `Unexpected token '<'` | Babel script block malformed | `scripts/assemble.js` |
 | 404 on `/api/` routes | nginx config or Connect not running | `scripts/deploy-connect.js` |
 
@@ -530,10 +530,10 @@ ssh <studio>.exe.xyz "docker logs gateway"  # Check gateway logs
 
 | Symptom Category | Files to Read |
 |-----------------|---------------|
-| Assembly/template | `scripts/assemble.js`, `skills/_base/template.html`, relevant `template.delta.html` |
+| Assembly/template | `scripts/assemble.js`, `templates/base/template.html`, relevant `template.delta.html` |
 | Deploy/hosting | `scripts/deploy-cloudflare.js`, `scripts/deploy-connect.js` |
-| Auth/Clerk | `skills/_base/template.html` (Clerk script), `scripts/deploy-connect.js` (env vars) |
-| Import/module errors | `skills/_base/template.html` (import map) |
+| Auth/Clerk | `templates/base/template.html` (Clerk script), `scripts/deploy-connect.js` (env vars) |
+| Import/module errors | `templates/base/template.html` (import map) |
 
 ### Phase 8: Root Cause Classification
 
@@ -542,7 +542,7 @@ Before touching any file, state the classification:
 | Category | Signal | Fix Target | Example |
 |----------|--------|-----------|---------|
 | **A: Plugin source bug** | Deploy script produces wrong output | `scripts/*.js` | `deploy-connect.js` writes wrong URL |
-| **B: Template bug** | HTML output is structurally wrong | `skills/_base/template.html` or `template.delta.html` | Missing import map entry |
+| **B: Template bug** | HTML output is structurally wrong | `templates/base/template.html` or `template.delta.html` | Missing import map entry |
 | **C: Skill instruction bug** | Agent followed wrong steps | `skills/*/SKILL.md` | Wrong hook name in instructions |
 | **D: Fixture bug** | Only this fixture fails | `scripts/__tests__/fixtures/` | Bad JSX in test fixture |
 | **E: External/transient** | VM down, CDN outage, rate limit | None — retry | esm.sh 503, VM unreachable |
