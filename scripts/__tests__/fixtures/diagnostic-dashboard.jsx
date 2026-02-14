@@ -154,7 +154,7 @@ export default function App() {
     database, useLiveQuery, useDocument,
     syncStatus, isSyncing, lastSyncError,
   } = useFireproofClerk(dbName);
-  const { user } = (typeof useUser === "function" ? useUser() : {});
+  const { user } = useUser();
   const userEmail = user?.primaryEmailAddress?.emailAddress || null;
   const [text, setText] = useState("");
   const [ledgerId, setLedgerId] = useState(window.__VIBES_SHARED_LEDGER__ || null);
@@ -482,14 +482,15 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
           </Panel>
 
           {/* ── CRUD Test Panel ── */}
-          <Panel title="CRUD TEST" style={{ animationDelay: "0.1s" }}>
+          <Panel title="TEST CHAT" style={{ animationDelay: "0.1s" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {/* Input form */}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!text.trim()) return;
-                  database.put({ text, type: "note", ts: Date.now() });
+                  const username = userEmail ? userEmail.split("@")[0] : "anonymous";
+                  database.put({ text, type: "note", ts: Date.now(), author: username });
                   setText("");
                 }}
                 style={{ display: "flex", gap: "8px" }}
@@ -559,6 +560,8 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                         whiteSpace: "nowrap",
                       }}>{d.text || "(empty)"}</span>
                       <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                        {d.author && <span style={{ fontWeight: 600, color: "#64748b" }}>{d.author}</span>}
+                        {d.author && " · "}
                         {d.ts ? new Date(d.ts).toLocaleTimeString() : "—"}
                       </span>
                     </div>
