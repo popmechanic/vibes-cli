@@ -41,3 +41,6 @@ skills/cloudflare/worker/public/
 
 # Wrangler local state
 .wrangler/
+
+# Design mockups (not part of plugin)
+designs/
