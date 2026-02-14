@@ -418,7 +418,7 @@ npm run test:e2e:server
 | `hooks/hooks.json` | SessionStart hook declaration |
 | `hooks/run-hook.cmd` | Cross-platform polyglot wrapper for hooks |
 | `hooks/session-start.sh` | SessionStart logic — reads context + detects project state |
-| `hooks/session-context.md` | Static framework awareness content injected every conversation |
+| `hooks/session-context.md` | Reasoning-based skill awareness content injected every conversation |
 
 ### Cache Locations
 
@@ -500,7 +500,7 @@ The plugin uses a `SessionStart` hook to inject framework awareness context into
 | `hooks/hooks.json` | Hook declaration — triggers on startup, resume, clear, compact |
 | `hooks/run-hook.cmd` | Cross-platform polyglot wrapper (bash on Unix, Git Bash on Windows) |
 | `hooks/session-start.sh` | Main logic — reads context file, detects project state, outputs JSON |
-| `hooks/session-context.md` | Static framework awareness content (skill trigger table, workflow, rules) |
+| `hooks/session-context.md` | Reasoning-based skill awareness (why Vibes exists, when to use it, dispatch table) |
 
 ### How It Works
 
