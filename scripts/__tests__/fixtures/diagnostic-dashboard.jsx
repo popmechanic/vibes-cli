@@ -542,7 +542,7 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                     No documents yet. Save one above.
                   </div>
                 )}
-                {docs.map((d) => (
+                {[...docs].sort((a, b) => (b.ts || 0) - (a.ts || 0)).map((d) => (
                   <div key={d._id} style={{
                     display: "flex",
                     alignItems: "center",
