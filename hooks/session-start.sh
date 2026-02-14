@@ -71,7 +71,7 @@ cat <<EOF
 {
   "hookSpecificOutput": {
     "hookEventName": "SessionStart",
-    "additionalContext": "${context_escaped}${state_escaped}"
+    "additionalContext": "<vibes-framework>\n${context_escaped}${state_escaped}\n</vibes-framework>"
   }
 }
 EOF
