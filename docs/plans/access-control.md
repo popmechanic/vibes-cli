@@ -234,7 +234,7 @@ The `registryApiUrl()` helper in the sell delta uses relative paths as fallback,
 
 ### Modified
 - `skills/sell/template.delta.html` — Async gate + registry URL fallback
-- `skills/_base/template.html` — SharingBridge KV dual-write
+- `templates/base/template.html` — SharingBridge KV dual-write
 - `scripts/assemble-sell.js` — --registry-url flag + placeholder
 - `scripts/deploy-cloudflare.js` — KV seeding with --namespace-id --remote
 - `scripts/deploy-exe.js` — Removed Bun registry, added --registry-url
