@@ -82,6 +82,15 @@ export class RegistryKV {
     await this.kv.put("config:preallocated", JSON.stringify(preallocated));
   }
 
+  async getMigrated(): Promise<boolean> {
+    const data = await this.kv.get("config:migrated");
+    return data === "true";
+  }
+
+  async putMigrated(): Promise<void> {
+    await this.kv.put("config:migrated", "true");
+  }
+
   // --- List/query operations ---
 
   async listSubdomains(): Promise<Map<string, SubdomainRecord>> {
@@ -112,7 +121,11 @@ export class RegistryKV {
 
   async migrateFromBlob(): Promise<boolean> {
     const legacyData = await this.kv.get(LEGACY_KEY);
-    if (!legacyData) return false;
+    if (!legacyData) {
+      // No legacy data — mark as migrated to skip future checks
+      await this.putMigrated();
+      return false;
+    }
 
     const registry: Registry = JSON.parse(legacyData);
 
@@ -150,6 +163,9 @@ export class RegistryKV {
 
     // Delete legacy key
     await this.kv.delete(LEGACY_KEY);
+
+    // Mark migration as complete so subsequent requests skip this entirely
+    await this.putMigrated();
 
     return true;
   }

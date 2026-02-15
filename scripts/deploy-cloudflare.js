@@ -23,6 +23,7 @@ import { resolve, join, basename, dirname } from "path";
 import { createPublicKey } from "crypto";
 import { PLUGIN_ROOT } from "./lib/paths.js";
 import { loadEnvFile } from "./lib/env-utils.js";
+import { validateName } from "./lib/deploy-utils.js";
 const WORKER_DIR = resolve(PLUGIN_ROOT, "skills/cloudflare/worker");
 
 function run(cmd, options = {}) {
@@ -102,7 +103,7 @@ async function main() {
     throw new Error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html> [--ai-key <key>] [--clerk-key <pk_test_...>] [--billing-mode <off|required>] [--admin-ids <user_id1,user_id2>] [--webhook-secret <whsec_...>] [--env-dir <dir>] [--reserved <list>] [--preallocated <list>]");
   }
 
-  const name = args[nameIdx + 1];
+  const name = validateName(args[nameIdx + 1]);
   const file = fileIdx !== -1 ? args[fileIdx + 1] : "index.html";
   const aiKey = aiKeyIdx !== -1 ? args[aiKeyIdx + 1] : null;
   const billingMode = billingModeIdx !== -1 ? args[billingModeIdx + 1] : null;

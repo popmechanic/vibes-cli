@@ -9,7 +9,7 @@
  * Example: node generate-riff.js "productivity apps" 1 riff-1/app.jsx "warm sunset tones"
  */
 
-import { execSync } from 'child_process';
+import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
@@ -88,20 +88,18 @@ Requirements:
 - Make it visually distinctive and immersive`;
 
 try {
-  // Escape the prompt for shell - handle backticks, dollars, double quotes, and parentheses
-  const escapedPrompt = prompt
-    .replace(/\\/g, '\\\\')     // Escape backslashes first
-    .replace(/`/g, '\\`')       // Escape backticks
-    .replace(/\$/g, '\\$')      // Escape dollar signs
-    .replace(/"/g, '\\"')       // Escape double quotes
-    .replace(/\(/g, '\\(')      // Escape open parens
-    .replace(/\)/g, '\\)');     // Escape close parens
-
-  const output = execSync(`claude -p "${escapedPrompt}"`, {
+  const result = spawnSync('claude', ['-p', prompt], {
     encoding: 'utf-8',
     maxBuffer: 10 * 1024 * 1024, // 10MB buffer
     timeout: 300000 // 5 minute timeout
   });
+
+  if (result.status !== 0) {
+    const errorMsg = result.stderr || result.error?.message || 'Unknown error';
+    throw new Error(errorMsg);
+  }
+
+  const output = result.stdout;
 
   // Extract reasoning if present
   const reasoningMatch = output.match(/<reasoning>([\s\S]*?)<\/reasoning>/);

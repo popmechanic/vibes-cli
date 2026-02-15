@@ -15,7 +15,7 @@ vi.mock('child_process', () => ({
   execSync: vi.fn(),
 }));
 
-import { preFlightSSH, createAndSetupVM, ensureBun, uploadFilesWithSudo, verifyDeployment } from '../../lib/deploy-utils.js';
+import { validateName, preFlightSSH, createAndSetupVM, ensureBun, uploadFilesWithSudo, verifyDeployment } from '../../lib/deploy-utils.js';
 import { findSSHKey, testConnection, createVM, connect, runCommand, uploadFile } from '../../lib/exe-ssh.js';
 import { execSync } from 'child_process';
 
@@ -29,6 +29,50 @@ describe('deploy-utils', () => {
 
   afterEach(() => {
     consoleSpy.mockRestore();
+  });
+
+  describe('validateName', () => {
+    it('accepts valid lowercase names', () => {
+      expect(validateName('myapp')).toBe('myapp');
+      expect(validateName('my-app')).toBe('my-app');
+      expect(validateName('a')).toBe('a');
+      expect(validateName('my-cool-app-123')).toBe('my-cool-app-123');
+      expect(validateName('app1')).toBe('app1');
+      expect(validateName('123')).toBe('123');
+    });
+
+    it('rejects names with spaces', () => {
+      expect(() => validateName('my app')).toThrow('Invalid name');
+    });
+
+    it('rejects shell injection attempts', () => {
+      expect(() => validateName('myapp; rm -rf /')).toThrow('Invalid name');
+      expect(() => validateName('myapp$(evil)')).toThrow('Invalid name');
+      expect(() => validateName('myapp`whoami`')).toThrow('Invalid name');
+      expect(() => validateName('myapp|cat /etc/passwd')).toThrow('Invalid name');
+    });
+
+    it('rejects empty or missing names', () => {
+      expect(() => validateName('')).toThrow('Name is required');
+      expect(() => validateName(null)).toThrow('Name is required');
+      expect(() => validateName(undefined)).toThrow('Name is required');
+    });
+
+    it('rejects names starting or ending with hyphen', () => {
+      expect(() => validateName('-start')).toThrow('Invalid name');
+      expect(() => validateName('end-')).toThrow('Invalid name');
+    });
+
+    it('rejects uppercase names', () => {
+      expect(() => validateName('UPPER')).toThrow('Invalid name');
+      expect(() => validateName('MyApp')).toThrow('Invalid name');
+    });
+
+    it('rejects names with special characters', () => {
+      expect(() => validateName('my_app')).toThrow('Invalid name');
+      expect(() => validateName('my.app')).toThrow('Invalid name');
+      expect(() => validateName('my/app')).toThrow('Invalid name');
+    });
   });
 
   describe('preFlightSSH', () => {
@@ -93,6 +137,11 @@ describe('deploy-utils', () => {
       createVM.mockResolvedValue({ success: false, message: 'quota exceeded' });
 
       await expect(createAndSetupVM('testvm')).rejects.toThrow('Failed to create VM: quota exceeded');
+    });
+
+    it('rejects invalid names before creating VM', async () => {
+      await expect(createAndSetupVM('bad name; rm -rf /')).rejects.toThrow('Invalid name');
+      expect(createVM).not.toHaveBeenCalled();
     });
 
     it('warns but continues when ssh-keyscan fails', async () => {

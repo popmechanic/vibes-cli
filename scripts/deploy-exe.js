@@ -55,7 +55,8 @@ import {
   createAndSetupVM,
   ensureBun,
   uploadFilesWithSudo,
-  verifyDeployment as verifyURL
+  verifyDeployment as verifyURL,
+  validateName,
 } from './lib/deploy-utils.js';
 
 import { generateHandoff, extractContextFromEnv } from './generate-handoff.js';
@@ -551,8 +552,8 @@ location /api/ai/ {
   }
 }
 
-async function phase7Handoff(args) {
-  console.log('\nPhase 7: Context Handoff...');
+async function phase6Handoff(args) {
+  console.log('\nPhase 6: Context Handoff...');
 
   const vmHost = `${args.name}.exe.xyz`;
 
@@ -590,8 +591,8 @@ async function phase7Handoff(args) {
   }
 }
 
-async function phase8PublicAccess(args) {
-  console.log('\nPhase 8: Public Access...');
+async function phase7PublicAccess(args) {
+  console.log('\nPhase 7: Public Access...');
 
   if (args.dryRun) {
     console.log(`  [DRY RUN] Would run: share set-public ${args.name}`);
@@ -627,13 +628,13 @@ async function phase8PublicAccess(args) {
   }
 }
 
-async function phase9CustomDomain(args) {
+async function phase8CustomDomain(args) {
   if (!args.domain) {
-    console.log('\nPhase 9: Custom Domain... SKIPPED (no --domain provided)');
+    console.log('\nPhase 8: Custom Domain... SKIPPED (no --domain provided)');
     return;
   }
 
-  console.log('\nPhase 9: Custom Domain Setup...');
+  console.log('\nPhase 8: Custom Domain Setup...');
   console.log(`
   To set up your custom domain (${args.domain}), follow these steps:
 
@@ -703,6 +704,8 @@ async function main() {
     process.exit(1);
   }
 
+  validateName(args.name);
+
   console.log(`
 ${'━'.repeat(60)}
   exe.dev DEPLOYMENT
@@ -730,9 +733,9 @@ ${'━'.repeat(60)}
     await phase4cAuthCardsUpload(args);
     await phase4dFaviconUpload(args);
     await phase5AIProxy(args);
-    await phase7Handoff(args);
-    await phase8PublicAccess(args);
-    await phase9CustomDomain(args);
+    await phase6Handoff(args);
+    await phase7PublicAccess(args);
+    await phase8CustomDomain(args);
 
     // Verification
     if (!args.skipVerify && !args.dryRun) {
