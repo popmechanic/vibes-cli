@@ -153,7 +153,7 @@ async function buildComponents(force) {
   // Combine all transpiled code
   let combinedOutput = `// Auto-generated vibes menu components
 // Run: node scripts/build-components.js --force to regenerate
-// Source: ${COMPONENTS_DIR}
+// Source: components/
 // Generated: ${new Date().toISOString()}
 // Components: ${successful.length}/${results.length}
 
