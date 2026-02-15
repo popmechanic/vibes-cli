@@ -3,11 +3,11 @@
  * Build Vibes Components
  *
  * Transpiles local TypeScript components from components/ directory
- * and outputs bundled JavaScript to cache/vibes-menu.js
+ * and outputs bundled JavaScript to build/vibes-menu.js
  *
  * Usage:
  *   node scripts/build-components.js
- *   node scripts/build-components.js --force  # Rebuild even if cache exists
+ *   node scripts/build-components.js --force  # Rebuild even if build output exists
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
@@ -99,11 +99,11 @@ async function transpileComponent(name, source, isTS) {
 async function buildComponents(force) {
   // Check if rebuild is needed
   if (!force && existsSync(OUTPUT_FILE)) {
-    console.log("Cache exists. Use --force to rebuild.");
+    console.log("Build output exists. Use --force to rebuild.");
     return { success: true, cached: true };
   }
 
-  // Ensure cache directory exists
+  // Ensure build directory exists
   mkdirSync(BUILD_DIR, { recursive: true });
 
   console.log("Building components from local source...");

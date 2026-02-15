@@ -19,7 +19,7 @@ Do NOT hardcode database names. `useTenant()` is provided by the sell template a
 ## Generation Rules
 1. Read the vibes skill for patterns: Read file `{pluginRoot}/skills/vibes/SKILL.md`
 2. Read Fireproof API docs: Read file `{pluginRoot}/docs/fireproof.txt`
-3. Read style guidance: Read file `{pluginRoot}/cache/style-prompt.txt`
+3. Read style guidance: Read file `{pluginRoot}/skills/vibes/defaults/style-prompt.txt`
 4. Output ONLY a default-export JSX component — no import statements, no HTML wrapper, no import map, no Babel script tags
 5. Export a default function component: `export default function App() { ... }`
 6. Use Tailwind CSS for styling (available via CDN in template)
