@@ -23,11 +23,11 @@ cd scripts && npm install
 For testing changes locally without publishing:
 
 ```bash
-# Reinstall from local directory
-./dev-reinstall.sh
+# Load plugin from local directory (no install needed)
+claude --plugin .
 ```
 
-This script uninstalls the existing plugin and reinstalls from your local working copy.
+This loads skills and commands from your local checkout, so you can test changes without publishing.
 
 ## Project Structure
 
@@ -44,8 +44,8 @@ vibes-cli/
 ├── scripts/                 # Node.js utilities
 │   ├── assemble.js          # JSX → HTML assembly
 │   └── __tests__/           # Test suite
-├── cache/                   # Working cache (gitignored)
-└── skills/vibes/cache/      # Default cache (git-tracked)
+├── build/                   # Build output (gitignored)
+└── skills/vibes/defaults/   # Shipped defaults (git-tracked)
 ```
 
 ## Running Tests

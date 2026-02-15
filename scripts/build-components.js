@@ -21,9 +21,9 @@ const __dirname = dirname(__filename);
 
 // Plugin root is one level up from scripts/
 const PLUGIN_ROOT = join(__dirname, "..");
-const CACHE_DIR = join(PLUGIN_ROOT, "cache");
+const BUILD_DIR = join(PLUGIN_ROOT, "build");
 const COMPONENTS_DIR = join(PLUGIN_ROOT, "components");
-const OUTPUT_FILE = join(CACHE_DIR, "vibes-menu.js");
+const OUTPUT_FILE = join(BUILD_DIR, "vibes-menu.js");
 
 // Component sources in dependency order
 // These are relative to COMPONENTS_DIR
@@ -104,7 +104,7 @@ async function buildComponents(force) {
   }
 
   // Ensure cache directory exists
-  mkdirSync(CACHE_DIR, { recursive: true });
+  mkdirSync(BUILD_DIR, { recursive: true });
 
   console.log("Building components from local source...");
   console.log(`  Source: ${COMPONENTS_DIR}`);

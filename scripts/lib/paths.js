@@ -13,7 +13,7 @@ const __dirname = dirname(__filename);
 
 // Plugin root is two levels up from scripts/lib/
 export const PLUGIN_ROOT = join(__dirname, '..', '..');
-export const CACHE_DIR = join(PLUGIN_ROOT, 'cache');
+export const BUILD_DIR = join(PLUGIN_ROOT, 'build');
 
 /**
  * Template file paths
@@ -25,11 +25,17 @@ export const TEMPLATES = {
 };
 
 /**
- * Cache file paths
+ * Build output file paths
  */
-export const CACHE_FILES = {
-  stylePrompt: join(CACHE_DIR, 'style-prompt.txt'),
-  vibesMenu: join(CACHE_DIR, 'vibes-menu.js'),
+export const BUILD_FILES = {
+  vibesMenu: join(BUILD_DIR, 'vibes-menu.js'),
+};
+
+/**
+ * Default file paths (shipped with plugin)
+ */
+export const DEFAULT_FILES = {
+  stylePrompt: join(PLUGIN_ROOT, 'skills/vibes/defaults/style-prompt.txt'),
 };
 
 /**

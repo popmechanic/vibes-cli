@@ -10,7 +10,7 @@
  *   node scripts/merge-templates.js --force  # Rebuild even if templates exist
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, lstatSync, realpathSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -19,14 +19,13 @@ const __dirname = dirname(__filename);
 
 // Plugin root is one level up from scripts/
 const PLUGIN_ROOT = join(__dirname, "..");
-const CACHE_DIR = join(PLUGIN_ROOT, "cache");
+const BUILD_DIR = join(PLUGIN_ROOT, "build");
 
 // Paths
-const BASE_TEMPLATE = join(PLUGIN_ROOT, "templates/base/template.html");
-const COMPONENTS_FILE = join(CACHE_DIR, "vibes-menu.js");
+const BASE_TEMPLATE = join(PLUGIN_ROOT, "source-templates/base/template.html");
+const COMPONENTS_FILE = join(BUILD_DIR, "vibes-menu.js");
 
 // Skills to generate templates for
-// NOTE: riff/templates is a symlink to vibes/templates, so no separate generation needed
 const SKILLS = [
   {
     name: "vibes",
@@ -35,6 +34,14 @@ const SKILLS = [
     title: "Made on Vibes DIY",
     assemblyMode: "preserve",   // assemble.js: user code used as-is
     assemblyRole: "generate"    // creates the initial artifact
+  },
+  {
+    name: "riff",
+    delta: join(PLUGIN_ROOT, "skills/riff/template.delta.html"),
+    output: join(PLUGIN_ROOT, "skills/riff/templates/index.html"),
+    title: "Made on Vibes DIY",
+    assemblyMode: "preserve",   // assemble.js: same as vibes
+    assemblyRole: "generate"    // creates riff variations
   },
   {
     name: "sell",
@@ -115,22 +122,6 @@ function main() {
   console.log(`  Components: ${COMPONENTS_FILE} (${components.length} bytes)`);
   console.log("");
 
-  // Validate riff symlink (riff/templates -> vibes/templates)
-  const riffTemplatesPath = join(PLUGIN_ROOT, "skills/riff/templates");
-  try {
-    const stat = lstatSync(riffTemplatesPath);
-    if (stat.isSymbolicLink()) {
-      const target = realpathSync(riffTemplatesPath);
-      const vibesTemplatesPath = join(PLUGIN_ROOT, "skills/vibes/templates");
-      if (!target.startsWith(realpathSync(vibesTemplatesPath))) {
-        console.warn(`  Warning: riff/templates symlink points to unexpected target: ${target}`);
-      }
-    } else {
-      console.warn("  Warning: skills/riff/templates exists but is not a symlink");
-    }
-  } catch {
-    console.warn("  Warning: skills/riff/templates symlink missing (expected -> ../vibes/templates)");
-  }
   console.log("");
 
   // Process each skill
