@@ -157,18 +157,23 @@ export default function App() {
   const { user } = useUser();
   const userEmail = user?.primaryEmailAddress?.emailAddress || null;
   const [text, setText] = useState("");
-  const [ledgerId, setLedgerId] = useState(window.__VIBES_SHARED_LEDGER__ || null);
+  const [ledgerId, setLedgerId] = useState(function() {
+    var map = window.__VIBES_LEDGER_MAP__ || {};
+    return map[dbName] || window.__VIBES_SHARED_LEDGER__ || null;
+  });
   const { docs } = useLiveQuery("type", { key: "note" });
 
   // Poll for ledger ID (set async by UnifiedAccessGate after /resolve)
   useEffect(() => {
     const id = setInterval(() => {
-      if (window.__VIBES_SHARED_LEDGER__ && window.__VIBES_SHARED_LEDGER__ !== ledgerId) {
-        setLedgerId(window.__VIBES_SHARED_LEDGER__);
+      var map = window.__VIBES_LEDGER_MAP__ || {};
+      var current = map[dbName] || window.__VIBES_SHARED_LEDGER__ || null;
+      if (current && current !== ledgerId) {
+        setLedgerId(current);
       }
     }, 2000);
     return () => clearInterval(id);
-  }, [ledgerId]);
+  }, [ledgerId, dbName]);
 
   // Uptime timer
   const [uptime, setUptime] = useState(0);

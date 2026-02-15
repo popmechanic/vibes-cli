@@ -15,60 +15,110 @@ export * from "./fireproof-clerk-bundle.js";
 import { useFireproofClerk as _originalUseFireproofClerk, useClerkFireproofContext } from "./fireproof-clerk-bundle.js";
 
 var _patchedApis = typeof WeakSet !== 'undefined' ? new WeakSet() : { has: function(){return false;}, add: function(){} };
+var _currentDbName = null;
 
 export function useFireproofClerk(name, opts) {
   var ctx = useClerkFireproofContext();
   var dashApi = ctx && ctx.dashApi;
-  // Patch dashApi to route to shared ledger. Three tiers:
-  // 1. Fast path: req.ledger already set (bundle found member ledger)
-  // 2. Fast path: __VIBES_SHARED_LEDGER__ set (collaborator via /resolve, or cached discovery)
-  // 3. Slow path: listLedgersByUser discovery (covers owner case — role=admin not found by bundle)
+  // Patch dashApi to route to correct per-database ledger. Three tiers:
+  // 1. Per-database ledger map (populated by sell template or Tier 3 discovery)
+  // 2. Legacy global __VIBES_SHARED_LEDGER__ (backward compat)
+  // 3. Discovery via listLedgersByUser (matches by dbName, then hostname)
   if (dashApi && !_patchedApis.has(dashApi)) {
     _patchedApis.add(dashApi);
     var _origEnsure = dashApi.ensureCloudToken.bind(dashApi);
     dashApi.ensureCloudToken = function (req) {
-      // Fast path 1: explicit ledger already provided
-      if (req.ledger) return _origEnsure(req);
+      var dbName = _currentDbName;
 
-      // Fast path 2: window global set (from /resolve or previous discovery)
+      // Tier 1: Per-database ledger map (populated by Tier 3 or sell /resolve)
+      var ledgerMap = (typeof window !== 'undefined' && window.__VIBES_LEDGER_MAP__) || {};
+      if (dbName && ledgerMap[dbName]) {
+        req = Object.assign({}, req, { ledger: ledgerMap[dbName] });
+        console.debug('[vibes] Using cached ledger for', dbName);
+        return _origEnsure(req);
+      }
+
+      // Tier 2: Legacy global (sell template's /resolve sets this)
       if (typeof window !== 'undefined' && window.__VIBES_SHARED_LEDGER__) {
         req = Object.assign({}, req, { ledger: window.__VIBES_SHARED_LEDGER__ });
         console.debug('[vibes] Routing to shared ledger:', window.__VIBES_SHARED_LEDGER__);
         return _origEnsure(req);
       }
 
-      // Slow path: discover via listLedgersByUser (covers owner case)
+      // Tier 3: Discovery — find ledger matching this database name
       return dashApi.listLedgersByUser({}).then(function (rLedgers) {
         if (rLedgers.isOk()) {
           var ledgers = rLedgers.Ok().ledgers || [];
           var appHost = typeof window !== 'undefined' ? window.location.hostname : '';
-          var qpSub = typeof window !== 'undefined'
-            ? new URLSearchParams(window.location.search).get('subdomain')
-            : null;
 
           var matched = ledgers.find(function (l) {
             if (!l.name) return false;
+            if (dbName && l.name.includes(dbName)) return true;
             if (appHost && l.name.includes(appHost)) return true;
-            if (qpSub) {
-              var workerName = appHost.split('.')[0];
-              if (l.name.includes(workerName + '-' + qpSub)) return true;
-            }
             return false;
-          }) || ledgers[0];
+          });
+          // NO fallback to ledgers[0] — unmatched databases get new ledgers
 
           if (matched) {
-            if (typeof window !== 'undefined') window.__VIBES_SHARED_LEDGER__ = matched.ledgerId;
+            if (typeof window !== 'undefined') {
+              if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
+              window.__VIBES_LEDGER_MAP__[dbName || appHost] = matched.ledgerId;
+            }
             req = Object.assign({}, req, { ledger: matched.ledgerId });
-            console.debug('[vibes] Discovered ledger:', matched.ledgerId, 'via', matched.name);
+            console.debug('[vibes] Discovered ledger:', matched.ledgerId, 'for', dbName);
+          } else {
+            // No match — clear bundle's wrong ledger so Connect creates a new one
+            req = Object.assign({}, req, { ledger: undefined });
+            console.debug('[vibes] No ledger match for', dbName, '— creating new');
           }
         }
-        return _origEnsure(req);
+        // After _origEnsure resolves, discover the newly created ledger (polling retry)
+        var _noMatchKey = matched ? null : (dbName || appHost);
+        return _origEnsure(req).then(function (result) {
+          if (_noMatchKey && typeof window !== 'undefined') {
+            var _attempts = 0;
+            var _maxAttempts = 5;
+            var _delay = 2000;
+            function _discover() {
+              // Early exit if gate or another path already populated the map
+              var existingMap = window.__VIBES_LEDGER_MAP__;
+              if (existingMap && existingMap[_noMatchKey]) {
+                console.debug('[vibes] Ledger already cached for', _noMatchKey);
+                return;
+              }
+              dashApi.listLedgersByUser({}).then(function (rL2) {
+                if (rL2.isOk()) {
+                  var newLedgers = rL2.Ok().ledgers || [];
+                  var created = newLedgers.find(function (l) {
+                    return l.name && l.name.includes(_noMatchKey);
+                  });
+                  if (created) {
+                    if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
+                    window.__VIBES_LEDGER_MAP__[_noMatchKey] = created.ledgerId;
+                    console.debug('[vibes] Cached new ledger:', created.ledgerId, 'for', _noMatchKey);
+                  } else if (++_attempts < _maxAttempts) {
+                    setTimeout(_discover, _delay);
+                    _delay = Math.min(_delay * 2, 8000);
+                  }
+                }
+              }).catch(function () {
+                if (++_attempts < _maxAttempts) {
+                  setTimeout(_discover, _delay);
+                  _delay = Math.min(_delay * 2, 8000);
+                }
+              });
+            }
+            setTimeout(_discover, 2000); // Wait 2s for Connect to register
+          }
+          return result;
+        });
       }).catch(function () {
         return _origEnsure(req);
       });
     };
   }
 
+  _currentDbName = name;
   var result = _originalUseFireproofClerk(name, opts);
   var syncVal = result.syncStatus || "idle";
 

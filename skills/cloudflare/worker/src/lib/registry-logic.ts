@@ -125,7 +125,8 @@ export function addCollaborator(
   record: SubdomainRecord,
   email: string,
   right: "read" | "write" = "write",
-  ledgerId?: string
+  ledgerId?: string,
+  inviteId?: string
 ): SubdomainRecord {
   const normalizedEmail = email.toLowerCase().trim();
 
@@ -143,6 +144,7 @@ export function addCollaborator(
     right,
     invitedAt: new Date().toISOString(),
     ...(ledgerId ? { ledgerId } : {}),
+    ...(inviteId ? { inviteId } : {}),
   };
 
   return {
