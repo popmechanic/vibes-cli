@@ -546,7 +546,7 @@ The hook is available on `window.useSharing` after Clerk loads. Check `ready` be
 
 ## When to Read Extended Docs
 
-The shipped cache files contain detailed reference material. Read them when the user's prompt matches these signals:
+The shipped default files contain detailed reference material. Read them when the user's prompt matches these signals:
 
 | Need | Signal in Prompt | Read This |
 |------|------------------|-----------|

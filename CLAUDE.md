@@ -398,6 +398,7 @@ npm run test:e2e:server
 | `skills/vibes/templates/index.html` | Generated vibes template |
 | `skills/vibes/SKILL.md` | Main vibes skill (has import map) |
 | `skills/vibes/defaults/` | Shipped defaults - style-prompt.txt, dev-credentials.example.json |
+| `skills/riff/defaults/` | Shipped defaults - style-prompt.txt |
 | `skills/riff/template.delta.html` | Riff-specific delta |
 | `skills/riff/templates/index.html` | Generated riff template |
 | `skills/riff/SKILL.md` | Riff skill for parallel app generation |
