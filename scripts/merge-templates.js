@@ -122,8 +122,6 @@ function main() {
   console.log(`  Components: ${COMPONENTS_FILE} (${components.length} bytes)`);
   console.log("");
 
-  console.log("");
-
   // Process each skill
   const results = { success: [], failed: [], skipped: [] };
 

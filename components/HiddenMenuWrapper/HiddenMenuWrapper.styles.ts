@@ -6,7 +6,7 @@ import type { CSSProperties } from "react";
  *
  * IMPORTANT: Menu background uses --vibes-menu-bg from the template.
  * Do NOT use --vibes-gray-lightest or other generic variables.
- * The canonical color (#CCCDC8) is defined in templates/base/template.html.
+ * The canonical color (#CCCDC8) is defined in source-templates/base/template.html.
  *
  * Dark mode support:
  * Override CSS variables in your stylesheet using:
