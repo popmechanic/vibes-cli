@@ -24,6 +24,6 @@ export default defineConfig({
 
     // Watch mode settings
     watch: false,
-    watchExclude: ['**/node_modules/**', '**/cache/**']
+    watchExclude: ['**/node_modules/**', '**/build/**']
   }
 });
