@@ -6,14 +6,17 @@
   },
   "metadata": {
     "description": "Vibes is a vibe coding framework for rapidly making secure web apps for clusters of small user groups.",
-    "version": "0.1.61"
+    "version": "0.1.62"
   },
   "plugins": [
     {
       "name": "vibes",
-      "source": "./",
+      "source": {
+        "source": "github",
+        "repo": "popmechanic/vibes-cli"
+      },
       "description": "Vibes is a vibe coding framework for rapidly making secure web apps for clusters of small user groups.",
-      "version": "0.1.61",
+      "version": "0.1.62",
       "author": {
         "name": "Marcus Estes",
         "email": "marcus@vibes.diy"
