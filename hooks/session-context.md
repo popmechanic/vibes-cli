@@ -75,5 +75,8 @@ generate app.jsx → assemble into index.html → deploy → verify in browser
 
 Iterate: edit app.jsx → reassemble → redeploy → verify. Always redeploy.
 
+When reassembling, always invoke the skill that originally built the app.
+The SessionStart hook detects the template type and tells you which skill to use.
+
 .env with Clerk keys + Connect URLs must exist before generating apps.
 If missing, invoke `/vibes:connect` first.

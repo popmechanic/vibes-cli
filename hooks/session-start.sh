@@ -37,11 +37,15 @@ else
 fi
 
 if [ -f "${PWD}/app.jsx" ]; then
-    state_hints="${state_hints}"$'\napp.jsx exists — can reassemble and redeploy with /vibes:exe or /vibes:cloudflare.'
+    state_hints="${state_hints}"$'\napp.jsx exists — invoke the matching build skill (/vibes:vibes or /vibes:sell) to reassemble.'
 fi
 
 if [ -f "${PWD}/index.html" ]; then
-    state_hints="${state_hints}"$'\nindex.html exists — ready to deploy.'
+    if grep -q "TenantProvider" "${PWD}/index.html" 2>/dev/null; then
+        state_hints="${state_hints}"$'\nindex.html exists (sell template) — reassemble with /vibes:sell, deploy with /vibes:cloudflare or /vibes:exe.'
+    else
+        state_hints="${state_hints}"$'\nindex.html exists (vibes template) — reassemble with /vibes:vibes, deploy with /vibes:cloudflare or /vibes:exe.'
+    fi
 fi
 
 # Escape for JSON using pure bash (character-by-character)
