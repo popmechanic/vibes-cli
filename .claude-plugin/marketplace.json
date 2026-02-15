@@ -1,6 +1,6 @@
 {
   "name": "vibes-cli",
-  "description": "Vibes is a vibe coding framework for rapidly making secure web apps for clusters of small user groups.",
+  "description": "Vibes is a vibe coding framework for people who use Claude Code, but don't know how to code",
   "owner": {
     "name": "Marcus Estes",
     "email": "marcus@vibes.diy"
@@ -9,7 +9,7 @@
     {
       "name": "vibes",
       "source": "./",
-      "description": "Vibes is a vibe coding framework for rapidly making secure web apps for clusters of small user groups.",
+      "description": "Vibes is a vibe coding framework for people who use Claude Code, but don't know how to code",
       "version": "0.1.63",
       "author": {
         "name": "Marcus Estes",
