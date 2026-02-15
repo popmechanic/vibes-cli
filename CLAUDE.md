@@ -523,6 +523,8 @@ The plugin uses a `SessionStart` hook to inject framework awareness context into
 
 The frontmatter description must signal atomicity (e.g., "Self-contained deploy automation — invoke directly, do not decompose") so the agent treats the skill as a single unit even in plan mode. Without this, agents read the SKILL.md during planning and extract internal steps as separate plan tasks.
 
+**Corollary: always invoke the skill before running its commands.** Even when re-assembling or re-deploying an existing app, invoke the skill (e.g., `/vibes:sell`) to load its SKILL.md first, then follow its workflow — including validation gates and explicit flags. Running a skill's internal commands without loading the skill risks skipping placeholder checks, credential flags, and registry verification steps.
+
 ## exe.dev Deployment
 
 App VMs serve static HTML via nginx. A separate Studio VM runs Fireproof Connect (Docker-based sync). See `skills/exe/SKILL.md` and `skills/connect/SKILL.md` for full deployment guides.
