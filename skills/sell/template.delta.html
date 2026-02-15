@@ -484,7 +484,10 @@
         const setGateState = useCallback(function(newState) {
           var key = (user?.id || '__anon__') + ':' + subdomain;
           _gateCache[key] = newState;
-          _gateCache[subdomain] = newState;  // subdomain-only fallback survives remounts
+          // Only cache owner/collaborator at subdomain level (prevents stale 'none' flash on auth remount)
+          if (newState.role === 'owner' || newState.role === 'collaborator') {
+            _gateCache[subdomain] = newState;
+          }
           setState(newState);
         }, [user?.id, subdomain]);
 
@@ -521,12 +524,19 @@
           // Read shared ledger context from URL/localStorage
           var urlLedger = new URLSearchParams(window.location.search).get('ledger');
           var storageKey = 'vibes-shared-ledger-' + subdomain;
+          var gateDbName = APP_NAME + '-' + subdomain;
           if (urlLedger) {
+            if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
+            window.__VIBES_LEDGER_MAP__[gateDbName] = urlLedger;
             window.__VIBES_SHARED_LEDGER__ = urlLedger;
             try { localStorage.setItem(storageKey, urlLedger); } catch(e) {}
           } else {
             var stored = localStorage.getItem(storageKey);
-            if (stored) window.__VIBES_SHARED_LEDGER__ = stored;
+            if (stored) {
+              if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
+              window.__VIBES_LEDGER_MAP__[gateDbName] = stored;
+              window.__VIBES_SHARED_LEDGER__ = stored;
+            }
           }
 
           // === Path 1: Not signed in ===
@@ -571,18 +581,63 @@
             var claim = vibesClaims[subdomain];
 
             if (claim.role === 'owner') {
-              resolvedForRef.current = userKey;
               var slugsToCheck = PLAN_SLUGS.length > 0 ? PLAN_SLUGS : ['starter'];
               var isFrozen = has && BILLING_MODE === 'required' && !slugsToCheck.some(function(slug) { return has({ plan: slug }) === true; });
+
+              // If no cached ledger, fetch from /resolve before rendering
+              var gateDbName = APP_NAME + '-' + subdomain;
+              var cachedLedger = window.__VIBES_LEDGER_MAP__ && window.__VIBES_LEDGER_MAP__[gateDbName];
+              if (!cachedLedger) {
+                fetch(registryApiUrl('/resolve/' + subdomain + '?userId=' + user.id))
+                  .then(function(res) { return res.json(); })
+                  .then(function(data) {
+                    if (data.ledgerId) {
+                      if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
+                      window.__VIBES_LEDGER_MAP__[gateDbName] = data.ledgerId;
+                      window.__VIBES_SHARED_LEDGER__ = data.ledgerId;
+                      try { localStorage.setItem('vibes-shared-ledger-' + subdomain, data.ledgerId); } catch(e) {}
+                    }
+                    resolvedForRef.current = userKey;
+                    setGateState({ phase: 'resolved', role: 'owner', frozen: isFrozen, error: null });
+                  })
+                  .catch(function() {
+                    // Fallback: render anyway, Tier 3 handles owner's own ledger
+                    resolvedForRef.current = userKey;
+                    setGateState({ phase: 'resolved', role: 'owner', frozen: isFrozen, error: null });
+                  });
+                return;
+              }
+              // Has cached ledger — render immediately (fast path preserved)
+              resolvedForRef.current = userKey;
               setGateState({ phase: 'resolved', role: 'owner', frozen: isFrozen, error: null });
               return;
             }
 
             if (claim.role === 'collaborator') {
-              resolvedForRef.current = userKey;
-              // Read frozen directly from JWT claim (set by worker webhook)
               var isFrozen = claim.frozen === true;
-              setGateState({ phase: 'resolved', role: 'collaborator', frozen: isFrozen, error: null });
+              var gateDbName = APP_NAME + '-' + subdomain;
+
+              // ALWAYS call /resolve for collaborators — URL/localStorage may be stale/poisoned
+              var email = user.primaryEmailAddress?.emailAddress;
+              var resolveUrl = registryApiUrl('/resolve/' + subdomain + '?userId=' + user.id);
+              if (email) resolveUrl += '&email=' + encodeURIComponent(email);
+              fetch(resolveUrl)
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                  if (data.ledgerId) {
+                    if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
+                    window.__VIBES_LEDGER_MAP__[gateDbName] = data.ledgerId;  // overwrite stale cache
+                    window.__VIBES_SHARED_LEDGER__ = data.ledgerId;
+                    try { localStorage.setItem('vibes-shared-ledger-' + subdomain, data.ledgerId); } catch(e) {}
+                  }
+                  resolvedForRef.current = userKey;
+                  setGateState({ phase: 'resolved', role: 'collaborator', frozen: isFrozen, error: null });
+                })
+                .catch(function() {
+                  // Fallback: render with whatever cache exists
+                  resolvedForRef.current = userKey;
+                  setGateState({ phase: 'resolved', role: 'collaborator', frozen: isFrozen, error: null });
+                });
               return;
             }
           }
@@ -628,8 +683,16 @@
 
               // Bridge ledgerId for collaborators
               if (data.ledgerId) {
+                var resolvedDbName = APP_NAME + '-' + subdomain;
+                if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
+                window.__VIBES_LEDGER_MAP__[resolvedDbName] = data.ledgerId;
                 window.__VIBES_SHARED_LEDGER__ = data.ledgerId;
                 try { localStorage.setItem(storageKey, data.ledgerId); } catch(e) {}
+              }
+
+              // Bridge inviteId for Connect invite redemption
+              if (data.inviteId) {
+                window.__VIBES_INVITE_ID__ = data.inviteId;
               }
 
               resolvedForRef.current = userKey;
@@ -687,8 +750,9 @@
                 // Try Connect invite redemption (non-fatal)
                 if (dashApiRef.current) {
                   try {
+                    var iid = window.__VIBES_INVITE_ID__;
                     await Promise.race([
-                      dashApiRef.current.redeemInvite({}),
+                      dashApiRef.current.redeemInvite(iid ? { inviteId: iid } : {}),
                       new Promise(function(_, r) { setTimeout(function() { r(new Error('redeemInvite timeout')); }, 5000); })
                     ]);
                   } catch(e) { /* non-fatal */ }
@@ -701,6 +765,8 @@
         }, [state.phase, state.role, user?.id, subdomain]);
 
         // Separate effect: retry Connect invite for existing collaborators (non-blocking)
+        // Tries stored inviteId first, falls back to listInvites discovery,
+        // then updateUserTenant as last resort if redeemInvite is broken upstream
         useEffect(function() {
           if (state.phase !== 'resolved') return;
           if (state.role !== 'collaborator') return;
@@ -708,10 +774,56 @@
 
           (async function() {
             try {
-              await Promise.race([
-                dashApiRef.current.redeemInvite({}),
-                new Promise(function(_, r) { setTimeout(function() { r(new Error('redeemInvite timeout')); }, 5000); })
-              ]);
+              var api = dashApiRef.current;
+              var inviteId = window.__VIBES_INVITE_ID__;
+
+              // If no stored invite ID, try to discover it via listInvites
+              if (!inviteId) {
+                try {
+                  var rInvites = await Promise.race([
+                    api.listInvites({}),
+                    new Promise(function(_, r) { setTimeout(function() { r(new Error('listInvites timeout')); }, 5000); })
+                  ]);
+                  if (rInvites.isOk()) {
+                    var invites = rInvites.Ok().tickets || [];
+                    if (invites.length > 0) {
+                      inviteId = invites[0].id || invites[0].inviteId;
+                      console.debug('[vibes] Discovered invite via listInvites:', inviteId);
+                    }
+                  }
+                } catch(e) { /* listInvites not available or timed out */ }
+              }
+
+              // Try redeemInvite with explicit ID
+              if (inviteId) {
+                try {
+                  var rRedeem = await Promise.race([
+                    api.redeemInvite({ inviteId: inviteId }),
+                    new Promise(function(_, r) { setTimeout(function() { r(new Error('redeemInvite timeout')); }, 5000); })
+                  ]);
+                  if (rRedeem && rRedeem.isOk && rRedeem.isOk()) {
+                    console.debug('[vibes] Invite redeemed successfully');
+                    return;
+                  }
+                } catch(e) {
+                  console.debug('[vibes] redeemInvite failed:', e.message);
+                }
+              }
+
+              // Last resort: updateUserTenant (if redeemInvite is broken upstream)
+              var gateDbName = APP_NAME + '-' + subdomain;
+              var ledgerId = (window.__VIBES_LEDGER_MAP__ && window.__VIBES_LEDGER_MAP__[gateDbName]) || window.__VIBES_SHARED_LEDGER__;
+              if (ledgerId && api.updateUserTenant) {
+                try {
+                  await Promise.race([
+                    api.updateUserTenant({ ledger: ledgerId, role: 'member', right: 'write' }),
+                    new Promise(function(_, r) { setTimeout(function() { r(new Error('updateUserTenant timeout')); }, 5000); })
+                  ]);
+                  console.debug('[vibes] updateUserTenant succeeded for ledger:', ledgerId);
+                } catch(e) {
+                  console.debug('[vibes] updateUserTenant failed:', e.message);
+                }
+              }
             } catch(e) { /* non-fatal */ }
           })();
         }, [state.phase, state.role]);
@@ -801,6 +913,7 @@
               <SignedIn>
                 <TenantProvider subdomain={subdomain}>
                   <SharingBridge />
+                  <LedgerReporter />
                   <HiddenMenuWrapper menuContent={<VibesPanel />}>
                     <App />
                   </HiddenMenuWrapper>
@@ -870,6 +983,52 @@
             </div>
           </AuthScreen>
         );
+      }
+
+      // === Ledger Reporter (owner reports ledger ID to registry) ===
+      function LedgerReporter() {
+        const { subdomain, dbName } = useTenant();
+        const { user } = window.useUser();
+        const reportedRef = useRef(false);
+
+        useEffect(function() {
+          if (reportedRef.current) return;
+          if (!user?.id) return;
+
+          var interval = setInterval(function() {
+            var map = window.__VIBES_LEDGER_MAP__;
+            if (!map || !map[dbName]) return;
+
+            var ledgerId = map[dbName];
+            reportedRef.current = true;
+            clearInterval(interval);
+
+            // Fire and forget — report ledger ID to registry
+            (async function() {
+              try {
+                var token = await window.Clerk?.session?.getToken();
+                if (!token) return;
+                var res = await fetch(registryApiUrl('/set-ledger'), {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                  },
+                  body: JSON.stringify({ subdomain: subdomain, ledgerId: ledgerId })
+                });
+                if (res.ok) {
+                  console.debug('[vibes] Reported ledger ID for', subdomain);
+                }
+              } catch(e) {
+                console.warn('[vibes] Failed to report ledger ID:', e.message);
+              }
+            })();
+          }, 500);
+
+          return function() { clearInterval(interval); };
+        }, [user?.id, subdomain, dbName]);
+
+        return null;
       }
 
       // === Tenant App Wrapper ===

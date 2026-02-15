@@ -2383,25 +2383,50 @@ if (typeof window !== 'undefined') {
 
             (async function() {
               try {
-                // Discover ledger for this app
-                if (!ledgerCacheRef.current) {
-                  var rLedgers = await api.listLedgersByUser({});
-                  if (rLedgers.isErr()) throw new Error('Could not load ledger list');
-                  ledgerCacheRef.current = rLedgers.Ok().ledgers;
-                }
-                var ledgers = ledgerCacheRef.current;
+                // Discover ledger for this app — check cached sources first
                 var appHost = window.location.hostname;
                 var qpSub = new URLSearchParams(window.location.search).get('subdomain');
-                var matchedLedger = ledgers.find(function(l) {
-                  if (!l.name) return false;
-                  if (l.name.includes(appHost)) return true;
-                  // Workers.dev fallback: match by worker-name + subdomain
-                  if (qpSub) {
-                    var workerName = appHost.split('.')[0];
-                    if (l.name.includes(workerName + '-' + qpSub)) return true;
+                var cachedLedgerId = null;
+                var ledgerMap = window.__VIBES_LEDGER_MAP__ || {};
+                if (qpSub) {
+                  // Sell template: find map entry matching '-' + subdomain
+                  var mapKeys = Object.keys(ledgerMap);
+                  for (var mk = 0; mk < mapKeys.length; mk++) {
+                    if (mapKeys[mk].endsWith('-' + qpSub)) {
+                      cachedLedgerId = ledgerMap[mapKeys[mk]];
+                      break;
+                    }
                   }
-                  return false;
-                }) || ledgers[0];
+                } else {
+                  // Vibes template: check all entries (typically one)
+                  var mapVals = Object.values(ledgerMap);
+                  if (mapVals.length === 1) cachedLedgerId = mapVals[0];
+                }
+                if (!cachedLedgerId) cachedLedgerId = window.__VIBES_SHARED_LEDGER__ || null;
+
+                var matchedLedger;
+                if (cachedLedgerId) {
+                  matchedLedger = { ledgerId: cachedLedgerId };
+                } else {
+                  // Fall back to listLedgersByUser
+                  if (!ledgerCacheRef.current) {
+                    var rLedgers = await api.listLedgersByUser({});
+                    if (rLedgers.isErr()) throw new Error('Could not load ledger list');
+                    ledgerCacheRef.current = rLedgers.Ok().ledgers;
+                  }
+                  var ledgers = ledgerCacheRef.current;
+                  matchedLedger = ledgers.find(function(l) {
+                    if (!l.name) return false;
+                    if (l.name.includes(appHost)) return true;
+                    // Workers.dev fallback: match by worker-name + subdomain
+                    if (qpSub) {
+                      var workerName = appHost.split('.')[0];
+                      if (l.name.includes(workerName + '-' + qpSub)) return true;
+                    }
+                    return false;
+                  });
+                  // NO || ledgers[0] fallback — error out instead of guessing
+                }
 
                 if (!matchedLedger) {
                   throw new Error('No synced database found. Please wait for sync to complete.');
@@ -2446,7 +2471,7 @@ if (typeof window !== 'undefined') {
                       var kvRes = await fetch(kvRegistryUrl.replace(/\/$/, '') + '/invite', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-                        body: JSON.stringify({ subdomain: kvSubdomain, email: email, right: detail.right || 'write', ledgerId: matchedLedger.ledgerId })
+                        body: JSON.stringify({ subdomain: kvSubdomain, email: email, right: detail.right || 'write', ledgerId: matchedLedger.ledgerId, inviteId: inviteId || '' })
                       });
                       if (!kvRes.ok) {
                         var kvBody = await kvRes.text();

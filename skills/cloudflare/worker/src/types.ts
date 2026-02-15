@@ -21,6 +21,7 @@ export interface Collaborator {
   invitedAt: string;
   joinedAt?: string;
   ledgerId?: string;
+  inviteId?: string;
 }
 
 export interface SubdomainRecord {
@@ -29,6 +30,7 @@ export interface SubdomainRecord {
   collaborators: Collaborator[];
   status: 'active' | 'frozen';
   frozenAt?: string;
+  ledgerId?: string;
 }
 
 export interface UserRecord {

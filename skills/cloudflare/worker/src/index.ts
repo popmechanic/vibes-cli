@@ -231,7 +231,7 @@ app.post("/invite", async (c) => {
   }
   const auth = authResult;
 
-  let body: { subdomain?: string; email?: string; right?: "read" | "write"; ledgerId?: string };
+  let body: { subdomain?: string; email?: string; right?: "read" | "write"; ledgerId?: string; inviteId?: string };
   try {
     body = await c.req.json();
   } catch {
@@ -254,7 +254,7 @@ app.post("/invite", async (c) => {
     return c.json({ error: "Only the owner can invite collaborators" }, 403);
   }
 
-  const updated = addCollaborator(record, body.email, body.right || "write", body.ledgerId);
+  const updated = addCollaborator(record, body.email, body.right || "write", body.ledgerId, body.inviteId);
   await kv.putSubdomain(normalized, updated);
 
   return c.json({ success: true, subdomain: normalized }, 200);
@@ -322,6 +322,47 @@ app.post("/join", async (c) => {
   }
 
   return c.json({ success: true, subdomain: normalized, role: "collaborator" }, 200);
+});
+
+// POST /set-ledger - Owner reports their Fireproof ledger ID
+app.post("/set-ledger", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const permittedOrigins = parsePermittedOrigins(c.env.PERMITTED_ORIGINS);
+
+  const authResult = await verifyClerkJWTDebug(authHeader, c.env.CLERK_PEM_PUBLIC_KEY, permittedOrigins);
+  if ('error' in authResult) {
+    return c.json({ error: "Unauthorized", failReason: authResult.error }, 401);
+  }
+  const auth = authResult;
+
+  let body: { subdomain?: string; ledgerId?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON" }, 400);
+  }
+
+  if (!body.subdomain || !body.ledgerId) {
+    return c.json({ error: "Missing subdomain or ledgerId" }, 400);
+  }
+
+  const kv = new RegistryKV(c.env.REGISTRY_KV);
+  const normalized = body.subdomain.toLowerCase().trim();
+  const record = await kv.getSubdomain(normalized);
+
+  if (!record) {
+    return c.json({ error: "Subdomain not found" }, 404);
+  }
+
+  if (record.ownerId !== auth.userId) {
+    return c.json({ error: "Only the owner can set ledger ID" }, 403);
+  }
+
+  // Idempotent: update ledgerId on the record
+  record.ledgerId = body.ledgerId;
+  await kv.putSubdomain(normalized, record);
+
+  return c.json({ success: true, subdomain: normalized }, 200);
 });
 
 // POST /webhook - Clerk subscription webhooks
@@ -472,25 +513,47 @@ app.get("/resolve/:subdomain", async (c) => {
   if (userId) {
     const result = hasAccess(record, userId);
     if (result.role !== "none") {
-      // For collaborators, find and return their stored ledgerId
+      // For collaborators, find and return their stored ledgerId + inviteId
       if (result.role === "collaborator") {
         const collab = record.collaborators.find(
           (col) => col.userId === userId && col.status === "active"
         );
-        return c.json({ role: result.role, frozen, ...(collab?.ledgerId ? { ledgerId: collab.ledgerId } : {}) });
+        return c.json({
+          role: result.role, frozen,
+          ...((collab?.ledgerId || record.ledgerId) ? { ledgerId: collab?.ledgerId || record.ledgerId } : {}),
+          ...(collab?.inviteId ? { inviteId: collab.inviteId } : {})
+        });
       }
-      return c.json({ role: result.role, frozen });
+      // Owner: include record-level ledgerId if set
+      return c.json({
+        role: result.role, frozen,
+        ...(record.ledgerId ? { ledgerId: record.ledgerId } : {})
+      });
     }
     // userId had no direct access — check email fallback
     if (email && hasAccessByEmail(record, email)) {
-      return c.json({ role: "invited", frozen });
+      const invitedCollab = record.collaborators.find(
+        (col) => col.email.toLowerCase() === email.toLowerCase().trim()
+      );
+      return c.json({
+        role: "invited", frozen,
+        ...((invitedCollab?.ledgerId || record.ledgerId) ? { ledgerId: invitedCollab?.ledgerId || record.ledgerId } : {}),
+        ...(invitedCollab?.inviteId ? { inviteId: invitedCollab.inviteId } : {})
+      });
     }
     return c.json({ role: "none", frozen });
   }
 
   if (email) {
     if (hasAccessByEmail(record, email)) {
-      return c.json({ role: "invited", frozen });
+      const emailCollab = record.collaborators.find(
+        (col) => col.email.toLowerCase() === email.toLowerCase().trim()
+      );
+      return c.json({
+        role: "invited", frozen,
+        ...((emailCollab?.ledgerId || record.ledgerId) ? { ledgerId: emailCollab?.ledgerId || record.ledgerId } : {}),
+        ...(emailCollab?.inviteId ? { inviteId: emailCollab.inviteId } : {})
+      });
     }
     return c.json({ role: "none", frozen });
   }
