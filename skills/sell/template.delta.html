@@ -775,6 +775,8 @@
           (async function() {
             try {
               var api = dashApiRef.current;
+              console.debug('[vibes] Collaborator retry: dashApi methods available:',
+                Object.keys(api).filter(function(k) { return typeof api[k] === 'function'; }).join(', '));
               var inviteId = window.__VIBES_INVITE_ID__;
 
               // If no stored invite ID, try to discover it via listInvites
@@ -814,15 +816,18 @@
               var gateDbName = APP_NAME + '-' + subdomain;
               var ledgerId = (window.__VIBES_LEDGER_MAP__ && window.__VIBES_LEDGER_MAP__[gateDbName]) || window.__VIBES_SHARED_LEDGER__;
               if (ledgerId && api.updateUserTenant) {
+                console.debug('[vibes] Trying updateUserTenant for ledger:', ledgerId);
                 try {
-                  await Promise.race([
+                  var rUpdate = await Promise.race([
                     api.updateUserTenant({ ledger: ledgerId, role: 'member', right: 'write' }),
                     new Promise(function(_, r) { setTimeout(function() { r(new Error('updateUserTenant timeout')); }, 5000); })
                   ]);
-                  console.debug('[vibes] updateUserTenant succeeded for ledger:', ledgerId);
+                  console.debug('[vibes] updateUserTenant succeeded for ledger:', ledgerId, 'result:', rUpdate);
                 } catch(e) {
                   console.debug('[vibes] updateUserTenant failed:', e.message);
                 }
+              } else {
+                console.debug('[vibes] updateUserTenant not available on dashApi, ledgerId:', ledgerId);
               }
             } catch(e) { /* non-fatal */ }
           })();
@@ -986,6 +991,7 @@
       }
 
       // === Ledger Reporter (owner reports ledger ID to registry) ===
+      // Fix E: Only owners should report — collaborators get 403 from /set-ledger
       function LedgerReporter() {
         const { subdomain, dbName } = useTenant();
         const { user } = window.useUser();
@@ -994,6 +1000,13 @@
         useEffect(function() {
           if (reportedRef.current) return;
           if (!user?.id) return;
+
+          // Only owners should report ledger IDs to the registry
+          var claims = user.publicMetadata?.vibes_subdomains;
+          if (!claims || !claims[subdomain] || claims[subdomain].role !== 'owner') {
+            console.debug('[vibes] LedgerReporter skipped — not owner of', subdomain);
+            return;
+          }
 
           var interval = setInterval(function() {
             var map = window.__VIBES_LEDGER_MAP__;
