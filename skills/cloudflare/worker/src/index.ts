@@ -33,7 +33,10 @@ app.use("*", cors());
 // One-time migration middleware: check for legacy blob and decompose
 app.use("*", async (c, next) => {
   const kv = new RegistryKV(c.env.REGISTRY_KV);
-  await kv.migrateFromBlob();
+  const migrated = await kv.getMigrated();
+  if (!migrated) {
+    await kv.migrateFromBlob();
+  }
   await next();
 });
 
