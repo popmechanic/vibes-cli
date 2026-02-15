@@ -2397,8 +2397,9 @@ if (typeof window !== 'undefined') {
                       break;
                     }
                   }
-                } else {
-                  // Vibes template: check all entries (typically one)
+                }
+                // Fallback: single entry in map (vibes apps with ?subdomain= param)
+                if (!cachedLedgerId) {
                   var mapVals = Object.values(ledgerMap);
                   if (mapVals.length === 1) cachedLedgerId = mapVals[0];
                 }
