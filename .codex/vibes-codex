@@ -26,20 +26,35 @@ const vibesDir = resolvePluginRoot() || path.join(path.dirname(__dirname));
 const skillsDir = path.join(vibesDir, 'skills');
 const bootstrapFile = path.join(vibesDir, '.codex', 'vibes-bootstrap.md');
 
-const SKILLS = ['vibes', 'riff', 'sell', 'exe', 'connect', 'design-reference', 'cloudflare', 'test'];
-// Note: 'launch' skill excluded — requires Claude Code Agent Teams (not available in Codex/OpenCode)
-
 function extractFrontmatter(content) {
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return {};
   const fm = {};
   for (const line of match[1].split('\n')) {
     const idx = line.indexOf(':');
-    if (idx > 0) {
+    if (idx > 0 && !line.startsWith(' ')) {
       fm[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
     }
   }
   return fm;
+}
+
+// Auto-discover skills from filesystem instead of hardcoded list.
+// Excludes skills with compatibility fields mentioning "Claude Code"
+// (e.g., launch requires Agent Teams, not available in other harnesses).
+function discoverSkills() {
+  if (!fs.existsSync(skillsDir)) return [];
+  return fs.readdirSync(skillsDir)
+    .filter(name => {
+      if (name.startsWith('.')) return false;
+      const skillPath = path.join(skillsDir, name, 'SKILL.md');
+      if (!fs.existsSync(skillPath)) return false;
+      const content = fs.readFileSync(skillPath, 'utf8');
+      const fm = extractFrontmatter(content);
+      if (fm.compatibility && fm.compatibility.toLowerCase().includes('claude code')) return false;
+      return true;
+    })
+    .sort();
 }
 
 function runBootstrap() {
@@ -66,18 +81,17 @@ function runBootstrap() {
 }
 
 function runFindSkills() {
+  const skills = discoverSkills();
   console.log('Available skills:');
   console.log('==================\n');
 
-  for (const skill of SKILLS) {
+  for (const skill of skills) {
     const skillPath = path.join(skillsDir, skill, 'SKILL.md');
-    if (fs.existsSync(skillPath)) {
-      const content = fs.readFileSync(skillPath, 'utf8');
-      const fm = extractFrontmatter(content);
-      console.log(`- vibes:${skill}`);
-      if (fm.description) console.log(`  ${fm.description}`);
-      console.log('');
-    }
+    const content = fs.readFileSync(skillPath, 'utf8');
+    const fm = extractFrontmatter(content);
+    console.log(`- vibes:${skill}`);
+    if (fm.description) console.log(`  ${fm.description}`);
+    console.log('');
   }
 }
 

@@ -5,6 +5,10 @@ description: Self-contained SaaS pipeline — invoke directly, do not decompose.
   to parallelize for maximum speed.
 license: MIT
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion, Task, Teammate, SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet
+compatibility: Requires Claude Code with Agent Teams support
+metadata:
+  author: "Marcus Estes"
+  version: "0.1.63"
 ---
 
 > **Plan mode**: If you are planning work, this entire skill is ONE plan step: "Invoke /vibes:launch". Do not decompose the steps below into separate plan tasks.
