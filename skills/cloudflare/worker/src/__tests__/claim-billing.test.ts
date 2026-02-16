@@ -8,26 +8,47 @@ vi.mock("../lib/crypto-jwt", () => ({
 const { verifyClerkJWTDebug } = await import("../lib/crypto-jwt");
 const { default: app } = await import("../index");
 
-const mockKV = {
-  get: vi.fn(),
-  put: vi.fn(),
-};
+// Full mock KV namespace with in-memory store
+function createMockKV() {
+  const store = new Map<string, string>();
+  return {
+    get: vi.fn(async (key: string) => store.get(key) ?? null),
+    put: vi.fn(async (key: string, value: string) => {
+      store.set(key, value);
+    }),
+    delete: vi.fn(async (key: string) => {
+      store.delete(key);
+    }),
+    list: vi.fn(async (opts: { prefix?: string; cursor?: string }) => {
+      const keys: { name: string }[] = [];
+      for (const key of store.keys()) {
+        if (!opts?.prefix || key.startsWith(opts.prefix)) {
+          keys.push({ name: key });
+        }
+      }
+      return { keys, list_complete: true, cursor: "" };
+    }),
+    _store: store,
+  };
+}
 
-const baseEnv = {
+let mockKV: ReturnType<typeof createMockKV>;
+
+const makeBaseEnv = () => ({
   REGISTRY_KV: mockKV,
   CLERK_PEM_PUBLIC_KEY: "test-key",
   CLERK_WEBHOOK_SECRET: "whsec_test",
   PERMITTED_ORIGINS: "",
   RESERVED_SUBDOMAINS: "",
   BILLING_MODE: "required",
-};
+});
 
 describe("POST /claim billing gate", () => {
   const verifyClerkJWTDebugMock = vi.mocked(verifyClerkJWTDebug);
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockKV.get.mockResolvedValue(null);
+    mockKV = createMockKV();
   });
 
   it("rejects claim when user has no plan (missing pla)", async () => {
@@ -45,7 +66,7 @@ describe("POST /claim billing gate", () => {
         },
         body: JSON.stringify({ subdomain: "test" }),
       },
-      baseEnv
+      makeBaseEnv()
     );
 
     expect(res.status).toBe(402);
@@ -69,7 +90,7 @@ describe("POST /claim billing gate", () => {
         },
         body: JSON.stringify({ subdomain: "test" }),
       },
-      baseEnv
+      makeBaseEnv()
     );
 
     expect(res.status).toBe(402);
@@ -81,14 +102,6 @@ describe("POST /claim billing gate", () => {
       plan: "u:starter",
     } as any);
 
-    mockKV.get.mockResolvedValue(
-      JSON.stringify({
-        claims: {},
-        reserved: [],
-        preallocated: {},
-      })
-    );
-
     const res = await app.request(
       "/claim",
       {
@@ -99,7 +112,7 @@ describe("POST /claim billing gate", () => {
         },
         body: JSON.stringify({ subdomain: "test" }),
       },
-      baseEnv
+      makeBaseEnv()
     );
 
     expect(res.status).toBe(201);
@@ -111,14 +124,6 @@ describe("POST /claim billing gate", () => {
       userId: "user_1",
     } as any);
 
-    mockKV.get.mockResolvedValue(
-      JSON.stringify({
-        claims: {},
-        reserved: [],
-        preallocated: {},
-      })
-    );
-
     const res = await app.request(
       "/claim",
       {
@@ -129,7 +134,7 @@ describe("POST /claim billing gate", () => {
         },
         body: JSON.stringify({ subdomain: "test" }),
       },
-      { ...baseEnv, BILLING_MODE: "off" }
+      { ...makeBaseEnv(), BILLING_MODE: "off" }
     );
 
     expect(res.status).toBe(201);
@@ -140,14 +145,6 @@ describe("POST /claim billing gate", () => {
       userId: "user_admin",
     } as any);
 
-    mockKV.get.mockResolvedValue(
-      JSON.stringify({
-        claims: {},
-        reserved: [],
-        preallocated: {},
-      })
-    );
-
     const res = await app.request(
       "/claim",
       {
@@ -158,7 +155,7 @@ describe("POST /claim billing gate", () => {
         },
         body: JSON.stringify({ subdomain: "test" }),
       },
-      { ...baseEnv, ADMIN_USER_IDS: "user_admin" }
+      { ...makeBaseEnv(), ADMIN_USER_IDS: "user_admin" }
     );
 
     expect(res.status).toBe(201);

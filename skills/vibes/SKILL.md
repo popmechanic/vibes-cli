@@ -3,6 +3,9 @@ name: vibes
 description: Self-contained app generator — invoke this skill directly, do not decompose into sub-steps. Generates React web apps with Fireproof database. Use when creating new web applications, adding components, or working with local-first databases. Ideal for quick prototypes and single-page apps that need real-time data sync.
 license: MIT
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
+metadata:
+  author: "Marcus Estes"
+  version: "0.1.63"
 ---
 
 > **Plan mode**: If you are planning work, this entire skill is ONE plan step: "Invoke /vibes:vibes". Do not decompose the steps below into separate plan tasks.
@@ -100,7 +103,7 @@ Before writing code, reason about the design in `<design>` tags:
 
 **You MUST read this file before generating code:**
 ```
-Read file: ${CLAUDE_PLUGIN_ROOT}/cache/design-tokens.txt
+Read file: ${CLAUDE_PLUGIN_ROOT}/build/design-tokens.txt
 ```
 The token catalog defines all available CSS custom properties: `colors`, `radius`, `shadows`, `spacing`, `typography`, `vibes-core`, `vibes-buttons`, `vibes-grid`. It also includes the VIBES_THEME_CSS with `.btn` button classes, the grid/frame page styles, and a **Component Catalog** with bare HTML structures (card, input, badge, table, tabs, accordion, dialog, etc.).
 
@@ -175,6 +178,10 @@ Replace the `id` and `name` values with your actual selected themes. The `id` mu
 **If themeCount is 1**, skip `window.__VIBES_THEMES__` — the design button won't show theme options.
 
 **If the user explicitly requests specific themes**, always follow their choice. Otherwise, pick the best fits from the catalog.
+
+> **Assembly: generate (preserve)** — `assemble.js` injects your code as-is. Import and export statements work because the import map intercepts bare specifiers at runtime. Code examples below include imports.
+>
+> **If you're a launch/builder agent:** Sell transforms vibes artifacts by *stripping* imports. When generating app.jsx for the launch pipeline, omit all imports — the sell template provides everything. Follow builder.md rules; use only the patterns from examples below, not the import lines.
 
 ### Step 2: Output Code
 
@@ -627,7 +634,7 @@ The hook is available on `window.useSharing` after Clerk loads. Check `ready` be
 
 ## When to Read Extended Docs
 
-The shipped cache files contain detailed reference material. Read them when the user's prompt matches these signals:
+The shipped default files contain detailed reference material. Read them when the user's prompt matches these signals:
 
 | Need | Signal in Prompt | Read This |
 |------|------------------|-----------|
@@ -635,7 +642,7 @@ The shipped cache files contain detailed reference material. Read them when the 
 | File uploads | "upload", "images", "photos", "attachments" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Working with Images" |
 | Auth / sync config | "Clerk", "Connect", "cloud sync", "login" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "ClerkFireproofProvider Config" |
 | Sync status display | "online/offline", "connection status" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Sync Status Display" |
-| Full Neobrute design details | detailed design system, spacing, typography | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/style-prompt.txt` |
+| Full Neobrute design details | detailed design system, spacing, typography | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/defaults/style-prompt.txt` |
 
 ---
 

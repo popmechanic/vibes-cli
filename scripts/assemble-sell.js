@@ -54,6 +54,8 @@ const assembleSellSchema = [
   { name: 'subtitle', flag: '--subtitle', type: 'string', description: 'Subheadline text below the tagline' },
   { name: 'adminIds', flag: '--admin-ids', type: 'string', description: 'JSON array of Clerk user IDs with admin access' },
   { name: 'reserved', flag: '--reserved', type: 'string', description: 'Comma-separated reserved subdomain names' },
+  { name: 'registryUrl', flag: '--registry-url', type: 'string', description: 'Cloudflare Worker URL for registry API' },
+  { name: 'planQuotas', flag: '--plan-quotas', type: 'string', description: 'JSON map of plan slug to max subdomains (e.g., \'{"starter":1,"growth":3}\')' },
 ];
 
 const assembleSellMeta = {
@@ -208,7 +210,9 @@ const replacements = {
   '__APP_DOMAIN__': domain,
   '__BILLING_MODE__': options.billingMode || 'off',
   '__APP_TAGLINE__': options.tagline || 'SHIP FASTER.<br>LOOK BETTER.',
-  '__APP_SUBTITLE__': options.subtitle || 'The first design-native framework for the next generation of SaaS. Zero config, infinite style.'
+  '__APP_SUBTITLE__': options.subtitle || 'The first design-native framework for the next generation of SaaS. Zero config, infinite style.',
+  '__REGISTRY_URL__': options.registryUrl || envVars.VITE_REGISTRY_URL || '',
+  '__PLAN_QUOTAS__': options.planQuotas || '{}'
 };
 
 // Handle JSON values - features
@@ -262,6 +266,8 @@ output = populateConnectConfig(output, envVars, true);
 // __CLERK_LOAD_ERROR__ is a runtime error variable
 // __VIBES_SYNC_STATUS__ is the runtime sync status bridge variable
 // __VIBES_THEMES__ is the runtime theme registration array set by app.jsx
+// __VIBES_SHARED_LEDGER__ is the runtime shared ledger ID bridge variable (invite URL → bundle)
+// __VIBES_LEDGER_MAP__ is the runtime per-database ledger map for multi-tenant isolation
 // __VIBES_APP_CODE__ and __ADMIN_CODE__ are injection placeholders consumed below
 const SAFE_PLACEHOLDER_PATTERNS = [
   '__PURE__',
@@ -270,8 +276,12 @@ const SAFE_PLACEHOLDER_PATTERNS = [
   '__CLERK_LOAD_ERROR__',
   '__VIBES_SYNC_STATUS__',
   '__VIBES_THEMES__',
+  '__VIBES_SHARED_LEDGER__',
+  '__VIBES_LEDGER_MAP__',
+  '__VIBES_INVITE_ID__',
   '__VIBES_APP_CODE__',
-  '__ADMIN_CODE__'
+  '__ADMIN_CODE__',
+  '__VIBES_REGISTRY_URL__'
 ];
 
 // Validate template BEFORE injecting app/admin code
