@@ -205,12 +205,13 @@ This plugin works with multiple coding agents, not just Claude Code.
 
 | File | What to Update |
 |------|----------------|
-| `.codex/vibes-codex` | `SKILLS` array (line ~45) |
 | `.codex/vibes-bootstrap.md` | Skills table |
 | `README.md` | Skills section |
 | `commands/` | Add a command `.md` if the skill should be user-invocable |
 
-**Claude Code-only skills** (e.g., `launch` — requires Agent Teams) are excluded from `.codex/vibes-codex` and `.codex/vibes-bootstrap.md`. Add a note pointing Codex/OpenCode users to the sequential alternative.
+**Note:** `.codex/vibes-codex` auto-discovers skills from the filesystem — no manual update needed. It excludes skills whose `compatibility` frontmatter field mentions "Claude Code" (e.g., `launch` requires Agent Teams).
+
+**Claude Code-only skills** need `compatibility: Requires Claude Code with Agent Teams support` (or similar) in their SKILL.md frontmatter. The `.codex/` system auto-excludes them. Add a note in `.codex/vibes-bootstrap.md` pointing Codex/OpenCode users to the sequential alternative.
 
 **Skill content changes** (editing `skills/*/SKILL.md`) flow automatically to all harnesses—no manual steps needed.
 

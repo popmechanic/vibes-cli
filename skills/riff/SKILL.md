@@ -3,6 +3,9 @@ name: riff
 description: Self-contained parallel generator — invoke directly, do not decompose. Generates 3-10 app variations in parallel for comparing ideas. Use when user says "explore options", "give me variations", "riff on this", "brainstorm approaches", or wants to see multiple interpretations of a concept.
 license: MIT
 allowed-tools: Read, Write, Bash, Task, Glob, AskUserQuestion
+metadata:
+  author: "Marcus Estes"
+  version: "0.1.63"
 ---
 
 > **Plan mode**: If you are planning work, this entire skill is ONE plan step: "Invoke /vibes:riff". Do not decompose the steps below into separate plan tasks.
