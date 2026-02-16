@@ -5,6 +5,10 @@ description: Self-contained SaaS pipeline — invoke directly, do not decompose.
   to parallelize for maximum speed.
 license: MIT
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion, Task, Teammate, SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet
+compatibility: Requires Claude Code with Agent Teams support
+metadata:
+  author: "Marcus Estes"
+  version: "0.1.63"
 ---
 
 > **Plan mode**: If you are planning work, this entire skill is ONE plan step: "Invoke /vibes:launch". Do not decompose the steps below into separate plan tasks.
@@ -114,8 +118,8 @@ Store as `themeCount` (1, 2, or 3).
 
 If creating new: guide through clerk.com/dashboard — create app, enable Email + Passkey, configure email settings (require OFF, verify ON, link ON, code ON). Then set up JWT template and webhook:
 
-**Ask [Clerk config]**: "Complete these two setup steps in Clerk Dashboard:\n\n1. **JWT Template**: JWT Templates → New Template → name it `fireproof`, paste this JSON as the custom claims (the `|| ''` fallbacks are required — Fireproof Studio rejects null names):\n```json\n{\n  \"params\": {\n    \"email\": \"{{user.primary_email_address}}\",\n    \"email_verified\": \"{{user.email_verified}}\",\n    \"external_id\": \"{{user.external_id}}\",\n    \"first\": \"{{user.first_name || ''}}\",\n    \"last\": \"{{user.last_name || ''}}\",\n    \"name\": \"{{user.full_name || ''}}\",\n    \"image_url\": \"{{user.image_url}}\",\n    \"public_meta\": \"{{user.public_metadata}}\"\n  },\n  \"role\": \"authenticated\",\n  \"userId\": \"{{user.id}}\"\n}\n```\n2. **Webhook**: Webhooks → Add Endpoint → URL `https://{domain}/webhook` → subscribe to `subscription.deleted`\n\nHave you completed both?"
-- "Yes, both done" — JWT template 'fireproof' with email/name claims + webhook endpoint created
+**Ask [Clerk config]**: "Complete these two setup steps in Clerk Dashboard:\n\n1. **JWT Template**: JWT Templates → New Template → name it `with-email`, paste this JSON as the custom claims (the `|| ''` fallbacks are required — Fireproof Studio rejects null names):\n```json\n{\n  \"params\": {\n    \"email\": \"{{user.primary_email_address}}\",\n    \"email_verified\": \"{{user.email_verified}}\",\n    \"external_id\": \"{{user.external_id}}\",\n    \"first\": \"{{user.first_name || ''}}\",\n    \"last\": \"{{user.last_name || ''}}\",\n    \"name\": \"{{user.full_name || ''}}\",\n    \"image_url\": \"{{user.image_url}}\",\n    \"public_meta\": \"{{user.public_metadata}}\"\n  },\n  \"role\": \"authenticated\",\n  \"userId\": \"{{user.id}}\"\n}\n```\n2. **Webhook**: Webhooks → Add Endpoint → URL `https://{domain}/webhook` → subscribe to `subscription.deleted`\n\nHave you completed both?"
+- "Yes, both done" — JWT template 'with-email' with email/name claims + webhook endpoint created
 - "I need help" — Walk me through it step by step
 
 Collect four credentials via Ask (user types actual values via Other):
@@ -146,6 +150,14 @@ Mark T2 completed.
 3. Spawn: Task tool, `team_name="launch-{appName}"`, `name="infra"`, `subagent_type="general-purpose"`
 
 ### 1.5 Sell Config (T4) — while infra deploys
+
+**Sell config is collected here but applied later by invoking `/vibes:sell` (or its assembly script) as an atomic step.** Do NOT hand-implement SaaS logic — the sell skill handles tenant routing, auth gating, billing, and admin setup.
+
+Choose billing mode based on monetization intent:
+- **"off" (free)** — all authenticated users get full access. Good for MVPs and internal tools.
+- **"required" (subscription)** — users must subscribe. Requires Clerk Billing (Dev instances auto-connect to Stripe sandbox).
+
+**Always ask the user** — do not assume a default.
 
 **Ask [Billing]**: "What billing mode for your SaaS?" AND **[Title]**: "App display title?"
 - Billing: "Free (no billing)" or "Subscription required"

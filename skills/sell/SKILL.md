@@ -3,6 +3,9 @@ name: sell
 description: Self-contained SaaS automation — invoke directly, do not decompose. Transforms a Vibes app into a multi-tenant SaaS with subdomain-based tenancy. Adds Clerk authentication, subscription gating, and generates a unified app with landing page, tenant routing, and admin dashboard.
 license: MIT
 allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
+metadata:
+  author: "Marcus Estes"
+  version: "0.1.63"
 ---
 
 > **Plan mode**: If you are planning work, this entire skill is ONE plan step: "Invoke /vibes:sell". Do not decompose the steps below into separate plan tasks.
@@ -32,6 +35,8 @@ allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 - [Troubleshooting](#troubleshooting) - Common issues and fixes
 
 ---
+
+> **Assembly: transform (strip)** — `assemble-sell.js` receives a vibes-generated app.jsx and adapts it for the sell template. It strips `import` statements, `export default`, React destructuring, and template constants — because the sell template already provides all of these. All dependencies (`React`, `useFireproofClerk`, `useTenant`, `useState`, etc.) are available as globals.
 
 ## ⛔ CRITICAL RULES - READ FIRST ⛔
 
@@ -344,6 +349,8 @@ If the app uses a hardcoded name, update it:
 2. Add `const { dbName } = useTenant();` before it
 3. Change to `useFireproofClerk(dbName)`
 
+`useTenant()` is a **template global** (injected by AppWrapper in the sell template), NOT an importable module. Call it directly — do NOT write `import { useTenant } from ...` anywhere in app.jsx.
+
 **Template-Provided Globals — do NOT redeclare these in app.jsx:**
 
 | Category | Globals |
@@ -431,6 +438,8 @@ The template uses neutral colors by default. To match the user's brand:
 ---
 
 ## Step 5: Deployment
+
+**Deploy Target: Cloudflare Workers.** SaaS apps always deploy to Cloudflare Workers (not exe.dev). The KV registry and subdomain routing require the CF Worker runtime.
 
 **Registry server credentials are REQUIRED for SaaS apps.**
 

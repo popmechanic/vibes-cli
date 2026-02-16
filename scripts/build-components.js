@@ -3,11 +3,11 @@
  * Build Vibes Components
  *
  * Transpiles local TypeScript components from components/ directory
- * and outputs bundled JavaScript to cache/vibes-menu.js
+ * and outputs bundled JavaScript to build/vibes-menu.js
  *
  * Usage:
  *   node scripts/build-components.js
- *   node scripts/build-components.js --force  # Rebuild even if cache exists
+ *   node scripts/build-components.js --force  # Rebuild even if build output exists
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
@@ -21,9 +21,9 @@ const __dirname = dirname(__filename);
 
 // Plugin root is one level up from scripts/
 const PLUGIN_ROOT = join(__dirname, "..");
-const CACHE_DIR = join(PLUGIN_ROOT, "cache");
+const BUILD_DIR = join(PLUGIN_ROOT, "build");
 const COMPONENTS_DIR = join(PLUGIN_ROOT, "components");
-const OUTPUT_FILE = join(CACHE_DIR, "vibes-menu.js");
+const OUTPUT_FILE = join(BUILD_DIR, "vibes-menu.js");
 
 // Component sources in dependency order
 // These are relative to COMPONENTS_DIR
@@ -100,12 +100,12 @@ async function transpileComponent(name, source, isTS) {
 async function buildComponents(force) {
   // Check if rebuild is needed
   if (!force && existsSync(OUTPUT_FILE)) {
-    console.log("Cache exists. Use --force to rebuild.");
+    console.log("Build output exists. Use --force to rebuild.");
     return { success: true, cached: true };
   }
 
-  // Ensure cache directory exists
-  mkdirSync(CACHE_DIR, { recursive: true });
+  // Ensure build directory exists
+  mkdirSync(BUILD_DIR, { recursive: true });
 
   console.log("Building components from local source...");
   console.log(`  Source: ${COMPONENTS_DIR}`);
@@ -154,7 +154,7 @@ async function buildComponents(force) {
   // Combine all transpiled code
   let combinedOutput = `// Auto-generated vibes menu components
 // Run: node scripts/build-components.js --force to regenerate
-// Source: ${COMPONENTS_DIR}
+// Source: components/
 // Generated: ${new Date().toISOString()}
 // Components: ${successful.length}/${results.length}
 

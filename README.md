@@ -48,9 +48,17 @@ Restart Claude Code after installation.
 ```
 
 **Updating:**
+
+Claude Code's `/plugin update` checks the local marketplace clone but doesn't auto-pull from GitHub. If `update` reports "already up to date" but you know a new version exists, use the full update cycle:
+
 ```
-/plugin update vibes@vibes-cli
+/plugin marketplace remove vibes-cli
+/plugin uninstall vibes@vibes-cli
+/plugin marketplace add popmechanic/vibes-cli
+/plugin install vibes@vibes-cli
 ```
+
+Then restart Claude Code.
 
 ### Codex
 
@@ -87,6 +95,8 @@ cd ~/.vibes && git pull
 ### Troubleshooting
 
 **Claude Code - stuck on old version:**
+
+Claude Code's `/plugin update` checks a local marketplace clone but doesn't auto-pull from GitHub. This is a general Claude Code limitation, not vibes-specific. To force an update:
 ```
 /plugin marketplace remove vibes-cli
 /plugin uninstall vibes@vibes-cli
@@ -94,6 +104,10 @@ cd ~/.vibes && git pull
 /plugin install vibes@vibes-cli
 ```
 Then restart Claude Code.
+
+**First install shows SessionStart hook error:**
+
+This is normal. The plugin's SessionStart hook runs before the plugin is fully initialized. Restart Claude Code and it will work on the next session.
 
 **Permission denied running vibes-codex:**
 ```bash

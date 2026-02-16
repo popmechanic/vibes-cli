@@ -2,11 +2,14 @@
  * JWT Sync Check Tests
  *
  * Catches drift between the canonical jwt-validation.js and its intentional
- * duplications in ai-proxy.js and registry-server.ts.
+ * duplication in ai-proxy.js.
  *
- * These deployables run on remote Bun VMs and can't import from lib/ at
- * runtime, so the logic is duplicated. This test ensures the copies stay
+ * ai-proxy.js runs on a remote Bun VM and can't import from lib/ at
+ * runtime, so the logic is duplicated. This test ensures the copy stays
  * in sync.
+ *
+ * Note: registry-server.ts was retired — registry logic now lives in the
+ * Cloudflare Worker (skills/cloudflare/worker/).
  */
 
 import { describe, it, expect } from 'vitest';
@@ -23,9 +26,6 @@ const canonicalSrc = readFileSync(
 );
 const aiProxySrc = readFileSync(
   resolve(__dirname, '../../deployables/ai-proxy.js'), 'utf8'
-);
-const registrySrc = readFileSync(
-  resolve(__dirname, '../../deployables/registry-server.ts'), 'utf8'
 );
 
 // ---------------------------------------------------------------------------
@@ -94,7 +94,6 @@ describe('JWT sync check — pattern extraction', () => {
   describe('regex escape pattern', () => {
     const canonical = extractEscapeLines(canonicalSrc);
     const aiProxy = extractEscapeLines(aiProxySrc);
-    const registry = extractEscapeLines(registrySrc);
 
     it('canonical has a regex escape pattern', () => {
       expect(canonical.length).toBeGreaterThan(0);
@@ -110,26 +109,18 @@ describe('JWT sync check — pattern extraction', () => {
         expect(line).toContain('[.+?^${}()|[\\]\\\\]');
       }
     });
-
-    it('registry-server uses the same escape regex', () => {
-      expect(registry.length).toBeGreaterThan(0);
-      for (const line of registry) {
-        expect(line).toContain('[.+?^${}()|[\\]\\\\]');
-      }
-    });
   });
 
   describe('wildcard replacement', () => {
     const canonical = extractWildcardLines(canonicalSrc);
     const aiProxy = extractWildcardLines(aiProxySrc);
-    const registry = extractWildcardLines(registrySrc);
 
     it('canonical has a wildcard replacement', () => {
       expect(canonical.length).toBeGreaterThan(0);
     });
 
     it('all files replace * with [^.]+', () => {
-      for (const lines of [canonical, aiProxy, registry]) {
+      for (const lines of [canonical, aiProxy]) {
         expect(lines.length).toBeGreaterThan(0);
         for (const line of lines) {
           expect(line).toContain('[^.]+');
@@ -141,7 +132,6 @@ describe('JWT sync check — pattern extraction', () => {
   describe('normalized matching block', () => {
     const canonical = extractNormalizedMatchBlock(canonicalSrc);
     const aiProxy = extractNormalizedMatchBlock(aiProxySrc);
-    const registry = extractNormalizedMatchBlock(registrySrc);
 
     it('canonical has a matching block', () => {
       expect(canonical).not.toBeNull();
@@ -150,19 +140,11 @@ describe('JWT sync check — pattern extraction', () => {
     it('ai-proxy matching logic matches canonical', () => {
       expect(aiProxy).toBe(canonical);
     });
-
-    it('registry-server matching logic matches canonical', () => {
-      expect(registry).toBe(canonical);
-    });
   });
 
   describe('CORS_ORIGINS / PERMITTED_ORIGINS parsing', () => {
     it('ai-proxy parses origins with split-filter', () => {
       expect(aiProxySrc).toContain('.split(",").filter(Boolean)');
-    });
-
-    it('registry-server parses origins with split-filter', () => {
-      expect(registrySrc).toContain('.split(",").filter(Boolean)');
     });
 
     it('canonical parsePermittedOrigins uses split-map-filter', () => {
@@ -175,13 +157,8 @@ describe('JWT sync check — pattern extraction', () => {
       expect(aiProxySrc).toContain('CORS_ORIGINS[0]');
     });
 
-    it('registry-server returns PERMITTED_ORIGINS[0] when no match', () => {
-      expect(registrySrc).toContain('PERMITTED_ORIGINS[0]');
-    });
-
-    it('both return "*" when no origins configured', () => {
+    it('ai-proxy returns "*" when no origins configured', () => {
       expect(aiProxySrc).toMatch(/length\s*===\s*0\)\s*return\s*["']\*["']/);
-      expect(registrySrc).toMatch(/length\s*===\s*0\)\s*return\s*["']\*["']/);
     });
   });
 });
@@ -281,10 +258,5 @@ describe('JWT sync check — annotations present', () => {
   it('ai-proxy.js references canonical source', () => {
     expect(aiProxySrc).toContain('lib/jwt-validation.js');
     expect(aiProxySrc).toContain('keep in sync');
-  });
-
-  it('registry-server.ts references canonical source', () => {
-    expect(registrySrc).toContain('lib/jwt-validation.js');
-    expect(registrySrc).toContain('keep in sync');
   });
 });

@@ -1,7 +1,31 @@
 /**
  * Registry Logic - Pure functions for subdomain registry operations
- * Copied from scripts/lib/registry-logic.js with TypeScript types added.
+ * Supports per-subdomain KV model with collaborator access.
  */
+
+import type { SubdomainRecord, Collaborator } from "../types";
+
+// === Quota enforcement ===
+
+export function parsePlanQuotas(raw?: string): Record<string, number> {
+  if (!raw) return {};
+  try { return JSON.parse(raw); }
+  catch { return {}; }
+}
+
+export function getQuotaForPlan(plan: string | undefined, quotas: Record<string, number>): number | null {
+  if (!plan) return null;
+  const slug = plan.split(':')[1]; // "u:starter" → "starter"
+  if (!slug || !(slug in quotas)) return null; // unknown plan = unlimited (backward compat)
+  return quotas[slug];
+}
+
+export function isQuotaExceeded(ownedCount: number, quota: number | null): boolean {
+  if (quota === null) return false; // null = unlimited
+  return ownedCount >= quota;
+}
+
+// === Legacy types (kept for backward compat with /registry.json) ===
 
 export interface Claim {
   userId: string;
@@ -15,6 +39,8 @@ export interface Registry {
   quotas?: Record<string, number>;
 }
 
+// === Availability checking ===
+
 export interface AvailabilityResult {
   available: boolean;
   reason?: string;
@@ -22,21 +48,31 @@ export interface AvailabilityResult {
 }
 
 export function isSubdomainAvailable(
-  registry: Registry,
-  subdomain: string
+  subdomain: string,
+  existingRecord: SubdomainRecord | null,
+  reserved: string[],
+  preallocated: Record<string, string>
 ): AvailabilityResult {
   const normalized = subdomain.toLowerCase().trim();
 
-  if (registry.reserved?.includes(normalized)) {
+  if (reserved?.includes(normalized)) {
     return { available: false, reason: "reserved" };
   }
 
-  if (registry.preallocated && normalized in registry.preallocated) {
-    return { available: false, reason: "preallocated", ownerId: registry.preallocated[normalized] };
+  if (preallocated && normalized in preallocated) {
+    return {
+      available: false,
+      reason: "preallocated",
+      ownerId: preallocated[normalized],
+    };
   }
 
-  if (registry.claims && normalized in registry.claims) {
-    return { available: false, reason: "claimed", ownerId: registry.claims[normalized].userId };
+  if (existingRecord) {
+    return {
+      available: false,
+      reason: "claimed",
+      ownerId: existingRecord.ownerId,
+    };
   }
 
   if (normalized.length < 3) {
@@ -47,7 +83,10 @@ export function isSubdomainAvailable(
     return { available: false, reason: "too_long" };
   }
 
-  if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(normalized) && normalized.length > 2) {
+  if (
+    !/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(normalized) &&
+    normalized.length > 2
+  ) {
     return { available: false, reason: "invalid_format" };
   }
 
@@ -58,29 +97,152 @@ export function isSubdomainAvailable(
   return { available: true };
 }
 
-export function getUserClaims(registry: Registry, userId: string): string[] {
-  const claims: Array<{ subdomain: string; claimedAt: string }> = [];
+// === Claim creation ===
 
-  for (const [subdomain, claim] of Object.entries(registry.claims || {})) {
-    if (claim.userId === userId) {
-      claims.push({ subdomain, claimedAt: claim.claimedAt });
-    }
-  }
-
-  claims.sort((a, b) => new Date(b.claimedAt).getTime() - new Date(a.claimedAt).getTime());
-  return claims.map((c) => c.subdomain);
+export function createSubdomainRecord(
+  userId: string
+): SubdomainRecord {
+  return {
+    ownerId: userId,
+    claimedAt: new Date().toISOString(),
+    collaborators: [],
+    status: 'active',
+  };
 }
 
-export function getSubdomainsToRelease(
-  registry: Registry,
-  userId: string,
-  newQuantity: number
-): string[] {
-  const userClaims = getUserClaims(registry, userId);
-  if (userClaims.length <= newQuantity) {
-    return [];
+export function freezeSubdomain(record: SubdomainRecord): SubdomainRecord {
+  return { ...record, status: 'frozen', frozenAt: new Date().toISOString() };
+}
+
+export function unfreezeSubdomain(record: SubdomainRecord): SubdomainRecord {
+  const { frozenAt, ...rest } = record;
+  return { ...rest, status: 'active' };
+}
+
+// === Collaborator management ===
+
+export function addCollaborator(
+  record: SubdomainRecord,
+  email: string,
+  right: "read" | "write" = "write",
+  ledgerId?: string,
+  inviteId?: string
+): SubdomainRecord {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Check if already exists
+  const existing = record.collaborators.find(
+    (c) => c.email.toLowerCase() === normalizedEmail
+  );
+  if (existing) {
+    return record;
   }
-  return userClaims.slice(0, userClaims.length - newQuantity);
+
+  const collaborator: Collaborator = {
+    email: normalizedEmail,
+    status: "invited",
+    right,
+    invitedAt: new Date().toISOString(),
+    ...(ledgerId ? { ledgerId } : {}),
+    ...(inviteId ? { inviteId } : {}),
+  };
+
+  return {
+    ...record,
+    collaborators: [...record.collaborators, collaborator],
+  };
+}
+
+export function activateCollaborator(
+  record: SubdomainRecord,
+  email: string,
+  userId: string
+): SubdomainRecord {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  return {
+    ...record,
+    collaborators: record.collaborators.map((c) =>
+      c.email.toLowerCase() === normalizedEmail
+        ? {
+            ...c,
+            userId,
+            status: "active" as const,
+            joinedAt: new Date().toISOString(),
+          }
+        : c
+    ),
+  };
+}
+
+export function removeCollaborator(
+  record: SubdomainRecord,
+  email: string
+): SubdomainRecord {
+  const normalizedEmail = email.toLowerCase().trim();
+
+  return {
+    ...record,
+    collaborators: record.collaborators.filter(
+      (c) => c.email.toLowerCase() !== normalizedEmail
+    ),
+  };
+}
+
+// === Access checking ===
+
+export function hasAccess(
+  record: SubdomainRecord,
+  userId: string
+): { hasAccess: boolean; role: "owner" | "collaborator" | "none"; frozen: boolean } {
+  const frozen = record.status === 'frozen';
+  if (record.ownerId === userId) {
+    return { hasAccess: true, role: "owner", frozen };
+  }
+
+  const collaborator = record.collaborators.find(
+    (c) => c.userId === userId && c.status === "active"
+  );
+  if (collaborator) {
+    return { hasAccess: true, role: "collaborator", frozen };
+  }
+
+  return { hasAccess: false, role: "none", frozen };
+}
+
+export function hasAccessByEmail(
+  record: SubdomainRecord,
+  email: string
+): boolean {
+  const normalizedEmail = email.toLowerCase().trim();
+  return record.collaborators.some(
+    (c) => c.email.toLowerCase() === normalizedEmail
+  );
+}
+
+// === Legacy compatibility wrappers ===
+// These maintain the old function signatures for backward compat.
+
+export function isSubdomainAvailableLegacy(
+  registry: Registry,
+  subdomain: string
+): AvailabilityResult {
+  const normalized = subdomain.toLowerCase().trim();
+  const existingClaim = registry.claims?.[normalized];
+  const existingRecord: SubdomainRecord | null = existingClaim
+    ? {
+        ownerId: existingClaim.userId,
+        claimedAt: existingClaim.claimedAt,
+        collaborators: [],
+        status: 'active',
+      }
+    : null;
+  return isSubdomainAvailable(
+    subdomain,
+    existingRecord,
+    registry.reserved || [],
+    registry.preallocated || {}
+  );
 }
 
 export function createClaim(
@@ -88,7 +250,7 @@ export function createClaim(
   subdomain: string,
   userId: string
 ): { success: boolean; error?: string; subdomain?: string } {
-  const availability = isSubdomainAvailable(registry, subdomain);
+  const availability = isSubdomainAvailableLegacy(registry, subdomain);
   if (!availability.available) {
     return { success: false, error: availability.reason };
   }
@@ -106,6 +268,22 @@ export function createClaim(
   return { success: true, subdomain: normalized };
 }
 
+export function getUserClaims(registry: Registry, userId: string): string[] {
+  const claims: Array<{ subdomain: string; claimedAt: string }> = [];
+
+  for (const [subdomain, claim] of Object.entries(registry.claims || {})) {
+    if (claim.userId === userId) {
+      claims.push({ subdomain, claimedAt: claim.claimedAt });
+    }
+  }
+
+  claims.sort(
+    (a, b) =>
+      new Date(b.claimedAt).getTime() - new Date(a.claimedAt).getTime()
+  );
+  return claims.map((c) => c.subdomain);
+}
+
 export function releaseClaim(registry: Registry, subdomain: string): boolean {
   const normalized = subdomain.toLowerCase().trim();
   if (registry.claims && normalized in registry.claims) {
@@ -120,7 +298,11 @@ export function processSubscriptionChange(
   userId: string,
   newQuantity: number
 ): { released: string[] } {
-  const toRelease = getSubdomainsToRelease(registry, userId, newQuantity);
+  const userClaims = getUserClaims(registry, userId);
+  const toRelease =
+    userClaims.length <= newQuantity
+      ? []
+      : userClaims.slice(0, userClaims.length - newQuantity);
   for (const subdomain of toRelease) {
     releaseClaim(registry, subdomain);
   }

@@ -19,7 +19,9 @@ RESERVED_SUBDOMAINS = "admin,api,www,billing"
 # Billing mode: "required" enforces subscription check on /claim
 BILLING_MODE = "off"
 # Admin IDs (comma-separated) for admin bypass on subscription gate
-ADMIN_USER_IDS = "user_39RYf6F42JPhNIBlqpIAVqvRFBj"
+ADMIN_USER_IDS = ""
+# Plan quotas: JSON map of plan slug to max subdomains (empty = unlimited)
+PLAN_QUOTAS = ""
 
 # Secrets (set via `wrangler secret put`):
 # - CLERK_PEM_PUBLIC_KEY

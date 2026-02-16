@@ -26,6 +26,11 @@ if (!OPENROUTER_KEY) {
   process.exit(1);
 }
 
+if (IS_MULTI_TENANT && !process.env.CLERK_PEM_PUBLIC_KEY) {
+  console.error("ERROR: CLERK_PEM_PUBLIC_KEY is required in multi-tenant mode (JWT signatures cannot be verified without it)");
+  process.exit(1);
+}
+
 // Initialize SQLite for tenant key storage (multi-tenant only)
 let db = null;
 if (IS_MULTI_TENANT) {
@@ -208,6 +213,10 @@ async function handleRequest(req) {
     let apiKey = OPENROUTER_KEY;
 
     // Multi-tenant: extract tenant and get their provisioned key
+    // NOTE: Single-user mode has no authentication by design. Access is protected
+    // only by CORS origin restrictions (PERMITTED_ORIGINS). Direct API calls
+    // (curl, etc.) are not blocked. This is acceptable for personal apps where the
+    // operator controls the API key.
     if (IS_MULTI_TENANT) {
       const tenant = await extractTenant(req);
       if (!tenant) {

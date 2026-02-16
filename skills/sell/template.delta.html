@@ -25,7 +25,9 @@
         tagline: "__APP_TAGLINE__",
         subtitle: "__APP_SUBTITLE__",
         adminUserIds: __ADMIN_USER_IDS__,
-        reservedSubdomains: __RESERVED_SUBDOMAINS__
+        reservedSubdomains: __RESERVED_SUBDOMAINS__,
+        registryUrl: "__REGISTRY_URL__",
+        planQuotas: __PLAN_QUOTAS__
       };
 
       // Convenience aliases
@@ -38,6 +40,23 @@
       const APP_SUBTITLE = CONFIG.subtitle;
       const ADMIN_USER_IDS = CONFIG.adminUserIds;
       const RESERVED_SUBDOMAINS = CONFIG.reservedSubdomains;
+      const REGISTRY_URL = CONFIG.registryUrl;
+      const PLAN_QUOTAS = CONFIG.planQuotas;
+      const PLAN_SLUGS = Object.keys(PLAN_QUOTAS);
+
+      // Helper to resolve registry API URLs
+      function registryApiUrl(path) {
+        // If REGISTRY_URL is set and configured, use it as base
+        if (REGISTRY_URL && !REGISTRY_URL.startsWith('__')) {
+          return REGISTRY_URL.replace(/\/$/, '') + path;
+        }
+        // Fallback to relative path (same origin)
+        return path;
+      }
+
+      // Expose registry URL globally for SharingBridge KV dual-write
+      // Fall back to current origin when registry lives on same Worker
+      window.__VIBES_REGISTRY_URL__ = REGISTRY_URL || window.location.origin;
 
       // Also use window config for Clerk (same pattern as vibes)
       const vibesConfig = window.__VIBES_CONFIG__ || {};
@@ -54,7 +73,7 @@
           return registryCache.data;
         }
         try {
-          const res = await fetch('/registry.json');
+          const res = await fetch(registryApiUrl('/registry.json'));
           if (!res.ok) throw new Error('Failed to fetch registry');
           registryCache.data = await res.json();
           registryCache.fetchedAt = now;
@@ -80,7 +99,7 @@
           return { available: false, reason: 'reserved' };
         }
         try {
-          const res = await fetch(`/check/${normalized}`);
+          const res = await fetch(registryApiUrl(`/check/${normalized}`));
           if (!res.ok) throw new Error('Check failed');
           return await res.json();
         } catch (e) {
@@ -107,7 +126,7 @@
           };
         }
         try {
-          const res = await fetch('/claim', {
+          const res = await fetch(registryApiUrl('/claim'), {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -124,12 +143,6 @@
             status: 503
           };
         }
-      }
-
-      async function getSubdomainOwner(subdomain) {
-        const registry = await fetchRegistry();
-        const normalized = subdomain.toLowerCase().trim();
-        return registry.claims?.[normalized]?.userId || registry.preallocated?.[normalized] || null;
       }
 
       // === Route Detection ===
@@ -226,6 +239,18 @@
 
       // __VIBES_APP_CODE__
 
+      // === Module-level gate cache (survives React remounts from ClerkProvider) ===
+      const _gateCache = {};  // keyed by "userId:subdomain", stores { phase, role, frozen }
+
+      // Module-level subdomain check — starts before React renders, immune to remount
+      const _subdomainCheck = { promise: null, result: null };
+      if (routeInfo.route === 'tenant' && routeInfo.subdomain) {
+        _subdomainCheck.promise = fetch(registryApiUrl('/check/' + routeInfo.subdomain))
+          .then(function(r) { return r.json(); })
+          .then(function(d) { _subdomainCheck.result = d; return d; })
+          .catch(function() { _subdomainCheck.result = { available: true }; return _subdomainCheck.result; });
+      }
+
       // === Auth Gate (for signed-out users) ===
       function AuthGate({ onSignUp }) {
         const { SignInButton, SignUpButton } = window.ClerkComponents || {};
@@ -274,7 +299,9 @@
               setTimeout(() => { onClaim?.(); }, 1200);
               return;
             }
-            if (result.reason === 'no_subscription') {
+            if (result.reason === 'quota_exceeded') {
+              setError(`You've reached your limit of ${result.limit} subdomain${result.limit > 1 ? 's' : ''}. Upgrade your plan to claim more.`);
+            } else if (result.reason === 'no_subscription') {
               setError('A subscription is required to claim a subdomain.');
             } else {
               setError(result.error || 'Failed to claim subdomain');
@@ -370,28 +397,6 @@
         );
       }
 
-      // === Existing Subdomain Redirect (shown when user already has a space) ===
-      function ExistingSubdomainRedirect({ userSubdomains }) {
-        const ownedSub = userSubdomains[0];
-        const targetUrl = needsQueryParamRouting()
-          ? `${window.location.origin}?subdomain=${ownedSub}`
-          : `https://${ownedSub}.${APP_DOMAIN}`;
-
-        return (
-          <AuthScreen
-            title="You Already Have a Space"
-            message={`Your subdomain is ${ownedSub}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`}
-            showCard={true}
-          >
-            <a href={targetUrl} style={{ textDecoration: 'none' }}>
-              <VibesButton variant={RED} buttonType="form">
-                Go to My App
-              </VibesButton>
-            </a>
-          </AuthScreen>
-        );
-      }
-
       // === Subscription Gate using explicit has() check ===
       // Deny-by-default: non-admin users without a plan see SubscriptionPaywall
       // COUPLING: Worker accepts any non-free plan slug via JWT pla claim.
@@ -410,23 +415,27 @@
         // Wait for auth to fully load before making gate decisions
         if (!isLoaded) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
 
-        // Explicit plan check — deny by default
-        const hasPlan = has && has({ plan: 'starter' }) === true;
+        // Multi-plan check — use configured plan slugs, fall back to 'starter'
+        const slugsToCheck = PLAN_SLUGS.length > 0 ? PLAN_SLUGS : ['starter'];
+        const hasPlan = has && slugsToCheck.some(slug => has({ plan: slug }) === true);
         if (!hasPlan) return <SubscriptionPaywall subdomain={subdomain} />;
 
         return children;
       }
 
-      // === Not Owner Redirect ===
-      function NotOwnerRedirect({ subdomain }) {
+      // === Access Denied ===
+      function AccessDenied({ subdomain }) {
+        const displayDomain = `${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`;
+        const landingUrl = needsQueryParamRouting() ? window.location.origin : `https://${APP_DOMAIN}`;
+
         return (
           <AuthScreen
             title="Access Denied"
-            message={`${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN} belongs to another user.`}
+            message={`${displayDomain} belongs to another user.`}
             showCard={true}
             isError={true}
           >
-            <a href={needsQueryParamRouting() ? window.location.origin : `https://${APP_DOMAIN}`} style={{ textDecoration: 'none' }}>
+            <a href={landingUrl} style={{ textDecoration: 'none' }}>
               <VibesButton variant={YELLOW} buttonType="form">
                 Get Your Own
               </VibesButton>
@@ -449,61 +458,438 @@
         );
       }
 
-      function ClaimedSubdomainGate({ subdomain, ownerId }) {
-        const { user } = window.useUser();
-        // Non-owner: redirect immediately, regardless of subscription status
-        if (user?.id !== ownerId) return <NotOwnerRedirect subdomain={subdomain} />;
-        // Owner: subscription gate protects the app
-        return (
-          <SubscriptionGate subdomain={subdomain}>
-            <TenantProvider subdomain={subdomain}>
-              <SharingBridge />
-              <HiddenMenuWrapper menuContent={<VibesPanel />}>
-                <App />
-              </HiddenMenuWrapper>
-            </TenantProvider>
-          </SubscriptionGate>
-        );
-      }
+      // === Unified Access Gate (JWT-primary resolution with module-level cache) ===
+      function UnifiedAccessGate({ subdomain }) {
+        const { user, isLoaded } = window.useUser();
+        const { has } = window.useAuth ? window.useAuth() : {};
 
-      // === Tenant App Wrapper ===
-      function TenantApp({ subdomain }) {
-        const [claimState, setClaimState] = useState({ loading: true, owner: null });
-        const { SignedIn, SignedOut } = window.ClerkComponents || {};
+        // Initialize from cache if available (survives remounts)
+        const [state, setState] = useState(function() {
+          // Check subdomain-only key first (always written, survives remounts)
+          var subCached = _gateCache[subdomain];
+          if (subCached && subCached.phase === 'resolved') return subCached;
+          if (user?.id) {
+            var cached = _gateCache[user.id + ':' + subdomain];
+            if (cached && cached.phase === 'resolved') return cached;
+          }
+          var anonCached = _gateCache['__anon__:' + subdomain];
+          if (anonCached && anonCached.phase === 'resolved') return anonCached;
+          return { phase: 'init', role: null, frozen: false, error: null };
+        });
 
-        // Hook must be called unconditionally at top of component (Rules of Hooks)
+        const resolvedForRef = useRef(null);
+        const [clerkTimedOut, setClerkTimedOut] = useState(false);
+
+        // Write-through setState that caches to module level
+        const setGateState = useCallback(function(newState) {
+          var key = (user?.id || '__anon__') + ':' + subdomain;
+          _gateCache[key] = newState;
+          // Only cache owner/collaborator at subdomain level (prevents stale 'none' flash on auth remount)
+          if (newState.role === 'owner' || newState.role === 'collaborator') {
+            _gateCache[subdomain] = newState;
+          }
+          setState(newState);
+        }, [user?.id, subdomain]);
+
+        // Clerk initialization timeout
+        useEffect(function() {
+          if (isLoaded) return;
+          var timer = setTimeout(function() { setClerkTimedOut(true); }, 15000);
+          return function() { clearTimeout(timer); };
+        }, [isLoaded]);
+
+        // Hook must be called unconditionally (Rules of Hooks)
         window.useVibesPanelEvents('Sell');
 
-        useEffect(() => {
-          getSubdomainOwner(subdomain).then(owner => {
-            setClaimState({ loading: false, owner });
-          });
-        }, [subdomain]);
+        const fpCtx = typeof window.useClerkFireproofContext === 'function'
+          ? window.useClerkFireproofContext() : null;
+        const dashApiRef = useRef(null);
+        dashApiRef.current = fpCtx?.dashApi || null;
 
-        // Guard against undefined Clerk components (after all hooks)
+        // Main resolution effect
+        useEffect(function() {
+          var userKey = (user?.id || '__anon__') + ':' + subdomain;
+          if (resolvedForRef.current === userKey) return;
+
+          // Cache check BEFORE isLoaded — survives Clerk remounts
+          var cached = _gateCache[userKey] || _gateCache[subdomain];
+          if (cached && cached.phase === 'resolved') {
+            resolvedForRef.current = userKey;
+            setState(cached);
+            return;
+          }
+
+          if (!isLoaded) return;
+
+          // Read shared ledger context from URL/localStorage
+          var urlLedger = new URLSearchParams(window.location.search).get('ledger');
+          var storageKey = 'vibes-shared-ledger-' + subdomain;
+          var gateDbName = APP_NAME + '-' + subdomain;
+          if (urlLedger) {
+            if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
+            window.__VIBES_LEDGER_MAP__[gateDbName] = urlLedger;
+            window.__VIBES_SHARED_LEDGER__ = urlLedger;
+            try { localStorage.setItem(storageKey, urlLedger); } catch(e) {}
+          } else {
+            var stored = localStorage.getItem(storageKey);
+            if (stored) {
+              if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
+              window.__VIBES_LEDGER_MAP__[gateDbName] = stored;
+              window.__VIBES_SHARED_LEDGER__ = stored;
+            }
+          }
+
+          // === Path 1: Not signed in ===
+          if (!user?.id) {
+            // Use module-level check if available (no /resolve needed for anon)
+            if (_subdomainCheck.result) {
+              resolvedForRef.current = userKey;
+              var role = _subdomainCheck.result.available ? 'unclaimed' : 'none';
+              var resolved = { phase: 'resolved', role: role, frozen: false, error: null };
+              setGateState(resolved);
+              return;
+            }
+            // Module-level check still pending — subscribe
+            if (_subdomainCheck.promise) {
+              _subdomainCheck.promise.then(function(data) {
+                resolvedForRef.current = userKey;
+                var role = data.available ? 'unclaimed' : 'none';
+                setGateState({ phase: 'resolved', role: role, frozen: false, error: null });
+              });
+              return;
+            }
+            // No module-level check (shouldn't happen for tenant route, but fallback)
+            var anonCtrl = new AbortController();
+            var anonTimeout = setTimeout(function() { anonCtrl.abort(); }, 10000);
+            fetch(registryApiUrl('/resolve/' + subdomain), { signal: anonCtrl.signal })
+              .then(function(res) { return res.json(); })
+              .then(function(data) {
+                resolvedForRef.current = userKey;
+                setGateState({ phase: 'resolved', role: data.role || 'none', frozen: data.frozen || false, error: null });
+              })
+              .catch(function() {
+                resolvedForRef.current = userKey;
+                setGateState({ phase: 'error', role: null, frozen: false, error: 'Failed to resolve access' });
+              })
+              .finally(function() { clearTimeout(anonTimeout); });
+            return;
+          }
+
+          // === Path 2: Signed in + JWT claims present ===
+          var vibesClaims = user.publicMetadata?.vibes_subdomains;
+          if (vibesClaims && vibesClaims[subdomain]) {
+            var claim = vibesClaims[subdomain];
+
+            if (claim.role === 'owner') {
+              var slugsToCheck = PLAN_SLUGS.length > 0 ? PLAN_SLUGS : ['starter'];
+              var isFrozen = has && BILLING_MODE === 'required' && !slugsToCheck.some(function(slug) { return has({ plan: slug }) === true; });
+
+              // If no cached ledger, fetch from /resolve before rendering
+              var gateDbName = APP_NAME + '-' + subdomain;
+              var cachedLedger = window.__VIBES_LEDGER_MAP__ && window.__VIBES_LEDGER_MAP__[gateDbName];
+              if (!cachedLedger) {
+                fetch(registryApiUrl('/resolve/' + subdomain + '?userId=' + user.id))
+                  .then(function(res) { return res.json(); })
+                  .then(function(data) {
+                    if (data.ledgerId) {
+                      if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
+                      window.__VIBES_LEDGER_MAP__[gateDbName] = data.ledgerId;
+                      window.__VIBES_SHARED_LEDGER__ = data.ledgerId;
+                      try { localStorage.setItem('vibes-shared-ledger-' + subdomain, data.ledgerId); } catch(e) {}
+                    }
+                    resolvedForRef.current = userKey;
+                    setGateState({ phase: 'resolved', role: 'owner', frozen: isFrozen, error: null });
+                  })
+                  .catch(function() {
+                    // Fallback: render anyway, Tier 3 handles owner's own ledger
+                    resolvedForRef.current = userKey;
+                    setGateState({ phase: 'resolved', role: 'owner', frozen: isFrozen, error: null });
+                  });
+                return;
+              }
+              // Has cached ledger — render immediately (fast path preserved)
+              resolvedForRef.current = userKey;
+              setGateState({ phase: 'resolved', role: 'owner', frozen: isFrozen, error: null });
+              return;
+            }
+
+            if (claim.role === 'collaborator') {
+              var isFrozen = claim.frozen === true;
+              var gateDbName = APP_NAME + '-' + subdomain;
+
+              // ALWAYS call /resolve for collaborators — URL/localStorage may be stale/poisoned
+              var email = user.primaryEmailAddress?.emailAddress;
+              var resolveUrl = registryApiUrl('/resolve/' + subdomain + '?userId=' + user.id);
+              if (email) resolveUrl += '&email=' + encodeURIComponent(email);
+              fetch(resolveUrl)
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                  if (data.ledgerId) {
+                    if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
+                    window.__VIBES_LEDGER_MAP__[gateDbName] = data.ledgerId;  // overwrite stale cache
+                    window.__VIBES_SHARED_LEDGER__ = data.ledgerId;
+                    try { localStorage.setItem('vibes-shared-ledger-' + subdomain, data.ledgerId); } catch(e) {}
+                  }
+                  resolvedForRef.current = userKey;
+                  setGateState({ phase: 'resolved', role: 'collaborator', frozen: isFrozen, error: null });
+                })
+                .catch(function() {
+                  // Fallback: render with whatever cache exists
+                  resolvedForRef.current = userKey;
+                  setGateState({ phase: 'resolved', role: 'collaborator', frozen: isFrozen, error: null });
+                });
+              return;
+            }
+          }
+
+          // === Path 3: Signed in + no JWT claims ===
+          // Need to determine: is subdomain unclaimed (show ClaimPrompt) or claimed by someone else?
+          // For taken subdomains, also check if user is invited (via /resolve)
+
+          var doResolve = function(checkResult) {
+            if (checkResult && checkResult.available) {
+              // Subdomain is unclaimed — show ClaimPrompt
+              resolvedForRef.current = userKey;
+              setGateState({ phase: 'resolved', role: 'unclaimed', frozen: false, error: null });
+              return;
+            }
+
+            // Subdomain is taken — need /resolve to check if user is invited
+            var email = user.primaryEmailAddress?.emailAddress;
+            var resolveUrl = registryApiUrl('/resolve/' + subdomain + '?userId=' + user.id);
+            if (email) resolveUrl += '&email=' + encodeURIComponent(email);
+            var resolveCtrl = new AbortController();
+            var resolveTimeout = setTimeout(function() { resolveCtrl.abort(); }, 10000);
+
+            // Try to get auth token for /resolve
+            var tokenPromise = window.Clerk?.session?.getToken
+              ? Promise.race([
+                  window.Clerk.session.getToken(),
+                  new Promise(function(_, reject) { setTimeout(function() { reject(new Error('getToken timeout')); }, 5000); })
+                ])
+              : Promise.resolve(null);
+
+            tokenPromise.then(function(token) {
+              var headers = {};
+              if (token) headers['Authorization'] = 'Bearer ' + token;
+              return fetch(resolveUrl, { headers: headers, signal: resolveCtrl.signal });
+            }).catch(function() {
+              return fetch(resolveUrl, { signal: resolveCtrl.signal });
+            }).then(function(res) {
+              return res.json();
+            }).then(function(data) {
+              var role = data.role || 'none';
+              var frozen = data.frozen || false;
+
+              // Bridge ledgerId for collaborators
+              if (data.ledgerId) {
+                var resolvedDbName = APP_NAME + '-' + subdomain;
+                if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
+                window.__VIBES_LEDGER_MAP__[resolvedDbName] = data.ledgerId;
+                window.__VIBES_SHARED_LEDGER__ = data.ledgerId;
+                try { localStorage.setItem(storageKey, data.ledgerId); } catch(e) {}
+              }
+
+              // Bridge inviteId for Connect invite redemption
+              if (data.inviteId) {
+                window.__VIBES_INVITE_ID__ = data.inviteId;
+              }
+
+              resolvedForRef.current = userKey;
+              setGateState({ phase: 'resolved', role: role, frozen: frozen, error: null });
+            }).catch(function(err) {
+              resolvedForRef.current = userKey;
+              setGateState({ phase: 'error', role: null, frozen: false, error: err.message });
+            }).finally(function() { clearTimeout(resolveTimeout); });
+          };
+
+          if (_subdomainCheck.result) {
+            doResolve(_subdomainCheck.result);
+          } else if (_subdomainCheck.promise) {
+            _subdomainCheck.promise.then(doResolve);
+          } else {
+            // No module-level check — do inline check
+            fetch(registryApiUrl('/check/' + subdomain))
+              .then(function(r) { return r.json(); })
+              .then(doResolve)
+              .catch(function() { doResolve({ available: false }); });
+          }
+        }, [isLoaded, user?.id, subdomain]);
+
+        // Separate effect: auto-join for invited users (non-blocking, post-resolution)
+        useEffect(function() {
+          if (state.phase !== 'resolved') return;
+          if (state.role !== 'invited') return;
+          if (!user?.id) return;
+
+          var email = user.primaryEmailAddress?.emailAddress;
+          if (!email) return;
+
+          (async function() {
+            try {
+              var token = await Promise.race([
+                window.Clerk?.session?.getToken(),
+                new Promise(function(_, reject) { setTimeout(function() { reject(new Error('getToken timeout')); }, 5000); })
+              ]);
+              if (!token) return;
+
+              var joinCtrl = new AbortController();
+              var joinTimeout = setTimeout(function() { joinCtrl.abort(); }, 10000);
+              var joinRes = await fetch(registryApiUrl('/join'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                body: JSON.stringify({ subdomain: subdomain, email: email }),
+                signal: joinCtrl.signal
+              });
+              clearTimeout(joinTimeout);
+
+              if (joinRes.ok) {
+                // Upgrade role to collaborator
+                setGateState({ phase: 'resolved', role: 'collaborator', frozen: state.frozen, error: null });
+
+                // Try Connect invite redemption (non-fatal)
+                if (dashApiRef.current) {
+                  try {
+                    var iid = window.__VIBES_INVITE_ID__;
+                    await Promise.race([
+                      dashApiRef.current.redeemInvite(iid ? { inviteId: iid } : {}),
+                      new Promise(function(_, r) { setTimeout(function() { r(new Error('redeemInvite timeout')); }, 5000); })
+                    ]);
+                  } catch(e) { /* non-fatal */ }
+                }
+              }
+            } catch(e) {
+              console.warn('[UnifiedAccessGate] Auto-join failed:', e.message);
+            }
+          })();
+        }, [state.phase, state.role, user?.id, subdomain]);
+
+        // Separate effect: retry Connect invite for existing collaborators (non-blocking)
+        // Tries stored inviteId first, falls back to listInvites discovery,
+        // then updateUserTenant as last resort if redeemInvite is broken upstream
+        useEffect(function() {
+          if (state.phase !== 'resolved') return;
+          if (state.role !== 'collaborator') return;
+          if (!dashApiRef.current) return;
+
+          (async function() {
+            try {
+              var api = dashApiRef.current;
+              console.debug('[vibes] Collaborator retry: dashApi methods available:',
+                Object.keys(api).filter(function(k) { return typeof api[k] === 'function'; }).join(', '));
+              var inviteId = window.__VIBES_INVITE_ID__;
+
+              // If no stored invite ID, try to discover it via listInvites
+              if (!inviteId) {
+                try {
+                  var rInvites = await Promise.race([
+                    api.listInvites({}),
+                    new Promise(function(_, r) { setTimeout(function() { r(new Error('listInvites timeout')); }, 5000); })
+                  ]);
+                  if (rInvites.isOk()) {
+                    var invites = rInvites.Ok().tickets || [];
+                    if (invites.length > 0) {
+                      inviteId = invites[0].id || invites[0].inviteId;
+                      console.debug('[vibes] Discovered invite via listInvites:', inviteId);
+                    }
+                  }
+                } catch(e) { /* listInvites not available or timed out */ }
+              }
+
+              // Try redeemInvite with explicit ID
+              if (inviteId) {
+                try {
+                  var rRedeem = await Promise.race([
+                    api.redeemInvite({ inviteId: inviteId }),
+                    new Promise(function(_, r) { setTimeout(function() { r(new Error('redeemInvite timeout')); }, 5000); })
+                  ]);
+                  if (rRedeem && rRedeem.isOk && rRedeem.isOk()) {
+                    console.debug('[vibes] Invite redeemed successfully');
+                    return;
+                  }
+                } catch(e) {
+                  console.debug('[vibes] redeemInvite failed:', e.message);
+                }
+              }
+
+              // Last resort: updateUserTenant (if redeemInvite is broken upstream)
+              var gateDbName = APP_NAME + '-' + subdomain;
+              var ledgerId = (window.__VIBES_LEDGER_MAP__ && window.__VIBES_LEDGER_MAP__[gateDbName]) || window.__VIBES_SHARED_LEDGER__;
+              if (ledgerId && api.updateUserTenant) {
+                console.debug('[vibes] Trying updateUserTenant for ledger:', ledgerId);
+                try {
+                  var rUpdate = await Promise.race([
+                    api.updateUserTenant({ ledger: ledgerId, role: 'member', right: 'write' }),
+                    new Promise(function(_, r) { setTimeout(function() { r(new Error('updateUserTenant timeout')); }, 5000); })
+                  ]);
+                  console.debug('[vibes] updateUserTenant succeeded for ledger:', ledgerId, 'result:', rUpdate);
+                } catch(e) {
+                  console.debug('[vibes] updateUserTenant failed:', e.message);
+                }
+              } else {
+                console.debug('[vibes] updateUserTenant not available on dashApi, ledgerId:', ledgerId);
+              }
+            } catch(e) { /* non-fatal */ }
+          })();
+        }, [state.phase, state.role]);
+
+        // --- Render-time cache recovery (survives Clerk remounts) ---
+        // React 18+: setState during render → discard current output, re-render immediately
+        if (state.phase === 'init') {
+          var directCached = _gateCache[subdomain];
+          if (directCached && directCached.phase === 'resolved') {
+            resolvedForRef.current = (user?.id || '__anon__') + ':' + subdomain;
+            setState(directCached);
+            return null;  // Current render discarded; React re-renders with resolved state
+          }
+        }
+
+        // --- Render based on state ---
+        const { SignedIn, SignedOut } = window.ClerkComponents || {};
         if (!SignedIn || !SignedOut) {
           return <LoadingError error="Clerk components not loaded. Please refresh the page." />;
         }
 
-        if (claimState.loading) {
+        // Loading state
+        if (state.phase === 'init') {
+          if (clerkTimedOut && !isLoaded) {
+            return (
+              <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
+                <p style={{ color: '#94a3b8' }}>Taking longer than expected...</p>
+                <button onClick={() => window.location.reload()} style={{ padding: '0.5rem 1rem', cursor: 'pointer', borderRadius: '4px', border: '1px solid #ccc' }}>
+                  Reload
+                </button>
+              </div>
+            );
+          }
           return (
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="text-gray-500">Loading...</div>
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, animation: 'vibesDelayedFadeIn 0.3s ease 0.2s forwards' }}>
+              <div style={{ color: '#94a3b8' }}>Loading...</div>
             </div>
           );
         }
 
-        const onClaimSuccess = (userId) => {
-          setClaimState({ loading: false, owner: userId });
-        };
+        // Error state
+        if (state.phase === 'error') {
+          return (
+            <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
+              <p>Could not verify access. Check your connection and try again.</p>
+              <button onClick={() => { resolvedForRef.current = null; var key = (user?.id || '__anon__') + ':' + subdomain; delete _gateCache[key]; delete _gateCache[subdomain]; setState({ phase: 'init', role: null, frozen: false, error: null }); }} style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>
+                Retry
+              </button>
+            </div>
+          );
+        }
 
-        // Subdomain is unclaimed
-        if (!claimState.owner) {
+        // Resolved states — same render logic as before
+        const { role, frozen } = state;
+
+        if (role === 'unclaimed') {
           return (
             <>
               <SignedIn>
                 <SubscriptionGate subdomain={subdomain}>
-                  <ClaimPromptWrapper subdomain={subdomain} onClaimSuccess={onClaimSuccess} />
+                  <ClaimPromptWrapper subdomain={subdomain} onClaimSuccess={() => { resolvedForRef.current = (user?.id || '__anon__') + ':' + subdomain; setGateState({ phase: 'resolved', role: 'owner', frozen: false, error: null }); }} />
                 </SubscriptionGate>
               </SignedIn>
               <SignedOut>
@@ -513,17 +899,154 @@
           );
         }
 
-        // Subdomain is claimed - check ownership first, then subscription
+        if ((role === 'owner' || role === 'collaborator') && frozen) {
+          return (
+            <>
+              <SignedIn>
+                <ResubscribePaywall subdomain={subdomain} role={role} />
+              </SignedIn>
+              <SignedOut>
+                <AuthGate />
+              </SignedOut>
+            </>
+          );
+        }
+
+        if (role === 'owner' || role === 'collaborator') {
+          return (
+            <>
+              <SignedIn>
+                <TenantProvider subdomain={subdomain}>
+                  <SharingBridge />
+                  <LedgerReporter />
+                  <HiddenMenuWrapper menuContent={<VibesPanel />}>
+                    <App />
+                  </HiddenMenuWrapper>
+                </TenantProvider>
+              </SignedIn>
+              <SignedOut>
+                <AuthGate />
+              </SignedOut>
+            </>
+          );
+        }
+
         return (
           <>
             <SignedIn>
-              <ClaimedSubdomainGate subdomain={subdomain} ownerId={claimState.owner} />
+              <AccessDenied subdomain={subdomain} />
             </SignedIn>
             <SignedOut>
               <AuthGate />
             </SignedOut>
           </>
         );
+      }
+
+      // === Resubscribe Paywall (shown when subdomain is frozen) ===
+      function ResubscribePaywall({ subdomain, role }) {
+        const { PricingTable } = window.ClerkComponents || {};
+        const displayDomain = `${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`;
+
+        if (role === 'owner') {
+          if (PricingTable) {
+            return (
+              <div style={{
+                minHeight: '100vh', display: 'flex', flexDirection: 'column',
+                justifyContent: 'center', alignItems: 'center', padding: '2rem',
+                background: '#ECECEC', fontFamily: "'Space Grotesk', 'Inter', sans-serif",
+              }}>
+                <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 700, letterSpacing: '-0.04em', marginBottom: '0.5rem', textAlign: 'center' }}>
+                  Your subscription has expired
+                </h2>
+                <p style={{ color: '#666', marginBottom: '0.5rem', textAlign: 'center', fontSize: '1.1rem' }}>
+                  Resubscribe to restore access to {displayDomain}.
+                </p>
+                <p style={{ color: '#10b981', marginBottom: '2rem', textAlign: 'center', fontSize: '0.95rem' }}>
+                  Your data is safe and will be restored instantly.
+                </p>
+                <div style={{ width: '100%', maxWidth: '600px' }}>
+                  <PricingTable newSubscriptionRedirectUrl={window.location.href} />
+                </div>
+              </div>
+            );
+          }
+          return (
+            <AuthScreen title="Subscription Expired" message="Your subscription has expired. Resubscribe to restore access. Your data is safe." showCard={true}>
+              <a href="https://accounts.clerk.dev/user/billing" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                <VibesButton variant={RED} buttonType="form">Manage Subscription</VibesButton>
+              </a>
+            </AuthScreen>
+          );
+        }
+
+        // Collaborator sees "ask the owner" message
+        return (
+          <AuthScreen title="App Paused" message={`${displayDomain} is currently paused. Ask the owner to resubscribe to restore access. Your data is safe.`} showCard={true}>
+            <div style={{ textAlign: 'center', color: '#666', fontSize: '0.875rem' }}>
+              The subscription for this app has expired.
+            </div>
+          </AuthScreen>
+        );
+      }
+
+      // === Ledger Reporter (owner reports ledger ID to registry) ===
+      // Fix E: Only owners should report — collaborators get 403 from /set-ledger
+      function LedgerReporter() {
+        const { subdomain, dbName } = useTenant();
+        const { user } = window.useUser();
+        const reportedRef = useRef(false);
+
+        useEffect(function() {
+          if (reportedRef.current) return;
+          if (!user?.id) return;
+
+          // Only owners should report ledger IDs to the registry
+          var claims = user.publicMetadata?.vibes_subdomains;
+          if (!claims || !claims[subdomain] || claims[subdomain].role !== 'owner') {
+            console.debug('[vibes] LedgerReporter skipped — not owner of', subdomain);
+            return;
+          }
+
+          var interval = setInterval(function() {
+            var map = window.__VIBES_LEDGER_MAP__;
+            if (!map || !map[dbName]) return;
+
+            var ledgerId = map[dbName];
+            reportedRef.current = true;
+            clearInterval(interval);
+
+            // Fire and forget — report ledger ID to registry
+            (async function() {
+              try {
+                var token = await window.Clerk?.session?.getToken();
+                if (!token) return;
+                var res = await fetch(registryApiUrl('/set-ledger'), {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + token
+                  },
+                  body: JSON.stringify({ subdomain: subdomain, ledgerId: ledgerId })
+                });
+                if (res.ok) {
+                  console.debug('[vibes] Reported ledger ID for', subdomain);
+                }
+              } catch(e) {
+                console.warn('[vibes] Failed to report ledger ID:', e.message);
+              }
+            })();
+          }, 500);
+
+          return function() { clearInterval(interval); };
+        }, [user?.id, subdomain, dbName]);
+
+        return null;
+      }
+
+      // === Tenant App Wrapper ===
+      function TenantApp({ subdomain }) {
+        return <UnifiedAccessGate subdomain={subdomain} />;
       }
 
       // === Admin Dashboard Content (uses useUser hook) ===
@@ -1277,6 +1800,7 @@
 
       // === Initialize App ===
       async function initApp() {
+        const t0 = performance.now();
         try {
           const clerkModule = await import("@fireproof/clerk");
           // SignUpButton is not exported by fireproof-clerk bundle, import from @clerk/clerk-react directly

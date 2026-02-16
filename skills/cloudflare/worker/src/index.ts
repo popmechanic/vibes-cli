@@ -7,8 +7,16 @@ import { verifyClerkJWT, verifyClerkJWTDebug } from "./lib/crypto-jwt";
 import { parsePermittedOrigins } from "./lib/jwt-validation";
 import {
   isSubdomainAvailable,
-  createClaim,
-  processSubscriptionChange,
+  createSubdomainRecord,
+  freezeSubdomain,
+  unfreezeSubdomain,
+  addCollaborator,
+  activateCollaborator,
+  hasAccess,
+  hasAccessByEmail,
+  parsePlanQuotas,
+  getQuotaForPlan,
+  isQuotaExceeded,
 } from "./lib/registry-logic";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -22,10 +30,30 @@ const parseAdminIds = (value?: string): string[] =>
 // CORS middleware
 app.use("*", cors());
 
-// GET /registry.json - Public read
+// One-time migration middleware: check for legacy blob and decompose
+app.use("*", async (c, next) => {
+  const kv = new RegistryKV(c.env.REGISTRY_KV);
+  const migrated = await kv.getMigrated();
+  if (!migrated) {
+    await kv.migrateFromBlob();
+  }
+  await next();
+});
+
+// Helper: get reserved list from KV, falling back to env var
+async function getReservedList(kv: RegistryKV, envReserved?: string): Promise<string[]> {
+  const kvReserved = await kv.getReserved();
+  if (kvReserved.length > 0) return kvReserved;
+  if (envReserved) {
+    return envReserved.split(",").map((s) => s.trim());
+  }
+  return [];
+}
+
+// GET /registry.json - Public read (backward compat)
 app.get("/registry.json", async (c) => {
   const kv = new RegistryKV(c.env.REGISTRY_KV);
-  const registry = await kv.read();
+  const registry = await kv.readLegacyFormat();
   return c.json(registry);
 });
 
@@ -33,14 +61,41 @@ app.get("/registry.json", async (c) => {
 app.get("/check/:subdomain", async (c) => {
   const subdomain = c.req.param("subdomain");
   const kv = new RegistryKV(c.env.REGISTRY_KV);
-  const registry = await kv.read();
 
-  // Apply reserved subdomains from config
-  if (c.env.RESERVED_SUBDOMAINS && !registry.reserved?.length) {
-    registry.reserved = c.env.RESERVED_SUBDOMAINS.split(",").map((s) => s.trim());
+  const existing = await kv.getSubdomain(subdomain.toLowerCase().trim());
+  const reserved = await getReservedList(kv, c.env.RESERVED_SUBDOMAINS);
+  const preallocated = await kv.getPreallocated();
+
+  const result = isSubdomainAvailable(subdomain, existing, reserved, preallocated);
+  return c.json(result);
+});
+
+// GET /check/:subdomain/access - Check if user has access
+app.get("/check/:subdomain/access", async (c) => {
+  const subdomain = c.req.param("subdomain").toLowerCase().trim();
+  const userId = c.req.query("userId");
+  const email = c.req.query("email");
+
+  if (!userId) {
+    return c.json({ error: "Missing userId query parameter" }, 400);
   }
 
-  const result = isSubdomainAvailable(registry, subdomain);
+  const kv = new RegistryKV(c.env.REGISTRY_KV);
+  const record = await kv.getSubdomain(subdomain);
+
+  if (!record) {
+    return c.json({ hasAccess: false, role: "none", frozen: false });
+  }
+
+  const result = hasAccess(record, userId);
+
+  // Fallback: if userId lookup failed and email provided, check by email
+  if (!result.hasAccess && email) {
+    if (hasAccessByEmail(record, email)) {
+      return c.json({ hasAccess: true, role: "collaborator", frozen: result.frozen });
+    }
+  }
+
   return c.json(result);
 });
 
@@ -49,7 +104,6 @@ app.post("/claim", async (c) => {
   const authHeader = c.req.header("Authorization");
   const permittedOrigins = parsePermittedOrigins(c.env.PERMITTED_ORIGINS);
 
-  // Use debug version to get detailed failure reason
   const authResult = await verifyClerkJWTDebug(authHeader, c.env.CLERK_PEM_PUBLIC_KEY, permittedOrigins);
   if ('error' in authResult) {
     return c.json({
@@ -72,20 +126,18 @@ app.post("/claim", async (c) => {
   }
 
   const kv = new RegistryKV(c.env.REGISTRY_KV);
-  const registry = await kv.read();
-
-  // Apply reserved subdomains from config
-  if (c.env.RESERVED_SUBDOMAINS && !registry.reserved?.length) {
-    registry.reserved = c.env.RESERVED_SUBDOMAINS.split(",").map((s) => s.trim());
-  }
+  const normalized = body.subdomain.toLowerCase().trim();
 
   // Idempotent: if user already owns this subdomain, return success
-  const normalized = body.subdomain.toLowerCase().trim();
-  if (registry.claims?.[normalized]?.userId === auth.userId) {
+  const existingRecord = await kv.getSubdomain(normalized);
+  if (existingRecord?.ownerId === auth.userId) {
     return c.json({ success: true, subdomain: normalized }, 201);
   }
 
-  const availability = isSubdomainAvailable(registry, body.subdomain);
+  const reserved = await getReservedList(kv, c.env.RESERVED_SUBDOMAINS);
+  const preallocated = await kv.getPreallocated();
+
+  const availability = isSubdomainAvailable(body.subdomain, existingRecord, reserved, preallocated);
   if (!availability.available) {
     return c.json({ error: "Subdomain not available", reason: availability.reason }, 409);
   }
@@ -95,33 +147,225 @@ app.post("/claim", async (c) => {
   const isAdmin = adminIds.includes(auth.userId);
 
   // Subscription gate — check JWT pla claim (set by Clerk Commerce)
-  // pla format is "scope:slug" (e.g. "u:starter", "u:free")
-  // Reject missing plan or free plan — only paid plans pass
-  // COUPLING: client-side SubscriptionGate checks has({ plan: 'starter' })
-  // If you add plan slugs here, update the client check in template.delta.html too
   if (!isAdmin) {
     const planSlug = auth.plan?.split(':')[1];
     const hasActiveSubscription = !!planSlug && planSlug !== 'free';
     const billingRequired = c.env.BILLING_MODE === 'required';
     if (billingRequired && !hasActiveSubscription) {
       return c.json(
-        {
-          error: "Purchase required",
-          reason: "no_subscription",
-        },
+        { error: "Purchase required", reason: "no_subscription" },
         402
       );
     }
   }
 
-  // Create the claim
-  const result = createClaim(registry, body.subdomain, auth.userId);
-  if (!result.success) {
-    return c.json({ error: "Claim failed", reason: result.error }, 409);
+  // Read user record once — reused for quota check and user index update
+  let userRecord = await kv.getUser(auth.userId);
+
+  // Quota enforcement — check per-plan subdomain limits
+  if (!isAdmin) {
+    const quotas = parsePlanQuotas(c.env.PLAN_QUOTAS);
+    const quota = getQuotaForPlan(auth.plan, quotas);
+    if (quota !== null) {
+      let ownedCount: number;
+      if (userRecord?.ownedSubdomains) {
+        ownedCount = userRecord.ownedSubdomains.length;
+      } else if (userRecord?.subdomains) {
+        // Lazy migration: count owned subdomains from the full list
+        const owned: string[] = [];
+        for (const sub of userRecord.subdomains) {
+          const subRecord = await kv.getSubdomain(sub);
+          if (subRecord && subRecord.ownerId === auth.userId) {
+            owned.push(sub);
+          }
+        }
+        ownedCount = owned.length;
+        // Write migrated ownedSubdomains back and update local reference
+        userRecord = { ...userRecord, ownedSubdomains: owned };
+        await kv.putUser(auth.userId, userRecord);
+      } else {
+        ownedCount = 0;
+      }
+      if (isQuotaExceeded(ownedCount, quota)) {
+        return c.json(
+          { error: "Quota exceeded", reason: "quota_exceeded", current: ownedCount, limit: quota },
+          403
+        );
+      }
+    }
   }
 
-  await kv.write(registry);
-  return c.json({ success: true, subdomain: result.subdomain }, 201);
+  // Create the claim
+  const newRecord = createSubdomainRecord(auth.userId);
+  await kv.putSubdomain(normalized, newRecord);
+
+  // Update user index
+  const subdomains = userRecord?.subdomains || [];
+  if (!subdomains.includes(normalized)) {
+    subdomains.push(normalized);
+  }
+  const ownedSubdomains = userRecord?.ownedSubdomains || [];
+  if (!ownedSubdomains.includes(normalized)) {
+    ownedSubdomains.push(normalized);
+  }
+  await kv.putUser(auth.userId, {
+    subdomains,
+    ownedSubdomains,
+    quota: userRecord?.quota ?? 3,
+  });
+
+  if (c.env.CLERK_SECRET_KEY) {
+    c.executionCtx.waitUntil(
+      updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, auth.userId, normalized, 'owner', false)
+    );
+  }
+
+  return c.json({ success: true, subdomain: normalized }, 201);
+});
+
+// POST /invite - Owner invites collaborator
+app.post("/invite", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const permittedOrigins = parsePermittedOrigins(c.env.PERMITTED_ORIGINS);
+
+  const authResult = await verifyClerkJWTDebug(authHeader, c.env.CLERK_PEM_PUBLIC_KEY, permittedOrigins);
+  if ('error' in authResult) {
+    return c.json({ error: "Unauthorized", failReason: authResult.error }, 401);
+  }
+  const auth = authResult;
+
+  let body: { subdomain?: string; email?: string; right?: "read" | "write"; ledgerId?: string; inviteId?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON" }, 400);
+  }
+
+  if (!body.subdomain || !body.email) {
+    return c.json({ error: "Missing subdomain or email" }, 400);
+  }
+
+  const kv = new RegistryKV(c.env.REGISTRY_KV);
+  const normalized = body.subdomain.toLowerCase().trim();
+  const record = await kv.getSubdomain(normalized);
+
+  if (!record) {
+    return c.json({ error: "Subdomain not found" }, 404);
+  }
+
+  if (record.ownerId !== auth.userId) {
+    return c.json({ error: "Only the owner can invite collaborators" }, 403);
+  }
+
+  const updated = addCollaborator(record, body.email, body.right || "write", body.ledgerId, body.inviteId);
+  await kv.putSubdomain(normalized, updated);
+
+  return c.json({ success: true, subdomain: normalized }, 200);
+});
+
+// POST /join - Invitee redeems invite
+app.post("/join", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const permittedOrigins = parsePermittedOrigins(c.env.PERMITTED_ORIGINS);
+
+  const authResult = await verifyClerkJWTDebug(authHeader, c.env.CLERK_PEM_PUBLIC_KEY, permittedOrigins);
+  if ('error' in authResult) {
+    return c.json({ error: "Unauthorized", failReason: authResult.error }, 401);
+  }
+  const auth = authResult;
+
+  let body: { subdomain?: string; email?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON" }, 400);
+  }
+
+  if (!body.subdomain || !body.email) {
+    return c.json({ error: "Missing subdomain or email" }, 400);
+  }
+
+  const kv = new RegistryKV(c.env.REGISTRY_KV);
+  const normalized = body.subdomain.toLowerCase().trim();
+  const record = await kv.getSubdomain(normalized);
+
+  if (!record) {
+    return c.json({ error: "Subdomain not found" }, 404);
+  }
+
+  // Find invited collaborator by email
+  const normalizedEmail = body.email.toLowerCase().trim();
+  const collaborator = record.collaborators.find(
+    (col) => col.email.toLowerCase() === normalizedEmail && col.status === "invited"
+  );
+
+  if (!collaborator) {
+    return c.json({ error: "No pending invitation found for this email" }, 404);
+  }
+
+  // Activate collaborator
+  const updated = activateCollaborator(record, body.email, auth.userId);
+  await kv.putSubdomain(normalized, updated);
+
+  // Update user index for the joining user
+  const userRecord = await kv.getUser(auth.userId);
+  const subdomains = userRecord?.subdomains || [];
+  if (!subdomains.includes(normalized)) {
+    subdomains.push(normalized);
+  }
+  await kv.putUser(auth.userId, {
+    subdomains,
+    quota: userRecord?.quota ?? 3,
+  });
+
+  if (c.env.CLERK_SECRET_KEY) {
+    c.executionCtx.waitUntil(
+      updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, auth.userId, normalized, 'collaborator', record.status === 'frozen')
+    );
+  }
+
+  return c.json({ success: true, subdomain: normalized, role: "collaborator" }, 200);
+});
+
+// POST /set-ledger - Owner reports their Fireproof ledger ID
+app.post("/set-ledger", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  const permittedOrigins = parsePermittedOrigins(c.env.PERMITTED_ORIGINS);
+
+  const authResult = await verifyClerkJWTDebug(authHeader, c.env.CLERK_PEM_PUBLIC_KEY, permittedOrigins);
+  if ('error' in authResult) {
+    return c.json({ error: "Unauthorized", failReason: authResult.error }, 401);
+  }
+  const auth = authResult;
+
+  let body: { subdomain?: string; ledgerId?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON" }, 400);
+  }
+
+  if (!body.subdomain || !body.ledgerId) {
+    return c.json({ error: "Missing subdomain or ledgerId" }, 400);
+  }
+
+  const kv = new RegistryKV(c.env.REGISTRY_KV);
+  const normalized = body.subdomain.toLowerCase().trim();
+  const record = await kv.getSubdomain(normalized);
+
+  if (!record) {
+    return c.json({ error: "Subdomain not found" }, 404);
+  }
+
+  if (record.ownerId !== auth.userId) {
+    return c.json({ error: "Only the owner can set ledger ID" }, 403);
+  }
+
+  // Idempotent: update ledgerId on the record
+  record.ledgerId = body.ledgerId;
+  await kv.putSubdomain(normalized, record);
+
+  return c.json({ success: true, subdomain: normalized }, 200);
 });
 
 // POST /webhook - Clerk subscription webhooks
@@ -143,33 +387,66 @@ app.post("/webhook", async (c) => {
     }) as typeof event;
   } catch (error) {
     console.error("Webhook verification failed:", error);
-    console.error("Secret length:", c.env.CLERK_WEBHOOK_SECRET?.length);
-    console.error("svix-id:", headers["svix-id"], "svix-timestamp:", headers["svix-timestamp"]);
-    console.error("payload length:", payload.length);
     return c.json({ error: "Invalid webhook signature", debug: String(error) }, 401);
   }
 
   console.log("Received webhook event:", event.type);
 
-  // Only process subscription.deleted — JWT claims are source of truth for active subscriptions
+  const eventData = event.data as any;
+  const userId = eventData.payer?.user_id ?? eventData.user_id;
+
+  if (!userId) {
+    return c.json({ error: "Missing user_id" }, 400);
+  }
+
+  const kv = new RegistryKV(c.env.REGISTRY_KV);
+
   if (event.type === "subscription.deleted") {
-    const eventData = event.data as any;
-    const userId = eventData.payer?.user_id ?? eventData.user_id;
+    // Freeze only OWNED subdomains (user index contains both owned + collaborated)
+    const userRecord = await kv.getUser(userId);
+    if (userRecord?.subdomains.length) {
+      for (const subdomain of userRecord.subdomains) {
+        const record = await kv.getSubdomain(subdomain);
+        if (record && record.ownerId === userId && record.status !== 'frozen') {
+          const frozenRecord = freezeSubdomain(record);
+          await kv.putSubdomain(subdomain, frozenRecord);
+          console.log(`Froze subdomain: ${subdomain} for user ${userId}`);
 
-    if (!userId) {
-      return c.json({ error: "Missing user_id" }, 400);
+          // Propagate frozen status to Clerk publicMetadata
+          if (c.env.CLERK_SECRET_KEY) {
+            await updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, userId, subdomain, 'owner', true);
+            for (const collab of frozenRecord.collaborators) {
+              if (collab.userId) {
+                await updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, collab.userId, subdomain, 'collaborator', true);
+              }
+            }
+          }
+        }
+      }
     }
+  } else if (event.type === "subscription.created" || event.type === "subscription.updated") {
+    // Unfreeze only OWNED frozen subdomains for this user
+    const userRecord = await kv.getUser(userId);
+    if (userRecord?.subdomains.length) {
+      for (const subdomain of userRecord.subdomains) {
+        const record = await kv.getSubdomain(subdomain);
+        if (record && record.ownerId === userId && record.status === 'frozen') {
+          const unfrozenRecord = unfreezeSubdomain(record);
+          await kv.putSubdomain(subdomain, unfrozenRecord);
+          console.log(`Unfroze subdomain: ${subdomain} for user ${userId}`);
 
-    const kv = new RegistryKV(c.env.REGISTRY_KV);
-    const registry = await kv.read();
-
-    // Release claims on hard cancellation
-    const result = processSubscriptionChange(registry, userId, 0);
-    if (result.released.length > 0) {
-      console.log(`Released ${result.released.length} subdomains for user ${userId}`);
+          // Propagate unfrozen status to Clerk publicMetadata
+          if (c.env.CLERK_SECRET_KEY) {
+            await updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, userId, subdomain, 'owner', false);
+            for (const collab of unfrozenRecord.collaborators) {
+              if (collab.userId) {
+                await updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, collab.userId, subdomain, 'collaborator', false);
+              }
+            }
+          }
+        }
+      }
     }
-
-    await kv.write(registry);
   }
 
   return c.json({ received: true });
@@ -206,6 +483,120 @@ app.post("/api/ai/chat", async (c) => {
     headers: { "Content-Type": "application/json" }
   });
 });
+
+// GET /resolve/:subdomain - Resolve user's role for a subdomain
+app.get("/resolve/:subdomain", async (c) => {
+  const subdomain = c.req.param("subdomain").toLowerCase().trim();
+  const kv = new RegistryKV(c.env.REGISTRY_KV);
+  const record = await kv.getSubdomain(subdomain);
+
+  if (!record) {
+    return c.json({ role: "unclaimed", frozen: false });
+  }
+
+  const frozen = record.status === 'frozen';
+
+  // Try to get userId from JWT or query param
+  let userId: string | undefined = c.req.query("userId");
+  const authHeader = c.req.header("Authorization");
+  if (authHeader && !userId) {
+    try {
+      const permittedOrigins = parsePermittedOrigins(c.env.PERMITTED_ORIGINS);
+      const authResult = await verifyClerkJWT(authHeader, c.env.CLERK_PEM_PUBLIC_KEY, permittedOrigins);
+      if (authResult) {
+        userId = authResult.userId;
+      }
+    } catch {
+      // JWT verification failed — fall through to query params
+    }
+  }
+
+  const email = c.req.query("email");
+
+  if (userId) {
+    const result = hasAccess(record, userId);
+    if (result.role !== "none") {
+      // For collaborators, find and return their stored ledgerId + inviteId
+      if (result.role === "collaborator") {
+        const collab = record.collaborators.find(
+          (col) => col.userId === userId && col.status === "active"
+        );
+        return c.json({
+          role: result.role, frozen,
+          ...((collab?.ledgerId || record.ledgerId) ? { ledgerId: collab?.ledgerId || record.ledgerId } : {}),
+          ...(collab?.inviteId ? { inviteId: collab.inviteId } : {})
+        });
+      }
+      // Owner: include record-level ledgerId if set
+      return c.json({
+        role: result.role, frozen,
+        ...(record.ledgerId ? { ledgerId: record.ledgerId } : {})
+      });
+    }
+    // userId had no direct access — check email fallback
+    if (email && hasAccessByEmail(record, email)) {
+      const invitedCollab = record.collaborators.find(
+        (col) => col.email.toLowerCase() === email.toLowerCase().trim()
+      );
+      return c.json({
+        role: "invited", frozen,
+        ...((invitedCollab?.ledgerId || record.ledgerId) ? { ledgerId: invitedCollab?.ledgerId || record.ledgerId } : {}),
+        ...(invitedCollab?.inviteId ? { inviteId: invitedCollab.inviteId } : {})
+      });
+    }
+    return c.json({ role: "none", frozen });
+  }
+
+  if (email) {
+    if (hasAccessByEmail(record, email)) {
+      const emailCollab = record.collaborators.find(
+        (col) => col.email.toLowerCase() === email.toLowerCase().trim()
+      );
+      return c.json({
+        role: "invited", frozen,
+        ...((emailCollab?.ledgerId || record.ledgerId) ? { ledgerId: emailCollab?.ledgerId || record.ledgerId } : {}),
+        ...(emailCollab?.inviteId ? { inviteId: emailCollab.inviteId } : {})
+      });
+    }
+    return c.json({ role: "none", frozen });
+  }
+
+  return c.json({ role: "none", frozen });
+});
+
+// Helper: Update Clerk publicMetadata with subdomain claims
+async function updateClerkSubdomainClaims(
+  secretKey: string,
+  userId: string,
+  subdomain: string,
+  role: 'owner' | 'collaborator',
+  frozen: boolean = false
+): Promise<void> {
+  try {
+    const userRes = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
+      headers: { Authorization: `Bearer ${secretKey}` }
+    });
+    if (!userRes.ok) return;
+    const userData = await userRes.json() as any;
+    const currentMeta = userData.public_metadata || {};
+    const vibesSubdomains = currentMeta.vibes_subdomains || {};
+
+    vibesSubdomains[subdomain] = { role, frozen };
+
+    await fetch(`https://api.clerk.com/v1/users/${userId}/metadata`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        public_metadata: { ...currentMeta, vibes_subdomains: vibesSubdomains }
+      })
+    });
+  } catch (e) {
+    console.warn('Failed to update Clerk subdomain claims:', e);
+  }
+}
 
 // 404 for everything else
 app.notFound((c) => c.json({ error: "Not Found" }, 404));

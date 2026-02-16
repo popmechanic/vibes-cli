@@ -11,10 +11,10 @@ node_modules/
 riff-*/
 RANKINGS.md
 
-# Working cache (gitignored)
-# Note: skills/vibes/cache/ is git-tracked and ships with the plugin as default values
-# Fireproof API docs live in docs/fireproof.txt (not cache)
-/cache/
+# Build output (gitignored)
+# Note: skills/vibes/defaults/ is git-tracked and ships with the plugin
+# Fireproof API docs live in docs/fireproof.txt
+/build/
 
 # Plan files
 PLUGIN-PLAN.md
@@ -38,3 +38,9 @@ skills/cloudflare/worker/public/
 
 # Netlify deploy artifacts
 .netlify-deploy/
+
+# Wrangler local state
+.wrangler/
+
+# Design mockups (not part of plugin)
+designs/

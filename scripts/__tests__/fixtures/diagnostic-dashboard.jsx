@@ -154,8 +154,26 @@ export default function App() {
     database, useLiveQuery, useDocument,
     syncStatus, isSyncing, lastSyncError,
   } = useFireproofClerk(dbName);
+  const { user } = useUser();
+  const userEmail = user?.primaryEmailAddress?.emailAddress || null;
   const [text, setText] = useState("");
+  const [ledgerId, setLedgerId] = useState(function() {
+    var map = window.__VIBES_LEDGER_MAP__ || {};
+    return map[dbName] || window.__VIBES_SHARED_LEDGER__ || null;
+  });
   const { docs } = useLiveQuery("type", { key: "note" });
+
+  // Poll for ledger ID (set async by UnifiedAccessGate after /resolve)
+  useEffect(() => {
+    const id = setInterval(() => {
+      var map = window.__VIBES_LEDGER_MAP__ || {};
+      var current = map[dbName] || window.__VIBES_SHARED_LEDGER__ || null;
+      if (current && current !== ledgerId) {
+        setLedgerId(current);
+      }
+    }, 2000);
+    return () => clearInterval(id);
+  }, [ledgerId, dbName]);
 
   // Uptime timer
   const [uptime, setUptime] = useState(0);
@@ -409,6 +427,14 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                 gap: "6px 16px",
                 fontSize: "13px",
               }}>
+                <span style={{ color: "#64748b" }}>user</span>
+                <span style={{ fontWeight: 600 }}>{userEmail || "not signed in"}</span>
+                <span style={{ color: "#64748b" }}>database</span>
+                <span style={{ fontWeight: 600 }}>{dbName}</span>
+                <span style={{ color: "#64748b" }}>ledger</span>
+                <span style={{ fontWeight: 600, fontSize: "12px", wordBreak: "break-all" }}>
+                  {ledgerId || "default (no shared ledger)"}
+                </span>
                 <span style={{ color: "#64748b" }}>isSyncing</span>
                 <span style={{ fontWeight: 600 }}>{String(syncing)}</span>
                 <span style={{ color: "#64748b" }}>lastSyncError</span>
@@ -461,14 +487,15 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
           </Panel>
 
           {/* ── CRUD Test Panel ── */}
-          <Panel title="CRUD TEST" style={{ animationDelay: "0.1s" }}>
+          <Panel title="TEST CHAT" style={{ animationDelay: "0.1s" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
               {/* Input form */}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!text.trim()) return;
-                  database.put({ text, type: "note", ts: Date.now() });
+                  const username = userEmail ? userEmail.split("@")[0] : "anonymous";
+                  database.put({ text, type: "note", ts: Date.now(), author: username });
                   setText("");
                 }}
                 style={{ display: "flex", gap: "8px" }}
@@ -520,7 +547,7 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                     No documents yet. Save one above.
                   </div>
                 )}
-                {docs.map((d) => (
+                {[...docs].sort((a, b) => (b.ts || 0) - (a.ts || 0)).map((d) => (
                   <div key={d._id} style={{
                     display: "flex",
                     alignItems: "center",
@@ -538,6 +565,8 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                         whiteSpace: "nowrap",
                       }}>{d.text || "(empty)"}</span>
                       <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                        {d.author && <span style={{ fontWeight: 600, color: "#64748b" }}>{d.author}</span>}
+                        {d.author && " · "}
                         {d.ts ? new Date(d.ts).toLocaleTimeString() : "—"}
                       </span>
                     </div>
