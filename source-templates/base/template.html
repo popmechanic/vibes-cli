@@ -116,6 +116,9 @@
         cloudBackendUrl: "__VITE_CLOUD_URL__",
         clerkPublishableKey: "__VITE_CLERK_PUBLISHABLE_KEY__"
       };
+      // Default: single theme hides the Design button in VibesPanel.
+      // Apps with multiple themes override this before menu loads.
+      window.__VIBES_THEMES__ = [{ id: "default", name: "Default" }];
     </script>
     <!-- Load React globally for menu components -->
     <script type="module">
@@ -546,6 +549,70 @@
         }, []);
       }
       window.useVibesPanelEvents = useVibesPanelEvents;
+
+      // === Theme Switching ===
+      // Listens for vibes-design-request events from VibesPanel theme buttons.
+      // Overrides --comp-* CSS variables on :root to retheme all components.
+      var VIBES_THEME_PRESETS = {
+        default: {
+          '--comp-bg': 'var(--vibes-cream)',
+          '--comp-text': 'var(--vibes-near-black)',
+          '--comp-border': 'var(--vibes-near-black)',
+          '--comp-accent': 'var(--vibes-variant-blue)',
+          '--comp-accent-text': 'var(--vibes-white)',
+          '--comp-muted': 'var(--vibes-gray-mid)',
+          '--color-background': '#1a1a1a',
+          '--grid-color': 'rgba(255, 255, 240, 0.08)',
+        },
+        archive: {
+          '--comp-bg': 'oklch(0.95 0.03 80)',
+          '--comp-text': 'oklch(0.20 0.02 50)',
+          '--comp-border': 'oklch(0.35 0.04 60)',
+          '--comp-accent': 'oklch(0.55 0.12 50)',
+          '--comp-accent-text': 'oklch(0.97 0.01 90)',
+          '--comp-muted': 'oklch(0.50 0.03 60)',
+          '--color-background': 'oklch(0.92 0.03 80)',
+          '--grid-color': 'oklch(0.35 0.04 60 / 0.06)',
+        },
+        industrial: {
+          '--comp-bg': 'oklch(0.88 0.01 90)',
+          '--comp-text': 'oklch(0.05 0.01 0)',
+          '--comp-border': 'oklch(0.05 0.01 0)',
+          '--comp-accent': 'oklch(0.90 0.20 110)',
+          '--comp-accent-text': 'oklch(0.05 0.01 0)',
+          '--comp-muted': 'oklch(0.40 0.01 0)',
+          '--color-background': 'oklch(0.85 0.01 90)',
+          '--grid-color': 'oklch(0.05 0.01 0 / 0.05)',
+        }
+      };
+
+      function applyVibesTheme(themeId) {
+        var preset = VIBES_THEME_PRESETS[themeId];
+        if (!preset) return;
+        var root = document.documentElement;
+        Object.keys(preset).forEach(function(key) {
+          root.style.setProperty(key, preset[key]);
+        });
+        try { localStorage.setItem('vibes-theme', themeId); } catch(e) {}
+      }
+
+      // Apply saved theme on load
+      try {
+        var savedTheme = localStorage.getItem('vibes-theme');
+        if (savedTheme && VIBES_THEME_PRESETS[savedTheme]) {
+          applyVibesTheme(savedTheme);
+        }
+      } catch(e) {}
+
+      // Listen for theme change events from VibesPanel
+      document.addEventListener('vibes-design-request', function(e) {
+        var themeId = e.detail && e.detail.theme;
+        if (themeId) applyVibesTheme(themeId);
+      });
+
+      // Also expose for apps that want to set themes programmatically
+      window.__VIBES_THEME_PRESETS__ = VIBES_THEME_PRESETS;
+      window.applyVibesTheme = applyVibesTheme;
     </script>
     <!-- === DELTA_PLACEHOLDER === -->
   </body>
