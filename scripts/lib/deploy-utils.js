@@ -20,6 +20,26 @@ import {
 } from './exe-ssh.js';
 
 /**
+ * Validate a deployment name to prevent shell injection.
+ * Names must be lowercase alphanumeric with optional hyphens (not at start/end).
+ *
+ * @param {string} name - Name to validate
+ * @returns {string} The validated name
+ * @throws {Error} If name is invalid
+ */
+export function validateName(name) {
+  if (!name || typeof name !== 'string') {
+    throw new Error('Name is required and must be a non-empty string');
+  }
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(name)) {
+    throw new Error(
+      `Invalid name "${name}". Names must be lowercase alphanumeric with optional hyphens (not at start/end). Example: "my-app-123"`
+    );
+  }
+  return name;
+}
+
+/**
  * Run SSH pre-flight checks: find key + test connection.
  *
  * @param {{ dryRun?: boolean }} options
@@ -59,6 +79,8 @@ Before deploying, please:
  * @throws {Error} If VM creation fails
  */
 export async function createAndSetupVM(name, options = {}) {
+  validateName(name);
+
   if (options.dryRun) {
     console.log(`  [DRY RUN] Would create VM: ${name}`);
     return;

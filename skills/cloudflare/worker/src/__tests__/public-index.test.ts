@@ -20,7 +20,7 @@ describe("public index billing gates", () => {
     expect(html).toContain("has({ plan:");
   });
 
-  it("does not contain quota_exceeded error handling", () => {
-    expect(html).not.toContain("quota_exceeded");
+  it("contains quota_exceeded error handling", () => {
+    expect(html).toContain("quota_exceeded");
   });
 });
