@@ -3,6 +3,9 @@ name: test
 description: Self-contained test automation — invoke directly, do not decompose. End-to-end integration test that assembles a fixture, deploys Connect + Cloudflare, and presents a live URL for browser verification.
 license: MIT
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
+metadata:
+  author: "Marcus Estes"
+  version: "0.1.63"
 ---
 
 > **Plan mode**: If you are planning work, this entire skill is ONE plan step: "Invoke /vibes:test". Do not decompose the steps below into separate plan tasks.
