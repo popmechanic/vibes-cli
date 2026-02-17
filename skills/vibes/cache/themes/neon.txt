@@ -1,0 +1,698 @@
+THEME: neon
+NAME: Neon Arcade
+MOOD: Hot-gradient-light, neon-pink-glow-frame, dark-panel-on-bright, shadow-clone-title, arcade-cards
+
+DESCRIPTION:
+A LIGHT theme with a hot gradient background — pink (#ff5bad) → amber (#ffc85c)
+→ yellow (#fcee0a) diagonal gradient covering the full viewport. Dark purple text
+(#2a0a2e) on light. The hero element is a dark purple (#2a0a2e) content panel
+floating on the bright gradient, creating dramatic contrast. The panel uses an
+octagonal clip-path (8-point polygon, 20px cuts) and has a THICK multi-layer
+neon pink glow: 3px pink (#f93c94) border + triple box-shadow (0 0 20px pink/60%,
+0 0 40px pink/40%, inset 0 0 20px pink/30%). The glow reads like a neon sign tube
+border from the reference image — thick, bright, radiating. Small yellow accent
+blocks are placed on the frame edges as tech notches. A top-center notch: dark
+trapezoid (clip-slant) with cyan and yellow indicator dots. Title uses Orbitron
+black italic with -12deg skew and a SHADOW CLONE behind it — a pink offset copy
+(left:1px, opacity 0.7, z-behind) instead of animated glitch. The title color-
+splits: "CYBER" in yellow, "PUNK" in cyan. Below it, a black skewed subtitle bar
+with yellow border containing a barcode-stripe pattern + "EDGERUNNERS" label +
+solid yellow block. Cards use a 3-column grid: pink cards (#f93c94 bg) with
+yellow (#fcee0a) borders and octagonal-sm clip-path, and one inverted yellow card
+with pink border. Cards have Orbitron titles and Share Tech Mono data. SVG circuit-
+path decorations in bottom corners of the panel (pink fill paths + yellow stroke
+lines). Side rail indicators: vertical rounded bars in pink and yellow flanking
+the panel. Progress bar: sliding yellow fill on purple track (infinite 2s loop).
+Hero image has scanlines overlay + pink corner brackets + cyan tint blend.
+Hazard stripe footer (-45deg black/yellow). Click interaction: white flash overlay
+(0.8 opacity → 0, 150ms). Floating ambient: pinging white dot, decorative +
+crosses, rotated status text on viewport edges.
+
+BEST FOR:
+  - Bright cyberpunk apps, anime-styled interfaces, fan sites
+  - Arcade/game UIs with flashy card layouts
+  - Portfolio pages with dramatic hero + card grid
+  - Event/party landing pages with bold gradient backgrounds
+  - Anime character browsers, collectible card viewers
+  - Entertainment apps that need bright energy + dark content panels
+  - Any app that wants cyberpunk vibes WITHOUT an all-dark background
+
+NOT FOR:
+  - Professional/enterprise dashboards — too flashy and themed
+  - Content-heavy reading apps — high contrast gradient fatigues eyes
+  - Dark-mode-only apps — this IS a light gradient background
+  - Photography or product showcase — hot gradient competes with imagery
+  - Minimalist or monochrome apps — maximum color saturation
+  - Data-heavy analytics — decorative elements overwhelm dense data
+  - Mobile-first text-heavy apps — border chrome takes visual space
+
+ADAPTATION NOTES:
+  The hot gradient background is the identity — it wraps the entire viewport in
+  pink→amber→yellow energy. The dark panel floats on top like a neon-lit arcade
+  cabinet. The thick glowing pink border is the most important detail — it must
+  feel like a physical neon tube frame, not a thin CSS line. Cards live inside
+  the dark panel: pink cards for primary content, yellow cards for CTAs. The
+  shadow-clone title (pink offset behind, not glitch) gives depth without
+  animation complexity. The subtitle bar (black, skewed, yellow-bordered) anchors
+  the brand. Circuit-path SVGs in corners add tech details. Side rail indicators
+  and floating crosses create depth. The click-flash interaction (white overlay
+  fade) makes every tap feel like a circuit firing.
+
+COLOR TOKENS (oklch):
+  --bg-gradient-start: oklch(0.70 0.220 350)  /* #ff5bad hot pink */
+  --bg-gradient-mid:   oklch(0.85 0.130 80)   /* #ffc85c amber */
+  --bg-gradient-end:   oklch(0.93 0.200 100)  /* #fcee0a yellow */
+  --panel-dark:        oklch(0.16 0.080 320)  /* #2a0a2e dark purple */
+  --panel-mid:         oklch(0.26 0.120 320)  /* #4d1558 purple border */
+  --neon-pink:         oklch(0.62 0.240 350)  /* #f93c94 primary accent */
+  --neon-yellow:       oklch(0.93 0.200 100)  /* #fcee0a headlines + cards */
+  --neon-cyan:         oklch(0.87 0.140 200)  /* #00f0ff data + accents */
+  --text-dark:         oklch(0.16 0.080 320)  /* #2a0a2e text on gradient */
+  --text-light:        oklch(1.00 0.000 0)    /* #ffffff text on dark panel */
+  --text-on-pink:      oklch(0.16 0.080 320)  /* #2a0a2e text on pink cards */
+
+REFERENCE STYLES:
+
+  /* ===== HOT GRADIENT BACKGROUND ===== */
+  body {
+    background: linear-gradient(to bottom right,
+      var(--bg-gradient-start),
+      var(--bg-gradient-mid),
+      var(--bg-gradient-end)
+    );
+    min-height: 100vh;
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text-dark);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+  }
+
+  /* ===== OCTAGONAL CLIP-PATHS ===== */
+  .clip-tech-border {
+    clip-path: polygon(
+      20px 0,
+      calc(100% - 20px) 0,
+      100% 20px,
+      100% calc(100% - 20px),
+      calc(100% - 20px) 100%,
+      20px 100%,
+      0 calc(100% - 20px),
+      0 20px
+    );
+  }
+
+  .clip-tech-corner-sm {
+    clip-path: polygon(
+      8px 0,
+      calc(100% - 8px) 0,
+      100% 8px,
+      100% calc(100% - 8px),
+      calc(100% - 8px) 100%,
+      8px 100%,
+      0 calc(100% - 8px),
+      0 8px
+    );
+  }
+
+  .clip-slant {
+    clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
+  }
+
+  /* ===== DARK PANEL WITH NEON GLOW FRAME ===== */
+  .neon-panel {
+    background: var(--panel-dark);
+    border: 3px solid var(--neon-pink);
+    box-shadow:
+      0 0 20px rgba(249, 60, 148, 0.6),
+      0 0 40px rgba(249, 60, 148, 0.4),
+      inset 0 0 20px rgba(249, 60, 148, 0.3);
+    position: relative;
+  }
+
+  /* top-center notch */
+  .panel-notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8rem;
+    height: 1.5rem;
+    background: var(--panel-dark);
+    border-bottom: 2px solid var(--neon-pink);
+    clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    z-index: 10;
+  }
+
+  .notch-dot {
+    width: 0.5rem; height: 0.5rem;
+    border-radius: 9999px;
+  }
+
+  .notch-dot.cyan { background: var(--neon-cyan); animation: pulse 2s infinite; }
+  .notch-dot.yellow { background: var(--neon-yellow); }
+
+  /* ===== SIDE RAIL INDICATORS ===== */
+  .side-rail {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+  }
+
+  .side-rail.left { left: 0.5rem; }
+  .side-rail.right { right: 0.5rem; }
+
+  .rail-bar {
+    width: 4px;
+    border-radius: 9999px;
+  }
+
+  .rail-bar.pink { background: var(--neon-pink); }
+  .rail-bar.yellow { background: var(--neon-yellow); }
+
+  /* ===== SHADOW-CLONE TITLE ===== */
+  .title-container {
+    position: relative;
+    margin-bottom: 0.25rem;
+  }
+
+  .title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-style: italic;
+    font-size: 3rem;
+    letter-spacing: 0.1em;
+    color: var(--neon-yellow);
+    transform: skewX(-12deg);
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(4px 4px 0 rgba(0,0,0,1));
+  }
+
+  .title .accent { color: var(--neon-cyan); }
+
+  .title-shadow {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-style: italic;
+    font-size: 3rem;
+    letter-spacing: 0.1em;
+    color: var(--neon-pink);
+    transform: skewX(-12deg);
+    position: absolute;
+    top: 0; left: 1px;
+    z-index: 0;
+    opacity: 0.7;
+  }
+
+  /* ===== SUBTITLE BAR ===== */
+  .subtitle-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transform: skewX(-12deg);
+    background: #000;
+    padding: 2px 0.5rem;
+    border: 1px solid var(--neon-yellow);
+    margin-bottom: 0.5rem;
+  }
+
+  .barcode-stripe {
+    height: 1rem;
+    width: 3rem;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent, transparent 2px,
+      var(--neon-yellow) 2px, var(--neon-yellow) 4px
+    );
+  }
+
+  .subtitle-label {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--text-light);
+    font-size: 0.875rem;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+  }
+
+  .subtitle-block {
+    width: 2rem; height: 1rem;
+    background: var(--neon-yellow);
+  }
+
+  /* ===== HERO IMAGE ===== */
+  .hero-image {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4/3;
+    background: #000;
+    border: 4px solid var(--panel-mid);
+    border-radius: 0.125rem;
+    overflow: hidden;
+  }
+
+  /* scanlines */
+  .scanlines {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(255,255,255,0), rgba(255,255,255,0) 50%,
+      rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1)
+    );
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  /* pink corner brackets on hero */
+  .hero-bracket {
+    position: absolute;
+    width: 2rem; height: 2rem;
+  }
+
+  .hero-bracket.tr { top: 0.5rem; right: 0.5rem; border-top: 2px solid var(--neon-pink); border-right: 2px solid var(--neon-pink); }
+  .hero-bracket.bl { bottom: 0.5rem; left: 0.5rem; border-bottom: 2px solid var(--neon-pink); border-left: 2px solid var(--neon-pink); }
+
+  /* cyan overlay tint */
+  .hero-tint {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 240, 255, 0.1);
+    mix-blend-mode: overlay;
+  }
+
+  /* REC badge */
+  .rec-badge {
+    position: absolute;
+    top: 0.5rem; left: 0.5rem;
+    background: var(--neon-yellow);
+    color: #000;
+    padding: 0 0.25rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  /* ===== DECORATIVE DIVIDER ===== */
+  .divider-bar {
+    height: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    opacity: 0.8;
+  }
+
+  .divider-bar .line-yellow {
+    height: 4px;
+    flex: 1;
+    background: var(--neon-yellow);
+    border-radius: 9999px;
+  }
+
+  .divider-bar .dot-pink {
+    width: 0.5rem; height: 0.5rem;
+    border-radius: 9999px;
+    background: var(--neon-pink);
+  }
+
+  .divider-bar .line-pink {
+    height: 4px;
+    width: 50%;
+    background: var(--neon-pink);
+    border-radius: 9999px;
+  }
+
+  /* ===== 3-COLUMN CARD GRID ===== */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  }
+
+  /* pink card */
+  .card-pink {
+    background: var(--neon-pink);
+    padding: 2px;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+
+  .card-pink:hover { transform: scale(1.02); }
+
+  .card-pink-inner {
+    height: 100%;
+    width: 100%;
+    border: 2px solid var(--neon-yellow);
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    background: var(--neon-pink);
+  }
+
+  .card-pink h3 {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--neon-yellow);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    line-height: 1.25;
+  }
+
+  .card-pink .data {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--text-on-pink);
+    line-height: 1.25;
+  }
+
+  /* yellow card (inverted) */
+  .card-yellow {
+    background: var(--neon-yellow);
+    padding: 2px;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+
+  .card-yellow:hover { transform: scale(1.02); }
+
+  .card-yellow-inner {
+    height: 100%;
+    width: 100%;
+    border: 2px solid var(--neon-pink);
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: var(--neon-yellow);
+  }
+
+  .card-yellow h3 {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--neon-pink);
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 1.25;
+  }
+
+  /* ===== PROGRESS BAR (sliding) ===== */
+  .slide-progress {
+    width: 100%;
+    height: 0.5rem;
+    background: var(--panel-mid);
+    border-radius: 9999px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide-progress .fill {
+    position: absolute;
+    top: 0; left: -30%;
+    height: 100%;
+    width: 33%;
+    background: var(--neon-yellow);
+    animation: slide 2s infinite linear;
+  }
+
+  @keyframes slide {
+    0% { left: -30%; }
+    100% { left: 100%; }
+  }
+
+  /* ===== SVG CIRCUIT CORNER DECORATIONS ===== */
+  .circuit-corner {
+    position: absolute;
+    bottom: 0;
+    width: 4rem; height: 4rem;
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  .circuit-corner.left { left: 0; }
+  .circuit-corner.right { right: 0; transform: scaleX(-1); }
+
+  .circuit-corner svg .fill-path {
+    fill: var(--neon-pink);
+    opacity: 0.5;
+  }
+
+  .circuit-corner svg .stroke-path {
+    fill: none;
+    stroke: var(--neon-yellow);
+    stroke-width: 2;
+  }
+
+  /* ===== HAZARD STRIPE FOOTER ===== */
+  .hazard-stripe {
+    width: 100%;
+    height: 1rem;
+    background: repeating-linear-gradient(
+      -45deg,
+      #000, #000 10px,
+      var(--neon-yellow) 10px, var(--neon-yellow) 20px
+    );
+    opacity: 0.8;
+  }
+
+  .footer-msg {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--neon-yellow);
+    font-size: 0.875rem;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* ===== CLICK FLASH ===== */
+  /*
+    el.addEventListener('click', () => {
+      const flash = document.createElement('div');
+      flash.style.cssText = 'position:fixed;inset:0;background:white;opacity:0.8;z-index:999;pointer-events:none';
+      document.body.appendChild(flash);
+      flash.animate([{opacity:0.8},{opacity:0}], {duration:150, easing:'ease-out'})
+        .onfinish = () => flash.remove();
+    });
+  */
+
+  /* ===== FLOATING AMBIENT ===== */
+  .ping-dot {
+    position: fixed;
+    width: 0.5rem; height: 0.5rem;
+    background: #fff;
+    border-radius: 9999px;
+    animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  .cross-mark {
+    position: fixed;
+    font-size: 1.25rem;
+    opacity: 0.3;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .rotated-label {
+    position: fixed;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    opacity: 0.4;
+  }
+
+  .rotated-label.right { transform: rotate(90deg); transform-origin: right; }
+  .rotated-label.left { transform: rotate(-90deg); transform-origin: left; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  @keyframes ping {
+    75%, 100% { transform: scale(2); opacity: 0; }
+  }
+
+DESIGN PRINCIPLES:
+  1. HOT GRADIENT IS THE IDENTITY — the full-viewport pink→amber→yellow
+     gradient makes this instantly recognizable. It is a LIGHT theme.
+     Dark purple text on the gradient bg. This is NOT another dark theme.
+  2. DARK PANEL FLOATS ON BRIGHT — the content panel is dark purple
+     (#2a0a2e) with a thick neon pink glow frame, floating on the hot
+     gradient like an arcade cabinet screen.
+  3. NEON GLOW FRAME — 3px pink border + triple-layer box-shadow (20px,
+     40px, inset 20px) creates a thick, radiating neon-tube-like border.
+     This is the most important visual detail after the gradient.
+  4. SHADOW-CLONE TITLE — pink offset copy behind yellow/cyan text.
+     NOT animated glitch — just a static depth shadow. Color-split:
+     main word in yellow, accent word in cyan.
+  5. PINK AND YELLOW CARDS — pink cards (#f93c94) with yellow borders
+     for content. One inverted yellow card with pink border for CTA.
+     All use octagonal-sm clip-path.
+  6. CIRCUIT-PATH CORNERS — SVG decorations in panel bottom corners
+     (pink fill shapes + yellow stroke lines) for tech detail.
+  7. CLICK FLASH — white overlay flash (0.8→0 opacity, 150ms) on
+     interactive element clicks. Makes taps feel electric.
+  8. SIDE RAILS — vertical rounded bars (pink + yellow) flanking the
+     content panel as ambient indicators.
+  9. TOP NOTCH — dark trapezoid at panel top-center with indicator dots.
+  10. HAZARD STRIPE FOOTER — -45deg black/yellow repeating gradient.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const flashOnClick = (e) => {
+      const flash = document.createElement('div');
+      flash.style.cssText = 'position:fixed;inset:0;background:white;opacity:0.8;z-index:999;pointer-events:none';
+      document.body.appendChild(flash);
+      flash.animate([{opacity:0.8},{opacity:0}], {duration:150, easing:'ease-out'})
+        .onfinish = () => flash.remove();
+    };
+
+    return (
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom right, #ff5bad, #ffc85c, #fcee0a)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem' }}>
+
+        {/* header on gradient */}
+        <header style={{ textAlign: 'center', paddingTop: '1.5rem', paddingBottom: '0.5rem' }}>
+          <div className="title-container">
+            <h1 className="title">APP<span className="accent">TITLE</span></h1>
+            <h1 className="title-shadow">APPTITLE</h1>
+          </div>
+          <div className="subtitle-bar">
+            <div className="barcode-stripe" />
+            <span className="subtitle-label">SUBTITLE</span>
+            <div className="subtitle-block" />
+          </div>
+          <h2 style={{ fontFamily: 'Orbitron', fontSize: '1.125rem', fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--text-dark)' }}>
+            App Tagline Here
+          </h2>
+        </header>
+
+        {/* dark content panel */}
+        <main className="neon-panel clip-tech-border" style={{ flex: 1, width: '100%', maxWidth: '28rem', position: 'relative', display: 'flex', flexDirection: 'column', padding: '1.5rem', gap: '1rem' }}>
+
+          <div className="panel-notch">
+            <div className="notch-dot cyan" />
+            <div className="notch-dot yellow" />
+          </div>
+
+          {/* side rails */}
+          <div className="side-rail left">
+            <div className="rail-bar pink" style={{ height: '3rem' }} />
+            <div className="rail-bar yellow" style={{ height: '1.5rem' }} />
+          </div>
+          <div className="side-rail right">
+            <div className="rail-bar yellow" style={{ height: '1.5rem' }} />
+            <div className="rail-bar pink" style={{ height: '3rem' }} />
+          </div>
+
+          {/* hero image */}
+          <div className="hero-image">
+            <div className="scanlines" />
+            <div className="hero-tint" />
+            <div className="rec-badge">REC ●</div>
+            <div className="hero-bracket tr" />
+            <div className="hero-bracket bl" />
+          </div>
+
+          {/* divider */}
+          <div className="divider-bar">
+            <div className="line-yellow" />
+            <div className="dot-pink" />
+            <div className="line-pink" />
+          </div>
+
+          {/* card grid */}
+          <div className="card-grid" style={{ height: '8rem' }}>
+            <div className="card-pink clip-tech-corner-sm" onClick={flashOnClick}>
+              <div className="card-pink-inner">
+                <h3>Card Title</h3>
+                <div className="data">[System]: Data here</div>
+              </div>
+            </div>
+            <div className="card-pink clip-tech-corner-sm" onClick={flashOnClick}>
+              <div className="card-pink-inner" style={{ alignItems: 'center', justifyContent: 'center' }}>
+                <h3 style={{ textAlign: 'center' }}>Card Two</h3>
+              </div>
+            </div>
+            <div className="card-yellow clip-tech-corner-sm" onClick={flashOnClick}>
+              <div className="card-yellow-inner">
+                <h3>Action</h3>
+              </div>
+            </div>
+          </div>
+
+          {/* progress bar */}
+          <div className="slide-progress" style={{ marginTop: 'auto' }}>
+            <div className="fill" />
+          </div>
+
+          {/* circuit corners */}
+          <div className="circuit-corner left">
+            <svg viewBox="0 0 100 100">
+              <path className="fill-path" d="M0,100 L20,100 L30,90 L90,90 L100,80 L100,100 Z" />
+              <path className="stroke-path" d="M10,100 L10,80 L30,60 L40,60" />
+            </svg>
+          </div>
+          <div className="circuit-corner right">
+            <svg viewBox="0 0 100 100">
+              <path className="fill-path" d="M0,100 L20,100 L30,90 L90,90 L100,80 L100,100 Z" />
+              <path className="stroke-path" d="M10,100 L10,80 L30,60 L40,60" />
+            </svg>
+          </div>
+        </main>
+
+        {/* footer */}
+        <footer style={{ marginTop: '1rem', textAlign: 'center', width: '100%' }}>
+          <div className="footer-msg">&lt;&lt; STATUS MESSAGE &gt;&gt;</div>
+          <div className="hazard-stripe clip-slant" style={{ marginTop: '0.5rem' }} />
+        </footer>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  Neon feels like the loading screen of a cyberpunk anime game — bright,
+  saturated, and buzzing with energy. The hot gradient background radiates
+  warmth and intensity, like a sunset filtered through neon signs. The dark
+  panel is the screen you're jacking into — the contrast makes it feel like
+  looking into a portal. The thick pink glow frame pulses like a neon tube
+  in a Night City alley. Cards are arcade buttons — pink for action, yellow
+  for special moves. The shadow-clone title has depth without chaos. The
+  circuit SVGs whisper that this is all technology underneath the aesthetic.
+  The click flash makes every interaction feel electric and alive.
+
+ANIMATIONS:
+  - slide: left from -30% to 100% (2s linear infinite) on progress fill
+  - pulse: 2s cubic-bezier opacity (indicator dots, footer text)
+  - ping: scale(2) + opacity(0) at 75-100% (1s, ambient dots)
+  - click-flash: white overlay 0.8→0 opacity (150ms ease-out, JS-driven)
+  - hover: scale(1.02) on cards (150ms transition)
+  - hero image: opacity 0.9→1 on group hover (300ms)
+
+SVG ELEMENTS:
+  - Circuit-path corners: pink fill polygon (stepped path) + yellow stroke line (angled path)
+  - Mirror the SVG with scaleX(-1) for the right corner
+  - viewBox="0 0 100 100", stroke-width: 2
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap');
+
+  Orbitron — display title (black weight, italic, skewed), card headings, subtitles
+  Rajdhani — body text, general UI, descriptions, taglines
+  Share Tech Mono — data readouts, REC badge, status text, card data, footer message

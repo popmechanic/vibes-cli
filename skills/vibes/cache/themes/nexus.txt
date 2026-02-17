@@ -1,0 +1,273 @@
+THEME: nexus
+NAME: Nexus Grid
+MOOD: Pure-black, acid-lime, voxel-generative, hyper-minimal, digital-brutalist
+
+DESCRIPTION:
+Total black void with a single acid-lime accent. No borders, no frames, no
+ornament — just pure content on pure black. The signature element is a 12×12
+voxel grid that forms a generative shape (skull, logo, abstract glyph) from
+white squares with breathing opacity. Inline pill links sit naturally inside
+paragraph text. Info sections use tiny dim labels above body text. Everything
+is Helvetica Neue (system sans-serif) — no display fonts, no serifs. The mood
+is algorithmic minimalism: a computational design studio that builds tools for
+institutions that reject the default.
+
+BEST FOR:
+Creative studio portfolios, computational design showcases, algorithm tools,
+generative art galleries, developer landing pages, creative coding projects,
+link-in-bio for design studios, minimal product pages, research lab sites
+
+NOT FOR:
+Data-heavy dashboards (too sparse), colorful consumer apps (two-color only),
+complex multi-section layouts (single column flow), e-commerce with product
+grids (no product display patterns), playful/casual apps (too austere),
+content-heavy editorial reading (minimal text patterns)
+
+ADAPTATION NOTES:
+The voxel grid is the hero identity — always include it. The grid can display
+any shape (letters, icons, abstract patterns) via a JS shape map. The shape
+should relate to the app's content. All interactive elements use pill-radius
+(999px). Content flows in a single column with generous whitespace. The lime
+accent is used sparingly — only on primary action pills and key highlights.
+Everything else is white or dim gray. Footer uses outline pill buttons. Info
+sections stack vertically with dim labels. The collaborator/list pattern uses
+dimmed slash separators. Touch/click regenerates the grid.
+
+COLOR TOKENS:
+  --bg:              oklch(0.00 0 0)         /* #000000 – pure black void */
+  --text:            oklch(1.00 0 0)         /* #ffffff – pure white */
+  --accent-lime:     oklch(0.93 0.21 115)    /* #D4FF00 – acid lime, primary accent */
+  --text-dim:        oklch(0.56 0 0)         /* #888888 – labels, secondary text */
+  --text-body:       oklch(0.87 0 0)         /* #dddddd – body text, slightly dimmed */
+  --separator:       oklch(0.40 0 0)         /* #666666 – slash separators, dividers */
+  --outline:         oklch(1.00 0 0 / 0.3)  /* white/30% – outline button borders */
+  --voxel:           oklch(1.00 0 0)         /* #ffffff – voxel squares */
+  --voxel-shadow:    oklch(0.00 0 0 / 0.5)  /* black/50% – voxel drop shadow */
+
+REFERENCE STYLES:
+
+  /* === BODY === */
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+    font-size: 16px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* === CONTAINER === */
+  .container {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    flex: 1;
+  }
+
+  /* === HERO TEXT === */
+  .text-hero {
+    font-size: 20px;
+    line-height: 1.6;
+    font-weight: 400;
+    max-width: 90%;
+    /* Pills are embedded inline in the text */
+  }
+
+  /* === INLINE PILL LINKS === */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 12px;
+    border-radius: 999px;     /* full pill */
+    font-weight: 500;
+    font-size: 0.95em;
+    color: #000;              /* dark text on bright pill */
+    text-decoration: none;
+    vertical-align: middle;
+    margin: 0 2px;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .pill:active {
+    transform: scale(0.95);
+  }
+  .pill--lime {
+    background: var(--accent-lime);
+  }
+  .pill--white {
+    background: var(--text);
+  }
+
+  /* === VOXEL GRID (signature element) === */
+  .voxel-container {
+    width: 100%;
+    aspect-ratio: 1;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(12, 1fr);
+    gap: 2px;
+    margin: 20px 0;
+  }
+  .voxel {
+    background: var(--voxel);
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    box-shadow: 2px 2px 0 var(--voxel-shadow);
+  }
+  /* JS controls opacity: 0 (inactive), 0.2 (dim), 0.9 (bright) */
+  /* JS randomly toggles 8 voxels every 100ms between dim/bright */
+
+  /* === INFO SECTIONS === */
+  .info-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding-bottom: 40px;
+  }
+  .text-label {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .text-body {
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--text-body);
+  }
+
+  /* === COLLABORATOR LIST === */
+  .client-list {
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .client-list span {   /* slash separators */
+    color: var(--separator);
+  }
+
+  /* === OUTLINE BUTTONS (footer) === */
+  .btn-outline {
+    display: inline-block;
+    border: 1px solid var(--outline);
+    color: var(--text);
+    padding: 8px 18px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    margin-right: 8px;
+  }
+  .btn-outline:hover {
+    border-color: var(--text);
+    background: oklch(1.00 0 0 / 0.1);
+  }
+
+  /* === FOOTER === */
+  footer {
+    margin-top: auto;
+    padding-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .copyright {
+    font-size: 14px;
+    color: var(--separator);
+    margin-left: auto;
+  }
+
+DESIGN PRINCIPLES:
+  1. TWO-COLOR ONLY: Pure black + pure white + one accent (acid lime). Nothing else.
+  2. NO BORDERS, NO FRAMES: Content sits directly on the void. No containers, no cards with visible edges.
+  3. PILL EVERYTHING: All interactive elements use border-radius: 999px. CTA pills are solid (lime or white), secondary actions are outline pills.
+  4. INLINE PILLS: Pills embedded naturally inside paragraph text, not isolated as buttons.
+  5. SYSTEM SANS: Helvetica Neue only. No display fonts, no serifs, no monospace. Pure Swiss modernism.
+  6. VOXEL GRID HERO: 12×12 grid of white squares forming a generative shape is the visual centerpiece. Shape relates to app content.
+  7. LABELED SECTIONS: Info uses tiny dim gray labels (14px) above body text (16px). No heavy headings.
+  8. GENEROUS WHITESPACE: Large gaps between sections (40px). Content breathes.
+  9. SINGLE COLUMN: No multi-column layouts, no sidebars. Pure vertical flow.
+  10. DIMMED HIERARCHY: Primary text is white, body is #ddd, labels are #888, separators are #666. Subtle grayscale gradient.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    return (
+      <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 40, minHeight: "100vh", background: "#000", color: "#fff", fontFamily: "'Helvetica Neue', sans-serif" }}>
+        {/* Hero text with inline pills */}
+        <header style={{ paddingTop: 20 }}>
+          <p style={{ fontSize: 20, lineHeight: 1.6, maxWidth: "90%" }}>
+            Track your daily progress on
+            <span style={{ display: "inline-flex", padding: "2px 12px", borderRadius: 999, background: "#D4FF00", color: "#000", fontWeight: 500, margin: "0 4px", verticalAlign: "middle" }}>Dashboard</span>
+            and review historical data through the
+            <span style={{ display: "inline-flex", padding: "2px 12px", borderRadius: 999, background: "#fff", color: "#000", fontWeight: 500, margin: "0 4px", verticalAlign: "middle" }}>Archive</span>
+          </p>
+        </header>
+
+        {/* Voxel grid */}
+        <VoxelGrid shape={shapeMap} />
+
+        {/* Info sections */}
+        <div style={{ display: "grid", gap: 32 }}>
+          <InfoSection label="Overview" text="..." />
+          <InfoSection label="Features" text="..." />
+          <InfoSection label="Credits" list={["Item A", "Item B", "Item C"]} />
+        </div>
+
+        {/* Footer */}
+        <footer style={{ marginTop: "auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <OutlineButton label="Source" />
+            <OutlineButton label="Docs" />
+          </div>
+          <span style={{ fontSize: 14, color: "#666" }}>© APP.2024</span>
+        </footer>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  Voice: Terse, lowercase-leaning, computational. Sentences are short.
+  Labels: Single-word or two-word dim labels. "Philosophy." "Capabilities." "Status."
+  Empty state: Voxel grid with no active shape — all squares at opacity 0.
+  Loading: Voxels filling in randomly from empty, one column at a time.
+  Error: Single dim line of text. No icons, no color. "connection lost."
+  Success: Lime pill appears inline. "saved" or "synced" as a lime pill.
+
+ANIMATIONS:
+  - VOXEL BREATHE: Random voxels toggle between opacity 0.2 and 0.9, 8 cells per 100ms tick, 0.6s CSS transition
+  - PILL PRESS: scale(0.95) on :active, 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)
+  - OUTLINE HOVER: border-color white + background white/10%, 0.3s ease
+  - GRID REGENERATE: On touch/click, entire grid resets with new random pattern within the shape map
+
+SVG ELEMENTS:
+  None. This theme uses zero SVG. The voxel grid is pure HTML divs. The entire
+  aesthetic rejects illustration, icons, and decoration. If the app absolutely
+  needs icons, use single unicode characters or text labels instead.
+
+GOOGLE FONTS:
+  None. This theme uses system fonts only (Helvetica Neue → Helvetica → Arial).
+  No Google Fonts imports. The identity is the absence of typographic personality.
+
+VOXEL GRID IMPLEMENTATION:
+  The grid requires a JS shape map — a 12×12 array of 0s and 1s defining which
+  cells are active. The shape should relate to the app's purpose:
+  - Skull shape for dark/edgy apps
+  - Heart shape for social/wellness apps
+  - Lightning bolt for energy/performance apps
+  - App's first letter for branding
+  - Abstract pattern for generative/art apps
+
+  Animation: setInterval every 100ms picks 8 random active voxels and toggles
+  their opacity between 0.2 (dim) and 0.9 (bright). CSS transition: opacity 0.6s ease.
+  Touch/click on the grid calls createGrid() to regenerate the random pattern.

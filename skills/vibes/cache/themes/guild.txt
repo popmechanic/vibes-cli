@@ -1,0 +1,498 @@
+THEME: guild
+NAME: Guild Ledger
+MOOD: Dark-navy, gold-thread, medieval-heraldic, multi-material-cards
+
+DESCRIPTION:
+A deep navy background (#0a1120) with fabric noise texture and radial gradient
+vignette. Gold is the sole accent — applied as gradient thread text (gold-mid →
+gold-base → gold-shadow, background-clip: text) with an optional shimmer
+animation. Cards use four distinct material treatments: parchment (warm tan
+radial gradient, brown text, dashed borders), iron (dark metallic gradient with
+angled sheen overlay, circle sigil), wood (dark brown gradient with repeating
+vertical grain lines, engraved text plate), and stitched fabric (black/30 bg,
+dashed gold inset border via ::after pseudo-element). Navigation uses a 2-column
+grid of stone buttons — dark gradient with noise texture, dashed inner borders
+that solidify to gold on hover/active. All text is Cinzel serif at multiple
+weights (400, 700, 900) with heavy letter-spacing and uppercase transforms.
+Cards have a header bar (title left, rank/status right in gold) over a centered
+body. Decorative gold gradient rules separate sections. The aesthetic is royal,
+institutional, and medieval — a registry of noble houses rendered as a dark
+luxury interface.
+
+BEST FOR:
+  - Fantasy game UIs, RPG registries, guild management
+  - Royal/medieval themed apps, heraldic viewers
+  - Collection registries, catalogs with different item types
+  - Inventory systems with material categories
+  - Formal institutional interfaces, membership directories
+  - Achievement/medal trackers, rank boards
+  - Any app with categorized items that benefit from material variety
+
+NOT FOR:
+  - Modern/minimal consumer apps (too ornate and heavy)
+  - Fast-paced interactive apps (too deliberate and formal)
+  - Photography or media-rich apps (gold competes with imagery)
+  - Data-heavy analytics dashboards (too decorative for dense data)
+  - Playful/casual apps (too serious and institutional)
+  - Light-mode apps (committed to deep navy dark)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Each row becomes a card with header (title + rank/
+    status badge). Alternate card materials by category — parchment for
+    documents, iron for equipment, wood for resources, stitched for guilds.
+  - If app has FORMS: Inputs on dark navy — no visible border, 1px bottom
+    border gold/40%. Cinzel font. Labels in xs uppercase tracking-widest.
+    Submit as stone-nav button with dashed-to-solid gold border on hover.
+  - If app has LISTS: Stack cards in content-grid (column, gap-25px). Each
+    card has header bar + centered body content. Rank badges in gold text.
+  - If app has CARDS: Pick material based on content type. Parchment for
+    text-heavy items, iron for equipment/tools, wood for resources/materials,
+    stitched for affiliations/memberships. All share the same header pattern.
+  - If app has NAVIGATION: 2-column grid of stone buttons. Noise texture bg,
+    dashed inner border. Active: navy bg, gold text, solid gold border.
+  - If app has STATUS: Gold gradient text for active/important. Muted blue-gray
+    (#889bb3) for secondary. Shimmer animation on highlighted items.
+  - If app has CATEGORIES: Each category gets its own material treatment.
+    The visual material IS the category — no color coding needed.
+
+COLOR TOKENS (oklch):
+  --bg:          oklch(0.10 0.03 260)        /* deep navy #0a1120 */
+  --bg-highlight:oklch(0.18 0.04 255)        /* lighter navy #152035 */
+  --fg:          oklch(0.90 0.000 0)         /* primary text #e0e0e0 */
+  --fg-muted:    oklch(0.67 0.04 240)        /* blue-gray labels #889bb3 */
+  --gold-base:   oklch(0.60 0.13 80)         /* gold primary #a67c00 */
+  --gold-mid:    oklch(0.78 0.13 88)         /* gold bright #cfb53b */
+  --gold-light:  oklch(0.96 0.08 100)        /* gold highlight #fbf5b7 */
+  --gold-shadow: oklch(0.27 0.07 70)         /* gold dark #3e2e04 */
+  --stone:       oklch(0.15 0.000 0)         /* stone button bg #1a1a1a */
+  --parchment:   oklch(0.84 0.03 75)         /* parchment card #d9cbb6 */
+  --wood:        oklch(0.27 0.04 30)         /* wood card #3e2723 */
+  --iron:        oklch(0.27 0.02 220)        /* iron card #263238 */
+
+REFERENCE STYLES:
+
+  /* ---- NAVY FABRIC BACKGROUND ---- */
+  body {
+    background-color: var(--bg);
+    background-image:
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E"),
+      radial-gradient(circle at center, var(--bg-highlight), var(--bg));
+    font-family: 'Cinzel', serif;
+    color: var(--fg);
+  }
+
+  /* ---- GOLD THREAD TEXT (gradient clip) ---- */
+  .gold-text {
+    background: linear-gradient(180deg, var(--gold-mid), var(--gold-base) 60%, var(--gold-shadow));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 2px 2px rgba(0,0,0,0.5);
+    font-weight: 700;
+  }
+
+  /* ---- SHIMMER TEXT (animated gold) ---- */
+  .shimmer-text {
+    background: linear-gradient(90deg, var(--gold-base), var(--gold-light) 50%, var(--gold-base));
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 4s linear infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  /* ---- STITCHED PANEL ---- */
+  .stitched-panel {
+    background: rgba(0,0,0,0.3);
+    border: 4px double transparent;
+    position: relative;
+    box-shadow:
+      0 10px 20px rgba(0,0,0,0.4),
+      inset 0 0 20px rgba(0,0,0,0.6);
+    border-radius: 4px;
+  }
+  .stitched-panel::after {
+    content: "";
+    position: absolute;
+    top: 4px; left: 4px; right: 4px; bottom: 4px;
+    border: 2px dashed var(--gold-base);
+    border-radius: 2px;
+    opacity: 0.6;
+    pointer-events: none;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.8);
+  }
+
+  /* ---- STONE NAV BUTTON ---- */
+  .stone-btn {
+    background: linear-gradient(135deg, #2a2a2a, var(--stone));
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E");
+    border: none;
+    padding: 20px 10px;
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: #888;
+    cursor: pointer;
+    position: relative;
+    border-radius: 2px;
+    box-shadow:
+      0 4px 6px rgba(0,0,0,0.5),
+      inset 0 1px 0 rgba(255,255,255,0.05);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  /* Dashed inner border */
+  .stone-btn::before {
+    content: "";
+    position: absolute;
+    top: 3px; left: 3px; right: 3px; bottom: 3px;
+    border: 1px dashed #444;
+    transition: 0.3s;
+  }
+  .stone-btn:hover, .stone-btn-active {
+    color: var(--gold-light);
+    background: linear-gradient(135deg, #1e2838, #0e1521);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 12px rgba(0,0,0,0.6);
+  }
+  .stone-btn:hover::before, .stone-btn-active::before {
+    border-color: var(--gold-mid);
+    border-style: solid;
+    box-shadow: 0 0 5px var(--gold-shadow);
+  }
+
+  /* ---- CARD SHARED ---- */
+  .card {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-height: 180px;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow:
+      0 15px 30px rgba(0,0,0,0.5),
+      0 0 0 1px rgba(255,255,255,0.05);
+    transition: transform 0.3s;
+  }
+  .card:active { transform: scale(0.98); }
+  .card-header {
+    padding: 12px 15px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.8);
+    background: rgba(0,0,0,0.4);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-rank { color: var(--gold-mid); font-size: 11px; }
+  .card-body {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ---- PARCHMENT CARD ---- */
+  .card-parchment {
+    background: radial-gradient(circle, #e3d2b6, #d2b48c);
+    border: 1px solid #8d6e63;
+  }
+  .card-parchment .card-header {
+    background: rgba(62,39,35,0.1);
+    color: var(--wood);
+    border-bottom: 1px dashed #8d6e63;
+  }
+  .card-parchment .card-body { color: var(--wood); }
+  .card-parchment h3 {
+    font-weight: 900;
+    font-size: 28px;
+    margin: 0;
+    opacity: 0.8;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+  }
+
+  /* ---- IRON CARD ---- */
+  .card-iron {
+    background: linear-gradient(135deg, #2c3e50, black);
+    border: 1px solid #455a64;
+    box-shadow: inset 0 0 20px black;
+  }
+  /* Metallic sheen overlay */
+  .card-iron::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
+    pointer-events: none;
+  }
+  .card-iron .card-body { color: #cfd8dc; }
+  .iron-sigil {
+    width: 50px;
+    height: 50px;
+    border: 2px solid #546e7a;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 24px;
+    box-shadow: 0 0 10px rgba(176,190,197,0.2);
+  }
+
+  /* ---- WOOD CARD ---- */
+  .card-wood {
+    background: linear-gradient(180deg, var(--wood), #1b0000);
+    border: 4px solid var(--stone);
+  }
+  .card-wood .card-body {
+    background-image: repeating-linear-gradient(
+      90deg, transparent 0, transparent 4px, rgba(0,0,0,0.2) 5px
+    );
+  }
+  .wood-plate {
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 10px 20px;
+    background: rgba(0,0,0,0.3);
+    letter-spacing: 4px;
+    color: #a1887f;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
+  }
+
+  /* ---- GOLD RULE (decorative separator) ---- */
+  .gold-rule {
+    width: 120px;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--gold-base), transparent);
+    box-shadow: 0 2px 4px black;
+    margin: 0 auto;
+  }
+
+  /* ---- HEADER ---- */
+  .page-header {
+    text-align: center;
+    margin-bottom: 40px;
+    position: relative;
+    padding-bottom: 25px;
+  }
+  .page-title {
+    font-size: 35px;
+    letter-spacing: 4px;
+    margin: 0;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+  .page-title-sub {
+    display: block;
+    font-size: 13px;
+    letter-spacing: 8px;
+    margin-top: 10px;
+    color: var(--fg-muted);
+    font-weight: 400;
+  }
+  .page-subtitle {
+    margin-top: 10px;
+    font-size: 11px;
+    letter-spacing: 6px;
+    color: var(--gold-mid);
+    text-transform: uppercase;
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .page-subtitle::before,
+  .page-subtitle::after {
+    content: "\2022";
+    font-size: 19px;
+  }
+
+  /* ---- FOOTER ---- */
+  .page-footer {
+    margin-top: 60px;
+    text-align: center;
+    padding: 30px 0;
+    opacity: 0.6;
+    background-image: linear-gradient(to right, transparent, oklch(0.60 0.13 80 / 0.1), transparent);
+    position: relative;
+  }
+  .page-footer::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 2px;
+    background: var(--gold-base);
+  }
+  .footer-title {
+    font-size: 13px;
+    letter-spacing: 6px;
+    font-weight: 400;
+    color: var(--gold-mid);
+    margin: 0;
+  }
+
+DESIGN PRINCIPLES:
+  1. NAVY FABRIC SURFACE: Background is #0a1120 — deep navy-black, not pure
+     black. SVG fractalNoise texture creates a fabric weave grain. Radial
+     gradient lightens the center (#152035). The surface feels like dark
+     velvet or officer's uniform cloth.
+  2. GOLD THREAD TEXT: Primary accent is gold — applied as a vertical CSS
+     gradient (gold-mid → gold-base → gold-shadow) with background-clip: text.
+     This creates an embroidered/gold-leaf effect. Optional shimmer animation
+     slides a horizontal gold highlight across text (4s loop).
+  3. SINGLE SERIF FONT: Cinzel at three weights (400 body, 700 titles, 900
+     display numbers). No secondary typeface. Heavy letter-spacing (2px–8px)
+     and uppercase transforms throughout. Every word looks engraved.
+  4. FOUR MATERIAL CARDS: Each card type uses a different CSS material:
+     - PARCHMENT: Warm tan radial gradient, brown text, dashed borders
+     - IRON: Dark metallic gradient with angled sheen (45deg white/10% stripe)
+     - WOOD: Dark brown gradient with vertical grain lines (repeating-linear-gradient)
+     - STITCHED: Black/30% bg with dashed gold inset border (::after pseudo)
+     Categories are encoded in material, not color.
+  5. STITCHED BORDERS: The stitch metaphor uses dashed borders (2px dashed
+     gold at 60% opacity) inset 4px from the card edge via ::after pseudo-
+     elements. The dashes simulate thread. Double border on the outer edge.
+     Deep inset + drop shadows create depth.
+  6. STONE BUTTONS: Navigation is a 2-column grid of stone-textured buttons.
+     Dark gradient (#2a2a2a → #1a1a1a) with noise texture. Dashed inner
+     border (3px inset). Hover/active: shifts to navy, text goes gold-light,
+     border solidifies, lifts 2px, shadow deepens. The dashed→solid transition
+     is the core interaction feel.
+  7. CARD HEADER BAR: Every card has a header strip — title left (uppercase,
+     tracking-wider, white/80%), rank/status right (gold-mid, smaller). Dark
+     bg (black/40%), 1px bottom border. This header is consistent across all
+     materials — the institutional stamp on every item.
+  8. GOLD DECORATIVE RULES: Section separators are 120px × 4px gradient bars
+     (transparent → gold-base → transparent) with drop shadow. Centered.
+     Used below headers and above footers. The minimal gold accent line.
+  9. MINIMAL RADIUS: 2–4px border-radius on everything. Almost sharp corners.
+     Not rounded, not pixel-sharp — just barely softened. The formality of a
+     wax seal, not a modern pill button.
+  10. DEEP SHADOWS: Cards use multi-layer box-shadows: 0 15px 30px black/50%
+      for depth + 0 0 0 1px white/5% for a thin edge highlight. Stitched
+      panels add inset 0 0 20px black/60%. Every element floats above the
+      navy fabric on multiple shadow layers.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const items = [
+      { type: "parchment", title: "Active Decree", rank: "High Priority",
+        content: "ROYAL WARRANT", detail: "BY ORDER OF THE CROWN" },
+      { type: "iron", title: "Equipment", rank: "Class A",
+        sigil: "\u2694", content: "VALOR PLATE", detail: "DURABILITY: 98%" },
+      { type: "wood", title: "Resources", rank: "Secured",
+        content: "ANCIENT OAK", detail: "STOCK: 450 UNITS" },
+      { type: "stitched", title: "Guild", rank: "Elite",
+        monogram: "R", detail: "REGIMENT IV" }
+    ];
+
+    return (
+      <div style={{ minHeight: "100vh", padding: "20px 16px" }}>
+        {/* HEADER */}
+        <header className="page-header">
+          <div className="gold-rule" style={{ marginBottom: 10 }} />
+          <h1 className="page-title gold-text">
+            Royal Registry
+            <span className="page-title-sub">Of The High Guard</span>
+          </h1>
+          <div className="page-subtitle">Est. MCM XCII</div>
+          <div className="gold-rule"
+               style={{ position: "absolute", bottom: 0, left: "50%",
+                        transform: "translateX(-50%)" }} />
+        </header>
+
+        {/* NAV */}
+        <nav style={{ display: "grid", gridTemplateColumns: "1fr 1fr",
+                      gap: 12, marginBottom: 40 }}>
+          <button className="stone-btn stone-btn-active">Registry</button>
+          <button className="stone-btn">Armory</button>
+          <button className="stone-btn">Bestiary</button>
+          <button className="stone-btn">Edicts</button>
+        </nav>
+
+        {/* CARDS */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 25 }}>
+          {items.map(item => (
+            <div key={item.title}
+                 className={`card card-${item.type} ${item.type === "stitched" ? "stitched-panel" : ""}`}>
+              <div className="card-header">
+                {item.title}
+                <span className="card-rank">{item.rank}</span>
+              </div>
+              <div className="card-body">
+                {item.sigil && <div className="iron-sigil">{item.sigil}</div>}
+                {item.monogram && (
+                  <div className="gold-text" style={{ fontSize: 48, lineHeight: 1 }}>
+                    {item.monogram}
+                  </div>
+                )}
+                {item.type === "wood" ? (
+                  <div className="wood-plate">{item.content}</div>
+                ) : (
+                  <h3 style={{ margin: 0, letterSpacing: 3 }}>{item.content}</h3>
+                )}
+                <div style={{ fontSize: 11, opacity: 0.6, letterSpacing: 2,
+                              marginTop: 5 }}>{item.detail}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* FOOTER */}
+        <footer className="page-footer">
+          <h2 className="footer-title">OFFICIAL ARCHIVES</h2>
+          <div style={{ fontSize: 10, marginTop: 10, letterSpacing: 2 }}>
+            AUTHORIZED EYES ONLY
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme is a registry book opened on a velvet desk. The navy background
+  is dark cloth — not quite black, not quite blue, with a fabric grain texture
+  that catches light under your fingers. Gold thread stitches the title into
+  the cover: a vertical gradient from bright gold to deep shadow, as if
+  embroidered by a master craftsman. The shimmer animation slides a highlight
+  across the text like candlelight moving across gilt lettering. Navigation
+  buttons are carved stone tablets — rough-textured, dashed border like
+  chiseled guide lines that solidify to gold when pressed. Cards are the
+  registry's pages, each made of different material: parchment for decrees
+  (warm tan, dashed borders, brown ink), iron for equipment (dark metallic
+  gradient with a diagonal sheen, a sigil in a steel ring), wood for resources
+  (dark grain lines, an engraved name plate), stitched fabric for guild
+  affiliations (dashed gold thread border, a monogram in gold gradient). Every
+  card has a header bar — the institutional stamp: title left, rank right in
+  gold. The single font (Cinzel) at three weights makes every word look carved
+  into stone or pressed into a seal. Letter-spacing is generous — 2px minimum.
+  Everything is uppercase. This is not a web page. This is an illuminated
+  manuscript in a world where CSS replaced calligraphy.
+
+ANIMATIONS:
+  - SHIMMER: Gold gradient slides across text (background-position -200% to
+    200%, 4s linear infinite). Candlelight on gilt lettering.
+  - BUTTON HOVER: TranslateY -2px, shadow deepens, dashed border solidifies
+    to gold with glow. 300ms cubic-bezier(0.25, 0.8, 0.25, 1).
+  - CARD PRESS: scale(0.98) on :active, 300ms ease. Seal pressed into wax.
+  - No particles, no glow pulses, no scan lines. Stately and still.
+
+SVG ELEMENTS:
+  - NOISE TEXTURE: Inline SVG data URI with feTurbulence filter for fabric
+    grain on body and stone buttons. Not decorative — background texture.
+  - IRON SHEEN: CSS linear-gradient overlay (45deg, transparent → white/10%
+    → transparent) for metallic card sheen. Not SVG.
+  - WOOD GRAIN: CSS repeating-linear-gradient for vertical grain lines.
+  - All visual richness comes from CSS gradients, shadows, and pseudo-elements.
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap');

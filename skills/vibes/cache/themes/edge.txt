@@ -1,0 +1,697 @@
+THEME: edge
+NAME: Edge Interface
+MOOD: Cyberpunk-neon, pink-yellow-cyan, glitch-text, chamfered-panels, hazard-stripe
+
+DESCRIPTION:
+A deep void background (#0a0205) with faint diagonal crosshatch pattern in pink
+(45deg + -45deg at 0.05 opacity, 20px grid). Radial gradient overlay from dark
+purple (#2a0a2e) at center to black at edges. Three neon accent colors: pink
+(#ff0077 primary accent), yellow (#fcee0a headlines + hazard), cyan (#00f0ff
+secondary data). Title in Orbitron black-weight italic with -12deg skew and
+glitch animation — two pseudo-element clones with clip:rect() cycling through
+random vertical slices, one with pink text-shadow offset left, one with cyan
+offset right, creating a channel-split flicker. Chamfered clip-paths on all
+major panels — corners cut at 20px (large) or 10-15px (small cards):
+polygon(20px 0, 100% 0, 100% calc(100%-20px), calc(100%-20px) 100%, 0 100%, 0 20px).
+Panels have dark interior (#1a050a) with pink border and pink glow box-shadow.
+Yellow corner brackets at container level (4px border on two sides, L-shaped).
+Cards use variant clip-paths: clip-card-tr (top-right chamfer) and clip-card-bl
+(bottom-left chamfer). Hero/media areas get crosshair overlay (thin white/10
+border rectangle at 80%, cyan corner brackets at 4px, spinning dashed circle
+reticle in center). Live feed badge (red dot + mono text + yellow left-border).
+Chat panels with color-coded messages (pink, cyan, yellow usernames). Progress
+bars: pink-to-yellow gradient fill on dark track. Yellow accent cards (full
+yellow bg, black text, pink border, icon grid). Hazard-stripe footer bar
+(repeating-linear-gradient 45deg yellow/black at 10px intervals). Status bar
+with mono text (NET, ENC, MEM) and pixel-block signal indicators. Scanlines
+overlay (4px alternating transparent/dark stripes). All text uppercase, heavy
+letter-spacing, Orbitron for display, Rajdhani for UI, Share Tech Mono for data.
+
+BEST FOR:
+  - Cyberpunk-themed apps, gaming dashboards, sci-fi interfaces
+  - Chat apps, message feeds, communication panels
+  - Mission/task trackers, gig boards, objective lists
+  - System monitoring, status dashboards, live feeds
+  - Character profiles with stats and progress bars
+  - Media browsers with overlay HUD elements
+  - Any app that needs neon glow + glitch + chamfered panels
+
+NOT FOR:
+  - Professional/enterprise dashboards — too themed and flashy
+  - Content-heavy editorial or reading apps — neon fatigues eyes
+  - Light-mode apps — committed to deep dark background
+  - Photography or product showcase — neon competes with imagery
+  - Minimalist or monochrome apps — multi-color neon is fundamental
+  - E-commerce with product images — too visually noisy
+  - Elegant or refined apps — deliberately aggressive and punk
+
+ADAPTATION NOTES:
+  The chamfered clip-path is the signature shape — every major panel gets cut
+  corners. The glitch animation on the title creates immediate cyberpunk identity.
+  Use all three neon colors consistently: pink for borders and primary actions,
+  yellow for headlines and hazard/warning elements, cyan for data readouts and
+  secondary info. Chat/feed panels use color-coded left-borders per user/source.
+  Progress bars always use the pink→yellow gradient. The hazard stripe footer
+  is always present. Scanlines overlay the entire viewport at low opacity.
+  Yellow accent cards (inverted — yellow bg, black text) are used for primary
+  CTAs or highlighted sections. Status/data readouts use Share Tech Mono.
+
+COLOR TOKENS (oklch):
+  --bg:               oklch(0.04 0.020 350)   /* #0a0205 void dark */
+  --bg-panel:         oklch(0.12 0.040 350)   /* #1a050a panel interior */
+  --bg-card:          oklch(0.09 0.040 350)   /* #120508 card bg */
+  --bg-elevated:      oklch(0.20 0.050 350)   /* #2a0a18 elevated panel */
+  --bg-purple:        oklch(0.16 0.080 320)   /* #2a0a2e purple tint */
+  --neon-pink:        oklch(0.59 0.290 350)   /* #ff0077 primary accent */
+  --neon-yellow:      oklch(0.93 0.200 100)   /* #fcee0a headlines + hazard */
+  --neon-cyan:        oklch(0.87 0.140 200)   /* #00f0ff data + secondary */
+  --border:           oklch(0.20 0.080 350)   /* #4a0d24 default border */
+  --border-pink:      oklch(0.40 0.150 350)   /* pink-900 subtle border */
+  --text:             oklch(1.00 0.000 0)     /* #ffffff white text */
+  --text-dim:         oklch(0.85 0.050 350)   /* pink-200 dim text */
+  --text-muted:       oklch(0.65 0.000 0)     /* gray-400 muted */
+  --progress-start:   oklch(0.59 0.290 350)   /* pink start of bar */
+  --progress-end:     oklch(0.93 0.200 100)   /* yellow end of bar */
+
+REFERENCE STYLES:
+
+  /* ===== BACKGROUND ===== */
+  body {
+    background-color: var(--bg);
+    background-image:
+      linear-gradient(45deg, rgba(255, 0, 119, 0.05) 1px, transparent 1px),
+      linear-gradient(-45deg, rgba(255, 0, 119, 0.05) 1px, transparent 1px);
+    background-size: 20px 20px;
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text);
+  }
+
+  /* radial purple vignette */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, var(--bg-purple) 0%, #000 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===== SCANLINES OVERLAY ===== */
+  .scanlines {
+    position: fixed;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(255,255,255,0),
+      rgba(255,255,255,0) 50%,
+      rgba(0,0,0,0.2) 50%,
+      rgba(0,0,0,0.2)
+    );
+    background-size: 100% 4px;
+    pointer-events: none;
+    opacity: 0.3;
+    z-index: 50;
+  }
+
+  /* ===== CHAMFERED CLIP-PATHS ===== */
+  .clip-chamfer {
+    clip-path: polygon(
+      20px 0, 100% 0,
+      100% calc(100% - 20px), calc(100% - 20px) 100%,
+      0 100%, 0 20px
+    );
+  }
+
+  .clip-chamfer-sm {
+    clip-path: polygon(
+      10px 0, 100% 0,
+      100% calc(100% - 10px), calc(100% - 10px) 100%,
+      0 100%, 0 10px
+    );
+  }
+
+  .clip-card-tr {
+    clip-path: polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 0 100%);
+  }
+
+  .clip-card-bl {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+  }
+
+  /* ===== GLITCH TITLE ===== */
+  .glitch {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-style: italic;
+    letter-spacing: -0.05em;
+    color: var(--neon-yellow);
+    position: relative;
+    transform: skewX(-6deg);
+  }
+
+  .glitch::before,
+  .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: var(--bg);
+  }
+
+  .glitch::before {
+    left: 2px;
+    text-shadow: -2px 0 var(--neon-pink);
+    animation: glitch-a 2.5s infinite linear alternate-reverse;
+  }
+
+  .glitch::after {
+    left: -2px;
+    text-shadow: -2px 0 var(--neon-cyan);
+    animation: glitch-b 3s infinite linear alternate-reverse;
+  }
+
+  @keyframes glitch-a {
+    0%   { clip: rect(12px, 9999px, 86px, 0); }
+    20%  { clip: rect(54px, 9999px, 12px, 0); }
+    40%  { clip: rect(23px, 9999px, 98px, 0); }
+    60%  { clip: rect(76px, 9999px, 43px, 0); }
+    80%  { clip: rect(3px, 9999px, 65px, 0); }
+    100% { clip: rect(91px, 9999px, 2px, 0); }
+  }
+
+  @keyframes glitch-b {
+    0%   { clip: rect(65px, 9999px, 32px, 0); }
+    20%  { clip: rect(2px, 9999px, 85px, 0); }
+    40%  { clip: rect(95px, 9999px, 12px, 0); }
+    60%  { clip: rect(23px, 9999px, 67px, 0); }
+    80%  { clip: rect(45px, 9999px, 3px, 0); }
+    100% { clip: rect(78px, 9999px, 92px, 0); }
+  }
+
+  /* ===== GLOW EFFECTS ===== */
+  .text-glow-yellow { text-shadow: 0 0 5px #fcee0a, 0 0 10px #fcee0a; }
+  .text-glow-pink { text-shadow: 0 0 5px #ff0077, 0 0 10px #ff0077; }
+  .box-glow-pink { box-shadow: 0 0 15px rgba(255, 0, 119, 0.3), inset 0 0 15px rgba(255, 0, 119, 0.1); }
+  .box-glow-yellow { box-shadow: 0 0 15px rgba(252, 238, 10, 0.3); }
+
+  /* ===== HEADER ===== */
+  .header {
+    text-align: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(255, 0, 119, 0.3);
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  .header h1 {
+    font-size: 3rem;
+  }
+
+  .subtitle-bar {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+  }
+
+  .subtitle-bar .line {
+    height: 2px;
+    width: 2rem;
+    background: var(--neon-pink);
+  }
+
+  .subtitle-bar .label {
+    background: var(--neon-pink);
+    color: #000;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 0.625rem;
+    padding: 2px 0.5rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transform: skewX(-12deg);
+  }
+
+  /* ===== STATUS BAR ===== */
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--neon-pink);
+    opacity: 0.8;
+  }
+
+  .signal-bars {
+    display: flex;
+    gap: 2px;
+  }
+
+  .signal-bars .bar {
+    width: 4px;
+    height: 8px;
+    background: var(--neon-pink);
+  }
+
+  .signal-bars .bar.dim {
+    background: var(--border-pink);
+  }
+
+  /* ===== CHAMFERED PANELS ===== */
+  .panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-pink);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel:hover {
+    border-color: var(--neon-yellow);
+  }
+
+  /* panel label badge */
+  .panel-label {
+    position: absolute;
+    top: -1px;
+    left: 1rem;
+    background: var(--bg-card);
+    padding: 0 0.5rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.625rem;
+    color: var(--neon-pink);
+    border: 1px solid var(--neon-pink);
+  }
+
+  /* ===== CARD GRID ===== */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .card {
+    background: var(--bg-panel);
+    border: 2px solid var(--neon-pink);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+
+  .card:hover {
+    border-color: var(--neon-yellow);
+  }
+
+  .card h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--neon-yellow);
+    text-transform: uppercase;
+  }
+
+  /* corner triangle on clip-card-tr */
+  .card .corner-tri {
+    position: absolute;
+    top: 0; right: 0;
+    width: 1rem; height: 1rem;
+    background: var(--neon-pink);
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+    transition: background 0.15s;
+  }
+
+  .card:hover .corner-tri {
+    background: var(--neon-yellow);
+  }
+
+  /* ===== YELLOW ACCENT CARD (inverted) ===== */
+  .card-yellow {
+    background: var(--neon-yellow);
+    color: #000;
+    border: 2px solid #ca8a04;
+  }
+
+  .card-yellow h3,
+  .card-yellow h4 {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    color: #000;
+  }
+
+  /* ===== CHAT / FEED PANEL ===== */
+  .feed {
+    flex: 1;
+    overflow-y: auto;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.625rem;
+  }
+
+  .feed-msg {
+    padding-left: 0.5rem;
+    border-left: 1px solid var(--neon-pink);
+    margin-bottom: 0.5rem;
+  }
+
+  .feed-msg.cyan { border-color: var(--neon-cyan); }
+  .feed-msg.yellow { border-color: var(--neon-yellow); }
+
+  .feed-msg .user {
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .feed-msg .text {
+    color: var(--text-dim);
+  }
+
+  /* ===== PROGRESS BARS ===== */
+  .progress-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(131, 24, 67, 0.5);
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--neon-pink), var(--neon-yellow));
+    border-radius: 9999px;
+  }
+
+  /* ===== HERO / MEDIA AREA ===== */
+  .hero {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border-pink);
+    overflow: hidden;
+  }
+
+  /* yellow corner brackets */
+  .corner-bracket {
+    position: absolute;
+    width: 1rem; height: 1rem;
+  }
+
+  .corner-bracket.tl { top: -1px; left: -1px; border-top: 2px solid var(--neon-yellow); border-left: 2px solid var(--neon-yellow); }
+  .corner-bracket.tr { top: -1px; right: -1px; border-top: 2px solid var(--neon-yellow); border-right: 2px solid var(--neon-yellow); }
+  .corner-bracket.bl { bottom: -1px; left: -1px; border-bottom: 2px solid var(--neon-yellow); border-left: 2px solid var(--neon-yellow); }
+  .corner-bracket.br { bottom: -1px; right: -1px; border-bottom: 2px solid var(--neon-yellow); border-right: 2px solid var(--neon-yellow); }
+
+  /* live badge */
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 0.25rem 0.5rem;
+    border-left: 2px solid var(--neon-yellow);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--neon-yellow);
+    letter-spacing: 0.05em;
+  }
+
+  .live-dot {
+    width: 0.5rem; height: 0.5rem;
+    background: #ef4444;
+    border-radius: 9999px;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* spinning reticle */
+  .reticle {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8rem; height: 8rem;
+    border: 1px solid rgba(255, 0, 119, 0.3);
+    border-radius: 9999px;
+    pointer-events: none;
+  }
+
+  .reticle-inner {
+    position: absolute;
+    inset: 1rem;
+    border: 1px dashed rgba(252, 238, 10, 0.5);
+    border-radius: 9999px;
+    animation: spin 10s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* crosshair lines through reticle */
+  .reticle-h, .reticle-v {
+    position: absolute;
+    background: rgba(255, 0, 119, 0.2);
+  }
+
+  .reticle-h { left: 0; top: 50%; width: 100%; height: 1px; }
+  .reticle-v { top: 0; left: 50%; height: 100%; width: 1px; }
+
+  /* ===== FULL-WIDTH BAR (map link, etc.) ===== */
+  .bar-link {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-pink);
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .bar-link .edge {
+    position: absolute;
+    left: 0; top: 0;
+    width: 4px; height: 100%;
+    background: var(--neon-cyan);
+  }
+
+  /* sweep animation on hover */
+  .bar-link .sweep {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, transparent, rgba(255, 0, 119, 0.1), transparent);
+    transform: translateX(-100%);
+    transition: transform 1s;
+  }
+
+  .bar-link:hover .sweep {
+    transform: translateX(100%);
+  }
+
+  /* ===== HAZARD STRIPE FOOTER ===== */
+  .hazard-stripe {
+    width: 100%;
+    height: 1rem;
+    background: repeating-linear-gradient(
+      45deg,
+      var(--neon-yellow),
+      var(--neon-yellow) 10px,
+      #000 10px,
+      #000 20px
+    );
+  }
+
+  .footer-msg {
+    background: rgba(0, 0, 0, 0.8);
+    text-align: center;
+    padding: 0.5rem;
+    border-top: 1px solid var(--neon-yellow);
+  }
+
+  .footer-msg p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--neon-yellow);
+    letter-spacing: 0.2em;
+    font-weight: 700;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* ===== BORDER FLICKER (JS-driven) ===== */
+  /* Main container border randomly flickers pink → cyan → pink */
+  @keyframes border-flicker {
+    0%, 95% { border-color: var(--neon-pink); }
+    96% { border-color: var(--neon-cyan); }
+    97% { border-color: var(--neon-pink); }
+  }
+
+  /* ===== UTILITIES ===== */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .scrollbar-cyber::-webkit-scrollbar { width: 4px; }
+  .scrollbar-cyber::-webkit-scrollbar-track { background: var(--bg-panel); }
+  .scrollbar-cyber::-webkit-scrollbar-thumb { background: var(--neon-pink); }
+
+DESIGN PRINCIPLES:
+  1. CHAMFERED CLIP-PATHS — every panel gets cut corners. The main container
+     uses 20px chamfers; cards use 10-15px. This is the signature shape
+     language, replacing rounded corners entirely.
+  2. GLITCH TITLE — the app title always uses Orbitron black-italic with skew
+     and the dual-clone glitch animation. data-text attribute required. The
+     glitch uses clip:rect() for random vertical slice cycling. ONE title per
+     app, always the main heading.
+  3. THREE NEON COLORS — pink (#ff0077) for borders, accents, primary actions.
+     Yellow (#fcee0a) for headlines, hazard elements, inverted CTA cards.
+     Cyan (#00f0ff) for data readouts, secondary info, accent edges. Never
+     use other colors (except red for alerts/live dots).
+  4. YELLOW INVERTED CARDS — primary CTAs or highlighted sections use full
+     yellow background with black text and Orbitron type. Pink border.
+  5. HAZARD STRIPE FOOTER — always present. Diagonal 45deg yellow/black
+     repeating gradient at 10px intervals. Below it, a dark bar with pulsing
+     mono text in yellow.
+  6. SCANLINES — viewport-level overlay, opacity 0.3, always present. Creates
+     the CRT/screen artifact feel.
+  7. STATUS DATA — use Share Tech Mono for all readout data (percentages,
+     codes, timestamps). Pixel-block signal indicators for connection status.
+  8. CORNER BRACKETS — yellow L-shaped brackets at key container corners.
+     Use 2px borders on two sides only (like crosshair targeting corners).
+  9. PROGRESS BARS — always use pink→yellow gradient fill on dark track.
+     Never solid single-color fills.
+  10. CHAT/FEED MESSAGES — color-coded left-border per source (pink, cyan,
+      yellow). Username in bold white, message in dim pink-200.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    return (
+      <div style={{ position: 'relative', minHeight: '100vh' }}>
+        {/* scanlines overlay */}
+        <div className="scanlines" />
+
+        <div className="app-container clip-chamfer"
+             style={{
+               maxWidth: '900px', margin: '0 auto',
+               background: 'var(--bg-card)',
+               border: '2px solid var(--neon-pink)',
+               boxShadow: '0 0 50px rgba(255,0,119,0.2)',
+               position: 'relative', overflow: 'hidden'
+             }}>
+
+          {/* status bar */}
+          <div className="status-bar" style={{ padding: '0.5rem 1rem' }}>
+            <div>NET: 5G-N &nbsp; ENC: ON</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              MEM: 88%
+              <div className="signal-bars">
+                <div className="bar" />
+                <div className="bar" />
+                <div className="bar" />
+                <div className="bar dim" />
+              </div>
+            </div>
+          </div>
+
+          {/* glitch header */}
+          <header className="header">
+            <h1 className="glitch" data-text="APP TITLE">APP TITLE</h1>
+            <div className="subtitle-bar">
+              <div className="line" />
+              <div className="label">Subtitle Text</div>
+              <div className="line" />
+            </div>
+          </header>
+
+          {/* hero area */}
+          <section className="hero clip-chamfer" style={{ aspectRatio: '4/3', margin: '1rem' }}>
+            <div className="corner-bracket tl" />
+            <div className="corner-bracket tr" />
+            <div className="corner-bracket bl" />
+            <div className="corner-bracket br" />
+            <div className="live-badge" style={{ position: 'absolute', top: '0.75rem', left: '0.75rem' }}>
+              <div className="live-dot" />
+              LIVE FEED // S-04
+            </div>
+            <div className="reticle">
+              <div className="reticle-inner" />
+              <div className="reticle-h" />
+              <div className="reticle-v" />
+            </div>
+          </section>
+
+          {/* progress bar */}
+          <div style={{ padding: '0 1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'Share Tech Mono', fontSize: '9px', color: 'var(--neon-pink)' }}>
+              <span>SYSTEM INTEGRITY</span>
+              <span>94%</span>
+            </div>
+            <div className="progress-track">
+              <div className="progress-fill" style={{ width: '94%' }} />
+            </div>
+          </div>
+
+          {/* card grid */}
+          <div className="card-grid" style={{ padding: '1rem' }}>
+            <div className="card clip-card-tr" style={{ position: 'relative' }}>
+              <div className="corner-tri" />
+              <h3>Feed Panel</h3>
+              <div className="feed">
+                <div className="feed-msg"><span className="user">User:</span> <span className="text">Message text</span></div>
+                <div className="feed-msg cyan"><span className="user">User:</span> <span className="text">Message text</span></div>
+              </div>
+            </div>
+
+            <div className="card-yellow clip-card-bl">
+              <h4>ACTION</h4>
+              <p style={{ fontSize: '9px', fontFamily: 'Share Tech Mono' }}>Details here</p>
+            </div>
+          </div>
+
+          {/* full-width bar link */}
+          <div className="bar-link" style={{ margin: '0 1rem 1rem' }}>
+            <div className="edge" />
+            <div className="sweep" />
+            <span style={{ fontFamily: 'Orbitron', fontSize: '0.75rem', fontWeight: 700, paddingLeft: '1rem' }}>NAVIGATION ITEM</span>
+          </div>
+
+          {/* hazard footer */}
+          <footer>
+            <div className="hazard-stripe" />
+            <div className="footer-msg">
+              <p>&lt;&lt; STATUS MESSAGE &gt;&gt;</p>
+            </div>
+          </footer>
+        </div>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  Edge feels like jacking into a street-level Night City terminal. The glitch
+  title stutters and tears like a corrupted signal. Chamfered panels are
+  armored, industrial, cut rather than rounded. Pink neon bleeds through
+  dark surfaces like light through cracked glass. Yellow screams danger —
+  hazard stripes, warning badges, highlighted intel. Cyan is cold data,
+  readouts, system status. The scanlines remind you this is all being
+  rendered on some beat-up display. Everything is uppercase, monospaced,
+  and tracked wide. Information is hierarchical: yellow headlines, pink
+  structure, cyan details, white content.
+
+ANIMATIONS:
+  - glitch: dual clip:rect() cycling on pseudo-elements (2.5s + 3s, infinite, linear, alternate-reverse)
+  - pulse: 2s cubic-bezier opacity 0.5→1→0.5 (live dots, footer text)
+  - spin: 10s linear infinite (reticle dashed circle)
+  - border-flicker: random pink→cyan flash on main container border (JS-driven interval)
+  - sweep: translateX(-100% → 100%) on hover for bar links (1s transition)
+  - hover transitions: border-color 0.15s, transform 0.15s, opacity 0.5s
+  - scanlines: static 4px striped overlay (no animation needed)
+
+SVG ELEMENTS:
+  - None required — this theme uses CSS-only effects (clip-paths, gradients, borders)
+  - Optional: crosshair SVG in hero area (circle + 4 lines)
+  - Optional: diagonal line SVG pattern in accent cards (3 pink lines at 20% opacity)
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
+
+  Orbitron — display headlines (black weight, italic, skewed), card titles, nav labels
+  Rajdhani — body text, UI labels, descriptions, general content
+  Share Tech Mono — data readouts, status text, chat messages, progress labels, system info

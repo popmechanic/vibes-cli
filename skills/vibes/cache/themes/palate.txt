@@ -1,0 +1,350 @@
+THEME: palate
+NAME: Palate Notes
+MOOD: Dark-elegant, serif-minimal, sommelier, restrained
+
+DESCRIPTION:
+A dark tasting-notes aesthetic with elegant serif typography (Cormorant
+Garamond) on a near-black surface (#1C1C1C). Content is organized into
+labeled sections — each introduced by an uppercase wide-tracked tiny gray
+label ("PRIMARY NOTES", "FLAVOR PROFILE") followed by a 1px gray-700 border
+separator. The entire layout fills one viewport height with no scrolling —
+a single card/page view. Data is shown via dot-on-line scale indicators
+(1px gray line spanning full width with a tiny 4px white dot positioned at
+a percentage). Pairings and categories use pill tags (rounded-full, 1px
+gray-700 border). A paginated footer shows "01 / 05" with Previous/Next text
+links. No accent color — pure grayscale with soft gray-200 text (not harsh
+white). Everything is deliberately sparse, with generous negative space.
+
+BEST FOR:
+  - Tasting notes, wine/coffee/tea profiles, flavor reviews
+  - Single-item detail views, product deep-dives
+  - Paginated card decks, flashcards, single-view content
+  - Elegant dark portfolios, minimalist galleries
+  - Content apps that present one thing at a time with restraint
+  - Any app where the typography itself is the visual design
+
+NOT FOR:
+  - Data-heavy dashboards with many metrics (too sparse)
+  - Complex multi-section layouts with navigation (single-view only)
+  - Colorful consumer apps (strict grayscale, no accent)
+  - Playful/casual apps (too refined and serious)
+  - Form-heavy CRUD apps (minimal input patterns)
+  - Apps that require scrolling (viewport-height single view)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Convert to labeled sections. Each row becomes a
+    section with uppercase label, border-top separator, then serif title
+    and gray description below. Or use dot-on-line scales for numeric values.
+  - If app has FORMS: Inputs with no visible border — just a 1px bottom line
+    (gray-700). Labels in uppercase tracking-widest sm gray-400 above. Submit
+    as a simple text link ("Submit →") or pill-tag button.
+  - If app has LISTS: Pill tags (rounded-full, gray-700 border) in a flex-wrap
+    row with gap-3. Or vertical stack with serif titles and gray descriptions,
+    separated by 1px borders.
+  - If app has CARDS: Each card fills the viewport (h-screen). Paginate with
+    "01 / 05" footer and Previous/Next. One card visible at a time.
+  - If app has CHARTS/DATA: Dot-on-line scales — 1px gray line spanning full
+    width, tiny 4px rounded-full white dot at the data position. Label in
+    lg serif above. No axes, no gridlines, no numbers — just the dot position.
+  - If app has NAVIGATION: Footer pagination only (page number + prev/next).
+    No tab bars, no sidebars. Header has title + X close button (1px stroke).
+  - If app has CATEGORIES: Uppercase tracking-widest sm gray-400 section labels.
+    Each category gets its own bordered section below the label.
+
+COLOR TOKENS (oklch):
+  --bg:          oklch(0.17 0.000 0)        /* body background #1C1C1C */
+  --fg:          oklch(0.93 0.006 265)      /* primary text gray-200 */
+  --fg-muted:    oklch(0.71 0.02 261)       /* labels, descriptions gray-400 */
+  --border:      oklch(0.37 0.03 260)       /* separators, tag borders gray-700 */
+  --dot:         oklch(0.93 0.006 265)      /* scale indicator dot gray-200 */
+
+REFERENCE STYLES:
+
+  /* ---- SECTION LABEL (uppercase category) ---- */
+  .section-label {
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+  }
+
+  /* ---- SECTION SEPARATOR ---- */
+  .section-content {
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+
+  /* ---- SERIF TITLE ---- */
+  .serif-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--fg);
+    margin-bottom: 12px;
+  }
+
+  /* ---- DESCRIPTION ---- */
+  .description {
+    font-size: 14px;
+    color: var(--fg-muted);
+    line-height: 1.625;
+  }
+
+  /* ---- DOT-ON-LINE SCALE ---- */
+  .scale-track {
+    height: 1px;
+    background: var(--border);
+    width: 100%;
+    position: relative;
+  }
+  .scale-dot {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 9999px;
+    background: var(--dot);
+    top: -1.5px;
+  }
+
+  /* ---- PILL TAGS ---- */
+  .pill-tag {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    font-size: 14px;
+    color: var(--fg);
+    background: none;
+  }
+  .tag-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* ---- HEADER ---- */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 48px;
+  }
+  .page-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px;
+    font-weight: 400;
+    letter-spacing: 0.025em;
+    color: var(--fg);
+  }
+  .page-subtitle {
+    font-size: 14px;
+    color: var(--fg-muted);
+    letter-spacing: 0.05em;
+    margin-top: 4px;
+  }
+
+  /* ---- CLOSE BUTTON (thin X) ---- */
+  .close-btn {
+    width: 24px;
+    height: 24px;
+    background: none;
+    border: none;
+    color: var(--fg);
+    cursor: pointer;
+  }
+  .close-btn svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* ---- PAGINATION FOOTER ---- */
+  .page-footer {
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .page-number {
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    color: var(--fg);
+  }
+  .page-nav {
+    display: flex;
+    gap: 16px;
+  }
+  .page-nav-link {
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    color: var(--fg);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .page-nav-link:hover {
+    color: var(--fg-muted);
+  }
+
+  /* ---- FULL-PAGE LAYOUT ---- */
+  .page-view {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 32px;
+  }
+  .page-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  /* ---- TYPOGRAPHY ---- */
+  body {
+    font-family: 'Cormorant Garamond', serif;
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+DESIGN PRINCIPLES:
+  1. VIEWPORT-HEIGHT SINGLE VIEW: Content fills exactly one screen (h-screen,
+     flex-col, p-8). No scrolling. Each "page" is a complete card visible at
+     once. If content overflows, paginate — never scroll.
+  2. ELEGANT SERIF: Cormorant Garamond at normal weight (400) for everything.
+     No bold. No condensed. The typeface's natural elegance at regular weight
+     is the entire visual system. It whispers, never shouts.
+  3. SOFT GRAY TEXT: Primary text is gray-200 (not white). Descriptions and
+     labels are gray-400. Nothing is full brightness. The restrained palette
+     creates a sense of quiet refinement.
+  4. UPPERCASE SECTION LABELS: Category headers use 14px, tracking-widest
+     (0.1em), uppercase, gray-400. They label what follows without drawing
+     attention. Below each label: 1px gray-700 border, then content.
+  5. DOT-ON-LINE SCALES: The most minimal possible data visualization. A 1px
+     gray line spanning full width, with a tiny 4px white dot positioned at
+     the value percentage. No numbers, no axes. The position IS the data.
+  6. PILL TAGS: Categories, pairings, and keywords use rounded-full bordered
+     pills. 1px gray-700 border, no fill. They cluster in a flex-wrap row.
+     Light and airy, not heavy or colorful.
+  7. ONE-PX SEPARATORS: All section dividers are 1px solid gray-700. Top-
+     border only (border-top). No double lines, no decorative rules. The
+     thinnest possible boundary between sections.
+  8. GENEROUS NEGATIVE SPACE: Sections are spaced with gap-8 (32px). Header
+     margin-bottom is 48px. The space between elements is as important as
+     the elements themselves. Let content breathe.
+  9. PAGINATED FOOTER: "01 / 05" page indicator left, "Previous" / "Next"
+     text links right. Border-top separator. This is the only navigation —
+     simple, text-only, understated.
+  10. THIN X CLOSE: Header close button is a 1px stroke-width X (two crossed
+      lines). No circle, no background. The thinnest possible close affordance.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const scales = [
+      { label: "Aromatics", position: "75%" },
+      { label: "Acidity", position: "45%" },
+      { label: "Sweetness", position: "25%" }
+    ];
+    const pairings = ["Aged Cheese", "Mushrooms", "Miso"];
+
+    return (
+      <div className="page-view">
+        {/* HEADER */}
+        <header className="page-header">
+          <div>
+            <h1 className="page-title">Taste Atlas</h1>
+            <p className="page-subtitle">Flavor Genome</p>
+          </div>
+          <button className="close-btn">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 4L20 20M4 20L20 4" stroke="currentColor" strokeWidth="1" />
+            </svg>
+          </button>
+        </header>
+
+        {/* BODY */}
+        <div className="page-body">
+          {/* PRIMARY NOTES */}
+          <section>
+            <p className="section-label" style={{ marginBottom: 8 }}>PRIMARY NOTES</p>
+            <div className="section-content">
+              <h2 className="serif-title">Umami Forward</h2>
+              <p className="description">
+                Pronounced savory undertones with complex fermented notes
+              </p>
+            </div>
+          </section>
+
+          {/* FLAVOR PROFILE */}
+          <section>
+            <p className="section-label" style={{ marginBottom: 8 }}>FLAVOR PROFILE</p>
+            <div className="section-content" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              {scales.map(s => (
+                <div key={s.label}>
+                  <h3 style={{ fontSize: 18, marginBottom: 8 }}>{s.label}</h3>
+                  <div className="scale-track">
+                    <div className="scale-dot" style={{ left: s.position }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* PAIRINGS */}
+          <section>
+            <p className="section-label" style={{ marginBottom: 8 }}>PAIRINGS</p>
+            <div className="section-content">
+              <div className="tag-group">
+                {pairings.map(p => (
+                  <span key={p} className="pill-tag">{p}</span>
+                ))}
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* FOOTER */}
+        <footer className="page-footer">
+          <span className="page-number">01 / 05</span>
+          <div className="page-nav">
+            <button className="page-nav-link">Previous</button>
+            <button className="page-nav-link">Next</button>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme is a tasting note written on dark paper. Each page presents one
+  subject — a flavor, a wine, a profile — with the restraint of a sommelier
+  who uses three words where others use thirty. The serif typeface (Cormorant
+  Garamond) at normal weight is deliberately understated — no bold, no display
+  scale. Section labels are whispered in uppercase tracking: PRIMARY NOTES,
+  FLAVOR PROFILE, PAIRINGS. The dot-on-line scales are the most elegant data
+  visualization possible — a single point on a single line, nothing more.
+  Pill tags float like descriptors in a wine review: "Aged Cheese", "Miso",
+  "Mushrooms". The paginated footer (01 / 05, Previous, Next) turns the app
+  into a deck of cards you flip through one at a time. There is no scroll,
+  no sidebar, no tab bar. Just one page, one subject, one breath. Then you
+  turn to the next.
+
+ANIMATIONS:
+  - PAGE TRANSITION: Fade between pages (opacity 0→1, 300ms ease). No slide,
+    no scale — just a dissolve from one view to the next.
+  - NAV HOVER: Text links fade from fg to fg-muted (200ms). Subtle dim.
+  - DOT SETTLE: Scale dots can animate their left position on mount (300ms
+    ease-out). The dot slides to its resting place.
+  - No particles, no glow, no scan lines. Pure stillness.
+
+SVG ELEMENTS:
+  - CLOSE BUTTON: Two crossed lines (M4 4L20 20M4 20L20 4) at stroke-width 1.
+    The thinnest possible X. No circle, no background.
+  - No other SVGs — the theme is pure typography and CSS. The dot-on-line
+    scales are CSS (div with absolute-positioned dot). Pill tags are CSS.
+    The elegance comes from what's absent, not what's present.
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&display=swap');
