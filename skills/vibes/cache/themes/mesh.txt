@@ -1,0 +1,406 @@
+THEME: mesh
+NAME: Mesh Void
+MOOD: Computational-dark, wireframe, HUD-precise, topology-engine
+
+DESCRIPTION:
+A near-black void surface with white-only content and subtle white/15% borders.
+Features a 60/40 two-column split — left for content (HUD header, giant
+light-weight display type, spec grid, numbered feature rows, CTA bar) and right
+for a Three.js wireframe visualization panel with scan-line overlay, coordinate
+readouts, and a "RENDER: LIVE" badge. Hero type is enormous (10vw) but weight 400
+(deliberately light/thin), uppercase, tight tracking (-0.04em), with
+mix-blend-mode: difference. HUD header is a 3-column monospace grid with status
+dot (green glow). Spec boxes form a bordered 3-column grid. Feature rows use
+60px numbered indices (01, 02) next to content. Crosshair marks at container
+corners. CTA bar spans full width with arrow. Everything is white-on-black with
+no color — the only accent is a single green status dot.
+
+BEST FOR:
+  - 3D/AI/ML product pages, computational tool showcases
+  - Developer tool landing pages, API documentation heroes
+  - Portfolio hero sections for technical/creative work
+  - SaaS product pages with spec-heavy positioning
+  - Any app that needs to feel like a precision instrument interface
+
+NOT FOR:
+  - Colorful consumer apps (pure grayscale except one green dot)
+  - Data-heavy CRUD with tables and forms (limited input patterns)
+  - Playful/casual apps (too austere and void-like)
+  - Content-heavy editorial reading apps (white-on-black fatigues)
+  - E-commerce with product images (no rich imagery patterns)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Convert to spec-box grids (label + value, bordered cells)
+    or feature-row stacks (numbered index + content). No traditional table chrome.
+  - If app has FORMS: Transparent inputs with bottom border (white/15%). Focus
+    state: full white bottom border. Labels in monospace 10px uppercase. Submit
+    as CTA bar (full-width, bordered-top, arrow icon →).
+  - If app has LISTS: Numbered feature rows — 60px index column (monospace, gray,
+    centered) + content column (title 18px + desc 12px mono gray). Bordered-bottom.
+  - If app has CARDS: Spec boxes — bordered cells with monospace label above and
+    larger value below. Group in 3-column grid with border-top separator.
+  - If app has VISUALIZATION: Right column with Three.js wireframe mesh (white
+    wireframe on black, opacity breathing, mouse-reactive rotation). Scan-line
+    overlay. Coordinate readout in corner. Badge top-left.
+  - If app has NAVIGATION: HUD header — 3-column monospace grid, each cell
+    bordered, status dot in first cell, version in second, menu in third.
+  - If app has HERO CONTENT: Giant light-weight type (10vw, weight 400, -0.04em,
+    uppercase, mix-blend-mode: difference). Description in monospace with
+    border-left separator.
+
+COLOR TOKENS (oklch):
+  --void:        oklch(0.07 0.000 0)     /* near-black body #050505 */
+  --panel:       oklch(0.10 0.000 0)     /* slightly lifted panel #0a0a0a */
+  --fg:          oklch(1.00 0.000 0)     /* white text #ffffff */
+  --fg-muted:    oklch(0.49 0.000 0)     /* secondary gray #666666 */
+  --fg-dim:      oklch(0.30 0.000 0)     /* tertiary dark gray #333333 */
+  --border:      oklch(1.00 0.000 0 / 0.15)  /* subtle white borders */
+  --hover:       oklch(0.13 0.000 0)     /* hover background #111111 */
+  --accent:      oklch(0.87 0.28 145)    /* status dot green #00ff41 */
+  --ring:        oklch(0.36 0.000 0)     /* decorative ring gray #444444 */
+
+REFERENCE STYLES:
+
+  /* ---- TWO-COLUMN MAIN GRID ---- */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 60% 40%;
+    min-height: 100vh;
+    border-bottom: 1px solid var(--border);
+  }
+  .col-left {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+  .col-right {
+    position: relative;
+    background: radial-gradient(circle at center, #111 0%, #000 100%);
+    overflow: hidden;
+  }
+
+  /* ---- HUD HEADER (3-column monospace) ---- */
+  .header-hud {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    height: 60px;
+    align-items: center;
+  }
+  .hud-item {
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+    border-right: 1px solid var(--border);
+    color: var(--fg-muted);
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent);
+  }
+
+  /* ---- GIANT HERO TYPE ---- */
+  h1.hero-title {
+    font-size: clamp(4rem, 10vw, 12rem);
+    line-height: 0.85;
+    letter-spacing: -0.04em;
+    font-weight: 400;
+    text-transform: uppercase;
+    mix-blend-mode: difference;
+  }
+  .hero-label {
+    font-family: var(--font-mono);
+    color: var(--fg-muted);
+    font-size: 12px;
+    margin-bottom: 24px;
+  }
+  .hero-description {
+    max-width: 400px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--fg-muted);
+    border-left: 1px solid var(--fg-dim);
+    padding-left: 20px;
+  }
+
+  /* ---- SPEC GRID ---- */
+  .specs-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--border);
+  }
+  .spec-box {
+    padding: 24px;
+    border-right: 1px solid var(--border);
+    font-family: var(--font-mono);
+  }
+  .spec-label {
+    font-size: 10px;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .spec-value {
+    font-size: 16px;
+    color: var(--fg);
+  }
+
+  /* ---- NUMBERED FEATURE ROWS ---- */
+  .feature-row {
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    border-bottom: 1px solid var(--border);
+    min-height: 120px;
+  }
+  .f-number {
+    border-right: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--fg-muted);
+  }
+  .f-content {
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .f-title {
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .f-desc {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--fg-muted);
+    max-width: 300px;
+  }
+
+  /* ---- CTA BAR ---- */
+  .cta-container {
+    padding: 40px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  .cta-container:hover { background: var(--hover); }
+  .btn-text { font-size: 24px; letter-spacing: -0.02em; }
+  .arrow-icon { font-family: var(--font-mono); }
+
+  /* ---- CROSSHAIR CORNER MARKS ---- */
+  .crosshair {
+    position: absolute;
+    width: 15px; height: 15px;
+    pointer-events: none;
+  }
+  .crosshair::before, .crosshair::after {
+    content: '';
+    position: absolute;
+    background: var(--fg);
+  }
+  .crosshair::before { width: 1px; height: 100%; left: 50%; }
+  .crosshair::after { width: 100%; height: 1px; top: 50%; }
+
+  /* ---- SCAN LINES ---- */
+  .scan-lines {
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(255,255,255,0.03), rgba(255,255,255,0.03) 1px,
+      transparent 1px, transparent 4px
+    );
+    position: absolute; inset: 0;
+    pointer-events: none;
+  }
+
+  /* ---- OVERLAY UI (visualization panel) ---- */
+  .ui-badge {
+    background: var(--fg);
+    color: var(--void);
+    padding: 4px 8px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    font-weight: bold;
+    align-self: flex-start;
+  }
+  .ui-coords {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--fg-muted);
+    text-align: right;
+  }
+
+  /* ---- TYPOGRAPHY ---- */
+  body {
+    background: var(--void);
+    color: var(--fg);
+    font-family: 'Inter', -apple-system, sans-serif;
+  }
+
+DESIGN PRINCIPLES:
+  1. VOID BACKGROUND: Near-black #050505 everywhere. No gray panels, no
+     surface variation — just the void. Content floats in pure darkness.
+  2. WHITE/15% BORDERS: Every section boundary uses 1px solid rgba(255,255,255,0.15).
+     No thick borders, no colored borders. Subtle grid lines.
+  3. LIGHT-WEIGHT GIANT TYPE: Hero titles are clamp(4rem, 10vw, 12rem) at
+     weight 400 (thin/regular, NOT bold). Tight tracking (-0.04em), uppercase,
+     mix-blend-mode: difference. Feels computational, not editorial.
+  4. 60/40 SPLIT: Main layout divides into 60% content (left) and 40%
+     visualization (right). Left is structured text; right is a 3D scene
+     with overlay UI. Border between them.
+  5. MONOSPACE METADATA: All labels, coordinates, descriptions, and specs use
+     JetBrains Mono at tiny sizes (10-14px). Uppercase with 1px letter-spacing.
+     Gray (#666666). Creates a technical readout feel.
+  6. HUD HEADER: 3-column monospace grid at 60px height. Each cell is bordered.
+     Contains system name, version number, and menu. Single green status dot
+     with glow shadow — the ONLY color in the entire theme.
+  7. SPEC GRID: 3-column bordered grid below the hero. Each cell has a monospace
+     uppercase label and a white value. Border-top separates from hero.
+  8. NUMBERED FEATURE ROWS: 60px-wide number column (monospace index centered)
+     + content column. Each row is 120px+ tall with border-bottom. Creates a
+     vertical spec sheet.
+  9. SCAN LINES: Visualization panel has a repeating-linear-gradient overlay
+     creating horizontal scan lines at 3% opacity. Gives a CRT/monitor feel.
+  10. CROSSHAIR MARKS: CSS pseudo-element crosshairs at container corners
+      (15px cross made of 1px white lines). Signals precision/targeting.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const specs = [
+      { label: "Polygons/Sec", value: "45,000,000" },
+      { label: "Latency", value: "< 12ms" },
+      { label: "Export", value: "GLTF / USDZ / OBJ" }
+    ];
+    const features = [
+      { idx: "01", title: "Adaptive Mesh Refinement",
+        desc: "Algorithms automatically optimize geometry density based on curvature analysis." },
+      { idx: "02", title: "Non-Destructive Booleans",
+        desc: "Perform complex subtractions and unions with live history states." }
+    ];
+
+    return (
+      <div className="main-grid">
+        {/* LEFT: CONTENT */}
+        <div className="col-left" style={{ position: "relative" }}>
+          <div className="crosshair" style={{ bottom: -7, right: -7, position: "absolute" }} />
+
+          {/* HUD HEADER */}
+          <header className="header-hud">
+            <div className="hud-item">
+              <span>FORMA OS</span>
+              <span className="status-dot" />
+            </div>
+            <div className="hud-item"><span>V. 2.04</span></div>
+            <div className="hud-item" style={{ justifyContent: "center" }}><span>MENU +</span></div>
+          </header>
+
+          {/* HERO */}
+          <section className="hero-section" style={{
+            padding: "8vh 4vw", flexGrow: 1, display: "flex",
+            flexDirection: "column", justifyContent: "center"
+          }}>
+            <h1 className="hero-title">Forma<br/>Engine</h1>
+            <p className="hero-description">
+              Neural-network accelerated 3D modeling pipeline.
+              Procedurally generate production-ready meshes from
+              vector inputs in real-time.
+            </p>
+          </section>
+
+          {/* SPECS */}
+          <div className="specs-container">
+            {specs.map(s => (
+              <div key={s.label} className="spec-box">
+                <span className="spec-label">{s.label}</span>
+                <span className="spec-value">{s.value}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* FEATURE ROWS */}
+          <div className="feature-stack" style={{ borderTop: "1px solid var(--border)" }}>
+            {features.map(f => (
+              <div key={f.idx} className="feature-row">
+                <div className="f-number">{f.idx}</div>
+                <div className="f-content">
+                  <div className="f-title">{f.title}</div>
+                  <div className="f-desc">{f.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <div className="cta-container">
+            <span className="btn-text">Initialize Environment</span>
+            <span className="arrow-icon">-&gt;</span>
+          </div>
+        </div>
+
+        {/* RIGHT: VISUALIZATION */}
+        <div className="col-right">
+          <div className="scan-lines" />
+          <div className="overlay-ui" style={{
+            position: "absolute", inset: 0, zIndex: 2, padding: 30,
+            display: "flex", flexDirection: "column", justifyContent: "space-between",
+            pointerEvents: "none"
+          }}>
+            <div className="ui-badge">RENDER: LIVE</div>
+            <div className="ui-coords">
+              X: 0.00<br/>Y: 0.00<br/>Z: 14.20
+            </div>
+          </div>
+          {/* Three.js canvas or CSS 3D wireframe here */}
+        </div>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme exists in the computational void — the space where algorithms
+  run before their output reaches a screen. Everything is stripped to signal:
+  white text on black void, monospace metadata, spec values, numbered indices.
+  The giant display type is deliberately LIGHT weight (400) — it doesn't shout,
+  it states. It's the name of a system, not a headline. The 60/40 split puts
+  structured content on the left and a living visualization on the right —
+  text is the spec, the 3D mesh is the proof. Scan lines remind you this is
+  a render view, not a photograph. The single green status dot is the heartbeat
+  of the system — the only color, the only sign of life. Crosshair marks at
+  corners say "this space is measured." The CTA bar doesn't say "Buy Now" —
+  it says "Initialize Environment." This is a tool, not a storefront.
+
+ANIMATIONS:
+  - WIREFRAME ROTATION: Three.js mesh auto-rotates slowly (0.005 rad/frame)
+    with mouse-reactive tilt (lerp 0.1). Smooth, continuous, meditative.
+  - OPACITY BREATHING: Wireframe material opacity oscillates
+    (0.2 + sin(time) * 0.1). Subtle pulse, like the mesh is alive.
+  - CTA HOVER: Background transitions to #111 over 300ms. No transforms,
+    no borders — just a shade lift in the void.
+  - RING DRIFT: Orbital ring rotates on two axes simultaneously (z and x)
+    at different speeds. Creates a gyroscope effect.
+
+SVG ELEMENTS:
+  - CROSSHAIR MARKS: CSS-only (no SVG). 15px cross using ::before (vertical
+    line) and ::after (horizontal line) pseudo-elements, 1px white.
+  - STATUS DOT: CSS circle with box-shadow glow in accent green. 6px.
+  - No decorative SVGs — the Three.js wireframe IS the visual element.
+    If no Three.js: use CSS border/transform to create wireframe cube illusion.
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap');

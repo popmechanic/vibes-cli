@@ -1,0 +1,760 @@
+THEME: rift
+NAME: Rift Portal
+MOOD: Sci-fi-neon, space-void, multi-accent, machine-framed, entertainment-portal
+
+DESCRIPTION:
+A deep-space entertainment portal with a multi-neon color palette (lime green,
+cyan, magenta, yellow) on a void-black background (#050510) with twinkling star
+particles and nebula radial gradients. The main content area sits inside a
+"machine" container — a rounded metallic frame (slate borders, backdrop-blur,
+rounded-[3rem]) with optional side rails and LED indicator dots. Navigation uses
+hex-clipped buttons (polygon clip-path creating a hexagonal shape) with neon
+border glow. Content cards have image tops, Bangers-font titles, tiny monospace
+descriptions, and CTA buttons at the bottom — all wrapped in neon-bordered
+containers with speech-bubble tails (CSS triangles at the bottom center). The
+header features a massive Creepster display title with text-stroke and green
+glow, plus a skewed pill subtitle in magenta. Footer uses a handwriting font
+(Patrick Hand) with floating decorative elements. Status indicators use
+concentric spinning rings. Mini stat panels show gradient-fill progress bars.
+Four accent colors cycle across cards and buttons — each card gets its own neon
+identity. Orbitron for all UI text. Everything glows.
+
+BEST FOR:
+  - Fan sites, entertainment portals, media browsers
+  - Gaming hubs, game launchers, quest boards
+  - Content galleries with categories and featured media
+  - Sci-fi themed apps, space explorers, universe browsers
+  - Card-based discovery apps with multiple categories
+  - Any app that wants a "command center in space" feel
+
+NOT FOR:
+  - Professional/enterprise dashboards (too playful and themed)
+  - Content-heavy editorial or reading apps (neon fatigues eyes)
+  - Minimalist or monochrome apps (multi-color is fundamental)
+  - E-commerce with product photography (neon competes with images)
+  - Financial or serious data apps (too sci-fi entertainment)
+  - Mobile-first compact apps (machine frame needs width)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Convert rows into neon-bordered cards with image +
+    title + value. Or use the stat-bar panel pattern: tiny monospace labels
+    with gradient-fill progress bars inside a bordered container.
+  - If app has FORMS: Inputs inside the machine container — bg-transparent,
+    1px bottom border in accent color, Orbitron placeholder. Submit as hex-
+    clipped button with neon glow. Group related fields in neon-bordered cards.
+  - If app has LISTS: Grid of cards (1-4 columns responsive). Each card has
+    image top, Bangers title, mono description, CTA button. Speech-bubble
+    tail at bottom. Alternate accent colors across cards.
+  - If app has CARDS: Image section (h-40, overflow-hidden, gradient overlay
+    from card bg), badge/tag (rotated, accent bg), Bangers title, xs mono
+    description, full-width bordered CTA button. Hover: image scales 110%,
+    border brightens to full accent, progress bar fills.
+  - If app has MEDIA: Video/image in the machine container's "screen" area —
+    black bg, rounded-xl, screws in corners, scanline overlay, bottom control
+    bar with play button + gradient progress + timestamp.
+  - If app has NAVIGATION: Hex-clipped buttons in a flex-wrap row. Alternate
+    cyan and magenta. Hover fills with accent color, text goes black.
+  - If app has STATUS: Concentric spinning rings (border animations, opposite
+    directions) with a glowing center dot. Label in Orbitron xs tracking-widest.
+
+COLOR TOKENS (oklch):
+  --bg:            oklch(0.07 0.02 280)        /* void background #050510 */
+  --surface:       oklch(0.17 0.02 270 / 0.9)  /* machine container #1a1b26/90 */
+  --card:          oklch(0.13 0.000 0)          /* card background #111 */
+  --card-inner:    oklch(0.21 0.02 255)         /* card content area slate-800 */
+  --border:        oklch(0.37 0.03 255)         /* structural borders slate-700 */
+  --border-frame:  oklch(0.44 0.02 255)         /* machine frame slate-600 */
+  --fg:            oklch(1.00 0.000 0)          /* primary text white */
+  --fg-muted:      oklch(0.70 0.02 260)         /* descriptions slate-400 */
+  --fg-dim:        oklch(0.55 0.02 260)         /* inactive icons slate-500 */
+  --accent-green:  oklch(0.88 0.27 128)         /* lime green #9bf500 */
+  --accent-cyan:   oklch(0.87 0.14 200)         /* bright cyan #00f2ff */
+  --accent-pink:   oklch(0.58 0.32 320)         /* magenta #e600ff */
+  --accent-yellow: oklch(0.87 0.18 90)          /* golden yellow #facc15 */
+  --glow-green:    0 0 5px oklch(0.88 0.27 128), 0 0 10px oklch(0.88 0.27 128)
+  --glow-cyan:     0 0 5px oklch(0.87 0.14 200), 0 0 10px oklch(0.87 0.14 200)
+  --glow-pink:     0 0 5px oklch(0.58 0.32 320), 0 0 10px oklch(0.58 0.32 320)
+
+REFERENCE STYLES:
+
+  /* ---- SPACE BACKGROUND ---- */
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 50%, oklch(0.30 0.15 300 / 0.2) 0%, transparent 50%),
+      radial-gradient(circle at 85% 30%, oklch(0.50 0.10 200 / 0.15) 0%, transparent 50%);
+  }
+
+  /* ---- STAR PARTICLES ---- */
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.5); }
+  }
+  .star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle 3s infinite ease-in-out;
+  }
+
+  /* ---- MACHINE CONTAINER (main frame) ---- */
+  .machine-frame {
+    background: var(--surface);
+    backdrop-filter: blur(12px);
+    border-top: 4px solid var(--border);
+    border-bottom: 4px solid var(--border);
+    border-radius: 3rem;
+    padding: 16px;
+    position: relative;
+  }
+
+  /* ---- SIDE RAILS (decorative) ---- */
+  .side-rail {
+    position: absolute;
+    top: 80px;
+    bottom: 80px;
+    width: 64px;
+    background: linear-gradient(to right, var(--card-inner), var(--card));
+    border: 2px solid var(--border-frame);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 48px 0;
+  }
+  .side-rail-left {
+    left: 0;
+    border-radius: 0 16px 16px 0;
+    border-right: 2px solid var(--border-frame);
+  }
+  .side-rail-right {
+    right: 0;
+    border-radius: 16px 0 0 16px;
+    border-left: 2px solid var(--border-frame);
+  }
+  .led-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  .led-red { background: #ef4444; box-shadow: 0 0 10px red; }
+  .led-green { background: #22c55e; box-shadow: 0 0 10px green; }
+
+  /* ---- HEX-CLIP BUTTON ---- */
+  .hex-btn {
+    clip-path: polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+    padding: 12px 32px;
+    background: var(--card);
+    border: 2px solid var(--accent-cyan);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.05em;
+    color: var(--accent-cyan);
+    cursor: pointer;
+    box-shadow: 0 0 10px var(--accent-cyan);
+    transition: all 0.3s;
+  }
+  .hex-btn:hover {
+    background: var(--accent-cyan);
+    color: black;
+  }
+  .hex-btn-pink {
+    border-color: var(--accent-pink);
+    color: var(--accent-pink);
+    box-shadow: 0 0 10px var(--accent-pink);
+  }
+  .hex-btn-pink:hover {
+    background: var(--accent-pink);
+    color: black;
+  }
+
+  /* ---- CONTENT CARD (image + title + desc + CTA) ---- */
+  .portal-card {
+    position: relative;
+    background: var(--card);
+    border: 2px solid var(--accent-cyan);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 15px oklch(0.87 0.14 200 / 0.3);
+    transition: all 0.3s;
+  }
+  .portal-card:hover {
+    transform: translateY(-8px);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 20px oklch(0.87 0.14 200 / 0.4);
+  }
+
+  /* ---- SPEECH BUBBLE TAIL ---- */
+  .portal-card::after {
+    content: "";
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 12px solid var(--accent-cyan);
+  }
+  /* Inner tail (covers border) */
+  .card-tail-inner {
+    position: absolute;
+    bottom: -9px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 10px solid var(--card);
+    z-index: 10;
+  }
+
+  /* ---- CARD IMAGE AREA ---- */
+  .card-image {
+    height: 160px;
+    overflow: hidden;
+    position: relative;
+  }
+  .card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s;
+  }
+  .portal-card:hover .card-image img {
+    transform: scale(1.1);
+  }
+  .card-image-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, var(--card), transparent);
+  }
+
+  /* ---- CARD BADGE ---- */
+  .card-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 2px 8px;
+    font-family: 'Bangers', cursive;
+    font-size: 12px;
+    border-radius: 4px;
+    transform: rotate(3deg);
+  }
+  .badge-cyan { background: var(--accent-cyan); color: black; }
+  .badge-pink { background: var(--accent-pink); color: white; }
+  .badge-green { background: var(--accent-green); color: black; }
+
+  /* ---- CARD BODY ---- */
+  .card-body {
+    padding: 16px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .card-title {
+    font-family: 'Bangers', cursive;
+    font-size: 20px;
+    letter-spacing: 0.025em;
+    margin-bottom: 4px;
+    line-height: 1;
+    transition: color 0.3s;
+  }
+  .portal-card:hover .card-title { color: var(--fg); }
+  .card-desc {
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--fg-muted);
+    margin-bottom: 16px;
+    flex: 1;
+  }
+  .card-cta {
+    width: 100%;
+    padding: 8px;
+    background: var(--card-inner);
+    border: 1px solid var(--border-frame);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .card-cta:hover {
+    background: var(--accent-cyan);
+    color: black;
+  }
+
+  /* ---- CARD HOVER PROGRESS BAR ---- */
+  .card-progress {
+    width: 100%;
+    height: 4px;
+    background: var(--card-inner);
+    border-radius: 9999px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+  .card-progress-fill {
+    width: 0;
+    height: 100%;
+    transition: width 0.7s ease-out;
+  }
+  .portal-card:hover .card-progress-fill { width: 100%; }
+
+  /* ---- CARD GRID CONTENT (multi-item) ---- */
+  .card-grid-content {
+    height: 160px;
+    padding: 8px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    background: var(--card-inner);
+    position: relative;
+  }
+  .grid-item {
+    background: var(--card);
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    transition: background 0.3s;
+  }
+  .portal-card:hover .grid-item {
+    background: oklch(0.58 0.32 320 / 0.2);
+  }
+
+  /* ---- SPINNING STATUS RINGS ---- */
+  .status-rings {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ring-outer {
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--accent-cyan);
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 2s linear infinite;
+  }
+  .ring-inner {
+    position: absolute;
+    inset: 8px;
+    border: 2px solid var(--accent-green);
+    border-radius: 50%;
+    border-bottom-color: transparent;
+    animation: spin 2s linear infinite reverse;
+  }
+  .ring-center {
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 10px white;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ---- STAT PANEL ---- */
+  .stat-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    color: var(--fg-muted);
+  }
+  .stat-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--card-inner);
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+  .stat-fill {
+    height: 100%;
+    border-radius: 9999px;
+  }
+  .stat-fill-green {
+    background: linear-gradient(to right, var(--accent-green), oklch(0.78 0.18 155));
+    box-shadow: 0 0 5px var(--accent-green);
+  }
+  .stat-fill-cyan {
+    background: linear-gradient(to right, var(--accent-cyan), oklch(0.70 0.10 220));
+    box-shadow: 0 0 5px var(--accent-cyan);
+  }
+
+  /* ---- SCREEN (video/media area) ---- */
+  .screen-frame {
+    background: var(--card);
+    padding: 12px;
+    border-radius: 24px;
+    border: 4px solid var(--border);
+    position: relative;
+  }
+  .screen-screw {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--fg-dim);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+  }
+  .screen-inner {
+    background: black;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 2px solid var(--card-inner);
+    position: relative;
+    aspect-ratio: 16 / 9;
+  }
+  .screen-scanlines {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(transparent 50%, rgba(0,0,0,0.5) 50%);
+    background-size: 100% 4px;
+    opacity: 0.2;
+    pointer-events: none;
+  }
+  .screen-controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: oklch(0.00 0.000 0 / 0.9);
+    border-top: 1px solid var(--card-inner);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 16px;
+  }
+  .progress-track {
+    flex: 1;
+    height: 4px;
+    background: var(--card-inner);
+    border-radius: 9999px;
+    position: relative;
+  }
+  .progress-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: linear-gradient(to right, var(--accent-cyan), var(--accent-pink));
+    box-shadow: 0 0 10px var(--accent-pink);
+  }
+
+  /* ---- NEON DIVIDER ---- */
+  .neon-divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--accent-cyan), transparent);
+    opacity: 0.5;
+  }
+  .neon-divider-pink {
+    background: linear-gradient(to right, transparent, var(--accent-pink), transparent);
+    box-shadow: 0 0 15px var(--accent-pink);
+  }
+
+  /* ---- AVATAR CIRCLES ---- */
+  .avatar-circle {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    border: 2px solid var(--accent-cyan);
+    overflow: hidden;
+    transition: transform 0.3s;
+  }
+  .avatar-circle:hover { transform: scale(1.1); }
+
+  /* ---- HERO TITLE ---- */
+  .hero-title {
+    font-family: 'Creepster', cursive;
+    font-size: 80px;
+    color: var(--accent-green);
+    text-shadow: var(--glow-green);
+    letter-spacing: 0.05em;
+    line-height: 1;
+    -webkit-text-stroke: 1px rgba(0,0,0,0.5);
+  }
+
+  /* ---- SUBTITLE PILL ---- */
+  .subtitle-pill {
+    background: oklch(0.00 0.000 0 / 0.4);
+    border: 1px solid var(--accent-pink);
+    padding: 4px 24px;
+    border-radius: 9999px;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 0 10px var(--accent-pink);
+    transform: skewX(-12deg);
+  }
+  .subtitle-text {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--accent-pink);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-shadow: var(--glow-pink);
+    transform: skewX(12deg);
+  }
+
+  /* ---- FOOTER ---- */
+  .footer-text {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 40px;
+    color: var(--accent-cyan);
+    text-shadow: var(--glow-cyan);
+  }
+
+  /* ---- FLOAT ANIMATION ---- */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+  .animate-float { animation: float 4s ease-in-out infinite; }
+
+  /* ---- TYPOGRAPHY ---- */
+  body {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--fg);
+  }
+
+DESIGN PRINCIPLES:
+  1. VOID BACKGROUND: Body is #050510 — near-black with a blue-violet tint.
+     Two radial gradients create subtle nebula spots (purple at 15% left,
+     cyan at 85% right). Twinkling star particles (white dots, scale/opacity
+     animation) float across the viewport. Space is the canvas.
+  2. FOUR NEON ACCENTS: Lime green (#9bf500) for hero title + status. Cyan
+     (#00f2ff) for primary UI, borders, buttons. Magenta (#e600ff) for
+     secondary buttons, subtitle, badges. Yellow (#facc15) for highlights.
+     Each card gets its own accent identity. Neon glow on everything (text-
+     shadow + box-shadow).
+  3. MACHINE CONTAINER: Main content lives inside a metallic frame —
+     #1a1b26/90 with backdrop-blur, 4px slate borders, border-radius 3rem.
+     Optional side rails with vertical track and pulsing LED dots (red left,
+     green right). Creates a "portal device" framing the content.
+  4. HEX-CLIP BUTTONS: Navigation buttons use polygon clip-path to create a
+     hexagonal shape. Neon border and text in accent color. Box-shadow glow.
+     Hover: fills with accent color, text goes black. The shape screams sci-fi.
+  5. SPEECH-BUBBLE CARDS: Content cards have a CSS triangle tail at the bottom
+     center (outer triangle in border color, inner triangle in card color).
+     Combined with neon border glow, cards look like communication panels
+     transmitting information to the user.
+  6. CARD CONTENT PATTERN: Image top (160px, overflow-hidden, gradient overlay
+     from card bg) with rotated badge. Bangers title below. Tiny monospace
+     description. Full-width bordered CTA button. Hover: image scales 110%,
+     border brightens, progress bar fills width.
+  7. MULTI-ITEM GRID CARDS: Some cards use a 2x2 grid instead of an image —
+     emoji or icons in bordered cells. Same card body below (title + desc +
+     CTA). Hover: cells tint with accent color.
+  8. SPINNING STATUS RINGS: Two concentric circles with animated borders
+     spinning in opposite directions. Glowing white center dot. Label in
+     Orbitron xs tracking-widest. Compact status-alive indicator.
+  9. STAT BARS: Mini panels with 10px Orbitron labels, 6px rounded progress
+     bars with gradient fills (green→emerald, cyan→blue). Glow shadows on
+     fills. Compact data readouts for system metrics.
+  10. DISPLAY FONTS: Creepster for hero titles (massive, text-stroke, glow).
+      Bangers for card titles (bold, tracking-wide). Orbitron for all UI text
+      (tracking-wider, uppercase feel). Patrick Hand for footer/catchphrases
+      (handwriting contrast). Four fonts, four voices.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const cards = [
+      { title: "DEEP SPACE MISSION", desc: "Explore the outer rim sectors.",
+        accent: "cyan", badge: "NEW" },
+      { title: "ALIEN ENCOUNTERS", desc: "First contact protocols engaged.",
+        accent: "green", badge: "ALERT" },
+      { title: "GALACTIC MARKET", desc: "Trade rare artifacts and fuel.",
+        accent: "pink", badge: "SALE" },
+      { title: "MYSTERY CRATE", desc: "Unknown contents detected.",
+        accent: "yellow", badge: null }
+    ];
+
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column",
+                     position: "relative" }}>
+        {/* STARS */}
+        <div style={{ position: "fixed", inset: 0, pointerEvents: "none" }}>
+          {Array(6).fill(0).map((_, i) => (
+            <div key={i} className="star" style={{
+              width: 4 + (i % 3) * 2, height: 4 + (i % 3) * 2,
+              top: `${10 + i * 15}%`, left: `${10 + i * 13}%`,
+              animationDelay: `${i * 0.5}s`
+            }} />
+          ))}
+        </div>
+
+        {/* HEADER */}
+        <header style={{ padding: "32px 32px 16px", textAlign: "center",
+                         position: "relative", zIndex: 20 }}>
+          <h1 className="hero-title">STAR QUEST</h1>
+          <div className="subtitle-pill" style={{ display: "inline-block", marginTop: 8 }}>
+            <span className="subtitle-text" style={{ fontSize: 20 }}>COMMAND CENTER</span>
+          </div>
+        </header>
+
+        {/* NEON DIVIDER */}
+        <div className="neon-divider-pink" style={{ height: 1, margin: "16px 0" }} />
+
+        {/* MAIN MACHINE CONTAINER */}
+        <main style={{ flex: 1, padding: "0 16px" }}>
+          <div className="machine-frame" style={{ maxWidth: 1200, margin: "0 auto" }}>
+
+            {/* STATUS BAR */}
+            <div style={{ display: "flex", alignItems: "center", gap: 16,
+                          justifyContent: "space-between", marginBottom: 24,
+                          padding: "0 24px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div className="status-rings">
+                  <div className="ring-outer" />
+                  <div className="ring-inner" />
+                  <div className="ring-center" />
+                </div>
+                <div>
+                  <div style={{ fontFamily: "'Orbitron'", fontSize: 12,
+                                color: "var(--accent-cyan)", letterSpacing: "0.1em" }}>
+                    SYSTEM STATUS
+                  </div>
+                  <div style={{ fontFamily: "monospace", fontSize: 14,
+                                color: "var(--accent-green)" }}>
+                    ALL SYSTEMS NOMINAL
+                  </div>
+                </div>
+              </div>
+              <div className="stat-panel" style={{ width: 160 }}>
+                <div className="stat-row">
+                  <span>FUEL</span>
+                  <span style={{ color: "var(--accent-green)" }}>87%</span>
+                </div>
+                <div className="stat-bar">
+                  <div className="stat-fill stat-fill-green" style={{ width: "87%" }} />
+                </div>
+                <div className="stat-row" style={{ marginTop: 4 }}>
+                  <span>CREDITS</span>
+                  <span style={{ color: "var(--accent-cyan)" }}>4,500</span>
+                </div>
+              </div>
+            </div>
+
+            {/* HEX NAV */}
+            <nav style={{ display: "flex", flexWrap: "wrap", justifyContent: "center",
+                          gap: 16, marginBottom: 24 }}>
+              <button className="hex-btn">EXPLORE</button>
+              <button className="hex-btn hex-btn-pink">INVENTORY</button>
+              <button className="hex-btn">MISSIONS</button>
+              <button className="hex-btn hex-btn-pink">SETTINGS</button>
+            </nav>
+
+            {/* CARD GRID */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)",
+                          gap: 24, padding: "0 24px 32px" }}>
+              {cards.map(c => (
+                <div key={c.title} className="portal-card"
+                     style={{ borderColor: `var(--accent-${c.accent})` }}>
+                  <div className="card-tail-inner" />
+                  <div className="card-image">
+                    <div className="card-image-overlay" />
+                    {c.badge && (
+                      <span className={`card-badge badge-${c.accent}`}>{c.badge}</span>
+                    )}
+                  </div>
+                  <div className="card-body">
+                    <h3 className="card-title" style={{ color: `var(--accent-${c.accent})` }}>
+                      {c.title}
+                    </h3>
+                    <p className="card-desc">{c.desc}</p>
+                    <button className="card-cta"
+                            style={{ color: `var(--accent-${c.accent})` }}>
+                      LAUNCH
+                    </button>
+                    <div className="card-progress">
+                      <div className="card-progress-fill"
+                           style={{ background: `var(--accent-${c.accent})` }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </main>
+
+        {/* NEON DIVIDER */}
+        <div className="neon-divider" style={{ margin: "24px 0" }} />
+
+        {/* FOOTER */}
+        <footer style={{ textAlign: "center", padding: "24px 0", position: "relative",
+                         zIndex: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center",
+                        gap: 16 }}>
+            <span className="animate-float" style={{ fontSize: 30 }}>&#x1F47D;</span>
+            <span className="footer-text">ADVENTURE AWAITS!</span>
+            <span className="animate-float" style={{ fontSize: 30, animationDelay: "2s" }}>
+              &#x1F680;
+            </span>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme is a portal gun aimed at your screen. The void background is deep
+  space — #050510 with nebula glow spots drifting in purple and cyan. Stars
+  twinkle. The main content area sits inside a machine — a metallic frame with
+  rounded corners, backdrop blur, and optional side rails with pulsing LED dots
+  (red for danger, green for go). Navigation buttons are hexagons, because in
+  space, everything is a hex. Cards glow with neon borders and have speech-
+  bubble tails pointing down, like transmissions from another dimension. Each
+  card gets its own accent color — cyan for primary, magenta for secondary,
+  green for alerts, yellow for mystery. The Creepster hero title is massive and
+  glowing, the kind of font that screams "ADVENTURE AWAITS" across the cosmos.
+  Bangers titles on cards are punchy and immediate. Orbitron handles all the
+  serious UI text — tracking-wider, uppercase, precise. Patrick Hand in the
+  footer is the human touch — a handwritten note from the pilot. Spinning
+  status rings confirm: systems are nominal. Stat bars show fuel and credits.
+  This is not a website. This is a command center orbiting a distant star.
+
+ANIMATIONS:
+  - STAR TWINKLE: Stars pulse opacity (0.3→1) and scale (1→1.5) on a 3s infinite
+    ease-in-out loop. Each star has a different animation-delay.
+  - CARD HOVER: TranslateY -8px + border brightens to full accent + box-shadow
+    intensifies. Image scales 110% over 500ms. Progress bar fills width over 700ms.
+  - HEX BUTTON HOVER: Background fills with accent color, text goes black. 300ms
+    transition. Glow shadow intensifies.
+  - SPINNING RINGS: Outer ring spins clockwise, inner ring counter-clockwise,
+    both 2s linear infinite. Center dot glows white.
+  - LED PULSE: LED dots pulse opacity on 2s cubic-bezier loop.
+  - FLOAT: Decorative elements float up/down 8px on a 4s ease-in-out infinite loop.
+  - No page transitions, no scanline sweep. The animations are ambient and alive.
+
+SVG ELEMENTS:
+  - PLAY BUTTON: Filled triangle (path d="M8 5v14l11-7z") for media controls.
+  - VOLUME/FULLSCREEN: Stroke icons at 20px in the screen control bar.
+  - STARS: CSS circles (not SVG). LED dots are CSS circles.
+  - HEX SHAPE: CSS clip-path polygon, not SVG. Cards use CSS pseudo-elements
+    for speech-bubble tails. Spinning rings are CSS borders.
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Creepster&family=Orbitron:wght@400;500;700;900&family=Patrick+Hand&display=swap');

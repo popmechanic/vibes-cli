@@ -1,0 +1,541 @@
+THEME: codex
+NAME: Elder Codex
+MOOD: Void-black, gold-and-crimson, arcane-medieval, stat-bars, rune-grid
+
+DESCRIPTION:
+A void-black surface (#0a0a0a) with noise texture overlay. A fixed 4px gold
+gradient bar spans the viewport top like a crown molding (gold-shadow →
+gold-highlight → gold-shadow, with gold glow shadow). Header features a slowly
+rotating sigil (60px circle with dashed stroke + inner rotated square + cross
+SVG). Title in Cinzel Decorative with gold gradient text (background-clip).
+Navigation uses stone buttons (dark gradient, 1px border, 3px bottom border for
+depth) with a 2px gold left-edge indicator bar that appears on hover/active.
+Three card materials: crimson (dark red gradient, gold-bordered header bar with
+crimson bg), parchment (warm tan with noise, double border in gold-shadow), and
+iron (dark gradient, solid top border, dashed stat rows). Crimson cards contain
+stat/progress bars (4px tall, gold fill on dark tracks with glow). Iron cards
+contain sigil grids — a 4-column grid of square cells with rune glyphs in gold,
+hover-glow interaction. Gold decorative rules and a footer ornament (❖ diamond
+centered on the border). Two Cinzel weights: Cinzel Decorative for card headers,
+standard Cinzel for body. All uppercase, heavy letter-spacing.
+
+BEST FOR:
+  - RPG character sheets, stat trackers, game dashboards
+  - Fantasy codex/grimoire apps, spell books, bestiary viewers
+  - Quest logs, mission boards, objective trackers
+  - Rune/glyph selectors, loadout builders, equipment managers
+  - Medieval-themed apps with stats, bars, and categories
+  - Achievement systems, rank progression, skill trees
+  - Any app that needs stat bars + categorized items + arcane mood
+
+NOT FOR:
+  - Modern/minimal consumer apps (too ornate and themed)
+  - Light-mode apps (committed to void-black)
+  - Photography or media-rich apps (dark textures compete)
+  - Data-heavy analytics dashboards (too decorative)
+  - Playful/casual apps (too dark and serious)
+  - E-commerce with product images (crimson/gold overwhelm products)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Iron card with stat-rows — flex justify-between with
+    dashed bottom borders. Or sigil-grid for icon/glyph collections.
+  - If app has FORMS: Inputs on void bg — no visible border, 1px bottom gold/40%.
+    Cinzel font. Labels in xs uppercase tracking-widest. Submit as stone button
+    with left-edge gold indicator.
+  - If app has LISTS: Stack cards (crimson for primary/important, parchment for
+    text content, iron for data/stats). Each has header + body.
+  - If app has CARDS: Pick material by importance — crimson for hero/primary
+    (stat bars inside), parchment for narrative/text, iron for data/grids.
+  - If app has STATS/PROGRESS: 4px tall bars on dark tracks (rgba(0,0,0,0.3)).
+    Gold fill with box-shadow glow. Label left, value right in gold text.
+  - If app has ICONS/GLYPHS: Sigil grid — 4-column, square aspect-ratio cells,
+    gold border/30%, hover: glow + scale(1.1). Active: gold-highlight text +
+    text-shadow glow. Inactive: opacity 0.3.
+  - If app has NAVIGATION: 2-column stone buttons with left-edge gold indicator.
+    Unicode symbol + text label. Active: gold text, border-color gold, pressed-in
+    (translateY 1px, bottom border shrinks).
+
+COLOR TOKENS (oklch):
+  --bg:            oklch(0.06 0.000 0)         /* void black #0a0a0a */
+  --stone-dark:    oklch(0.17 0.000 0)         /* button/panel bg #1e1e1e */
+  --stone-light:   oklch(0.30 0.000 0)         /* lighter stone #3a3a3a */
+  --stone-border:  oklch(0.40 0.000 0)         /* borders #555 */
+  --fg:            oklch(0.90 0.000 0)         /* primary text #e0e0e0 */
+  --fg-muted:      oklch(0.55 0.000 0)         /* inactive text #888 */
+  --gold-base:     oklch(0.73 0.10 78)         /* gold primary #c5a059 */
+  --gold-highlight:oklch(0.97 0.07 100)        /* gold bright #fcf6ba */
+  --gold-shadow:   oklch(0.53 0.08 72)         /* gold dark #8a6e3e */
+  --crimson:       oklch(0.32 0.10 25)         /* crimson accent #6b1f1f */
+  --crimson-dark:  oklch(0.20 0.07 22)         /* crimson deep #3d0e0e */
+  --parchment:     oklch(0.78 0.05 70)         /* parchment bg #d2b48c */
+  --parchment-ink: oklch(0.27 0.04 45)         /* parchment text #3d2b1f */
+
+REFERENCE STYLES:
+
+  /* ---- VOID BACKGROUND ---- */
+  body {
+    background-color: var(--bg);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    font-family: 'Cinzel', serif;
+    color: var(--fg);
+  }
+
+  /* ---- CROWN BAR (fixed top gold strip) ---- */
+  .crown-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--gold-shadow), var(--gold-highlight), var(--gold-shadow));
+    z-index: 100;
+    box-shadow: 0 0 15px var(--gold-base);
+  }
+
+  /* ---- ROTATING SIGIL ---- */
+  .header-sigil {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 16px;
+    border: 2px solid var(--gold-base);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: rotate-sigil 60s linear infinite;
+    box-shadow: 0 0 20px oklch(0.73 0.10 78 / 0.2);
+    position: relative;
+  }
+  .header-sigil::after {
+    content: "";
+    position: absolute;
+    width: 70%;
+    height: 70%;
+    border: 1px solid var(--gold-shadow);
+    transform: rotate(45deg);
+  }
+  @keyframes rotate-sigil {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ---- GOLD GRADIENT TEXT ---- */
+  .gold-text {
+    background: linear-gradient(to bottom, var(--gold-highlight), var(--gold-base));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  }
+
+  /* ---- HEADER ---- */
+  .page-header {
+    text-align: center;
+    border-bottom: 1px solid var(--gold-shadow);
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+  }
+  .page-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 35px;
+    line-height: 1;
+    letter-spacing: 2px;
+    margin: 0;
+  }
+  .page-subtitle {
+    display: block;
+    color: var(--gold-shadow);
+    font-size: 12px;
+    letter-spacing: 6px;
+    margin-top: 8px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* ---- STONE NAV BUTTON ---- */
+  .stone-btn {
+    background: linear-gradient(145deg, #2a2a2a, #222);
+    border: 1px solid #444;
+    border-bottom: 3px solid #111;
+    color: var(--fg-muted);
+    padding: 16px 10px;
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  /* Left-edge gold indicator */
+  .stone-btn::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 2px;
+    background: var(--gold-base);
+    opacity: 0;
+    transition: 0.3s;
+  }
+  .stone-btn:hover, .stone-btn-active {
+    color: var(--gold-highlight);
+    border-color: var(--gold-shadow);
+    background: linear-gradient(145deg, #333, #2a2a2a);
+    text-shadow: 0 0 8px oklch(0.73 0.10 78 / 0.4);
+    transform: translateY(1px);
+    border-bottom-width: 1px;
+  }
+  .stone-btn:hover::before, .stone-btn-active::before {
+    opacity: 1;
+  }
+
+  /* ---- CARD SHARED ---- */
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    transition: transform 0.3s;
+  }
+  .card:active { transform: scale(0.98); }
+  .card-header {
+    padding: 12px 16px;
+    font-family: 'Cinzel Decorative', serif;
+    font-weight: 700;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-body {
+    padding: 20px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ---- CRIMSON CARD ---- */
+  .card-crimson {
+    background: linear-gradient(to bottom, var(--crimson-dark), oklch(0.10 0.03 20));
+    border: 2px solid var(--crimson);
+    color: #ffcccc;
+  }
+  .card-crimson .card-header {
+    background: var(--crimson);
+    color: var(--gold-highlight);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    border-bottom: 2px solid var(--gold-base);
+  }
+
+  /* ---- PARCHMENT CARD ---- */
+  .card-parchment {
+    background: var(--parchment);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    border: 4px double var(--gold-shadow);
+    color: var(--parchment-ink);
+  }
+  .card-parchment .card-header {
+    background: oklch(0.27 0.04 45 / 0.1);
+    border-bottom: 1px solid oklch(0.27 0.04 45 / 0.3);
+    color: var(--crimson-dark);
+  }
+
+  /* ---- IRON CARD ---- */
+  .card-iron {
+    background: linear-gradient(160deg, #2c2c2c, var(--stone-dark));
+    border: 1px solid var(--stone-border);
+    border-top: 3px solid #777;
+  }
+  .card-iron .card-header {
+    background: #111;
+    border-bottom: 1px solid #444;
+    color: #aaa;
+  }
+
+  /* ---- STAT ROW (dashed divider) ---- */
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    border-bottom: 1px dashed #444;
+    padding-bottom: 4px;
+  }
+
+  /* ---- STAT BAR ---- */
+  .stat-bar-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(0,0,0,0.3);
+  }
+  .stat-bar-fill {
+    height: 100%;
+    background: var(--gold-base);
+    box-shadow: 0 0 5px var(--gold-base);
+  }
+  .stat-bar-fill-shadow {
+    background: var(--gold-shadow);
+  }
+
+  /* ---- SIGIL GRID (rune/glyph selector) ---- */
+  .sigil-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .sigil-cell {
+    aspect-ratio: 1;
+    border: 1px solid oklch(0.73 0.10 78 / 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: var(--gold-base);
+    cursor: pointer;
+    background: rgba(0,0,0,0.3);
+    transition: 0.3s;
+  }
+  .sigil-cell:hover {
+    background: oklch(0.73 0.10 78 / 0.1);
+    border-color: var(--gold-highlight);
+    box-shadow: 0 0 15px oklch(0.73 0.10 78 / 0.2);
+    transform: scale(1.1);
+  }
+  .sigil-active {
+    color: var(--gold-highlight);
+    text-shadow: 0 0 5px var(--gold-base);
+  }
+  .sigil-locked { opacity: 0.3; }
+
+  /* ---- GOLD DIVIDER ---- */
+  .gold-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-shadow), transparent);
+    margin: 20px 0;
+    opacity: 0.5;
+  }
+
+  /* ---- FOOTER ---- */
+  .page-footer {
+    margin-top: auto;
+    text-align: center;
+    border-top: 1px solid #333;
+    padding-top: 30px;
+    padding-bottom: 20px;
+    position: relative;
+  }
+  /* Centered ornament on border */
+  .page-footer::before {
+    content: "\2756";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg);
+    padding: 0 10px;
+    color: var(--gold-shadow);
+    font-size: 19px;
+  }
+  .footer-text {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--stone-border);
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+DESIGN PRINCIPLES:
+  1. VOID BLACK: Background is #0a0a0a — nearly pure black. Noise texture
+     at 5% opacity adds barely perceptible grain. No radial gradient, no
+     color tint. The void is absolute. Content floats on nothing.
+  2. CROWN BAR: A fixed 4px gold gradient strip at the viewport top with a
+     15px gold glow shadow. Always visible. The gold authority that frames
+     every interaction. Scroll and it stays. The sovereign is always watching.
+  3. ROTATING SIGIL: A 60px circle with gold dashed stroke, an inner rotated
+     square (::after at 45deg), and a cross SVG. Rotates once per minute
+     (60s linear). The slow rotation is meditative — an arcane seal turning.
+  4. CRIMSON MATERIAL: The hero card type — deep red gradient (crimson-dark
+     → near-black) with crimson border. Header bar uses solid crimson bg with
+     gold-highlight text and a gold bottom border. Inside: stat bars with
+     gold fills and glow shadows. This is the sovereign's card.
+  5. THREE CARD MATERIALS: Crimson (royal/hero, stat bars), parchment (warm
+     tan, double border, narrative text), iron (dark gradient, thick top
+     border, dashed stat rows, sigil grids). Material = importance level.
+  6. LEFT-EDGE INDICATORS: Stone nav buttons have a 2px gold bar on the
+     left edge (::before, opacity 0 → 1). Active state also presses the
+     button in (translateY 1px, bottom border shrinks from 3px to 1px).
+     The gold edge is the current page bookmark.
+  7. SIGIL GRID: A 4-column grid of square cells (aspect-ratio 1) for runes,
+     glyphs, or icons. Gold border at 30% opacity, dark bg. Hover: glow +
+     scale 1.1 + border brightens. Active: gold-highlight text with glow
+     text-shadow. Locked: opacity 0.3. An equipment/spell loadout grid.
+  8. STAT BARS: 4px tall progress bars on dark tracks (rgba black/30%).
+     Gold fill with 5px box-shadow glow. Label left, value right in gold
+     text above. Used in crimson cards for vitality/dominion/resources.
+  9. TWO CINZEL WEIGHTS: Cinzel Decorative (ornate) for card headers and
+     page title. Standard Cinzel at 600 weight for nav buttons and body.
+     Both are uppercase with 1-6px letter-spacing. Every word is engraved.
+  10. FOOTER ORNAMENT: A ❖ diamond character centered on the footer's top
+      border (positioned at top: -12px with bg-color padding to "cut" the
+      line). Gold-shadow colored. The wax seal at the document's end.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const sigils = [
+      { rune: "\u16DF", active: true }, { rune: "\u16B2", active: true },
+      { rune: "\u16A6", active: true, highlight: true }, { rune: "\u16C9", active: true },
+      { rune: "\u16CF", active: false }, { rune: "\u16D2", active: false },
+      { rune: "\u16D6", active: false }, { rune: "\u16C7", active: false }
+    ];
+
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        <div className="crown-bar" />
+
+        <div style={{ padding: "20px 16px", flex: 1, display: "flex",
+                       flexDirection: "column" }}>
+          {/* HEADER */}
+          <header className="page-header">
+            <div className="header-sigil">
+              <svg width="30" height="30" viewBox="0 0 100 100"
+                   fill="none" stroke="var(--gold-base)" strokeWidth="5">
+                <circle cx="50" cy="50" r="40" strokeDasharray="10 5" />
+                <line x1="50" y1="10" x2="50" y2="90" />
+                <line x1="10" y1="50" x2="90" y2="50" />
+              </svg>
+            </div>
+            <h1 className="page-title gold-text">Elder Codex</h1>
+            <span className="page-subtitle">Chronicles of the Ascendant</span>
+          </header>
+
+          {/* NAV */}
+          <nav style={{ display: "grid", gridTemplateColumns: "1fr 1fr",
+                        gap: 12, marginBottom: 32 }}>
+            <div className="stone-btn stone-btn-active">
+              <span>&#9876;</span> Lineage
+            </div>
+            <div className="stone-btn"><span>&#10022;</span> Arcana</div>
+            <div className="stone-btn"><span>&#9874;</span> Forge</div>
+            <div className="stone-btn"><span>&#9764;</span> Rites</div>
+          </nav>
+
+          {/* CARDS */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            {/* CRIMSON - Stats */}
+            <div className="card card-crimson">
+              <div className="card-header">
+                <span>Sovereign State</span>
+                <span style={{ fontSize: 19 }}>&#9812;</span>
+              </div>
+              <div className="card-body">
+                <div style={{ display: "flex", justifyContent: "space-between",
+                              marginBottom: 10 }}>
+                  <span>Vitality</span>
+                  <span style={{ color: "var(--gold-base)" }}>1,450 / 1,450</span>
+                </div>
+                <div className="stat-bar-track" style={{ marginBottom: 15 }}>
+                  <div className="stat-bar-fill" style={{ width: "100%" }} />
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between",
+                              marginBottom: 10 }}>
+                  <span>Dominion</span>
+                  <span style={{ color: "var(--gold-base)" }}>89%</span>
+                </div>
+                <div className="stat-bar-track">
+                  <div className="stat-bar-fill stat-bar-fill-shadow"
+                       style={{ width: "89%" }} />
+                </div>
+              </div>
+            </div>
+
+            {/* PARCHMENT - Quest */}
+            <div className="card card-parchment">
+              <div className="card-header">Active Decree</div>
+              <div className="card-body">
+                <p style={{ margin: 0, fontStyle: "italic", fontWeight: 600 }}>
+                  "Seek the Pillar of Ash."
+                </p>
+                <p style={{ marginTop: 8, fontSize: 13, opacity: 0.8 }}>
+                  The omens speak of a fractured leyline beneath the capital.
+                </p>
+                <div className="gold-divider" />
+                <div style={{ textAlign: "right", fontSize: 13, fontWeight: 700 }}>
+                  REWARD: 500 <span style={{ color: "var(--gold-shadow)" }}>GOLD</span>
+                </div>
+              </div>
+            </div>
+
+            {/* IRON - Sigil Grid */}
+            <div className="card card-iron">
+              <div className="card-header">Glyphs &amp; Wards</div>
+              <div className="card-body">
+                <div className="stat-row">
+                  <span>Equipped Slots</span>
+                  <span>4 / 6</span>
+                </div>
+                <div className="sigil-grid" style={{ marginTop: 10 }}>
+                  {sigils.map((s, i) => (
+                    <div key={i} className={`sigil-cell ${s.highlight ? "sigil-active" : ""}
+                         ${!s.active ? "sigil-locked" : ""}`}>
+                      {s.rune}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* FOOTER */}
+          <footer className="page-footer">
+            <h2 className="footer-text">MCMXC &bull; Royal Archives &bull; MMXXIV</h2>
+          </footer>
+        </div>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme is a grimoire opened in a lightless chamber. The background is the
+  void — #0a0a0a, barely above pure black, with a whisper of noise grain. A thin
+  gold bar crowns the viewport top: the sovereign's seal, fixed and inescapable.
+  Below it, a sigil rotates once per minute — a dashed circle with a cross and
+  an inner diamond, turning like the mechanism of a celestial clock. The title
+  is etched in Cinzel Decorative with gold gradient — a name that glows like
+  foil pressed into dark leather. Navigation buttons are stone tablets: dark
+  gradient, thick bottom border for depth, and a gold edge that appears when
+  touched — the bookmark of the current page. Cards are three materials stacked
+  in a codex: crimson for the sovereign's vital stats (deep red gradient, gold
+  header bar, 4px stat bars that glow), parchment for decrees and quests (warm
+  tan, double border, brown italic text), iron for the arcane inventory (dark
+  metal, thick top border, a 4-column sigil grid of runes that glow and pulse
+  when hovered). The sigil grid is the soul of this theme — square cells with
+  gold borders, rune characters that brighten on hover, locked slots faded to
+  30% opacity. Stats are labeled simply: "Vitality 1,450 / 1,450" with a gold
+  bar below. The footer has a ❖ diamond centered on the divider — the final
+  seal. This is not a dashboard. This is an artifact.
+
+ANIMATIONS:
+  - SIGIL ROTATION: 60s linear infinite. One rotation per minute. Meditative.
+  - SIGIL CELL HOVER: scale(1.1) + border brightens + gold glow shadow. 300ms.
+  - BUTTON PRESS: translateY(1px), bottom border shrinks (3px → 1px). Pressed-
+    into-stone feel. Gold left-edge indicator fades in.
+  - CARD PRESS: scale(0.98) on :active, 300ms ease.
+  - STAT BAR: Gold fill can animate width on mount (transition: width 0.5s).
+  - No particles, no flicker. The codex is still and patient.
+
+SVG ELEMENTS:
+  - HEADER SIGIL: SVG circle (r=40, dashed stroke) + two crossed lines (cross
+    pattern). Stroke in gold-base, strokeWidth 5. Rotates with parent div.
+  - NOISE TEXTURE: Inline SVG data URI with feTurbulence filter at 0.05 opacity.
+  - FOOTER ORNAMENT: Unicode ❖ character, not SVG. Positioned with CSS.
+  - All card materials (crimson gradient, parchment noise, iron sheen) are CSS.
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;800&display=swap');
