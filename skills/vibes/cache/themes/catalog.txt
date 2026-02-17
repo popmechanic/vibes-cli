@@ -85,6 +85,66 @@ Example selections (3 themes):
   "Virtual pet app"       → hearth, capsule, chrono
   "RPG character sheet"   → hearth, vault, sensor
   "Team roster manager"   → hearth, pitch, default
+  "Developer changelog"   → desktop, signal, default
+  "Retro message board"   → desktop, zine, scrapbook
+  "Love letter app"       → desktop, scrapbook, hearth
+  "AI model showcase"     → mesh, signal, poster
+  "3D tool landing page"  → mesh, poster, specimen
+  "Computational engine"  → mesh, signal, vault
+  "Game event timer"      → terminal, chrono, signal
+  "Deploy log dashboard"  → terminal, signal, vault
+  "Hacker news reader"    → terminal, signal, default
+  "Logo variant viewer"   → proof, specimen, archive
+  "Icon library browser"  → proof, archive, signal
+  "Design portfolio"      → proof, atelier, poster
+  "AI model profile"      → dossier, mesh, signal
+  "Personal contact card" → dossier, proof, default
+  "Character bio page"    → dossier, hearth, archive
+  "Fitness score app"     → orbit, chrono, sensor
+  "Dating profile viewer" → orbit, dossier, hearth
+  "Personality quiz"      → orbit, capsule, hearth
+  "Wine tasting journal"  → palate, archive, atelier
+  "Coffee flavor profile" → palate, atelier, archive
+  "Poetry card deck"      → palate, specimen, archive
+  "Game cooldown tracker" → matrix, terminal, signal
+  "Server status board"   → matrix, terminal, sensor
+  "Alert monitor app"     → matrix, sensor, signal
+  "Sales analytics app"   → carbon, vault, pitch
+  "Dashboard builder"     → carbon, signal, default
+  "Code playground"       → carbon, desktop, signal
+  "Pokemon card browser"  → recon, hearth, dossier
+  "Tinder clone"          → recon, orbit, dossier
+  "Trading card viewer"   → recon, proof, archive
+  "Anime fan site"        → rift, zine, poster
+  "Game launcher"         → rift, console, recon
+  "Streaming media hub"   → rift, carbon, poster
+  "Steampunk inventory"   → aether, hearth, archive
+  "Workshop project log"  → aether, scrapbook, archive
+  "Clockwork timer app"   → aether, dial, chrono
+  "Fantasy RPG inventory" → guild, hearth, aether
+  "Medal collection app"  → guild, archive, proof
+  "Noble house registry"  → guild, vault, archive
+  "Spell book manager"    → codex, guild, hearth
+  "D&D character sheet"   → codex, hearth, guild
+  "Quest log tracker"     → codex, guild, terminal
+  "Potion ingredient app" → opus, aether, archive
+  "Tarot card viewer"     → opus, codex, guild
+  "Museum exhibit guide"  → opus, archive, atlas
+  "Cyberpunk chat app"    → edge, rift, terminal
+  "Mission board tracker" → edge, recon, rift
+  "Hacker dashboard"      → edge, terminal, matrix
+  "Drone surveillance UI" → chrome, edge, matrix
+  "War room dashboard"    → chrome, matrix, terminal
+  "Comms intercept app"   → chrome, edge, signal
+  "Anime fan dashboard"   → neon, rift, edge
+  "Arcade game tracker"   → neon, edge, capsule
+  "Neon sign designer"    → neon, edge, chrome
+  "Creative coding tool"  → nexus, mesh, signal
+  "Design studio bio"     → nexus, zine, specimen
+  "Generative art gallery"→ nexus, specimen, mesh
+  "Norse RPG inventory"   → rune, codex, guild
+  "Dark fantasy bestiary" → rune, codex, hearth
+  "Viking stat tracker"   → rune, guild, codex
 
 THEME CATALOG
 ---------------------
@@ -111,6 +171,26 @@ THEME CATALOG
 | sensor      | Sensor Dashboard  | Dark-telemetry, red-lit, data-dense              | Habit trackers, streaks, health metrics, IoT readouts, analytics|
 | slab        | Slab Concrete     | Industrial-graphic, concrete-and-acid            | Recipe pages, product showcases, spec sheets, landing pages     |
 | hearth      | Hearth Sim        | Cozy-game, purple-and-gold, life-sim             | Character managers, pet apps, RPG trackers, roster dashboards   |
+| desktop     | Desktop Retro     | Nostalgic-computing, IDE-dark, Win95-dialogs      | Dev tools, retro pages, message boards, personal nostalgia apps |
+| mesh        | Mesh Void         | Computational-dark, wireframe, HUD-precise        | 3D/AI product pages, dev tool landings, spec-heavy showcases    |
+| terminal    | Terminal CRT      | Phosphor-green, retro-CRT, command-line            | Timer apps, CLI interfaces, log viewers, system monitors        |
+| proof       | Proof Sheet       | Ultra-dark, monochrome, review-board, zero-accent  | Design review, image galleries, asset browsers, portfolio cards |
+| dossier     | Dossier Card      | Dark-profile, spec-sheet, monochrome, mobile-first | Profile cards, about pages, spec sheets, single-entity views    |
+| orbit       | Orbit Dashboard   | Dark-mobile, multi-accent, glassmorphic, rounded   | Match/compatibility apps, fitness scores, social profiles       |
+| palate      | Palate Notes      | Dark-elegant, serif-minimal, sommelier, restrained | Tasting notes, single-item views, paginated cards, flavor profiles |
+| matrix      | Matrix Status     | Phosphor-green, CRT-flicker, grouped-sections      | Game timers, status boards, server monitors, event trackers       |
+| carbon      | Carbon Panel      | Apple-dark, warm-gray, data-viz, split-panel        | Dashboard builders, analytics, split editors, admin panels        |
+| recon       | Recon Grid        | Black-and-red, grid-paper, monospace-targeting       | Card-swiping apps, stat comparisons, trading card viewers         |
+| rift        | Rift Portal       | Sci-fi-neon, space-void, multi-accent, machine-framed | Fan sites, gaming hubs, media browsers, entertainment portals     |
+| aether      | Aether Brass      | Steampunk-parchment, brass-mechanical, Victorian       | Steampunk apps, gauge utilities, inventory managers, adventure UIs |
+| guild       | Guild Ledger      | Dark-navy, gold-thread, medieval-heraldic, multi-material | Fantasy game UIs, registries, inventories, collection catalogs    |
+| codex       | Elder Codex       | Void-black, gold-and-crimson, arcane-medieval, rune-grid  | RPG character sheets, stat trackers, quest logs, grimoire apps    |
+| opus        | Opus Cabinet      | Void-black, wood-framed, alchemical-gold, sigil-cards     | Museum displays, alchemical UIs, curated catalogs, entity viewers |
+| edge        | Edge Interface    | Cyberpunk-neon, pink-yellow-cyan, glitch-text, chamfered  | Cyberpunk apps, chat feeds, mission trackers, HUD dashboards      |
+| chrome      | Chrome Terminal   | Cyberpunk-command, red-neon, octagonal-frame, scan-bar    | Command centers, surveillance UIs, ops dashboards, two-panel apps |
+| neon        | Neon Arcade       | Hot-gradient-light, neon-pink-glow-frame, dark-panel-on-bright | Bright cyberpunk apps, anime UIs, arcade games, entertainment portals |
+| nexus       | Nexus Grid        | Pure-black, acid-lime, voxel-generative, hyper-minimal         | Creative studios, generative art, dev landing pages, minimal portfolios |
+| rune        | Rune Interface    | Abyss-dark, cyan-neon-glow, Norse-rune, three-column-RPG       | RPG character sheets, dark fantasy UIs, stat trackers, game inventories  |
 
 HOW TO CHOOSE
 -------------
@@ -176,6 +256,66 @@ Ask: "What is the app's primary content?"
 
   CHARACTER MANAGER / PET APP / GAME UI / ROSTER / LIFE SIM
     → hearth (purple gradient, gold accents, stat bars, mood bubbles, plumbob SVGs)
+
+  DEVELOPER TOOL / RETRO COMPUTING / NOSTALGIA / MESSAGE BOARD
+    → desktop (IDE dark bg, Win95 dialog windows, 3D bevels, syntax coloring, draggable)
+
+  3D / AI / ML PRODUCT PAGE / SPEC SHOWCASE / COMPUTATIONAL TOOL
+    → mesh (60/40 split, wireframe viz, light-weight giant type, spec grid, HUD header)
+
+  TERMINAL / CLI / LOG VIEWER / SYSTEM MONITOR / COUNTDOWN
+    → terminal (green-on-black CRT, scan-line sweep, typewriter text, bordered rows, control bar)
+
+  DESIGN REVIEW / IMAGE GALLERY / ASSET BROWSER / VARIANT VIEWER
+    → proof (sharp-corner cards, centered visuals, tag pills, stroke-only icons, tab bar)
+
+  PROFILE CARD / ABOUT PAGE / SPEC SHEET / SINGLE ENTITY VIEW
+    → dossier (bold title, spec grid, grayscale image, bordered CTA, mobile column)
+
+  MATCHING / COMPATIBILITY / FITNESS SCORE / SOCIAL PROFILE
+    → orbit (glassmorphic cards, multi-accent colors, radar chart, hero number, match list)
+
+  TASTING NOTES / WINE PROFILE / FLAVOR REVIEW / ELEGANT SINGLE VIEW
+    → palate (serif typography, dot-on-line scales, pill tags, paginated footer, no scroll)
+
+  GAME TIMER / STATUS BOARD / EVENT MONITOR / CATEGORIZED EVENTS
+    → matrix (section cards, traffic-light status, green glow, screen flicker, CRT)
+
+  DASHBOARD BUILDER / SPLIT EDITOR / ANALYTICS / CHARTS + TABLES
+    → carbon (Apple dark mode, warm accents, SVG charts, split panels, rounded cards)
+
+  CARD SWIPE / SPECIMEN ANALYSIS / STAT COMPARISON / TRADING CARDS
+    → recon (grid-paper substrate, red accent, stat bars, square controls, progress segments)
+
+  FAN SITE / GAMING HUB / ENTERTAINMENT PORTAL / SCI-FI APP
+    → rift (space void, hex buttons, neon card grid, machine frame, multi-accent glow)
+
+  STEAMPUNK / VICTORIAN / BRASS INSTRUMENT / WORKSHOP / ADVENTURE
+    → aether (parchment surface, brass medallions, gauge dials, toggle switches, screws)
+
+  FANTASY / MEDIEVAL / GUILD / REGISTRY / HERALDIC / COLLECTION
+    → guild (navy fabric, gold thread text, material cards, stone buttons, stitched borders)
+
+  RPG / GRIMOIRE / CODEX / STAT TRACKER / RUNE SELECTOR
+    → codex (void-black, crown bar, rotating sigil, crimson+parchment+iron cards, stat bars, rune grid)
+
+  ALCHEMY / MUSEUM / CABINET / CURATED DISPLAY / ENTITY VIEWER
+    → opus (wood-framed cabinet, corner brackets, iron+gold+parchment cards, sigils, stat grids)
+
+  CYBERPUNK / NEON / GLITCH / HACKER / NIGHT CITY / CHAT FEED
+    → edge (chamfered panels, glitch title, pink+yellow+cyan neon, hazard stripe, scanlines)
+
+  COMMAND CENTER / SURVEILLANCE / OPS DASHBOARD / TWO-PANEL HUD
+    → chrome (octagonal frame, scan bar, container glitch, crosshair HUD, warning ticker)
+
+  BRIGHT CYBERPUNK / ANIME / ARCADE / NEON SIGN / HOT GRADIENT
+    → neon (hot gradient bg, dark panel on bright, shadow-clone title, click flash, circuit corners)
+
+  CREATIVE STUDIO / GENERATIVE ART / COMPUTATIONAL DESIGN / MINIMAL PORTFOLIO
+    → nexus (voxel grid, acid-lime pills, pure black void, system sans, no ornament)
+
+  NORSE RPG / DARK FANTASY / RUNE SELECTOR / CHARACTER SHEET / GAME INVENTORY
+    → rune (three-column grid, rune-prefixed nav, staggered stat bars, mystic orb, chamfered panels)
 
 SIGNALS IN USER PROMPT
 ----------------------
@@ -276,11 +416,166 @@ hearth signals:    "character", "pet", "avatar", "Sims", "life sim", "game UI",
                    "inventory", "skills tree", "level up", "team manager",
                    "profile cards", "stat bars", "health bar"
 
+desktop signals:   "retro", "Windows 95", "Win95", "nostalgic", "old school",
+                   "desktop", "dialog box", "error message", "IDE", "code editor",
+                   "developer nostalgia", "throwback", "vintage computer",
+                   "90s", "message board", "confession", "love letter",
+                   "anonymous note", "bulletin", "pixel", "old web"
+
+carbon signals:    "dashboard builder", "analytics", "charts", "data viz",
+                   "admin panel", "CMS", "split panel", "editor", "preview",
+                   "line chart", "donut chart", "pie chart", "table",
+                   "component builder", "code editor", "IDE", "workspace",
+                   "Apple dark mode", "native app", "data management",
+                   "financial dashboard", "sales dashboard", "metrics"
+
+matrix signals:    "game timer", "cooldown", "event tracker", "status board",
+                   "server monitor", "uptime", "system status", "mission control",
+                   "severity", "alert", "warning", "critical", "operational",
+                   "grouped events", "categorized", "real-time", "live status",
+                   "CRT", "green screen", "phosphor", "matrix", "hacker",
+                   "status dashboard", "event monitor", "notification board"
+
+palate signals:    "tasting", "wine", "coffee", "tea", "flavor", "notes",
+                   "sommelier", "review", "profile", "aroma", "pairing",
+                   "elegant", "serif", "minimal dark", "single view",
+                   "one at a time", "paginated", "card deck", "flashcard",
+                   "refined", "quiet", "restrained", "luxury", "understated",
+                   "curated", "detail view", "deep dive"
+
+orbit signals:     "match", "compatibility", "dating", "social", "fitness score",
+                   "wellness", "health score", "personality quiz", "trait",
+                   "rating", "percentage", "score", "ranking", "comparison",
+                   "radar chart", "spider chart", "profile card", "social app",
+                   "discovery feed", "recommendations", "suggestions",
+                   "mobile app", "glassmorphic", "colorful dashboard"
+
+dossier signals:   "profile", "bio", "about me", "about page", "contact card",
+                   "spec sheet", "model card", "AI profile", "user profile",
+                   "character bio", "personnel", "dossier", "data sheet",
+                   "single entity", "info card", "vcard", "identity",
+                   "resume", "CV", "brief", "one-pager", "mobile profile"
+
+proof signals:     "design review", "variant", "concept", "logo", "icon browser",
+                   "gallery", "asset manager", "media library", "file browser",
+                   "portfolio", "showcase", "collection", "proof sheet",
+                   "mood board", "comparison", "A/B test", "visual review",
+                   "image grid", "thumbnails", "card gallery", "catalog",
+                   "monochrome gallery", "minimal gallery"
+
+terminal signals:  "terminal", "command line", "CLI", "console", "CRT",
+                   "green screen", "mainframe", "hacker", "matrix", "retro computer",
+                   "log viewer", "system monitor", "boot", "shell", "prompt",
+                   "countdown", "timer", "deploy log", "build status",
+                   "notification feed", "event log", "typewriter", "phosphor",
+                   "ASCII", "text-only", "monochrome green"
+
+mesh signals:      "3D", "wireframe", "topology", "mesh", "AI tool",
+                   "machine learning", "neural network", "computational",
+                   "product page", "spec sheet", "technical showcase",
+                   "render", "engine", "pipeline", "procedural",
+                   "generative", "visualization", "HUD", "void"
+
 pitch signals:     "sports", "betting", "scoreboard", "leaderboard", "match",
                    "game", "team", "player", "stats", "performance",
                    "fantasy", "scouting", "analytics dashboard", "odds",
                    "standings", "league", "season", "roster", "draft",
                    "highlight", "image grid", "metrics"
+
+guild signals:     "guild", "medieval", "fantasy", "RPG", "heraldic",
+                   "registry", "ledger", "royal", "kingdom", "noble",
+                   "inventory", "armory", "bestiary", "collection",
+                   "rank", "achievement", "medal", "badge", "crest",
+                   "parchment", "iron", "wood", "stitched", "material",
+                   "decree", "edict", "catalog", "formal", "institutional",
+                   "gold", "dark luxury", "membership", "directory"
+
+aether signals:    "steampunk", "Victorian", "brass", "copper", "steam",
+                   "clockwork", "gears", "cog", "gauge", "dial", "pressure",
+                   "instrument", "workshop", "workbench", "inventor",
+                   "adventure", "quest", "RPG", "inventory", "parchment",
+                   "mechanical", "apparatus", "vintage", "antique",
+                   "chronometer", "telegraph", "navigator", "schematics",
+                   "maker", "lab notebook", "patent", "warm light theme"
+
+rift signals:      "fan site", "portal", "gaming", "game hub", "launcher",
+                   "quest", "mission", "adventure", "sci-fi", "space",
+                   "entertainment", "media browser", "gallery", "neon",
+                   "categories", "featured", "video", "streaming",
+                   "dimension", "universe", "explorer", "command center",
+                   "arcade", "hub", "discovery", "content portal"
+
+chrome signals:    "command center", "operations", "ops", "surveillance",
+                   "mission control", "headquarters", "war room", "tactical",
+                   "two-panel", "hero + sidebar", "split view", "intel",
+                   "scan", "scanning", "sweep", "radar", "sonar",
+                   "cyberpunk", "neon", "glitch", "unstable", "corrupted",
+                   "crosshair", "targeting", "lock on", "HUD",
+                   "warning", "alert", "unauthorized", "breach",
+                   "comms", "encrypted channel", "feed", "live",
+                   "octagonal", "faceted", "military", "classified"
+
+edge signals:      "cyberpunk", "neon", "glitch", "hacker", "Night City",
+                   "edgerunner", "chrome", "cyberware", "implant", "netrunner",
+                   "gig", "mission", "bounty", "contract", "fixer",
+                   "chat", "feed", "comms", "channel", "encrypted",
+                   "HUD", "heads-up display", "targeting", "crosshair",
+                   "punk", "street", "underground", "dark future",
+                   "progress bar", "install", "download", "sync",
+                   "pink neon", "yellow neon", "cyan neon", "scanlines",
+                   "chamfer", "cut corner", "hazard stripe"
+
+opus signals:      "alchemy", "alchemical", "transmutation", "opus", "magnum",
+                   "museum", "cabinet", "curiosity", "curated", "display case",
+                   "specimen", "artifact", "relic", "collection", "exhibit",
+                   "element", "ingredient", "potion", "elixir", "formula",
+                   "sigil", "symbol", "glyph", "mystic", "occult", "esoteric",
+                   "wood frame", "framed", "gallery", "entity", "catalog",
+                   "bestiary", "herbal", "apothecary", "materia medica",
+                   "celestial", "astrology", "zodiac", "tarot"
+
+codex signals:     "codex", "grimoire", "spell", "rune", "sigil", "arcane",
+                   "elder", "sovereign", "throne", "crown", "decree", "edict",
+                   "RPG", "character sheet", "stat tracker", "quest log",
+                   "ability", "skill tree", "magic", "enchantment", "ritual",
+                   "tome", "scroll", "ancient", "forbidden", "dark fantasy",
+                   "dungeon", "bestiary", "compendium", "lore", "artifact",
+                   "stat bars", "power level", "XP", "level", "class",
+                   "void", "crimson", "gold crown", "rune grid"
+
+rune signals:      "Norse", "Viking", "Yggdrasil", "rune", "runic", "futhark",
+                   "dark fantasy", "Souls-like", "character sheet", "stat tracker",
+                   "RPG", "game UI", "inventory", "equipment", "bestiary",
+                   "skill tree", "level up", "grimoire", "ancient", "Nordic",
+                   "cyan glow", "teal neon", "abyss", "void dark", "stone",
+                   "three-column", "sidebar stats", "stat bars", "hero display",
+                   "rune grid", "rune selector", "mystic", "eye", "orb",
+                   "chamfered", "Norse mythology", "Ragnarok", "Valhalla",
+                   "saga", "quest", "warrior", "mage", "class", "attributes"
+
+nexus signals:     "creative studio", "computational", "generative", "algorithmic",
+                   "design collective", "minimal portfolio", "black and lime",
+                   "acid green", "voxel", "pixel art", "grid art", "void",
+                   "digital brutalism", "brutalist", "system font", "Helvetica",
+                   "Swiss", "studio page", "lab", "research", "tools",
+                   "creative coding", "WebGL", "shader", "installation",
+                   "link in bio", "creative agency", "pill buttons",
+                   "black", "minimal", "no decoration", "pure", "sparse"
+
+neon signals:      "neon", "arcade", "anime", "bright cyberpunk", "hot gradient",
+                   "pink neon", "glow", "Night City", "bright", "colorful cyberpunk",
+                   "light cyberpunk", "entertainment", "game", "portal", "fun",
+                   "shadow clone", "flashy", "vibrant", "electric", "party",
+                   "club", "rave", "disco", "festival", "LED", "sign",
+                   "bright future", "optimistic cyberpunk", "pop cyber",
+                   "circuit", "click flash", "neon frame", "glow border"
+
+recon signals:     "swipe", "tinder", "match", "card swipe", "trading card",
+                   "specimen", "profile card", "stat comparison", "accept reject",
+                   "collectible", "card browser", "attribute", "stat bars",
+                   "graph paper", "grid paper", "targeting", "analysis",
+                   "evaluate", "card deck", "accept or reject", "yes no",
+                   "single card", "mobile card", "swipe card"
 
 default signals:   "dashboard", "tracker", "todo", "planner", "form",
                    "CRUD", "admin", "manager", "organizer", "tool",
@@ -449,6 +744,238 @@ hearth:
   - If app needs forms → pill-radius inputs on translucent purple, gold focus border
   - If app needs progress → pill stat bars, color-coded green/yellow/red with label inside
 
+desktop:
+  - NOT for professional/enterprise dashboards (too playful and retro)
+  - NOT for content-heavy editorial or reading apps (competing visual layers)
+  - NOT for e-commerce or product showcases (no product display patterns)
+  - NOT for minimalist/clean apps (deliberately noisy and layered)
+  - If app needs tables → each row as a Win95 dialog with icon + content + buttons
+  - If app needs forms → Win95 inset-bevel inputs, Tahoma 11px labels, 3D buttons
+  - If app needs lists → cascading dialog windows with staggered offset positioning
+
+mesh:
+  - NOT for colorful consumer apps (pure grayscale except one green dot)
+  - NOT for data-heavy CRUD with many forms (limited input patterns)
+  - NOT for playful/casual apps (too austere and void-like)
+  - NOT for content-heavy editorial reading (white-on-black fatigues)
+  - NOT for e-commerce with product images (no rich imagery patterns)
+  - If app needs tables → spec-box grids or numbered feature rows
+  - If app needs forms → bottom-border inputs on void bg, full-width CTA bar
+  - If app needs lists → feature-row stack with monospace index + content columns
+
+carbon:
+  - NOT for content-heavy editorial or reading apps (too utilitarian)
+  - NOT for playful/casual consumer apps (too serious and functional)
+  - NOT for e-commerce or product showcases (no product display patterns)
+  - NOT for creative portfolios or photography (no image patterns)
+  - NOT for single-focus mobile-first apps (split panel needs width)
+  - If app needs tables → 3-column grid, xs gray headers, sm rows with hover-highlight
+  - If app needs forms → inputs inside cards, transparent bg, border #3A3A3C, 8px radius
+  - If app needs charts → SVG line/donut charts inside cards with colored legend dots
+
+matrix:
+  - NOT for colorful consumer apps (green-dominant, yellow/red accents only)
+  - NOT for content-heavy reading apps (phosphor green fatigues eyes)
+  - NOT for e-commerce or product showcases (no imagery patterns)
+  - NOT for photography or creative portfolios (no color, no image patterns)
+  - NOT for playful/casual apps (too austere and machine-like)
+  - If app needs tables → grouped section cards with event rows (dot + name + status + value)
+  - If app needs forms → transparent inputs with green/30% bottom border in section cards
+  - If app needs lists → categorized items in section cards with traffic-light status colors
+  - COMPARE WITH terminal: matrix has grouped sections + multi-status colors; terminal has bare rows + monochrome green
+
+palate:
+  - NOT for data-heavy dashboards with many metrics (too sparse and elegant)
+  - NOT for complex multi-section layouts (single-view only, no navigation)
+  - NOT for colorful consumer apps (strict grayscale, no accent)
+  - NOT for playful/casual apps (too refined and serious)
+  - NOT for form-heavy CRUD apps (minimal input patterns)
+  - NOT for apps requiring scrolling (viewport-height single view paradigm)
+  - If app needs tables → labeled sections with serif titles and dot-on-line scales
+  - If app needs forms → bottom-line inputs, uppercase tracking labels, text-link submit
+  - If app needs lists → pill tags in flex-wrap rows or vertical serif titles with separators
+
+orbit:
+  - NOT for professional/enterprise dashboards (too playful and colorful)
+  - NOT for content-heavy editorial or reading apps (no text layout patterns)
+  - NOT for minimalist/monochrome apps (multi-color is fundamental)
+  - NOT for desktop-first wide layouts (mobile column is the identity)
+  - NOT for e-commerce with product images (no product display patterns)
+  - If app needs tables → color-coded stat cards with icon + label + bold value + mini progress
+  - If app needs forms → inputs inside stat-cards, rounded, accent-colored focus borders
+  - If app needs lists → match-item rows with colored circle avatars and subtitle metadata
+
+dossier:
+  - NOT for multi-section dashboards with many widgets (single-card paradigm)
+  - NOT for data-heavy analytics with charts and graphs (no data viz patterns)
+  - NOT for colorful consumer apps (strict black-and-white only)
+  - NOT for complex multi-page flows (designed for single-view focus)
+  - NOT for content-heavy editorial reading (too compact and dense)
+  - If app needs tables → 2-column key:value spec grid in xs monospace, no borders
+  - If app needs forms → full-width bordered inputs, no radius, bordered submit button
+  - If app needs lists → stacked profile cards or spec grids within a single card
+
+proof:
+  - NOT for data-heavy dashboards with charts and metrics (no data patterns)
+  - NOT for content-heavy editorial or reading apps (too dark, too sparse)
+  - NOT for colorful consumer apps (strict monochrome, zero accent)
+  - NOT for complex forms with many fields (minimal input patterns)
+  - NOT for playful/casual apps (too austere and functional)
+  - If app needs tables → each row becomes a three-section card (header/content/footer)
+  - If app needs forms → inputs inside card content area, bottom-border only, stroke submit
+  - If app needs lists → stacked cards with numbered titles, tag pills, and action buttons
+
+terminal:
+  - NOT for colorful consumer apps (strict green-on-black only)
+  - NOT for content-heavy reading apps (phosphor green fatigues eyes)
+  - NOT for e-commerce or product showcases (no imagery patterns)
+  - NOT for playful/casual apps (too austere and machine-like)
+  - NOT for photography or creative portfolios (no color, no image patterns)
+  - If app needs tables → bordered rows with dot indicator + label + value, no headers
+  - If app needs forms → bottom-border inputs, green caret, bordered submit with > prefix
+  - If app needs lists → stacked bordered rows with green dots, gradient overlays
+
+guild:
+  - NOT for modern/minimal consumer apps (too ornate and heavy)
+  - NOT for fast-paced interactive apps (too deliberate and formal)
+  - NOT for photography or media-rich apps (gold competes with imagery)
+  - NOT for data-heavy analytics dashboards (too decorative for dense data)
+  - NOT for playful/casual apps (too serious and institutional)
+  - NOT for light-mode apps (committed to deep navy dark)
+  - If app needs tables → material cards (parchment/iron/wood/stitched) with header bar + rank
+  - If app needs forms → bottom-border gold inputs, uppercase Cinzel labels, stone button submit
+  - If app needs lists → stacked cards in content-grid, alternate materials by category
+  - COMPARE WITH aether: guild is dark navy + gold; aether is light parchment + brass. Both medieval.
+  - COMPARE WITH vault: guild uses material cards + gold thread; vault uses glass cards + gold gradient. Both dark luxury.
+
+aether:
+  - NOT for modern/minimal dark-mode apps (warm light theme, ornate)
+  - NOT for data-heavy analytics dashboards (too decorative for dense data)
+  - NOT for professional enterprise tools (too themed and whimsical)
+  - NOT for photography or media-rich apps (brass competes with imagery)
+  - NOT for fast-paced consumer apps (too slow and deliberate)
+  - NOT for e-commerce with product images (warm tone shifts product colors)
+  - If app needs tables → control-panel sections with screws, control-rows with label + value
+  - If app needs forms → bottom-border inputs on parchment, Homemade Apple labels, medallion submit
+  - If app needs charts → circular brass gauges with Cinzel Decorative numbers and status lights
+
+rift:
+  - NOT for professional/enterprise dashboards (too playful and themed)
+  - NOT for content-heavy editorial or reading apps (neon fatigues eyes)
+  - NOT for minimalist or monochrome apps (multi-color is fundamental)
+  - NOT for e-commerce with product photography (neon competes with images)
+  - NOT for financial or serious data apps (too sci-fi entertainment)
+  - NOT for mobile-first compact apps (machine frame needs width)
+  - If app needs tables → neon-bordered cards or stat-bar panels with gradient fills
+  - If app needs forms → transparent inputs with accent bottom-border, hex-clip submit
+  - If app needs lists → card grid with image + Bangers title + mono desc + CTA button
+
+chrome:
+  - NOT for professional/enterprise dashboards (too themed and aggressive)
+  - NOT for content-heavy editorial or reading apps (red neon fatigues eyes)
+  - NOT for light-mode apps (committed to pure black bg)
+  - NOT for photography or product showcase (neon + glitch competes with imagery)
+  - NOT for minimalist or monochrome apps (multi-neon + glitch fundamental)
+  - NOT for mobile-first compact layouts (two-panel needs width)
+  - NOT for elegant or refined apps (deliberately raw and unstable)
+  - If app needs tables → chat-style inline rows with color-coded usernames in mono
+  - If app needs forms → transparent inputs with red bottom-border, Share Tech Mono labels, skewed submit
+  - If app needs lists → stacked cards in sidebar panel with clip-corner-tr and red borders
+  - COMPARE WITH edge: chrome has octagonal frame + scan bar + container glitch + two-panel + red accent; edge has chamfered panels + card grid + pink accent + mobile-friendly. Both cyberpunk neon.
+  - COMPARE WITH matrix: chrome is neon multi-color + cyberpunk + glitch; matrix is phosphor green + CRT + grouped sections. Both dark tech.
+
+rune:
+  - NOT for modern/minimal consumer apps (too ornate and Norse-themed)
+  - NOT for light-mode apps (abyss-dark is fundamental)
+  - NOT for photography or media-rich apps (cyan neon glow competes with imagery)
+  - NOT for professional enterprise tools (too game-themed)
+  - NOT for playful/casual apps (too dark and solemn)
+  - NOT for mobile-first compact layouts (three-column grid needs width)
+  - NOT for e-commerce with product images (themed UI overwhelms products)
+  - If app needs tables → stat rows with label + value + animated bar fill underneath
+  - If app needs forms → inputs inside chamfered panels, neon bottom-border, Cinzel labels
+  - If app needs lists → rune-prefixed nav items with glow active state, separated by faint borders
+  - COMPARE WITH codex: rune has cyan neon glow + chamfered panels + three-column grid + stat bars; codex has gold+crimson + crown bar + rotating sigil + rune grid. Both dark fantasy with runes, but rune is Norse blue-teal, codex is medieval gold-red.
+  - COMPARE WITH guild: rune has abyss-blue + cyan neon + rune chars + stat bars; guild has navy + gold thread + material cards + stitched borders. Both dark fantasy, but rune is game-UI, guild is registry.
+  - COMPARE WITH hearth: rune has dark abyss + cyan glow + chamfered stone; hearth has purple gradient + gold + rounded cozy. Both RPG, but rune is grim/Nordic, hearth is warm/life-sim.
+
+nexus:
+  - NOT for data-heavy dashboards with many metrics (too sparse, no cards)
+  - NOT for colorful consumer apps (two-color only: black + lime)
+  - NOT for complex multi-section layouts (single column flow only)
+  - NOT for e-commerce with product images (no product display patterns)
+  - NOT for playful/casual apps (too austere and computational)
+  - NOT for content-heavy editorial reading (minimal text patterns)
+  - NOT for apps requiring charts or data viz (no chart patterns)
+  - If app needs tables → labeled info sections with dim headers, no visible table structure
+  - If app needs forms → full-width bottom-border inputs on black, lime pill submit
+  - If app needs lists → collaborator-style items with dimmed slash separators
+  - COMPARE WITH signal: nexus is pure black + lime accent + system sans + voxel; signal is near-black + zero accent + bracket corners + monospace. Both minimal-dark, but nexus has generative art, signal has waveforms.
+  - COMPARE WITH specimen: nexus is black + lime + pill elements + voxel grid; specimen is white + monochrome + viewport-scale type + generative canvas. Both austere minimal, opposite lightness.
+  - COMPARE WITH mesh: nexus is pure black + lime + voxel + single column; mesh is dark + green dot + wireframe + 60/40 split. Both computational, but nexus is sparser.
+
+neon:
+  - NOT for professional/enterprise dashboards (too colorful and flashy)
+  - NOT for dark-mode apps (LIGHT gradient background is fundamental)
+  - NOT for minimalist or monochrome apps (hot gradient + multi-neon is fundamental)
+  - NOT for content-heavy editorial or reading apps (bright bg fatigues)
+  - NOT for serious/corporate apps (too playful and arcade)
+  - NOT for photography or product showcase (hot gradient competes with imagery)
+  - If app needs tables → octagonal-sm cards with neon borders, dark panel bg
+  - If app needs forms → transparent inputs on dark panel, pink bottom-border, Orbitron labels
+  - If app needs lists → card grid with alternating pink/yellow borders on dark panel
+  - COMPARE WITH edge: neon is LIGHT gradient bg + shadow-clone title + click flash; edge is dark bg + glitch title + hazard stripe. Both pink/yellow/cyan neon but opposite lightness.
+  - COMPARE WITH chrome: neon is light + octagonal cards + circuit corners; chrome is dark + octagonal frame + scan bar + container glitch. Both octagonal shapes.
+
+edge:
+  - NOT for professional/enterprise dashboards (too themed and flashy)
+  - NOT for content-heavy editorial or reading apps (neon fatigues eyes)
+  - NOT for light-mode apps (committed to deep dark bg)
+  - NOT for photography or product showcase (neon competes with imagery)
+  - NOT for minimalist or monochrome apps (multi-color neon fundamental)
+  - NOT for elegant or refined apps (deliberately aggressive and punk)
+  - If app needs tables → chamfered panel cards with color-coded left-borders per category
+  - If app needs forms → transparent inputs with pink bottom-border, Orbitron labels, chamfered submit
+  - If app needs lists → feed-style messages with colored left-border + mono username + dim text
+  - COMPARE WITH rift: edge has chamfered clip-paths + glitch title + hazard stripe + pink-dominant; rift has hex buttons + speech-bubble cards + space void + multi-accent-balanced. Both neon sci-fi.
+  - COMPARE WITH signal: edge has three neon colors + glitch + scanlines; signal is pure grayscale monochrome. Both dark tech, but edge is loud, signal is quiet.
+
+opus:
+  - NOT for modern/minimal consumer apps (too ornate and ceremonial)
+  - NOT for light-mode apps (void-black is fundamental)
+  - NOT for mobile-first compact layouts (wood frame needs width)
+  - NOT for photography or media-rich apps (frame and gold compete with imagery)
+  - NOT for data-heavy analytics dashboards (too decorative for dense data)
+  - NOT for playful/casual apps (too serious and slow)
+  - NOT for fast-paced consumer apps (ceremonial pacing)
+  - If app needs tables → 2-column stat grids (label + bold value) inside material cards
+  - If app needs forms → bottom-border gold inputs on void, Cinzel labels, stone nav button submit
+  - If app needs lists → card grid with sigil + text + stat grid per card, material-coded by category
+  - COMPARE WITH codex: opus has wood frame + corner brackets + 3 materials (iron/gold/parchment); codex has crown bar + rotating sigil + crimson cards + stat bars. Both dark medieval, but opus feels like a museum, codex feels like a grimoire.
+  - COMPARE WITH guild: opus has void-black + wood frame + alchemical sigils; guild has navy + fabric texture + gold thread text. Both gold-accented, but opus is framed artifacts, guild is medieval registry.
+
+codex:
+  - NOT for modern/minimal consumer apps (too ornate and dark-fantasy)
+  - NOT for light-mode apps (void-black is fundamental)
+  - NOT for photography or media-rich apps (crimson+gold competes with imagery)
+  - NOT for professional enterprise tools (too themed and arcane)
+  - NOT for playful/casual apps (too dark and serious)
+  - NOT for data-heavy analytics dashboards (decorative elements overwhelm dense data)
+  - If app needs tables → material cards (crimson/parchment/iron) with stat bars and rank badges
+  - If app needs forms → bottom-border gold inputs on void, Cinzel labels, stone button submit
+  - If app needs lists → stacked material cards with sigil icons and stat grids
+  - COMPARE WITH guild: codex has void-black + crimson + sigil grid + crown bar; guild has navy + stitched borders + 4 materials + shimmer text. Both dark medieval.
+
+recon:
+  - NOT for content-heavy editorial or reading apps (too sparse, single-card focus)
+  - NOT for multi-section dashboards with many widgets (one card at a time)
+  - NOT for colorful consumer apps (black-and-red only, no other colors)
+  - NOT for e-commerce with product images (no rich image patterns)
+  - NOT for playful/casual apps (too austere and technical)
+  - If app needs tables → stat bars inside card (label + percentage + 4px red fill on gray track)
+  - If app needs forms → inputs inside bg-black/80 cards on grid, 1px gray border, monospace
+  - If app needs lists → swipeable cards filling grid area with progress indicator at bottom
+
 default:
   - Works for everything but looks generic on showcase/portfolio apps
   - No split-pane layout — uses standard card grid
@@ -475,3 +1002,23 @@ FILE LOCATIONS
   ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/sensor.txt
   ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/slab.txt
   ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/hearth.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/desktop.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/mesh.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/terminal.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/proof.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/dossier.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/orbit.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/palate.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/matrix.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/carbon.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/recon.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/rift.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/aether.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/guild.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/codex.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/opus.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/edge.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/chrome.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/neon.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/nexus.txt
+  ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/rune.txt

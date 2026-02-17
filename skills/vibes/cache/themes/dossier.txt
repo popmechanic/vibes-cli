@@ -1,0 +1,386 @@
+THEME: dossier
+NAME: Dossier Card
+MOOD: Dark-profile, spec-sheet, monochrome, mobile-first
+
+DESCRIPTION:
+A pure black profile card layout with bold condensed titling paired with
+monospace body text. The primary content block is a full-bleed card on black
+(#000) containing a bold app name (Archivo Black, tight tracking), a handle
+line, a 2-column key:value spec grid in tiny monospace, a description
+paragraph, a full-width bordered CTA button, and a large square grayscale
+image. All containers have zero border-radius. The body behind is #1a1a1a
+(slightly lighter than the card). Header controls include a circular bordered
+menu icon and a CSS X/cross made from rotated 1px lines. Bottom navigation is
+a fixed bar with icon+label buttons. Everything is strict black-and-white —
+no accent color, no gray surfaces, just black and white.
+
+BEST FOR:
+  - Profile cards, user bios, AI model showcases
+  - Contact pages, about-me screens, personal pages
+  - Spec sheets, product info cards, data profiles
+  - Mobile-first single-view apps, card-based UIs
+  - Any app that presents a single entity with metadata and imagery
+
+NOT FOR:
+  - Multi-section dashboards with many widgets (single-card paradigm)
+  - Data-heavy analytics with charts and graphs (no data viz patterns)
+  - Colorful consumer apps (strict black-and-white only)
+  - Complex multi-page flows (designed for single-view focus)
+  - Content-heavy editorial reading (too compact and dense)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Convert to 2-column key:value spec grid (xs monospace).
+    Left column is label, right column is value. No borders between rows —
+    the grid gap handles spacing. Compact and dense.
+  - If app has FORMS: Full-width inputs with 1px white border, no fill, no
+    radius. Labels in xs monospace above. Submit as full-width bordered button
+    (same as CTA pattern). Stack vertically in the card.
+  - If app has LISTS: Each item gets its own card with bold title, spec grid,
+    and optional image. Stack vertically with gap. Or use the spec grid pattern
+    for simple key:value lists within a single card.
+  - If app has CARDS: Use the profile-container pattern — black bg, zero radius,
+    padded content with bold title up top, specs mid, image at bottom. Cards
+    stack in a single column.
+  - If app has IMAGES: Full-width, aspect-square, overflow hidden, always
+    grayscale (filter: grayscale(100%)). Images are documentary, not decorative.
+  - If app has NAVIGATION: Fixed bottom bar with icon+label columns
+    (SVG icon above, xs text label below). 4 tabs evenly spaced. Border-top
+    gray-800. No active indicator beyond thicker stroke weight.
+  - If app has HERO CONTENT: Bold Archivo Black title (3xl, -0.02em tracking),
+    handle/subtitle in monospace, then spec grid below. Title is the hero.
+
+COLOR TOKENS (oklch):
+  --bg:          oklch(0.16 0.000 0)        /* body background #1a1a1a */
+  --card:        oklch(0.00 0.000 0)        /* card surface pure black #000000 */
+  --fg:          oklch(1.00 0.000 0)        /* primary text white */
+  --border:      oklch(0.28 0.03 257)       /* nav dividers gray-800 */
+  --border-fg:   oklch(1.00 0.000 0)        /* button/control borders white */
+
+REFERENCE STYLES:
+
+  /* ---- PROFILE CARD CONTAINER ---- */
+  .profile-container {
+    background: var(--card);
+    border-radius: 0;
+    padding: 24px 16px 16px;
+  }
+
+  /* ---- BOLD TITLE (Archivo Black) ---- */
+  .app-name {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 30px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--fg);
+  }
+
+  /* ---- HEADER CONTROLS ---- */
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .menu-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--fg);
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    color: var(--fg);
+    cursor: pointer;
+  }
+  .menu-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+  }
+
+  /* ---- CSS CROSS / X BUTTON ---- */
+  .cross-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    position: relative;
+  }
+  .cross-btn::before,
+  .cross-btn::after {
+    content: '';
+    position: absolute;
+    width: 1px;
+    height: 12px;
+    background: var(--fg);
+  }
+  .cross-btn::before { transform: rotate(45deg); }
+  .cross-btn::after  { transform: rotate(-45deg); }
+
+  /* ---- HANDLE LINE ---- */
+  .handle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    color: var(--fg);
+    margin-bottom: 16px;
+  }
+  .handle svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+  }
+
+  /* ---- SPEC GRID (2-column key:value) ---- */
+  .spec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 8px;
+    font-size: 12px;
+    line-height: 1.625;
+    color: var(--fg);
+  }
+
+  /* ---- DESCRIPTION ---- */
+  .description {
+    font-size: 12px;
+    line-height: 1.625;
+    color: var(--fg);
+    margin-bottom: 24px;
+  }
+
+  /* ---- CTA BUTTON (full-width bordered) ---- */
+  .cta-btn {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--fg);
+    background: none;
+    color: var(--fg);
+    font-family: 'Roboto Mono', monospace;
+    font-size: 14px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 0;
+    transition: background 0.2s, color 0.2s;
+  }
+  .cta-btn:hover {
+    background: var(--fg);
+    color: var(--card);
+  }
+
+  /* ---- GRAYSCALE IMAGE ---- */
+  .profile-image {
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+  }
+  .profile-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(100%);
+  }
+
+  /* ---- BOTTOM NAV BAR ---- */
+  .nav-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: 28rem;
+    margin: 0 auto;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+  }
+  .nav-inner {
+    display: flex;
+    justify-content: space-around;
+    padding: 16px;
+  }
+  .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: none;
+    border: none;
+    color: var(--fg);
+    cursor: pointer;
+    gap: 4px;
+  }
+  .nav-btn svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    stroke-width: 1;
+    fill: none;
+  }
+  .nav-btn span {
+    font-size: 12px;
+  }
+
+  /* ---- TYPOGRAPHY ---- */
+  body {
+    font-family: 'Roboto Mono', monospace;
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+DESIGN PRINCIPLES:
+  1. PURE BLACK CARD: Content lives on #000000 black. Body behind is #1a1a1a
+     to create subtle depth separation. No grays in between — just black
+     and slightly-less-black.
+  2. TWO-FONT SYSTEM: Archivo Black for titles/names (bold, condensed,
+     tight-tracked). Roboto Mono for everything else (specs, descriptions,
+     labels, buttons). The contrast between the heavy display face and the
+     precise monospace is the entire typographic identity.
+  3. ZERO RADIUS: No border-radius on containers, buttons, inputs, or cards.
+     Everything is sharp-cornered. The only exception is the circular menu
+     button (border-radius: 9999px) which creates deliberate contrast.
+  4. SPEC GRID: Metadata presented in 2-column grid format at 12px monospace.
+     Key : Value pairs (with visible colon separator). Dense, scannable,
+     technical. Like reading a spec sheet or dossier file.
+  5. GRAYSCALE IMAGERY: All images use filter: grayscale(100%). Full-width,
+     square aspect ratio. Images are evidentiary, not promotional. They
+     document rather than sell.
+  6. FULL-WIDTH CTA: Action buttons span 100% width with 1px white border,
+     no fill. On hover: invert to white bg + black text. Simple, decisive.
+  7. MOBILE-FIRST COLUMN: Max-width 28rem (md), auto-centered. Single column
+     stack. Designed to feel like a mobile app even on desktop — the narrow
+     frame concentrates focus.
+  8. THIN STROKE ICONS: Navigation and UI icons use stroke-width: 1 (not 2).
+     Thinner than usual — feels more refined and technical. Paired with xs
+     text labels below.
+  9. CSS CROSS: The X/close button uses pure CSS pseudo-elements (two 1px
+     lines rotated 45deg). No SVG needed. This is a signature detail — the
+     simplest possible close affordance.
+  10. HANDLE FORMAT: Usernames/identifiers shown as @HANDLE in monospace,
+      preceded by a small filled icon. Creates a social-profile feel.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const specs = [
+      ["Type", "Generative AI"],
+      ["Version", "4.2"],
+      ["Training", "2023"],
+      ["Tokens", "1.7T"],
+      ["Specialty", "Creative"],
+      ["Reasoning", "98/100"],
+      ["Memory", "128K ctx"],
+      ["Mode", "Multimodal"]
+    ];
+
+    return (
+      <div style={{ maxWidth: "28rem", margin: "0 auto", background: "var(--card)",
+                     minHeight: "100vh", position: "relative", overflow: "hidden" }}>
+        <div className="profile-container">
+          {/* HEADER */}
+          <div style={{ display: "flex", justifyContent: "space-between",
+                        alignItems: "flex-start", marginBottom: 16 }}>
+            <h1 className="app-name">NEURON</h1>
+            <div className="header-controls">
+              <button className="menu-btn">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd"
+                    d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z"
+                    clipRule="evenodd" />
+                </svg>
+              </button>
+              <button className="cross-btn" />
+            </div>
+          </div>
+
+          {/* HANDLE */}
+          <div className="handle">
+            <svg viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
+                clipRule="evenodd" />
+            </svg>
+            <span>@NEURONSYSTEM</span>
+          </div>
+
+          {/* SPEC GRID */}
+          <div className="spec-grid" style={{ marginBottom: 24 }}>
+            {specs.map(([k, v]) => (
+              <div key={k}>{k} : {v}</div>
+            ))}
+          </div>
+
+          {/* DESCRIPTION */}
+          <p className="description">
+            Advanced creative intelligence focused on generating unique
+            concepts and solutions. Specializes in visual design, narrative
+            development, and strategic thinking.
+          </p>
+
+          {/* CTA */}
+          <button className="cta-btn" style={{ marginBottom: 16 }}>
+            DOWNLOAD AI PROFILE
+          </button>
+
+          {/* IMAGE */}
+          <div className="profile-image">
+            <div style={{ width: "100%", height: "100%", background: "#222",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          color: "#555", fontSize: 12 }}>
+              [Profile Image]
+            </div>
+          </div>
+        </div>
+
+        {/* BOTTOM NAV */}
+        <div className="nav-bar">
+          <div className="nav-inner">
+            {["Home", "Discover", "Chat", "Profile"].map(label => (
+              <button key={label} className="nav-btn">
+                <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme is a classified file opened on a black desk. The bold condensed
+  title stamps the subject's name like a case number. Below it, monospace
+  text lays out specifications in a tight 2-column grid — Type, Version,
+  Tokens, Mode — like reading a technical readout. The description is brief
+  and clinical. The CTA button is a simple bordered rectangle — no color,
+  no gradient, just a command waiting to be executed. The image at the bottom
+  is always grayscale — it documents, it doesn't glamorize. The circular
+  menu button and the CSS cross are the only UI controls, and they're
+  deliberately minimal — a circle and an X, the simplest shapes possible.
+  The mobile-width column concentrates everything into a single, focused
+  view. This isn't a website that scrolls forever. It's a dossier. You
+  read it, you act, you close it.
+
+ANIMATIONS:
+  - CTA INVERT: On hover, background transitions to white and text to black
+    (200ms). Clean binary flip — no gradients, no shadows.
+  - NAV HOVER: Icon stroke opacity shifts from 0.7 to 1.0 (200ms).
+  - CARD ENTER (optional): Profile container fades in from opacity 0→1 with
+    subtle translateY 12px→0 over 400ms ease.
+  - No scan lines, no glow, no particles. Pure stillness.
+
+SVG ELEMENTS:
+  - MENU ICON: Filled SVG hamburger (three horizontal bars) inside circular
+    bordered button. 16x16, fill: currentColor.
+  - HANDLE ICON: Filled circle-plus icon next to @handle text. 16x16.
+  - NAV ICONS: Stroke-only SVGs at 24x24, stroke-width: 1 (thin). Home,
+    search, chat-bubble, user. Standard outline icon set.
+  - CROSS/X: Pure CSS pseudo-elements, NOT SVG. Two 1px white lines rotated
+    ±45deg. Signature UI element.
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Roboto+Mono:wght@400;500&display=swap');
