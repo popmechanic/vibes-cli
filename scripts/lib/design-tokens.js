@@ -3,8 +3,8 @@
  *
  * This module defines all Vibes design tokens and theme CSS.
  * Two consumers read from it:
- *   - build-design-tokens.js → cache/design-tokens.css (injected into template)
- *   - build-design-tokens.js → cache/design-tokens.txt (AI documentation)
+ *   - build-design-tokens.js → build/design-tokens.css (injected into template)
+ *   - build-design-tokens.js → build/design-tokens.txt (AI documentation)
  *
  * To add/change tokens: edit here, then run:
  *   node scripts/build-design-tokens.js --force

@@ -6,12 +6,12 @@
  * in scripts/lib/design-tokens.js.
  *
  * Outputs:
- *   cache/design-tokens.css — :root {} + theme CSS (injected into template)
- *   cache/design-tokens.txt — AI-readable documentation (read at generation time)
+ *   build/design-tokens.css — :root {} + theme CSS (injected into template)
+ *   build/design-tokens.txt — AI-readable documentation (read at generation time)
  *
  * Usage:
  *   node scripts/build-design-tokens.js
- *   node scripts/build-design-tokens.js --force  # Rebuild even if cache exists
+ *   node scripts/build-design-tokens.js --force  # Rebuild even if output exists
  */
 
 import { writeFileSync, existsSync, mkdirSync } from "fs";
@@ -33,9 +33,9 @@ const __dirname = dirname(__filename);
 
 // Plugin root is one level up from scripts/
 const PLUGIN_ROOT = join(__dirname, "..");
-const CACHE_DIR = join(PLUGIN_ROOT, "cache");
-const CSS_OUTPUT = join(CACHE_DIR, "design-tokens.css");
-const TXT_OUTPUT = join(CACHE_DIR, "design-tokens.txt");
+const BUILD_DIR = join(PLUGIN_ROOT, "build");
+const CSS_OUTPUT = join(BUILD_DIR, "design-tokens.css");
+const TXT_OUTPUT = join(BUILD_DIR, "design-tokens.txt");
 
 /**
  * Generate the :root {} CSS block from TOKEN_CATALOG
@@ -59,7 +59,7 @@ function generateRootCSS() {
 }
 
 /**
- * Generate cache/design-tokens.css
+ * Generate build/design-tokens.css
  * Contains the :root {} block + VIBES_THEME_CSS
  */
 function generateCSS() {
@@ -68,7 +68,7 @@ function generateCSS() {
 }
 
 /**
- * Generate cache/design-tokens.txt (AI documentation)
+ * Generate build/design-tokens.txt (AI documentation)
  */
 function generateTXT() {
   let lines = [];
@@ -240,7 +240,7 @@ function main() {
   }
 
   // Ensure cache directory exists
-  mkdirSync(CACHE_DIR, { recursive: true });
+  mkdirSync(BUILD_DIR, { recursive: true });
 
   // Generate CSS
   const css = generateCSS();
