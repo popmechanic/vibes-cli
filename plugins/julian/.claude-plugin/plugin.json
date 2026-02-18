@@ -1,0 +1,12 @@
+{
+  "name": "julian",
+  "description": "Julian project tools — deploy, manage, and interact with Julian instances",
+  "version": "0.1.0",
+  "author": {
+    "name": "Marcus Estes",
+    "email": "marcus@vibes.diy"
+  },
+  "repository": "https://github.com/popmechanic/Julian",
+  "license": "MIT",
+  "keywords": ["julian", "deployment", "exe-dev", "vm"]
+}
