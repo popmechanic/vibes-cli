@@ -17,14 +17,14 @@ const { database, useLiveQuery, useDocument } = useFireproofClerk(dbName);
 Do NOT hardcode database names. `useTenant()` is provided by the sell template at runtime.
 
 ## Theme Count
-Generate exactly **{themeCount}** theme(s). Read the theme catalog FIRST (`{pluginRoot}/skills/vibes/cache/themes/catalog.txt`), pick your themes, then read ONLY the selected theme files (`{pluginRoot}/skills/vibes/cache/themes/{id}.txt`). Do NOT read theme files you won't use.
+Generate exactly **{themeCount}** theme(s). Read the theme catalog FIRST (`{pluginRoot}/skills/vibes/themes/catalog.txt`), pick your themes, then read ONLY the selected theme files (`{pluginRoot}/skills/vibes/themes/{id}.txt`). Do NOT read theme files you won't use.
 
 ## Generation Rules
 1. Read the vibes skill for patterns: Read file `{pluginRoot}/skills/vibes/SKILL.md`
 2. Read design tokens: Read file `{pluginRoot}/build/design-tokens.txt`
 3. Read Fireproof API docs: Read file `{pluginRoot}/docs/fireproof.txt`
 4. Read style guidance: Read file `{pluginRoot}/skills/vibes/defaults/style-prompt.txt`
-5. Read theme catalog: Read file `{pluginRoot}/skills/vibes/cache/themes/catalog.txt` — then read ONLY the theme files for your selected themes
+5. Read theme catalog: Read file `{pluginRoot}/skills/vibes/themes/catalog.txt` — then read ONLY the theme files for your selected themes
 6. Output ONLY a default-export JSX component — no import statements, no HTML wrapper, no import map, no Babel script tags
 7. Export a default function component: `export default function App() { ... }`
 8. Use Tailwind CSS for styling (available via CDN in template)

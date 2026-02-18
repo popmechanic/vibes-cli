@@ -85,6 +85,14 @@ Do not default to ambient mood generators, floating orbs, or meditation apps unl
 
 ## Generation Process
 
+### Step 0.5: Check for Design Reference
+
+If the user provides a **reference image** (local file path or URL) or a **theme.html** file alongside their app description:
+
+1. **Image reference** — Read the image (local path via Read tool, or URL via WebFetch). Analyze: extract colors, typography, layout structure, spacing, component patterns. Use these observations to guide your design reasoning and theme selection. Map extracted colors to `--comp-*` token values.
+2. **theme.html reference** — Read the file. Look for a `<!-- VIBES-THEME-META ... -->` comment block with pre-selected themes and token values. Use these directly instead of the catalog selection in Step 1.75.
+3. **No reference** — proceed normally to Step 1.
+
 ### Step 1: Design Reasoning
 
 Before writing code, reason about the design in `<design>` tags:
@@ -126,7 +134,7 @@ Store the answer as `themeCount` (1, 2, or 3).
 
 **Read the theme catalog FIRST** (it's small — just descriptions, not full theme files):
 ```
-Read file: ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/catalog.txt
+Read file: ${CLAUDE_PLUGIN_ROOT}/skills/vibes/themes/catalog.txt
 ```
 
 The catalog has 6 themes. Pick exactly `themeCount` themes based on:
@@ -137,7 +145,7 @@ The catalog has 6 themes. Pick exactly `themeCount` themes based on:
 
 **ONLY THEN read the theme files you actually need** — one at a time, only for the themes you selected:
 ```
-Read file: ${CLAUDE_PLUGIN_ROOT}/skills/vibes/cache/themes/{selected-theme}.txt
+Read file: ${CLAUDE_PLUGIN_ROOT}/skills/vibes/themes/{selected-theme}.txt
 ```
 Do NOT read theme files you won't use. Each file is large, so reading unnecessary ones wastes time.
 
@@ -178,6 +186,35 @@ Replace the `id` and `name` values with your actual selected themes. The `id` mu
 **If themeCount is 1**, skip `window.__VIBES_THEMES__` — the design button won't show theme options.
 
 **If the user explicitly requests specific themes**, always follow their choice. Otherwise, pick the best fits from the catalog.
+
+### Step 1.9: Generate Design Preview (OPTIONAL)
+
+**Ask [Preview]**: "Want to preview the design as a standalone HTML page before I build the app?"
+- "Yes" → Generate `theme.html` (see below), open in browser, iterate until the user is happy, then proceed to Step 2
+- "No" → Skip directly to Step 2
+
+**If the user says yes**, generate a standalone `theme.html` — a self-contained static page that demonstrates the visual design without React, Fireproof, or Clerk:
+
+- **Single HTML file** with inline `<style>` and `<script>`. No external dependencies except Google Fonts via `@import`.
+- **CSS custom properties** using `--comp-*` token overrides from the selected theme(s).
+- **Realistic placeholder content** matching the app description (not lorem ipsum).
+- **Interactive elements** — tabs switch, buttons have hover/active states, forms accept input. Wire with vanilla JS.
+- **Animations and inline SVGs** following the theme's ANIMATIONS and SVG ELEMENTS guidelines.
+- **Mobile-responsive** with `@media` breakpoints.
+- **Multi-theme switching** (if themeCount > 1) — use `[data-theme]` attribute on `<body>` with CSS custom property overrides per theme. Include a small theme-switcher UI. Vanilla JS toggles `document.body.dataset.theme`.
+
+**Embed a metadata comment at the top** for downstream reference:
+```html
+<!-- VIBES-THEME-META
+  source: prompt
+  mood: "{theme mood}"
+  themes: ["{theme-id-1}", "{theme-id-2}"]
+  tokens: { "--comp-bg": "oklch(...)", "--comp-accent": "oklch(...)" }
+  layout: "{layout-type}"
+-->
+```
+
+Write to `./theme.html`. The user can open it in a browser, request changes, and iterate. When they're satisfied, proceed to Step 2 — use the design decisions from the preview to guide app.jsx generation.
 
 > **Assembly: generate (preserve)** — `assemble.js` injects your code as-is. Import and export statements work because the import map intercepts bare specifiers at runtime. Code examples below include imports.
 >
@@ -638,7 +675,7 @@ The shipped default files contain detailed reference material. Read them when th
 
 | Need | Signal in Prompt | Read This |
 |------|------------------|-----------|
-| Design tokens & theming | colors, theme, tokens, brand colors, styling | `${CLAUDE_PLUGIN_ROOT}/cache/design-tokens.txt` |
+| Design tokens & theming | colors, theme, tokens, brand colors, styling | `${CLAUDE_PLUGIN_ROOT}/build/design-tokens.txt` |
 | File uploads | "upload", "images", "photos", "attachments" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Working with Images" |
 | Auth / sync config | "Clerk", "Connect", "cloud sync", "login" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "ClerkFireproofProvider Config" |
 | Sync status display | "online/offline", "connection status" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Sync Status Display" |
