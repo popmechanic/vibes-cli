@@ -77,7 +77,7 @@ The skill's instruction file is loaded into the LLM's context. For app generatio
 
 ### Step 1.3: Design Tokens Read
 
-SKILL.md instructs the LLM to read `cache/design-tokens.txt`. This file contains:
+SKILL.md instructs the LLM to read `build/design-tokens.txt`. This file contains:
 
 - **TOKEN_CATALOG** — all CSS custom properties organized by category:
   - `vibes-core` (cream, pink, yellow, lavender brand colors)
@@ -95,7 +95,7 @@ The LLM uses these tokens as `var(--token-name)` references instead of hardcoded
 
 ### Step 1.4: Theme Selection (Always 3 Themes)
 
-SKILL.md instructs the LLM to read `skills/vibes/cache/themes/catalog.txt`, which lists the full catalog of 6 available layout themes:
+SKILL.md instructs the LLM to read `skills/vibes/themes/catalog.txt`, which lists the full catalog of 6 available layout themes:
 
 | Theme | Best for |
 |-------|----------|
@@ -206,7 +206,7 @@ This script:
 1. Reads TypeScript components from `components/` directory (VibesPanel, VibesButton, AuthScreen, HiddenMenuWrapper, icons, etc.)
 2. Transpiles each `.tsx`/`.ts` file with **esbuild** (JSX → `React.createElement`)
 3. Applies component transforms (`scripts/lib/component-transforms.js`) — rewrites imports, namespaces hooks
-4. Concatenates all transpiled code into `cache/vibes-menu.js`
+4. Concatenates all transpiled code into `build/vibes-menu.js`
 5. Adds `window.*` exports so components are globally accessible
 
 **Component dependency order:**
@@ -228,8 +228,8 @@ node scripts/build-design-tokens.js --force
 
 Reads the single source of truth (`scripts/lib/design-tokens.js`) and generates:
 
-- `cache/design-tokens.css` — the `:root {}` block + theme CSS for template injection
-- `cache/design-tokens.txt` — AI-readable documentation for the LLM
+- `build/design-tokens.css` — the `:root {}` block + theme CSS for template injection
+- `build/design-tokens.txt` — AI-readable documentation for the LLM
 
 ### Step 3.3: Merge Templates
 
@@ -241,8 +241,8 @@ This script combines three inputs:
 
 ```
 skills/_base/template.html     ← Base template (shared HTML, CSS, import map)
-cache/vibes-menu.js            ← Built components
-cache/design-tokens.css        ← Design token CSS
+build/vibes-menu.js            ← Built components
+build/design-tokens.css        ← Design token CSS
 skills/vibes/template.delta.html  ← Skill-specific code (Clerk auth wrapper)
                     ↓
 skills/vibes/templates/index.html  ← Final assembled template
@@ -253,8 +253,8 @@ skills/vibes/templates/index.html  ← Final assembled template
 | Placeholder | Replaced with |
 |-------------|---------------|
 | `__TITLE__` | "Made on Vibes DIY" |
-| `/* === DESIGN_TOKENS_PLACEHOLDER === */` | Contents of `cache/design-tokens.css` |
-| `// === COMPONENTS_PLACEHOLDER ===` | Contents of `cache/vibes-menu.js` |
+| `/* === DESIGN_TOKENS_PLACEHOLDER === */` | Contents of `build/design-tokens.css` |
+| `// === COMPONENTS_PLACEHOLDER ===` | Contents of `build/vibes-menu.js` |
 | `<!-- === DELTA_PLACEHOLDER === -->` | Contents of the skill's `template.delta.html` |
 
 **Result:** A complete HTML template with all components, styles, and auth wrappers — just missing the app code.
@@ -452,9 +452,9 @@ Each cycle takes about 30 seconds. The LLM can also:
                     PLUGIN INFRASTRUCTURE
                     =====================
 
-components/*.tsx ──→ build-components.js ──→ cache/vibes-menu.js
+components/*.tsx ──→ build-components.js ──→ build/vibes-menu.js
                                                     │
-scripts/lib/design-tokens.js ──→ build-design-tokens.js ──→ cache/design-tokens.css
+scripts/lib/design-tokens.js ──→ build-design-tokens.js ──→ build/design-tokens.css
                                                                     │
 skills/_base/template.html ─────────────────────────────────────────┤
 skills/vibes/template.delta.html ───────────────────────────────────┤
