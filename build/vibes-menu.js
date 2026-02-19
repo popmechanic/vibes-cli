@@ -1,7 +1,7 @@
 // Auto-generated vibes menu components
 // Run: node scripts/build-components.js --force to regenerate
-// Source: /Users/ambermacias/Documents/Vibes/vibes-cli/components
-// Generated: 2026-02-13T16:36:07.683Z
+// Source: components/
+// Generated: 2026-02-18T20:07:54.489Z
 // Components: 26/26
 
 // === useMobile ===
@@ -1741,16 +1741,9 @@ function getAnimatedButtonContainerStyle() {
 
 
 // === VibesPanel ===
-const DEFAULT_THEMES = [
-  { id: "default", name: "Neo-Brutalist" },
-  { id: "archive", name: "Archive" },
-  { id: "industrial", name: "Industrial" }
-];
-const VARIANT_CYCLE = [BLUE, YELLOW, RED];
 function VibesPanel({
   style,
   className,
-  baseURL,
   token
 } = {}) {
   const emailId = React.useId();
@@ -1759,33 +1752,20 @@ function VibesPanel({
   const [email, setEmail] = React.useState("");
   const [inviteStatus, setInviteStatus] = React.useState("idle");
   const [inviteMessage, setInviteMessage] = React.useState("");
-  const themes = typeof window !== "undefined" && Array.isArray(window.__VIBES_THEMES__) && window.__VIBES_THEMES__.length > 0 ? window.__VIBES_THEMES__ : DEFAULT_THEMES;
-  const effectiveBaseURL = baseURL ?? (typeof window !== "undefined" ? window.location.origin : "https://vibes.diy");
+  const [inviteLink, setInviteLink] = React.useState("");
+  const [linkCopied, setLinkCopied] = React.useState(false);
   const handleInviteClick = () => {
     if (mode === "default") {
       setMode("invite");
       setEmail("");
       setInviteStatus("idle");
       setInviteMessage("");
+      setInviteLink("");
+      setLinkCopied(false);
     }
-  };
-  const handleDesignClick = () => {
-    if (mode === "default") {
-      setMode("design");
-    }
-  };
-  const handleThemeSelect = (theme) => {
-    document.dispatchEvent(
-      new CustomEvent("vibes-design-request", {
-        detail: { theme }
-      })
-    );
   };
   const handleBackClick = () => {
     setMode("default");
-  };
-  const handleChangeCodeClick = () => {
-    window.open(`${effectiveBaseURL}/remix`, "_top");
   };
   const handleLogoutClick = () => {
     document.dispatchEvent(new CustomEvent("vibes-sync-disable"));
@@ -1814,6 +1794,9 @@ function VibesPanel({
       setInviteMessage(
         customEvent.detail?.message || `Invitation sent to ${customEvent.detail?.email}!`
       );
+      if (customEvent.detail?.link) {
+        setInviteLink(customEvent.detail.link);
+      }
     };
     const handleShareError = (event) => {
       const customEvent = event;
@@ -1829,6 +1812,14 @@ function VibesPanel({
       document.removeEventListener("vibes-share-error", handleShareError);
     };
   }, []);
+  const handleCopyLink = () => {
+    if (inviteLink) {
+      navigator.clipboard.writeText(inviteLink).then(() => {
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2e3);
+      });
+    }
+  };
   return /* @__PURE__ */ React.createElement("div", { style: getOuterContainerStyle(style), className }, /* @__PURE__ */ React.createElement(
     LabelContainer,
     {
@@ -1883,25 +1874,17 @@ function VibesPanel({
         variant: inviteStatus === "sending" ? "default" : inviteStatus === "error" ? "error" : "success",
         style: getInviteStatusStyle()
       },
-      inviteStatus === "sending" ? "Inviting..." : inviteMessage
-    ), /* @__PURE__ */ React.createElement(VibesButton, { variant: GRAY, onClick: handleBackClick, icon: "back" }, "Back")) : mode === "design" ? /* @__PURE__ */ React.createElement("div", { style: getInviteRowStyle(isMobile) }, /* @__PURE__ */ React.createElement(
-      VibesButton,
-      {
-        variant: RED,
-        onClick: () => {
-        },
-        icon: "design"
-      },
-      "Design"
-    ), themes.map((t, i) => /* @__PURE__ */ React.createElement(
-      VibesButton,
-      {
-        key: t.id,
-        variant: VARIANT_CYCLE[i % VARIANT_CYCLE.length],
-        onClick: () => handleThemeSelect(t.id)
-      },
-      t.name
-    )), /* @__PURE__ */ React.createElement(VibesButton, { variant: GRAY, onClick: handleBackClick, icon: "back" }, "Back")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      inviteStatus === "sending" ? "Inviting..." : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", null, inviteMessage), inviteLink && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "0.5rem" } }, /* @__PURE__ */ React.createElement("button", { onClick: handleCopyLink, style: {
+        background: "none",
+        border: "2px solid currentColor",
+        borderRadius: "6px",
+        padding: "0.25rem 0.75rem",
+        cursor: "pointer",
+        color: "inherit",
+        fontWeight: 600,
+        fontSize: "0.85em"
+      } }, linkCopied ? "Copied!" : "Copy Invite Link")))
+    ), /* @__PURE__ */ React.createElement(VibesButton, { variant: GRAY, onClick: handleBackClick, icon: "back" }, "Back")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
       VibesButton,
       {
         variant: BLUE,
@@ -1909,14 +1892,6 @@ function VibesPanel({
         icon: "login"
       },
       "Logout"
-    ), themes.length > 1 && /* @__PURE__ */ React.createElement(
-      VibesButton,
-      {
-        variant: RED,
-        onClick: handleDesignClick,
-        icon: "design"
-      },
-      "Design"
     ), /* @__PURE__ */ React.createElement(
       VibesButton,
       {

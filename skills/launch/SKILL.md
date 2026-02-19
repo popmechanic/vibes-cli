@@ -82,14 +82,9 @@ If detected: **Ask [AI features]**: "Does this app need AI features?"
 
 If yes: check `grep OPENROUTER_API_KEY ~/.vibes/.env`. If found, offer reuse (mask key). Otherwise collect via Ask and offer to cache to `~/.vibes/.env`. Store as `openRouterKey` (or null if no AI).
 
-### 0.4 Theme Count
+### 0.4 Theme Selection
 
-**Ask [Themes]**: "How many different themes do you want? (each = a completely different layout)"
-- "1 theme" — Fastest generation, single layout
-- "2 themes" — Two switchable layouts
-- "3 themes (Recommended)" — Three switchable layouts for maximum variety
-
-Store as `themeCount` (1, 2, or 3).
+Theme switching is handled by the live preview wrapper, not inside the app. The builder generates a single-theme layout. Set `themeCount = 1`.
 
 ---
 
@@ -104,7 +99,7 @@ Store as `themeCount` (1, 2, or 3).
 ### 1.2 Spawn Builder (T1)
 
 1. Read `{pluginRoot}/skills/launch/prompts/builder.md`
-2. Substitute: `{appPrompt}`, `{appName}`, `{pluginRoot}`, `{themeCount}`
+2. Substitute: `{appPrompt}`, `{appName}`, `{pluginRoot}`
 3. Set `{aiInstructions}`: if `openRouterKey` is set, add rule about `useAI` hook (see vibes SKILL.md "AI Features"). If null, leave empty.
 4. Spawn: Task tool, `team_name="launch-{appName}"`, `name="builder"`, `subagent_type="general-purpose"`
 
@@ -186,6 +181,14 @@ Store: `billingMode` ("off"/"required"), `appTitle`, `tagline`, `subtitle`, `fea
 Confirm: `app.jsx` exists with valid JSX. `.env` has `VITE_CLERK_PUBLISHABLE_KEY`, `VITE_API_URL`, `VITE_CLOUD_URL`. All sell config values collected.
 
 Scan app.jsx for builder mistakes (see LAUNCH-REFERENCE.md "Common Builder Mistakes"). Fix any found before proceeding.
+
+### 2.1.5 Preview Before Deploy
+
+**Ask [Preview]**: "Want to preview the app before deploying?"
+- "Yes — open live preview" — Start the preview server and iterate on the design
+- "No — deploy now" — Skip preview, go straight to deploy
+
+If yes: run `node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js"` and tell the user to open `http://localhost:3333`. They can chat to iterate on the design and switch themes. When satisfied, stop the server and continue to 2.2.
 
 ### 2.2 Deploy Cycle
 
