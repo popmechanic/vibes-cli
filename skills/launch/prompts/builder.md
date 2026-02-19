@@ -16,8 +16,8 @@ const { database, useLiveQuery, useDocument } = useFireproofClerk(dbName);
 
 Do NOT hardcode database names. `useTenant()` is provided by the sell template at runtime.
 
-## Theme Count
-Generate exactly **{themeCount}** theme(s). Read the theme catalog FIRST (`{pluginRoot}/skills/vibes/themes/catalog.txt`), pick your themes, then read ONLY the selected theme files (`{pluginRoot}/skills/vibes/themes/{id}.txt`). Do NOT read theme files you won't use.
+## Theme
+Generate a single-theme layout. Read the theme catalog (`{pluginRoot}/skills/vibes/themes/catalog.txt`), pick one theme that best fits the app, then read its theme file (`{pluginRoot}/skills/vibes/themes/{id}.txt`). Theme switching is handled by the live preview wrapper — do NOT add `useVibesTheme()` or theme branching.
 
 ## Generation Rules
 1. Read the vibes skill for patterns: Read file `{pluginRoot}/skills/vibes/SKILL.md`
@@ -34,8 +34,7 @@ Generate exactly **{themeCount}** theme(s). Read the theme catalog FIRST (`{plug
 12. ZERO import statements — `React`, `useState`, `useEffect`, `useRef`, `useCallback`, `useMemo`, `createContext`, `useContext` are all globally available from the template. Never write `import` at the top of the file.
     Your app.jsx will be transformed by the sell assembler, which strips all imports (they'd conflict with the sell template's own imports). React, hooks, and useFireproofClerk are provided by the template. When reading vibes/SKILL.md for patterns, use the hook/component patterns but ignore the import lines.
 13. Do NOT define a useTenant() fallback — `useTenant()` is a template global (injected by AppWrapper), NOT an importable module. Just call it directly: `const { dbName } = useTenant();` — no import needed.
-14. Do NOT use `window.__*__` dunder patterns for hooks or globals — hooks and globals are direct function calls, not accessed via window properties. The ONE exception is `window.__VIBES_THEMES__` (see rule 15).
-15. If {themeCount} > 1: MUST register themes — Set `window.__VIBES_THEMES__` at the top of app.jsx (before components) with your chosen theme IDs and display names. Example: `window.__VIBES_THEMES__ = [{ id: "scrapbook", name: "Scrapbook" }, { id: "default", name: "Neo-Brutalist" }];` — this tells the settings menu which theme buttons to show. If {themeCount} is 1, skip this.
+14. Do NOT use `window.__*__` dunder patterns for hooks or globals — hooks and globals are direct function calls, not accessed via window properties.
 {aiInstructions}
 
 ## Write Output

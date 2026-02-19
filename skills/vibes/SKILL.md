@@ -123,31 +123,19 @@ The token catalog defines all available CSS custom properties: `colors`, `radius
 - **Pick components from the catalog** (card, input, badge, table, etc.), then write CSS for their class names using the design tokens
 - Override `--color-*` tokens in a `:root` style block for per-app theming
 
-### Step 1.75: Ask Theme Count & Select Layout Themes
-
-**Ask [Themes]**: "How many different themes do you want? (each theme = a completely different layout)"
-- "1 theme" — Fastest generation, single layout
-- "2 themes" — Two switchable layouts
-- "3 themes (Recommended)" — Three switchable layouts for maximum variety
-
-Store the answer as `themeCount` (1, 2, or 3).
+### Step 1.75: Select Theme
 
 **Read the theme catalog FIRST** (it's small — just descriptions, not full theme files):
 ```
 Read file: ${CLAUDE_PLUGIN_ROOT}/skills/vibes/themes/catalog.txt
 ```
 
-The catalog has 6 themes. Pick exactly `themeCount` themes based on:
-- The app's content type and primary purpose
-- Each theme's BEST FOR and NOT FOR lists
-- If picking 2+: variety — the themes should feel distinct from each other
-- Default is always a safe pick but don't default to it blindly
+Pick **1 theme** based on the app's content type and purpose, using each theme's BEST FOR and NOT FOR lists. If the user explicitly requests a specific theme, always follow their choice.
 
-**ONLY THEN read the theme files you actually need** — one at a time, only for the themes you selected:
+**ONLY THEN read the theme file you selected:**
 ```
 Read file: ${CLAUDE_PLUGIN_ROOT}/skills/vibes/themes/{selected-theme}.txt
 ```
-Do NOT read theme files you won't use. Each file is large, so reading unnecessary ones wastes time.
 
 **Each theme file provides:**
 - Color token overrides (`:root` values — use these exactly, they define the mood)
@@ -156,36 +144,9 @@ Do NOT read theme files you won't use. Each file is large, so reading unnecessar
 - Personality notes (how the theme FEELS — guide your creative choices)
 - Animation and SVG guidelines
 
-**CRITICAL — Different layouts, not just different colors (when themeCount > 1):**
-Each theme MUST have a completely different HTML/JSX layout structure.
-- Different page organization (split-pane vs. stacked sections vs. sidebar+main)
-- Different element hierarchy (what's prominent, what's secondary)
-- Different navigation patterns (tabs vs. nav links vs. HUD bar)
-- Same data, same handlers, same state — different visual presentation
-
-Use `if (theme === "xxx")` branches in the render to return entirely different JSX trees per theme. CSS-only differences (just swapping colors/fonts on the same HTML) are NOT sufficient.
-
-**If themeCount is 1**, skip `useVibesTheme()` and the theme branching. Just generate one layout using the selected theme's design principles.
+Generate one layout using the selected theme's design principles. Do NOT add `useVibesTheme()` or theme branching — theme switching is handled by the live preview wrapper, not inside the app.
 
 **CREATIVE LIBERTY:** Themes are mood boards, not templates. Two apps using the same theme should FEEL related but LOOK different. Use the color tokens exactly (they're the mood identity), follow the design principles, but invent unique layouts, card designs, hover effects, and decorative elements for each app. The reference CSS is ONE interpretation — don't copy it verbatim.
-
-**Component consistency (when themeCount > 1):** All themes must use the same React state, event handlers, and data hooks. They differ only in JSX structure and CSS. This ensures theme switching works at runtime via `useVibesTheme()`.
-
-**REQUIRED — Register themes for the menu (when themeCount > 1):**
-The VibesPanel (settings menu) dynamically reads `window.__VIBES_THEMES__` to render theme-switch buttons. You MUST register your chosen themes at the top of app.jsx (before any component definitions):
-
-```jsx
-window.__VIBES_THEMES__ = [
-  { id: "scrapbook", name: "Scrapbook" },
-  { id: "default", name: "Neo-Brutalist" },
-];
-```
-
-Replace the `id` and `name` values with your actual selected themes. The `id` must match the theme IDs used in your `useVibesTheme()` hook and `if (theme === "xxx")` branches. The `name` is the human-readable label shown on the button. If `window.__VIBES_THEMES__` is not set, the menu falls back to hardcoded default/archive/industrial buttons which won't match your themes.
-
-**If themeCount is 1**, skip `window.__VIBES_THEMES__` — the design button won't show theme options.
-
-**If the user explicitly requests specific themes**, always follow their choice. Otherwise, pick the best fits from the catalog.
 
 ### Step 1.9: Generate Design Preview (OPTIONAL)
 
@@ -196,19 +157,18 @@ Replace the `id` and `name` values with your actual selected themes. The `id` mu
 **If the user says yes**, generate a standalone `theme.html` — a self-contained static page that demonstrates the visual design without React, Fireproof, or Clerk:
 
 - **Single HTML file** with inline `<style>` and `<script>`. No external dependencies except Google Fonts via `@import`.
-- **CSS custom properties** using `--comp-*` token overrides from the selected theme(s).
+- **CSS custom properties** using `--comp-*` token overrides from the selected theme.
 - **Realistic placeholder content** matching the app description (not lorem ipsum).
 - **Interactive elements** — tabs switch, buttons have hover/active states, forms accept input. Wire with vanilla JS.
 - **Animations and inline SVGs** following the theme's ANIMATIONS and SVG ELEMENTS guidelines.
 - **Mobile-responsive** with `@media` breakpoints.
-- **Multi-theme switching** (if themeCount > 1) — use `[data-theme]` attribute on `<body>` with CSS custom property overrides per theme. Include a small theme-switcher UI. Vanilla JS toggles `document.body.dataset.theme`.
 
 **Embed a metadata comment at the top** for downstream reference:
 ```html
 <!-- VIBES-THEME-META
   source: prompt
   mood: "{theme mood}"
-  themes: ["{theme-id-1}", "{theme-id-2}"]
+  theme: "{theme-id}"
   tokens: { "--comp-bg": "oklch(...)", "--comp-accent": "oklch(...)" }
   layout: "{layout-type}"
 -->
@@ -275,11 +235,16 @@ Apps will show a configuration error if credentials are missing.
 
 1. Extract the code from `<code>` tags and write to `app.jsx`
 2. Optionally save `<design>` content to `design.md` for documentation
-3. Run assembly:
+3. **Ask [Preview]**: "Want to preview the app before deploying?"
+   - "Yes — open live preview" — Start the preview server for iterating on the design
+   - "No — deploy now" — Skip preview, go straight to deploy
+
+   If yes: run `node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js"` and tell the user to open `http://localhost:3333`. They can chat to iterate on the design and switch themes. When satisfied, stop the server and continue.
+4. Run assembly:
    ```bash
    node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble.js" app.jsx index.html
    ```
-4. Deploy the app so the user can see it. Clerk auth requires a public URL — the app cannot be viewed locally. Auto-invoke /vibes:cloudflare to deploy, then present the live URL.
+5. Deploy the app so the user can see it. Clerk auth requires a public URL — the app cannot be viewed locally. Auto-invoke /vibes:cloudflare to deploy, then present the live URL.
 
 ---
 

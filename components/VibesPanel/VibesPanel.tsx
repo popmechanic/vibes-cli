@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useId } from "react";
-import { VibesButton, BLUE, RED, YELLOW, GRAY } from "../VibesButton/VibesButton.js";
+import { VibesButton, BLUE, YELLOW, GRAY } from "../VibesButton/VibesButton.js";
 import { BrutalistCard } from "../BrutalistCard/index.js";
 import { LabelContainer } from "../LabelContainer/index.js";
 import {
@@ -16,35 +16,14 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 export interface VibesPanelProps {
   style?: React.CSSProperties;
   className?: string;
-  baseURL?: string;
   token?: string;
 }
 
-type PanelMode = "default" | "invite" | "design";
-
-interface ThemeEntry {
-  id: string;
-  name: string;
-}
-
-const DEFAULT_THEMES: ThemeEntry[] = [
-  { id: "default", name: "Neo-Brutalist" },
-  { id: "archive", name: "Archive" },
-  { id: "industrial", name: "Industrial" },
-];
-
-const VARIANT_CYCLE = [BLUE, YELLOW, RED] as const;
-
-declare global {
-  interface Window {
-    __VIBES_THEMES__?: ThemeEntry[];
-  }
-}
+type PanelMode = "default" | "invite";
 
 export function VibesPanel({
   style,
   className,
-  baseURL,
   token,
 }: VibesPanelProps = {}) {
   const emailId = useId();
@@ -58,13 +37,6 @@ export function VibesPanel({
   const [inviteLink, setInviteLink] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
 
-  const themes: ThemeEntry[] =
-    (typeof window !== "undefined" && Array.isArray(window.__VIBES_THEMES__) && window.__VIBES_THEMES__.length > 0)
-      ? window.__VIBES_THEMES__
-      : DEFAULT_THEMES;
-
-  const effectiveBaseURL = baseURL ?? (typeof window !== "undefined" ? window.location.origin : "https://vibes.diy");
-
   const handleInviteClick = () => {
     if (mode === "default") {
       setMode("invite");
@@ -76,26 +48,8 @@ export function VibesPanel({
     }
   };
 
-  const handleDesignClick = () => {
-    if (mode === "default") {
-      setMode("design");
-    }
-  };
-
-  const handleThemeSelect = (theme: string) => {
-    document.dispatchEvent(
-      new CustomEvent("vibes-design-request", {
-        detail: { theme },
-      }),
-    );
-  };
-
   const handleBackClick = () => {
     setMode("default");
-  };
-
-  const handleChangeCodeClick = () => {
-    window.open(`${effectiveBaseURL}/remix`, "_top");
   };
 
   const handleLogoutClick = () => {
@@ -245,28 +199,6 @@ export function VibesPanel({
                 Back
               </VibesButton>
             </div>
-          ) : mode === "design" ? (
-            <div style={getInviteRowStyle(isMobile)}>
-              <VibesButton
-                variant={RED}
-                onClick={() => {}}
-                icon="design"
-              >
-                Design
-              </VibesButton>
-              {themes.map((t, i) => (
-                <VibesButton
-                  key={t.id}
-                  variant={VARIANT_CYCLE[i % VARIANT_CYCLE.length]}
-                  onClick={() => handleThemeSelect(t.id)}
-                >
-                  {t.name}
-                </VibesButton>
-              ))}
-              <VibesButton variant={GRAY} onClick={handleBackClick} icon="back">
-                Back
-              </VibesButton>
-            </div>
           ) : (
             <>
               <VibesButton
@@ -276,15 +208,6 @@ export function VibesPanel({
               >
                 Logout
               </VibesButton>
-              {themes.length > 1 && (
-                <VibesButton
-                  variant={RED}
-                  onClick={handleDesignClick}
-                  icon="design"
-                >
-                  Design
-                </VibesButton>
-              )}
               <VibesButton
                 variant={YELLOW}
                 onClick={handleInviteClick}

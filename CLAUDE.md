@@ -366,6 +366,7 @@ npm run test:e2e:server
 | `scripts/find-plugin.js` | Plugin directory lookup with validation |
 | `scripts/generate-riff.js` | Parallel riff generator - spawns claude -p for variations |
 | `scripts/generate-handoff.js` | Generate HANDOFF.md context document for remote Claude |
+| `scripts/preview-server.js` | Live preview server - HTTP + WebSocket bridge to Claude Code |
 | `scripts/deploy-exe.js` | App deployment to exe.dev (static files, AI proxy) |
 | `scripts/deploy-connect.js` | Connect Studio deployment to exe.dev (Docker-based sync) |
 | `scripts/deploy-cloudflare.js` | Cloudflare deployment script |
@@ -389,6 +390,7 @@ npm run test:e2e:server
 | `scripts/lib/design-tokens.js` | Single source of truth for all design tokens (TOKEN_CATALOG + VIBES_THEME_CSS) |
 | `scripts/lib/component-catalog.js` | Bare HTML component templates (shadcn-style, unstyled) — LLM styles them with tokens |
 | `scripts/lib/component-transforms.js` | Pure functions for transforming component source code |
+| `scripts/lib/parse-theme-catalog.js` | Parser for theme catalog.txt → JSON array |
 | `scripts/__tests__/fixtures/` | Pre-written JSX test fixtures |
 | `lib/resolve-paths.js` | Find plugin directory across install locations |
 | `bundles/fireproof-clerk-bundle.js` | Patched Fireproof client bundle (CID fix, retry backoff, sync poll) |
@@ -404,6 +406,7 @@ npm run test:e2e:server
 | `source-templates/base/template.html` | Base template with shared code (components, CSS, imports) |
 | `skills/vibes/template.delta.html` | Vibes-specific delta (Clerk auth wrapper) |
 | `skills/vibes/templates/index.html` | Generated vibes template |
+| `skills/vibes/templates/preview.html` | Live preview wrapper (side-by-side chat + theme modal) |
 | `skills/vibes/SKILL.md` | Main vibes skill (has import map) |
 | `skills/vibes/defaults/` | Shipped defaults - style-prompt.txt, dev-credentials.example.json |
 | `skills/riff/defaults/` | Shipped defaults - style-prompt.txt |

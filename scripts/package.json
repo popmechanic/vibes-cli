@@ -8,12 +8,14 @@
     "test:unit": "vitest run __tests__/unit",
     "test:integration": "vitest run __tests__/integration",
     "test:e2e:server": "node __tests__/e2e/local-server.js",
-    "test:fixtures": "vitest run __tests__/integration/assembly-pipeline.test.js"
+    "test:fixtures": "vitest run __tests__/integration/assembly-pipeline.test.js",
+    "preview": "node preview-server.js"
   },
   "dependencies": {
     "esbuild": "^0.24.0",
     "jsonwebtoken": "^9.0.2",
-    "svix": "^1.44.0"
+    "svix": "^1.44.0",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "@ipld/dag-json": "^10.2.6",
