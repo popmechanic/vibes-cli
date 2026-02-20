@@ -1,0 +1,567 @@
+THEME: capsule
+NAME: Capsule Split
+MOOD: Contained, playful-modern, split-panel, rounded
+
+DESCRIPTION:
+A split-panel app encapsulated in a white frame on a black body. The left
+panel is near-black with topographic SVG contour lines and a single large
+display number. The right panel is bright chartreuse/lime and holds all
+interactive content — large question text, radio options, pill buttons,
+and a leaderboard grid. Everything has generous rounded corners (24-32px).
+Buttons and badges are pill-shaped (border-radius: 100px). The white frame
+around the app acts like a device bezel, making the whole layout feel like
+a contained product — a capsule. Helvetica Neue only. The aesthetic is
+clean, modern, and quietly playful without being childish.
+
+BEST FOR:
+  - Quiz apps, trivia games, riddle challenges
+  - Interactive learning tools, flashcards, study apps
+  - Onboarding flows, multi-step wizards, surveys
+  - Voting and polling interfaces
+  - Game UIs with leaderboards and scoring
+  - Two-panel comparison tools (before/after, input/output)
+  - Any app with a clear split between display and interaction
+
+NOT FOR:
+  - Data-heavy dashboards with many widgets (split panel is too constrained)
+  - Content-heavy editorial or blog layouts (limited scrollable area)
+  - Complex multi-section apps that need full-width layouts
+  - E-commerce with product grids (too few items visible at once)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Place inside the interaction panel (right). Use the
+    leaderboard grid pattern — three-column grid with rank, name, value.
+    Zero-padded rank numbers (001, 002). Thin border-bottom dividers.
+  - If app has FORMS: Each form field group sits in the interaction panel.
+    Inputs have no visible border — use subtle rgba bottom borders only.
+    Submit button is a pill-shape (border-radius: 100px) in black.
+    Radio/checkbox inputs use custom circular styles with scale animation.
+  - If app has LISTS: Vertical stack in the interaction panel with thin
+    border-bottom dividers. Hover shifts items right (padding-left: 10px).
+    Muted text that brightens to full on hover.
+  - If app has IMAGES: Place hero image or illustration in the visual
+    panel (left). Keep the interaction panel text-only. Images in the
+    dark panel with reduced opacity or blend effects.
+  - If app has MULTIPLE SECTIONS: Stack vertically in the interaction
+    panel, separated by 1px border-top dividers. Each section has its
+    own meta-label pill badge. The visual panel stays fixed as a sidebar.
+  - If app has SCORING/PROGRESS: Display the current score/step as the
+    large number (180px) in the visual panel. Leaderboard or progress
+    tracker goes at the bottom of the interaction panel.
+  - If app has A LANDING/INTRO: Visual panel shows brand + large number.
+    Interaction panel shows the main CTA with large display text and a
+    pill-shaped action button.
+
+COLOR TOKENS:
+  The capsule palette is a split between near-black and a single bright
+  accent color. The white frame ties them together. The accent color
+  (chartreuse/lime) is bold and energetic but used only on the
+  interaction panel background — never as a small accent.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.89 0.20 110);             /* chartreuse/lime panel */
+    --comp-text: oklch(0.00 0 0);                /* pure black */
+    --comp-border: oklch(0.00 0 0 / 0.10);       /* subtle black dividers */
+    --comp-accent: oklch(0.00 0 0);              /* black buttons and badges */
+    --comp-accent-text: oklch(1.00 0 0);         /* white on black */
+    --comp-muted: oklch(0.00 0 0 / 0.50);        /* 50% black for secondary text */
+    --color-background: oklch(0.00 0 0);         /* black body */
+    --grid-color: transparent;                    /* no background grid */
+  }
+  ```
+
+  Additional panel tokens:
+  ```css
+  --capsule-frame: oklch(1.00 0 0);              /* white frame */
+  --capsule-visual-bg: oklch(0.13 0 0);          /* near-black left panel */
+  --capsule-visual-text: oklch(1.00 0 0);        /* white text on dark */
+  --capsule-visual-border: oklch(1.00 0 0 / 0.20); /* subtle white borders */
+  ```
+
+  The chartreuse can be swapped per-app for different moods:
+  - Coral: oklch(0.72 0.18 25) for warm/social apps
+  - Sky blue: oklch(0.80 0.12 230) for calm/focus apps
+  - Lavender: oklch(0.78 0.12 300) for creative tools
+  - The LLM should keep the split-panel structure but may vary the accent
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the capsule aesthetic.
+  Study the patterns (framed split-panel, pill shapes, large display
+  numbers, topographic SVGs) to understand the mood, then design your
+  own version for each app.
+
+  ```css
+  /* ── Capsule Core ── */
+  :root {
+    --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --radius-outer: 32px;
+    --radius-inner: 24px;
+    --radius-pill: 100px;
+  }
+
+  body {
+    font-family: var(--font-main);
+    background: var(--color-background);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    overflow: hidden;
+  }
+
+  /* ── The Frame ── */
+  .app-container {
+    width: 100%;
+    max-width: 1400px;
+    height: 100%;
+    max-height: 850px;
+    display: grid;
+    grid-template-columns: 420px 1fr;
+    gap: 12px;
+    background: var(--capsule-frame);
+    padding: 12px;
+    border-radius: var(--radius-outer);
+  }
+
+  /* ── Visual Panel (left, dark) ── */
+  .panel-visual {
+    background: var(--capsule-visual-bg);
+    color: var(--capsule-visual-text);
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-inner);
+  }
+
+  /* ── Topographic SVG Background ── */
+  .topo-lines {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.6;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .topo-lines path {
+    stroke: oklch(1 0 0 / 0.3);
+    stroke-width: 1px;
+    fill: none;
+  }
+  .topo-lines circle {
+    stroke: oklch(1 0 0 / 0.3);
+    stroke-width: 1px;
+    fill: none;
+  }
+
+  /* ── Brand Badge (pill) ── */
+  .brand-badge {
+    position: relative;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--capsule-visual-text);
+    background: oklch(1 0 0 / 0.1);
+    padding: 8px 16px;
+    border-radius: var(--radius-pill);
+    align-self: flex-start;
+    backdrop-filter: blur(10px);
+  }
+
+  /* ── Large Display Number ── */
+  .display-number {
+    position: relative;
+    z-index: 2;
+    font-size: 180px;
+    line-height: 0.8;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    color: var(--capsule-visual-text);
+  }
+
+  /* ── Circle Arrow Button ── */
+  .circle-arrow {
+    font-size: 20px;
+    background: var(--capsule-visual-text);
+    color: var(--capsule-visual-bg);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* ── Meta Label (pill badge) ── */
+  .meta-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid currentColor;
+    font-weight: 600;
+    margin-bottom: 24px;
+  }
+  .panel-visual .meta-label {
+    color: var(--capsule-visual-text);
+    border-color: var(--capsule-visual-border);
+  }
+  .panel-interaction .meta-label {
+    color: var(--comp-text);
+    border-color: var(--comp-border);
+  }
+
+  /* ── Interaction Panel (right, bright) ── */
+  .panel-interaction {
+    background: var(--comp-bg);
+    color: var(--comp-text);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    border-radius: var(--radius-inner);
+  }
+
+  /* ── Content Area ── */
+  .interaction-content {
+    padding: 60px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 900px;
+    width: 100%;
+  }
+
+  /* ── Large Display Text ── */
+  .display-text {
+    font-size: 64px;
+    line-height: 1;
+    font-weight: 400;
+    letter-spacing: -0.03em;
+    margin-bottom: 60px;
+    color: var(--comp-text);
+  }
+
+  /* ── Option List ── */
+  .options-group {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--comp-border);
+  }
+  .option-item {
+    display: flex;
+    align-items: center;
+    padding: 28px 0;
+    border-bottom: 1px solid var(--comp-border);
+    cursor: pointer;
+    transition: padding-left 0.2s;
+  }
+  .option-item:hover {
+    padding-left: 10px;
+  }
+  .option-label {
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--comp-muted);
+    transition: color 0.2s;
+  }
+  .option-item:hover .option-label {
+    color: var(--comp-text);
+  }
+
+  /* ── Custom Radio Input ── */
+  .option-input {
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border: 2px solid oklch(0 0 0 / 0.3);
+    border-radius: 50%;
+    margin-right: 24px;
+    display: grid;
+    place-content: center;
+    flex-shrink: 0;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .option-input::before {
+    content: "";
+    width: 12px;
+    height: 12px;
+    background: var(--comp-text);
+    transform: scale(0);
+    transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+    border-radius: 50%;
+  }
+  .option-input:checked {
+    border-color: var(--comp-text);
+  }
+  .option-input:checked::before {
+    transform: scale(1);
+  }
+
+  /* ── Pill Button ── */
+  .btn-capsule {
+    background: oklch(0 0 0);
+    color: oklch(1 0 0);
+    border: none;
+    padding: 12px 12px 12px 32px;
+    font-size: 16px;
+    font-weight: 500;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 20px;
+    align-self: flex-start;
+    transition: transform 0.2s;
+  }
+  .btn-capsule:hover {
+    transform: scale(1.02);
+    background: oklch(0.15 0 0);
+  }
+  .btn-capsule .btn-icon {
+    font-size: 20px;
+    background: oklch(0.20 0 0);
+    color: oklch(1 0 0);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── Leaderboard / Data Section ── */
+  .data-section {
+    padding: 60px;
+    border-top: 1px solid var(--comp-border);
+  }
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--comp-text);
+    margin-bottom: 24px;
+    font-weight: 600;
+    opacity: 0.6;
+  }
+  .data-grid {
+    display: grid;
+    grid-template-columns: 60px 1fr 100px;
+    gap: 0;
+    font-size: 16px;
+  }
+  .data-rank {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--comp-border);
+    font-weight: 600;
+    opacity: 0.5;
+  }
+  .data-name {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--comp-border);
+    font-weight: 500;
+  }
+  .data-value {
+    padding: 20px 0;
+    border-bottom: 1px solid var(--comp-border);
+    text-align: right;
+    font-weight: 600;
+  }
+
+  /* ── Mobile Responsive ── */
+  @media (max-width: 900px) {
+    .app-container {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+      height: auto;
+      max-height: none;
+    }
+    body {
+      height: auto;
+      overflow-y: auto;
+      padding: 0;
+    }
+    .panel-visual {
+      height: 400px;
+      padding: 24px;
+    }
+    .display-number { font-size: 120px; }
+    .interaction-content { padding: 40px 24px; }
+    .data-section { padding: 40px 24px; }
+    .display-text { font-size: 42px; }
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - THE FRAME IS THE DESIGN — white frame (12px padding) around the entire app
+    on a black body. The app floats as a contained capsule.
+  - Split-panel layout: narrow dark visual panel (left) + wide bright
+    interaction panel (right). Never more than two panels.
+  - Generous rounded corners: 32px outer frame, 24px inner panels, 100px pills
+  - Pill shapes for ALL badges, buttons, and labels (border-radius: 100px)
+  - Circle shapes for small action buttons (arrow buttons, icon buttons)
+  - ONE bright accent color fills the entire interaction panel background —
+    the accent is architectural, not decorative
+  - Near-black visual panel with subtle SVG topographic lines at 30% white
+  - Large display number (180px) in the visual panel — the focal anchor point
+  - Helvetica Neue only — no secondary fonts
+  - Font weight: 500 for display type and body, 600 for labels and ranks
+  - Dividers are 1px rgba black at 10% opacity — barely there
+  - Hover interaction on list items: padding-left shift + text color brighten
+  - No hard borders — only subtle rgba dividers between list items
+  - No shadows on cards or panels — the frame and color split create depth
+  - Black body is always visible as a thin border around the white frame
+  - Content is generous — lots of whitespace, large text, breathing room
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. Vary the panel proportions, accent color,
+  and content arrangement based on the app's purpose.
+
+  ```jsx
+  function App() {
+    return (
+      <div className="app-container">
+        {/* Visual Panel (dark, left) */}
+        <div className="panel-visual">
+          {/* Topographic SVG background */}
+          <svg className="topo-lines" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice">
+            <path d="M-50,100 Q100,50 200,150 T450,100" />
+            <path d="M-50,250 Q150,200 250,300 T450,260" />
+            <path d="M-50,400 Q180,350 280,450 T450,420" />
+            <circle cx="100" cy="200" r="40" />
+            <circle cx="300" cy="400" r="60" />
+          </svg>
+
+          {/* Brand badge */}
+          <div className="brand-badge">
+            APP NAME
+          </div>
+
+          {/* Display number + meta */}
+          <div style={{ position: "relative", zIndex: 2 }}>
+            <span className="meta-label">CURRENT STEP</span>
+            <div style={{ display: "flex", alignItems: "flex-end" }}>
+              <span className="display-number">
+                {String(currentStep).padStart(2, '0')}
+              </span>
+              <button className="circle-arrow" style={{ marginLeft: 20, marginBottom: 30 }}>
+                →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Interaction Panel (bright, right) */}
+        <div className="panel-interaction">
+          <div className="interaction-content">
+            <span className="meta-label">PROMPT</span>
+            <h1 className="display-text">
+              {currentItem.question}
+            </h1>
+
+            <div className="options-group">
+              {currentItem.options.map((opt, i) => (
+                <label key={i} className="option-item">
+                  <input
+                    type="radio"
+                    name="answer"
+                    className="option-input"
+                    value={opt}
+                    onChange={() => setSelected(opt)}
+                  />
+                  <span className="option-label">{opt}</span>
+                </label>
+              ))}
+            </div>
+
+            <button className="btn-capsule" onClick={handleSubmit}>
+              Submit Answer
+              <span className="btn-icon">→</span>
+            </button>
+          </div>
+
+          {/* Data section */}
+          <div className="data-section">
+            <div className="section-header">
+              <span>LEADERBOARD</span>
+              <span>GLOBAL</span>
+            </div>
+            <div className="data-grid">
+              {leaders.map((user, i) => (
+                <React.Fragment key={user._id}>
+                  <span className="data-rank">
+                    {String(i + 1).padStart(3, '0')}
+                  </span>
+                  <span className="data-name">{user.name}</span>
+                  <span className="data-value">{user.score}</span>
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like unboxing a premium consumer device — the black body
+  is the box, the white frame is the packaging, and the two panels are the
+  product itself. The dark visual panel is the cover: mysterious, minimal,
+  with topographic contour lines drifting behind a single enormous number.
+  The bright interaction panel is where you actually DO things: answer
+  questions, make choices, see rankings. The chartreuse is energetic but
+  not aggressive — it's the color of a tennis ball, a highlighter pen, a
+  startup's accent color. Pill-shaped buttons feel friendly and tappable.
+  Rounded corners everywhere soften what could be rigid. The list hover
+  animation (gentle shift right + text brighten) rewards exploration without
+  being flashy. The whole experience feels like a well-designed app that
+  comes in a nice case — self-contained, polished, considered. Each capsule
+  app should feel like it was designed by someone who spends too long
+  choosing the right rounded corner radius.
+
+ANIMATIONS:
+  Capsule theme uses SUBTLE, TACTILE animations:
+  - List item hover: padding-left 10px shift + color transition (0.2s)
+  - Radio check: inner circle scale(0) → scale(1) with cubic-bezier(0.2, 0, 0, 1)
+  - Pill button hover: scale(1.02) transform (0.2s) — barely perceptible growth
+  - No entrance animations — content is present immediately
+  - No ambient motion — no floating, no pulsing, no rotating
+  - Exception: topographic SVG lines MAY have a very slow drift animation
+    (translateX, 30s+, linear) if the app feels too static
+  - NEVER use bouncing, elastic, or spring animations
+  - All transitions are 0.2s — fast, consistent, predictable
+  - The design is tactile (feels like touching buttons) not cinematic
+
+SVG ELEMENTS:
+  Capsule theme uses TOPOGRAPHIC, CONTOUR-LINE SVGs:
+  - Wavy horizontal paths as contour/topo lines (quadratic curves, Q control points)
+  - Circles as elevation markers (unfilled, thin stroke)
+  - All strokes: white at 30% opacity on the dark panel
+  - Stroke width: 1px always — never thick
+  - No fills — all shapes are outlines only
+  - Paths flow horizontally across the visual panel
+  - 5-7 paths at varying vertical positions for depth
+  - 1-2 circles at different sizes for focal points
+  - Do NOT use geometric grids, crosshairs, or technical HUD elements
+  - The topo lines should feel organic, like a terrain map

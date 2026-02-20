@@ -1,0 +1,399 @@
+THEME: carbon
+NAME: Carbon Panel
+MOOD: Apple-dark, warm-gray, data-viz, split-panel
+
+DESCRIPTION:
+An Apple dark mode aesthetic with warm gray surfaces (#1C1C1E body, #2C2C2E
+cards, #3A3A3C borders/hover). Cards have 16px border-radius. Data
+visualizations use warm accent colors — amber (#FF9F0A), coral (#FF6B3F),
+red (#FF453A), green (#32D74B). Layout is a split-panel editor: left panel
+for input, right panel for output/preview, divided by a 1px border. Each
+panel has a header bar with label + icon action buttons (rounded-full,
+#3A3A3C bg on hover). Cards contain charts (SVG line graphs, donut charts)
+and data tables (3-column grid, gray headers, hover-highlight rows). Legend
+dots are 8px colored circles. System sans-serif typography. Full viewport
+height, no scrolling on the outer frame (panels scroll independently).
+
+BEST FOR:
+  - Dashboard builders, component editors, data visualization tools
+  - Split-panel editors, code/preview layouts, IDE-like interfaces
+  - Financial dashboards, analytics, charts and tables
+  - Admin panels, CMS interfaces, data management tools
+  - Any app that combines input and output in a side-by-side layout
+
+NOT FOR:
+  - Content-heavy editorial or reading apps (too utilitarian)
+  - Playful/casual consumer apps (too serious and functional)
+  - E-commerce or product showcases (no product display patterns)
+  - Creative portfolios or photography (no image display patterns)
+  - Single-focus mobile-first apps (split panel needs width)
+
+ADAPTATION NOTES:
+  - If app has TABLES: 3-column grid layout, xs gray-400 headers, sm white
+    body rows with py-2 px-2. Hover: bg-[#3A3A3C]. Rounded corners on row
+    hover. Right-align numeric columns.
+  - If app has FORMS: Inputs inside cards — transparent bg, 1px border
+    #3A3A3C, 8px radius. Focus: border brightens. Or use contenteditable
+    divs for rich text input (editor pattern). Labels in sm gray-300.
+  - If app has LISTS: Stack inside cards with space-y-2. Each item is a
+    flex row with label left, value right. Hover: bg-[#3A3A3C] rounded.
+  - If app has CARDS: #2C2C2E bg, 16px radius, p-4. Title bar: base font-
+    medium + info icon + vertical-dots menu button (rounded-full #3A3A3C).
+    Subtitle in xs gray-400.
+  - If app has CHARTS: SVG inside cards. Line charts: colored stroke paths
+    with endpoint dots. Donut charts: circle elements with stroke-dasharray
+    segments. Legend: colored 8px circle-dots with xs labels.
+  - If app has SPLIT PANEL: 50/50 flex row (border-r separator). Each side
+    has a header bar (sm gray-300 label + icon buttons) and scrollable
+    content area. Full viewport height. Responsive: stacks on mobile.
+  - If app has NAVIGATION: Panel header bars with sm labels and icon
+    buttons. No tab bar — the split panel IS the navigation structure.
+
+COLOR TOKENS (oklch):
+  --bg:          oklch(0.18 0.005 285)      /* body #1C1C1E */
+  --card:        oklch(0.25 0.005 285)      /* card surface #2C2C2E */
+  --border:      oklch(0.31 0.005 285)      /* separators, hover bg #3A3A3C */
+  --fg:          oklch(1.00 0.000 0)        /* primary text white */
+  --fg-muted:    oklch(0.87 0.01 258)       /* panel labels gray-300 */
+  --fg-dim:      oklch(0.71 0.02 261)       /* subtitles, table headers gray-400 */
+  --accent-amber:  oklch(0.79 0.18 75)      /* primary data color #FF9F0A */
+  --accent-coral:  oklch(0.68 0.20 35)      /* secondary data color #FF6B3F */
+  --accent-red:    oklch(0.63 0.24 25)      /* tertiary data color #FF453A */
+  --accent-green:  oklch(0.77 0.22 145)     /* positive data color #32D74B */
+
+REFERENCE STYLES:
+
+  /* ---- CARD (rounded dark surface) ---- */
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  /* ---- CARD TITLE BAR ---- */
+  .card-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--fg);
+    display: flex;
+    align-items: center;
+  }
+  .card-title .info-icon {
+    width: 16px;
+    height: 16px;
+    margin-left: 4px;
+    color: var(--fg-dim);
+  }
+  .card-subtitle {
+    font-size: 12px;
+    color: var(--fg-dim);
+  }
+  .card-menu-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    background: var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    color: var(--fg);
+    cursor: pointer;
+  }
+
+  /* ---- LEGEND DOT ---- */
+  .circle-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+
+  /* ---- SPLIT PANEL LAYOUT ---- */
+  .split-container {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+    overflow: hidden;
+  }
+  .panel {
+    width: 50%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .panel-left {
+    border-right: 1px solid var(--border);
+  }
+  .panel-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+  }
+  .panel-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--fg-muted);
+  }
+  .panel-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+  }
+  .panel-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    background: none;
+    border: none;
+    color: var(--fg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+  }
+  .panel-btn:hover {
+    background: var(--border);
+  }
+  .panel-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+  .panel-body {
+    flex: 1;
+    overflow: auto;
+    padding: 16px;
+  }
+
+  /* ---- DATA TABLE ---- */
+  .data-table-header {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    font-size: 12px;
+    color: var(--fg-dim);
+    margin-bottom: 8px;
+    padding: 0 8px;
+  }
+  .data-table-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    font-size: 14px;
+    padding: 8px;
+    border-radius: 4px;
+    transition: background 0.15s;
+  }
+  .data-table-row:hover {
+    background: var(--border);
+  }
+  .text-right { text-align: right; }
+
+  /* ---- DONUT CHART ---- */
+  .donut-container {
+    display: flex;
+    justify-content: center;
+    padding: 16px 0;
+  }
+  .donut-legend {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    text-align: center;
+  }
+  .donut-legend-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ---- PAGE HEADER ---- */
+  .page-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .page-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--fg);
+  }
+
+  /* ---- TYPOGRAPHY ---- */
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+DESIGN PRINCIPLES:
+  1. APPLE DARK MODE: Three warm-gray tiers — #1C1C1E (body), #2C2C2E (cards),
+     #3A3A3C (borders/hover). Not cool-blue grays. The warmth is subtle but
+     makes it feel native to iOS/macOS dark mode.
+  2. 16PX CARD RADIUS: All cards use 16px border-radius. Generous rounding
+     that matches Apple's design language. Not pill-shaped (too much), not
+     sharp (too technical).
+  3. WARM ACCENT PALETTE: Amber (#FF9F0A), coral (#FF6B3F), red (#FF453A),
+     green (#32D74B). These are Apple's system colors. Each data series or
+     category gets its own accent. No cool blues as primary accents.
+  4. SPLIT PANEL: 50/50 horizontal split with 1px border separator. Left
+     panel for input/editing, right panel for output/preview. Each panel
+     scrolls independently. Responsive: stacks vertically on mobile.
+  5. PANEL HEADERS: Each panel has a header bar with a sm font-medium label
+     (gray-300) and icon action buttons on the right. Buttons are rounded-
+     full, invisible until hover (bg becomes #3A3A3C). Clean, minimal chrome.
+  6. CARD TITLE PATTERN: Every card has the same header: title (base medium)
+     + info icon (16px, gray-400) on the left, vertical-dots menu button
+     (rounded-full, #3A3A3C bg) on the right. Subtitle in xs gray-400 below.
+  7. LEGEND DOTS: Data series identified by 8px colored circles (circle-dot)
+     next to xs text labels. Inline layout. Color = identity.
+  8. HOVER HIGHLIGHT: Interactive rows and buttons use hover:bg-[#3A3A3C].
+     Subtle shift to the border gray. With border-radius: 4px on rows for
+     a slightly rounded highlight.
+  9. SVG DATA VIZ: Line charts as SVG paths with colored strokes (no fill).
+     Donut charts as circle elements with stroke-dasharray segments. Data
+     viz lives inside cards, not standalone. Always paired with legend.
+  10. SYSTEM SANS-SERIF: -apple-system stack. No custom fonts. Weight 500
+      for medium emphasis, 600 for semibold titles. Matches the native
+      platform feel across Apple and Google devices.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const tableData = [
+      { date: "Nov 02", name: "acero-28", amount: "$180" },
+      { date: "Nov 02", name: "acero-28", amount: "$180" }
+    ];
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", height: "100vh" }}>
+        {/* PAGE HEADER */}
+        <header className="page-header">
+          <h1 className="page-title">Add Component</h1>
+        </header>
+
+        {/* SPLIT PANELS */}
+        <div className="split-container" style={{ flex: 1 }}>
+          {/* LEFT: INPUT */}
+          <div className="panel panel-left">
+            <div className="panel-header">
+              <span className="panel-label">NLP Input</span>
+              <div className="panel-actions">
+                <button className="panel-btn">
+                  <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="panel-body">
+              <p style={{ marginBottom: 16 }}>Create a line chart showing total sales</p>
+              <p style={{ marginBottom: 16 }}>Add a donut chart for balance breakdown</p>
+              <p>Show a table with recent spending</p>
+            </div>
+          </div>
+
+          {/* RIGHT: PREVIEW */}
+          <div className="panel">
+            <div className="panel-header">
+              <span className="panel-label">Preview</span>
+              <div className="panel-actions">
+                <button className="panel-btn">↻</button>
+                <button className="panel-btn">↓</button>
+              </div>
+            </div>
+            <div className="panel-body" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* LINE CHART CARD */}
+              <div className="card">
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div>
+                    <h2 className="card-title">Total Sales</h2>
+                    <p className="card-subtitle">Last month</p>
+                  </div>
+                  <button className="card-menu-btn">⋮</button>
+                </div>
+                <div style={{ display: "flex", gap: 16, marginBottom: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <span className="circle-dot" style={{ background: "var(--accent-amber)" }} />
+                    <span style={{ fontSize: 12 }}>Last month</span>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center" }}>
+                    <span className="circle-dot" style={{ background: "var(--accent-coral)" }} />
+                    <span style={{ fontSize: 12 }}>Previous</span>
+                  </div>
+                </div>
+                <svg viewBox="0 0 300 120" style={{ width: "100%", height: 160 }}>
+                  <path d="M0,100 C50,70 100,40 150,30 C200,20 250,10 300,0"
+                        fill="none" stroke="var(--accent-amber)" strokeWidth="2" />
+                  <path d="M0,110 C50,80 100,60 150,40 C200,30 250,25 300,20"
+                        fill="none" stroke="var(--accent-coral)" strokeWidth="2" />
+                </svg>
+              </div>
+
+              {/* TABLE CARD */}
+              <div className="card">
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div>
+                    <h2 className="card-title">Total Spend</h2>
+                    <p className="card-subtitle">Last month</p>
+                  </div>
+                  <button className="card-menu-btn">⋮</button>
+                </div>
+                <div className="data-table-header">
+                  <div>Date</div>
+                  <div>Name</div>
+                  <div className="text-right">Amount</div>
+                </div>
+                {tableData.map((row, i) => (
+                  <div key={i} className="data-table-row">
+                    <div>{row.date}</div>
+                    <div>{row.name}</div>
+                    <div className="text-right">{row.amount}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme is an Apple developer's workbench. The three-tier gray system
+  (#1C1C1E → #2C2C2E → #3A3A3C) is the native dark mode palette — warm,
+  not cold. Cards float on the dark body with generous 16px rounding. The
+  split-panel layout says "editor" — left side for thinking, right side for
+  seeing. Panel headers are minimal chrome with icon buttons that only
+  reveal themselves on hover. Data visualizations use Apple's system colors —
+  amber, coral, red, green — warm tones that pop against the dark surface
+  without feeling garish. The legend dots are tiny colored circles, precise
+  and informational. Tables have hover-highlight rows that shift to the
+  border gray. Everything transitions smoothly (0.15s cubic-bezier). This
+  is not flashy. It's the kind of tool you use at 2am with your IDE, and it
+  matches your OS perfectly.
+
+ANIMATIONS:
+  - HOVER HIGHLIGHT: Background transitions to #3A3A3C over 150ms
+    cubic-bezier(0.4, 0, 0.2, 1). Applied to table rows, buttons, and
+    interactive elements.
+  - COMPONENT PREVIEW: all 0.2s ease transition on preview cards. Allows
+    smooth reordering or resizing.
+  - No scan lines, no glow, no particles. Native-app smoothness.
+
+SVG ELEMENTS:
+  - LINE CHART: SVG paths with colored strokes (no fill), stroke-width 2.
+    Curved paths using C (cubic bezier) commands. Endpoint dots as circles
+    with r=4 and colored fill.
+  - DONUT CHART: SVG circle elements with stroke-dasharray and
+    stroke-dashoffset to create segments. Each segment gets its own accent
+    color. Background ring in card bg color. Stroke-width 12.
+  - ACTION ICONS: Filled SVGs at 20px — edit (pencil), refresh (arrows),
+    download (arrow-down), info (i-circle), more (vertical dots).
+  - LEGEND DOTS: CSS circles (8px, border-radius 50%), not SVG.
+
+GOOGLE FONTS:
+  /* No custom fonts — uses system sans-serif stack exclusively */
+  /* -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif */

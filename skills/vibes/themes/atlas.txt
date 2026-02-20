@@ -1,0 +1,478 @@
+THEME: atlas
+NAME: Atlas Reference
+MOOD: Editorial, encyclopedic, bold-color, data-catalog
+
+DESCRIPTION:
+A split-panel reference layout with a bold single-color brand panel (45%) and
+a clean white content panel (55%). The brand panel holds a multi-column data
+grid with italic serif column headers numbered with Roman numerals (I, II, III).
+A large CSS radial-gradient orb floats at the bottom of the brand panel as a
+decorative element. The content panel is quiet editorial — light-weight sans
+headings, Georgia serif body text, and link rows with arrows and italic
+descriptions. Borders are ultra-subtle: rgba(0,0,0,0.08) on the color panel,
+#EAEAEA on white. The overall feel is a scientific reference atlas or a curated
+data catalog — organized, authoritative, and visually bold without being loud.
+Helvetica Neue and Georgia only.
+
+BEST FOR:
+  - Reference databases, encyclopedias, knowledge bases
+  - Scientific data catalogs, spec sheets
+  - Documentation with structured data sidebars
+  - Portfolio sites with detailed project metadata
+  - Any app with a strong data sidebar + reading content split
+  - Curated collections with filterable categories
+  - About/info pages with structured attributes
+
+NOT FOR:
+  - Quick-action CRUD apps (too editorial, not enough form patterns)
+  - Playful/casual consumer apps (too serious and reference-like)
+  - Real-time dashboards with many updating widgets (static feel)
+  - Apps that need full-width layouts (committed to split-panel)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Use the data-grid column pattern. Each column has an
+    italic serif header and stacked nav-items (label + small value). Columns
+    separated by 1px borders. Roman numeral prefixes on headers.
+  - If app has FORMS: Place in the white content panel. Labels above inputs
+    in meta style (12px, gray, underlined). Inputs are minimal — bottom border
+    only. Submit button is a simple link-row style with arrow.
+  - If app has LISTS: Nav-item pattern inside the brand panel for filterable
+    items, or link-row pattern in the content panel for readable lists.
+    Hover: padding-left 8px shift + brand color.
+  - If app has IMAGES: CSS gradient orbs (radial-gradient circles) as
+    decorative elements in the brand panel. No photographs — this is
+    data-first, not visual-first.
+  - If app has LONG TEXT: Georgia serif at 18px with 1.6 line-height in
+    the content panel. Max-width 600px. Meta label above with number/date.
+  - If app has MULTIPLE SECTIONS: Stack link-row groups in the content panel
+    with uppercase section headers (12px, letter-spacing 0.5px, gray).
+  - If app has CATEGORIES: Each category is a data-grid column in the brand
+    panel. Click to filter the content panel. Roman numeral headers.
+
+COLOR TOKENS:
+  The atlas palette splits between a bold single-color panel and clean white.
+  The brand color is warm red/coral — vibrant but not aggressive. Text on the
+  color panel is near-black (not white). The content panel is pure white with
+  gray metadata.
+
+  ```css
+  :root {
+    --comp-bg: oklch(1.00 0 0);                  /* white content panel */
+    --comp-text: oklch(0.13 0 0);                /* near-black ink */
+    --comp-border: oklch(0.93 0 0);              /* light gray borders (#EAEAEA) */
+    --comp-accent: oklch(0.62 0.24 25);          /* brand red/coral (#FF4D3B) */
+    --comp-accent-text: oklch(0.13 0 0);         /* dark text on brand color */
+    --comp-muted: oklch(0.66 0 0);               /* meta gray (#999999) */
+    --color-background: oklch(1.00 0 0);         /* white body */
+    --grid-color: transparent;                    /* no background grid */
+  }
+  ```
+
+  Brand panel tokens:
+  ```css
+  --atlas-brand-bg: oklch(0.62 0.24 25);        /* red/coral panel */
+  --atlas-brand-border: oklch(0 0 0 / 0.08);    /* ultra-subtle dark border */
+  --atlas-brand-hover: oklch(0 0 0 / 0.05);     /* hover tint on color panel */
+  ```
+
+  The brand color can be swapped per-app for different subjects:
+  - Ocean blue: oklch(0.55 0.18 240) for marine/water data
+  - Forest green: oklch(0.50 0.15 155) for ecology/nature
+  - Deep purple: oklch(0.45 0.20 300) for astronomy/space
+  - Amber: oklch(0.70 0.17 70) for history/archaeology
+  - The LLM should keep the split-panel structure but choose a bold color
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the atlas aesthetic.
+  Study the patterns (bold color panel, multi-column data grid, serif/sans
+  pairing, Roman numeral headers, link rows) to understand the mood, then
+  design your own version for each app.
+
+  ```css
+  /* ── Atlas Core ── */
+  :root {
+    --font-sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --font-serif: 'Georgia', Times, serif;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--comp-bg);
+    color: var(--comp-text);
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── Layout Split ── */
+  .layout {
+    display: flex;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── Brand Panel (bold color, left) ── */
+  .panel-brand {
+    width: 45%;
+    background: var(--comp-accent);
+    color: var(--comp-text);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--atlas-brand-border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ── Brand Header ── */
+  .brand-header {
+    padding: 40px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--atlas-brand-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .logo {
+    font-weight: 700;
+    font-size: 24px;
+    letter-spacing: -0.5px;
+    text-transform: uppercase;
+  }
+  .logo span {
+    font-weight: 400;
+    opacity: 0.6;
+  }
+
+  /* ── Multi-Column Data Grid ── */
+  .data-grid {
+    display: flex;
+    flex: 1;
+    position: relative;
+    z-index: 10;
+  }
+  .grid-col {
+    flex: 1;
+    border-right: 1px solid var(--atlas-brand-border);
+    display: flex;
+    flex-direction: column;
+  }
+  .grid-col:last-child {
+    border-right: none;
+  }
+
+  /* Column header: italic serif with Roman numeral */
+  .col-header {
+    font-size: 11px;
+    opacity: 0.5;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--atlas-brand-border);
+    font-family: var(--font-serif);
+    font-style: italic;
+  }
+
+  /* ── Nav Items (key-value data rows) ── */
+  .nav-item {
+    display: block;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--atlas-brand-border);
+    text-decoration: none;
+    color: var(--comp-text);
+    font-size: 13px;
+    transition: background-color 0.2s;
+    cursor: pointer;
+    line-height: 1.3;
+  }
+  .nav-item:hover {
+    background: var(--atlas-brand-hover);
+  }
+  .nav-item span {
+    display: block;
+    font-size: 11px;
+    opacity: 0.6;
+    margin-top: 2px;
+  }
+
+  /* ── Decorative Orb ── */
+  .orb-container {
+    position: absolute;
+    bottom: -10%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 60%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.9;
+  }
+  .orb {
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at 30% 30%,
+      oklch(0.72 0.18 25) 0%,
+      var(--comp-accent) 50%,
+      oklch(0.48 0.20 25) 100%
+    );
+    box-shadow: inset -40px -40px 100px rgba(0, 0, 0, 0.2);
+    position: relative;
+  }
+  .orb-texture {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 70% 20%, rgba(0, 0, 0, 0.1) 0%, transparent 10%),
+      radial-gradient(circle at 20% 60%, rgba(0, 0, 0, 0.1) 0%, transparent 20%);
+    mix-blend-mode: multiply;
+  }
+
+  /* ── Brand Footer ── */
+  .brand-footer {
+    padding: 24px;
+    border-top: 1px solid var(--atlas-brand-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    background: var(--comp-accent);
+    position: relative;
+    z-index: 20;
+  }
+
+  /* ── Content Panel (white, right) ── */
+  .panel-content {
+    width: 55%;
+    background: var(--comp-bg);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 40px 80px;
+  }
+
+  /* ── Meta Label ── */
+  .meta-label {
+    font-size: 12px;
+    color: var(--comp-muted);
+    margin-bottom: 40px;
+    display: block;
+    border-bottom: 1px solid var(--comp-border);
+    padding-bottom: 16px;
+    width: 100px;
+  }
+
+  /* ── Content Heading ── */
+  h1 {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-size: 32px;
+    margin-bottom: 24px;
+    letter-spacing: -0.5px;
+    color: var(--comp-text);
+  }
+
+  /* ── Intro Text (serif) ── */
+  .intro-text {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    line-height: 1.6;
+    color: var(--comp-text);
+    max-width: 600px;
+    margin-bottom: 80px;
+  }
+
+  /* ── Section Header ── */
+  .section-header {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 24px;
+    color: var(--comp-muted);
+  }
+
+  /* ── Link Rows ── */
+  .link-row {
+    display: flex;
+    align-items: baseline;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--comp-border);
+    color: var(--comp-text);
+    text-decoration: none;
+    transition: padding-left 0.2s ease;
+    cursor: pointer;
+  }
+  .link-row:hover {
+    padding-left: 8px;
+    color: var(--comp-accent);
+  }
+  .link-arrow {
+    margin-right: 16px;
+    font-size: 10px;
+  }
+  .link-title {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    margin-right: 16px;
+  }
+  .link-desc {
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--comp-muted);
+    font-size: 13px;
+  }
+
+  /* ── Mobile Responsive ── */
+  @media (max-width: 900px) {
+    .layout { flex-direction: column; overflow-y: auto; }
+    .panel-brand, .panel-content { width: 100%; overflow: visible; }
+    .panel-brand { height: auto; min-height: 400px; }
+    .panel-content { padding: 40px 24px; }
+    .orb-container {
+      position: relative;
+      bottom: auto;
+      height: 300px;
+      margin: 40px 0;
+    }
+    .orb { width: 200px; height: 200px; }
+    body { overflow: auto; }
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - SPLIT-PANEL LAYOUT: bold color panel (45%) + white content panel (55%)
+  - ONE bold brand color fills the entire left panel — the color IS the identity
+  - Text on the color panel is NEAR-BLACK (not white) — creates sophistication
+  - Borders on color panel: rgba(0,0,0,0.08) — barely visible, structural only
+  - Borders on white panel: #EAEAEA — slightly more visible but still quiet
+  - Sans/serif pairing: Helvetica Neue for UI + Georgia for body and descriptions
+  - Heading weight: 400 (light) — NOT bold. Confidence, not shouting.
+  - Column headers: italic serif at 11px with Roman numeral prefix (I, II, III)
+  - Nav items: label + smaller value below. 13px body, 11px data at 60% opacity.
+  - Link rows: arrow + title (500 weight) + italic serif description
+  - Hover on both panels: padding-left 8px shift — consistent interaction
+  - Hover on color panel: rgba(0,0,0,0.05) background tint
+  - Hover on white panel: text color changes to brand color
+  - Decorative orb: radial-gradient sphere in the color panel, partially
+    clipped by overflow. Visual weight at the bottom of the panel.
+  - Meta labels: 12px gray with a short underline (100px border-bottom)
+  - No shadows, no blur, no gradients on UI elements — flat and clean
+  - The only gradient is the decorative orb
+  - Generous whitespace: 80px horizontal padding in content panel
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. Vary the data grid columns, brand color,
+  and orb style based on the app's subject matter.
+
+  ```jsx
+  function App() {
+    return (
+      <div className="layout">
+        {/* Brand Panel */}
+        <aside className="panel-brand">
+          <header className="brand-header">
+            <div className="logo">
+              APP <span>(SUBTITLE)</span>
+            </div>
+            <div style={{ fontSize: 11 }}>Category</div>
+          </header>
+
+          {/* Data Grid */}
+          <div className="data-grid">
+            {categories.map((cat, i) => (
+              <div key={cat._id} className="grid-col">
+                <div className="col-header">
+                  {['I', 'II', 'III', 'IV'][i]} — {cat.name}
+                </div>
+                {cat.items.map(item => (
+                  <a key={item._id} className="nav-item"
+                     onClick={() => setSelected(item)}>
+                    {item.label}
+                    <span>{item.value}</span>
+                  </a>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Decorative Orb */}
+          <div className="orb-container">
+            <div className="orb">
+              <div className="orb-texture" />
+            </div>
+          </div>
+
+          <footer className="brand-footer">
+            <span>Search Database</span>
+            <div className="search-icon" />
+          </footer>
+        </aside>
+
+        {/* Content Panel */}
+        <main className="panel-content">
+          <span className="meta-label">Nr. {selected.index} / 2024</span>
+
+          <h1>{selected.title}</h1>
+
+          <p className="intro-text">
+            {selected.description}
+          </p>
+
+          <div className="content-section" style={{ marginTop: "auto" }}>
+            <div className="section-header">Related Items</div>
+            {related.map(item => (
+              <a key={item._id} className="link-row" href="#">
+                <span className="link-arrow">↓</span>
+                <span className="link-title">{item.name}</span>
+                <span className="link-desc">{item.subtitle}</span>
+              </a>
+            ))}
+          </div>
+        </main>
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like opening a beautifully typeset reference atlas to a
+  page about a specific subject. The bold color panel is the plate — the
+  visual statement, the data card, the thing you came to look at. Its color
+  changes per subject (coral for Mars, blue for Neptune, green for a forest).
+  The data grid organizes attributes into Roman-numbered columns like a
+  scientific catalog. A soft gradient orb floats behind the data like a
+  planet half-visible through atmosphere. The white content panel is the
+  text page — Georgia serif body text at 18px, generous margins, quiet gray
+  metadata. Link rows point downward with small arrows, inviting deeper
+  exploration. The heading is large but light-weight (400), trusting the
+  content to carry authority rather than the font. Everything is precise but
+  warm — the serif softens the data, the bold color gives energy to the
+  structure. Each atlas app should feel like it was designed by an information
+  designer who makes beautiful reference books that people actually read.
+
+ANIMATIONS:
+  Atlas theme uses MINIMAL, EDITORIAL animations:
+  - Nav item hover: background tint (0.2s) — subtle darkening on color panel
+  - Link row hover: padding-left 8px + color change to brand (0.2s ease)
+  - No entrance animations — content is present immediately
+  - No ambient motion — no floating, no pulsing, no rotating
+  - The orb is STATIC — no animation, it's a decorative element
+  - Scroll behavior: smooth scrolling in content panel only
+  - NEVER use bouncing, scaling, or elastic easing
+  - All transitions are 0.2s — subtle and editorial
+  - The design communicates through structure and color, not motion
+
+SVG ELEMENTS:
+  Atlas theme uses MINIMAL, FUNCTIONAL SVGs/CSS shapes:
+  - Search icon: CSS-only (border-radius circle + rotated line after pseudo)
+  - Arrow indicators: text characters (↓, →) not SVG
+  - Decorative orb: CSS radial-gradient (not SVG) — the signature visual
+  - If icons needed: thin-stroke, 12px, geometric only
+  - No decorative illustrations, no patterns, no backgrounds
+  - No fill on icons — stroke only at 1px
+  - The orb IS the visual element — don't add more decoration
+  - Keep the page clean and let the color panel do the visual work

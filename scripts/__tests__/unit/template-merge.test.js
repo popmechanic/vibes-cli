@@ -119,6 +119,7 @@ describe('validateBasePlaceholders', () => {
     it('returns valid for template with all placeholders', () => {
       const template = `<!DOCTYPE html>
 <title>__TITLE__</title>
+/* === DESIGN_TOKENS_PLACEHOLDER === */
 // === COMPONENTS_PLACEHOLDER ===
 <!-- === DELTA_PLACEHOLDER === -->`;
       const result = validateBasePlaceholders(template);
@@ -159,7 +160,7 @@ describe('validateBasePlaceholders', () => {
       const template = '<!DOCTYPE html>';
       const result = validateBasePlaceholders(template);
       expect(result.valid).toBe(false);
-      expect(result.missing).toHaveLength(3);
+      expect(result.missing).toHaveLength(4);
     });
   });
 
@@ -167,7 +168,7 @@ describe('validateBasePlaceholders', () => {
     it('reports all placeholders as missing', () => {
       const result = validateBasePlaceholders('');
       expect(result.valid).toBe(false);
-      expect(result.missing).toHaveLength(3);
+      expect(result.missing).toHaveLength(4);
     });
   });
 });

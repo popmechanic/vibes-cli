@@ -1,0 +1,529 @@
+THEME: poster
+NAME: Poster Editorial
+MOOD: Cinematic, editorial, typographic, studio-grade
+
+DESCRIPTION:
+A dark editorial aesthetic inspired by film posters and design studio portfolios.
+Features massive condensed display type (Bebas Neue), a strict 12-column grid,
+film grain overlays, registration marks, and lavender-purple accents. Uses
+rule lines (inset box-shadows) instead of visible borders. Feels like a
+printed poster or a high-end design agency website — confident typography
+with restrained color and precise spatial rhythm.
+
+BEST FOR:
+  - SaaS landing pages, product marketing sites
+  - Portfolio/agency sites, case study presentations
+  - Developer tools, API documentation landing pages
+  - Feature announcements, changelog pages
+  - Startup pitch pages, product launches
+  - Any app that leads with bold typography and stats
+
+NOT FOR:
+  - Playful/casual apps (too serious and editorial)
+  - Data-entry CRUD apps (no form patterns in the aesthetic)
+  - Personal journals or scrapbooks (use scrapbook)
+  - Recipe or lifestyle apps (mood is too corporate/studio)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Use the 12-column grid with rule-line dividers.
+    Micro-text headers in uppercase. Monospace for data columns.
+    Alternating sections with rule-top/rule-bot borders.
+  - If app has FORMS: Place inputs in a col-span section. Outline-style
+    inputs with 1px accent border. Submit as cta-outline button.
+    Keep form sections narrow (col-span-5 or col-span-6).
+  - If app has LISTS: Each row spans the full grid width with rule-bot
+    dividers. Left column for micro labels, right for content.
+    Use the marquee pattern for feature/tag lists.
+  - If app has STATS: Use the display font at massive scale (96px+) in
+    accent color. Three-column grid with micro labels above. This is
+    the theme's signature pattern — lean into it.
+  - If app has IMAGES: Grayscale with high contrast, mix-blend-mode:screen
+    or multiply over accent gradient backgrounds. Inset border frames.
+    Use the wave-mask radial gradient for organic cropping.
+  - If app has MULTIPLE SECTIONS: Stack vertically with rule-top/rule-bot
+    between each. Use registration marks on key sections.
+
+COLOR TOKENS:
+  The poster palette is dark and restrained. Near-black background with
+  cool-toned ink white. Lavender-purple accent used sparingly on display
+  type and interactive elements.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.13 0.01 270);           /* near-black with blue tint */
+    --comp-text: oklch(0.93 0.01 270);          /* cool ink white */
+    --comp-border: oklch(0.22 0.01 270);        /* dark rule lines */
+    --comp-accent: oklch(0.65 0.18 290);        /* lavender purple */
+    --comp-accent-text: oklch(0.10 0.01 270);   /* dark on accent */
+    --comp-muted: oklch(0.42 0.01 270);         /* cool muted gray */
+    --color-background: oklch(0.11 0.01 270);   /* deepest background */
+    --grid-color: oklch(0.22 0.01 270);         /* rule/grid lines */
+  }
+  ```
+
+  Accent gradient endpoints:
+  ```css
+  --comp-accent-deep: oklch(0.48 0.18 285);    /* deeper purple for gradients */
+  ```
+
+  For LIGHT poster variant (editorial white):
+  ```css
+  :root {
+    --comp-bg: oklch(0.97 0.005 270);
+    --comp-text: oklch(0.12 0.01 270);
+    --comp-border: oklch(0.88 0.005 270);
+    --comp-accent: oklch(0.55 0.20 290);
+    --comp-accent-text: oklch(0.97 0.005 270);
+    --comp-muted: oklch(0.55 0.01 270);
+    --color-background: oklch(0.98 0.005 270);
+  }
+  ```
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the poster aesthetic.
+  Study the patterns (display type, rule lines, 12-col grid, grain overlay)
+  to understand the mood, then design your own version for each app.
+
+  ```css
+  /* ── Poster Design Tokens ── */
+  :root {
+    --radius-clip: 2px;
+    --shadow-bloom: 0 0 60px 0 oklch(0.65 0.18 290 / 0.18);
+    --font-display: 'Bebas Neue', system-ui, sans-serif;
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --size-h1: clamp(64px, 9vw, 120px);
+    --lh-h1: 0.9;
+    --track-h1: -0.01em;
+    --size-micro: 11px;
+    --lh-micro: 1.2;
+    --track-micro: 0.18em;
+    --size-body: 15px;
+    --lh-body: 1.5;
+    --track-body: 0.01em;
+    --u: 12px;       /* spacing unit */
+    --gut: 6vw;      /* page gutters */
+  }
+
+  /*
+    Load display font via Google Fonts:
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700&display=swap');
+
+    Font roles:
+    - Bebas Neue: display headings, stat numbers, CTAs (massive, condensed, uppercase)
+    - Inter: body text, labels, micro text (clean, neutral)
+  */
+
+  /* ── Layout Wrapper ── */
+  .layout-wrapper {
+    min-height: 100vh;
+    background: var(--color-background);
+    overflow-x: hidden;
+  }
+
+  /* ── Film Grain Overlay ── */
+  /*
+    Apply .bg-noise to any section that needs texture.
+    Uses an SVG noise filter as background-image.
+  */
+  .bg-noise {
+    position: relative;
+  }
+  .bg-noise::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23n)" opacity="0.08"/></svg>');
+    mix-blend-mode: soft-light;
+    opacity: 0.08;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* ── Rule Lines (inset box-shadows, not borders) ── */
+  .rule-top {
+    box-shadow: inset 0 1px 0 0 var(--comp-border);
+  }
+  .rule-bot {
+    box-shadow: inset 0 -1px 0 0 var(--comp-border);
+  }
+  .rule-both {
+    box-shadow:
+      inset 0 1px 0 0 var(--comp-border),
+      inset 0 -1px 0 0 var(--comp-border);
+  }
+
+  /* ── Registration Marks ── */
+  /*
+    Pseudo-element circles in top corners — printed poster detail.
+    Apply .reg-marks to sections that need the editorial feel.
+  */
+  .reg-marks {
+    position: relative;
+  }
+  .reg-marks::before,
+  .reg-marks::after {
+    content: "";
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--comp-border);
+    border-radius: 999px;
+    opacity: 0.6;
+    top: calc(var(--u) * 1);
+    pointer-events: none;
+  }
+  .reg-marks::before {
+    left: calc(var(--u) * 1);
+  }
+  .reg-marks::after {
+    right: calc(var(--u) * 1);
+  }
+
+  /* ── Display Typography ── */
+  .display {
+    font-family: var(--font-display);
+    font-size: var(--size-h1);
+    line-height: var(--lh-h1);
+    letter-spacing: var(--track-h1);
+    text-transform: uppercase;
+    color: var(--comp-accent);
+  }
+
+  /* ── Micro Labels ── */
+  .micro {
+    font-family: var(--font-sans);
+    font-size: var(--size-micro);
+    line-height: var(--lh-micro);
+    letter-spacing: var(--track-micro);
+    text-transform: uppercase;
+    color: var(--comp-muted);
+  }
+
+  /* ── Body Text ── */
+  .body {
+    font-family: var(--font-sans);
+    font-size: var(--size-body);
+    line-height: var(--lh-body);
+    letter-spacing: var(--track-body);
+    color: var(--comp-text);
+  }
+
+  /* ── 12-Column Grid ── */
+  .poster-grid {
+    margin-left: var(--gut);
+    margin-right: var(--gut);
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: calc(var(--u) * 2);
+  }
+
+  /* ── Section Spacing ── */
+  .section-lg {
+    padding-top: calc(var(--u) * 8);
+    padding-bottom: calc(var(--u) * 8);
+  }
+  .section-md {
+    padding-top: calc(var(--u) * 6);
+    padding-bottom: calc(var(--u) * 6);
+  }
+  .section-sm {
+    padding-top: calc(var(--u) * 3);
+    padding-bottom: calc(var(--u) * 3);
+  }
+
+  /* ── CTA Button (outline style) ── */
+  .cta-poster {
+    border: 1px solid var(--comp-accent);
+    border-radius: var(--radius-clip);
+    color: var(--comp-text);
+    letter-spacing: var(--track-micro);
+    text-transform: uppercase;
+    font-size: 12px;
+    font-family: var(--font-sans);
+    padding: 10px 14px;
+    background: transparent;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .cta-poster:hover {
+    background: var(--comp-accent);
+    color: var(--comp-accent-text);
+  }
+
+  /* ── Nav Bar ── */
+  .poster-nav {
+    margin-left: var(--gut);
+    margin-right: var(--gut);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(var(--u) * 2) 0;
+  }
+  .poster-nav a {
+    text-decoration: none;
+  }
+  .poster-nav .micro:hover {
+    color: var(--comp-text);
+  }
+
+  /* ── Stat Block ── */
+  .stat-display {
+    font-family: var(--font-display);
+    font-size: min(10vw, 96px);
+    color: var(--comp-accent);
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  /* ── Marquee Strip ── */
+  .marquee-strip {
+    white-space: nowrap;
+    padding: calc(var(--u) * 2) 0;
+    overflow: hidden;
+  }
+  .marquee-item {
+    display: inline-block;
+    padding-right: var(--gut);
+  }
+
+  /* ── Image Treatment ── */
+  .poster-image {
+    filter: grayscale(100%) contrast(115%);
+    mix-blend-mode: screen;
+    opacity: 0.9;
+    object-fit: cover;
+    border-radius: var(--radius-clip);
+  }
+  .poster-image-multiply {
+    filter: grayscale(100%) brightness(0.8) contrast(1.2);
+    mix-blend-mode: multiply;
+    opacity: 0.75;
+  }
+
+  /* ── Accent Gradient Panel ── */
+  .accent-panel {
+    background: linear-gradient(
+      180deg,
+      oklch(0.65 0.18 290 / 0.95) 0%,
+      oklch(0.48 0.18 285 / 0.95) 100%
+    );
+    border-radius: var(--radius-clip);
+    overflow: hidden;
+    position: relative;
+  }
+  .accent-panel .inset-frame {
+    position: absolute;
+    inset: 10px;
+    border: 1px solid var(--comp-border);
+    pointer-events: none;
+  }
+
+  /* ── Glow Effect ── */
+  .bloom {
+    box-shadow: var(--shadow-bloom);
+  }
+
+  /* ── Wave Mask (organic image crop) ── */
+  .wave-crop {
+    mask: radial-gradient(120% 120% at 70% 40%, rgba(0,0,0,1) 45%, rgba(0,0,0,0) 88%);
+    -webkit-mask: radial-gradient(120% 120% at 70% 40%, rgba(0,0,0,1) 45%, rgba(0,0,0,0) 88%);
+  }
+
+  /* ── Crosshair Overlay (for image panels) ── */
+  .crosshair-overlay {
+    position: relative;
+  }
+  .crosshair-overlay::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: 1px;
+    height: 100%;
+    background: var(--comp-border);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+  .crosshair-overlay::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: var(--comp-border);
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+
+  /* ── Mobile Responsive ── */
+  @media (max-width: 960px) {
+    :root {
+      --size-h1: clamp(48px, 12vw, 84px);
+      --gut: 5vw;
+    }
+    .poster-grid {
+      grid-template-columns: 1fr;
+    }
+    .stat-display {
+      font-size: clamp(48px, 15vw, 80px);
+    }
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - Massive condensed display type — Bebas Neue at 64-120px, always uppercase
+  - Nearly zero border-radius (2px max) — sharp, printed poster feel
+  - Rule lines via inset box-shadow, NOT visible borders
+  - 12-column grid with var(--gut) page gutters for precise alignment
+  - Film grain texture overlay on hero sections (SVG noise filter)
+  - Registration marks (small circles in corners) as print design detail
+  - Lavender accent used ONLY on display type and interactive elements
+  - Body text in Inter — clean, small (15px), high contrast against dark bg
+  - Micro labels: 11px, uppercase, wide tracking (0.18em), muted color
+  - Images always grayscale with contrast boost + blend mode treatment
+  - Spacing uses a base unit (--u: 12px) for mathematical rhythm
+  - Sections separated by rule lines, not whitespace alone
+  - Outline-style CTAs (1px accent border), filled on hover
+  - Dark mode primary — light variant available but less characteristic
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. Vary the grid spans, section count, and
+  visual treatments based on the app's content.
+
+  ```jsx
+  function App() {
+    return (
+      <div className="layout-wrapper">
+        {/* Nav */}
+        <header className="rule-bot reg-marks" style={{ position: "relative" }}>
+          <div className="poster-nav">
+            <div className="micro">BRAND · PRODUCT</div>
+            <nav style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+              <a className="micro" href="#">Section</a>
+              <a className="micro" href="#">About</a>
+              <a className="cta-poster" href="#">Get Started</a>
+            </nav>
+          </div>
+        </header>
+
+        {/* Hero */}
+        <section className="rule-top rule-bot bg-noise" style={{ position: "relative", overflow: "hidden" }}>
+          <div className="poster-grid section-lg" style={{ alignItems: "center" }}>
+            <div style={{ gridColumn: "span 6" }}>
+              <h1 className="display">
+                BIG HEADLINE
+              </h1>
+              <p className="body" style={{ marginTop: "calc(var(--u) * 2)", maxWidth: "46ch" }}>
+                Supporting description text.
+              </p>
+              <div className="micro" style={{ marginTop: "calc(var(--u) * 2)" }}>
+                Release · v1.0 · web
+              </div>
+              <div style={{ marginTop: "calc(var(--u) * 3)", display: "flex", gap: "1rem", alignItems: "center" }}>
+                <a className="cta-poster" href="#">Primary CTA</a>
+                <a className="micro" href="#">Secondary link</a>
+              </div>
+            </div>
+            <div style={{ gridColumn: "span 6", position: "relative" }}>
+              {/* Hero visual — SVG waves, gradient panel, or image */}
+              <div className="bloom" style={{ position: "relative", height: "48vh", minHeight: 380 }}>
+                {/* Visual content */}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Marquee */}
+        <section className="rule-bot rule-top">
+          <div className="marquee-strip">
+            {features.map(f => (
+              <span key={f} className="marquee-item micro">{f}</span>
+            ))}
+          </div>
+        </section>
+
+        {/* Stats Row */}
+        <section className="rule-top rule-bot">
+          <div className="poster-grid section-md">
+            {stats.map(s => (
+              <div key={s._id} style={{ gridColumn: "span 4" }}>
+                <div className="micro" style={{ marginBottom: "var(--u)" }}>STAT</div>
+                <div className="stat-display">{s.value}</div>
+                <p className="body" style={{ marginTop: "calc(var(--u) * 1.5)", maxWidth: "40ch" }}>
+                  {s.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="rule-top">
+          <div className="poster-grid section-md" style={{ alignItems: "center" }}>
+            <div style={{ gridColumn: "span 8" }}>
+              <div className="micro" style={{ marginBottom: "calc(var(--u) * 1.5)" }}>call to action</div>
+              <h3 className="display" style={{ fontSize: "clamp(40px, 5vw, 68px)" }}>
+                CLOSING HEADLINE
+              </h3>
+              <p className="body" style={{ marginTop: "calc(var(--u) * 2)", maxWidth: "60ch" }}>
+                Final pitch text.
+              </p>
+            </div>
+            <div style={{ gridColumn: "span 4", display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
+              <a className="cta-poster" href="#">Action</a>
+              <a className="micro" href="#">Docs</a>
+            </div>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="rule-top">
+          <div className="poster-nav">
+            <div className="micro">© Brand · All rights reserved</div>
+            <div style={{ display: "flex", gap: "1.5rem" }}>
+              <a className="micro" href="#">Terms</a>
+              <a className="micro" href="#">Privacy</a>
+            </div>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like a film poster printed on heavyweight stock. The display
+  type is massive and unapologetic — Bebas Neue at 120px demands attention without
+  decoration. Everything else is restrained: tiny 11px uppercase labels, 15px body
+  text, a single lavender accent. The visual interest comes entirely from scale
+  contrast (giant headline vs micro labels), precise grid alignment, and subtle
+  print details (grain texture, registration marks, rule lines). Images are always
+  processed — grayscale, high contrast, blended into gradient panels. The overall
+  effect is confident, editorial, and studio-polished. Each poster app should feel
+  like it was art-directed by someone who cares about kerning.
+
+ANIMATIONS:
+  Poster theme uses MINIMAL, FUNCTIONAL animations:
+  - Marquee: continuous horizontal scroll via requestAnimationFrame (smooth, ~0.6px/frame)
+  - CTA hover: background-color + color transition (0.2s ease, no movement)
+  - Link hover: color transition only (muted → ink or accent)
+  - Page sections: no entrance animations — content is immediately present
+  - If scroll animations are needed: simple opacity 0→1 + translateY(12px)
+    with IntersectionObserver, 0.4s ease. Never bounce or overshoot.
+  - NEVER use playful or organic animations — everything is precise and linear
+  - Marquee is the only continuously moving element on the page
+
+SVG ELEMENTS:
+  Poster theme uses GEOMETRIC, DATA-VISUALIZATION-INSPIRED SVGs:
+  - Parametric wave lines: parallel quadratic bezier paths with progressive offset
+  - Always stroke-based, thin (0.8-1px), in accent or light tint colors
+  - Gradient fills on SVG for depth (linearGradient, accent → deep accent)
+  - Gaussian blur filter for soft glow effects (stdDeviation ~1.2)
+  - Horizontal/vertical rule lines inside panels (crosshair pattern)
+  - Registration circle marks (22px, 1px border, rounded)
+  - No icons, illustrations, or decorative shapes — everything is abstract
+  - Use wave-mask (radial-gradient mask) for organic SVG cropping
+  - Keep SVG viewBox proportional to container aspect ratios

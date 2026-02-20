@@ -1,0 +1,418 @@
+THEME: slab
+NAME: Slab Concrete
+MOOD: Industrial-graphic, concrete-and-acid, spec-sheet precision
+
+DESCRIPTION:
+A light concrete-gray surface with acid-yellow content sections and full-black
+grid-line borders. Features giant display type (18vw, Inter 900, -0.06em tracking)
+layered behind a centered glassmorphic circular dish visual (grayscale + multiply
+blend, gloss highlights, float animation). Header uses a crosshair target icon +
+vertical separator + alphanumeric code (GD/01, RCP/05). Content deck splits into
+a 300px sidebar (title block + geo coordinates) and a numbered interactive list
+with monospace indices (01, 02, 03). Acid-yellow brand strip footer with SVG icons
+and tech-label names. Fixed FAB button (black circle, acid icon, rotate on hover).
+Feels like a graphic design studio spec sheet — raw concrete surface, precision
+typography, and high-vis acid safety markings.
+
+BEST FOR:
+  - Recipe apps, food/cooking interfaces, ingredient lists
+  - Product showcases, single-item focus pages, spec sheets
+  - Landing pages, portfolio hero sections, case studies
+  - Modernist editorial, lookbooks, catalog detail views
+  - Any app that pairs a hero visual with a structured data list
+
+NOT FOR:
+  - Complex multi-section dashboards (hero+list is the pattern)
+  - Dark-mode apps (light concrete is fundamental)
+  - Playful/casual consumer apps (too graphic-design austere)
+  - Data-heavy CRUD with many forms (limited form patterns)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Convert to numbered interactive list rows (index + content
+    + meta). Each row: 3-column grid (40px index, 1fr content, auto meta). Full-
+    width black border-bottom. Hover shifts padding-left by 8px.
+  - If app has FORMS: Inputs on concrete bg with black bottom-border only. Focus
+    state: acid-yellow bottom-border. Labels in JetBrains Mono 10px uppercase.
+    Submit as black pill button with acid text.
+  - If app has LISTS: Numbered list rows with monospace 2-digit index (01-99),
+    uppercase content in Inter 600, and right-aligned tech meta. Black grid-line
+    dividers between items.
+  - If app has CARDS: Use the hero pattern — giant type behind centered circular
+    visual. For multiple items, stack hero sections or use sidebar+list layout.
+  - If app has IMAGES: Always circular crop with glassmorphism (backdrop-filter
+    blur, white inner glow, gloss highlight, rim border). Grayscale + multiply
+    blend on the image layer. Float animation (translateY 15px, 6s ease-in-out).
+  - If app has NAVIGATION: Header with crosshair target icon left, vertical
+    separator center, alphanumeric code right. Fixed FAB (black, 64px, acid icon).
+  - If app has MULTIPLE SECTIONS: Alternate concrete-bg sections (hero, data)
+    with acid-bg sections (content deck, brand strip). Grid-line borders between.
+
+COLOR TOKENS (oklch):
+  --concrete:    oklch(0.88 0.000 0)     /* light warm gray surface #D8D8D8 */
+  --acid:        oklch(0.94 0.23 110)    /* acid yellow/chartreuse #D9FF00 */
+  --black:       oklch(0.10 0.000 0)     /* near-black text #0A0A0A */
+  --ink:         oklch(0.00 0.000 0)     /* pure black borders #000000 */
+  --grid-line:   1px solid oklch(0.00 0.000 0)   /* full-weight black dividers */
+  --list-hover:  oklch(1.00 0.000 0 / 0.4)       /* white overlay on acid bg */
+
+REFERENCE STYLES:
+
+  /* ---- LAYOUT WRAPPER ---- */
+  .layout-wrapper {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    min-height: 100vh;
+    border-left: 1px solid var(--ink);
+    border-right: 1px solid var(--ink);
+    max-width: 1400px;
+    margin: 0 auto;
+    background: var(--concrete);
+  }
+
+  /* ---- HEADER (crosshair + code) ---- */
+  header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    border-bottom: var(--grid-line);
+    height: 60px;
+    align-items: center;
+    padding: 0 24px;
+  }
+  .hud-crosshair {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+    font-size: 14px;
+    letter-spacing: -0.02em;
+  }
+  .hud-target {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--black);
+    border-radius: 50%;
+    position: relative;
+    display: grid;
+    place-items: center;
+  }
+  .hud-target::before { content: ''; position: absolute; width: 100%; height: 1px; background: var(--black); }
+  .hud-target::after  { content: ''; position: absolute; height: 100%; width: 1px; background: var(--black); }
+  .hud-code {
+    font-weight: 900;
+    font-size: 24px;
+    text-align: right;
+    letter-spacing: -0.04em;
+  }
+  .v-separator {
+    width: 1px;
+    height: 100%;
+    background: var(--black);
+    margin: 0 24px;
+  }
+
+  /* ---- GIANT HERO TYPE ---- */
+  .giant-type {
+    font-weight: 900;
+    font-size: clamp(6rem, 18vw, 20rem);
+    line-height: 0.85;
+    text-transform: uppercase;
+    letter-spacing: -0.06em;
+    white-space: nowrap;
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* ---- GLASSMORPHIC DISH VISUAL ---- */
+  .dish-visual {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px; height: 300px;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.1), rgba(0,0,0,0.05));
+    border-radius: 50%;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.3);
+    box-shadow: inset 0 0 20px rgba(255,255,255,0.5), 10px 20px 40px rgba(0,0,0,0.2);
+    overflow: hidden;
+    animation: float 6s ease-in-out infinite;
+    z-index: 2;
+  }
+  .food-layer {
+    position: absolute; inset: 0;
+    background-size: cover;
+    background-position: center;
+    mix-blend-mode: multiply;
+    filter: grayscale(100%) contrast(120%);
+    opacity: 0.9;
+  }
+  .gloss-highlight {
+    position: absolute;
+    top: 10%; right: 15%;
+    width: 60px; height: 30px;
+    background: white;
+    border-radius: 50%;
+    filter: blur(8px);
+    transform: rotate(-45deg);
+    opacity: 0.6;
+  }
+  .gloss-rim {
+    position: absolute; inset: 10px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.8);
+    opacity: 0.5;
+    mask-image: linear-gradient(to bottom right, black, transparent);
+  }
+  @keyframes float {
+    0%, 100% { transform: translate(-50%, -50%) translateY(0) rotateX(5deg); }
+    50%      { transform: translate(-50%, -50%) translateY(-15px) rotateX(-5deg); }
+  }
+
+  /* ---- CONTENT DECK (acid yellow) ---- */
+  .content-deck {
+    background: var(--acid);
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    min-height: 40vh;
+  }
+  .deck-sidebar {
+    padding: 32px;
+    border-right: var(--grid-line);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  /* ---- NUMBERED LIST ROWS ---- */
+  .list-row {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    padding: 24px 32px;
+    border-bottom: var(--grid-line);
+    align-items: baseline;
+    cursor: pointer;
+    transition: background 0.1s linear;
+  }
+  .list-row:hover { background: rgba(255,255,255,0.4); }
+  .row-idx {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    opacity: 0.6;
+  }
+  .row-content {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+  }
+  .row-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-align: right;
+  }
+
+  /* ---- BRAND STRIP FOOTER ---- */
+  .brand-strip {
+    border-top: var(--grid-line);
+    padding: 24px 32px;
+    background: var(--acid);
+    display: flex;
+    gap: 48px;
+    align-items: center;
+  }
+  .brand-logo {
+    font-weight: 700;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+  }
+
+  /* ---- FAB BUTTON ---- */
+  .fab-primary {
+    position: fixed;
+    bottom: 32px; right: 32px;
+    width: 64px; height: 64px;
+    background: var(--black);
+    color: var(--acid);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    z-index: 100;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .fab-primary:hover { transform: scale(1.1) rotate(90deg); }
+
+  /* ---- GEO DATA / META LABELS ---- */
+  .geo-data {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    line-height: 1.5;
+  }
+  .meta-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    opacity: 0.6;
+  }
+  .meta-coords {
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1.1;
+  }
+
+  /* ---- TYPOGRAPHY ---- */
+  body {
+    background: var(--concrete);
+    color: var(--black);
+    font-family: 'Inter', sans-serif;
+  }
+
+DESIGN PRINCIPLES:
+  1. CONCRETE + ACID: Two dominant surface colors — warm gray concrete for
+     structural sections (header, hero) and acid yellow for content sections
+     (deck, brand strip). Never mix: each section is one or the other.
+  2. FULL-BLACK GRID LINES: Every section boundary gets a 1px solid black
+     border. No gray borders, no subtle dividers — always full-weight ink.
+  3. GIANT TYPE BEHIND VISUAL: Hero sections layer enormous display text
+     (18vw, -0.06em tracking) behind a centered visual element. Type is
+     decorative/atmospheric, not primary information.
+  4. CROSSHAIR HEADER: Navigation uses the target-icon + separator + code
+     pattern. Alphanumeric codes (GD/01, RCP/05) label pages like spec sheets.
+  5. NUMBERED ROWS: All list content uses 3-column grid (index + content +
+     meta). Indices are monospace 2-digit (01-99). Hover shifts padding-left.
+  6. GLASSMORPHIC CIRCULAR VISUALS: Images go inside circular containers with
+     backdrop-filter blur, white inner glow, gloss highlight, and rim border.
+     Image layer uses grayscale + multiply blend. Float animation at rest.
+  7. TWO-FONT SYSTEM: Inter for all display/body text. JetBrains Mono for
+     indices, metadata, geo coordinates, and tech labels. No mixing roles.
+  8. SIDEBAR + LIST: Content decks split 300px sidebar (title block, geo data)
+     and a full-width numbered list. Sidebar has border-right grid-line.
+  9. STICKER BADGES: Small acid-yellow circles (60px) with rotation (12deg)
+     for emphasis markers. Position absolute over hero visuals.
+  10. FAB ACTION: Fixed black circle with acid-colored icon. Hover: scale(1.1)
+      rotate(90deg) with spring easing. Always bottom-right, always present.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const items = [
+      { idx: "01", name: "Wagyu Tenderloin", meta: "150G / A5 GRADE" },
+      { idx: "02", name: "Panko Breadcrumbs", meta: "NAMAPANKO / FRESH" },
+      { idx: "03", name: "Shokupan Bread", meta: "MILK BREAD / 2CM" },
+      { idx: "04", name: "Tonkatsu Sauce", meta: "BULL-DOG / AGED" },
+      { idx: "05", name: "Dijon Mustard", meta: "FRENCH / GRAIN" },
+      { idx: "06", name: "Neutral Oil", meta: "GRAPESEED / 180°C" }
+    ];
+
+    return (
+      <div className="layout-wrapper">
+
+        {/* HEADER — crosshair + code */}
+        <header>
+          <div className="hud-crosshair">
+            <div className="hud-target" />
+            <span>MODERNIST<br/>CUISINE</span>
+          </div>
+          <div className="v-separator" />
+          <div className="hud-code">RCP/05</div>
+        </header>
+
+        {/* HERO — giant type + circular visual */}
+        <section className="hero-section" style={{
+          position: "relative", height: "70vh", overflow: "hidden",
+          display: "flex", flexDirection: "column", justifyContent: "center",
+          borderBottom: "var(--grid-line)"
+        }}>
+          <div className="giant-type">WAGYU<br/>KATSU</div>
+          <div className="dish-visual">
+            <div className="food-layer" style={{
+              backgroundImage: "url('...')"
+            }} />
+            <div className="gloss-highlight" />
+            <div className="gloss-rim" />
+          </div>
+          <div className="meta-coords" style={{ position: "absolute", bottom: 24, left: 24 }}>
+            <span className="meta-label">CORE INGREDIENT</span>
+            A5 GRADE BEEF<br/>#VITWIN
+          </div>
+        </section>
+
+        {/* CONTENT DECK — sidebar + numbered list */}
+        <main className="content-deck">
+          <aside className="deck-sidebar">
+            <div>
+              <h2 style={{ fontSize: 24, fontWeight: 500, letterSpacing: "-0.02em" }}>THURSDAY</h2>
+              <h1 style={{ fontSize: 48, fontWeight: 800, lineHeight: 0.9,
+                           letterSpacing: "-0.04em", textTransform: "uppercase" }}>
+                DINNER<br/>SERVICE
+              </h1>
+              <div style={{ width: 60, height: 2, background: "black", margin: "12px 0" }} />
+              <p style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.4 }}>
+                Precision Japanese cutlet sandwich. Requires meticulous temp control.
+              </p>
+            </div>
+            <div className="geo-data">
+              JAPAN — KOBE<br/>34° 41' 24.7" N 135° 11' 44.2" E
+            </div>
+          </aside>
+          <div>
+            {items.map(item => (
+              <div key={item.idx} className="list-row">
+                <span className="row-idx">{item.idx}</span>
+                <span className="row-content">{item.name}</span>
+                <span className="row-meta">{item.meta}</span>
+              </div>
+            ))}
+          </div>
+        </main>
+
+        {/* BRAND STRIP FOOTER */}
+        <footer className="brand-strip">
+          <div className="brand-logo">SOUS_VIDE</div>
+          <div className="brand-logo">TIMER_SYS</div>
+          <div className="brand-logo" style={{ marginLeft: "auto", opacity: 0.5 }}>GD/01</div>
+        </footer>
+
+        {/* FAB */}
+        <div className="fab-primary">+</div>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme treats every interface like a graphic design deliverable. Content
+  is spec'd with alphanumeric codes (GD/01, RCP/05), labeled with geo coordinates,
+  and listed with monospace indices. The concrete surface is the drafting table;
+  acid yellow marks active zones like safety tape on a factory floor. Giant type
+  is structural — it anchors the visual hierarchy like building signage, not meant
+  to be "read" so much as felt. The glassmorphic plate visual floats on the surface
+  like a product sample on a mood board. Every interaction is understated: a padding
+  shift, a background fade, a spring-eased rotation. Nothing flashy — precision.
+
+ANIMATIONS:
+  - FLOAT: Circular dish visual bobs 15px vertically with subtle rotateX tilt,
+    6s ease-in-out infinite. Gives depth to a static layout.
+  - LIST ROW SHIFT: On hover, padding-left increases 8px (32→40px). Background
+    fades to white 40% opacity on acid surface. Linear 100ms transition.
+  - FAB SPRING: On hover, scale(1.1) + rotate(90deg) with cubic-bezier spring
+    (0.175, 0.885, 0.32, 1.275). Icon rotates with the button.
+  - DISH PARALLAX: mousemove on hero-section drives translateX/Y (±15px) and
+    rotateX/Y (±15deg) on the dish visual. 100ms transition for smoothing.
+
+SVG ELEMENTS:
+  - CROSSHAIR TARGET: CSS-only circle (24px, 1px border) with ::before (horizontal
+    line) and ::after (vertical line) pseudo-elements. Used in header.
+  - BRAND ICONS: 20x20 SVG stroke icons (no fill, stroke-width 2) in the footer
+    brand strip. Layers icon, clock icon, bell icon.
+  - FAB ICON: 24x24 SVG play triangle or plus inside the fixed action button.
+  - STICKER BADGE: 60px acid-yellow circle, position absolute, rotated 12deg.
+    Content is a single emoji or character. Used to annotate hero visuals.
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800;900&family=JetBrains+Mono:wght@400;500&display=swap');

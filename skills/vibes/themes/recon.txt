@@ -1,0 +1,348 @@
+THEME: recon
+NAME: Recon Grid
+MOOD: Black-and-red, grid-paper, monospace-targeting, swipe-card
+
+DESCRIPTION:
+A pure black surface with a CSS grid-paper pattern background and a single
+red accent color. Everything is monospace. The main content area is a
+full-height bordered card with a 20px grid overlay (1px #333 lines creating
+graph paper). Content floats on semi-transparent black cards (bg-black/80)
+inside the grid. Stats are horizontal bars with red fills on gray-800 tracks,
+labeled with xs monospace text and percentage values. The header shows a bold
+title with wide tracking and a 3-dot red indicator grid. Bottom controls are
+two square bordered buttons (X reject / heart accept) flanking a horizontal
+progress indicator (red/gray bars). Border-radius is minimal (4px rounded-sm).
+The entire aesthetic feels like a targeting system analyzing specimens on a
+grid — monospace readouts, stat bars, red highlights, graph paper substrate.
+
+BEST FOR:
+  - Card-swiping/matching apps, Tinder-style UIs
+  - Specimen/profile analyzers, stat comparison tools
+  - Trading card viewers, collectible browsers
+  - Any card-based app with stats, attributes, and accept/reject actions
+  - Mobile-first single-card focus apps with bottom controls
+
+NOT FOR:
+  - Content-heavy editorial or reading apps (too sparse)
+  - Multi-section dashboards with many widgets (single-card focus)
+  - Colorful consumer apps (black-and-red only)
+  - E-commerce with product images (no rich image patterns)
+  - Playful/casual apps (too austere and technical)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Convert rows to stat bars inside the card. Each bar
+    has label left + percentage right (xs monospace), then a 4px-high red
+    fill bar on gray-800 track. Stack vertically with space-y-2.
+  - If app has FORMS: Inputs inside bg-black/80 cards on the grid — 1px
+    gray-800 border, monospace, no radius. Focus: border-red. Submit as
+    bordered square button with red text/icon.
+  - If app has LISTS: Each item is a swipeable card filling the grid area.
+    Progress indicator at bottom shows position (red bar = current, gray =
+    remaining). Navigate with left/right controls.
+  - If app has CARDS: Full-height bordered container with grid-paper bg.
+    Content in bg-black/80 overlays with border gray-800. Stat bars below.
+    Accept/reject controls at bottom.
+  - If app has IMAGES: Image fills the grid container behind the overlaid
+    stat cards. Grid lines overlay on top (pointer-events: none).
+  - If app has NAVIGATION: Bottom control bar with square bordered buttons
+    (left: reject/back, right: accept/forward) flanking horizontal progress
+    bars. No tab bar — card navigation only.
+  - If app has CATEGORIES: Red 8px squares in a grid pattern as indicator
+    dots. Or use the progress bar pattern (red = active, gray = inactive).
+
+COLOR TOKENS (oklch):
+  --bg:          oklch(0.00 0.000 0)        /* body pure black */
+  --card:        oklch(0.00 0.000 0 / 0.8)  /* content overlay black/80 */
+  --panel:       oklch(0.21 0.03 265 / 0.8) /* stat bar container gray-900/80 */
+  --grid-line:   oklch(0.28 0.000 0)        /* grid pattern lines #333 */
+  --border:      oklch(0.28 0.03 257)       /* borders gray-800 */
+  --fg:          oklch(0.97 0.003 265)      /* primary text gray-100 */
+  --fg-dim:      oklch(0.55 0.03 264)       /* inactive icons gray-500 */
+  --accent:      oklch(0.64 0.24 25)        /* red accent red-500 */
+
+REFERENCE STYLES:
+
+  /* ---- GRID CARD CONTAINER (main area) ---- */
+  .grid-card {
+    position: relative;
+    flex: 1;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .grid-pattern {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+  }
+  .grid-content {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 24px;
+    z-index: 1;
+  }
+
+  /* ---- SPECIES DATA CARD (overlay) ---- */
+  .data-card {
+    background: var(--card);
+    padding: 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+  .data-label {
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fg);
+    margin-bottom: 8px;
+  }
+  .data-title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--fg);
+  }
+  .data-accent {
+    font-size: 14px;
+    color: var(--accent);
+  }
+
+  /* ---- STAT BARS ---- */
+  .stat-bar-container {
+    background: var(--panel);
+    padding: 8px;
+    border: 1px solid var(--border);
+  }
+  .stat-bar-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 4px;
+    color: var(--fg);
+  }
+  .stat-bar-track {
+    height: 4px;
+    background: var(--border);
+  }
+  .stat-bar-fill {
+    height: 100%;
+    background: var(--accent);
+  }
+
+  /* ---- CONTROL BUTTONS (square bordered) ---- */
+  .ctrl-square {
+    width: 48px;
+    height: 48px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .ctrl-square:hover {
+    border-color: var(--accent);
+  }
+  .ctrl-square svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+  }
+  .ctrl-reject { color: var(--fg-dim); }
+  .ctrl-accept { color: var(--accent); }
+
+  /* ---- PROGRESS INDICATOR (horizontal bars) ---- */
+  .progress-bars {
+    display: flex;
+    gap: 8px;
+  }
+  .progress-segment {
+    width: 64px;
+    height: 4px;
+  }
+  .progress-active { background: var(--accent); }
+  .progress-inactive { background: var(--border); }
+
+  /* ---- RED DOT GRID (header indicator) ---- */
+  .dot-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+  .dot-grid-item {
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+  }
+
+  /* ---- HEADER ---- */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .page-title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--fg);
+  }
+
+  /* ---- BOTTOM CONTROLS ---- */
+  .controls-bar {
+    margin-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* ---- TYPOGRAPHY ---- */
+  body {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+                 'Liberation Mono', 'Courier New', monospace;
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+DESIGN PRINCIPLES:
+  1. PURE BLACK: Background is #000000 — not near-black, true black. Content
+     overlays use black/80 (semi-transparent). The grid lines (#333) float
+     on the void. Maximum contrast.
+  2. SINGLE RED ACCENT: Only one color besides grayscale — red-500. Used for
+     stat bar fills, progress indicators, active icons, accent text, and dot
+     indicators. Red = important, red = active, red = alive.
+  3. GRAPH-PAPER GRID: The main card area has a 20px CSS grid pattern (1px
+     #333 lines on both axes). Creates a laboratory/targeting graph paper
+     substrate. Content floats on top of the grid.
+  4. MONOSPACE EVERYTHING: System monospace for all text. Wide letter-spacing
+     (tracking-wider 0.05em, tracking-widest 0.1em). Creates a data-readout,
+     terminal-adjacent feel without being a green-screen terminal.
+  5. MINIMAL RADIUS: 4px (rounded-sm) on all containers. Not sharp (0px) but
+     barely rounded — clinical, not friendly. The grid card gets 4px too.
+  6. STAT BARS: Horizontal progress bars — 4px tall, gray-800 track, red fill.
+     Label left, percentage right in xs monospace. Semi-transparent gray-900
+     container. The most compact possible data display.
+  7. SQUARE CONTROL BUTTONS: 48px squares with 2px gray-800 border, 4px
+     radius. Icon centered. Hover brightens border to red. Two buttons
+     flanking a progress indicator — reject (X, gray) and accept (heart, red).
+  8. PROGRESS SEGMENTS: Horizontal bars (64x4px) in a row. Active = red,
+     inactive = gray-800. Shows position in a sequence of cards. Simple,
+     linear, unambiguous.
+  9. RED DOT GRID: 3-column grid of 8px red squares as a header indicator.
+     Replaces a traditional hamburger menu. Abstract, decorative, brand mark.
+  10. FULL-HEIGHT CARD: The main content area fills all available viewport
+      height (flex-1). One card visible at a time. Content is layered:
+      grid pattern → data overlay → stat bars. Depth through transparency.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const stats = [
+      { label: "STRENGTH", value: 98 },
+      { label: "AGILITY", value: 75 }
+    ];
+
+    return (
+      <div style={{ width: "100%", height: "100vh", display: "flex",
+                     flexDirection: "column", padding: 16 }}>
+        {/* HEADER */}
+        <header className="page-header">
+          <div className="page-title">DINO.MATCH</div>
+          <div className="dot-grid">
+            {Array(3).fill(0).map((_, i) => (
+              <div key={i} className="dot-grid-item" />
+            ))}
+          </div>
+        </header>
+
+        {/* MAIN CARD */}
+        <div className="grid-card">
+          <div className="grid-pattern" />
+          <div className="grid-content">
+            {/* DATA OVERLAY */}
+            <div className="data-card">
+              <div className="data-label">SPECIES DATA:</div>
+              <div className="data-title">T-REX</div>
+              <div className="data-accent">AGE: 68M YEARS</div>
+            </div>
+
+            {/* STAT BARS */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {stats.map(s => (
+                <div key={s.label} className="stat-bar-container">
+                  <div className="stat-bar-header">
+                    <span>{s.label}</span>
+                    <span>{s.value}%</span>
+                  </div>
+                  <div className="stat-bar-track">
+                    <div className="stat-bar-fill" style={{ width: s.value + "%" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* CONTROLS */}
+        <div className="controls-bar">
+          <button className="ctrl-square ctrl-reject">
+            <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <div className="progress-bars">
+            <div className="progress-segment progress-active" />
+            <div className="progress-segment progress-inactive" />
+            <div className="progress-segment progress-inactive" />
+          </div>
+          <button className="ctrl-square ctrl-accept">
+            <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme is a targeting system locked onto a specimen. The graph-paper
+  grid fills the viewport like a laboratory slide under a microscope. Data
+  overlays float on semi-transparent black, reporting species, age, stats.
+  The red accent is clinical — it marks what's important, what's alive,
+  what demands attention. Stat bars reduce complex attributes to simple
+  percentages: STRENGTH 98%, AGILITY 75%. The monospace readout makes every
+  character feel measured and precise. The two square buttons at the bottom —
+  X to reject, heart to accept — are physical controls on a device, not
+  web links. The progress segments show where you are in the deck. This
+  is not browsing. This is specimen analysis. Evaluate, decide, next.
+
+ANIMATIONS:
+  - STAT BAR FILL: Width transitions from 0 to value% on mount (300ms ease).
+    Bar grows left-to-right.
+  - BUTTON HOVER: Border color transitions from gray-800 to red (200ms).
+  - CARD TRANSITION (optional): Cards can swipe off-screen (translateX ±100%,
+    300ms ease, opacity 0) when accept/reject is pressed. Next card slides in.
+  - No glow, no scan lines, no flicker. Clean and still.
+
+SVG ELEMENTS:
+  - REJECT ICON: X mark (two crossed lines) at 24px, stroke-width 2, gray-500.
+  - ACCEPT ICON: Heart outline at 24px, stroke-width 2, red-500.
+  - DOT GRID: CSS only — 8px red squares in a 3-column grid. Not SVG.
+  - GRID PATTERN: CSS linear-gradient background, not SVG.
+
+GOOGLE FONTS:
+  /* No custom fonts — uses system monospace stack exclusively */
+  /* ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace */

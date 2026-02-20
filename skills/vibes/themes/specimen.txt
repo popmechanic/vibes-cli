@@ -1,0 +1,515 @@
+THEME: specimen
+NAME: Specimen Lab
+MOOD: Clinical, stark, monochrome, typographic
+
+DESCRIPTION:
+A stark white laboratory aesthetic with pure black-on-white typography at
+extreme scales. All text uppercase. Hero titles at 12vw+. Monochrome only —
+no color accents at all. Features viewport-filling type, generative canvas
+backgrounds (DNA helices, particle systems), two-column service grids with
+sticky labels, and a clinical, specimen-catalog feel. Inspired by biotech
+labs, fashion editorial, and brutalist typography. Everything is stripped
+to essentials — no decoration, no color, just type and structure.
+
+BEST FOR:
+  - Biotech, science, research lab sites
+  - Fashion/editorial lookbooks
+  - Agency/studio portfolios with bold type
+  - Experimental/art project showcases
+  - Manifesto or statement pages
+  - Service catalogs with numbered entries
+  - Any app that prioritizes typography over UI chrome
+
+NOT FOR:
+  - Colorful consumer apps (monochrome only)
+  - Data-heavy dashboards with charts (no color differentiation)
+  - E-commerce with product images (images compete with type)
+  - Playful or casual experiences (too austere)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Use numbered service-item grid pattern (index column
+    + content column). Rows separated by generous whitespace, not borders.
+    All text uppercase. Feature sub-lists with + prefix markers.
+  - If app has FORMS: Minimal inputs — bottom border only, uppercase labels
+    above. No backgrounds, no rounded corners. Submit button is plain text
+    with underline, not a styled button.
+  - If app has LISTS: Numbered with zero-padded indices (01:00, 02:45).
+    Two-column grid: narrow index left, content right. Sticky section
+    labels. Feature sub-items prefixed with +.
+  - If app has MULTIPLE SECTIONS: Stack vertically with massive whitespace
+    (10-20vh margins). Each section has a sticky label in large type.
+    No borders between sections — whitespace is the divider.
+  - If app has IMAGES: Keep them secondary. Grayscale only if present.
+    Canvas-based generative visuals preferred over static images.
+  - If app has A LANDING/INTRO: Use a full-viewport landing view with
+    canvas background and transition to main content on click.
+
+COLOR TOKENS:
+  The specimen palette is pure monochrome. White background, black text,
+  no accent color. Visual interest comes entirely from typography scale
+  and spacing.
+
+  ```css
+  :root {
+    --comp-bg: oklch(1.00 0 0);                 /* pure white */
+    --comp-text: oklch(0.00 0 0);               /* pure black */
+    --comp-border: oklch(0.00 0 0);             /* black (rarely used) */
+    --comp-accent: oklch(0.00 0 0);             /* black IS the accent */
+    --comp-accent-text: oklch(1.00 0 0);        /* white on black */
+    --comp-muted: oklch(0.00 0 0 / 0.3);        /* 30% black */
+    --color-background: oklch(1.00 0 0);        /* white page */
+    --grid-color: transparent;                   /* no visible grid */
+  }
+  ```
+
+  For DARK specimen variant (inverted):
+  ```css
+  :root {
+    --comp-bg: oklch(0.00 0 0);
+    --comp-text: oklch(1.00 0 0);
+    --comp-border: oklch(1.00 0 0);
+    --comp-accent: oklch(1.00 0 0);
+    --comp-accent-text: oklch(0.00 0 0);
+    --comp-muted: oklch(1.00 0 0 / 0.3);
+    --color-background: oklch(0.00 0 0);
+  }
+  ```
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the specimen aesthetic.
+  Study the patterns (extreme type scale, all-uppercase, monochrome,
+  generous whitespace) to understand the mood, then design your own
+  version for each app.
+
+  ```css
+  /* ── Specimen Core ── */
+  :root {
+    --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --leading-tight: 0.9;
+  }
+
+  body {
+    background: var(--comp-bg);
+    color: var(--comp-text);
+    font-family: var(--font-main);
+    text-transform: uppercase;
+  }
+
+  /*
+    Typography scale:
+    - Hero: 12vw (fills viewport width)
+    - Section labels: 3-4rem
+    - Body: 1.1rem
+    - Nav/meta: 0.8-0.85rem
+    - All text: uppercase, always
+    - Letter-spacing: tight on large type (-0.04em), wider on small (0.1em)
+  */
+
+  /* ── Layout Wrapper ── */
+  .layout-wrapper {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 2rem;
+    position: relative;
+  }
+
+  /* ── Minimal Nav ── */
+  .nav-specimen {
+    display: flex;
+    justify-content: space-between;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    padding: 0 0 2rem 0;
+  }
+
+  /* ── Hero Typography ── */
+  .hero-massive {
+    font-size: 12vw;
+    font-weight: 500;
+    line-height: 0.9;
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+    margin-bottom: 15vh;
+  }
+  .hero-meta {
+    margin-top: 2rem;
+    font-size: 1.5rem;
+    display: flex;
+    gap: 2rem;
+    text-transform: uppercase;
+  }
+
+  /* ── Sticky Section Label ── */
+  .section-label {
+    font-size: 3rem;
+    line-height: 0.9;
+    text-transform: uppercase;
+    position: sticky;
+    top: 2rem;
+    font-weight: 500;
+  }
+
+  /* ── Two-Column Service Grid ── */
+  .services-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 4rem;
+    margin-bottom: 10vh;
+  }
+
+  /* ── Numbered Service Items ── */
+  .service-list {
+    list-style: none;
+  }
+  .service-item {
+    margin-bottom: 4rem;
+    display: grid;
+    grid-template-columns: 80px 1fr;
+  }
+  .service-id {
+    font-size: 1rem;
+    font-weight: 400;
+  }
+  .service-content h3 {
+    font-size: 1.1rem;
+    font-weight: 400;
+    text-transform: uppercase;
+    font-style: italic;
+    margin-bottom: 0.5rem;
+  }
+  .service-content p {
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    max-width: 40ch;
+    margin-bottom: 1rem;
+    line-height: 1.4;
+  }
+
+  /* ── Feature Sub-list ── */
+  .feature-list {
+    list-style: none;
+    margin-top: 1rem;
+  }
+  .feature-list li {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+  }
+  .feature-list li::before {
+    content: '+';
+    position: absolute;
+    left: 0;
+  }
+
+  /* ── CTA (text-only, no button chrome) ── */
+  .cta-specimen {
+    font-size: 3rem;
+    text-transform: uppercase;
+    text-decoration: none;
+    color: var(--comp-text);
+    border-bottom: 3px solid transparent;
+    font-weight: 500;
+    transition: border-color 0.3s;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+  .cta-specimen:hover {
+    border-bottom-color: var(--comp-text);
+  }
+
+  /* ── Large Text CTA Block ── */
+  .cta-block {
+    font-size: 4rem;
+    line-height: 0.8;
+    font-weight: 500;
+    margin-bottom: 2rem;
+    text-transform: uppercase;
+  }
+
+  /* ── Enter Button (viewport-scale) ── */
+  .enter-btn {
+    font-size: 8vw;
+    text-transform: uppercase;
+    font-weight: 500;
+    line-height: 0.8;
+    cursor: pointer;
+    border: none;
+    background: none;
+    text-align: right;
+    transition: opacity 0.3s;
+    color: var(--comp-text);
+  }
+  .enter-btn:hover {
+    opacity: 0.5;
+  }
+  .enter-btn span {
+    display: block;
+    font-size: 1rem;
+    font-weight: 400;
+    margin-bottom: 0.5rem;
+  }
+
+  /* ── Footer ── */
+  .footer-specimen {
+    margin-top: 20vh;
+    padding-bottom: 5rem;
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+  .legal-text {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    max-width: 60ch;
+    line-height: 1.4;
+  }
+
+  /* ── Minimal Input ── */
+  .input-specimen {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--comp-text);
+    font-family: var(--font-main);
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    padding: 0.75rem 0;
+    outline: none;
+    color: var(--comp-text);
+  }
+  .input-specimen::placeholder {
+    color: var(--comp-muted);
+  }
+
+  /* ── Canvas Background ── */
+  .canvas-bg {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 50vw;
+    height: 100vh;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* ── View Transition (landing → main) ── */
+  .landing-view {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: var(--comp-bg);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 3rem;
+    transition: transform 1s cubic-bezier(0.85, 0, 0.15, 1);
+  }
+  .view-active .landing-view {
+    transform: translateY(-100%);
+  }
+
+  /* ── Mission Statement ── */
+  .mission-text {
+    max-width: 600px;
+  }
+  .mission-text h2 {
+    font-size: 4rem;
+    line-height: 0.85;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 2rem;
+    letter-spacing: -0.02em;
+  }
+  .mission-text p {
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    max-width: 40ch;
+    line-height: 1.4;
+  }
+
+  /* ── Mobile Responsive ── */
+  @media (max-width: 768px) {
+    .services-grid {
+      grid-template-columns: 1fr;
+    }
+    .hero-massive {
+      font-size: 18vw;
+    }
+    .mission-text h2 {
+      font-size: 2.5rem;
+    }
+    .footer-grid {
+      grid-template-columns: 1fr;
+    }
+    .canvas-bg {
+      width: 100vw;
+      opacity: 0.3;
+    }
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - ALL TEXT UPPERCASE — no exceptions, ever
+  - Pure monochrome — black and white only, zero color
+  - Extreme type scale contrast: 12vw hero vs 0.8rem nav
+  - Font weight: 500 for display, 400 for body (never bold/900)
+  - Tight line-height on large type (0.85-0.9), normal on body (1.4)
+  - Negative letter-spacing on large type (-0.02 to -0.04em)
+  - Generous whitespace — 10-20vh margins between sections
+  - No visible borders — whitespace and scale create hierarchy
+  - No border-radius anywhere — everything is sharp rectangles
+  - No shadows, no gradients, no decoration of any kind
+  - Italic for subcategories/labels (the only typographic variation)
+  - Numbered indices with zero-padding (01:00, 02:45) for list items
+  - Sticky section labels that follow scroll
+  - Canvas-based generative art as the ONLY visual decoration
+  - Hover states are opacity changes (0.5), not color shifts
+  - Text-only CTAs — no button styling, just large type with optional underline
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. Vary the layout, type scale, and
+  canvas visuals based on the app's content.
+
+  ```jsx
+  function App() {
+    const canvasRef = React.useRef(null);
+
+    React.useEffect(() => {
+      // Initialize generative canvas animation
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let width, height, t = 0;
+
+      function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      // Example: rotating particle/letter system
+      function animate() {
+        ctx.clearRect(0, 0, width, height);
+        t += 0.008;
+        // Draw particles, helices, grids, or abstract geometry
+        // Use only black strokes/fills at varying opacity
+        requestAnimationFrame(animate);
+      }
+      animate();
+
+      return () => window.removeEventListener('resize', resize);
+    }, []);
+
+    return (
+      <div className="layout-wrapper">
+        {/* Generative canvas background */}
+        <canvas ref={canvasRef} className="canvas-bg" />
+
+        {/* Minimal nav */}
+        <nav className="nav-specimen">
+          <div>BRAND // V 0.1</div>
+          <div>STATUS: ACTIVE</div>
+          <div>EST. 2024</div>
+        </nav>
+
+        {/* Hero */}
+        <header style={{ marginBottom: "15vh" }}>
+          <h1 className="hero-massive">
+            MAIN<br />
+            HEAD<br />
+            LINE —
+          </h1>
+          <div className="hero-meta">
+            <div>EST. 2024<br />LOCATION</div>
+            <div>CATEGORY<br />& DESCRIPTION</div>
+          </div>
+        </header>
+
+        {/* Service/Content Grid */}
+        <section className="services-grid">
+          <div className="section-label">
+            SECTION<br />V. 2.0
+          </div>
+          <ul className="service-list">
+            {items.map((item, i) => (
+              <li key={item._id} className="service-item">
+                <div className="service-id">
+                  {String(i + 1).padStart(2, '0')}:00
+                </div>
+                <div className="service-content">
+                  <h3>{item.category}</h3>
+                  <p>{item.description}</p>
+                  <ul className="feature-list">
+                    {item.features?.map(f => (
+                      <li key={f}>{f}</li>
+                    ))}
+                  </ul>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* Footer CTA */}
+        <footer className="footer-specimen">
+          <div className="footer-grid">
+            <div>
+              <div className="cta-block">
+                READY<br />TO<br />START?
+              </div>
+              <button className="cta-specimen" onClick={handleAction}>
+                BEGIN NOW
+              </button>
+            </div>
+            <div className="legal-text">
+              LEGAL NOTICE TEXT. ALL RIGHTS RESERVED.
+              ADDITIONAL COMPLIANCE INFORMATION.
+            </div>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like walking into a white-walled research facility where
+  every surface is labeled in stark black type. The typography IS the design —
+  there is no color, no imagery, no ornamentation to hide behind. Hero text
+  fills the viewport width. Body text is small and clinical. Numbered lists
+  read like specimen catalogs. The only visual luxury is a generative canvas
+  animation — rotating helices, particle fields, or abstract geometry rendered
+  in black at varying opacities. Hover states simply fade to 50% opacity, as
+  if the ink is thinning. The whole experience is austere, confident, and
+  intentionally monastic. Each specimen app should feel like it was designed
+  by a scientist who moonlights as a typographer.
+
+ANIMATIONS:
+  Specimen theme uses MINIMAL, SCIENTIFIC animations:
+  - Canvas generative art: continuous rotation/oscillation via requestAnimationFrame
+    (DNA helices, particle grids, rotating letter systems — always monochrome)
+  - View transitions: translateY(-100%) with cubic-bezier(0.85, 0, 0.15, 1)
+    for dramatic slide-away (1s duration)
+  - Hover: opacity fade to 0.5 (0.3s) — the ONLY interaction feedback
+  - Scroll: no scroll animations by default — content is simply present
+  - If entrance animations are needed: opacity 0→1 only, no movement, 0.5s
+  - NEVER use bouncing, scaling, rotation, or color transitions
+  - The canvas animation is the sole source of motion on the page
+
+SVG ELEMENTS:
+  Specimen theme AVOIDS traditional SVGs in favor of canvas:
+  - Generative canvas: DNA helices, particle systems, rotating grids
+  - All canvas drawing in black only, at varying opacities (0.15-1.0)
+  - Text rendered on canvas (ATCG bases, numbers, coordinates)
+  - Thin strokes (1px) connecting paired elements
+  - 3D perspective projection for depth (fov/scale calculations)
+  - If SVGs are needed: pure geometric — circles, lines, crosshairs
+  - No fills, no curves, no organic shapes — only straight lines and circles
+  - Always monochrome, always thin-stroked

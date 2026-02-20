@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(curl:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(chmod:*)",
+      "Bash(git push:*)",
+      "Bash(/Users/marcusestes/Websites/Julian/.claude/hooks/sync-plugin-to-vibes.sh)",
+      "Bash(echo:*)"
+    ]
+  }
+}

@@ -265,6 +265,7 @@ output = populateConnectConfig(output, envVars, true);
 // __VIBES_CONFIG__ is a runtime config object populated by the template
 // __CLERK_LOAD_ERROR__ is a runtime error variable
 // __VIBES_SYNC_STATUS__ is the runtime sync status bridge variable
+// __VIBES_THEMES__ is the runtime theme registration array set by app.jsx
 // __VIBES_SHARED_LEDGER__ is the runtime shared ledger ID bridge variable (invite URL → bundle)
 // __VIBES_LEDGER_MAP__ is the runtime per-database ledger map for multi-tenant isolation
 // __VIBES_APP_CODE__ and __ADMIN_CODE__ are injection placeholders consumed below
@@ -274,9 +275,11 @@ const SAFE_PLACEHOLDER_PATTERNS = [
   '__VIBES_CONFIG__',
   '__CLERK_LOAD_ERROR__',
   '__VIBES_SYNC_STATUS__',
+  '__VIBES_THEMES__',
   '__VIBES_SHARED_LEDGER__',
   '__VIBES_LEDGER_MAP__',
   '__VIBES_INVITE_ID__',
+  '__VIBES_THEME_PRESETS__',
   '__VIBES_APP_CODE__',
   '__ADMIN_CODE__',
   '__VIBES_REGISTRY_URL__'

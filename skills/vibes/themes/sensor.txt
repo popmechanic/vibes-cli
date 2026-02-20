@@ -1,0 +1,333 @@
+THEME: sensor
+NAME: Sensor Dashboard
+MOOD: Dark-telemetry, red-lit, data-dense, instrument-panel
+
+DESCRIPTION:
+A near-black instrument panel aesthetic with red accent indicators and glow
+effects. Features 2-column tile grids with inset-stroke borders, dot-grid
+backgrounds with radial-gradient micro-dots and mask fades, inline SVG
+sparklines on each tile, segmented progress bars with 12-column grid overlays
+and floating knob indicators that cast red glow shadows. Labels use a condensed
+sans-serif (Rajdhani) in uppercase with wide letter-spacing, while data uses IBM
+Plex Mono. Model-number headers (H-01, H-02) label sections. A fixed footer bar
+shows sync timestamps and period selectors. Feels like a sensor telemetry
+readout — tracking streaks, goals, and trend data.
+
+BEST FOR:
+  - Habit trackers, streak counters, daily goal dashboards
+  - Health/fitness metrics, step counters, hydration logs
+  - IoT sensor readouts, telemetry panels, device monitors
+  - Personal analytics, mood trackers, sleep trackers
+  - Any app that tracks recurring data points over time
+
+NOT FOR:
+  - Content-heavy editorial or reading apps (dark + mono is fatiguing)
+  - Playful/casual consumer apps (too technical and austere)
+  - E-commerce or product showcases (no visual richness for products)
+  - Creative portfolios or photography (red glow competes with imagery)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Convert rows into tile cards in 2-column grid, each
+    with a label, a large accent-num value, and a sparkline SVG at bottom.
+    No traditional table borders — the tile's inset stroke IS the boundary.
+  - If app has FORMS: Transparent inputs with 1px inset-stroke border in
+    --stroke color. Focus state: border becomes --accent. Place inside tiles.
+    Submit buttons: border + uppercase Rajdhani label, hover highlights accent.
+  - If app has LISTS: Each item becomes a tile in the grid. Show the key
+    metric as accent-num (large, red, glowing) with label text above.
+    Add dot-grid background with a sparkline trend overlay.
+  - If app has CARDS: Use .tile pattern — dark panel bg, 14px border-radius,
+    inset 0 0 0 1px stroke. Hover raises to panel-hi. Always include a
+    sparkline or dot-grid section at the bottom of each card.
+  - If app has PROGRESS: Segmented bar with 12-column grid overlay on a
+    rounded track, accent-colored fill, and a floating knob with glow shadow.
+    Show percentage in condensed label above.
+  - If app has NAVIGATION: Fixed footer bar (tile style) with icon + label +
+    value groups. Header bar with model number left, title center, gear right.
+  - If app has CHARTS: Use inline SVG polyline sparklines on dot-grid
+    backgrounds. No axes, no gridlines — just the trend line in accent-weak.
+    Label with "last 14 days" and goal annotation at bottom corners.
+
+COLOR TOKENS (oklch):
+  --bg:          oklch(0.10 0.003 264)   /* near-black body #0a0a0b */
+  --panel:       oklch(0.16 0.003 264)   /* dark tile background #161617 */
+  --panel-hi:    oklch(0.19 0.003 264)   /* tile hover lift #1b1b1d */
+  --stroke:      oklch(0.24 0.003 264)   /* inset border #2a2a2c */
+  --bar-bg:      oklch(0.20 0.005 264)   /* progress track #222326 */
+  --muted:       oklch(0.63 0.008 264)   /* labels, secondary text #8b8c90 */
+  --text:        oklch(0.93 0.005 264)   /* primary text #e6e7ea */
+  --accent:      oklch(0.53 0.22 25)     /* red indicator, glow source #e41e24 */
+  --accent-weak: oklch(0.45 0.19 25)     /* sparkline stroke, muted red #bb1a1e */
+  --glow:        0 0 0.6rem oklch(0.53 0.22 25 / 0.35)  /* accent text-shadow */
+  --knob-glow:   0 0 0 2px oklch(0.53 0.22 25 / 0.45), 0 0 18px oklch(0.53 0.22 25 / 0.35)
+
+REFERENCE STYLES:
+
+  /* ---- TILE (core building block) ---- */
+  .tile {
+    background: var(--panel);
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 1px var(--stroke);
+  }
+  .tile:hover { background: var(--panel-hi); }
+
+  /* ---- LABEL (condensed sans, uppercase) ---- */
+  .label {
+    font-family: 'Rajdhani', system-ui, sans-serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ---- ACCENT NUMBER (red glow readout) ---- */
+  .accent-num {
+    color: var(--accent);
+    text-shadow: var(--glow);
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  /* ---- DOT GRID (tile background texture) ---- */
+  .dot-grid {
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 8px 8px;
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0.2));
+    border-radius: 6px;
+  }
+
+  /* ---- SPARKLINE (SVG trend line) ---- */
+  .sparkline polyline {
+    fill: none;
+    stroke: var(--accent-weak);
+    stroke-width: 2;
+  }
+
+  /* ---- SEGMENTED PROGRESS BAR ---- */
+  .progress-track {
+    height: 12px;
+    border-radius: 9999px;
+    background: var(--bar-bg);
+    position: relative;
+    overflow: hidden;
+  }
+  .progress-fill {
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    transition: width 0.3s;
+  }
+  .progress-segments {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+  }
+  .progress-segments > div {
+    border-right: 1px solid var(--stroke);
+  }
+  .progress-knob {
+    position: absolute;
+    top: -6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1px solid var(--accent);
+    box-shadow: var(--knob-glow);
+    transition: left 0.3s;
+  }
+
+  /* ---- MARK BUTTON ---- */
+  .mark-btn {
+    font-family: 'Rajdhani', system-ui, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--stroke);
+    background: transparent;
+  }
+  .mark-btn:hover { border-color: var(--accent); }
+
+  /* ---- FOOTER BAR ---- */
+  .footer-bar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    padding: 0 20px 16px;
+  }
+  .footer-bar .inner {
+    background: var(--panel);
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 1px var(--stroke);
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* ---- CAP ICONS (small inline SVGs) ---- */
+  .cap-ico {
+    height: 0.72em;
+    width: auto;
+    stroke-width: 1.4;
+    fill: none;
+  }
+
+  /* ---- TYPOGRAPHY ---- */
+  body {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  /* ---- 2-COLUMN TILE GRID ---- */
+  .habit-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+DESIGN PRINCIPLES:
+  1. TILE-EVERYTHING: Every data group lives in a .tile (dark panel, 14px radius,
+     inset stroke). Tiles hover-lighten to panel-hi. No bare content.
+  2. RED GLOW ACCENT: Key numbers use accent-num (red + text-shadow glow).
+     Knob indicators get knob-glow. Only interactive/important things glow.
+  3. DOT-GRID TEXTURE: Tile bottoms have radial-gradient micro-dots with mask
+     fade as substrate for sparkline SVGs. Gives depth without clutter.
+  4. CONDENSED LABELS: All labels use Rajdhani uppercase with 0.06em tracking.
+     Tiny (10-12px), muted color. Always paired with a large mono value.
+  5. SEGMENTED PROGRESS: Progress bars use 12-column grid overlay for segments,
+     accent fill, and a floating knob with red glow shadow. Percentage label above.
+  6. SPARKLINE TRENDS: Every metric tile includes an SVG polyline sparkline in
+     accent-weak on dot-grid. No axes — just the raw trend line.
+  7. MODEL NUMBERS: Sections labeled with codes (H-01, H-02) in muted label
+     style. Gives the whole interface a hardware-instrument feel.
+  8. FIXED FOOTER: Status bar at viewport bottom — sync time, period selector,
+     cap icons. Always present, never scrolls away.
+  9. TWO FONTS ONLY: IBM Plex Mono for all data/body. Rajdhani for all labels.
+     No mixing. No decorative fonts.
+  10. MINIMAL INTERACTION: Buttons are transparent with stroke borders. Hover
+      lights the border to accent. Brief flash (inset stroke → accent → stroke)
+      on action. No fills, no shadows, no transforms.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    /* --- HABIT DATA --- */
+    const habits = [
+      { name: "Hydrate", streak: 3, today: 0, goal: 8,
+        spark: "0,48 20,56 40,44 60,40 80,30 100,34 120,18 140,22 160,14 180,10 200,8" },
+      { name: "Meditate", streak: 12, today: 0, goal: 1,
+        spark: "0,62 20,50 40,58 60,44 80,32 100,38 120,26 140,12 160,16 180,8 200,14" },
+      { name: "Read", streak: 5, today: 0, goal: 2,
+        spark: "0,40 20,42 40,38 60,36 80,30 100,28 120,24 140,22 160,20 180,18 200,12" },
+      { name: "Workout", streak: 21, today: 0, goal: 1,
+        spark: "0,56 20,54 40,50 60,42 80,44 100,36 120,28 140,20 160,14 180,20 200,16" }
+    ];
+
+    /* --- DAY PROGRESS (computed from habits) --- */
+    const pct = Math.round(habits.reduce((s,h)=> s + h.today, 0) /
+                           habits.reduce((s,h)=> s + h.goal, 0) * 100) || 0;
+
+    return (
+      <div style={{ height: "100vh", display: "flex", flexDirection: "column",
+                     background: "var(--bg)", color: "var(--text)" }}>
+
+        {/* HEADER */}
+        <header style={{ padding: "16px 20px 8px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span className="label" style={{ fontSize: 13, color: "var(--muted)" }}>H-01</span>
+            <span className="label" style={{ fontSize: 18 }}>SENSOR HABITS</span>
+            <button className="mark-btn">...</button>
+          </div>
+
+          {/* DAY PROGRESS BAR */}
+          <div className="tile" style={{ marginTop: 12, padding: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span className="label" style={{ fontSize: 12, color: "var(--muted)" }}>Today</span>
+              <span className="label" style={{ fontSize: 12, color: "var(--muted)" }}>{pct}%</span>
+            </div>
+            <div className="progress-track" style={{ marginTop: 8 }}>
+              <div className="progress-fill" style={{ width: pct + "%" }} />
+              <div className="progress-segments">
+                {Array.from({length:12}).map((_,i)=> <div key={i} />)}
+              </div>
+              <div className="progress-knob" style={{ left: `calc(${pct}% - 10px)` }} />
+            </div>
+          </div>
+        </header>
+
+        {/* HABIT GRID */}
+        <main style={{ flex: 1, padding: "0 20px", overflowY: "auto", paddingBottom: 96 }}>
+          <div className="habit-grid">
+            {habits.map(h => (
+              <div key={h.name} className="tile" style={{ padding: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span className="label" style={{ fontSize: 12, color: "var(--muted)" }}>{h.name}</span>
+                  <button className="mark-btn">Mark</button>
+                </div>
+                <div style={{ marginTop: 4, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                  <div>
+                    <div className="label" style={{ fontSize: 10, color: "var(--muted)" }}>Streak</div>
+                    <div className="accent-num">{String(h.streak).padStart(2,"0")}d</div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div className="label" style={{ fontSize: 10, color: "var(--muted)" }}>Today</div>
+                    <div style={{ fontSize: 24, lineHeight: 1 }}>{h.today}/{h.goal}</div>
+                  </div>
+                </div>
+                {/* SPARKLINE on dot-grid */}
+                <div className="dot-grid" style={{ marginTop: 12, height: 64, position: "relative", overflow: "hidden" }}>
+                  <svg viewBox="0 0 200 64" style={{ position: "absolute", inset: 0 }}>
+                    <polyline points={h.spark} className="sparkline" />
+                  </svg>
+                </div>
+              </div>
+            ))}
+          </div>
+        </main>
+
+        {/* FIXED FOOTER */}
+        <div className="footer-bar">
+          <div className="inner">
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span className="label" style={{ fontSize: 12, color: "var(--muted)" }}>Last sync</span>
+              <span className="label" style={{ fontSize: 12 }}>09:22</span>
+            </div>
+            <span className="label" style={{ fontSize: 12, color: "var(--muted)" }}>7 days</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme speaks in instrument readings. Every value is a sensor output —
+  streaks are day-counts with "d" suffix, progress is segmented and knob-tracked,
+  trends are raw polyline sparklines. The interface never decorates; it reports.
+  Red glow means "pay attention" — only key metrics and active indicators earn it.
+  Everything else stays muted or dark. The dot-grid texture gives depth without
+  distraction, like looking at a sensor readout through frosted glass. Two fonts,
+  two roles: Rajdhani labels what you're measuring, IBM Plex Mono shows the value.
+
+ANIMATIONS:
+  - MARK FLASH: On action, tile inset-stroke briefly becomes accent color (300ms),
+    then returns to stroke. Subtle confirmation without movement.
+  - PROGRESS SLIDE: Fill width and knob position transition 300ms ease.
+    Knob glow persists at rest — it always looks active.
+  - SPARKLINE DRAW: On mount, polyline stroke-dashoffset animates from full length
+    to 0 over 600ms. Line appears to draw itself left-to-right.
+  - TILE HOVER: Background transitions from panel to panel-hi (150ms).
+    No transforms, no shadows — just a shade lift.
+
+SVG ELEMENTS:
+  - SPARKLINE: <polyline> inside <svg viewBox="0 0 200 64"> on dot-grid.
+    accent-weak stroke, no fill, stroke-width 2. One per tile.
+  - CAP ICONS: Inline SVGs at 0.72em height, stroke-only, 1.4 stroke-width.
+    Sun/gear for settings, plus for add, clock for time. Muted stroke color.
+  - PROGRESS SEGMENTS: 12 divs with border-right inside a grid overlay.
+    Not SVG, but creates the instrument-scale segmented look.
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Rajdhani:wght@600;700&display=swap');

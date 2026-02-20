@@ -82,6 +82,10 @@ If detected: **Ask [AI features]**: "Does this app need AI features?"
 
 If yes: check `grep OPENROUTER_API_KEY ~/.vibes/.env`. If found, offer reuse (mask key). Otherwise collect via Ask and offer to cache to `~/.vibes/.env`. Store as `openRouterKey` (or null if no AI).
 
+### 0.4 Theme Selection
+
+Theme switching is handled by the live preview wrapper, not inside the app. The builder generates a single-theme layout. Set `themeCount = 1`.
+
 ---
 
 ## Phase 1: Spawn Team & Parallel Work
@@ -177,6 +181,14 @@ Store: `billingMode` ("off"/"required"), `appTitle`, `tagline`, `subtitle`, `fea
 Confirm: `app.jsx` exists with valid JSX. `.env` has `VITE_CLERK_PUBLISHABLE_KEY`, `VITE_API_URL`, `VITE_CLOUD_URL`. All sell config values collected.
 
 Scan app.jsx for builder mistakes (see LAUNCH-REFERENCE.md "Common Builder Mistakes"). Fix any found before proceeding.
+
+### 2.1.5 Preview Before Deploy
+
+**Ask [Preview]**: "Want to preview the app before deploying?"
+- "Yes — open live preview" — Start the preview server and iterate on the design
+- "No — deploy now" — Skip preview, go straight to deploy
+
+If yes: run `node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js"` and tell the user to open `http://localhost:3333`. They can chat to iterate on the design and switch themes. When satisfied, stop the server and continue to 2.2.
 
 ### 2.2 Deploy Cycle
 

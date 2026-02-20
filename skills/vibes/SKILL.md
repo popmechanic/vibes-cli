@@ -85,6 +85,14 @@ Do not default to ambient mood generators, floating orbs, or meditation apps unl
 
 ## Generation Process
 
+### Step 0.5: Check for Design Reference
+
+If the user provides a **reference image** (local file path or URL) or a **theme.html** file alongside their app description:
+
+1. **Image reference** — Read the image (local path via Read tool, or URL via WebFetch). Analyze: extract colors, typography, layout structure, spacing, component patterns. Use these observations to guide your design reasoning and theme selection. Map extracted colors to `--comp-*` token values.
+2. **theme.html reference** — Read the file. Look for a `<!-- VIBES-THEME-META ... -->` comment block with pre-selected themes and token values. Use these directly instead of the catalog selection in Step 1.75.
+3. **No reference** — proceed normally to Step 1.
+
 ### Step 1: Design Reasoning
 
 Before writing code, reason about the design in `<design>` tags:
@@ -98,6 +106,75 @@ Before writing code, reason about the design in `<design>` tags:
 - What visual style matches the purpose? (minimal, bold, playful, professional)
 </design>
 ```
+
+### Step 1.5: Read Design Tokens (MANDATORY)
+
+**You MUST read this file before generating code:**
+```
+Read file: ${CLAUDE_PLUGIN_ROOT}/build/design-tokens.txt
+```
+The token catalog defines all available CSS custom properties: `colors`, `radius`, `shadows`, `spacing`, `typography`, `vibes-core`, `vibes-buttons`, `vibes-grid`. It also includes the VIBES_THEME_CSS with `.btn` button classes, the grid/frame page styles, and a **Component Catalog** with bare HTML structures (card, input, badge, table, tabs, accordion, dialog, etc.).
+
+**In your generated code:**
+- Use `var(--token-name)` references — NOT hardcoded color values
+- Use `--color-*` for semantic colors, `--radius-*` for border-radius, `--shadow-brutalist-*` for neo-brutalist shadows
+- Use `className="btn"` for buttons (pre-styled neo-brutalist)
+- Use `className="grid-background"` on your app's root container for the default content grid background
+- **Pick components from the catalog** (card, input, badge, table, etc.), then write CSS for their class names using the design tokens
+- Override `--color-*` tokens in a `:root` style block for per-app theming
+
+### Step 1.75: Select Theme
+
+**Read the theme catalog FIRST** (it's small — just descriptions, not full theme files):
+```
+Read file: ${CLAUDE_PLUGIN_ROOT}/skills/vibes/themes/catalog.txt
+```
+
+Pick **1 theme** based on the app's content type and purpose, using each theme's BEST FOR and NOT FOR lists. If the user explicitly requests a specific theme, always follow their choice.
+
+**ONLY THEN read the theme file you selected:**
+```
+Read file: ${CLAUDE_PLUGIN_ROOT}/skills/vibes/themes/{selected-theme}.txt
+```
+
+**Each theme file provides:**
+- Color token overrides (`:root` values — use these exactly, they define the mood)
+- Design principles (border style, typography, spacing, animation tempo)
+- Reference CSS (study the aesthetic, then create your own interpretation)
+- Personality notes (how the theme FEELS — guide your creative choices)
+- Animation and SVG guidelines
+
+Generate one layout using the selected theme's design principles. Do NOT add `useVibesTheme()` or theme branching — theme switching is handled by the live preview wrapper, not inside the app.
+
+**CREATIVE LIBERTY:** Themes are mood boards, not templates. Two apps using the same theme should FEEL related but LOOK different. Use the color tokens exactly (they're the mood identity), follow the design principles, but invent unique layouts, card designs, hover effects, and decorative elements for each app. The reference CSS is ONE interpretation — don't copy it verbatim.
+
+### Step 1.9: Generate Design Preview (OPTIONAL)
+
+**Ask [Preview]**: "Want to preview the design as a standalone HTML page before I build the app?"
+- "Yes" → Generate `theme.html` (see below), open in browser, iterate until the user is happy, then proceed to Step 2
+- "No" → Skip directly to Step 2
+
+**If the user says yes**, generate a standalone `theme.html` — a self-contained static page that demonstrates the visual design without React, Fireproof, or Clerk:
+
+- **Single HTML file** with inline `<style>` and `<script>`. No external dependencies except Google Fonts via `@import`.
+- **CSS custom properties** using `--comp-*` token overrides from the selected theme.
+- **Realistic placeholder content** matching the app description (not lorem ipsum).
+- **Interactive elements** — tabs switch, buttons have hover/active states, forms accept input. Wire with vanilla JS.
+- **Animations and inline SVGs** following the theme's ANIMATIONS and SVG ELEMENTS guidelines.
+- **Mobile-responsive** with `@media` breakpoints.
+
+**Embed a metadata comment at the top** for downstream reference:
+```html
+<!-- VIBES-THEME-META
+  source: prompt
+  mood: "{theme mood}"
+  theme: "{theme-id}"
+  tokens: { "--comp-bg": "oklch(...)", "--comp-accent": "oklch(...)" }
+  layout: "{layout-type}"
+-->
+```
+
+Write to `./theme.html`. The user can open it in a browser, request changes, and iterate. When they're satisfied, proceed to Step 2 — use the design decisions from the preview to guide app.jsx generation.
 
 > **Assembly: generate (preserve)** — `assemble.js` injects your code as-is. Import and export statements work because the import map intercepts bare specifiers at runtime. Code examples below include imports.
 >
@@ -117,10 +194,15 @@ export default function App() {
   // ... component logic
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] p-4">
+    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-text)] p-4">
       {/* Sync status indicator (optional) */}
       <div className="text-xs text-gray-500 mb-2">Sync: {syncStatus}</div>
-      {/* Your app UI */}
+      {/* Use --app-* tokens for surfaces and accents */}
+      <div className="bg-[var(--app-surface)] border-4 border-[var(--app-border)] p-4">
+        <button className="px-4 py-2 bg-[var(--app-accent)] text-white hover:bg-[var(--app-accent-hover)]">
+          Action
+        </button>
+      </div>
     </div>
   );
 }
@@ -153,11 +235,16 @@ Apps will show a configuration error if credentials are missing.
 
 1. Extract the code from `<code>` tags and write to `app.jsx`
 2. Optionally save `<design>` content to `design.md` for documentation
-3. Run assembly:
+3. **Ask [Preview]**: "Want to preview the app before deploying?"
+   - "Yes — open live preview" — Start the preview server for iterating on the design
+   - "No — deploy now" — Skip preview, go straight to deploy
+
+   If yes: run `node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js"` and tell the user to open `http://localhost:3333`. They can chat to iterate on the design and switch themes. When satisfied, stop the server and continue.
+4. Run assembly:
    ```bash
    node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble.js" app.jsx index.html
    ```
-4. Deploy the app so the user can see it. Clerk auth requires a public URL — the app cannot be viewed locally. Auto-invoke /vibes:cloudflare to deploy, then present the live URL.
+5. Deploy the app so the user can see it. Clerk auth requires a public URL — the app cannot be viewed locally. Auto-invoke /vibes:cloudflare to deploy, then present the live URL.
 
 ---
 
@@ -345,23 +432,23 @@ export default function App() {
   const { docs } = useLiveQuery("type", { key: "item" });
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] p-4">
+    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-text)] p-4">
       {/* Optional sync status indicator */}
       <div className="text-xs text-gray-500 mb-2">Sync: {syncStatus}</div>
       <form onSubmit={submit} className="mb-4">
         <input
           value={doc.text}
           onChange={(e) => merge({ text: e.target.value })}
-          className="w-full px-4 py-3 border-4 border-[#0f172a]"
+          className="w-full px-4 py-3 border-4 border-[var(--app-border)]"
         />
-        <button type="submit" className="mt-2 px-4 py-2 bg-[#0f172a] text-[#f1f5f9]">
+        <button type="submit" className="mt-2 px-4 py-2 bg-[var(--app-accent)] text-white hover:bg-[var(--app-accent-hover)]">
           Add
         </button>
       </form>
       {docs.map(item => (
-        <div key={item._id} className="p-2 mb-2 bg-white border-4 border-[#0f172a]">
+        <div key={item._id} className="p-2 mb-2 bg-[var(--app-surface)] border-4 border-[var(--app-border)]">
           {item.text}
-          <button onClick={() => database.del(item._id)} className="ml-2 text-red-500">
+          <button onClick={() => database.del(item._id)} className="ml-2 text-[var(--vibes-red-accent)]">
             Delete
           </button>
         </div>
@@ -553,6 +640,7 @@ The shipped default files contain detailed reference material. Read them when th
 
 | Need | Signal in Prompt | Read This |
 |------|------------------|-----------|
+| Design tokens & theming | colors, theme, tokens, brand colors, styling | `${CLAUDE_PLUGIN_ROOT}/build/design-tokens.txt` |
 | File uploads | "upload", "images", "photos", "attachments" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Working with Images" |
 | Auth / sync config | "Clerk", "Connect", "cloud sync", "login" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "ClerkFireproofProvider Config" |
 | Sync status display | "online/offline", "connection status" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Sync Status Display" |

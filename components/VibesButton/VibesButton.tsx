@@ -15,6 +15,7 @@ import {
   BackIcon,
   GoogleIcon,
   GitHubIcon,
+  DesignIcon,
 } from "../icons/index.js";
 import { useMobile } from "../mocks/use-vibes-base.js";
 
@@ -32,7 +33,8 @@ type IconName =
   | "settings"
   | "back"
   | "google"
-  | "github";
+  | "github"
+  | "design";
 
 const iconMap: Record<
   IconName,
@@ -51,6 +53,7 @@ const iconMap: Record<
   back: BackIcon,
   google: GoogleIcon,
   github: GitHubIcon,
+  design: DesignIcon,
 };
 
 export interface MenuButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

@@ -1,0 +1,501 @@
+THEME: dial
+NAME: Dial Apparatus
+MOOD: Minimal-industrial, Braun-inspired, single-control, matte-dark
+
+DESCRIPTION:
+A full-viewport single-function device inspired by Braun/Dieter Rams industrial
+design. The entire screen IS the device — dark matte chassis fills the viewport
+with a speaker grille section, an LCD screen bezel with orange-glow monospace
+readouts, and a single large rotary knob as the primary control. The knob has
+a conic-gradient brushed-metal effect, an orange indicator line, concentric
+inset cap, and radial scale marks. Everything is recessed — inset shadows on
+the speaker grille, screen bezel, and knob socket create physical depth. The
+orange accent (#ff4d2e) appears only on the LCD text (with glow text-shadow),
+the knob indicator, and active status dots. Share Tech Mono for screen readouts,
+Inter for labels. The entire interaction happens through one knob: turn to
+navigate, press to select, hold for settings.
+
+BEST FOR:
+  - Timer apps, meditation tools, pomodoro clocks
+  - Single-purpose utility apps (calculators, converters, counters)
+  - Music players with minimal controls
+  - Alarm clocks, countdown timers
+  - Ambient sound generators, white noise machines
+  - Any app where ONE control should do everything
+  - Focus tools, distraction-free interfaces
+
+NOT FOR:
+  - Multi-section dashboards (only one screen area)
+  - Content-heavy apps with text or articles (no reading layout)
+  - Complex forms with many inputs (single-knob paradigm)
+  - E-commerce or product browsing (no list/grid patterns)
+  - Collaborative or social apps (too solitary/focused)
+
+ADAPTATION NOTES:
+  - If app has ONE PRIMARY VALUE: Display it as the main-display element
+    (42px monospace, orange glow, centered on LCD). Sub-display below
+    for units or context (14px, 80% opacity).
+  - If app has MODES/STATES: Show current mode in the screen-top-row
+    (MODE: LABEL). Use status dots to indicate position in mode cycle.
+    Knob turns to cycle between modes, press to confirm.
+  - If app has SETTINGS: Long-press the knob to enter settings mode.
+    Turn to cycle options, press to confirm. Keep settings minimal.
+  - If app has AUDIO: Speaker grille section at top of device. Volume
+    shown in screen-bottom-row (VOL -20dB). Knob controls volume in
+    playback mode.
+  - If app has LISTS: Flatten into a turn-to-cycle-through pattern.
+    Show one item at a time on the LCD. Turn knob to advance. This
+    forces minimal, focused interaction.
+  - If app has MULTIPLE VALUES: Stack in screen-bottom-row as key-value
+    pairs (10px, 50% opacity). Only the primary value is large.
+  - If app has PROGRESS: Use the knob's scale marks to indicate progress
+    around the perimeter. Active range highlighted in orange.
+
+COLOR TOKENS:
+  The dial palette is matte dark gray with a single orange accent. The
+  chassis is NOT pure black — it's a warm dark gray with a slight blue
+  tint. Orange appears only on screen elements and the knob indicator.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.24 0.01 260);             /* chassis bg #2b2e33 */
+    --comp-text: oklch(0.64 0.02 250);           /* label gray #8b929c */
+    --comp-border: oklch(0.19 0.01 260 / 0.5);   /* subtle dark border */
+    --comp-accent: oklch(0.62 0.24 28);          /* orange glow #ff4d2e */
+    --comp-accent-text: oklch(0.10 0 0);         /* near-black on orange */
+    --comp-muted: oklch(0.64 0.02 250 / 0.5);    /* dimmed labels */
+    --color-background: oklch(0.00 0 0);         /* pure black body */
+    --grid-color: transparent;                    /* no grid */
+  }
+  ```
+
+  Device surface tokens:
+  ```css
+  --dial-chassis: oklch(0.24 0.01 260);          /* #2b2e33 main surface */
+  --dial-chassis-dark: oklch(0.19 0.01 260);     /* #1f2125 recessed areas */
+  --dial-surface-matte: oklch(0.28 0.01 260);    /* #353940 raised surfaces */
+  --dial-screen-bg: oklch(0.10 0 0);             /* #101112 LCD off */
+  --dial-screen-glass: oklch(0.14 0.005 260);    /* LCD glass tint */
+  --dial-led-active: oklch(0.62 0.24 28);        /* orange for active LEDs */
+  ```
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the dial aesthetic.
+  Study the patterns (full-viewport device, recessed sections, LCD
+  screen with glow text, large rotary knob, scale marks) to understand
+  the mood, then design your own version for each app.
+
+  ```css
+  /* ── Dial Core ── */
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;600&display=swap');
+
+  :root {
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-ui: 'Inter', sans-serif;
+    --inset-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.4);
+    --inset-highlight: inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-background);
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: var(--font-ui);
+    overflow: hidden;
+    color: var(--comp-text);
+  }
+
+  /* ── Device Chassis (full viewport) ── */
+  .device-chassis {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, var(--dial-surface-matte), var(--dial-chassis));
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.5);
+  }
+
+  /* ── Speaker Grille ── */
+  .speaker-section {
+    height: 25%;
+    width: 100%;
+    border-radius: 8px;
+    background: var(--dial-chassis-dark);
+    box-shadow: var(--inset-shadow), var(--inset-highlight);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .grill-mesh {
+    width: 80%;
+    height: 80%;
+    background-image: radial-gradient(oklch(0.07 0 0) 25%, transparent 26%);
+    background-size: 8px 8px;
+    opacity: 0.8;
+    border-radius: 4px;
+  }
+
+  /* ── Rotated Brand Label ── */
+  .brand-label {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    opacity: 0.6;
+    transform: rotate(90deg);
+    transform-origin: right top;
+  }
+
+  /* ── Screen Bezel ── */
+  .screen-bezel {
+    height: 35%;
+    width: 100%;
+    background: oklch(0.15 0.005 260);
+    border-radius: 6px;
+    padding: 4px;
+    box-shadow:
+      0 2px 4px rgba(255, 255, 255, 0.05),
+      inset 0 2px 10px rgba(0, 0, 0, 0.8);
+    margin-bottom: 30px;
+  }
+
+  /* ── LCD Glass ── */
+  .lcd-glass {
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 50% 30%, oklch(0.18 0.005 260), var(--dial-screen-bg));
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+    font-family: var(--font-mono);
+    color: var(--comp-accent);
+    text-shadow: 0 0 8px oklch(0.62 0.24 28 / 0.4);
+  }
+  /* Glass reflection overlay */
+  .lcd-glass::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 40%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03), transparent);
+    pointer-events: none;
+  }
+
+  /* ── Screen Layout ── */
+  .screen-top-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .main-display {
+    text-align: center;
+    font-size: 42px;
+    line-height: 1;
+    font-weight: 400;
+    letter-spacing: -1px;
+  }
+  .sub-display {
+    text-align: center;
+    font-size: 14px;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 8px;
+  }
+  .screen-bottom-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    opacity: 0.5;
+    border-top: 1px solid #333;
+    padding-top: 8px;
+  }
+
+  /* ── Status Dots ── */
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #333;
+  }
+  .status-dot.active {
+    background: var(--comp-accent);
+    box-shadow: 0 0 5px var(--comp-accent);
+  }
+
+  /* ── Control Section ── */
+  .control-section {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* ── Scale Marks (around knob) ── */
+  .scale-marks {
+    position: absolute;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .mark {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 1px;
+    height: 8px;
+    background: var(--comp-text);
+    transform-origin: 0 120px;
+    opacity: 0.3;
+  }
+  .mark.major {
+    height: 12px;
+    width: 2px;
+    opacity: 0.6;
+  }
+
+  /* ── Rotary Knob ── */
+  .knob-container {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #222, #111);
+    box-shadow:
+      0 20px 40px rgba(0, 0, 0, 0.6),
+      0 5px 10px rgba(0, 0, 0, 0.4),
+      inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    cursor: grab;
+    touch-action: none;
+  }
+  .knob-container:active { cursor: grabbing; }
+
+  /* Knob dial with conic gradient (brushed metal) */
+  .knob-dial {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.05), transparent 40%),
+      conic-gradient(#252528 0%, #1a1a1c 45%, #2e2e33 50%, #1a1a1c 55%, #252528 100%);
+    position: relative;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+  }
+
+  /* Concentric top cap */
+  .knob-top {
+    position: absolute;
+    top: 15%; left: 15%;
+    width: 70%; height: 70%;
+    border-radius: 50%;
+    background: linear-gradient(145deg, oklch(0.19 0.005 260), oklch(0.22 0.005 260));
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.5),
+      0 1px 2px rgba(255, 255, 255, 0.05);
+  }
+
+  /* Orange indicator line */
+  .knob-indicator {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 25px;
+    background: var(--comp-accent);
+    border-radius: 2px;
+    box-shadow: 0 0 8px var(--comp-accent);
+  }
+
+  /* Press feedback */
+  .knob-container.pressed {
+    transform: scale(0.96);
+    box-shadow:
+      0 5px 10px rgba(0, 0, 0, 0.5),
+      inset 0 2px 5px rgba(0, 0, 0, 0.6);
+  }
+
+  /* ── Bottom Labels ── */
+  .bottom-labels {
+    position: absolute;
+    bottom: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 30px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--comp-text);
+    opacity: 0.5;
+  }
+
+  /* ── Interaction Feedback Flash ── */
+  .feedback-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle, oklch(0.62 0.24 28 / 0.1) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 10;
+  }
+  .feedback-overlay.active {
+    opacity: 1;
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - THE APP IS THE DEVICE — full viewport, no wrapper, no floating card
+  - Dark matte chassis: NOT pure black, slight blue-tinted warm gray (#2b2e33)
+  - SINGLE CONTROL PARADIGM: one large rotary knob for all interaction
+  - All recessed sections use inset shadows — speaker grille, screen, knob socket
+  - All raised elements use drop shadows — knob, with inset highlights
+  - Orange accent ONLY on screen text (with glow text-shadow) and knob indicator
+  - Everything else is gray: chassis, labels, borders, dots
+  - LCD screen: radial-gradient background simulating glass, orange monospace text
+  - Glass reflection: subtle ::after overlay (3% white gradient at top)
+  - Share Tech Mono for ALL screen content — readouts, modes, values
+  - Inter for UI labels (bottom of device) — 10px, uppercase, 2px letter-spacing
+  - Status dots: 6px circles, #333 inactive, orange with glow when active
+  - Scale marks around knob: thin 1px lines, 8px height, 12px for majors
+  - Conic gradient on knob dial for brushed-metal effect
+  - Concentric knob design: outer ring → dial surface → inner top cap
+  - Press feedback: scale(0.96) + shadow collapse (instant, no delay)
+  - Interaction feedback: brief orange radial-gradient flash overlay
+  - Rotated brand label in corner — 90deg, monospace, 60% opacity
+  - No borders — depth comes entirely from shadows and gradients
+  - Vertical stack: speaker (25%) → screen (35%) → control (rest)
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. Vary the screen layout and control
+  behavior based on what the app does, but KEEP the single-knob paradigm.
+
+  ```jsx
+  function App() {
+    const [rotation, setRotation] = React.useState(0);
+    const [value, setValue] = React.useState(10);
+    const [mode, setMode] = React.useState('SET');
+
+    return (
+      <div className="device-chassis">
+        <div className="feedback-overlay" id="feedback" />
+        <span className="brand-label">MOD. 001</span>
+
+        {/* Speaker grille */}
+        <div className="speaker-section">
+          <div className="grill-mesh" />
+        </div>
+
+        {/* LCD screen */}
+        <div className="screen-bezel">
+          <div className="lcd-glass">
+            <div className="screen-top-row">
+              <span>MODE: {mode}</span>
+              <div style={{ display: "flex", gap: 4 }}>
+                <div className={`status-dot ${mode === 'SET' ? 'active' : ''}`} />
+                <div className={`status-dot ${mode === 'RUN' ? 'active' : ''}`} />
+                <div className={`status-dot ${mode === 'DONE' ? 'active' : ''}`} />
+              </div>
+            </div>
+
+            <div style={{ textAlign: "center" }}>
+              <div className="main-display">{value}:00</div>
+              <div className="sub-display">MINUTES</div>
+            </div>
+
+            <div className="screen-bottom-row">
+              <span>VOL -20dB</span>
+              <span>STEREO</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Rotary control */}
+        <div className="control-section">
+          <div className="scale-marks">
+            {/* Generate marks via JS/map */}
+          </div>
+
+          <div className="knob-container"
+               onMouseDown={handleKnobStart}
+               onTouchStart={handleKnobStart}>
+            <div className="knob-dial"
+                 style={{ transform: `rotate(${rotation}deg)` }}>
+              <div className="knob-indicator" />
+              <div className="knob-top" />
+            </div>
+          </div>
+
+          <div className="bottom-labels">
+            <span>PRESS: OK</span>
+            <span>HOLD: MENU</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like turning on a beautifully engineered Braun alarm
+  clock from 1972 — if Dieter Rams had designed a meditation app. The matte
+  dark chassis fills your entire screen. A speaker grille hides behind a
+  precise dot matrix. The LCD glows orange through dark glass, showing you
+  exactly one thing at a time in monospace type. The rotary knob is the
+  only way to interact — turn it to change values, press it to confirm,
+  hold it for settings. Scale marks around the perimeter give tactile
+  reference. When you interact, a subtle orange flash ripples across the
+  surface like a heartbeat. The brand label is tiny, rotated 90 degrees in
+  the corner — confident enough not to shout. Bottom labels whisper the
+  controls: PRESS: OK / HOLD: MENU. The whole experience is monastic,
+  focused, and unbelievably satisfying. Each dial app should feel like
+  it was designed by someone who believes the best interface is one control
+  that does everything perfectly.
+
+ANIMATIONS:
+  Dial theme uses INSTANT, HAPTIC animations:
+  - Knob press: scale(0.96) + shadow collapse (0.05s) — INSTANT feedback
+  - Knob turn: stepped rotation (20deg increments), no smooth easing
+  - Knob snap-back: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) — bouncy return
+  - Feedback flash: radial-gradient overlay, opacity 0→1→0 over 0.3s
+  - LED dot activation: background-color + box-shadow glow (0.2s)
+  - LCD text: opacity transition when changing values (0.2s)
+  - No ambient motion — NO rotation, NO floating, NO pulsing
+  - Screen is static between interactions — only changes on knob input
+  - Everything is a direct response to user touch — no autonomous animation
+  - The device sleeps until you wake it with the knob
+
+SVG ELEMENTS:
+  Dial theme AVOIDS SVGs in favor of CSS:
+  - Speaker grille: CSS radial-gradient dot pattern (not SVG)
+  - Scale marks: CSS-positioned divs with transform-origin rotation
+  - Knob dial: conic-gradient (not SVG)
+  - Status dots: CSS border-radius circles
+  - If icons absolutely needed: single-stroke, 12px, monochrome only
+  - No decorative SVGs of any kind — pure CSS construction
+  - The device aesthetic comes from shadows, gradients, and precise CSS
+  - Keep the DOM clean — this is an appliance, not a webpage
