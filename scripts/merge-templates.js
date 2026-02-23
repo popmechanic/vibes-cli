@@ -24,6 +24,7 @@ const BUILD_DIR = join(PLUGIN_ROOT, "build");
 // Paths
 const BASE_TEMPLATE = join(PLUGIN_ROOT, "source-templates/base/template.html");
 const COMPONENTS_FILE = join(BUILD_DIR, "vibes-menu.js");
+const DESIGN_TOKENS_FILE = join(BUILD_DIR, "design-tokens.css");
 
 // Skills to generate templates for
 const SKILLS = [
@@ -67,7 +68,7 @@ function readFileSafe(path) {
 /**
  * Merge templates for a single skill
  */
-function mergeTemplate(skill, baseTemplate, components) {
+function mergeTemplate(skill, baseTemplate, components, designTokensCSS) {
   const delta = readFileSafe(skill.delta);
   if (!delta) {
     console.warn(`  Warning: Delta template not found: ${skill.delta}`);
@@ -79,6 +80,14 @@ function mergeTemplate(skill, baseTemplate, components) {
 
   // Replace title placeholder
   merged = merged.replace("__TITLE__", skill.title);
+
+  // Inject design tokens CSS at placeholder
+  if (designTokensCSS) {
+    merged = merged.replace(
+      "/* === DESIGN_TOKENS_PLACEHOLDER === */",
+      designTokensCSS
+    );
+  }
 
   // Inject components at placeholder
   merged = merged.replace(
@@ -120,6 +129,15 @@ function main() {
     process.exit(1);
   }
   console.log(`  Components: ${COMPONENTS_FILE} (${components.length} bytes)`);
+
+  // Read design tokens CSS
+  const designTokensCSS = readFileSafe(DESIGN_TOKENS_FILE);
+  if (!designTokensCSS) {
+    console.error(`Error: Design tokens not found: ${DESIGN_TOKENS_FILE}`);
+    console.error("  Run: node scripts/build-design-tokens.js --force");
+    process.exit(1);
+  }
+  console.log(`  Design tokens: ${DESIGN_TOKENS_FILE} (${designTokensCSS.length} bytes)`);
   console.log("");
 
   // Process each skill
@@ -137,7 +155,7 @@ function main() {
     mkdirSync(outputDir, { recursive: true });
 
     // Merge template
-    const merged = mergeTemplate(skill, baseTemplate, components);
+    const merged = mergeTemplate(skill, baseTemplate, components, designTokensCSS);
     if (!merged) {
       results.failed.push(skill.name);
       continue;

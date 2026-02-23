@@ -1,0 +1,464 @@
+THEME: orbit
+NAME: Orbit Dashboard
+MOOD: Dark-mobile, multi-accent, glassmorphic, rounded
+
+DESCRIPTION:
+A mobile-first dark app with multiple bright accent colors on black surfaces.
+Glassmorphic stat cards (rgba dark bg + backdrop-filter blur) with generous
+16px border-radius. A purple gradient body peeks around the rounded black
+main container. Features a large hero stat number (6xl bold), a concentric-
+circle radar chart with colored data points, color-coded stat rows (each with
+its own accent: green, blue, yellow, orange), mini progress bars, and a match
+list with colored circle avatars. Everything is heavily rounded — 24px on the
+main container, 16px on cards, 12px on list items, pill-radius on buttons and
+avatars. System sans-serif only. Bottom tab nav with icon+label. Status bar
+mimics a mobile device. The identity is bright multi-color accents sparking
+against a deep black surface.
+
+BEST FOR:
+  - Matching/compatibility apps, dating-style profiles
+  - Fitness dashboards, health scores, wellness trackers
+  - Personality quizzes, trait analyzers, compatibility tools
+  - Social apps with profiles, match lists, discovery feeds
+  - Any app with multiple metrics that need distinct color coding
+  - Mobile-first apps that want a polished, rounded, modern feel
+
+NOT FOR:
+  - Professional/enterprise dashboards (too playful and colorful)
+  - Content-heavy editorial or reading apps (no text layout patterns)
+  - Minimalist/monochrome apps (multi-color is fundamental)
+  - Desktop-first wide layouts (mobile column is the identity)
+  - E-commerce with product images (no product display patterns)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Convert rows into stat cards. Each card gets its own
+    accent color, a colored icon left, gray label, bold value (3xl), and a
+    mini progress bar (h-6 w-16, rounded, colored fill). Stack vertically.
+  - If app has FORMS: Inputs inside stat-cards — dark bg, white text, rounded
+    (12px). Focus border in one of the accent colors. Submit as a colored
+    pill button (rounded-full, accent bg, black text).
+  - If app has LISTS: Match-item rows — colored circle avatar (40px, rounded-
+    full, accent bg, black icon/initial), title + subtitle (gray-400), flex-1.
+    Rounded-xl container (12px), gray-800 bg. Stack with gap-3.
+  - If app has CARDS: Use stat-card pattern — rgba(30,30,30,0.8) bg, 16px
+    radius, backdrop-filter blur(10px), p-4. Each card gets a unique accent
+    color for its icon and progress bar.
+  - If app has CHARTS: Concentric circle radar — nested rounded-full divs
+    with gray-700 borders, colored data-point dots (12px, rounded-full)
+    positioned absolutely. Axis labels at cardinal positions in xs gray-400.
+  - If app has HERO STATS: Giant number in 6xl bold white, label in lg medium,
+    secondary text in sm gray-400. Place inside the main stat-card with a
+    colored icon button (rounded-full, gray-800 bg) at top-right.
+  - If app has NAVIGATION: Bottom tab bar with 4 icon+label buttons. Active
+    tab: white. Inactive: gray-500. Border-top gray-800. Icons stroke-2.
+
+COLOR TOKENS (oklch):
+  --bg-gradient-from: oklch(0.56 0.29 302)   /* purple-600 body gradient start */
+  --bg-gradient-to:   oklch(0.44 0.22 304)   /* purple-800 body gradient end */
+  --surface:     oklch(0.00 0.000 0)          /* main container black */
+  --card:        oklch(0.18 0.000 0 / 0.8)    /* stat card glass rgba(30,30,30,0.8) */
+  --card-solid:  oklch(0.28 0.03 257)         /* match items gray-800 */
+  --border:      oklch(0.37 0.03 260)         /* concentric rings gray-700 */
+  --fg:          oklch(1.00 0.000 0)          /* primary text white */
+  --fg-muted:    oklch(0.71 0.02 261)         /* labels gray-400 */
+  --fg-dim:      oklch(0.55 0.03 264)         /* inactive nav gray-500 */
+  --accent-green:  oklch(0.79 0.21 152)       /* green-400 */
+  --accent-blue:   oklch(0.71 0.17 255)       /* blue-400 */
+  --accent-yellow: oklch(0.85 0.20 92)        /* yellow-400 */
+  --accent-orange: oklch(0.75 0.18 56)        /* orange-400 */
+
+REFERENCE STYLES:
+
+  /* ---- MAIN CONTAINER (rounded black on purple) ---- */
+  .app-container {
+    max-width: 28rem;
+    margin: 0 auto;
+    background: var(--surface);
+    border-radius: 24px;
+    overflow: hidden;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  /* ---- GLASSMORPHIC STAT CARD ---- */
+  .stat-card {
+    background: var(--card);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    padding: 16px;
+  }
+
+  /* ---- HERO STAT NUMBER ---- */
+  .hero-number {
+    font-size: 3.75rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--fg);
+  }
+  .hero-unit {
+    font-size: 1.875rem;
+    margin-left: 4px;
+    color: var(--fg);
+  }
+
+  /* ---- CONCENTRIC CIRCLE RADAR ---- */
+  .radar-container {
+    position: relative;
+    height: 208px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .radar-ring {
+    border-radius: 9999px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .radar-center {
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    background: var(--card-solid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .radar-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 9999px;
+    position: absolute;
+  }
+  .radar-label {
+    position: absolute;
+    font-size: 12px;
+    color: var(--fg-muted);
+  }
+  /* Axis lines */
+  .radar-axis-h {
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+  }
+  .radar-axis-v {
+    position: absolute;
+    height: 100%;
+    width: 2px;
+    background: var(--border);
+  }
+
+  /* ---- STAT ROW (icon + label + value + progress) ---- */
+  .stat-row {
+    padding: 16px;
+  }
+  .stat-row-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .stat-row-header svg {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+  }
+  .stat-row-header span {
+    color: var(--fg-muted);
+    font-size: 14px;
+  }
+  .stat-row-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .stat-value {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: var(--fg);
+  }
+
+  /* ---- MINI PROGRESS BAR ---- */
+  .mini-progress {
+    width: 64px;
+    height: 24px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+  }
+  .mini-progress-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 4px;
+  }
+
+  /* ---- MATCH ITEM ROW ---- */
+  .match-item {
+    display: flex;
+    align-items: center;
+    background: var(--card-solid);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .match-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+  .match-avatar svg {
+    width: 24px;
+    height: 24px;
+  }
+  .match-info {
+    flex: 1;
+  }
+  .match-name {
+    font-weight: 500;
+    color: var(--fg);
+  }
+  .match-meta {
+    font-size: 14px;
+    color: var(--fg-muted);
+  }
+
+  /* ---- ICON BUTTON (rounded pill) ---- */
+  .icon-pill {
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    background: var(--card-solid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    color: var(--fg);
+    cursor: pointer;
+  }
+
+  /* ---- BOTTOM NAV ---- */
+  .nav-bar {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-top: 1px solid var(--card-solid);
+    padding: 16px 8px;
+  }
+  .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: none;
+    border: none;
+    color: var(--fg-dim);
+    cursor: pointer;
+    gap: 4px;
+  }
+  .nav-btn.active { color: var(--fg); }
+  .nav-btn svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+  }
+  .nav-btn span { font-size: 12px; }
+
+  /* ---- TYPOGRAPHY ---- */
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(to bottom right, var(--bg-gradient-from), var(--bg-gradient-to));
+    color: var(--fg);
+    min-height: 100vh;
+  }
+
+DESIGN PRINCIPLES:
+  1. PURPLE GRADIENT BODY: The body behind the main container is a purple
+     gradient (purple-600 → purple-800). The rounded black container sits on
+     top, so purple peeks through at the corners. This creates ambient depth.
+  2. MULTI-COLOR ACCENTS: Four distinct accent colors — green, blue, yellow,
+     orange. Each stat/metric gets its own color. Color = category identity.
+     Never mix two accents in one card.
+  3. GLASSMORPHIC CARDS: Stat cards use rgba(30,30,30,0.8) with backdrop-
+     filter: blur(10px). Semi-transparent on dark — subtle glass effect.
+     16px border-radius. No borders — the glass effect creates edges.
+  4. HEAVILY ROUNDED: 24px on main container, 16px on cards, 12px on list
+     items, pill (9999px) on avatars and icon buttons. Nothing is sharp.
+     The roundedness is the entire tactile identity.
+  5. GIANT HERO NUMBER: The primary stat is displayed at 6xl (3.75rem) bold.
+     Label above in lg medium, subtitle in sm gray-400. The number dominates
+     the card — it's the single most important piece of information.
+  6. CONCENTRIC CIRCLE RADAR: Nested rounded-full divs with gray-700 borders
+     create rings. Colored dots (12px, rounded-full) sit at data positions.
+     Axis lines cross through the center. Labels at cardinal positions.
+     A visual personality/compatibility fingerprint.
+  7. COLOR-CODED STAT ROWS: Each stat has a colored icon (20px, filled),
+     gray label, bold value (3xl), and a mini progress bar (64x24px) with
+     the matching accent color fill. The progress bar is compact — just a
+     visual hint, not a precise measurement.
+  8. MATCH LIST: Items with colored circle avatars (40px, accent bg, black
+     icon inside), name+age title, and distance+match% subtitle. Rounded-xl
+     container on gray-800. Each match gets a different accent color avatar.
+  9. MOBILE-FIRST: Max-width 28rem, centered. Single column. Designed to feel
+     like a native iOS/Android app. Status bar at top (time, signal, battery).
+     Bottom tab nav with icon+label.
+  10. SYSTEM SANS-SERIF: No custom fonts — uses the platform's native
+      sans-serif. This reinforces the native-app feel. Weight 500 for medium
+      emphasis, 700 for bold values.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const stats = [
+      { label: "Personality", value: "Outgoing", color: "var(--accent-yellow)", pct: "75%" },
+      { label: "Activity", value: "Moderate", color: "var(--accent-green)", pct: "50%" },
+      { label: "Location", value: "Jiefangbei", color: "var(--accent-blue)", pct: "83%" },
+      { label: "Diet", value: "Omnivore", color: "var(--accent-orange)", pct: "25%" }
+    ];
+    const matches = [
+      { name: "Bamboo Lover, 28", meta: "2km away • 92% match", color: "var(--accent-green)" },
+      { name: "Mountain Climber, 32", meta: "5km away • 85% match", color: "var(--accent-blue)" },
+      { name: "River Swimmer, 26", meta: "8km away • 78% match", color: "var(--accent-yellow)" }
+    ];
+
+    return (
+      <div className="app-container">
+        {/* HEADER */}
+        <div style={{ padding: "12px 20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h1 style={{ fontSize: 24, fontWeight: 700 }}>BambooBuddies</h1>
+            <button className="icon-pill">?</button>
+          </div>
+          <p style={{ fontSize: 14, color: "var(--fg-muted)" }}>Chongqing, China • 9:24 AM</p>
+        </div>
+
+        {/* HERO STAT CARD */}
+        <div style={{ padding: "0 20px 16px" }}>
+          <div className="stat-card">
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <div>
+                <h2 style={{ fontSize: 18, fontWeight: 500 }}>Match Compatibility</h2>
+                <div style={{ display: "flex", alignItems: "center", marginTop: 4 }}>
+                  <span className="hero-number">86</span>
+                  <span className="hero-unit">%</span>
+                </div>
+              </div>
+              <div className="icon-pill" style={{ padding: 8 }}>
+                <span style={{ color: "var(--accent-green)", fontSize: 20 }}>♥</span>
+              </div>
+            </div>
+
+            {/* RADAR CHART */}
+            <div className="radar-container">
+              {/* Concentric rings + data points + labels here */}
+              <div className="radar-label" style={{ top: 0, left: "50%", transform: "translateX(-50%)" }}>PLAYFUL</div>
+              <div className="radar-label" style={{ bottom: 0, left: "50%", transform: "translateX(-50%)" }}>CUDDLY</div>
+              <div className="radar-label" style={{ left: 0, top: "50%", transform: "translateY(-50%)" }}>ADVENTUROUS</div>
+              <div className="radar-label" style={{ right: 0, top: "50%", transform: "translateY(-50%)" }}>FOODIE</div>
+            </div>
+
+            <div style={{ color: "var(--accent-yellow)", fontWeight: 500 }}>Gentle Giant</div>
+            <p style={{ color: "var(--fg-muted)", fontSize: 14 }}>
+              You match with 78% of local profiles.
+            </p>
+          </div>
+        </div>
+
+        {/* STAT ROWS */}
+        <div style={{ padding: "0 20px", display: "flex", flexDirection: "column", gap: 12 }}>
+          {stats.map(s => (
+            <div key={s.label} className="stat-card stat-row">
+              <div className="stat-row-header">
+                <span style={{ color: s.color, marginRight: 8 }}>●</span>
+                <span>{s.label}</span>
+              </div>
+              <div className="stat-row-body">
+                <span className="stat-value">{s.value}</span>
+                <div className="mini-progress">
+                  <div className="mini-progress-fill" style={{ width: s.pct, background: s.color }} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* MATCH LIST */}
+        <div style={{ padding: "16px 20px" }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 12 }}>Matches</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {matches.map(m => (
+              <div key={m.name} className="match-item">
+                <div className="match-avatar" style={{ background: m.color, color: "black" }}>✓</div>
+                <div className="match-info">
+                  <div className="match-name">{m.name}</div>
+                  <div className="match-meta">{m.meta}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* BOTTOM NAV */}
+        <div className="nav-bar">
+          {["Home", "Discover", "Messages", "Profile"].map((label, i) => (
+            <button key={label} className={`nav-btn ${i === 0 ? "active" : ""}`}>
+              <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+              </svg>
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme is a polished mobile app pulled from your pocket. It lives in
+  your hand — rounded, soft-edged, personal. The purple gradient behind the
+  container is ambient light leaking around the screen. Inside, the black
+  surface hosts glassmorphic cards that float with semi-transparent depth.
+  Four accent colors — green, blue, yellow, orange — each own a category.
+  They don't compete; they identify. The giant hero number (86%) commands
+  attention like a fitness score or compatibility rating. The concentric
+  circle radar is a visual fingerprint — your personality plotted in colored
+  dots. Stat rows are quick reads: icon, label, bold value, tiny progress
+  bar. The match list shows people (or items, or results) as colored avatars
+  in a familiar social-app layout. Everything is rounded because this is
+  personal, touchable, intimate. No sharp edges. No brutalist austerity.
+  Just a warm, colorful dashboard in your hand.
+
+ANIMATIONS:
+  - PROGRESS FILL: Width transitions 300ms ease on mount. Fills from left.
+  - CARD ENTER: Stat cards can fade-in-up (opacity 0→1, translateY 8px→0,
+    300ms ease, staggered 80ms per card).
+  - RADAR DOTS: Data points can scale-in (scale 0→1, 400ms ease, staggered
+    100ms). Subtle pop-in effect.
+  - NAV TAB: Color transition 200ms on active state change.
+  - No scan lines, no glow, no particles. Clean and smooth.
+
+SVG ELEMENTS:
+  - STAT ICONS: Filled SVGs at 20px (star, arrow-up, map-pin, people).
+    Each gets its accent color. Fill: currentColor.
+  - NAV ICONS: Stroke-only SVGs at 24px, stroke-width 2. Standard set:
+    home, search, chat-bubble, user.
+  - RADAR CHART: No SVG — built from nested rounded-full divs with CSS
+    borders, absolute-positioned color dots, and gray axis lines.
+  - MATCH AVATARS: Colored circles with checkmark SVG or text initial.
+    40px, rounded-full, accent bg, black icon.
+
+GOOGLE FONTS:
+  /* No custom fonts — uses system sans-serif stack exclusively */
+  /* -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif */
+  /* Optional: load Inter for cross-platform consistency */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');

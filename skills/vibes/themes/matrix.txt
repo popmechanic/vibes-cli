@@ -1,0 +1,372 @@
+THEME: matrix
+NAME: Matrix Status
+MOOD: Phosphor-green, CRT-flicker, grouped-sections, multi-status
+
+DESCRIPTION:
+A green-on-black CRT status board with semi-transparent bordered section
+cards. Like the terminal theme but more structured — content is organized
+into bordered groups ("CRITICAL EVENTS", "INTERLINKED EVENTS") with section
+titles, and uses traffic-light status colors (green=active, yellow=warning,
+red=unavailable) for state indication. VT323 pixel monospace font throughout.
+Cards use bg-black/50 (semi-transparent black) with border-green-500/30
+(green at 30% opacity). Green dot indicators (8px, glow shadow) via CSS
+::before pseudo-elements. Scan-line sweep (7s) plus a screen flicker
+animation (0.3s opacity oscillation). System ID labels and version footer.
+Bottom 3-column control grid. Differs from "terminal" by having grouped
+card sections, multi-color status text, and screen flicker.
+
+BEST FOR:
+  - Game timer utilities, event trackers, cooldown monitors
+  - Status dashboards with grouped event categories
+  - Server monitoring, system status boards, uptime trackers
+  - Notification feeds with severity levels (ok/warn/error)
+  - Any app with categorized real-time events and status indicators
+
+NOT FOR:
+  - Colorful consumer apps (green-dominant with yellow/red accents only)
+  - Content-heavy reading apps (phosphor green fatigues eyes)
+  - E-commerce or product showcases (no imagery patterns)
+  - Photography or creative portfolios (no color, no image patterns)
+  - Playful/casual apps (too austere and machine-like)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Group rows into bordered section cards. Each section
+    has a green title label, then rows with green-dot indicator + label +
+    status/value (green/yellow/red based on state). Two rows per item: main
+    row (name + status) and detail row (label + time/value).
+  - If app has FORMS: Inputs inside section cards — transparent bg, 1px
+    bottom border green/30%. Caret blinks green. Submit as bordered button
+    with green text in the 3-column control grid.
+  - If app has LISTS: Group items by category into bordered section cards.
+    Each card has a green section title, then items with green dots, status
+    badges (green=ok, yellow=pending, red=error), and detail values.
+  - If app has CARDS: Use bordered section containers (border green/30%,
+    bg black/50, p-3). Section title in green text at top. Content rows
+    inside with flex justify-between layout.
+  - If app has STATUS: Traffic-light coloring — green-400 for active/ok,
+    yellow-400 for warning/pending/spawning, red-400 for unavailable/error.
+    Use text color only, no background fills.
+  - If app has NAVIGATION: System ID bar at top (xs gray-400, flex between),
+    3-column button grid at bottom (bordered, green text, terminal-text glow),
+    version number in xs gray-400 footer.
+
+COLOR TOKENS (oklch):
+  --bg:           oklch(0.16 0.000 0)          /* body background #1a1a1a */
+  --card:         oklch(0.00 0.000 0 / 0.5)    /* section card bg black/50 */
+  --green:        oklch(0.79 0.21 152)          /* active text green-400 */
+  --green-border: oklch(0.72 0.22 150 / 0.3)   /* card borders green-500/30 */
+  --green-glow:   oklch(0.87 0.30 142)          /* dot/text glow #00ff00 */
+  --yellow:       oklch(0.85 0.20 92)           /* warning text yellow-400 */
+  --red:          oklch(0.70 0.19 22)           /* error text red-400 */
+  --fg:           oklch(1.00 0.000 0)           /* primary text white */
+  --fg-muted:     oklch(0.71 0.02 261)          /* labels gray-400 */
+  --glow:         0 0 5px oklch(0.87 0.30 142 / 0.7)  /* green text-shadow */
+  --dot-glow:     0 0 5px oklch(0.87 0.30 142)        /* dot box-shadow */
+
+REFERENCE STYLES:
+
+  /* ---- SECTION CARD (bordered container) ---- */
+  .section-card {
+    border: 1px solid var(--green-border);
+    background: var(--card);
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    color: var(--green);
+    font-size: 16px;
+    margin-bottom: 8px;
+  }
+
+  /* ---- EVENT ROW (two-line item) ---- */
+  .event-row {
+    margin-bottom: 12px;
+  }
+  .event-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .event-detail {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+  }
+  .event-detail .label { color: var(--fg-muted); }
+  .event-detail .value { color: var(--green); text-shadow: var(--glow); }
+
+  /* ---- GREEN DOT INDICATOR (::before) ---- */
+  .green-dot::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green-glow);
+    margin-right: 6px;
+    box-shadow: var(--dot-glow);
+  }
+
+  /* ---- STATUS TEXT (traffic light) ---- */
+  .status-ok      { color: var(--green); text-shadow: var(--glow); }
+  .status-warning  { color: var(--yellow); }
+  .status-error    { color: var(--red); }
+
+  /* ---- TERMINAL TEXT (green glow) ---- */
+  .terminal-text {
+    color: var(--green);
+    text-shadow: var(--glow);
+  }
+
+  /* ---- SCAN LINE SWEEP ---- */
+  .scan-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: oklch(0.87 0.30 142 / 0.1);
+    opacity: 0.75;
+    animation: scan 7s linear infinite;
+    pointer-events: none;
+    z-index: 100;
+  }
+  @keyframes scan {
+    0%   { top: 0%; }
+    100% { top: 100%; }
+  }
+
+  /* ---- SCREEN OVERLAY (green tint) ---- */
+  .screen-overlay {
+    background: linear-gradient(180deg,
+      oklch(0.87 0.30 142 / 0.03) 0%,
+      oklch(0.87 0.30 142 / 0.05) 100%
+    );
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99;
+  }
+
+  /* ---- SCREEN FLICKER ---- */
+  .screen-flicker {
+    animation: flicker 0.3s infinite alternate;
+  }
+  @keyframes flicker {
+    0%   { opacity: 0.97; }
+    100% { opacity: 1; }
+  }
+
+  /* ---- CONTROL GRID (bottom) ---- */
+  .control-grid {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .ctrl-btn {
+    border: 1px solid var(--green-border);
+    background: var(--card);
+    padding: 8px;
+    color: var(--green);
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    text-shadow: var(--glow);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .ctrl-btn:hover {
+    border-color: var(--green);
+    background: oklch(0.87 0.30 142 / 0.1);
+  }
+
+  /* ---- SYSTEM ID BAR ---- */
+  .sys-bar {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--fg-muted);
+    margin-bottom: 8px;
+  }
+
+  /* ---- GAME TIMER DISPLAY ---- */
+  .timer-card {
+    border: 1px solid var(--green-border);
+    background: var(--card);
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  .timer-row {
+    display: flex;
+    justify-content: space-between;
+  }
+  .timer-label { color: var(--fg-muted); }
+  .timer-value {
+    color: var(--green);
+    text-shadow: var(--glow);
+  }
+
+  /* ---- TYPOGRAPHY ---- */
+  body {
+    font-family: 'VT323', monospace;
+    background: var(--bg);
+    color: var(--fg);
+    letter-spacing: 0.05em;
+  }
+
+DESIGN PRINCIPLES:
+  1. GROUPED SECTION CARDS: Content organized into bordered containers
+     (border green/30%, bg black/50) with green section titles. Unlike bare
+     terminal rows, items are categorized: "CRITICAL EVENTS", "INTERLINKED
+     EVENTS", "CUSTOM TIMERS". Each card groups related items.
+  2. TRAFFIC-LIGHT STATUS: Three status colors — green-400 (active/ok),
+     yellow-400 (warning/spawning/pending), red-400 (unavailable/error).
+     Applied to text color only, never backgrounds. Status words are all-caps.
+  3. GREEN GLOW ON BLACK: All primary text uses text-shadow: 0 0 5px green/70%.
+     Green dot indicators get box-shadow: 0 0 5px green. The phosphor glow
+     is the visual identity — it's not flat green, it's luminous green.
+  4. SINGLE FONT: VT323 pixel monospace for everything. 0.05em letter-spacing
+     everywhere. No secondary typeface. The pixelated character shapes ARE
+     the aesthetic.
+  5. SEMI-TRANSPARENT CARDS: Section cards use bg black/50 (semi-transparent
+     black), creating depth layers. The scan line sweeps OVER the cards.
+     The screen overlay tints everything slightly green.
+  6. SCREEN FLICKER: Active values oscillate between 0.97 and 1.0 opacity
+     on a 0.3s alternate loop. Simulates CRT phosphor persistence — the
+     screen is never perfectly stable.
+  7. SCAN LINE SWEEP: A 2px green-tinted bar sweeps from top to bottom on
+     a 7-second loop. Lower z-index than overlay. Simulates CRT refresh.
+  8. GREEN DOT INDICATORS: 8px circles with green background and glow
+     shadow, created via CSS ::before pseudo-element. Every event item
+     gets a dot — it's the status LED of the system.
+  9. TWO-LINE EVENT ITEMS: Each event has a main row (dot + name + status)
+     and a detail row (label + value). Main row uses flex justify-between.
+     Detail row uses muted label left, green glowing value right.
+  10. SYSTEM CHROME: ID bar at top ("ID:DOTA2/TIMER/UTILITY" + "SYS:OPERATIONAL"),
+      3-column control grid at bottom, version footer. The system frame
+      around the content. Always present, always muted gray-400.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const critical = [
+      { name: "ROSHAN", status: "SPAWNING", statusColor: "status-warning",
+        detail: "ESTIMATED TIME:", value: "02:47" },
+      { name: "BOUNTY RUNES", status: "ACTIVE", statusColor: "status-ok",
+        detail: "NEXT SPAWN:", value: "00:28" },
+      { name: "POWER RUNES", status: "ACTIVE", statusColor: "status-ok",
+        detail: "NEXT SPAWN:", value: "01:28" }
+    ];
+    const secondary = [
+      { name: "AEGIS EXPIRY", value: "04:12" },
+      { name: "NEUTRAL ITEMS", value: "TIER 2" },
+      { name: "OUTPOST XP", value: "05:28" }
+    ];
+
+    return (
+      <div style={{ minHeight: "100vh", position: "relative", overflow: "hidden" }}>
+        <div className="scan-line" />
+        <div className="screen-overlay" />
+
+        <div style={{ maxWidth: "28rem", margin: "0 auto", height: "100vh",
+                       display: "flex", flexDirection: "column", padding: 16, position: "relative" }}>
+
+          {/* SYSTEM ID BAR */}
+          <div className="sys-bar">
+            <span>ID:DOTA2/TIMER/UTILITY</span>
+            <span>SYS:OPERATIONAL</span>
+          </div>
+
+          {/* TITLE */}
+          <div style={{ textAlign: "center", marginBottom: 16 }}>
+            <h1 className="terminal-text" style={{ fontSize: 24 }}>DOTA 2 TIMER</h1>
+            <p style={{ fontSize: 12, color: "var(--fg-muted)" }}>SYSTEM OPERATIONAL</p>
+          </div>
+
+          {/* GAME TIMER */}
+          <div className="timer-card">
+            <div className="timer-row">
+              <span className="timer-label">GAME TIME:</span>
+              <span className="timer-value screen-flicker">16:39</span>
+            </div>
+          </div>
+
+          {/* CRITICAL EVENTS */}
+          <div style={{ flex: 1, overflowY: "auto" }}>
+            <div className="section-card">
+              <div className="section-title">CRITICAL EVENTS</div>
+              {critical.map(e => (
+                <div key={e.name} className="event-row">
+                  <div className="event-main">
+                    <span className="green-dot terminal-text">{e.name}</span>
+                    <span className={e.statusColor}>{e.status}</span>
+                  </div>
+                  <div className="event-detail">
+                    <span className="label">{e.detail}</span>
+                    <span className="value">{e.value}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="section-card">
+              <div className="section-title">INTERLINKED EVENTS</div>
+              {secondary.map(e => (
+                <div key={e.name} className="event-row">
+                  <div className="event-main">
+                    <span className="green-dot terminal-text">{e.name}</span>
+                    <span className="terminal-text">{e.value}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CONTROLS */}
+          <div className="control-grid">
+            <button className="ctrl-btn">ADD TIMER</button>
+            <button className="ctrl-btn">RESET</button>
+            <button className="ctrl-btn">SETTINGS</button>
+          </div>
+
+          <div className="sys-bar" style={{ marginTop: 8, marginBottom: 0 }}>
+            <span>THANK YOU, SIR.</span>
+            <span>V.1.33.7</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme is a CRT monitor bolted to a mission control desk. The screen
+  flickers with phosphor persistence. A scan line sweeps endlessly. Events
+  are grouped into bordered sections — CRITICAL, INTERLINKED, CUSTOM — each
+  a card floating on semi-transparent black. Status colors are military: green
+  means go, yellow means caution, red means stop. Every item has a glowing
+  green dot — a status LED wired to the system. The VT323 pixel font makes
+  every character look like it was burned into phosphor by an electron gun.
+  Text-shadows simulate the green light bleed of a real CRT. The system ID
+  at the top says "SYS:OPERATIONAL" — this is not software, this is hardware.
+  The 3-column control grid at the bottom says ADD, RESET, SETTINGS — three
+  physical buttons, not links. The version footer (V.1.33.7) is a firmware
+  number. This is a piece of equipment, not a web page.
+
+ANIMATIONS:
+  - SCAN LINE SWEEP: 2px green bar moves from top 0% to top 100% on 7-second
+    linear infinite loop. Slightly faster than terminal's 8s.
+  - SCREEN FLICKER: Active values oscillate opacity 0.97↔1.0 every 0.3s
+    (alternate). Simulates phosphor instability.
+  - BUTTON HOVER: Border brightens from green/30% to full green, background
+    fills with green/10%. Transition 200ms.
+  - No typewriter animation (unlike terminal theme). Values are always visible
+    and flickering, not typed out.
+
+SVG ELEMENTS:
+  - No SVGs — pure CSS and text. Green dots are ::before pseudo-elements.
+    Scan line is a positioned div. Screen overlay is a gradient div.
+    All visual effects are CSS-only. The pixel font IS the decoration.
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');

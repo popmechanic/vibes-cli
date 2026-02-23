@@ -1,0 +1,416 @@
+THEME: desktop
+NAME: Desktop Retro
+MOOD: Nostalgic-computing, IDE-dark, Win95-dialogs, developer-retro
+
+DESCRIPTION:
+Two layered retro computing aesthetics. The base layer is a dark code editor
+(GitHub/VS Code dark theme) with syntax-highlighted code, line number gutter,
+tab bar with traffic light dots, and JetBrains Mono font. Floating on top are
+Windows 95-style dialog boxes with 3D-beveled silver chrome, blue gradient title
+bars, OK/CANCEL buttons with dotted focus outlines, and draggable window behavior.
+Dialogs contain messages with SVG heart icons. The windows are positioned in a
+heart shape using the parametric heart curve equation. Syntax colors follow the
+IntelliJ Darcula palette — orange keywords, green strings, gray comments, purple
+properties, yellow definitions. The contrast between the dark IDE base and the
+bright silver Win95 dialogs creates a "developer nostalgia" aesthetic.
+
+BEST FOR:
+  - Developer tools, code-related apps, changelog viewers
+  - Nostalgic/retro computing projects, throwback pages
+  - Valentine/love letter apps, message boards, confessions
+  - Personal pages with a "my computer" metaphor
+  - Any app that wants playful retro computing vibes
+
+NOT FOR:
+  - Professional/enterprise dashboards (too playful and retro)
+  - Content-heavy editorial or reading apps (competing visual layers)
+  - E-commerce or product showcases (no product display patterns)
+  - Minimalist/clean apps (this theme is deliberately noisy and layered)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Each row becomes a Win95 dialog window with icon +
+    message content + OK button. Stack or grid the dialogs. Headers live in
+    the title bar text.
+  - If app has FORMS: Inputs use Win95 inset bevels (dark top-left, light
+    bottom-right). Labels in Tahoma 11px. Submit as Win95 .win-btn with 3D
+    bevel. Focus state: dotted outline at -4px offset.
+  - If app has LISTS: Each item is a draggable Win95 dialog with title bar.
+    Stack them with slight offset for a "cascade windows" effect. Z-index
+    increments on click to bring forward.
+  - If app has CARDS: Use .error-window pattern — silver bg, 3D bevels, title
+    bar with gradient blue, close button, content area with icon + text.
+  - If app has CODE/TEXT: Display in the dark IDE layer with syntax coloring.
+    Line numbers on left gutter. Tab bar above with file name + close button.
+  - If app has NAVIGATION: IDE-style tab bar for sections. Traffic light dots
+    (red/yellow/green circles at 50% opacity) in top chrome bar. File tabs
+    with blue top-border for active.
+  - If app has IMAGES: Place inside Win95 dialog windows as content. Add SVG
+    icon (32x32, detailed multi-layer) next to a text description.
+  - If app has MULTIPLE VIEWS: Each view is a separate draggable Win95 window.
+    Users can rearrange by dragging title bars. Clicking brings to front.
+
+COLOR TOKENS (oklch):
+  /* IDE Layer */
+  --editor-bg:     oklch(0.11 0.01 250)    /* dark editor background #0d1117 */
+  --chrome:        oklch(0.18 0.000 0)     /* editor chrome/toolbar #1e1e1e */
+  --gutter:        oklch(0.39 0.01 250)    /* line number gray #4b5059 */
+  --code-text:     oklch(0.75 0.02 240)    /* default code text #a9b7c6 */
+  --code-comment:  oklch(0.59 0.000 0)     /* comment gray #808080 */
+
+  /* Syntax Colors (Darcula palette) */
+  --syn-keyword:   oklch(0.62 0.14 55)     /* keyword orange #cc7832 */
+  --syn-string:    oklch(0.57 0.08 140)    /* string green #6a8759 */
+  --syn-prop:      oklch(0.56 0.08 300)    /* property purple #9876aa */
+  --syn-def:       oklch(0.84 0.12 75)     /* definition yellow #ffc66d */
+  --syn-num:       oklch(0.62 0.08 235)    /* number blue #6897bb */
+
+  /* Win95 Layer */
+  --win-silver:    oklch(0.79 0.000 0)     /* window chrome #c0c0c0 */
+  --win-title-dk:  oklch(0.21 0.12 265)    /* title bar dark blue #000080 */
+  --win-title-lt:  oklch(0.55 0.14 245)    /* title bar light blue #1084d0 */
+  --win-highlight: oklch(1.00 0.000 0)     /* 3D bevel highlight #ffffff */
+  --win-shadow:    oklch(0.00 0.000 0)     /* 3D bevel shadow #000000 */
+  --win-text:      oklch(0.00 0.000 0)     /* dialog text black */
+  --heart:         oklch(0.58 0.17 18)     /* heart icon red-pink #e04f5f */
+
+REFERENCE STYLES:
+
+  /* ---- IDE CHROME BAR ---- */
+  .chrome-bar {
+    height: 32px;
+    background: var(--chrome);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    border-bottom: 1px solid #333;
+  }
+  .traffic-lights {
+    display: flex;
+    gap: 8px;
+    opacity: 0.5;
+  }
+  .traffic-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+  }
+  .traffic-dot.red { background: #ef4444; }
+  .traffic-dot.yellow { background: #eab308; }
+  .traffic-dot.green { background: #22c55e; }
+
+  /* ---- TAB BAR ---- */
+  .tab-bar {
+    height: 36px;
+    background: var(--chrome);
+    display: flex;
+    align-items: flex-end;
+    padding: 0 8px;
+    gap: 4px;
+  }
+  .tab {
+    background: var(--editor-bg);
+    color: var(--code-text);
+    padding: 8px 16px;
+    font-size: 12px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+  }
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%;
+    height: 2px;
+    background: #3b82f6;
+  }
+
+  /* ---- CODE EDITOR ---- */
+  .editor {
+    background: var(--editor-bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 24px;
+    color: var(--code-text);
+    display: flex;
+  }
+  .line-numbers {
+    width: 48px;
+    padding: 16px 16px 16px 0;
+    text-align: right;
+    color: var(--gutter);
+    border-right: 1px solid var(--chrome);
+    user-select: none;
+  }
+  .code-content {
+    flex: 1;
+    padding: 16px;
+    overflow: auto;
+  }
+
+  /* ---- WIN95 DIALOG WINDOW ---- */
+  .error-window {
+    position: absolute;
+    width: 280px;
+    background: var(--win-silver);
+    border-top: 2px solid #dfdfdf;
+    border-left: 2px solid #dfdfdf;
+    border-right: 2px solid #000;
+    border-bottom: 2px solid #000;
+    box-shadow: 4px 4px 10px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    font-family: 'Tahoma', sans-serif;
+  }
+  .window-inner {
+    border-top: 1px solid #fff;
+    border-left: 1px solid #fff;
+    border-right: 1px solid #808080;
+    border-bottom: 1px solid #808080;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 2px;
+  }
+
+  /* ---- WIN95 TITLE BAR ---- */
+  .title-bar {
+    background: linear-gradient(90deg, #000080, #1084d0);
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    color: white;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    cursor: move;
+  }
+
+  /* ---- WIN95 CLOSE BUTTON ---- */
+  .close-btn {
+    width: 16px; height: 16px;
+    background: var(--win-silver);
+    border-top: 1px solid #fff;
+    border-left: 1px solid #fff;
+    border-right: 1px solid #000;
+    border-bottom: 1px solid #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    color: black;
+    cursor: pointer;
+  }
+  .close-btn:active {
+    border-top-color: #000;
+    border-left-color: #000;
+    border-right-color: #fff;
+    border-bottom-color: #fff;
+    transform: translate(1px, 1px);
+  }
+
+  /* ---- WIN95 BUTTON ---- */
+  .win-btn {
+    background: var(--win-silver);
+    border-top: 1px solid #fff;
+    border-left: 1px solid #fff;
+    border-right: 1px solid #000;
+    border-bottom: 1px solid #000;
+    padding: 4px 20px;
+    font-size: 11px;
+    min-width: 70px;
+    cursor: pointer;
+    box-shadow: 1px 1px 0 #000;
+    color: black;
+  }
+  .win-btn:active {
+    border-top-color: #000;
+    border-left-color: #000;
+    border-right-color: #fff;
+    border-bottom-color: #fff;
+    transform: translate(1px, 1px);
+  }
+  .win-btn.focused {
+    border: 1px solid #000;
+    outline: 1px dotted #000;
+    outline-offset: -4px;
+  }
+
+  /* ---- WINDOW CONTENT ---- */
+  .window-content {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .msg-area {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .btn-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  /* ---- TYPOGRAPHY ---- */
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--editor-bg);
+    color: var(--code-text);
+    overflow: hidden;
+  }
+
+DESIGN PRINCIPLES:
+  1. TWO-LAYER ARCHITECTURE: Dark IDE fills the viewport as the base layer.
+     Win95 dialog windows float on top as the interactive layer. Content lives
+     in the dialogs; the code editor is atmospheric/decorative.
+  2. WIN95 3D BEVELS: Every window/button uses the classic bevel pattern —
+     white+light top-left borders, black+dark bottom-right borders. Active/pressed
+     state inverts the bevel. This is non-negotiable for authenticity.
+  3. BLUE GRADIENT TITLE BARS: Window title bars use linear-gradient(90deg,
+     #000080, #1084d0). White text, 11px, letter-spacing 0.5px. Close button
+     with × in the top-right.
+  4. SYNTAX COLORING: Code in the background uses Darcula palette — orange
+     keywords, green strings, gray comments, purple properties, yellow defs,
+     blue numbers. Each token wrapped in a colored span.
+  5. DRAGGABLE WINDOWS: All dialog windows are position:absolute with mousedown
+     drag on title bar. Clicking any window increments its z-index to bring it
+     to front. Creates a real desktop feel.
+  6. TAHOMA FOR DIALOGS: Win95 windows use Tahoma (or sans-serif fallback) at
+     11px. JetBrains Mono for everything in the IDE layer. Never mix.
+  7. TRAFFIC LIGHTS + TABS: IDE chrome has macOS-style traffic light dots
+     (red/yellow/green at 50% opacity) and a tab bar with blue top-border
+     on active tab. Pink heart icon optional in tab for personality.
+  8. SILVER #C0C0C0: The defining Win95 color. Window backgrounds, button
+     backgrounds, scrollbar tracks — all use this exact gray. No other gray.
+  9. HEART ICONS: Dialog message areas include a 32x32 SVG icon (heart shape
+     with multi-layer shading — dark fill, stroke, highlight). Positioned
+     left of the message text.
+  10. CASCADE POSITIONING: Multiple windows offset by ~20px each in both X and
+      Y to create a cascade. Or arrange in shapes (heart curve, grid, diagonal).
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const [windows, setWindows] = React.useState([
+      { id: 1, title: "System Message", msg: "Welcome back.", x: 100, y: 100, z: 10, visible: true },
+      { id: 2, title: "Notification", msg: "You have 3 new items.", x: 140, y: 140, z: 11, visible: true },
+      { id: 3, title: "Reminder", msg: "Don't forget to save.", x: 180, y: 180, z: 12, visible: true },
+    ]);
+    const [maxZ, setMaxZ] = React.useState(20);
+
+    const bringToFront = (id) => {
+      const next = maxZ + 1;
+      setMaxZ(next);
+      setWindows(ws => ws.map(w => w.id === id ? { ...w, z: next } : w));
+    };
+
+    const closeWindow = (id) => {
+      setWindows(ws => ws.map(w => w.id === id ? { ...w, visible: false } : w));
+    };
+
+    return (
+      <div style={{ width: "100vw", height: "100vh", background: "var(--editor-bg)",
+                     fontFamily: "'JetBrains Mono', monospace", color: "var(--code-text)",
+                     overflow: "hidden", position: "relative" }}>
+
+        {/* IDE CHROME */}
+        <div className="chrome-bar">
+          <div className="traffic-lights">
+            <div className="traffic-dot red" />
+            <div className="traffic-dot yellow" />
+            <div className="traffic-dot green" />
+          </div>
+          <span style={{ color: "#808080", fontSize: 12 }}>project / app</span>
+        </div>
+
+        {/* TAB BAR */}
+        <div className="tab-bar">
+          <div className="tab active">
+            <span style={{ color: "#ec4899" }}>&#9829;</span> status.js
+            <span style={{ cursor: "pointer", marginLeft: 8 }}>×</span>
+          </div>
+        </div>
+
+        {/* CODE EDITOR (decorative background) */}
+        <div className="editor" style={{ position: "absolute", inset: 0, top: 68, zIndex: 0 }}>
+          <div className="line-numbers">
+            {Array.from({length: 28}, (_, i) => <div key={i}>{i + 10}</div>)}
+          </div>
+          <div className="code-content">
+            <div><span className="c-keyword">const</span> <span className="c-def">APP</span> = {"{"}</div>
+            <div>  <span className="c-prop">name</span>: <span className="c-string">"My App"</span>,</div>
+            <div>  <span className="c-prop">version</span>: <span className="c-num">1.0</span>,</div>
+            <div>  <span className="c-prop">status</span>: <span className="c-string">"running"</span></div>
+            <div>{"}"};</div>
+          </div>
+        </div>
+
+        {/* WIN95 DIALOG WINDOWS */}
+        {windows.filter(w => w.visible).map(w => (
+          <div key={w.id} className="error-window"
+            style={{ left: w.x, top: w.y, zIndex: w.z }}
+            onMouseDown={() => bringToFront(w.id)}>
+            <div className="window-inner">
+              <div className="title-bar">
+                <span>{w.title}</span>
+                <button className="close-btn" onClick={() => closeWindow(w.id)}>×</button>
+              </div>
+              <div className="window-content">
+                <div className="msg-area">
+                  <svg viewBox="0 0 24 24" style={{ width: 32, height: 32, flexShrink: 0 }}>
+                    <path fill="#e04f5f" stroke="#c83e4e" strokeWidth="1.5"
+                      d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                  </svg>
+                  <div style={{ fontSize: 11, color: "black" }}>{w.msg}</div>
+                </div>
+                <div className="btn-row">
+                  <button className="win-btn focused">OK</button>
+                  <button className="win-btn" onClick={() => closeWindow(w.id)}>CANCEL</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme lives in the uncanny valley between two computing eras. The dark
+  IDE background whispers "modern developer" while the silver Win95 dialogs
+  shout "1997 desktop." The tension is the point — it's nostalgic but self-aware,
+  technical but playful. Each dialog window is a tiny artifact that can be grabbed,
+  moved, dismissed, or brought to front. The code editor behind it all adds depth
+  and context — you're inside the machine. Syntax colors are warm and familiar
+  (Darcula palette), like opening an old project. The 3D beveled buttons beg to
+  be clicked. The dotted focus outline is the most 90s detail in existence. Every
+  interaction should feel like discovering a file on an old computer.
+
+ANIMATIONS:
+  - BUTTON PRESS: Win95 bevel inversion on :active — borders swap light/dark
+    sides, content shifts 1px down-right. Instant, no transition.
+  - WINDOW DRAG: Title bar mousedown enables position tracking. Smooth following,
+    no transition needed — direct manipulation.
+  - BRING TO FRONT: Clicking any window increments z-index. No animation, just
+    instant restacking. Feels physical like shuffling papers.
+  - CLOSE WINDOW: display:none on close/cancel click. Instant disappearance,
+    like Win95. No fade, no slide — just gone.
+  - HEART ARRANGEMENT: On load, windows can animate from random positions to
+    their heart-curve coordinates using setTimeout stagger (50ms per window).
+
+SVG ELEMENTS:
+  - HEART ICON: Multi-layer SVG heart with fill (#e04f5f), stroke (#c83e4e),
+    highlight paths, and shadow ellipses. 32x32 inside each dialog's msg-area.
+    Drop-shadow filter for depth.
+  - TRAFFIC LIGHTS: Three 12px circles (red #ef4444, yellow #eab308, green
+    #22c55e) at 50% opacity. Pure CSS, not SVG.
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+  /* Tahoma is a system font — no Google Fonts import needed */

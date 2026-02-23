@@ -1,0 +1,435 @@
+THEME: hearth
+NAME: Hearth Sim
+MOOD: Cozy-game, purple-and-gold, life-sim, rounded-playful
+
+DESCRIPTION:
+A life-simulation game UI on a deep purple gradient background with subtle grid
+lines and gold SVG pattern overlay. Features character cards with translucent
+purple backgrounds, asymmetric border-radius (one corner different), and gold
+borders on selection. Rounded pill-shaped controls with backdrop-filter blur,
+color-coded stat bars (green/yellow/red) inside dark pill tracks, mood speech
+bubbles with asymmetric tails, and SVG plumbob diamond indicators for status.
+Stats cards have scalloped green bottom edges via CSS mask. Typography uses two
+rounded fonts — Fredoka for display names and Nunito for body. Everything is soft,
+rounded (16-24px radius), and warmly lit with gold accents. Feels like managing
+a household of characters in a cozy life sim.
+
+BEST FOR:
+  - Character/pet management apps, profile dashboards
+  - Game UIs, RPG stat trackers, inventory systems
+  - Life-sim tools, mood trackers with character avatars
+  - Team/roster management, household/group organizers
+  - Any app that tracks multiple entities with status bars
+
+NOT FOR:
+  - Professional/enterprise dashboards (too playful and game-like)
+  - Content-heavy editorial or reading apps (rounded style distracts)
+  - Financial or trading apps (mood is too casual for money)
+  - Minimalist or austere apps (this theme is deliberately warm and decorated)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Convert rows to character cards (portrait + info + status
+    indicator). Lay out in scrollable vertical list with 12px gap. Active card
+    gets solid purple bg + gold border + gold glow shadow.
+  - If app has FORMS: Inputs on translucent purple bg (rgba), pill border-radius
+    (14px), 1px white/10% border. Focus state: gold border. Labels in Fredoka,
+    gold color. Submit as pill button with gold border.
+  - If app has LISTS: Scrollable card list in sidebar (340px). Each item is a
+    card with grid layout (64px portrait, 1fr info, 28px indicator). Hover shifts
+    translateX(4px) and tints border gold.
+  - If app has STATS/PROGRESS: Pill-shaped bar containers (28px, 14px radius,
+    black 30% bg) with colored fills. Green = good (>60%), yellow = medium
+    (30-60%), red = low (<30%). Label text inside the bar with text-shadow.
+  - If app has CARDS: Translucent purple bg (rgba(94,38,165,0.4)), 16px radius,
+    2px white/10% border. Asymmetric radius optional (32px 32px 12px 32px for
+    featured cards). Hover lifts with gold border tint.
+  - If app has NAVIGATION: Top bar with pill controls (backdrop blur, purple bg,
+    pill radius). Tab buttons lift on active (top offset). Sidebar for entity list.
+  - If app has AVATARS/PORTRAITS: Square frames with large radius (32px), 4px
+    gold border, purple-light bg. SVG character icons or initials inside.
+  - If app has STATUS INDICATORS: Diamond/plumbob SVG shapes with gradient fill
+    and drop-shadow glow. Color encodes mood: green = happy, gold = neutral,
+    red = distressed, gray = inactive.
+
+COLOR TOKENS (oklch):
+  --bg-start:      oklch(0.18 0.10 300)    /* deep purple gradient start #2a104a */
+  --bg-end:        oklch(0.12 0.09 300)    /* near-black purple gradient end #1a0833 */
+  --primary:       oklch(0.38 0.17 295)    /* rich purple panels #5E26A5 */
+  --primary-dark:  oklch(0.30 0.15 295)    /* darker purple tabs/shadows #45197D */
+  --primary-light: oklch(0.47 0.18 295)    /* lighter purple hover/frames #7A3BC7 */
+  --accent-green:  oklch(0.70 0.15 155)    /* positive/health green #44BD76 */
+  --accent-gold:   oklch(0.88 0.18 95)     /* gold selection/highlight #FFD700 */
+  --danger:        oklch(0.55 0.20 25)     /* low/critical red #E74C3C */
+  --text:          oklch(1.00 0.000 0)     /* white text #FFFFFF */
+  --text-purple:   oklch(0.25 0.16 295)    /* dark purple text #3A0F6E */
+  --card-bg:       oklch(0.38 0.17 295 / 0.4)  /* translucent purple cards */
+  --border:        oklch(1.00 0.000 0 / 0.1)   /* subtle white borders */
+
+REFERENCE STYLES:
+
+  /* ---- BACKGROUND (gradient + grid + pattern) ---- */
+  body {
+    background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+  }
+  .scene-bg {
+    position: absolute; inset: 0; z-index: -1;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(94,38,165,0.2) 0%, rgba(0,0,0,0.6) 80%),
+      repeating-linear-gradient(0deg, transparent 0, transparent 49px, rgba(255,255,255,0.05) 50px),
+      repeating-linear-gradient(90deg, transparent 0, transparent 49px, rgba(255,255,255,0.05) 50px);
+  }
+
+  /* ---- CONTROL PILL (frosted glass) ---- */
+  .control-pill {
+    background: var(--primary);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 50px;
+    padding: 8px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    backdrop-filter: blur(10px);
+  }
+
+  /* ---- CHARACTER CARD ---- */
+  .character-card {
+    background: rgba(94, 38, 165, 0.4);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 14px;
+    display: grid;
+    grid-template-columns: 64px 1fr 28px;
+    gap: 14px;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .character-card:hover {
+    background: rgba(94, 38, 165, 0.6);
+    border-color: rgba(255, 215, 0, 0.3);
+    transform: translateX(4px);
+  }
+  .character-card.active {
+    background: var(--primary);
+    border-color: var(--accent-gold);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+  }
+
+  /* ---- PORTRAIT FRAME (asymmetric radius) ---- */
+  .portrait-frame {
+    width: 200px; height: 200px;
+    background: var(--primary-light);
+    border-radius: 32px 32px 12px 32px;
+    border: 4px solid var(--accent-gold);
+    overflow: hidden;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* ---- MOOD BUBBLE (speech bubble with tail) ---- */
+  .mood-bubble {
+    background: var(--accent-green);
+    color: var(--text);
+    padding: 10px 24px;
+    border-radius: 16px 16px 16px 0;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    box-shadow: 0 6px 16px rgba(68, 189, 118, 0.4);
+    animation: float 3s ease-in-out infinite;
+  }
+
+  /* ---- STATS CARD (scalloped bottom edge) ---- */
+  .stats-card {
+    background: var(--primary);
+    border-radius: 24px 8px 24px 24px;
+    padding: 28px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden;
+  }
+  .stats-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 12px;
+    background: var(--accent-green);
+    border-radius: 0 0 24px 24px;
+    mask-image: radial-gradient(circle at 10px 0, transparent 10px, black 11px);
+    mask-size: 20px 20px;
+    mask-repeat: repeat-x;
+    -webkit-mask-image: radial-gradient(circle at 10px 0px, transparent 10px, black 11px);
+    -webkit-mask-size: 20px 20px;
+    -webkit-mask-position: 0 -10px;
+  }
+
+  /* ---- STAT BAR (pill-shaped, color-coded) ---- */
+  .bar-container {
+    height: 28px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 14px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .bar-fill {
+    height: 100%;
+    background: var(--accent-green);
+    border-radius: 14px;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
+  }
+  .bar-fill.med { background: var(--accent-gold); }
+  .bar-fill.low { background: var(--danger); }
+  .stat-label {
+    position: absolute;
+    left: 12px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.9);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    z-index: 2;
+  }
+
+  /* ---- TAB BUTTONS (lift on active) ---- */
+  .tab-btn {
+    background: var(--primary-dark);
+    width: 44px; height: 44px;
+    border-radius: 12px 12px 0 0;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: 0.2s;
+    position: relative;
+    top: 4px;
+  }
+  .tab-btn.active {
+    background: var(--primary);
+    top: 0;
+    box-shadow: 0 -4px 10px rgba(0,0,0,0.2);
+  }
+  .tab-btn.active svg { stroke: var(--accent-gold); }
+
+  /* ---- PLUMBOB (diamond status indicator) ---- */
+  .plumbob {
+    filter: drop-shadow(0 0 8px rgba(0, 255, 127, 0.6));
+    animation: float 2s ease-in-out infinite;
+  }
+
+  /* ---- INSPECT / ACTION BUTTON ---- */
+  .inspect-btn {
+    background: var(--primary);
+    border: 2px solid var(--accent-gold);
+    border-radius: 12px;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .inspect-btn:hover {
+    background: var(--primary-light);
+    box-shadow: 0 6px 16px rgba(255, 215, 0, 0.3);
+    transform: translateY(-2px);
+  }
+
+  /* ---- TYPOGRAPHY ---- */
+  .display-text {
+    font-family: 'Fredoka', sans-serif;
+    color: var(--text);
+    text-shadow: 0 3px 0 var(--primary-dark);
+  }
+  .title-gold {
+    font-family: 'Fredoka', sans-serif;
+    color: var(--accent-gold);
+    text-shadow: 0 2px 0 var(--primary-dark);
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+
+DESIGN PRINCIPLES:
+  1. DEEP PURPLE GRADIENT: Background is always a 135deg gradient from deep
+     purple to near-black purple. Subtle 50px grid lines at 5% white opacity
+     and gold SVG pattern overlay at 10% opacity add texture.
+  2. TRANSLUCENT PURPLE CARDS: All cards use rgba purple (0.4 opacity) with
+     2px white/10% borders and 16px radius. Hover brightens to 0.6 opacity
+     and tints border gold. Active gets solid purple + gold border + glow.
+  3. GOLD SELECTION LANGUAGE: Gold (#FFD700) means "selected", "important",
+     or "highlighted". Used on active borders, tab icons, titles, and accent
+     text. Everything else stays white or purple.
+  4. COLOR-CODED STAT BARS: Pill-shaped bars (28px, 14px radius) on dark bg.
+     Green = good (>60%), gold/yellow = medium (30-60%), red = low (<30%).
+     Label text lives INSIDE the bar with text-shadow for readability.
+  5. ASYMMETRIC RADIUS: Featured elements get one corner different from the
+     rest (32px 32px 12px 32px or 24px 8px 24px 24px). Creates a playful,
+     hand-crafted feel without being random.
+  6. ROUNDED EVERYTHING: Two rounded fonts (Fredoka display, Nunito body),
+     pill-shaped controls, 14-24px border-radius on cards, 50px pill buttons.
+     No sharp corners anywhere in the interface.
+  7. MOOD BUBBLES: Status messages in green speech bubbles with asymmetric
+     radius (16px 16px 16px 0 — tail at bottom-left). Float animation (4px,
+     3s ease-in-out). Gold drop-shadow on positive moods.
+  8. PLUMBOB INDICATORS: Diamond-shaped SVGs with gradient fill indicate entity
+     status. Green = healthy, gold = needs attention, red = critical, gray =
+     inactive. Always float-animated with colored drop-shadow glow.
+  9. SCALLOPED EDGES: Stats cards have decorative scalloped bottom edges via
+     CSS mask (radial-gradient circles punched out of a solid strip). Accent
+     green color. Adds a whimsical, game-like trim.
+  10. FROSTED GLASS PILLS: Header controls use backdrop-filter blur(10px) on
+      purple bg with subtle white borders. Pill border-radius (50px). Contains
+      text labels, separators, and triangular play/speed controls.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const characters = [
+      { name: "Barnaby", level: "Young Adult", mood: "happy", needs: {
+        hunger: 45, social: 80, fun: 20, energy: 80, hygiene: 45
+      }},
+      { name: "Zara", level: "Adult", mood: "neutral", needs: {
+        hunger: 70, social: 60, fun: 55, energy: 40, hygiene: 90
+      }},
+      { name: "Max", level: "Child", mood: "sad", needs: {
+        hunger: 30, social: 85, fun: 90, energy: 25, hygiene: 60
+      }},
+    ];
+    const [selected, setSelected] = React.useState(0);
+    const char = characters[selected];
+
+    const barClass = (v) => v < 30 ? "low" : v < 60 ? "med" : "";
+
+    return (
+      <div style={{
+        background: "linear-gradient(135deg, #2a104a, #1a0833)",
+        minHeight: "100vh", color: "white", fontFamily: "'Nunito', sans-serif",
+        display: "grid", gridTemplateRows: "60px 1fr 1fr",
+        gridTemplateColumns: "340px 1fr", gap: 20, padding: "0 20px 20px"
+      }}>
+
+        {/* TOP BAR */}
+        <header style={{ gridColumn: "1 / -1", display: "flex",
+                         justifyContent: "space-between", alignItems: "center", padding: "16px 32px" }}>
+          <div className="control-pill">
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--accent-gold)" }}>DAY 12</span>
+          </div>
+        </header>
+
+        {/* CHARACTER LIST (left sidebar) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <h2 className="title-gold" style={{ fontSize: 24 }}>HOUSEHOLD</h2>
+          {characters.map((c, i) => (
+            <div key={c.name}
+              className={"character-card" + (i === selected ? " active" : "")}
+              onClick={() => setSelected(i)}>
+              <div className="char-portrait">
+                {/* SVG face icon */}
+              </div>
+              <div>
+                <div style={{ fontFamily: "'Fredoka'", fontSize: 18, fontWeight: 600 }}>{c.name}</div>
+                <div style={{ fontSize: 12, opacity: 0.7, textTransform: "uppercase" }}>{c.level}</div>
+              </div>
+              {/* Plumbob indicator */}
+              <svg viewBox="0 0 100 120" style={{ width: 24, height: 28 }}>
+                <path d="M50 10 L80 50 L50 90 L20 50 Z"
+                  fill={c.mood === "happy" ? "#00FF7F" : c.mood === "neutral" ? "#FFD700" : "#FF6B6B"}
+                  opacity={0.8} />
+              </svg>
+            </div>
+          ))}
+        </div>
+
+        {/* CHARACTER PORTRAIT (right top) */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
+                       justifyContent: "center", gap: 20 }}>
+          <div style={{ position: "relative" }}>
+            <div className="mood-bubble">Feeling Inspired</div>
+            <div className="portrait-frame">
+              {/* Character visual */}
+            </div>
+          </div>
+          <div className="display-text" style={{ fontSize: 42 }}>{char.name}</div>
+        </div>
+
+        {/* NEEDS PANEL (right bottom) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="panel-tabs" style={{ display: "flex", gap: 8 }}>
+            {["Needs", "Career", "Skills", "Inventory"].map((tab, i) => (
+              <div key={tab} className={"tab-btn" + (i === 0 ? " active" : "")}>
+                {/* Tab icon SVG */}
+              </div>
+            ))}
+          </div>
+          <div className="stats-card">
+            <div className="title-gold" style={{ fontSize: 24, marginBottom: 20 }}>NEEDS</div>
+            {Object.entries(char.needs).map(([stat, val]) => (
+              <div key={stat} className="stat-row" style={{
+                display: "grid", gridTemplateColumns: "32px 1fr", gap: 14,
+                alignItems: "center", marginBottom: 12
+              }}>
+                <div className="stat-icon">{/* Icon SVG */}</div>
+                <div className="bar-container">
+                  <div className="stat-label">{stat}</div>
+                  <div className={"bar-fill " + barClass(val)} style={{ width: val + "%" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme speaks in game mechanics. Every entity has stats, every stat has a
+  bar, every bar has a mood color. The deep purple gradient is the night sky over
+  a cozy neighborhood — warm but with depth. Gold is the language of selection
+  and importance, green means "doing well," red means "needs attention." The
+  rounded fonts (Fredoka, Nunito) keep everything soft and approachable — this
+  is a game, not a spreadsheet. Asymmetric border-radius on cards and frames
+  adds a hand-crafted, toybox quality. The plumbob diamond floats serenely above
+  each character like a status beacon. Scalloped edges on stat cards are the
+  decorative trim on a dollhouse. Everything invites interaction: cards shift on
+  hover, buttons lift, bubbles bob gently. The interface should feel like opening
+  a beloved game — familiar, warm, and full of tiny delightful details.
+
+ANIMATIONS:
+  - FLOAT: Mood bubbles and plumbobs bob 4px vertically, 2-3s ease-in-out
+    infinite. Gentle, constant, life-like.
+  - CARD SHIFT: Character cards translateX(4px) on hover. Quick 200ms transition.
+    Active cards don't shift — they're already "home."
+  - BUTTON LIFT: Inspect/action buttons translateY(-2px) on hover with gold
+    glow shadow expanding. Spring-like timing.
+  - TAB RISE: Active tab shifts from top:4px to top:0 with box-shadow appearing
+    above. Creates a physical "selected tab" feel.
+  - BAR FILL: Stat bars transition width on state change (300ms ease). Color
+    transitions smoothly between green/yellow/red thresholds.
+
+SVG ELEMENTS:
+  - PLUMBOB: Diamond shape (<path d="M50 10 L80 50 L50 90 L20 50 Z">) with
+    linearGradient fill (green-to-teal). Drop-shadow glow filter. Used as status
+    indicator in card list and header.
+  - CHARACTER FACES: Simple SVG stroke portraits — oval head, dot eyes, curved
+    mouth. Each character gets a unique stroke color for identity.
+  - STAT ICONS: 24x24 Feather-style stroke icons (cup for hunger, users for
+    social, star for fun, lightning for energy, droplet for hygiene). White
+    stroke, no fill, stroke-width 2, round linecaps.
+  - TAB ICONS: 20x20 stroke icons (heart, briefcase, star, box). Active state
+    changes stroke to gold.
+  - PATTERN OVERLAY: Tiled 100x100 SVG with gold strokes at 10% opacity — swirls,
+    circles, chevrons. Covers entire viewport as decorative texture.
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700;800&display=swap');

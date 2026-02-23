@@ -1,0 +1,504 @@
+THEME: chrono
+NAME: Chrono Neumorphic
+MOOD: Tactile, soft, physical, instrument-like
+
+DESCRIPTION:
+A neumorphic skeuomorphic aesthetic with soft extruded shadows, chrome
+gradients, glass lens effects, and spectral conic-gradient accents. Light
+gray background with raised/sunken elements that feel physically molded.
+Features watch-dial inspired layouts, circular controls with layered
+glass/rim/dispersion effects, tick marks, and data windows. Feels like
+a premium physical instrument — a chronograph watch, a medical device,
+or a high-end fitness tracker. Everything has depth through dual shadows
+(dark + light) and internal reflections.
+
+BEST FOR:
+  - Health/fitness trackers, cycle/period trackers
+  - Timer, stopwatch, countdown apps
+  - Weather stations, barometer dashboards
+  - Smart home control panels
+  - Music player interfaces
+  - Any app that should feel like a physical instrument or device
+
+NOT FOR:
+  - Text-heavy editorial content (neumorphic competes with reading)
+  - Complex data dashboards with many sections (soft shadows get busy)
+  - E-commerce or product showcase (too device-focused)
+  - Creative portfolios (too utilitarian in mood)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Avoid traditional tables. Use stacked info-cards
+    with neumorphic inset backgrounds. Key-value pairs with label/value
+    layout. Keep data sparse and readable.
+  - If app has FORMS: Neumorphic inset inputs (inner shadow). Rounded
+    corners (8-16px). Labels in uppercase monospace above. Submit as
+    a glass-btn circular button or neumorphic rectangle.
+  - If app has LISTS: Each item in a neumorphic card with raised shadow.
+    Alternating can use subtle inset vs. raised treatment. Keep spacing
+    generous — neumorphic needs breathing room.
+  - If app has CHARTS: Use circular/radial charts (gauge, donut, arc).
+    Watch-dial aesthetic with tick marks and hand indicators. Avoid
+    bar charts or line charts — they fight the round aesthetic.
+  - If app has CONTROLS: Circular glass buttons with layered effects
+    (dispersion ring + chrome rim + glass lens + icon). Grid of 3-4
+    buttons max — neumorphic buttons need space.
+  - If app has STATUS INFO: Glass info-cards with backdrop-filter blur.
+    Avatars as small neumorphic circles. Status dots with colored glow.
+
+COLOR TOKENS:
+  The chrono palette is soft gray with no strong accent color. Depth
+  comes from shadow pairs (dark + light), not from color. Spectral
+  conic gradients add subtle rainbow dispersion on edges.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.92 0.005 260);            /* soft cool gray */
+    --comp-text: oklch(0.40 0.01 260);            /* medium gray text */
+    --comp-border: oklch(1.00 0 0 / 0.4);         /* white border (glass) */
+    --comp-accent: oklch(0.92 0.005 260);          /* no accent — gray IS the palette */
+    --comp-accent-text: oklch(0.40 0.01 260);      /* same as text */
+    --comp-muted: oklch(0.65 0.005 260);           /* dim label gray */
+    --color-background: oklch(0.91 0.005 260);     /* page background */
+    --grid-color: transparent;                      /* no grid */
+  }
+  ```
+
+  Shadow pair (the core neumorphic mechanism):
+  ```css
+  --shadow-dark: oklch(0.55 0.01 260 / 0.4);      /* dark side shadow */
+  --shadow-light: oklch(1.00 0 0 / 0.9);           /* light side shadow */
+  ```
+
+  Chrome surface colors:
+  ```css
+  --chrome-light: oklch(1.00 0 0);                 /* highlight white */
+  --chrome-mid: oklch(0.85 0.005 260);              /* mid chrome */
+  --chrome-dark: oklch(0.73 0.005 260);             /* dark chrome */
+  --surface: oklch(0.95 0.005 260);                 /* raised surface */
+  ```
+
+  For DARK chrono variant:
+  ```css
+  :root {
+    --comp-bg: oklch(0.18 0.005 260);
+    --comp-text: oklch(0.70 0.005 260);
+    --comp-muted: oklch(0.45 0.005 260);
+    --color-background: oklch(0.15 0.005 260);
+    --shadow-dark: oklch(0.05 0.01 260 / 0.6);
+    --shadow-light: oklch(0.25 0.005 260 / 0.5);
+    --chrome-light: oklch(0.30 0.005 260);
+    --chrome-dark: oklch(0.12 0.005 260);
+    --surface: oklch(0.20 0.005 260);
+  }
+  ```
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the chrono aesthetic.
+  Study the patterns (dual shadows, chrome gradients, glass lens effects,
+  circular layouts) to understand the mood, then design your own version.
+
+  ```css
+  /* ── Chrono Core ── */
+  body {
+    background: var(--color-background);
+    color: var(--comp-text);
+    font-family: 'SF Mono', 'Roboto Mono', 'Monaco', monospace;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Neumorphic Raised Element ── */
+  .neu-raised {
+    background: linear-gradient(135deg, var(--chrome-light) 0%, var(--surface) 40%, var(--chrome-dark) 100%);
+    box-shadow:
+      10px 10px 20px var(--shadow-dark),
+      -10px -10px 20px var(--shadow-light);
+    border-radius: 16px;
+  }
+
+  /* ── Neumorphic Inset Element ── */
+  .neu-inset {
+    background: radial-gradient(circle at 30% 30%, var(--surface), var(--chrome-mid));
+    box-shadow:
+      inset 4px 4px 8px oklch(0 0 0 / 0.1),
+      inset -4px -4px 8px oklch(1 0 0 / 0.8);
+    border-radius: 16px;
+  }
+
+  /* ── Neumorphic Circular Button ── */
+  .neu-btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 50% 50%, var(--surface), var(--chrome-dark));
+    box-shadow:
+      10px 10px 20px var(--shadow-dark),
+      -10px -10px 20px var(--shadow-light);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    border: none;
+  }
+  .neu-btn:active {
+    box-shadow:
+      4px 4px 10px var(--shadow-dark),
+      -4px -4px 10px var(--shadow-light);
+    transform: scale(0.96);
+  }
+
+  /* ── Chrome Rim (mask trick for ring border) ── */
+  .chrome-rim {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    padding: 2px;
+    background: linear-gradient(145deg, oklch(1 0 0 / 0.9), oklch(0.60 0 0 / 0.5));
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  /* ── Spectral Dispersion Ring ── */
+  .dispersion-ring {
+    position: absolute;
+    inset: -1px;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      transparent 40%,
+      cyan 50%,
+      magenta 60%,
+      yellow 70%,
+      transparent 80%
+    );
+    opacity: 0.5;
+    filter: blur(1px);
+  }
+
+  /* ── Glass Lens (inner face of button) ── */
+  .glass-lens {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, oklch(0.95 0 0) 0%, oklch(0.80 0 0) 100%);
+    box-shadow:
+      inset 2px 2px 4px oklch(1 0 0 / 0.9),
+      inset -2px -2px 4px oklch(0 0 0 / 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  /* Glass reflection highlight */
+  .glass-lens::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 15px;
+    background: linear-gradient(to bottom, oklch(1 0 0 / 0.9), transparent);
+    border-radius: 20px;
+    opacity: 0.7;
+  }
+
+  /* ── Watch Dial (circular face) ── */
+  .dial-face {
+    position: relative;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+  }
+
+  /* ── Tick Marks ── */
+  .tick {
+    position: absolute;
+    left: 50%;
+    top: 10px;
+    width: 1px;
+    height: 8px;
+    background: var(--comp-muted);
+    transform-origin: 50% 148px;
+  }
+  .tick.major {
+    height: 12px;
+    width: 2px;
+    background: var(--comp-text);
+  }
+
+  /* ── Hand Indicator ── */
+  .dial-hand {
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    width: 2px;
+    height: 100px;
+    background: #E55050;
+    transform-origin: bottom center;
+    box-shadow: 0 2px 4px oklch(0 0 0 / 0.2);
+  }
+  .center-cap {
+    width: 16px;
+    height: 16px;
+    background: radial-gradient(circle at 30% 30%, #fff, #999);
+    border-radius: 50%;
+    position: absolute;
+    box-shadow: 0 2px 4px oklch(0 0 0 / 0.3);
+  }
+
+  /* ── Data Window (inset display) ── */
+  .data-window {
+    background: oklch(0 0 0 / 0.05);
+    padding: 4px 8px;
+    border-radius: 2px;
+    border: 1px solid oklch(1 0 0 / 0.5);
+    box-shadow: inset 1px 1px 2px oklch(0 0 0 / 0.1);
+  }
+  .data-text {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  /* ── Glass Info Card ── */
+  .glass-card {
+    background: linear-gradient(135deg, oklch(1 0 0 / 0.6), oklch(1 0 0 / 0.2));
+    backdrop-filter: blur(10px);
+    border: 1px solid oklch(1 0 0 / 0.4);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 4px 12px oklch(0 0 0 / 0.05);
+  }
+
+  /* ── Status Indicator ── */
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #32CD32;
+    box-shadow: 0 0 4px #32CD32;
+  }
+
+  /* ── Header ── */
+  .chrono-header {
+    padding: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--comp-muted);
+  }
+
+  /* ── Typography ── */
+  .label-text {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--comp-muted);
+  }
+  .value-text {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .sub-text {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--comp-muted);
+  }
+
+  /* ── Avatar Circles ── */
+  .avatar-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--color-background);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: white;
+    font-weight: bold;
+  }
+
+  /* ── Full-Height Layout ── */
+  .chrono-layout {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .chrono-center {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* ── Mobile (this theme is mobile-first) ── */
+  @media (min-width: 768px) {
+    .dial-face {
+      width: 400px;
+      height: 400px;
+    }
+    .neu-btn {
+      width: 80px;
+      height: 80px;
+    }
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - Neumorphic dual shadows on EVERYTHING — dark shadow bottom-right, light shadow top-left
+  - All backgrounds are soft gray gradients — never flat colors
+  - Circular/rounded everything — border-radius 50% for controls, 16px for cards
+  - Chrome gradients: white → surface → dark gray for metallic feel
+  - Glass lens effect: inner highlight + gloss reflection pseudo-element
+  - Spectral conic-gradient dispersion on button edges (cyan → magenta → yellow)
+  - Monospace font ONLY — everything is instrument-grade precision text
+  - All labels: 10px, uppercase, 1.5px letter-spacing, muted color
+  - No bright accent colors — the palette is entirely grayscale with chromatic dispersion
+  - The ONE color exception: indicator red (#E55050) for active hand/pointer
+  - Depth through shadow layers, not borders — avoid visible borders
+  - Inset shadows for data windows, inputs, and recessed areas
+  - Active/pressed state: shadow reduction + scale(0.96) — physical press feel
+  - Layout is vertical/mobile-first — centered instrument with controls below
+  - Icons via CSS mask with SVG data URIs — white shapes on glass lenses
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. Vary the dial layout, control count,
+  and info panels based on the app's content.
+
+  ```jsx
+  function App() {
+    return (
+      <div className="chrono-layout">
+        {/* Status header */}
+        <header className="chrono-header">
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div className="status-dot" />
+            <span>CONNECTED</span>
+          </div>
+          <span>STATUS: OK</span>
+        </header>
+
+        {/* Central instrument */}
+        <div className="chrono-center">
+          <div className="dial-face neu-raised" style={{ borderRadius: "50%" }}>
+            <div className="neu-inset" style={{
+              position: "absolute",
+              inset: 12,
+              borderRadius: "50%",
+              overflow: "hidden"
+            }}>
+              {/* Tick marks */}
+              {Array.from({ length: 60 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`tick ${i % 5 === 0 ? 'major' : ''}`}
+                  style={{ transform: `rotate(${i * 6}deg)` }}
+                />
+              ))}
+
+              {/* Data window */}
+              <div className="data-window" style={{
+                position: "absolute",
+                top: "65%",
+                left: "50%",
+                transform: "translateX(-50%)"
+              }}>
+                <div className="data-text">{currentValue}</div>
+              </div>
+
+              {/* Hand indicator */}
+              <div style={{ position: "absolute", inset: 0, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                <div className="dial-hand" style={{ transform: `translateX(-50%) rotate(${angle}deg)` }} />
+                <div className="center-cap" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Label */}
+        <div style={{ textAlign: "center", marginBottom: 24 }}>
+          <div className="value-text">{mainLabel}</div>
+          <div className="sub-text">{subLabel}</div>
+        </div>
+
+        {/* Controls */}
+        <div style={{ display: "flex", justifyContent: "space-evenly", padding: "0 24px 48px" }}>
+          {actions.map(action => (
+            <button key={action.id} className="neu-btn" onClick={action.handler}>
+              <div className="dispersion-ring" />
+              <div className="chrome-rim" />
+              <div className="glass-lens">
+                <div className="icon-shape" style={{
+                  width: 20, height: 20,
+                  backgroundColor: "white",
+                  mask: `url('${action.iconSvg}') no-repeat center / contain`
+                }} />
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Info card */}
+        <div style={{ padding: "0 24px 20px" }}>
+          <div className="glass-card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>{/* Left content */}</div>
+            <div style={{ textAlign: "right" }}>
+              <span className="label-text">Label</span>
+              <div style={{ fontSize: 11 }}>{infoText}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like holding a precision instrument in your hands. Every
+  button is a machined chrome cylinder with spectral light refracting off
+  its edge. The dial face sits in a soft concave depression, its tick marks
+  precise and evenly spaced. Shadows are always in pairs — one dark, one
+  light — creating the illusion that every element is physically extruded
+  from the background. The glass lens effect on buttons catches an imaginary
+  light source, with a white gloss highlight floating near the top. The
+  only color is a thin red hand sweeping across the dial and the subtle
+  rainbow dispersion where chrome meets air. Everything else is grayscale
+  gradients, monospace labels, and the quiet confidence of a well-made
+  device. Each chrono app should feel like it was milled from a single
+  block of aluminum by someone who measures in microns.
+
+ANIMATIONS:
+  Chrono theme uses PHYSICAL, MECHANICAL animations:
+  - Button press: scale(0.96) + shadow reduction (0.2s cubic-bezier) — tactile click
+  - Hand rotation: smooth CSS transform rotation for dial hands
+  - Status dot: constant glow (box-shadow, no animation — steady state)
+  - Tick marks: generated via JS loop (60 ticks, major every 5th)
+  - No entrance animations — instruments are always ready, never loading
+  - No hover color changes — only shadow depth changes on interact
+  - If progress needed: arc/sweep animation on a circular track
+  - Everything feels mechanical and instant — no easing longer than 0.3s
+
+SVG ELEMENTS:
+  Chrono theme uses CSS masks for icons, not inline SVGs:
+  - Icons as white shapes with CSS mask + SVG data URI background
+  - Keep icons simple and symbolic (heart, sync, drop, play, pause)
+  - Use mask/--webkit-mask for monochrome flexibility
+  - Tick marks are pure CSS divs with transform-origin rotation
+  - Dial hands are CSS divs with transform rotation
+  - Arcs via border coloring on circular elements
+  - No decorative SVGs — all visual interest from shadows and chrome

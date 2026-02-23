@@ -1,0 +1,563 @@
+THEME: pitch
+NAME: Pitch Scoreboard
+MOOD: Athletic, data-rich, editorial, dark-green
+
+DESCRIPTION:
+A dark forest-green performance dashboard with image-backed metric cards,
+yellow highlight cells, and a sidebar activity feed. Feels like a sports
+analytics war room or a premium betting platform — data-dense, image-rich,
+and quietly intense. Space Grotesk display numbers over grayscale photography
+with dark overlays. Archive-style indexed labels (METRIC_01, T-001) give
+everything a catalog precision. The green is deep and forested — not neon,
+not emerald — like a well-kept pitch under floodlights at dusk.
+
+BEST FOR:
+  - Sports analytics, betting dashboards, leaderboards
+  - Performance trackers, fitness stats, game logs
+  - Image-heavy dashboards with overlaid metrics
+  - Data grids with mixed media (photos + numbers)
+  - Fantasy sports, team management, scouting reports
+  - Any app that mixes photography with data metrics
+
+NOT FOR:
+  - Playful/casual consumer apps (too serious and data-heavy)
+  - Content-heavy editorial text layouts (use archive)
+  - Bright colorful UIs (dark mode only, forest-green locked)
+  - Simple CRUD with no visual content (use default)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Use image-backed cells with dark overlay for visual
+    rows. Numbered index labels (METRIC_01, METRIC_02). Yellow highlight
+    on key metric cells. Green line borders between rows.
+  - If app has FORMS: Dark green inset inputs with green border on focus.
+    Labels in uppercase archive style. Submit button uses yellow highlight
+    background with dark text.
+  - If app has LISTS: Right sidebar with activity feed pattern — timestamp
+    left, description right, green border-left accent on active items.
+    Monospace timestamps. Tab-style navigation with T-001 markers.
+  - If app has CHARTS: Dark green panel background. Yellow (#facc15) for
+    primary data series, muted green for secondary. Thin green grid lines.
+  - If app has IMAGES: Always grayscale with mix-blend-mode: multiply over
+    dark green overlay. Images are backgrounds, never standalone. Large
+    stat numbers overlay the image.
+  - If app has MULTIPLE SECTIONS: Grid layout with variable-height cards.
+    One highlighted card (yellow bg) per section for the key metric. Green
+    line borders between cards.
+  - If app has NO DATA YET: Full-width hero card with grayscale image
+    background, large display number placeholder, and a subtitle in
+    uppercase archive style.
+
+COLOR TOKENS:
+  The pitch palette is deep forest green with yellow highlight. The green
+  is warm and natural — not teal, not mint. Yellow is used ONLY for the
+  single highlighted metric or CTA. Everything else is green-on-green
+  with white text.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.27 0.055 163);            /* dark forest green #063e2e */
+    --comp-text: oklch(0.95 0.01 100);            /* warm white */
+    --comp-border: oklch(0.39 0.065 165);         /* green border #1a5c48 */
+    --comp-accent: oklch(0.86 0.18 90);           /* yellow highlight #facc15 */
+    --comp-accent-text: oklch(0.20 0.04 163);     /* dark green on yellow */
+    --comp-muted: oklch(0.55 0.04 165);           /* muted sage */
+    --color-background: oklch(0.22 0.05 163);     /* deepest green */
+    --grid-color: oklch(0.39 0.065 165 / 0.15);   /* faint green grid */
+  }
+  ```
+
+  For the HIGHLIGHT CELL (one per section):
+  ```css
+  --pitch-highlight-bg: oklch(0.86 0.18 90);     /* yellow */
+  --pitch-highlight-text: oklch(0.20 0.04 163);  /* dark green text */
+  ```
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the pitch aesthetic.
+  Study the patterns (image-backed cards, yellow highlight cells, green
+  line borders, archive labels) to understand the mood, then design your
+  own version for each app.
+
+  ```css
+  /* ── Pitch Core ── */
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  body {
+    background: var(--color-background);
+    color: var(--comp-text);
+    font-family: var(--font-body);
+    margin: 0;
+  }
+
+  /* ── Layout ── */
+  .layout-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 1.5rem;
+    min-height: 100vh;
+  }
+
+  /* ── Top Nav ── */
+  .nav-pitch {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--comp-border);
+  }
+  .nav-brand {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+  }
+  .nav-tabs {
+    display: flex;
+    gap: 0;
+  }
+  .nav-tab {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border: 1px solid var(--comp-border);
+    border-right: none;
+    background: transparent;
+    color: var(--comp-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-body);
+  }
+  .nav-tab:last-child {
+    border-right: 1px solid var(--comp-border);
+  }
+  .nav-tab.active {
+    background: var(--comp-border);
+    color: var(--comp-text);
+  }
+
+  /* ── Metric Card Grid ── */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--comp-border);
+    border: 1px solid var(--comp-border);
+  }
+
+  /* ── Standard Metric Card ── */
+  .metric-card {
+    position: relative;
+    background: var(--comp-bg);
+    padding: 1.5rem;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+  }
+
+  /* ── Image-Backed Metric Card ── */
+  .metric-card--image {
+    position: relative;
+  }
+  .metric-card--image .card-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(100%) contrast(1.1);
+    mix-blend-mode: multiply;
+    opacity: 0.4;
+  }
+  .metric-card--image .card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      180deg,
+      oklch(0.27 0.055 163 / 0.3) 0%,
+      oklch(0.27 0.055 163 / 0.85) 100%
+    );
+  }
+  .metric-card--image .card-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+  }
+
+  /* ── Yellow Highlight Card ── */
+  .metric-card--highlight {
+    background: var(--comp-accent);
+    color: var(--comp-accent-text);
+  }
+  .metric-card--highlight .card-label {
+    color: oklch(0.30 0.04 163);
+  }
+  .metric-card--highlight .card-stat {
+    color: var(--comp-accent-text);
+  }
+
+  /* ── Card Inner Elements ── */
+  .card-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--comp-muted);
+    font-weight: 500;
+  }
+  .card-stat {
+    font-family: var(--font-display);
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+  .card-subtitle {
+    font-size: 0.8rem;
+    color: var(--comp-muted);
+    margin-top: 0.5rem;
+  }
+
+  /* ── Activity Sidebar ── */
+  .sidebar {
+    border: 1px solid var(--comp-border);
+    background: var(--comp-bg);
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--comp-border);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--comp-muted);
+    font-weight: 500;
+  }
+
+  /* ── Activity Feed Items ── */
+  .feed-item {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid oklch(0.39 0.065 165 / 0.3);
+    display: grid;
+    grid-template-columns: 60px 1fr;
+    gap: 0.75rem;
+    transition: background 0.2s;
+    cursor: pointer;
+  }
+  .feed-item:hover {
+    background: oklch(0.39 0.065 165 / 0.15);
+  }
+  .feed-time {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    color: var(--comp-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .feed-text {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+  .feed-tag {
+    display: inline-block;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid var(--comp-border);
+    margin-top: 0.35rem;
+    color: var(--comp-muted);
+  }
+
+  /* ── Green Line Accent ── */
+  .green-rule {
+    height: 1px;
+    background: var(--comp-border);
+    width: 100%;
+  }
+
+  /* ── Index Labels (Archive Style) ── */
+  .index-label {
+    font-family: var(--font-display);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--comp-muted);
+    font-weight: 500;
+  }
+
+  /* ── Button ── */
+  .btn-pitch {
+    background: var(--comp-accent);
+    color: var(--comp-accent-text);
+    border: none;
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-pitch:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+
+  .btn-pitch-outline {
+    background: transparent;
+    color: var(--comp-text);
+    border: 1px solid var(--comp-border);
+    padding: 0.75rem 1.5rem;
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-pitch-outline:hover {
+    background: oklch(0.39 0.065 165 / 0.2);
+    border-color: oklch(0.39 0.065 165);
+  }
+
+  /* ── Input ── */
+  .input-pitch {
+    background: oklch(0.22 0.05 163);
+    border: 1px solid var(--comp-border);
+    color: var(--comp-text);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-pitch:focus {
+    border-color: var(--comp-accent);
+  }
+  .input-pitch::placeholder {
+    color: var(--comp-muted);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+  }
+
+  /* ── Stat Row (inline metrics) ── */
+  .stat-row {
+    display: flex;
+    gap: 2rem;
+    padding: 1rem 0;
+    border-top: 1px solid var(--comp-border);
+  }
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .stat-number {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-desc {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--comp-muted);
+  }
+
+  /* ── Mobile Responsive ── */
+  @media (max-width: 900px) {
+    .layout-wrapper {
+      grid-template-columns: 1fr;
+    }
+    .metric-grid {
+      grid-template-columns: 1fr;
+    }
+    .card-stat {
+      font-size: 2.25rem;
+    }
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - Deep forest green background — NOT teal, NOT emerald, NOT neon
+  - NO border-radius — all rectangles, sharp corners, zero rounding
+  - Green line borders (1px solid) as the primary structural element
+  - 1px gap grids — cards separated by visible green lines, not whitespace
+  - ONE yellow highlight card per section — the key metric, the standout stat
+  - Everything else is green-on-green (dark bg, slightly lighter borders)
+  - Image cards: grayscale + multiply blend + green gradient overlay
+  - Space Grotesk for all numbers and display text (geometric, technical)
+  - Inter for body text and descriptions (clean, neutral)
+  - Archive-style index labels: METRIC_01, T-001, uppercase, 0.65rem
+  - Sidebar is a fixed-width activity feed, not a nav — timestamps + items
+  - Tab-style navigation with solid-bordered segments, no pills or rounded tabs
+  - No shadows, no glow, no blur — structure comes from borders alone
+  - Monospace tabular-nums for all timestamps and stat numbers
+  - Dark mode ONLY — this theme does not work on light backgrounds
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. Vary the grid density, image placement,
+  and highlight position based on the app's content.
+
+  ```jsx
+  function App() {
+    return (
+      <div className="layout-wrapper">
+        {/* Nav */}
+        <nav className="nav-pitch">
+          <div className="nav-brand">APP NAME</div>
+          <div className="nav-tabs">
+            <button className="nav-tab active">T-001 OVERVIEW</button>
+            <button className="nav-tab">T-002 DETAIL</button>
+            <button className="nav-tab">T-003 LOG</button>
+          </div>
+          <span className="index-label">LAST SYNC: 12:45</span>
+        </nav>
+
+        {/* Main Content */}
+        <main>
+          {/* Metric Grid */}
+          <div className="metric-grid">
+            {/* Image-backed card */}
+            <div className="metric-card metric-card--image">
+              <img
+                src="https://images.unsplash.com/photo-example"
+                className="card-image"
+                alt=""
+              />
+              <div className="card-overlay" />
+              <div className="card-content">
+                <span className="card-label">METRIC_01</span>
+                <div>
+                  <div className="card-stat">847</div>
+                  <div className="card-subtitle">+12.3% VS PREV</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Yellow highlight card */}
+            <div className="metric-card metric-card--highlight">
+              <span className="card-label">KEY METRIC</span>
+              <div>
+                <div className="card-stat">$24.8K</div>
+                <div className="card-subtitle" style={{ color: "inherit", opacity: 0.6 }}>
+                  HIGHEST THIS QUARTER
+                </div>
+              </div>
+            </div>
+
+            {/* Standard card */}
+            <div className="metric-card">
+              <span className="card-label">METRIC_03</span>
+              <div>
+                <div className="card-stat">156</div>
+                <div className="card-subtitle">ACTIVE SESSIONS</div>
+              </div>
+            </div>
+
+            {items.map((item, i) => (
+              <div key={item._id} className="metric-card metric-card--image">
+                <img src={item.imageUrl} className="card-image" alt="" />
+                <div className="card-overlay" />
+                <div className="card-content">
+                  <span className="card-label">
+                    METRIC_{String(i + 4).padStart(2, '0')}
+                  </span>
+                  <div>
+                    <div className="card-stat">{item.value}</div>
+                    <div className="card-subtitle">{item.label}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Stat Row */}
+          <div className="stat-row" style={{ marginTop: "1.5rem" }}>
+            <div className="stat-item">
+              <div className="stat-number">1,247</div>
+              <div className="stat-desc">TOTAL ENTRIES</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number">89.2%</div>
+              <div className="stat-desc">ACCURACY RATE</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-number">34</div>
+              <div className="stat-desc">DAYS ACTIVE</div>
+            </div>
+          </div>
+        </main>
+
+        {/* Activity Sidebar */}
+        <aside className="sidebar">
+          <div className="sidebar-header">RECENT ACTIVITY</div>
+          {recentItems.map((item, i) => (
+            <div key={item._id} className="feed-item">
+              <div className="feed-time">{item.time}</div>
+              <div>
+                <div className="feed-text">{item.description}</div>
+                <span className="feed-tag">{item.category}</span>
+              </div>
+            </div>
+          ))}
+        </aside>
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like the control room of a high-end sports analytics
+  firm. The dark forest green is the color of a floodlit pitch at night —
+  deep, saturated, alive. Numbers are big and precise, rendered in Space
+  Grotesk's geometric strokes. Image-backed cards show grayscale photography
+  bleeding through dark green overlays, turning every photo into atmosphere
+  rather than content. One card in each section blazes yellow — the standout
+  stat, the key insight, the number that matters most. The sidebar ticks
+  with activity entries like a match ticker. Labels read like specimen tags:
+  METRIC_01, T-001, all uppercase, all indexed. The whole experience is
+  dense, editorial, and unapologetically data-forward. No fluff, no ambient
+  orbs, no decorative motion — just the scoreboard and the score.
+
+ANIMATIONS:
+  Pitch theme uses MINIMAL, FUNCTIONAL animations:
+  - Card hover: background tint shift (0.2s) — no transforms, no lifts
+  - Feed item hover: background highlight (0.2s)
+  - Button hover: brightness(1.1) + translateY(-1px) (0.2s)
+  - Tab switch: background-color transition (0.2s)
+  - Page load: no entrance animations — content is simply there
+  - Stat counters: optional count-up on first paint (0.8s ease-out)
+  - NEVER use bouncing, floating, orbiting, or ambient motion
+  - The only motion is direct response to user interaction
+  - Everything is snappy and immediate — no easing beyond ease or ease-out
+
+SVG ELEMENTS:
+  Pitch theme uses MINIMAL, DATA-ORIENTED SVGs:
+  - Small directional arrows (up/down trend indicators) in green or yellow
+  - Thin-stroke chart sparklines (1px, green stroke, no fill)
+  - Simple status indicators (circles for active/inactive)
+  - Optional: thin progress bars as inline SVG (green fill, no animation)
+  - Do NOT use decorative illustrations, patterns, or backgrounds
+  - Do NOT use thick strokes or filled shapes
+  - All SVGs should be functional (convey data) not decorative
+  - Colors: --comp-border for neutral, --comp-accent for emphasis

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useId } from "react";
-import { VibesButton, BLUE, RED, YELLOW, GRAY } from "../VibesButton/VibesButton.js";
+import { VibesButton, BLUE, YELLOW, GRAY } from "../VibesButton/VibesButton.js";
 import { BrutalistCard } from "../BrutalistCard/index.js";
 import { LabelContainer } from "../LabelContainer/index.js";
 import {
@@ -16,7 +16,6 @@ import { useIsMobile } from "../hooks/useIsMobile.js";
 export interface VibesPanelProps {
   style?: React.CSSProperties;
   className?: string;
-  baseURL?: string;
   token?: string;
 }
 
@@ -25,7 +24,6 @@ type PanelMode = "default" | "invite";
 export function VibesPanel({
   style,
   className,
-  baseURL,
   token,
 }: VibesPanelProps = {}) {
   const emailId = useId();
@@ -38,8 +36,6 @@ export function VibesPanel({
   const [inviteMessage, setInviteMessage] = useState("");
   const [inviteLink, setInviteLink] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
-
-  const effectiveBaseURL = baseURL ?? (typeof window !== "undefined" ? window.location.origin : "https://vibes.diy");
 
   const handleInviteClick = () => {
     if (mode === "default") {
@@ -54,10 +50,6 @@ export function VibesPanel({
 
   const handleBackClick = () => {
     setMode("default");
-  };
-
-  const handleChangeCodeClick = () => {
-    window.open(`${effectiveBaseURL}/remix`, "_top");
   };
 
   const handleLogoutClick = () => {
@@ -216,13 +208,6 @@ export function VibesPanel({
               >
                 Logout
               </VibesButton>
-              {/* <VibesButton
-                variant={RED}
-                onClick={handleChangeCodeClick}
-                icon="remix"
-              >
-                Remix
-              </VibesButton> */}
               <VibesButton
                 variant={YELLOW}
                 onClick={handleInviteClick}
@@ -230,13 +215,6 @@ export function VibesPanel({
               >
                 Invite
               </VibesButton>
-              {/* <VibesButton
-                variant={GRAY}
-                icon="settings"
-                onClick={() => (window.location.href = "https://vibes.diy/")}
-              >
-                Home
-              </VibesButton> */}
             </>
           )}
         </div>
