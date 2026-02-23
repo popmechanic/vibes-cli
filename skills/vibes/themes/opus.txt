@@ -1,0 +1,527 @@
+THEME: opus
+NAME: Opus Cabinet
+MOOD: Void-black, wood-framed, alchemical-gold, sigil-cards, cabinet-of-curiosities
+
+DESCRIPTION:
+A void-black surface (#0a0a0a) with subtle vertical stripe repeating pattern
+(alternating #111 and #151515 at 20px intervals, darkened by 90% overlay). The
+defining visual element is a multi-layer wood frame — a deep inset border system
+using box-shadow layers: inner void (#121212), gold-dim inlay, dark buffer, then
+a thick wood frame (#3e2b1f / ~30px), finished with a black outer edge and diffuse
+shadow. Inside the frame, a faint inner border (gold-dim, 30% opacity, 15px inset)
+and L-shaped gold corner brackets at all four corners (20px from edges, 1px gold,
+two-sided — e.g. top-left has top+left borders only). Title in Cinzel Decorative
+with gradient text (white → gold, background-clip). A centered gold gradient rule
+(25% from each side, transparent → gold → transparent) beneath the header. 4-column
+stone navigation buttons (dark gradient, gold top-border that scales from 0 to full
+on hover). Three card materials: iron (blue-steel gradient #2c3e50 → #1a1c1e),
+gold (radial gradient from warm brown center to void), and parchment (warm tan
+#d2b48c with double brown border). Each card has a sigil — inline SVG alchemical
+symbols (stroke-only, no fill except gold card's filled center). 2-column stat
+grids with label + bold value. Footer ribbon: inline-block with gold-dim border
+and gradient bg (transparent → dark → transparent). Fonts: Cinzel Decorative for
+headers, standard Cinzel for body. All uppercase with generous letter-spacing.
+Pulse animation (4s) on sacred/highlighted elements.
+
+BEST FOR:
+  - Alchemical/mystical themed apps, occult knowledge bases
+  - Museum collection viewers, cabinet-of-curiosities displays
+  - Card catalog apps with categorized specimens
+  - Element/ingredient databases, recipe books with ingredients
+  - Character or entity viewers with symbol + stats layout
+  - Curated gallery apps with framed presentation
+  - Any app that needs categorized cards with sigils + stat grids
+
+NOT FOR:
+  - Fast-paced consumer apps — too slow and ceremonial
+  - Bright or colorful UIs — committed to void + gold palette
+  - Mobile-first compact layouts — frame needs width
+  - Photography or media-rich apps — wood frame and gold compete with imagery
+  - Data-heavy analytics dashboards — too decorative for dense data
+  - Playful or casual apps — too serious and arcane
+  - Light-mode apps — void-black is fundamental
+
+ADAPTATION NOTES:
+  The wood frame is the hero — every app gets this deep inset border. Corner
+  brackets anchor the contained space. Cards use one of three materials (iron
+  for cold/technical, gold for primary/sacred, parchment for grounded/natural).
+  Each card should have a sigil — a simple SVG symbol that represents its
+  content. The stat grid pattern (label + bold value, 2 columns) replaces
+  traditional tables. The footer ribbon is always present as a closing
+  statement or status line.
+
+COLOR TOKENS (oklch):
+  --bg:               oklch(0.06 0.000 0)     /* #0a0a0a void black */
+  --bg-surface:       oklch(0.12 0.000 0)     /* #121212 container interior */
+  --bg-card:          oklch(0.13 0.000 0)     /* #181818 default card */
+  --bg-elevated:      oklch(0.15 0.000 0)     /* #1a1a1a oil black */
+  --bg-header:        oklch(0.18 0.000 0)     /* #222222 card header */
+  --stripe-a:         oklch(0.12 0.000 0)     /* #111111 bg stripe A */
+  --stripe-b:         oklch(0.14 0.000 0)     /* #151515 bg stripe B */
+  --wood-frame:       oklch(0.27 0.050 50)    /* #3e2b1f deep wood */
+  --wood-highlight:   oklch(0.37 0.060 50)    /* #5d4030 lighter wood */
+  --gold:             oklch(0.73 0.100 78)    /* #c5a059 alchemy gold */
+  --gold-dim:         oklch(0.55 0.090 75)    /* #8a703d dim gold */
+  --copper:           oklch(0.47 0.030 195)   /* #4b6b6b oxidized copper */
+  --silver:           oklch(0.70 0.000 0)     /* #a0a0a0 moon silver */
+  --royal-blue:       oklch(0.31 0.070 250)   /* #1e3a5f royal blue */
+  --parchment:        oklch(0.78 0.060 70)    /* #d2b48c warm parchment */
+  --iron-dark:        oklch(0.32 0.040 240)   /* #2c3e50 iron dark */
+  --iron-darker:      oklch(0.16 0.010 240)   /* #1a1c1e iron darkest */
+  --iron-border:      oklch(0.43 0.030 230)   /* #4a5c6a iron edge */
+  --iron-text:        oklch(0.83 0.020 240)   /* #c0ccdb iron card text */
+  --text:             oklch(0.90 0.000 0)     /* #e0e0e0 body text */
+  --text-dim:         oklch(0.57 0.000 0)     /* #888888 muted text */
+  --text-muted:       oklch(0.40 0.000 0)     /* #555555 footer text */
+  --border:           oklch(0.27 0.000 0)     /* #333333 default border */
+  --border-hover:     oklch(0.55 0.090 75)    /* gold-dim on hover */
+
+REFERENCE STYLES:
+
+  /* ===== BACKGROUND ===== */
+  body {
+    background:
+      linear-gradient(rgba(10,10,10,0.9), rgba(10,10,10,0.9)),
+      repeating-linear-gradient(
+        90deg,
+        var(--stripe-a),
+        var(--stripe-a) 20px,
+        var(--stripe-b) 20px,
+        var(--stripe-b) 40px
+      );
+    color: var(--text);
+    font-family: 'Cinzel', serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+  }
+
+  /* ===== WOOD FRAME CONTAINER ===== */
+  .ui-container {
+    width: 900px;
+    position: relative;
+    background: var(--bg-surface);
+    padding: 50px;
+    border: 1px solid #000;
+    box-shadow:
+      0 0 0 4px var(--bg-elevated),
+      0 0 0 8px var(--gold-dim),
+      0 0 0 12px var(--bg-elevated),
+      0 0 0 30px var(--wood-frame),
+      0 0 0 32px #000,
+      0 0 50px rgba(0,0,0,0.8),
+      inset 0 0 60px rgba(0,0,0,1);
+  }
+
+  /* inner border — faint gold inset */
+  .ui-container::before {
+    content: '';
+    position: absolute;
+    top: 15px; left: 15px; right: 15px; bottom: 15px;
+    border: 1px solid var(--gold-dim);
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  /* ===== CORNER BRACKETS ===== */
+  .corner-deco {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--gold);
+  }
+  .corner-deco.tl { top: 20px; left: 20px; border-right: none; border-bottom: none; }
+  .corner-deco.tr { top: 20px; right: 20px; border-left: none; border-bottom: none; }
+  .corner-deco.bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+  .corner-deco.br { bottom: 20px; right: 20px; border-left: none; border-top: none; }
+
+  /* ===== HEADER ===== */
+  .main-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 25px;
+    position: relative;
+  }
+
+  .main-header h1 {
+    font-family: 'Cinzel Decorative', cursive;
+    font-size: 3.5rem;
+    letter-spacing: 8px;
+    margin: 0;
+    background: linear-gradient(to bottom, #fff, var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* gold centered rule */
+  .main-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 25%;
+    width: 50%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .subtitle {
+    color: var(--gold);
+    letter-spacing: 12px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    opacity: 0.8;
+  }
+
+  /* ===== STONE NAV ===== */
+  .stone-nav {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 50px;
+  }
+
+  .nav-btn {
+    background: linear-gradient(to bottom, #2a2a2a, var(--bg-elevated));
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 18px 5px;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    transition: all 0.4s ease;
+  }
+
+  /* gold top-border reveal */
+  .nav-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 2px;
+    background: var(--gold);
+    transform: scaleX(0);
+    transition: transform 0.4s ease;
+  }
+
+  .nav-btn:hover {
+    color: var(--gold);
+    border-color: var(--gold-dim);
+    background: linear-gradient(to bottom, #333, #1f1f1f);
+    box-shadow: 0 0 15px rgba(197, 160, 89, 0.1);
+  }
+
+  .nav-btn:hover::before { transform: scaleX(1); }
+
+  /* ===== CARD GRID ===== */
+  .content-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+    margin-bottom: 40px;
+  }
+
+  .card {
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    background: var(--bg-card);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border-color: var(--gold-dim);
+  }
+
+  .card-header {
+    padding: 15px;
+    background: var(--bg-header);
+    border-bottom: 1px solid rgba(197, 160, 89, 0.2);
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #aaa;
+  }
+
+  .card-body {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  /* ===== CARD MATERIAL: IRON ===== */
+  .card.iron {
+    background: linear-gradient(135deg, var(--iron-dark), var(--iron-darker));
+    border: 1px solid var(--iron-border);
+    color: var(--iron-text);
+  }
+  .card.iron .card-header {
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .card.iron .sigil {
+    stroke: var(--silver);
+    filter: drop-shadow(0 0 5px rgba(255,255,255,0.3));
+  }
+
+  /* ===== CARD MATERIAL: GOLD ===== */
+  .card.gold {
+    background: radial-gradient(circle at center, var(--wood-frame), var(--bg-elevated));
+    border: 1px solid var(--gold-dim);
+  }
+  .card.gold .card-header {
+    color: var(--gold);
+  }
+  .card.gold .sigil {
+    stroke: var(--gold);
+    filter: drop-shadow(0 0 8px rgba(197, 160, 89, 0.4));
+  }
+
+  /* ===== CARD MATERIAL: PARCHMENT ===== */
+  .card.parchment {
+    background: var(--parchment);
+    color: #2e2e2e;
+    border: 4px double var(--wood-highlight);
+  }
+  .card.parchment .card-header {
+    background: rgba(0,0,0,0.1);
+    color: var(--wood-frame);
+    border-bottom: 1px solid rgba(62, 43, 31, 0.3);
+  }
+  .card.parchment .sigil {
+    stroke: var(--wood-frame);
+  }
+
+  /* ===== SIGILS ===== */
+  .sigil-container {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sigil {
+    width: 60px;
+    height: 60px;
+    fill: none;
+    stroke-width: 1.5;
+    overflow: visible;
+  }
+
+  /* ===== STAT GRID ===== */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    margin-top: 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 15px;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    opacity: 0.8;
+  }
+
+  .stat span {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-top: 5px;
+  }
+
+  /* ===== FOOTER RIBBON ===== */
+  .main-footer {
+    margin-top: 50px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    padding-top: 30px;
+  }
+
+  .footer-ribbon {
+    display: inline-block;
+    padding: 10px 40px;
+    border: 1px solid var(--gold-dim);
+    background: linear-gradient(90deg, transparent, var(--bg-elevated), transparent);
+  }
+
+  .footer-ribbon h2 {
+    font-family: 'Cinzel Decorative', cursive;
+    letter-spacing: 6px;
+    color: var(--gold);
+    font-size: 1.2rem;
+    margin: 0;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+  }
+
+  .footer-sub {
+    margin-top: 10px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* ===== PULSE ANIMATION ===== */
+  @keyframes pulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+  }
+
+  .pulsing { animation: pulse 4s infinite ease-in-out; }
+
+DESIGN PRINCIPLES:
+  1. WOOD FRAME IS DEFINING — every app gets the multi-layer box-shadow frame.
+     The frame creates a "cabinet" or "framed artifact" feeling. Content lives
+     inside this bounded, precious space.
+  2. CORNER BRACKETS — L-shaped gold corners anchor the interior. They create a
+     sense of measured, sacred space within the frame.
+  3. THREE MATERIALS — iron (cold, technical), gold (primary, sacred), parchment
+     (natural, grounded). Assign materials based on content: gold for the most
+     important, iron for supporting, parchment for background/reference.
+  4. SIGILS NOT ICONS — each card gets an inline SVG sigil (circles, lines,
+     geometric alchemy symbols). Never use emoji or icon fonts. Keep sigils
+     stroke-only (except gold card's filled center circle).
+  5. STAT GRIDS NOT TABLES — 2-column label + bold value pairs. No borders
+     between cells, just a top border separating stats from card content.
+  6. GOLD ACCENTS ARE EARNED — gold highlights only on hover, active, sacred/
+     primary elements. Most borders are #333. Gold appears on: header rule,
+     corner brackets, footer ribbon, active nav, gold card header text.
+  7. FOOTER RIBBON — always present. Inline-block with gold-dim border and
+     gradient bg. Contains a Cinzel Decorative heading and muted subtitle.
+  8. PULSE FOR SACRED — important or active elements get the 4s pulse animation.
+     Use sparingly — one or two elements per view maximum.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    return (
+      <div className="ui-container">
+        {/* corner brackets */}
+        <div className="corner-deco tl" />
+        <div className="corner-deco tr" />
+        <div className="corner-deco bl" />
+        <div className="corner-deco br" />
+
+        <header className="main-header">
+          <h1>App Title</h1>
+          <span className="subtitle">Subtitle Text</span>
+        </header>
+
+        <nav className="stone-nav">
+          <button className="nav-btn">Section One</button>
+          <button className="nav-btn">Section Two</button>
+          <button className="nav-btn">Section Three</button>
+          <button className="nav-btn">Section Four</button>
+        </nav>
+
+        <div className="content-grid">
+          <div className="card iron">
+            <div className="card-header">Iron Item</div>
+            <div className="card-body">
+              <div className="sigil-container">
+                <svg className="sigil" viewBox="0 0 50 50">
+                  <circle cx="25" cy="25" r="18" fill="none" strokeWidth="1.5" />
+                  <line x1="25" y1="7" x2="25" y2="43" />
+                  <line x1="7" y1="25" x2="43" y2="25" />
+                </svg>
+              </div>
+              <div className="card-text">Description text in italic.</div>
+              <div className="stat-grid">
+                <div className="stat">Label<span>Value</span></div>
+                <div className="stat">Label<span>Value</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card gold">
+            <div className="card-header">Gold Item</div>
+            <div className="card-body">
+              <div className="sigil-container pulsing">
+                <svg className="sigil" viewBox="0 0 50 50">
+                  <circle cx="25" cy="25" r="8" fill="var(--gold)" />
+                  <circle cx="25" cy="25" r="18" fill="none" strokeWidth="2" strokeDasharray="2 4" />
+                </svg>
+              </div>
+              <div className="card-text">Primary content description.</div>
+              <div className="stat-grid">
+                <div className="stat">Label<span>Value</span></div>
+                <div className="stat">Label<span>Value</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card parchment">
+            <div className="card-header">Parchment Item</div>
+            <div className="card-body">
+              <div className="sigil-container">
+                <svg className="sigil" viewBox="0 0 50 50">
+                  <path d="M25,5 A18,18 0 1,0 25,45 A12,12 0 1,1 25,5" />
+                </svg>
+              </div>
+              <div className="card-text">Reference or background info.</div>
+              <div className="stat-grid">
+                <div className="stat">Label<span>Value</span></div>
+                <div className="stat">Label<span>Value</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer className="main-footer">
+          <div className="footer-ribbon">
+            <h2>Footer Heading</h2>
+          </div>
+          <div className="footer-sub">Subtitle • Details • Info</div>
+        </footer>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  Opus feels like opening a wooden display case in a dim museum. The thick
+  wood frame creates weight and permanence — content is precious, curated,
+  protected. Gold accents glow warmly against the void like candlelight on
+  dark wood. Iron cards are cold and analytical. Gold cards are sacred and
+  central. Parchment cards are ancient and grounded. Everything is uppercase,
+  letter-spaced, and deliberate. The corner brackets define measured space.
+  The footer ribbon closes the viewing like the clasp on a book.
+
+ANIMATIONS:
+  - pulse: 4s infinite ease-in-out opacity (0.5 → 1 → 0.5) for sacred elements
+  - nav hover: gold top-border scaleX(0 → 1) over 0.4s ease
+  - card hover: translateY(-5px) + deep shadow over 0.3s ease
+  - card border: border-color transition to gold-dim on hover
+  - all transitions use 0.3–0.4s ease timing
+
+SVG ELEMENTS:
+  - Alchemical sigils: stroke-only geometric symbols (circles, crosses, arcs)
+  - Gold card sigil: filled center circle + dashed outer circle + axis lines
+  - Iron card sigil: nested arcs or spirals with silver glow drop-shadow
+  - Parchment card sigil: circle + cross in wood-frame color
+  - All sigils: 60×60px, viewBox="0 0 50 50", strokeWidth 1.5–2
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@400;700&display=swap');
+
+  Cinzel Decorative — main title, footer ribbon heading, card display text
+  Cinzel — body text, nav buttons, card headers, stat labels, subtitles

@@ -1,0 +1,528 @@
+THEME: aether
+NAME: Aether Brass
+MOOD: Steampunk-parchment, brass-mechanical, Victorian-typewriter, warm-light
+
+DESCRIPTION:
+A warm light-theme steampunk aesthetic on a parchment background (#dcbfa6) with
+noise texture and vignette. Content uses deep ink-brown text (#3e2723) on the
+warm tan surface. Interactive elements are brass medallions — circular icons with
+CSS metallic gradients (brass-light → brass-mid → brass-dark), dark glass centers
+(radial-gradient from leather to black), and amber glow (#ffaa00) for active
+states. A large circular brass-framed gauge serves as the hero element, with
+multi-layer box-shadows creating a bezel (leather border → brass-dark → brass-mid
+→ brass-light ring stack), a glass highlight (pseudo-element gradient), and a
+slowly rotating dashed orbit circle. Control panels are bordered sections with
+decorative brass screws in corners (radial-gradient circles with rotated slot
+lines). Toggle switches have brass knobs on leather tracks. Typography uses three
+fonts: Cinzel Decorative (ornate serif titles), Homemade Apple (handwritten
+labels, slightly rotated), and Special Elite (typewriter body text). A subtle
+blueprint grid (40px, ink-colored 10% opacity lines) overlays the parchment.
+Everything is warm, mechanical, and Victorian.
+
+BEST FOR:
+  - Steampunk-themed apps, Victorian-styled interfaces
+  - Gauge/dial utilities, pressure monitors, instrument panels
+  - Inventory managers, item catalogs, collection trackers
+  - Adventure game UIs, RPG character sheets, quest logs
+  - Maker/workshop tools, project trackers, lab notebooks
+  - Timer apps, chronometers, clockwork utilities
+  - Any app that wants a warm, mechanical, parchment-and-brass feel
+
+NOT FOR:
+  - Modern/minimal dark-mode apps (this is warm and ornate)
+  - Data-heavy analytics dashboards (too decorative for dense data)
+  - Professional enterprise tools (too themed and whimsical)
+  - Photography or media-rich apps (brass competes with imagery)
+  - Fast-paced consumer apps (too slow and deliberate)
+  - E-commerce with product images (warm tone shifts colors)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Convert rows into control-panel sections with leather
+    borders, brass screws in corners. Each row is a control-row (flex between,
+    label left, value/toggle right). Or use app-grid medallions.
+  - If app has FORMS: Inputs on parchment — no visible border, 1px bottom
+    border in ink color. Special Elite font. Labels in Homemade Apple above.
+    Submit as a brass medallion button (metallic gradient, leather border).
+  - If app has LISTS: 3-column grid of brass medallion icons with handwriting
+    labels below. Active item gets amber glow in the glass center. Or stack
+    as control-rows in screwed panels.
+  - If app has CARDS: Control-section panels — bordered top and bottom in
+    leather, brass screws in all four corners, parchment interior. Title in
+    Cinzel Decorative, body in Special Elite.
+  - If app has GAUGES/NUMBERS: Large circular brass gauge with bezel shadow
+    stack. Number in Cinzel Decorative 900 weight, label in Special Elite
+    uppercase tracking. Status light (12px amber dot) below.
+  - If app has TOGGLES/SWITCHES: Brass knob on leather track (60x30px,
+    rounded-full). On state: knob slides right, glows amber.
+  - If app has NAVIGATION: Grid of circular brass medallions with letter
+    glyphs (Cinzel Decorative). Active = amber glow. Labels in Homemade Apple.
+  - If app has STATUS: Amber glow dots (12px circles). Active: bg amber +
+    box-shadow 0 0 10px amber + inset highlight. Inactive: dark leather bg.
+
+COLOR TOKENS (oklch):
+  --bg:          oklch(0.82 0.04 70)         /* parchment #dcbfa6 */
+  --bg-dark:     oklch(0.77 0.05 68)         /* parchment shadow #cbb094 */
+  --fg:          oklch(0.27 0.04 30)         /* ink text #3e2723 */
+  --leather:     oklch(0.20 0.03 45)         /* dark accents, borders #2a1d15 */
+  --brass-light: oklch(0.96 0.07 95)         /* brass highlight #fdf5bb */
+  --brass-mid:   oklch(0.76 0.10 75)         /* brass body #cfa562 */
+  --brass-dark:  oklch(0.45 0.09 65)         /* brass shadow #745428 */
+  --copper:      oklch(0.60 0.11 55)         /* copper accent #b87333 */
+  --glow-amber:  oklch(0.82 0.18 80)         /* active glow #ffaa00 */
+  --glow-off:    oklch(0.28 0.03 50)         /* inactive state #3a2e25 */
+  --grid-line:   oklch(0.27 0.04 30 / 0.1)  /* blueprint grid lines */
+
+REFERENCE STYLES:
+
+  /* ---- PARCHMENT BACKGROUND ---- */
+  body {
+    background-color: var(--bg);
+    background-image:
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E"),
+      radial-gradient(circle at center, transparent 0%, oklch(0.27 0.04 30 / 0.2) 100%);
+    font-family: 'Special Elite', monospace;
+    color: var(--fg);
+  }
+
+  /* ---- BLUEPRINT GRID OVERLAY ---- */
+  .blueprint-grid {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* ---- BRASS GAUGE (hero element) ---- */
+  .main-gauge {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, var(--bg-dark), oklch(0.55 0.06 55));
+    border: 4px solid var(--leather);
+    box-shadow:
+      0 0 0 2px var(--brass-dark),
+      0 0 0 6px var(--brass-mid),
+      0 0 0 7px var(--brass-light),
+      0 0 0 10px var(--brass-mid),
+      inset 2px 2px 10px rgba(0,0,0,0.5),
+      10px 10px 20px rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  /* Glass highlight */
+  .main-gauge::after {
+    content: "";
+    position: absolute;
+    top: 5%;
+    left: 5%;
+    width: 90%;
+    height: 40%;
+    border-radius: 50%;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.4), transparent);
+    filter: blur(2px);
+    pointer-events: none;
+  }
+
+  .gauge-face {
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    border: 1px solid oklch(0.27 0.04 30 / 0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .gauge-value {
+    font-family: 'Cinzel Decorative', cursive;
+    font-size: 40px;
+    font-weight: 900;
+    color: var(--leather);
+    text-shadow: 0 1px 1px rgba(255,255,255,0.5);
+  }
+  .gauge-label {
+    font-family: 'Special Elite', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 5px;
+    color: var(--fg);
+  }
+
+  /* ---- ORBIT RING (dashed circle) ---- */
+  .orbit-ring {
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    border: 1px dashed oklch(0.27 0.04 30 / 0.3);
+    border-radius: 50%;
+    animation: spin-slow 60s linear infinite;
+  }
+  @keyframes spin-slow {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ---- STATUS LIGHT ---- */
+  .status-light {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--glow-off);
+    box-shadow: inset 1px 1px 2px rgba(0,0,0,0.8);
+    transition: all 0.3s;
+  }
+  .status-light-active {
+    background: var(--glow-amber);
+    box-shadow: 0 0 10px var(--glow-amber), inset -1px -1px 2px rgba(255,255,255,0.5);
+  }
+
+  /* ---- BRASS MEDALLION ICONS ---- */
+  .medallion {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--brass-mid), var(--brass-light) 40%, var(--brass-dark));
+    border: 2px solid var(--leather);
+    box-shadow:
+      inset 1px 1px 0 rgba(255,255,255,0.5),
+      inset -2px -2px 5px rgba(0,0,0,0.4),
+      3px 3px 6px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+  }
+  /* Dark glass center */
+  .medallion::before {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--leather), black);
+    box-shadow: inset 0 0 5px black;
+  }
+  .medallion-glyph {
+    font-family: 'Cinzel Decorative', cursive;
+    font-size: 24px;
+    color: oklch(0.55 0.05 55);
+    position: relative;
+    z-index: 3;
+    transition: color 0.3s, text-shadow 0.3s;
+  }
+  .medallion-active .medallion-glyph {
+    color: var(--glow-amber);
+    text-shadow: 0 0 8px var(--glow-amber);
+  }
+  .medallion-label {
+    font-family: 'Homemade Apple', cursive;
+    font-size: 13px;
+    color: var(--fg);
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  /* ---- CONTROL PANEL (screwed section) ---- */
+  .control-panel {
+    background: oklch(0.27 0.04 30 / 0.05);
+    border-top: 2px solid var(--leather);
+    border-bottom: 2px solid var(--leather);
+    padding: 20px;
+    position: relative;
+  }
+
+  /* ---- BRASS SCREW ---- */
+  .screw {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: radial-gradient(circle, var(--brass-mid), var(--brass-dark));
+    border-radius: 50%;
+    border: 1px solid var(--leather);
+    box-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+  }
+  .screw::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 10%;
+    width: 80%;
+    height: 1px;
+    background: var(--leather);
+    transform: rotate(45deg);
+  }
+
+  /* ---- CONTROL ROW ---- */
+  .control-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  .control-label {
+    font-family: 'Special Elite', monospace;
+    font-size: 18px;
+    font-weight: bold;
+    color: var(--fg);
+  }
+
+  /* ---- TOGGLE SWITCH ---- */
+  .toggle-track {
+    width: 60px;
+    height: 30px;
+    background: var(--leather);
+    border-radius: 15px;
+    position: relative;
+    box-shadow: inset 0 2px 5px black;
+    cursor: pointer;
+  }
+  .toggle-knob {
+    width: 26px;
+    height: 26px;
+    background: radial-gradient(circle at 30% 30%, var(--brass-light), var(--brass-mid));
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: left 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    box-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    border: 1px solid var(--brass-dark);
+  }
+  .toggle-on .toggle-knob {
+    left: 32px;
+    background: radial-gradient(circle at 30% 30%, white, var(--glow-amber));
+  }
+
+  /* ---- HEADER ---- */
+  .page-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .page-title {
+    font-family: 'Cinzel Decorative', cursive;
+    font-size: 44px;
+    color: var(--leather);
+    text-shadow: 1px 1px 0 rgba(255,255,255,0.4);
+    letter-spacing: 2px;
+    line-height: 1;
+    margin: 0;
+  }
+  .page-subtitle {
+    font-family: 'Homemade Apple', cursive;
+    font-size: 16px;
+    color: var(--fg);
+    opacity: 0.8;
+    margin-top: 5px;
+    display: inline-block;
+    transform: rotate(-2deg);
+  }
+
+  /* ---- HEADER RULES (decorative lines) ---- */
+  .header-rule {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--leather), transparent);
+    margin: 10px auto;
+    width: 80%;
+  }
+
+  /* ---- FOOTER ---- */
+  .page-footer {
+    text-align: center;
+    padding: 20px;
+    font-family: 'Special Elite', monospace;
+    font-size: 11px;
+    opacity: 0.6;
+    border-top: 1px dashed var(--fg);
+    margin-top: auto;
+  }
+
+  /* ---- APP GRID ---- */
+  .app-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .app-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .app-item:active { transform: scale(0.95); }
+
+DESIGN PRINCIPLES:
+  1. PARCHMENT SURFACE: Background is warm tan (#dcbfa6) — a light theme, not
+     dark. SVG noise texture (feTurbulence) creates paper grain. Radial gradient
+     vignette darkens edges. Blueprint grid overlay (40px, 10% opacity ink lines)
+     adds a schematic/workshop feel. The surface is old paper on a workbench.
+  2. BRASS METALLIC GRADIENTS: All interactive elements use CSS metallic
+     gradients — brass-mid → brass-light → brass-dark at 135deg. Multiple
+     box-shadows create bezel rings (leather border → brass-dark → brass-mid →
+     brass-light → brass-mid). The metal catches light from the upper left.
+  3. DARK GLASS CENTERS: Medallion icons have a pseudo-element glass face —
+     radial-gradient from leather to black with inset shadow. Glyphs float on
+     this dark surface. Active state: glass lightens, glyph glows amber.
+  4. AMBER GLOW: Single accent color — #ffaa00 amber. Used for active states,
+     status lights, toggle-on. Applied as background + box-shadow glow +
+     text-shadow. Inactive = dark leather (#3a2e25). Binary: on or off.
+  5. THREE TYPEFACES: Cinzel Decorative for titles and gauge values (ornate
+     Victorian serif, 900 weight for numbers). Homemade Apple for labels and
+     subtitles (handwritten, slightly rotated — the engineer's notes). Special
+     Elite for body text (typewriter monospace — the machine's voice).
+  6. CIRCULAR GAUGE: Hero element is a 200px brass-framed circle with glass
+     highlight, bezel shadow stack, and gauge face. Large number in Cinzel
+     Decorative 900. Label in Special Elite uppercase. Status light dot below.
+     A 260px dashed orbit ring rotates slowly (60s) behind it.
+  7. BRASS SCREWS: Control panels are decorated with 12px brass screw elements
+     in all four corners. Each screw is a radial gradient circle with a 1px
+     rotated slot line (::after pseudo-element). Purely decorative but
+     essential to the mechanical feel.
+  8. TOGGLE SWITCHES: Physical brass knobs on leather tracks. 60x30px rounded
+     tracks with inset shadow. 26px brass knob (metallic gradient, border,
+     drop shadow). On state: knob slides right with bouncy easing, glows
+     amber-white. Satisfying mechanical interaction.
+  9. INK-ON-PARCHMENT TEXT: Primary text is #3e2723 (deep warm brown) — not
+     black. Borders and accents use #2a1d15 (leather brown). The warmth is
+     consistent — no cool grays anywhere. Every color has a warm undertone.
+  10. MEDALLION GRID: App icons are circular brass medallions in a 3-column
+      grid. Each has a letter glyph in Cinzel Decorative on the dark glass
+      face. Labels below in Homemade Apple handwriting. Active item glows
+      amber. Press: scale(0.95) for physical feedback.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const apps = [
+      { glyph: "N", label: "Navigator", active: true },
+      { glyph: "T", label: "Telegraph", active: false },
+      { glyph: "I", label: "Inventory", active: false },
+      { glyph: "S", label: "Schematics", active: false },
+      { glyph: "G", label: "Gears", active: false },
+      { glyph: "C", label: "Chrono", active: false }
+    ];
+
+    return (
+      <div style={{ minHeight: "100vh", position: "relative", padding: 16 }}>
+        <div className="blueprint-grid" />
+
+        <div style={{ position: "relative", zIndex: 1, display: "flex",
+                       flexDirection: "column", minHeight: "100vh" }}>
+
+          {/* HEADER */}
+          <header className="page-header">
+            <div className="header-rule" />
+            <h1 className="page-title">Aether OS</h1>
+            <span className="page-subtitle">v. 18.92 — Steam Powered</span>
+            <div className="header-rule" />
+          </header>
+
+          {/* GAUGE */}
+          <div style={{ display: "flex", justifyContent: "center",
+                        marginBottom: 40, position: "relative" }}>
+            <div className="orbit-ring" style={{ position: "absolute",
+                 top: "50%", left: "50%",
+                 transform: "translate(-50%, -50%)" }} />
+            <div className="main-gauge">
+              <div className="gauge-face">
+                <span className="gauge-value">78</span>
+                <span className="gauge-label">PSI Output</span>
+                <div className="status-light status-light-active"
+                     style={{ marginTop: 10 }} />
+              </div>
+            </div>
+          </div>
+
+          {/* CONTROLS */}
+          <div className="control-panel">
+            <div className="screw" style={{ top: 8, left: 8 }} />
+            <div className="screw" style={{ top: 8, right: 8 }} />
+            <div className="screw" style={{ bottom: 8, left: 8 }} />
+            <div className="screw" style={{ bottom: 8, right: 8 }} />
+
+            <div className="control-row">
+              <span className="control-label">Boiler Ignition</span>
+              <div className="toggle-track toggle-on">
+                <div className="toggle-knob" />
+              </div>
+            </div>
+            <div className="control-row">
+              <span className="control-label">Valve Release</span>
+              <div className="toggle-track">
+                <div className="toggle-knob" />
+              </div>
+            </div>
+          </div>
+
+          {/* APP GRID */}
+          <div className="app-grid" style={{ marginTop: 32 }}>
+            {apps.map(a => (
+              <div key={a.glyph}
+                   className={`app-item ${a.active ? "medallion-active" : ""}`}>
+                <div className="medallion">
+                  <span className="medallion-glyph">{a.glyph}</span>
+                </div>
+                <span className="medallion-label">{a.label}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* FOOTER */}
+          <footer className="page-footer">
+            MANUFACTURED IN LONDON — PATENT PENDING #90210
+          </footer>
+        </div>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme is a brass instrument bolted to a parchment workbench. The
+  background is old paper — warm tan with grain texture and a vignette that
+  darkens toward the edges like a Victorian blueprint. Faint grid lines mark
+  the surface: this is a schematic, a workshop diagram. The main gauge sits
+  at the center — a brass circle with a multi-layer bezel (leather, brass-dark,
+  brass-mid, brass-light) that catches light like polished metal. Inside, a
+  glass highlight gleams. The number reads "78 PSI" in ornate Cinzel Decorative.
+  A dashed orbit ring rotates slowly behind it, marking time. Control panels
+  have leather borders and brass screws in every corner — four tiny radial
+  gradient circles with slot marks. Toggle switches are mechanical: a brass
+  knob on a leather track, sliding with a satisfying bounce. When on, the
+  knob glows amber-white like a heated filament. App icons are medallions —
+  brass rings with dark glass faces, each bearing a single letter glyph in
+  ornate serif. Active items glow amber. Labels below are handwritten in
+  Homemade Apple, as if the engineer jotted them in pencil. Body text uses
+  Special Elite — a typewriter font, the voice of the machine itself. The
+  footer says "MANUFACTURED IN LONDON" in faded typewriter print. This is
+  not software. This is a steam-powered apparatus with brass fittings and
+  parchment documentation, assembled in a workshop that smells of oil and
+  leather.
+
+ANIMATIONS:
+  - ORBIT RING: Dashed circle rotates 360deg on a 60-second linear infinite
+    loop. Barely perceptible — ambient mechanical motion.
+  - TOGGLE SWITCH: Knob slides from left to right with cubic-bezier(0.68,
+    -0.55, 0.27, 1.55) — bouncy overshoot easing. 300ms duration.
+  - MEDALLION PRESS: scale(0.95) on :active, 100ms transition. Physical
+    button-press feel.
+  - GAUGE WOBBLE: On interaction, gauge value wobbles ±5deg (0.5s ease).
+  - STATUS LIGHT: Transitions to amber glow over 300ms ease.
+  - No particle effects, no scan lines. The machine runs smoothly.
+
+SVG ELEMENTS:
+  - NOISE TEXTURE: Inline SVG data URI with feTurbulence filter for parchment
+    grain. Not a decorative SVG — a background texture.
+  - SCREWS: CSS only (radial gradient + ::after pseudo-element). Not SVG.
+  - GAUGE: CSS only (border-radius, box-shadow stack, gradients). Not SVG.
+  - MEDALLIONS: CSS only (gradients, pseudo-elements). Not SVG.
+  - All visual richness comes from CSS gradients, shadows, and borders.
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Homemade+Apple&family=Special+Elite&display=swap');

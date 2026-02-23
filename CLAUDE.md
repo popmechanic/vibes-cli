@@ -97,21 +97,25 @@ Templates use a DRY inheritance pattern:
 ```
 components/             → build-components.js → build/vibes-menu.js
                                                        ↓
-source-templates/base/template.html  ←── shared code (components, CSS, imports)
+scripts/lib/design-tokens.js → build-design-tokens.js → build/design-tokens.css
+                                                       → build/design-tokens.txt
+                                                       ↓
+source-templates/base/template.html  ←── shared code (tokens placeholder, components, CSS, imports)
          +
 skills/vibes/template.delta.html  ←── vibes-specific code
 skills/sell/template.delta.html   ←── sell-specific code (multi-tenant routing)
 skills/riff/template.delta.html   ←── riff-specific code
          ↓
-    merge-templates.js
+    merge-templates.js (injects tokens CSS + components + deltas)
          ↓
 skills/*/templates/index.html  ←── final assembled templates
 ```
 
 Build workflow:
 ```bash
-node scripts/build-components.js --force  # Build components from local source
-node scripts/merge-templates.js --force   # Merge base + deltas into final templates
+node scripts/build-components.js --force     # Build components from local source
+node scripts/build-design-tokens.js --force  # Build design tokens CSS + AI docs
+node scripts/merge-templates.js --force      # Merge base + tokens + deltas into final templates
 ```
 
 ### Auth Components
@@ -357,10 +361,12 @@ npm run test:e2e:server
 | `scripts/assemble-vite.js` | Vite-based assembly (alternative to Babel for Connect apps) |
 | `scripts/assemble-all.js` | Batch assembler for riff directories |
 | `scripts/build-components.js` | Build components from local `components/` directory |
-| `scripts/merge-templates.js` | Merge base + delta templates into final templates |
+| `scripts/build-design-tokens.js` | Build design tokens CSS + AI docs from single source |
+| `scripts/merge-templates.js` | Merge base + tokens + deltas into final templates |
 | `scripts/find-plugin.js` | Plugin directory lookup with validation |
 | `scripts/generate-riff.js` | Parallel riff generator - spawns claude -p for variations |
 | `scripts/generate-handoff.js` | Generate HANDOFF.md context document for remote Claude |
+| `scripts/preview-server.js` | Live preview server - HTTP + WebSocket bridge to Claude Code |
 | `scripts/deploy-exe.js` | App deployment to exe.dev (static files, AI proxy) |
 | `scripts/deploy-connect.js` | Connect Studio deployment to exe.dev (Docker-based sync) |
 | `scripts/deploy-cloudflare.js` | Cloudflare deployment script |
@@ -381,7 +387,10 @@ npm run test:e2e:server
 | `scripts/lib/auth-flows.js` | Auth flow state machines (signup, signin, gate) |
 | `scripts/deployables/ai-proxy.js` | AI proxy server for OpenRouter (deployed to exe.dev VMs) |
 | `scripts/lib/template-merge.js` | Pure functions for merging base + delta templates |
+| `scripts/lib/design-tokens.js` | Single source of truth for all design tokens (TOKEN_CATALOG + VIBES_THEME_CSS) |
+| `scripts/lib/component-catalog.js` | Bare HTML component templates (shadcn-style, unstyled) — LLM styles them with tokens |
 | `scripts/lib/component-transforms.js` | Pure functions for transforming component source code |
+| `scripts/lib/parse-theme-catalog.js` | Parser for theme catalog.txt → JSON array |
 | `scripts/__tests__/fixtures/` | Pre-written JSX test fixtures |
 | `lib/resolve-paths.js` | Find plugin directory across install locations |
 | `bundles/fireproof-clerk-bundle.js` | Patched Fireproof client bundle (CID fix, retry backoff, sync poll) |
@@ -397,6 +406,7 @@ npm run test:e2e:server
 | `source-templates/base/template.html` | Base template with shared code (components, CSS, imports) |
 | `skills/vibes/template.delta.html` | Vibes-specific delta (Clerk auth wrapper) |
 | `skills/vibes/templates/index.html` | Generated vibes template |
+| `skills/vibes/templates/preview.html` | Live preview wrapper (side-by-side chat + theme modal) |
 | `skills/vibes/SKILL.md` | Main vibes skill (has import map) |
 | `skills/vibes/defaults/` | Shipped defaults - style-prompt.txt, dev-credentials.example.json |
 | `skills/riff/defaults/` | Shipped defaults - style-prompt.txt |
@@ -436,7 +446,8 @@ npm run test:e2e:server
 
 **Build scripts:**
 - `build-components.js` - Builds vibes-menu.js from local `components/` directory to `build/`
-- `merge-templates.js` - Combines base + delta templates into final templates
+- `build-design-tokens.js` - Builds design-tokens.css + design-tokens.txt from `scripts/lib/design-tokens.js`
+- `merge-templates.js` - Combines base + tokens + delta templates into final templates
 
 **When to read defaults:**
 - `style-prompt.txt` - Read when you need UI/color guidance beyond what's in SKILL.md

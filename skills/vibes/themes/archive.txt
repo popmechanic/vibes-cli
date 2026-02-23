@@ -1,0 +1,437 @@
+THEME: archive
+NAME: Editorial Archive
+MOOD: Quiet, refined, documentary, typographic
+
+DESCRIPTION:
+A split-pane editorial layout inspired by museum archives and printed catalogs.
+Left pane shows a featured image slideshow with decorative crop marks. Right
+pane is a scrollable indexed list of items with thumbnails and metadata.
+Monochrome palette with subtle warm tones. Serif-inspired hierarchy. Feels
+like browsing a curated physical collection.
+
+BEST FOR:
+  - Portfolios, photo galleries, art collections
+  - Product catalogs, inventory browsers
+  - Timelines, historical archives, journals
+  - Recipe collections, book libraries
+  - Any app where items have: image + title + metadata + date/category
+
+NOT FOR:
+  - Chat/messaging apps (no message thread area)
+  - Pure data entry forms (no prominent form placement)
+  - Real-time dashboards (no chart/stat areas by default)
+  - Single-item showcase pages (use industrial theme)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Replace the list-item structure with table rows.
+    Use the same index column + info columns pattern but render as a proper
+    HTML table with `className="table"`. Keep the thumbnail column optional.
+  - If app has CHARTS: Place chart components inside the featured-pane area
+    instead of the slideshow. The right list pane shows the data items.
+  - If app has FORMS: Place the form in a card above the list-scroll-area.
+    Keep it compact — the archive feel comes from the list, not forms.
+  - If app has NO IMAGES: Drop the col-thumb column. The list still works
+    with just index + info + year. Widen col-info to fill the space.
+  - If app has TABS/FILTERS: Place them in the nav-row area as nav-links.
+    Active link gets the `.active` class with accent underline.
+
+COLOR TOKENS:
+  Override these in `:root` for the archive mood. The palette is warm,
+  muted, and paper-like.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.95 0.01 70);          /* warm off-white, like aged paper */
+    --comp-text: oklch(0.15 0.02 50);         /* near-black, warm ink */
+    --comp-border: oklch(0.20 0.02 50);       /* dark borders for structure */
+    --comp-accent: oklch(0.35 0.04 50);       /* muted dark accent */
+    --comp-accent-text: oklch(0.95 0.01 70);  /* light text on accent */
+    --comp-muted: oklch(0.55 0.02 50);        /* secondary text, metadata */
+    --color-background: oklch(0.92 0.01 65);  /* page background */
+    --grid-color: transparent;                /* no grid for archive */
+  }
+  ```
+
+  For DARK archive variant:
+  ```css
+  :root {
+    --comp-bg: oklch(0.12 0.02 50);
+    --comp-text: oklch(0.85 0.01 70);
+    --comp-border: oklch(0.25 0.02 50);
+    --comp-accent: oklch(0.75 0.03 70);
+    --comp-muted: oklch(0.50 0.02 50);
+    --color-background: oklch(0.08 0.02 50);
+  }
+  ```
+
+REFERENCE STYLES:
+  These CSS examples show ONE interpretation of the archive aesthetic.
+  Study the patterns (spacing, typography, borders) to understand the
+  mood, then design your own version for each app.
+
+  ```css
+  /* ── Archive Layout ── */
+  .archive-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+  @media (max-width: 768px) {
+    .archive-container {
+      grid-template-columns: 1fr;
+      grid-template-rows: 40vh 1fr;
+    }
+  }
+
+  /* ── Featured Pane (left) ── */
+  .featured-pane {
+    position: relative;
+    overflow: hidden;
+    background: oklch(0.10 0.02 50);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .slideshow-wrapper {
+    position: absolute;
+    inset: 0;
+  }
+  .slide-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+  }
+  .slide-img.active { opacity: 1; }
+
+  /* ── Crop Mark Decorations ── */
+  .overlay-center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 2;
+  }
+  .monogram-wrapper {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .crop-mark {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+  }
+  .crop-tl { top: 0; left: 0; border-top: 1px solid rgba(255,255,255,0.4); border-left: 1px solid rgba(255,255,255,0.4); }
+  .crop-tr { top: 0; right: 0; border-top: 1px solid rgba(255,255,255,0.4); border-right: 1px solid rgba(255,255,255,0.4); }
+  .crop-bl { bottom: 0; left: 0; border-bottom: 1px solid rgba(255,255,255,0.4); border-left: 1px solid rgba(255,255,255,0.4); }
+  .crop-br { bottom: 0; right: 0; border-bottom: 1px solid rgba(255,255,255,0.4); border-right: 1px solid rgba(255,255,255,0.4); }
+  .monogram {
+    font-size: 2rem;
+    color: rgba(255,255,255,0.7);
+    font-weight: 300;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── List Pane (right) ── */
+  .list-pane {
+    display: flex;
+    flex-direction: column;
+    background: var(--comp-bg);
+    overflow: hidden;
+  }
+  .list-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--comp-border);
+  }
+  .nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+  }
+  .nav-link {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--comp-muted);
+    text-decoration: none;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .nav-link:hover, .nav-link.active {
+    color: var(--comp-text);
+  }
+  .archive-ref {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--comp-muted);
+    text-transform: uppercase;
+  }
+
+  /* ── Bio / About Section ── */
+  .bio-section {
+    padding-top: 1rem;
+  }
+  .bio-section h2 {
+    font-size: 1.5rem;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+    color: var(--comp-text);
+  }
+  .bio-section p {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--comp-muted);
+    max-width: 400px;
+  }
+  .signature {
+    margin-top: 0.75rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--comp-muted);
+    opacity: 0.7;
+  }
+
+  /* ── Scrollable List ── */
+  .list-scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .list-header-row {
+    display: grid;
+    grid-template-columns: 50px 60px 1fr 60px;
+    padding: 0.5rem 1.5rem;
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--comp-muted);
+    border-bottom: 1px solid var(--comp-border);
+    position: sticky;
+    top: 0;
+    background: var(--comp-bg);
+    z-index: 1;
+  }
+
+  /* ── List Items ── */
+  .list-item {
+    display: grid;
+    grid-template-columns: 50px 60px 1fr 60px;
+    padding: 0.75rem 1.5rem;
+    border-bottom: 1px solid oklch(0.20 0.02 50 / 0.1);
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.15s ease;
+  }
+  .list-item:hover {
+    background: oklch(0.20 0.02 50 / 0.03);
+    transform: translateX(4px);
+  }
+  .col-index {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--comp-muted);
+    letter-spacing: 0.05em;
+  }
+  .col-thumb {
+    width: 48px;
+    height: 48px;
+    overflow: hidden;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(30%);
+    transition: filter 0.3s ease;
+  }
+  .list-item:hover .thumb-img { filter: grayscale(0%); }
+  .col-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .item-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--comp-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .item-meta {
+    font-size: 0.65rem;
+    color: var(--comp-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .col-year {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: right;
+    color: var(--comp-muted);
+  }
+
+  @media (max-width: 768px) {
+    .list-header-row,
+    .list-item {
+      grid-template-columns: 40px 48px 1fr;
+    }
+    .col-year { display: none; }
+    .list-header-row span:last-child { display: none; }
+    .nav-links { gap: 0.75rem; }
+    .nav-link { font-size: 0.65rem; }
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  - Minimal border-radius (0-3px) — sharp, editorial edges
+  - No shadows — depth comes from borders and spacing only
+  - Wide letter-spacing on headers and labels (0.08-0.15em)
+  - Light font weights for titles (300-400), bold for metadata
+  - Horizontal slide hover effects (translateX not translateY)
+  - Subtle transitions (0.2-0.3s, ease)
+  - Numbered/indexed items feel archival ([001], [002], etc.)
+  - Thin accent borders (1-2px) for structure, not decoration
+  - Serif or refined sans-serif typography where possible
+  - Crop marks, registration marks, or editorial decorations
+
+EXAMPLE SKELETON (interpret freely):
+  This is one possible structure. Vary the layout, card designs, and
+  decorative elements based on the app's content.
+
+  ```jsx
+  function App() {
+    const [activeSlide, setActiveSlide] = useState(0);
+    const [activeTab, setActiveTab] = useState("index");
+
+    // Slideshow auto-advance
+    useEffect(() => {
+      const timer = setInterval(() => {
+        setActiveSlide(prev => (prev + 1) % images.length);
+      }, 5000);
+      return () => clearInterval(timer);
+    }, [images.length]);
+
+    return (
+      <div className="archive-container">
+        {/* LEFT: Featured Pane */}
+        <section className="featured-pane">
+          <div className="slideshow-wrapper">
+            {images.map((img, i) => (
+              <img key={i} src={img.src} alt={img.alt}
+                className={`slide-img${i === activeSlide ? " active" : ""}`} />
+            ))}
+          </div>
+          <div className="overlay-center">
+            <div className="monogram-wrapper">
+              <div className="crop-mark crop-tl" />
+              <div className="crop-mark crop-tr" />
+              <div className="crop-mark crop-bl" />
+              <div className="crop-mark crop-br" />
+              <div className="monogram">{/* App icon/monogram */}</div>
+            </div>
+          </div>
+        </section>
+
+        {/* RIGHT: List Pane */}
+        <section className="list-pane">
+          <header className="list-header">
+            <div className="nav-row">
+              <nav className="nav-links">
+                {tabs.map(tab => (
+                  <button key={tab.id}
+                    className={`nav-link${activeTab === tab.id ? " active" : ""}`}
+                    onClick={() => setActiveTab(tab.id)}>
+                    {tab.label}
+                  </button>
+                ))}
+              </nav>
+              <div className="archive-ref">{/* Reference code */}</div>
+            </div>
+            <div className="bio-section">
+              <h2>{/* Section title */}</h2>
+              <p>{/* Description text */}</p>
+              <div className="signature">{/* Subtitle/date */}</div>
+            </div>
+          </header>
+
+          <div className="list-scroll-area">
+            <div className="list-header-row">
+              <span>No.</span>
+              <span>Preview</span>
+              <span>Details</span>
+              <span style={{ textAlign: "right" }}>Year</span>
+            </div>
+            {items.map((item, i) => (
+              <article key={item._id} className="list-item">
+                <div className="col-index">[{String(i + 1).padStart(3, "0")}]</div>
+                <div className="col-thumb">
+                  {item.image && <img src={item.image} className="thumb-img" alt={item.title} />}
+                </div>
+                <div className="col-info">
+                  <span className="item-title">{item.title}</span>
+                  <span className="item-meta">{item.category}</span>
+                  <span className="item-meta" style={{ color: "var(--comp-muted)" }}>{item.detail}</span>
+                </div>
+                <div className="col-year">{item.year}</div>
+              </article>
+            ))}
+          </div>
+        </section>
+      </div>
+    );
+  }
+  ```
+
+PERSONALITY:
+  This theme feels like browsing a museum catalog or a printed zine.
+  Quiet confidence. The visual interest comes from typography and careful
+  spacing, not color or animation. Think editorial design, not app design.
+  Each archive-themed app should feel like it was curated by hand.
+
+ANIMATIONS:
+  Archive theme uses SUBTLE animations — nothing flashy:
+  - Slideshow crossfade: `opacity` transition 1.2s
+  - List item hover: `translateX(4px)` + background fade
+  - Thumbnail desaturation: `filter: grayscale()` transition
+  - Staggered list entrance: `fadeUp` with `animation-delay`
+  - Crop marks: subtle `opacity` pulse (optional, 4s cycle)
+  - Nav link underline: CSS `::after` slide on active
+
+SVG ELEMENTS:
+  Keep SVGs minimal for archive theme:
+  - Simple line icons (no filled shapes)
+  - Crop mark decorations (corner brackets)
+  - Optional: thin divider lines between sections
+  - Do NOT use animated particles, waves, or busy backgrounds
