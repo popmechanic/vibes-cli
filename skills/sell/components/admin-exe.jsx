@@ -1,5 +1,5 @@
 // Admin Dashboard Components (exe.dev - Client-Side Only)
-// Injected into unified-exe.html by assemble-sell-exe.js
+// Injected into unified.html by assemble-sell.js
 // Uses CONFIG object and CSS variables for theming
 // NOTE: No backend API calls - uses Clerk metadata as source of truth
 
