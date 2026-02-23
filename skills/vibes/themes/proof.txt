@@ -1,0 +1,382 @@
+THEME: proof
+NAME: Proof Sheet
+MOOD: Ultra-dark, monochrome, review-board, zero-accent
+
+DESCRIPTION:
+A near-black design review surface with sharp-cornered three-section cards.
+Each card divides into a header (numbered title + tag pills), a tall centered
+content area (for visuals, SVGs, or hero content), and a footer with small
+stroke-only icon buttons. Pure monochrome — no accent color at all. White text
+on #121212 body with #1a1a1a card surfaces. Borders are subtle gray-800
+separators between card sections. Tags are tiny pills (0.65rem) with 10% white
+background. Layout is single-column stacked cards with a fixed bottom tab bar
+of icon buttons. System sans-serif only — no custom fonts. The aesthetic is a
+dark proof table where you review visual variants side by side.
+
+BEST FOR:
+  - Design review tools, variant comparisons, A/B test viewers
+  - Image galleries, icon browsers, illustration collections
+  - Portfolio cards, project showcases, case study grids
+  - Media libraries, asset managers, file browsers
+  - Any app that presents visual items with metadata and actions
+
+NOT FOR:
+  - Data-heavy dashboards with charts and metrics (no data patterns)
+  - Content-heavy editorial or reading apps (too dark, too sparse)
+  - Colorful consumer apps (strict monochrome, zero accent)
+  - Complex forms with many fields (minimal input patterns)
+  - Playful/casual apps (too austere and functional)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Convert rows into stacked cards. Each card header shows
+    the row identifier + tag pills for categories. Card content shows the primary
+    visual or value. Card footer has action buttons (edit, delete, share).
+  - If app has FORMS: Inputs inside card content area — transparent bg, 1px
+    bottom border in --border color. Focus: border brightens to --fg-muted.
+    Submit button: full-width in card footer, same stroke-only style.
+  - If app has LISTS: Each item becomes a three-section card. Header: item
+    number + tags. Content: centered visual or large value. Footer: actions.
+    For text-only lists, shrink the content area and show inline.
+  - If app has CARDS: Use the three-section pattern directly — header
+    (border-bottom), content (padded center), footer (border-top). Sharp
+    corners, no border-radius on cards. 0-radius is the identity.
+  - If app has IMAGES: Center in the card content area with generous padding
+    (2rem). Keep images at a contained size (120-200px). Dark bg behind.
+  - If app has NAVIGATION: Fixed bottom tab bar with 4-5 stroke-only SVG icon
+    buttons (20px), evenly spaced. Top border separator. No labels — icons only.
+  - If app has TAGS/CATEGORIES: Tiny pills (0.65rem, 1px 6px padding, 2px
+    radius, 10% white bg). Group in a row next to the card title.
+
+COLOR TOKENS (oklch):
+  --bg:          oklch(0.14 0.000 0)        /* body background #121212 */
+  --card:        oklch(0.16 0.000 0)        /* card surface #1a1a1a */
+  --border:      oklch(0.28 0.03 257)       /* section dividers gray-800 */
+  --fg:          oklch(1.00 0.000 0)        /* primary text white */
+  --fg-muted:    oklch(0.71 0.02 261)       /* secondary text gray-400 */
+  --fg-dim:      oklch(1.00 0.000 0 / 0.6)  /* labels, prices, metadata */
+  --tag-bg:      oklch(1.00 0.000 0 / 0.1)  /* tag pill background */
+  --card-hi:     oklch(0.21 0.03 265)       /* card hover lift gray-900 */
+
+REFERENCE STYLES:
+
+  /* ---- THREE-SECTION CARD ---- */
+  .card {
+    background: var(--card);
+    border-radius: 0;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-content {
+    padding: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 160px;
+  }
+  .card-footer {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* ---- NUMBERED TITLE ---- */
+  .card-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--fg);
+  }
+
+  /* ---- TAG PILLS ---- */
+  .tag {
+    font-size: 0.65rem;
+    background: var(--tag-bg);
+    border-radius: 2px;
+    padding: 1px 6px;
+    color: var(--fg);
+  }
+  .tag-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ---- ICON BUTTONS (stroke-only) ---- */
+  .icon-btn {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--fg);
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+  }
+  .icon-btn:hover { opacity: 1; }
+  .icon-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+  }
+  .btn-group {
+    display: flex;
+    gap: 16px;
+  }
+
+  /* ---- BOTTOM TAB BAR ---- */
+  .tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card-hi);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    padding: 12px;
+  }
+  .tab-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--fg-muted);
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .tab-btn.active { color: var(--fg); }
+  .tab-btn:hover { color: var(--fg); }
+  .tab-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  /* ---- PAGE HEADER ---- */
+  .page-header {
+    margin-bottom: 24px;
+  }
+  .page-title {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--fg);
+  }
+  .page-subtitle {
+    font-size: 14px;
+    color: var(--fg-muted);
+  }
+
+  /* ---- CARD STACK ---- */
+  .card-stack {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding-bottom: 80px;
+  }
+
+  /* ---- TYPOGRAPHY ---- */
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+    line-height: 1.5;
+  }
+
+DESIGN PRINCIPLES:
+  1. ZERO ACCENT COLOR: Pure monochrome — white text on near-black surfaces.
+     No brand color, no highlight hue. The content IS the color (user images,
+     SVGs, illustrations provide all visual interest).
+  2. SHARP CORNERS: Cards have border-radius: 0. No rounding whatsoever on
+     containers. This is a proof sheet, not a friendly consumer app. Tags get
+     a minimal 2px radius — the only rounded element.
+  3. THREE-SECTION CARDS: Every card splits into header (title + tags),
+     content (centered visual), and footer (action buttons). Sections divided
+     by 1px border-top/border-bottom in --border color.
+  4. CENTERED VISUALS: Card content areas are flex-centered both ways with
+     generous padding (32px). Visuals float in the dark card surface. No edge
+     alignment — everything is optically centered.
+  5. TINY TAG PILLS: Category labels are 0.65rem with 10% white background,
+     2px radius, minimal padding. They whisper, not shout. Grouped in a row
+     next to the card title.
+  6. STROKE-ONLY ICONS: All action buttons use outline/stroke SVG icons at
+     18px. No filled icons, no emoji. Buttons are invisible (no bg, no border)
+     — just the icon with 0.8 opacity, brightening on hover.
+  7. NUMBERED ITEMS: Cards are labeled "Concept 01", "Concept 02" etc. with
+     zero-padded indices. The numbering adds order to a visual review process.
+  8. FIXED BOTTOM TAB BAR: 4-5 icon buttons evenly spaced in a dark bar at
+     viewport bottom. Border-top separator. Icons only, no labels. Active tab
+     is full white, inactive is muted.
+  9. MINIMAL TYPOGRAPHY: System sans-serif only (-apple-system). Two sizes:
+     20px page title, 14px everything else. Weight 500 for titles, 400 body.
+     No giant display type, no decorative fonts.
+  10. DARK GRADIENT (SUBTLE): Some card content areas use a subtle gradient
+      from gray-900 to black. Adds depth without breaking the monochrome
+      palette. Optional, not required on every card.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const items = [
+      { id: "01", title: "Concept 01", tags: ["Minimal", "Geometric"] },
+      { id: "02", title: "Concept 02", tags: ["Abstract", "Wave"] },
+      { id: "03", title: "Concept 03", tags: ["Circular", "Dynamic"] },
+      { id: "04", title: "Concept 04", tags: ["Wordmark", "Modern"] },
+      { id: "05", title: "Concept 05", tags: ["Layered", "Gradient"] }
+    ];
+
+    return (
+      <div style={{ minHeight: "100vh", padding: "24px 16px" }}>
+        {/* PAGE HEADER */}
+        <header className="page-header">
+          <h1 className="page-title">Variant</h1>
+          <p className="page-subtitle">Logo Concepts</p>
+        </header>
+
+        {/* CARD STACK */}
+        <div className="card-stack">
+          {items.map(item => (
+            <div key={item.id} className="card">
+              {/* HEADER: title + tags */}
+              <div className="card-header">
+                <span className="card-title">{item.title}</span>
+                <div className="tag-group">
+                  {item.tags.map(t => (
+                    <span key={t} className="tag">{t}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* CONTENT: centered visual */}
+              <div className="card-content">
+                <svg width="120" height="120" viewBox="0 0 120 120"
+                     fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="60" cy="60" r="30" stroke="white" strokeWidth="2" />
+                  <circle cx="60" cy="60" r="10" fill="white" />
+                </svg>
+              </div>
+
+              {/* FOOTER: action buttons */}
+              <div className="card-footer">
+                <div className="btn-group">
+                  <button className="icon-btn" title="Add">
+                    <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="16" />
+                      <line x1="8" y1="12" x2="16" y2="12" />
+                    </svg>
+                  </button>
+                  <button className="icon-btn" title="Edit">
+                    <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="btn-group">
+                  <button className="icon-btn" title="Share">
+                    <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                      <polyline points="16 6 12 2 8 6" />
+                      <line x1="12" y1="2" x2="12" y2="15" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* BOTTOM TAB BAR */}
+        <div className="tab-bar">
+          <button className="tab-btn active">
+            <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+            </svg>
+          </button>
+          <button className="tab-btn">
+            <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+            </svg>
+          </button>
+          <button className="tab-btn">
+            <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
+          </button>
+          <button className="tab-btn">
+            <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4" y1="21" x2="4" y2="14" />
+              <line x1="12" y1="21" x2="12" y2="12" />
+              <line x1="20" y1="21" x2="20" y2="16" />
+              <line x1="1" y1="14" x2="7" y2="14" />
+              <line x1="9" y1="8" x2="15" y2="8" />
+              <line x1="17" y1="16" x2="23" y2="16" />
+            </svg>
+          </button>
+          <button className="tab-btn">
+            <svg viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme is a dark review table. You lay out your work — logos, icons,
+  photos, designs — on a near-black surface and study them. Each piece gets
+  its own card with a numbered header, a generous centered display area, and
+  a row of tools at the bottom. There is no color to distract. No rounded
+  corners to soften. No decorative type to compete with the visuals. The
+  cards are sharp-edged proof sheets. The tags whisper metadata. The icons
+  are surgical instruments — add, edit, share — reduced to their thinnest
+  stroke outlines. The bottom tab bar is the only navigation, and even it
+  uses nothing but icons. This is not a theme that sells or persuades. It
+  presents. It lets the content be the only thing worth looking at.
+
+ANIMATIONS:
+  - ICON HOVER: Opacity transitions from 0.8 to 1.0 over 200ms. No
+    transforms, no scale, no color change — just brightening.
+  - TAB SWITCH: Active tab icon transitions to full white (color), inactive
+    tabs fade to muted. Transition 200ms.
+  - CARD ENTER (optional): Cards can fade-in-up on mount (opacity 0→1,
+    translateY 8px→0, 300ms ease, staggered 50ms per card).
+  - No scan lines, no glow, no particles — this is a still, quiet surface.
+
+SVG ELEMENTS:
+  - CARD VISUALS: White geometric SVGs centered in card content areas.
+    Stroke-only or minimal fill. 120x120 viewBox. Triangles, circles,
+    waves, concentric rings, abstract wordmarks. Keep them simple.
+  - ACTION ICONS: Stroke-only SVGs at 18px. Standard set: plus-circle
+    (add), edit-2 (edit), upload (share). Stroke-width 2, round caps/joins.
+  - TAB ICONS: Stroke-only SVGs at 20px. Standard set: circle (browse),
+    book-open (library), layers (stack), sliders (settings), user (profile).
+  - No decorative SVGs, no background patterns. Visual purity.
+
+GOOGLE FONTS:
+  /* No custom fonts — uses system sans-serif stack exclusively */
+  /* -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif */
+  /* Optional: load Inter for cross-platform consistency */
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');

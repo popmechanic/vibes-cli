@@ -1,0 +1,364 @@
+THEME: terminal
+NAME: Terminal CRT
+MOOD: Phosphor-green, retro-computing, monochrome-CRT, command-line
+
+DESCRIPTION:
+A green-on-black CRT terminal with scan-line animation and phosphor glow
+effects. Everything renders in a single pixel monospace font (VT323) at
+various sizes — no secondary typeface, no sans-serif, just the terminal.
+Timer/event items sit in bordered rows with green/30% borders and gradient
+overlays. A scan-line bar sweeps vertically across the viewport on an 8-second
+loop, simulating a CRT refresh beam. Text appears via typewriter animation
+(characters revealed one at a time). System boot labels use ID codes
+(ID:DOTA/TIMER/SYSTEM/V1.7). Dot indicators are 6px green circles with glow
+shadows. A bottom control bar has a 3-column button grid. The only colors are
+matrix green (#00ff00), its faded variants, and white for highlights. Everything
+else is black or near-black.
+
+BEST FOR:
+  - Timer apps, countdown tools, event schedulers
+  - CLI-style interfaces, log viewers, system monitors
+  - Retro-computing experiences, terminal emulators
+  - Hacker/matrix aesthetic apps, CTF tools
+  - Build status boards, deploy logs, notification feeds
+  - Any app that should feel like a green-screen mainframe
+
+NOT FOR:
+  - Colorful consumer apps (strict green-on-black only)
+  - Content-heavy reading apps (phosphor green fatigues eyes)
+  - E-commerce or product showcases (no imagery patterns)
+  - Playful/casual apps (too austere and machine-like)
+  - Photography or creative portfolios (no color, no image patterns)
+  - Apps requiring complex data visualization (no chart patterns)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Each row is a bordered item (1px green/30% border +
+    gradient overlay top). Left side: dot indicator + label. Right side: value
+    in accent green or white. No header row — use a system ID label above.
+  - If app has FORMS: Transparent inputs with 1px green/30% border-bottom only.
+    Caret blinks green. Submit is a bordered button with > prefix. Focus state:
+    full green border, glow shadow. Labels in faded green (40% opacity).
+  - If app has LISTS: Stacked bordered rows, each with a green dot indicator
+    (6px, glow shadow), text label, and optional right-aligned value. Rows have
+    gradient overlay (green/5% at top fading to transparent).
+  - If app has CARDS: Use bordered containers with system ID header
+    (e.g., "SYS:01"), green/30% border, gradient overlay. Content inside in
+    VT323. No border-radius — sharp corners only.
+  - If app has NAVIGATION: Top bar with system boot text ("SYSTEM ONLINE" +
+    ID code), status dot, and monospace timestamp. Bottom control bar with
+    3-column button grid, bordered buttons, green text.
+  - If app has HERO CONTENT: Giant VT323 text (clamp(3rem, 8vw, 8rem)) with
+    phosphor glow (text-shadow in green). Typewriter reveal animation.
+    System ID label above in faded green.
+  - If app has STATUS INDICATORS: Green dot (6px circle, green bg, box-shadow
+    glow) = active/online. No dot = inactive. Blinking dot = pending.
+
+COLOR TOKENS (oklch):
+  --bg:          oklch(0.16 0.000 0)       /* near-black body #1a1a1a */
+  --terminal:    oklch(0.00 0.000 0 / 0.85)  /* terminal surface rgba(0,0,0,0.85) */
+  --green:       oklch(0.87 0.30 142)      /* matrix green #00ff00 */
+  --green-dim:   oklch(0.87 0.30 142 / 0.4)  /* faded green text 40% */
+  --green-border:oklch(0.87 0.30 142 / 0.3)  /* green borders 30% */
+  --green-faint: oklch(0.87 0.30 142 / 0.1)  /* gradient overlays 10% */
+  --green-glow:  oklch(0.87 0.30 142 / 0.5)  /* scan-line glow 50% */
+  --white:       oklch(1.00 0.000 0)       /* highlight text #ffffff */
+  --glow:        0 0 10px oklch(0.87 0.30 142 / 0.7)  /* text glow shadow */
+  --dot-glow:    0 0 8px oklch(0.87 0.30 142 / 0.6)   /* indicator glow */
+
+REFERENCE STYLES:
+
+  /* ---- TERMINAL CONTAINER ---- */
+  .terminal {
+    background: var(--terminal);
+    border: 1px solid var(--green-border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ---- SCAN LINE (sweeping CRT refresh) ---- */
+  .scan-line {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      var(--green-glow),
+      transparent
+    );
+    animation: scan 8s linear infinite;
+    pointer-events: none;
+    z-index: 100;
+  }
+  @keyframes scan {
+    0%   { top: -3px; }
+    100% { top: 100vh; }
+  }
+
+  /* ---- TIMER / EVENT ITEM ROW ---- */
+  .item-row {
+    border: 1px solid var(--green-border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .item-row::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      var(--green-faint),
+      transparent 60%
+    );
+    pointer-events: none;
+  }
+
+  /* ---- DOT INDICATOR ---- */
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: var(--dot-glow);
+    flex-shrink: 0;
+  }
+  .dot.inactive {
+    background: var(--green-dim);
+    box-shadow: none;
+  }
+
+  /* ---- SYSTEM BOOT LABEL ---- */
+  .sys-label {
+    font-size: 12px;
+    color: var(--green-dim);
+    letter-spacing: 0.1em;
+  }
+
+  /* ---- GREEN GLOW TEXT ---- */
+  .glow-text {
+    color: var(--green);
+    text-shadow: var(--glow);
+  }
+
+  /* ---- TYPEWRITER ANIMATION ---- */
+  .typewriter {
+    overflow: hidden;
+    white-space: nowrap;
+    border-right: 2px solid var(--green);
+    animation:
+      typing 2s steps(30) forwards,
+      blink 0.8s step-end infinite;
+  }
+  @keyframes typing {
+    from { width: 0; }
+    to   { width: 100%; }
+  }
+  @keyframes blink {
+    50% { border-color: transparent; }
+  }
+
+  /* ---- CONTROL BAR (bottom) ---- */
+  .control-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    padding: 12px 16px;
+    background: var(--terminal);
+    border-top: 1px solid var(--green-border);
+  }
+  .control-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .ctrl-btn {
+    background: transparent;
+    border: 1px solid var(--green-border);
+    color: var(--green);
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    padding: 8px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .ctrl-btn:hover {
+    border-color: var(--green);
+    text-shadow: var(--glow);
+    background: var(--green-faint);
+  }
+
+  /* ---- HEADER BAR ---- */
+  .header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--green-border);
+  }
+  .header-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ---- CRT SCREEN EFFECT (optional overlay) ---- */
+  .crt-overlay {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 255, 0, 0.03) 0px,
+      rgba(0, 255, 0, 0.03) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    pointer-events: none;
+    z-index: 99;
+  }
+
+  /* ---- TYPOGRAPHY ---- */
+  body {
+    background: var(--bg);
+    color: var(--green);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    line-height: 1.4;
+  }
+
+DESIGN PRINCIPLES:
+  1. GREEN-ON-BLACK ONLY: Matrix green (#00ff00) on near-black (#1a1a1a).
+     No other hues. White (#ffffff) reserved for highlighted/important text.
+     Faded green (40%) for secondary text. Green (30%) for all borders.
+  2. SINGLE FONT: VT323 pixel monospace for EVERYTHING — headers, body, labels,
+     buttons, values. No secondary typeface. The font IS the aesthetic.
+  3. SCAN LINE SWEEP: A 3px-tall green glow bar continuously sweeps from top to
+     bottom on an 8-second loop, simulating a CRT electron beam refresh. Fixed
+     position, pointer-events none, highest z-index.
+  4. CRT SCAN LINES: Static repeating-linear-gradient overlay creates faint
+     horizontal scan lines across the entire viewport. 3% green opacity, 3px
+     spacing. Gives the always-on CRT monitor texture.
+  5. PHOSPHOR GLOW: Important text gets text-shadow: 0 0 10px green/70%.
+     Dot indicators get box-shadow: 0 0 8px green/60%. Simulates phosphor
+     light bleed on old CRT monitors. Use sparingly — not every element glows.
+  6. SHARP CORNERS: No border-radius anywhere. Terminals don't have rounded
+     corners. Every container, button, and input is rectangular.
+  7. BORDERED ROWS: Content items use 1px green/30% borders with gradient
+     overlays (green/10% at top fading to transparent). Creates subtle depth
+     without breaking the monochrome palette.
+  8. SYSTEM ID LABELS: Use hardware-style ID codes (ID:APP/MODULE/V1.0) as
+     section headers. Faded green, letter-spacing 0.1em. Gives the feel of
+     a system boot sequence identifying its components.
+  9. TYPEWRITER REVEAL: Text appears character by character with a blinking
+     green cursor at the end. Use for hero text, status messages, and loading
+     states. The terminal is always "typing."
+  10. CONTROL BAR: Bottom-fixed bar with 3-column button grid. Bordered buttons,
+      green text, transparent bg. Hover adds glow + faint green background.
+      Feels like function keys on a mainframe terminal.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    const events = [
+      { id: "ROSH", label: "Roshan Timer", time: "08:22", active: true },
+      { id: "GLYPH", label: "Glyph Refresh", time: "05:00", active: true },
+      { id: "STACK", label: "Ancient Stack", time: "00:45", active: false },
+      { id: "RUNE", label: "Power Rune", time: "02:00", active: true },
+      { id: "SCAN", label: "Scan Cooldown", time: "04:30", active: false }
+    ];
+
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+        {/* CRT EFFECTS */}
+        <div className="scan-line" />
+        <div className="crt-overlay" />
+
+        {/* HEADER */}
+        <div className="header-bar">
+          <div className="header-status">
+            <span className="dot" />
+            <span className="glow-text" style={{ fontSize: 14 }}>SYSTEM ONLINE</span>
+          </div>
+          <span className="sys-label">ID:DOTA/TIMER/V1.7</span>
+        </div>
+
+        {/* BOOT TEXT */}
+        <div style={{ padding: "16px" }}>
+          <div className="sys-label" style={{ marginBottom: 4 }}>
+            &gt; INITIALIZING TIMER MODULE...
+          </div>
+          <h1 className="glow-text" style={{ fontSize: "clamp(3rem, 8vw, 8rem)", lineHeight: 0.9 }}>
+            DOTA<br/>TIMER
+          </h1>
+        </div>
+
+        {/* EVENT LIST */}
+        <div style={{ flex: 1, padding: "0 16px", paddingBottom: 96 }}>
+          <div className="sys-label" style={{ marginBottom: 8 }}>
+            ID:EVENTS/ACTIVE/{events.filter(e => e.active).length}
+          </div>
+          {events.map(e => (
+            <div key={e.id} className="item-row" style={{ marginBottom: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span className={`dot ${e.active ? "" : "inactive"}`} />
+                <span style={{ color: e.active ? "var(--green)" : "var(--green-dim)" }}>
+                  {e.label}
+                </span>
+              </div>
+              <span className="glow-text" style={{ fontSize: 24 }}>
+                {e.time}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* CONTROL BAR */}
+        <div className="control-bar">
+          <div className="control-grid">
+            <button className="ctrl-btn">&gt; START</button>
+            <button className="ctrl-btn">&gt; RESET</button>
+            <button className="ctrl-btn">&gt; LOG</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  This theme is a phosphor-green time machine. You are sitting in front of a
+  CRT monitor in a dark room, the only light source the green glow of the
+  screen. The scan-line sweeps down endlessly, the cursor blinks, and every
+  piece of text looks like it was typed by a mainframe in 1983. There is no
+  decoration — no icons, no illustrations, no color. Just green characters on
+  black void, organized into bordered rows with gradient overlays that hint at
+  depth. The system boot labels (ID:MODULE/VERSION) make every section feel
+  like a hardware subsystem reporting status. Dot indicators pulse with glow
+  like LEDs on a rack-mount server. The typewriter animation is the terminal
+  printing output, character by character. The control bar at the bottom has
+  the finality of function keys — F1, F2, F3 — hard-wired commands. This
+  isn't a website. It's a terminal session.
+
+ANIMATIONS:
+  - SCAN LINE SWEEP: 3px green glow bar moves from top to bottom of viewport
+    on 8-second linear infinite loop. Fixed position, z-index 100.
+  - TYPEWRITER REVEAL: Text width animates from 0 to 100% with steps(30),
+    creating character-by-character appearance. Green cursor blinks at end
+    (border-right toggles visible/hidden every 0.8s).
+  - BUTTON HOVER: Border brightens from green/30% to full green, text gains
+    glow shadow, background fills with green/10%. Transition 200ms.
+  - DOT PULSE (optional): Active dots can have a subtle opacity pulse
+    (1.0 → 0.7 → 1.0 on 2s ease infinite) to simulate LED breathing.
+
+SVG ELEMENTS:
+  - No decorative SVGs — the aesthetic is pure text and CSS. All visual
+    effects (scan lines, glow, gradients) are CSS-only.
+  - If visualization is needed: use CSS box-shadow arrays to create
+    dot-matrix-style displays, or ASCII art rendered in VT323.
+  - Status indicators are CSS circles (div with border-radius: 50%),
+    not SVG.
+
+GOOGLE FONTS:
+  @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');

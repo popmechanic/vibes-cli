@@ -11,10 +11,12 @@ node_modules/
 riff-*/
 RANKINGS.md
 
-# Build output (gitignored)
-# Note: skills/vibes/defaults/ is git-tracked and ships with the plugin
-# Fireproof API docs live in docs/fireproof.txt
-/build/
+# Build output (gitignored by default)
+# Shipped artifacts are explicitly un-ignored so they're tracked in git
+/build/*
+!/build/design-tokens.txt
+!/build/design-tokens.css
+!/build/vibes-menu.js
 
 # Plan files
 PLUGIN-PLAN.md

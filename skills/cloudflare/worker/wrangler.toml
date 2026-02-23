@@ -6,7 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 # KV namespace for registry storage
 [[kv_namespaces]]
 binding = "REGISTRY_KV"
-id = "f9ab5bd5c9a34b16bfa42731e38c7bff"
+id = "d6dc66d0615b4b88a07855d4e5a0f3d2"
 preview_id = "0cde71d973844bca842d365797b7d43e"
 
 # Static assets (the generated index.html)
@@ -17,7 +17,7 @@ directory = "./public"
 # Default reserved subdomains
 RESERVED_SUBDOMAINS = "admin,api,www,billing"
 # Billing mode: "required" enforces subscription check on /claim
-BILLING_MODE = "required"
+BILLING_MODE = "off"
 # Admin IDs (comma-separated) for admin bypass on subscription gate
 ADMIN_USER_IDS = ""
 # Plan quotas: JSON map of plan slug to max subdomains (empty = unlimited)

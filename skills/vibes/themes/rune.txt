@@ -1,0 +1,570 @@
+THEME: rune
+NAME: Rune Interface
+MOOD: Abyss-dark, cyan-neon-glow, Norse-rune, three-column-RPG, stone-panel
+
+DESCRIPTION:
+Deep abyss-blue void with cyan neon glow accents. Three-column RPG interface:
+left sidebar for stats, center for hero/character display, right sidebar for
+equipment and lore. Panels use chamfered clip-paths (TL + BR corners cut) with
+glowing corner-rune decorations — small Norse rune characters positioned at panel
+corners that pulse on hover. Stat bars animate in with staggered delays and
+have a bright cyan endpoint marker. Different stat types use different bar colors
+(cyan for physical, purple for magical). A mystic eye orb pulses at the top of
+the center column. The character silhouette drifts gently. Footer has chamfered
+stone action buttons. Background shows a faint repeating rune pattern. The mood
+is a dark Norse fantasy game UI — the kind you'd see in a Souls-like character
+sheet or a Viking RPG inventory screen.
+
+BEST FOR:
+RPG character sheets, Norse/Viking game UIs, dark fantasy dashboards,
+stat trackers with bars, rune selectors, bestiary viewers, game inventories,
+equipment managers, skill trees, level-up screens, lore databases
+
+NOT FOR:
+Modern/minimal consumer apps (too ornate and themed), light-mode apps
+(abyss-dark is fundamental), photography or media-rich apps (neon glow competes),
+professional enterprise tools (too game-themed), playful/casual apps (too dark
+and serious), e-commerce with product images (themed UI overwhelms products)
+
+ADAPTATION NOTES:
+The three-column layout is the core identity — always preserve it. Left column
+for data/stats, center for the hero/focus element, right for secondary info or
+equipment. On mobile, stack columns vertically with center first. The corner
+rune decorations and chamfered clip-path should appear on all panel elements.
+Corner runes sit at TL+BR (or TR+BL) — small rune characters that glow on hover.
+Stat bars MUST use staggered animation-delay (0.2s increments) for a cascading
+fill effect on load. Use different bar colors for different stat categories:
+cyan (#00ffcc) for physical, purple (#9d4eff) for magical/mana, and default
+neon for general stats. The mystic eye can be replaced with any glowing circular
+focal element (logo, status indicator, orb). Rune grid slots use actual Unicode
+Elder Futhark characters. Panel titles include a rune character on the right side.
+Navigation items use a RUNE PREFIX pattern: each nav item has a Norse rune
+character (ᚹ ᚺ ᛟ ᛗ ᚱ) before the label text. Active items glow neon-core with
+text-shadow. This creates a grimoire-style menu where runes serve as bullet icons.
+
+COLOR TOKENS:
+  --bg:              oklch(0.05 0.02 230)    /* #020406 – void background */
+  --bg-gradient:     oklch(0.08 0.03 230)    /* #05101a – abyss blue, gradient end */
+  --bg-ambient:      oklch(0.00 0.04 180 / 0.15)  /* teal radial glow at top */
+  --stone-base:      oklch(0.13 0.02 220)    /* #0d161f – panel background */
+  --stone-highlight: oklch(0.20 0.02 215)    /* #1c2b38 – borders, dividers */
+  --neon-core:       oklch(0.95 0.06 180)    /* #ccfffa – brightest text/accents */
+  --neon-glow:       oklch(0.87 0.17 170)    /* #00ffcc – primary cyan glow */
+  --neon-dim:        oklch(0.40 0.10 170)    /* #005f52 – dim glow, bar fills */
+  --aether-purple:   oklch(0.50 0.25 300)    /* #9d4eff – magical/mana bar fills */
+  --bone-text:       oklch(0.80 0.02 210)    /* #b8c5cc – primary body text */
+  --stat-text:       oklch(0.65 0.02 210)    /* #8fa0ad – stat labels, secondary */
+  --shadow-depth:    oklch(0.00 0 0 / 0.85)  /* deep inset shadow */
+
+REFERENCE STYLES:
+
+  /* === BODY === */
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(circle at 50% 10%, var(--bg-ambient) 0%, transparent 60%),
+      linear-gradient(to bottom, var(--bg) 0%, var(--bg-gradient) 100%);
+    color: var(--bone-text);
+    font-family: 'Cinzel', serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* === THREE-COLUMN GRID === */
+  .ui-container {
+    width: 95vw;
+    height: 90vh;
+    display: grid;
+    grid-template-columns: 350px 1fr 350px;
+    grid-template-rows: 80px 1fr 120px;
+    gap: 20px;
+  }
+
+  /* === PANEL (chamfered TL + BR) === */
+  .panel {
+    background: linear-gradient(135deg, rgba(13, 22, 31, 0.9), rgba(5, 16, 26, 0.95));
+    border: 1px solid var(--stone-highlight);
+    padding: 20px;
+    position: relative;
+    clip-path: polygon(
+      20px 0, 100% 0,
+      100% calc(100% - 20px), calc(100% - 20px) 100%,
+      0 100%, 0 20px
+    );
+    box-shadow:
+      inset 0 0 30px var(--shadow-depth),
+      0 0 0 1px rgba(0,0,0,1),
+      0 0 20px oklch(0.87 0.17 170 / 0.05);
+  }
+
+  /* === CORNER RUNE DECORATIONS === */
+  .corner-rune {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: var(--neon-dim);
+    transition: all 0.5s ease;
+  }
+  .corner-rune.c-tl { top: 4px; left: 24px; }
+  .corner-rune.c-tr { top: 4px; right: 4px; }
+  .corner-rune.c-bl { bottom: 4px; left: 4px; }
+  .corner-rune.c-br { bottom: 4px; right: 24px; }
+  .panel:hover .corner-rune {
+    color: var(--neon-glow);
+    text-shadow: 0 0 10px var(--neon-glow);
+  }
+
+  /* === RUNE-PREFIXED NAV ITEMS (grimoire menu) === */
+  .nav-item-rune {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(28, 43, 56, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: var(--stat-text);
+  }
+  .nav-item-rune:hover {
+    color: var(--neon-glow);
+  }
+  .nav-item-rune.active {
+    color: var(--neon-core);
+    text-shadow: 0 0 10px var(--neon-glow);
+  }
+  .nav-rune {
+    font-size: 1.3rem;
+    width: 28px;
+    text-align: center;
+    color: var(--neon-dim);
+    transition: all 0.3s;
+  }
+  .nav-item-rune:hover .nav-rune,
+  .nav-item-rune.active .nav-rune {
+    color: var(--neon-glow);
+    text-shadow: 0 0 8px var(--neon-glow);
+  }
+
+  /* === PANEL CORNER DOTS (::before / ::after) === */
+  .panel::before, .panel::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: var(--neon-dim);
+    transition: all 0.5s ease;
+  }
+  .panel::before { top: 0; left: 20px; box-shadow: 2px 2px 10px var(--neon-glow); }
+  .panel::after { bottom: 0; right: 20px; box-shadow: -2px -2px 10px var(--neon-glow); }
+  .panel:hover::before, .panel:hover::after {
+    background: var(--neon-glow);
+    box-shadow: 0 0 15px var(--neon-glow);
+  }
+
+  /* === HEADER === */
+  .header {
+    grid-column: 1 / 4;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 40px;
+    border-bottom: 2px solid var(--stone-highlight);
+    background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+    position: relative;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 200px;
+    height: 2px;
+    background: var(--neon-glow);
+    box-shadow: 0 0 15px var(--neon-glow);
+  }
+
+  /* === TITLE === */
+  .game-title {
+    font-size: 2rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--neon-core);
+    text-shadow: 0 0 10px var(--neon-glow), 0 0 30px var(--neon-dim);
+    font-weight: 900;
+  }
+
+  /* === NAV === */
+  .nav-item {
+    font-size: 0.9rem;
+    letter-spacing: 0.15em;
+    color: var(--bone-text);
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.3s;
+    position: relative;
+  }
+  .nav-item:hover { color: var(--neon-glow); text-shadow: 0 0 8px var(--neon-glow); }
+  .nav-item.active {
+    color: var(--neon-core);
+    text-shadow: 0 0 12px var(--neon-glow);
+  }
+  .nav-item.active::after {
+    content: '♦';
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    color: var(--neon-glow);
+  }
+
+  /* === PANEL TITLE (with rune) === */
+  h2.panel-title {
+    margin: 0 0 15px 0;
+    font-size: 1.1rem;
+    color: var(--neon-dim);
+    border-bottom: 1px solid var(--stone-highlight);
+    padding-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    display: flex;
+    justify-content: space-between;
+  }
+  h2.panel-title span {   /* rune character */
+    color: var(--neon-glow);
+    font-size: 1.4rem;
+  }
+
+  /* === STAT ROWS === */
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.2rem;
+    color: var(--stat-text);
+  }
+
+  /* === STAT BARS (animated fill with stagger) === */
+  .bar-container {
+    width: 100%;
+    height: 6px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid var(--stone-highlight);
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    background: var(--neon-dim);
+    box-shadow: 0 0 5px var(--neon-dim);
+    width: 0%;
+    animation: bar-grow 1s ease-out forwards;
+    position: relative;
+  }
+  .bar-fill::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 2px;
+    background: var(--neon-core);
+    box-shadow: 0 0 8px var(--neon-glow);
+  }
+  /* Purple variant for magical stats */
+  .bar-fill.aether {
+    background: var(--aether-purple);
+    box-shadow: 0 0 10px var(--aether-purple);
+  }
+  .bar-fill.aether::after {
+    background: oklch(0.70 0.25 300);
+    box-shadow: 0 0 8px var(--aether-purple);
+  }
+
+  @keyframes bar-grow {
+    from { width: 0%; }
+    to { width: var(--fill); }
+  }
+  /* Stagger: animation-delay: 0.2s, 0.4s, 0.6s, 0.8s, 1.0s, 1.2s */
+
+  /* === RUNE GRID (3×3 or 2×4) === */
+  .rune-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .rune-slot {
+    aspect-ratio: 1;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--stone-highlight);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #3a4b59;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .rune-slot:hover {
+    border-color: var(--neon-glow);
+    color: var(--neon-core);
+    box-shadow: inset 0 0 15px var(--neon-dim);
+    text-shadow: 0 0 10px var(--neon-glow);
+  }
+  .rune-slot.equipped {
+    color: var(--neon-glow);
+    border-color: var(--neon-dim);
+    box-shadow: inset 0 0 10px oklch(0.87 0.17 170 / 0.1);
+  }
+
+  /* === EQUIPMENT GRID (2×4) === */
+  .equipment-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .equip-slot {
+    aspect-ratio: 1;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--stone-highlight);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: var(--neon-dim);
+    transition: all 0.3s;
+  }
+  .equip-slot:hover {
+    border-color: var(--neon-glow);
+    box-shadow: inset 0 0 10px var(--neon-dim);
+  }
+
+  /* === MYSTIC EYE (center orb) === */
+  .mystic-eye {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid var(--neon-dim);
+    background: radial-gradient(circle, var(--neon-dim) 0%, transparent 70%);
+    box-shadow: 0 0 20px var(--neon-dim), inset 0 0 20px var(--neon-glow);
+    animation: pulse-glow 4s infinite ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* === CHARACTER DISPLAY === */
+  .character-placeholder {
+    width: 300px;
+    height: 500px;
+    background: linear-gradient(to top, oklch(0.87 0.17 170 / 0.05), transparent);
+    border-bottom: 4px solid var(--neon-dim);
+    animation: drift 3s infinite ease-in-out;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    position: relative;
+  }
+  .character-placeholder::before {   /* shadow pool */
+    content: '';
+    position: absolute;
+    bottom: -20px;
+    width: 200px;
+    height: 20px;
+    background: radial-gradient(ellipse, var(--neon-dim) 0%, transparent 70%);
+    filter: blur(5px);
+  }
+  .char-name {
+    font-size: 3rem;
+    color: var(--bone-text);
+    text-transform: uppercase;
+    letter-spacing: 0.5em;
+    text-shadow: 0 10px 20px rgba(0,0,0,1);
+  }
+  .char-class {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 1.5rem;
+    color: var(--neon-dim);
+    letter-spacing: 0.1em;
+  }
+
+  /* === ACTION BUTTONS (chamfered) === */
+  .action-btn {
+    background: linear-gradient(180deg, var(--stone-highlight) 0%, var(--stone-base) 100%);
+    border: 1px solid var(--stone-highlight);
+    color: var(--bone-text);
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    padding: 15px 50px;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  }
+  .action-btn:hover {
+    color: var(--neon-core);
+    border-color: var(--neon-dim);
+    box-shadow: 0 0 20px var(--neon-dim);
+    text-shadow: 0 0 8px var(--neon-glow);
+    transform: translateY(-2px);
+  }
+  .action-btn.primary {
+    border-color: var(--neon-dim);
+    background: linear-gradient(180deg, #0f2e30 0%, #031414 100%);
+    color: var(--neon-glow);
+  }
+  .action-btn.primary:hover {
+    box-shadow: 0 0 30px var(--neon-dim);
+  }
+
+  /* === FOOTER === */
+  .footer {
+    grid-column: 1 / 4;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    padding-top: 20px;
+  }
+
+  /* === LORE TEXT === */
+  .lore-text {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: var(--stat-text);
+    font-style: italic;
+  }
+  .lore-attribution {
+    text-align: right;
+    color: var(--neon-dim);
+    font-size: 0.9rem;
+    margin-top: 20px;
+  }
+
+  /* === BACKGROUND RUNE PATTERN === */
+  .bg-runes {
+    position: fixed;
+    inset: 0;
+    opacity: 0.05;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Ctext x='50' y='50' font-family='serif' font-size='40' fill='%2300ffcc' text-anchor='middle' dominant-baseline='middle'%3E%E1%9A%AB%3C/text%3E%3C/svg%3E");
+  }
+
+DESIGN PRINCIPLES:
+  1. THREE-COLUMN RPG: Left stats, center hero, right equipment/lore. Always this layout on desktop.
+  2. CHAMFERED PANELS: clip-path cuts TL and BR corners at 20px. Every panel uses this shape.
+  3. CORNER RUNE DECORATIONS: Small rune characters at panel corners (TL+BR or TR+BL pairs) that glow on hover. Plus 10px neon dots at clip-cut corners (::before top-left, ::after bottom-right).
+  4. STAGGERED BAR ANIMATION: Stat bars animate from 0% to target width on mount. Each bar has increasing animation-delay (0.2s, 0.4s, 0.6s, etc.) for a cascading fill effect.
+  5. DUAL BAR COLORS: Physical stats use cyan (--neon-glow), magical stats use purple (--aether-purple). Each bar has a bright endpoint marker (2px glowing line at the fill edge).
+  6. NORSE RUNES: Use actual Unicode Elder Futhark characters (ᚠ ᚢ ᚦ ᚫ ᚱ ᚲ ᚷ ᚹ ᚺ) in rune grid slots, panel titles, and corner decorations. Never use images for runes.
+  7. CENTERED NEON BAR: Header has a centered 200px neon glow bar at the bottom edge. This is the only horizontal accent.
+  8. DIAMOND NAV INDICATOR: Active nav item shows a ♦ diamond below it in neon-glow color.
+  9. MYSTIC ORB: Center column has a circular pulsing element at the top. Can be app logo, status, or decorative.
+  10. STONE GRADIENTS: Panels use subtle diagonal gradient (stone-base → abyss-blue). Buttons use vertical gradient (highlight → base).
+  11. RUNE-PREFIXED NAV: Navigation menus use a rune character (ᚹ ᚺ ᛟ ᛗ ᚱ) as bullet/prefix for each item. Active item and its rune glow neon-core with text-shadow. Items separated by faint borders. This creates a grimoire-style sidebar menu.
+
+EXAMPLE SKELETON JSX:
+
+  function App() {
+    return (
+      <div style={{ width: "95vw", height: "90vh", display: "grid",
+        gridTemplateColumns: "350px 1fr 350px", gridTemplateRows: "80px 1fr 120px",
+        gap: 20, fontFamily: "'Cinzel', serif", color: "#b8c5cc" }}>
+
+        {/* Header */}
+        <header style={{ gridColumn: "1 / 4", display: "flex",
+          justifyContent: "space-between", alignItems: "center", padding: "0 40px",
+          borderBottom: "2px solid #1c2b38", position: "relative" }}>
+          <h1 style={{ fontSize: "2rem", letterSpacing: "0.3em", color: "#ccfffa",
+            textShadow: "0 0 10px #00ffcc" }}>APP TITLE</h1>
+          <nav style={{ display: "flex", gap: 40 }}>
+            <NavItem label="Section" active />
+            <NavItem label="Browse" />
+          </nav>
+        </header>
+
+        {/* Left: Nav + Stats */}
+        <aside style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <Panel title="Grimoire" cornerRunes={["c-tl","c-br"]}>
+            <RuneNavItem rune="ᚹ" label="Warriors" active />
+            <RuneNavItem rune="ᚺ" label="Inventory" />
+            <RuneNavItem rune="ᛟ" label="Skills" />
+            <RuneNavItem rune="ᛗ" label="Bestiary" />
+            <RuneNavItem rune="ᚱ" label="Realms" />
+          </Panel>
+          <Panel title="Attributes" rune="ᛟ" cornerRunes={["c-tr","c-bl"]}>
+            <StatBar label="Vitality" value="85%" delay={0.2} />
+            <StatBar label="Aether" value="65%" delay={0.4} color="purple" />
+            <StatBar label="Runic Power" value="100%" delay={0.6} />
+          </Panel>
+        </aside>
+
+        {/* Center: Hero */}
+        <main style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <MysticOrb />
+          <HeroDisplay name="Entity Name" subtitle="Level 42 — Class" />
+        </main>
+
+        {/* Right: Equipment + Lore */}
+        <aside style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <Panel title="Equipped" rune="ᚦ">
+            <RuneGrid runes={["ᚠ","ᚢ","ᚦ","ᚫ","ᚱ","ᚲ","ᚷ","ᚹ","ᚺ"]} equipped={[0,1,2]} />
+          </Panel>
+          <Panel title="Lore Fragment">
+            <LoreText text="..." attribution="— Source" />
+          </Panel>
+        </aside>
+
+        {/* Footer */}
+        <footer style={{ gridColumn: "1 / 4", display: "flex",
+          justifyContent: "center", gap: 40 }}>
+          <ActionButton label="Customize" />
+          <ActionButton label="Enter" primary />
+          <ActionButton label="Save" />
+        </footer>
+      </div>
+    );
+  }
+
+PERSONALITY:
+  Voice: Solemn, ancient, whispered. Short declarative sentences.
+  Labels: Uppercase with wide letter-spacing. "VITALITY." "AETHER." "RUNIC POWER."
+  Empty state: Faint rune pattern on void background. "The void awaits."
+  Loading: Stat bars filling with staggered animation. Rune slots flickering.
+  Error: Dim bone-colored text. "The connection has severed."
+  Success: Neon-core glow pulse. "The runes accept your offering."
+
+ANIMATIONS:
+  - PULSE-GLOW: 4s infinite ease-in-out on mystic eye. Box-shadow oscillates between dim and bright neon. Text-shadow follows.
+  - DRIFT: 3s infinite ease-in-out on character display. translateY(0) → translateY(-3px) → translateY(0).
+  - BAR-GROW: 1s ease-out forwards. Width from 0% to target. Each bar has animation-delay incremented by 0.2s (first bar 0.2s, second 0.4s, third 0.6s, etc.).
+  - RUNE-FLICKER: JS setInterval every 2s picks a random rune slot, applies text-shadow 0 0 15px var(--neon-glow) for 200ms, then removes it.
+  - CORNER GLOW: 0.5s ease transition on panel hover. Corner runes and dots shift from dim to bright glow.
+  - BUTTON LIFT: translateY(-2px) + neon box-shadow on hover, 0.3s ease.
+
+SVG ELEMENTS:
+  - CHARACTER SILHOUETTE: Minimal geometric SVG (triangle body + circle head + triangle cloak)
+    using stroke: var(--neon-dim), fill: rgba(0,20,30,0.8). Placeholder for hero display.
+  - SHADOW POOL: Radial gradient ellipse below character, blurred (filter: blur(5px)).
+  - BACKGROUND RUNES: SVG data URI pattern — repeating Elder Futhark rune (ᚫ) in neon-glow
+    color at 5% opacity, tiled across the entire viewport.
+
+GOOGLE FONTS:
+  Cinzel:wght@400;700;900
+  Cormorant+Garamond:ital,wght@0,400;0,600;1,400
