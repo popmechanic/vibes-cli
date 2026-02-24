@@ -578,14 +578,16 @@ async function runClaude(ws, prompt, opts = {}) {
   ws.send(JSON.stringify({ type: 'status', status: 'thinking', progress: 0, stage: 'Starting Claude...', elapsed: 0 }));
 
   return new Promise((resolve) => {
+    const tools = opts.tools || 'Edit,Read,Write,Glob,Grep';
     // Use stdin piping to avoid OS arg length limits on large prompts
     const args = [
       '--output-format', 'stream-json',
       '--verbose',
-      '--allowedTools', 'Edit,Read,Write,Glob,Grep',
+      '--allowedTools', tools,
       '--no-session-persistence',
       '-p', '-',
     ];
+    if (opts.maxTurns) args.push('--max-turns', String(opts.maxTurns));
 
     console.log(`[Claude] Spawning (prompt: ${(prompt.length / 1024).toFixed(1)}KB)...`);
     const child = spawn('claude', args, {
@@ -758,33 +760,18 @@ function extractDataSchema(appCode) {
 }
 
 async function handleChat(ws, message) {
-  // Read current app.jsx so Claude has full context of what exists
-  let currentApp = '';
-  const appPath = join(PROJECT_ROOT, 'app.jsx');
-  if (existsSync(appPath)) {
-    currentApp = readFileSync(appPath, 'utf-8');
-  }
+  const prompt = `The user is iterating on a React app in app.jsx. Read app.jsx first, then Edit it.
 
-  const dataSchema = extractDataSchema(currentApp);
+User says: "${message}"
 
-  const prompt = `The user is iterating on a React app in app.jsx (in the current directory).
+RULES:
+- Read app.jsx, then Edit ONLY what the user asked for
+- ADD to the existing app — never rewrite from scratch
+- Preserve all components, hooks, state, data models, __VIBES_THEMES__, useVibesTheme()
+- Do NOT add imports, do NOT use TypeScript, keep export default App
+- Never change Fireproof document types or query filters`;
 
-${currentApp ? `Current app.jsx:\n\n\`\`\`jsx\n${currentApp}\n\`\`\`\n\n` : ''}${dataSchema}User says: "${message}"
-
-Edit app.jsx to implement ONLY the requested changes. CRITICAL RULES:
-- READ the current app.jsx above carefully before making ANY changes
-- ADD to the existing app — do NOT rewrite it from scratch
-- Preserve ALL existing components, features, state, and data models
-- Keep all globals: useTenant(), useFireproofClerk(), useVibesTheme(), useState, useEffect, etc.
-- Do NOT add import statements — the app runs in a Babel script block with globals
-- Do NOT use TypeScript
-- Keep export default App at the bottom
-- Preserve the window.__VIBES_THEMES__ array at the top of the file
-- If adding a new feature, integrate it alongside existing features (e.g. add a tab, not replace the whole app)
-- NEVER change existing Fireproof document types or query filters — existing data must keep working
-- Use the EXACT same document type strings shown in DATA SCHEMA above — user data depends on them`;
-
-  await runClaude(ws, prompt);
+  await runClaude(ws, prompt, { tools: 'Edit,Read', maxTurns: 4 });
 }
 
 async function handleThemeSwitch(ws, themeId) {
@@ -799,36 +786,28 @@ async function handleThemeSwitch(ws, themeId) {
     }
   }
 
+  // Trim: remove REFERENCE STYLES + REFERENCE CSS (bulk CSS examples) — keep colors, principles, personality, animations
+  themeContent = themeContent.replace(/REFERENCE STYLES:[\s\S]*?(?=DESIGN PRINCIPLES:|EXAMPLE SKELETON:|PERSONALITY:|ANIMATIONS:|SVG ELEMENTS:|$)/, '');
+  const refIdx = themeContent.indexOf('REFERENCE CSS');
+  const trimmedTheme = refIdx > 0 ? themeContent.slice(0, refIdx) : themeContent;
+
   const themeMeta = themes.find(t => t.id === themeId);
   const themeName = themeMeta ? themeMeta.name : themeId;
 
-  // Read current app.jsx so Claude knows exactly what to preserve
-  let currentApp = '';
-  const appPath = join(PROJECT_ROOT, 'app.jsx');
-  if (existsSync(appPath)) {
-    currentApp = readFileSync(appPath, 'utf-8');
-  }
+  const prompt = `Restyle app.jsx with the "${themeName}" (${themeId}) theme. Read app.jsx first, then Edit it.
 
-  const dataSchema = extractDataSchema(currentApp);
+Theme identity:
+${trimmedTheme}
 
-  const prompt = `Restyle the React app in app.jsx using the "${themeName}" (${themeId}) theme.
+RULES — ONLY change visual styling:
+- Edit app.jsx — change: colors (oklch/var tokens), shadows, borders, spacing, font sizes, backgrounds
+- KEEP every component, hook, function, state, layout structure unchanged
+- Update __VIBES_THEMES__ array to include { id: "${themeId}", name: "${themeName}" }
+- Set useVibesTheme() default to "${themeId}"
+- Do NOT add imports, do NOT use TypeScript, keep export default App
+- Never change Fireproof document types or query filters`;
 
-${themeContent ? `Theme design principles and tokens:\n\n${themeContent}\n\n` : ''}${currentApp ? `Current app.jsx (PRESERVE THIS STRUCTURE):\n\n\`\`\`jsx\n${currentApp}\n\`\`\`\n\n` : ''}${dataSchema}CRITICAL RULES — read carefully:
-- PRESERVE EVERY COMPONENT, FUNCTION, AND HOOK — do NOT remove, rename, or restructure anything
-- Keep the exact same component tree: same components, same props, same state, same event handlers
-- ONLY change: style objects, CSS class values, color values, border-radius, shadows, spacing, font sizes, backgrounds
-- If the app has a table, keep the table. If it has a form, keep the form. If it has a list, keep the list. Do NOT reorganize.
-- Keep useVibesTheme() and the theme switching mechanism (window.__VIBES_THEMES__, vibes-design-request listener)
-- Update the window.__VIBES_THEMES__ array to include { id: "${themeId}", name: "${themeName}" } alongside any existing themes
-- IMPORTANT: Set the default theme to "${themeId}" in useVibesTheme() — change the localStorage fallback from the current default to "${themeId}"
-- Do NOT add import statements — the app runs in a Babel script block with globals
-- Do NOT use TypeScript
-- Restyle with the theme's visual personality (colors, shadows, typography, spacing) but keep the SAME layout structure
-- Keep all globals: useTenant(), useFireproofClerk(), useState, useEffect, etc.
-- Keep export default App at the bottom
-- NEVER change Fireproof document types or query filters — user data in IndexedDB depends on them`;
-
-  await runClaude(ws, prompt, { skipChat: true });
+  await runClaude(ws, prompt, { skipChat: true, tools: 'Edit,Read', maxTurns: 3 });
 }
 
 // --- Create Theme Handlers ---
@@ -867,13 +846,6 @@ async function handleGenerate(ws, userPrompt, themeId) {
     return;
   }
 
-  // Read design tokens
-  let designTokens = '';
-  const tokensPath = join(PROJECT_ROOT, 'build/design-tokens.txt');
-  if (existsSync(tokensPath)) {
-    designTokens = readFileSync(tokensPath, 'utf-8');
-  }
-
   // Read style prompt (creative guidelines for SVG, animations, components)
   let stylePrompt = '';
   const stylePath = join(PROJECT_ROOT, 'skills/vibes/defaults/style-prompt.txt');
@@ -887,7 +859,7 @@ async function handleGenerate(ws, userPrompt, themeId) {
     console.log(`[Generate] Auto-selected theme: ${themeId}`);
   }
 
-  // Read full theme file (design principles, color tokens, personality, animations)
+  // Read theme file (design principles, color tokens, personality, animations)
   let themeContent = '';
   let themeName = '';
   const meta = themes.find(t => t.id === themeId);
@@ -896,6 +868,12 @@ async function handleGenerate(ws, userPrompt, themeId) {
   const mdFile = join(THEME_DIR, `${themeId}.md`);
   if (existsSync(txtFile)) themeContent = readFileSync(txtFile, 'utf-8');
   else if (existsSync(mdFile)) themeContent = readFileSync(mdFile, 'utf-8');
+
+  // Trim: remove REFERENCE STYLES section (bulk CSS examples) — keep colors, principles, personality, animations
+  themeContent = themeContent.replace(/REFERENCE STYLES:[\s\S]*?(?=DESIGN PRINCIPLES:|EXAMPLE SKELETON:|PERSONALITY:|ANIMATIONS:|SVG ELEMENTS:|$)/, '');
+  // Also trim REFERENCE CSS if present
+  const refIdx = themeContent.indexOf('REFERENCE CSS');
+  if (refIdx > 0) themeContent = themeContent.slice(0, refIdx);
 
   // Build the catalog summary for context (theme names + moods only, not full files)
   const catalogSummary = themes.map(t => `  ${t.id}: ${t.name} — ${t.mood}`).join('\n');
@@ -933,7 +911,26 @@ ${stylePrompt}
 
 === STEP 4: DESIGN TOKENS ===
 
-${designTokens ? `Use these CSS custom properties — override --comp-* tokens in a :root style block:\n\n${designTokens}` : 'Use --comp-bg, --comp-text, --comp-border, --comp-accent, --comp-muted CSS custom properties.'}
+Override --comp-* tokens in a :root style block to set the mood. Use oklch() for rich colors.
+
+\`\`\`css
+:root {
+  --comp-bg: oklch(...);           /* surfaces */
+  --comp-text: oklch(...);         /* body text */
+  --comp-border: oklch(...);       /* outlines */
+  --comp-accent: oklch(...);       /* primary accent */
+  --comp-accent-text: oklch(...);  /* text on accent */
+  --comp-muted: oklch(...);        /* placeholders */
+}
+\`\`\`
+
+Pre-styled components: card, btn, input, badge, tabs, alert, separator, table, accordion, dialog, progress, nav
+- Buttons: className="btn" (variants: btn-red, btn-yellow, btn-gray)
+- Cards: className="card" (variants: card-red, card-yellow)
+- Badges: className="badge" (variants: badge-blue, badge-red, badge-yellow)
+- Root container: className="grid-background"
+- Shadows: var(--shadow-brutalist-blue) for cards, var(--shadow-brutalist-red) for delete
+- Never override --vibes-* tokens (wrapper UI). Only override --comp-* tokens (your app).
 
 === STEP 5: CODE OUTPUT ===
 
@@ -968,7 +965,7 @@ List: const { docs } = useLiveQuery("type", { key: "item" });
 Direct: database.put({ text: "new", type: "item" }), database.del(doc._id)`;
 
   console.log(`[Generate] Starting — prompt: "${userPrompt.slice(0, 60)}...", theme: ${themeId} (${themeName}), total prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
-  await runClaude(ws, prompt, { skipChat: true });
+  await runClaude(ws, prompt, { skipChat: true, tools: 'Write,Read', maxTurns: 5 });
 }
 
 // --- Editor: Deploy assembled app ---
