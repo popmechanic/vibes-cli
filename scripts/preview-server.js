@@ -5,7 +5,11 @@
  * HTTP server serves preview.html, app.jsx, and theme catalog.
  * WebSocket server bridges chat messages and theme switches to claude -p.
  *
- * Usage: node scripts/preview-server.js [--port 3333]
+ * Modes:
+ *   --mode=preview  (default) Serves preview.html for terminal-based iteration
+ *   --mode=editor   Serves editor.html with setup wizard, generation, and deploy
+ *
+ * Usage: node scripts/preview-server.js [--port 3333] [--mode=editor]
  */
 
 import { createServer } from 'http';
@@ -15,11 +19,23 @@ import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import { WebSocketServer } from 'ws';
 import { parseThemeCatalog } from './lib/parse-theme-catalog.js';
+import { loadEnvFile, validateClerkKey } from './lib/env-utils.js';
 import { homedir } from 'os';
+import { execFile } from 'child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(__dirname, '..');
 const PORT = parseInt(process.argv.find((_, i, a) => a[i - 1] === '--port') || '3333', 10);
+const MODE = (process.argv.find(a => a.startsWith('--mode=')) || '--mode=preview').split('=')[1];
+const INITIAL_PROMPT = process.argv.find((_, i, a) => a[i - 1] === '--prompt') || '';
+
+// --- Clean env for spawning claude subprocesses (removes nesting guard) ---
+function cleanEnv() {
+  const env = { ...process.env };
+  delete env.CLAUDECODE;
+  delete env.CLAUDE_CODE_ENTRYPOINT;
+  return env;
+}
 
 // --- Load OpenRouter API key ---
 function loadOpenRouterKey() {
@@ -293,7 +309,7 @@ Use oklch() for ALL color values. Study the image carefully for palette, typogra
     console.log(`[ThemeExtract] Spawning claude for theme "${themeId}" (with image)...`);
     const child = spawn('claude', args, {
       cwd: PROJECT_ROOT,
-      env: { ...process.env },
+      env: cleanEnv(),
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
@@ -322,6 +338,59 @@ Use oklch() for ALL color values. Study the image carefully for palette, typogra
   });
 }
 
+// --- Editor dependency checks ---
+function runCommand(cmd, args, timeoutMs = 5000) {
+  return new Promise((resolve) => {
+    try {
+      execFile(cmd, args, { timeout: timeoutMs, env: { ...process.env } }, (err, stdout) => {
+        resolve({ ok: !err, output: (stdout || '').trim() });
+      });
+    } catch {
+      resolve({ ok: false, output: '' });
+    }
+  });
+}
+
+async function checkEditorDeps() {
+  const env = loadEnvFile(PROJECT_ROOT);
+
+  // Clerk keys
+  const clerkKey = env.VITE_CLERK_PUBLISHABLE_KEY || '';
+  const clerkOk = validateClerkKey(clerkKey);
+
+  // Connect URLs
+  const apiUrl = env.VITE_API_URL || '';
+  const cloudUrl = env.VITE_CLOUD_URL || '';
+  const connectOk = !!(apiUrl && cloudUrl);
+
+  // Wrangler auth (optional)
+  const wranglerResult = await runCommand('wrangler', ['whoami']);
+  const wranglerOk = wranglerResult.ok && !wranglerResult.output.includes('not authenticated');
+
+  // SSH to exe.dev (optional)
+  const sshResult = await runCommand('ssh', ['-o', 'ConnectTimeout=3', '-o', 'BatchMode=yes', 'exe.dev', 'echo', 'ok']);
+  const sshOk = sshResult.ok && sshResult.output.includes('ok');
+
+  return {
+    clerk: {
+      ok: clerkOk,
+      detail: clerkOk ? `${clerkKey.slice(0, 12)}...` : 'No valid Clerk key in .env',
+    },
+    connect: {
+      ok: connectOk,
+      detail: connectOk ? apiUrl : 'No VITE_API_URL / VITE_CLOUD_URL in .env',
+    },
+    wrangler: {
+      ok: wranglerOk,
+      detail: wranglerOk ? 'Authenticated' : 'Not configured or not authenticated',
+    },
+    ssh: {
+      ok: sshOk,
+      detail: sshOk ? 'Connected' : 'Cannot reach exe.dev',
+    },
+  };
+}
+
 // --- MIME types ---
 const MIME = {
   '.html': 'text/html',
@@ -334,7 +403,7 @@ const MIME = {
 };
 
 // --- HTTP Server ---
-function handleRequest(req, res) {
+async function handleRequest(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   const pathname = url.pathname;
 
@@ -348,15 +417,36 @@ function handleRequest(req, res) {
     return res.end();
   }
 
-  // GET / → preview.html
+  // GET / → preview.html or editor.html depending on mode
   if (pathname === '/' || pathname === '/index.html') {
-    const previewPath = join(PROJECT_ROOT, 'skills/vibes/templates/preview.html');
-    if (!existsSync(previewPath)) {
+    const htmlFile = MODE === 'editor' ? 'editor.html' : 'preview.html';
+    const htmlPath = join(PROJECT_ROOT, 'skills/vibes/templates', htmlFile);
+    if (!existsSync(htmlPath)) {
       res.writeHead(404);
-      return res.end('preview.html not found');
+      return res.end(`${htmlFile} not found`);
     }
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    return res.end(readFileSync(previewPath, 'utf-8'));
+    return res.end(readFileSync(htmlPath, 'utf-8'));
+  }
+
+  // GET /editor/status → dependency check (editor mode)
+  if (pathname === '/editor/status') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    const status = await checkEditorDeps();
+    return res.end(JSON.stringify(status));
+  }
+
+  // GET /editor/initial-prompt → return prompt passed via --prompt flag
+  if (pathname === '/editor/initial-prompt') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ prompt: INITIAL_PROMPT }));
+  }
+
+  // GET /editor/app-exists → check if app.jsx exists
+  if (pathname === '/editor/app-exists') {
+    const exists = existsSync(join(PROJECT_ROOT, 'app.jsx'));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ exists }));
   }
 
   // GET /app.jsx → current app.jsx from project root
@@ -428,24 +518,41 @@ wss.on('connection', (ws) => {
       return;
     }
 
-    if (msg.type === 'chat') {
-      await handleChat(ws, msg.message);
-    } else if (msg.type === 'theme') {
-      await handleThemeSwitch(ws, msg.themeId);
-    } else if (msg.type === 'cancel') {
-      cancelClaude(ws);
-    } else if (msg.type === 'create_theme') {
-      const prompt = String(msg.prompt || '').replace(/[\x00-\x1f]/g, '').slice(0, 500);
-      if (!prompt) { ws.send(JSON.stringify({ type: 'error', message: 'Prompt is required' })); return; }
-      await handleCreateTheme(ws, prompt);
-    } else if (msg.type === 'pick_theme_image') {
-      const prompt = String(msg.prompt || '').replace(/[\x00-\x1f]/g, '').slice(0, 500);
-      await handlePickThemeImage(ws, msg.index, prompt);
+    try {
+      if (msg.type === 'chat') {
+        await handleChat(ws, msg.message);
+      } else if (msg.type === 'theme') {
+        await handleThemeSwitch(ws, msg.themeId);
+      } else if (msg.type === 'cancel') {
+        cancelClaude(ws);
+      } else if (msg.type === 'create_theme') {
+        const prompt = String(msg.prompt || '').replace(/[\x00-\x1f]/g, '').slice(0, 500);
+        if (!prompt) { ws.send(JSON.stringify({ type: 'error', message: 'Prompt is required' })); return; }
+        await handleCreateTheme(ws, prompt);
+      } else if (msg.type === 'pick_theme_image') {
+        const prompt = String(msg.prompt || '').replace(/[\x00-\x1f]/g, '').slice(0, 500);
+        await handlePickThemeImage(ws, msg.index, prompt);
+      } else if (msg.type === 'generate') {
+        await handleGenerate(ws, msg.prompt, msg.themeId);
+      } else if (msg.type === 'deploy') {
+        await handleDeploy(ws, msg.target, msg.name);
+      }
+    } catch (err) {
+      console.error('[WS] Handler error:', err);
+      try {
+        ws.send(JSON.stringify({ type: 'error', message: `Internal error: ${err.message}` }));
+      } catch { /* ws may be closed */ }
     }
   });
 
   ws.on('close', () => {
     console.log('[WS] Client disconnected');
+    // Kill any active Claude process when the client disconnects
+    if (activeClaude) {
+      console.log('[WS] Killing orphaned Claude process');
+      activeClaude.kill('SIGKILL');
+      activeClaude = null;
+    }
   });
 });
 
@@ -483,7 +590,7 @@ async function runClaude(ws, prompt, opts = {}) {
     console.log(`[Claude] Spawning (prompt: ${(prompt.length / 1024).toFixed(1)}KB)...`);
     const child = spawn('claude', args, {
       cwd: PROJECT_ROOT,
-      env: { ...process.env },
+      env: cleanEnv(),
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     activeClaude = child;
@@ -726,6 +833,253 @@ ${themeContent ? `Theme design principles and tokens:\n\n${themeContent}\n\n` : 
 
 // --- Create Theme Handlers ---
 
+// --- Editor: Auto-select theme based on user prompt keywords ---
+function autoSelectTheme(userPrompt) {
+  const catalogPath = join(PROJECT_ROOT, 'skills/vibes/themes/catalog.txt');
+  if (!existsSync(catalogPath)) return 'default';
+
+  const catalog = readFileSync(catalogPath, 'utf-8');
+  const promptLower = userPrompt.toLowerCase();
+
+  // Parse signal sections from catalog
+  const signalRegex = /^(\w+)\s+signals:\s*([\s\S]*?)(?=\n\n|\n\w+\s+signals:)/gm;
+  const scores = {};
+  let match;
+  while ((match = signalRegex.exec(catalog)) !== null) {
+    const themeId = match[1];
+    const keywords = match[2].match(/"([^"]+)"/g)?.map(k => k.replace(/"/g, '').toLowerCase()) || [];
+    let score = 0;
+    for (const kw of keywords) {
+      if (promptLower.includes(kw)) score += kw.split(' ').length; // multi-word matches score higher
+    }
+    if (score > 0) scores[themeId] = score;
+  }
+
+  // Return highest-scoring theme, or 'default'
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  return sorted.length > 0 ? sorted[0][0] : 'default';
+}
+
+// --- Editor: Generate app from scratch ---
+async function handleGenerate(ws, userPrompt, themeId) {
+  if (!userPrompt) {
+    ws.send(JSON.stringify({ type: 'error', message: 'Please describe what you want to build.' }));
+    return;
+  }
+
+  // Read design tokens
+  let designTokens = '';
+  const tokensPath = join(PROJECT_ROOT, 'build/design-tokens.txt');
+  if (existsSync(tokensPath)) {
+    designTokens = readFileSync(tokensPath, 'utf-8');
+  }
+
+  // Read style prompt (creative guidelines for SVG, animations, components)
+  let stylePrompt = '';
+  const stylePath = join(PROJECT_ROOT, 'skills/vibes/defaults/style-prompt.txt');
+  if (existsSync(stylePath)) {
+    stylePrompt = readFileSync(stylePath, 'utf-8');
+  }
+
+  // Auto-select theme if none chosen
+  if (!themeId) {
+    themeId = autoSelectTheme(userPrompt);
+    console.log(`[Generate] Auto-selected theme: ${themeId}`);
+  }
+
+  // Read full theme file (design principles, color tokens, personality, animations)
+  let themeContent = '';
+  let themeName = '';
+  const meta = themes.find(t => t.id === themeId);
+  themeName = meta ? meta.name : themeId;
+  const txtFile = join(THEME_DIR, `${themeId}.txt`);
+  const mdFile = join(THEME_DIR, `${themeId}.md`);
+  if (existsSync(txtFile)) themeContent = readFileSync(txtFile, 'utf-8');
+  else if (existsSync(mdFile)) themeContent = readFileSync(mdFile, 'utf-8');
+
+  // Build the catalog summary for context (theme names + moods only, not full files)
+  const catalogSummary = themes.map(t => `  ${t.id}: ${t.name} — ${t.mood}`).join('\n');
+
+  const prompt = `You are an expert React app designer and developer. You create beautifully designed, highly creative single-file React apps with custom SVG artwork, animations, and thematic personality.
+
+USER REQUEST: "${userPrompt}"
+
+SELECTED THEME: "${themeName}" (${themeId})
+Available themes for reference:
+${catalogSummary}
+
+=== STEP 1: DESIGN REASONING ===
+
+Before writing ANY code, think through the design in a <design> block:
+
+<design>
+- What is the core functionality and user flow?
+- What OKLCH colors fit this app? (dark/light, warm/cool, vibrant/muted)
+- What layout best serves the content? (cards, list, dashboard, single-focus)
+- What custom SVG illustrations would make this app feel premium?
+- What micro-interactions would feel satisfying? (hover states, transitions, animations)
+- How does the "${themeName}" theme personality inform the visual choices?
+</design>
+
+=== STEP 2: THEME DESIGN PRINCIPLES ===
+
+${themeContent ? `Apply this theme's full design language — colors, personality, animation tempo, SVG guidelines:\n\n${themeContent}` : `Use the default neo-brutalist style with bold borders, hard shadows, and strong typography.`}
+
+CREATIVE LIBERTY: The theme is a mood board, not a template. Use the color tokens exactly (they define the mood), follow the design principles, but INVENT unique layouts, card designs, hover effects, and decorative SVG elements specific to this app. Two apps with the same theme should FEEL related but LOOK different.
+
+=== STEP 3: STYLE & VISUAL GUIDELINES ===
+
+${stylePrompt}
+
+=== STEP 4: DESIGN TOKENS ===
+
+${designTokens ? `Use these CSS custom properties — override --comp-* tokens in a :root style block:\n\n${designTokens}` : 'Use --comp-bg, --comp-text, --comp-border, --comp-accent, --comp-muted CSS custom properties.'}
+
+=== STEP 5: CODE OUTPUT ===
+
+Write the complete app to app.jsx. Follow these rules exactly:
+
+THEME SUPPORT (required):
+- Start with: window.__VIBES_THEMES__ = [{ id: "${themeId}", name: "${themeName}" }];
+- Include this hook for theme switching:
+  function useVibesTheme() {
+    const [theme, setTheme] = React.useState(() => localStorage.getItem("vibes-theme") || "${themeId}");
+    React.useEffect(() => {
+      const handler = (e) => { const t = e.detail?.theme; if (t) { setTheme(t); localStorage.setItem("vibes-theme", t); } };
+      document.addEventListener("vibes-design-request", handler);
+      return () => document.removeEventListener("vibes-design-request", handler);
+    }, []);
+    return theme;
+  }
+
+CODE RULES:
+- Use JSX with React hooks (useState, useEffect, useRef, useCallback, useMemo)
+- Use useFireproofClerk("db-name") for database — returns { database, useLiveQuery, useDocument }
+- Do NOT add import statements — the app runs in a Babel script block with globals
+- Do NOT use TypeScript
+- End with: export default App
+- Make the app responsive (mobile-first with Tailwind breakpoints)
+- Use className="btn" for pre-styled buttons, "btn btn-red" for destructive
+- Use className="grid-background" on the app root container
+
+DATABASE PATTERNS:
+Form: const { doc, merge, submit, reset } = useDocument({ text: "", type: "item" });
+List: const { docs } = useLiveQuery("type", { key: "item" });
+Direct: database.put({ text: "new", type: "item" }), database.del(doc._id)`;
+
+  console.log(`[Generate] Starting — prompt: "${userPrompt.slice(0, 60)}...", theme: ${themeId} (${themeName}), total prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
+  await runClaude(ws, prompt, { skipChat: true });
+}
+
+// --- Editor: Deploy assembled app ---
+async function handleDeploy(ws, target, name) {
+  if (!target || (target !== 'cloudflare' && target !== 'exe')) {
+    ws.send(JSON.stringify({ type: 'error', message: 'Invalid deploy target. Use "cloudflare" or "exe".' }));
+    return;
+  }
+
+  // Sanitize name: lowercase, alphanumeric + hyphens only
+  const appName = (name || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 63);
+  if (!appName) {
+    ws.send(JSON.stringify({ type: 'error', message: 'App name is required for deployment.' }));
+    return;
+  }
+
+  const startTime = Date.now();
+  function getElapsed() { return Math.round((Date.now() - startTime) / 1000); }
+
+  // First assemble
+  ws.send(JSON.stringify({ type: 'status', status: 'thinking', progress: 5, stage: 'Assembling app...', elapsed: 0 }));
+
+  const appJsxPath = join(PROJECT_ROOT, 'app.jsx');
+  const indexHtmlPath = join(PROJECT_ROOT, 'index.html');
+
+  const assembleResult = await new Promise((resolve) => {
+    const child = spawn('node', [
+      join(PROJECT_ROOT, 'scripts/assemble.js'),
+      appJsxPath,
+      indexHtmlPath,
+    ], {
+      cwd: PROJECT_ROOT,
+      env: { ...process.env },
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (d) => { stdout += d.toString(); });
+    child.stderr.on('data', (d) => { stderr += d.toString(); });
+
+    child.on('close', (code) => {
+      resolve({ ok: code === 0, stdout, stderr });
+    });
+    child.on('error', (err) => {
+      resolve({ ok: false, stdout: '', stderr: err.message });
+    });
+  });
+
+  if (!assembleResult.ok) {
+    ws.send(JSON.stringify({ type: 'error', message: `Assembly failed: ${assembleResult.stderr.slice(0, 300)}` }));
+    return;
+  }
+
+  ws.send(JSON.stringify({ type: 'status', status: 'thinking', progress: 30, stage: 'Deploying...', elapsed: getElapsed() }));
+
+  // Deploy with correct flags per script
+  const deployScript = target === 'cloudflare'
+    ? join(PROJECT_ROOT, 'scripts/deploy-cloudflare.js')
+    : join(PROJECT_ROOT, 'scripts/deploy-exe.js');
+
+  const deployArgs = target === 'cloudflare'
+    ? ['--name', appName, '--file', indexHtmlPath]
+    : ['--name', appName, '--file', indexHtmlPath, '--skip-registry'];
+
+  const deployResult = await new Promise((resolve) => {
+    const child = spawn('node', [deployScript, ...deployArgs], {
+      cwd: PROJECT_ROOT,
+      env: { ...process.env },
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    const progressInterval = setInterval(() => {
+      const elapsed = getElapsed();
+      const progress = Math.min(30 + Math.round(60 * (1 - Math.exp(-elapsed / 30))), 90);
+      ws.send(JSON.stringify({ type: 'status', status: 'thinking', progress, stage: 'Deploying...', elapsed }));
+    }, 1000);
+
+    child.stdout.on('data', (d) => { stdout += d.toString(); });
+    child.stderr.on('data', (d) => { stderr += d.toString(); });
+
+    child.on('close', (code) => {
+      clearInterval(progressInterval);
+      resolve({ ok: code === 0, stdout, stderr });
+    });
+    child.on('error', (err) => {
+      clearInterval(progressInterval);
+      resolve({ ok: false, stdout: '', stderr: err.message });
+    });
+  });
+
+  if (!deployResult.ok) {
+    ws.send(JSON.stringify({ type: 'error', message: `Deploy failed: ${deployResult.stderr.slice(0, 300)}` }));
+    return;
+  }
+
+  // Extract URL from deploy output
+  let deployUrl = '';
+  const urlMatch = deployResult.stdout.match(/(https?:\/\/[^\s]+)/);
+  if (urlMatch) deployUrl = urlMatch[1];
+
+  ws.send(JSON.stringify({ type: 'status', status: 'thinking', progress: 100, stage: 'Done!', elapsed: getElapsed() }));
+  ws.send(JSON.stringify({ type: 'deploy_complete', url: deployUrl }));
+  ws.send(JSON.stringify({ type: 'chat', role: 'assistant', content: deployUrl ? `Deployed to ${deployUrl}` : 'Deployment complete!' }));
+
+  console.log(`[Deploy] ${target} deploy "${appName}" complete${deployUrl ? `: ${deployUrl}` : ''}`);
+}
+
 async function handleCreateTheme(ws, prompt) {
   if (!OPENROUTER_KEY) {
     ws.send(JSON.stringify({ type: 'error', message: 'OpenRouter API key not configured. Add OPENROUTER_API_KEY to .env to enable theme creation.' }));
@@ -895,6 +1249,17 @@ function buildAppFrameHtml(appCode) {
             _storeData.push(newDoc);
             _notify();
             setDoc(Object.assign({}, initial));
+          },
+          reset: function() {
+            setDoc(Object.assign({}, initial));
+          },
+          save: function() {
+            var id = doc._id || 'doc-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+            var saved = Object.assign({}, doc, { _id: id });
+            var idx = _storeData.findIndex(function(d) { return d._id === id; });
+            if (idx >= 0) _storeData[idx] = saved;
+            else _storeData.push(saved);
+            _notify();
           }
         };
       }
@@ -917,16 +1282,15 @@ ${appCode}
 
 // --- Start ---
 server.listen(PORT, () => {
+  const modeLabel = MODE === 'editor' ? 'Editor' : 'Preview';
   console.log(`
 ┌─────────────────────────────────────────────────┐
-│  Vibes Live Preview Server                      │
+│  Vibes ${modeLabel.padEnd(7)} Server                       │
 ├─────────────────────────────────────────────────┤
 │                                                 │
-│  Preview:  http://localhost:${PORT}                │
-│  Themes:   ${themes.length} loaded                         │
-│                                                 │
-│  Chat and theme changes bridge to Claude Code   │
-│  via WebSocket → claude -p subprocess           │
+│  Open:     http://localhost:${PORT}                │
+│  Mode:     ${modeLabel.padEnd(37)}│
+│  Themes:   ${String(themes.length).padEnd(3)} loaded                       │
 │                                                 │
 │  Press Ctrl+C to stop                           │
 └─────────────────────────────────────────────────┘

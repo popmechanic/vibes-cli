@@ -26,6 +26,26 @@ metadata:
 
 Generate multiple app variations in parallel. Each riff is a different INTERPRETATION - different ideas, not just styling.
 
+## Step 0: Terminal or Editor UI?
+
+**This is the very first question — ask before anything else.**
+
+Ask the user:
+> "How do you want to riff? **Terminal** (I'll generate variations and rank them from here) or **Editor** (opens a browser UI with live preview, chat, and deploy button)?"
+
+- **If Editor**: Start the editor server. If the user already described what they want to riff on, pass it via `--prompt`:
+  ```bash
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
+  ```
+  If no prompt was given, omit `--prompt`:
+  ```bash
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor
+  ```
+  Tell the user: "Open http://localhost:3333 — the editor handles everything from here: describe your app, preview it live, switch themes, and deploy with one click."
+  **Then stop.** The editor UI takes over the entire workflow (setup, generation, preview, deploy). Do not continue with the steps below.
+
+- **If Terminal**: Continue with the normal workflow below.
+
 ## Workflow
 
 ### Step 1: Gather ALL Requirements Upfront

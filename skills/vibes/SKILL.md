@@ -24,6 +24,7 @@ metadata:
 
 ## Quick Navigation
 
+- [Terminal or Editor](#step-0-terminal-or-editor-ui) - Choose how to build (ask first!)
 - [Pre-Flight Check](#pre-flight-check-connect-status) - Validate Connect setup before coding
 - [Core Rules](#core-rules) - Essential guidelines for app generation
 - [Generation Process](#generation-process) - Design reasoning and code output
@@ -40,11 +41,29 @@ metadata:
 
 Generate React web applications using Fireproof for local-first data persistence.
 
+## Step 0: Terminal or Editor UI?
+
+**This is the very first question — ask before anything else.**
+
+Ask the user:
+> "How do you want to build? **Terminal** (I'll generate and deploy from here) or **Editor** (opens a browser UI with live preview, chat, and deploy button)?"
+
+- **If Editor**: Start the editor server. If the user already described what they want to build (e.g., `/vibes a dogs app`), pass it via `--prompt`:
+  ```bash
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
+  ```
+  If no prompt was given, omit `--prompt`:
+  ```bash
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor
+  ```
+  Tell the user: "Open http://localhost:3333 — the editor handles everything from here: describe your app, preview it live, switch themes, and deploy with one click."
+  **Then stop.** The editor UI takes over the entire workflow (setup, generation, preview, deploy). Do not continue with the steps below.
+
+- **If Terminal**: Continue with the pre-flight check and normal generation workflow below.
+
 ## Pre-Flight Check: Connect Status
 
 **MANDATORY: Complete these steps BEFORE generating any app code.**
-
-**Step 0: Check Connect Status**
 
 Run this command first to validate all required credentials:
 ```bash
@@ -63,8 +82,6 @@ fi
 > Connect with Clerk authentication is required for Vibes apps.
 
 Invoke `/vibes:connect` to deploy Connect, then return here when complete.
-
-**If Connect IS set up** (CONNECT_READY), proceed directly to app generation. The assemble script will populate Connect config from .env.
 
 **Platform Name vs User Intent**: "Vibes" is the name of this app platform (Vibes DIY). When users say "vibe" or "vibes" in their prompt, interpret it as:
 - Their project/brand name ("my vibes tracker")
