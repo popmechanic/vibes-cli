@@ -853,6 +853,13 @@ async function handleGenerate(ws, userPrompt, themeId) {
     stylePrompt = readFileSync(stylePath, 'utf-8');
   }
 
+  // Read advanced effects prompt (Canvas, WebGL, interactive SVG, CSS advanced)
+  let advancedEffectsPrompt = '';
+  const advancedEffectsPath = join(PROJECT_ROOT, 'skills/vibes/defaults/advanced-effects-prompt.txt');
+  if (existsSync(advancedEffectsPath)) {
+    advancedEffectsPrompt = readFileSync(advancedEffectsPath, 'utf-8');
+  }
+
   // Auto-select theme if none chosen
   if (!themeId) {
     themeId = autoSelectTheme(userPrompt);
@@ -908,6 +915,10 @@ CREATIVE LIBERTY: The theme is a mood board, not a template. Use the color token
 === STEP 3: STYLE & VISUAL GUIDELINES ===
 
 ${stylePrompt}
+
+=== STEP 3b: ADVANCED VISUAL EFFECTS ===
+
+${advancedEffectsPrompt}
 
 === STEP 4: DESIGN TOKENS ===
 
