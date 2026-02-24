@@ -97,7 +97,7 @@ For SaaS apps using subdomain claiming (from `/vibes:sell`), deploy with Clerk c
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.html \
-  --clerk-key "$(cat clerk-public-key.pem)" \
+  --clerk-key "`cat clerk-public-key.pem`" \
   --clerk-webhook-secret "whsec_xxx" \
   --reserved "admin,api,billing"
 ```
@@ -136,7 +136,7 @@ Then convert the JWK to PEM format using an online tool or `jose` CLI.
 **Passing to deploy script:**
 ```bash
 # From a file
-node deploy-exe.js --clerk-key "$(cat clerk-public-key.pem)" ...
+node deploy-exe.js --clerk-key "`cat clerk-public-key.pem`" ...
 
 # Inline (escape newlines)
 node deploy-exe.js --clerk-key "-----BEGIN PUBLIC KEY-----\nMIIB...\n-----END PUBLIC KEY-----" ...
