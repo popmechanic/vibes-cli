@@ -662,6 +662,7 @@ The shipped default files contain detailed reference material. Read them when th
 | Auth / sync config | "Clerk", "Connect", "cloud sync", "login" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "ClerkFireproofProvider Config" |
 | Sync status display | "online/offline", "connection status" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Sync Status Display" |
 | Full Neobrute design details | detailed design system, spacing, typography | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/defaults/style-prompt.txt` |
+| Advanced visual effects | "interactive", "animated", "3D", "particles", "shader", "canvas" | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/defaults/advanced-effects-prompt.txt` |
 
 ---
 
