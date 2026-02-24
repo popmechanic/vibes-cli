@@ -32,7 +32,29 @@ For architecture context, see `LAUNCH-REFERENCE.md` in this directory.
 
 ---
 
-## FIRST: Pre-Flight Decision Tree
+## FIRST: Terminal or Editor UI?
+
+**This is the very first question — ask before anything else.**
+
+Ask the user:
+> "How do you want to build? **Terminal** (I'll generate and deploy from here) or **Editor** (opens a browser UI with live preview, chat, and deploy button)?"
+
+- **If Editor**: Start the editor server. If the user already described what they want to build (e.g., `/launch a dogs app`), pass it via `--prompt`:
+  ```bash
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
+  ```
+  If no prompt was given, omit `--prompt`:
+  ```bash
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor
+  ```
+  Tell the user: "Open http://localhost:3333 — the editor handles everything from here: describe your app, preview it live, switch themes, and deploy with one click."
+  **Then stop.** The editor UI takes over the entire workflow (setup, generation, preview, deploy). Do not continue with the phases below.
+
+- **If Terminal**: Continue with the pre-flight checks and normal workflow below.
+
+---
+
+## Pre-Flight Decision Tree
 
 Run all five checks before collecting any input:
 
@@ -43,8 +65,6 @@ Run all five checks before collecting any input:
 | 3 | app.jsx exists | `test -f app.jsx` | **Ask [Reuse]**: "app.jsx exists. Reuse it or regenerate?" If reuse: skip T1. |
 | 4 | Wrangler authenticated | `npx wrangler whoami 2>&1` | If NOT authenticated: tell user to run `npx wrangler login` and wait. |
 | 5 | SSH key exists | `ls ~/.ssh/id_ed25519 ~/.ssh/id_rsa ~/.ssh/id_ecdsa 2>/dev/null` | If missing AND not CONNECT_READY: warn about Connect deploy. |
-
----
 
 ## Phase 0: Collect Inputs
 
