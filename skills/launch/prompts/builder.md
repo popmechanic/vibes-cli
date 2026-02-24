@@ -24,6 +24,7 @@ Generate a single-theme layout. Read the theme catalog (`{pluginRoot}/skills/vib
 2. Read design tokens: Read file `{pluginRoot}/build/design-tokens.txt`
 3. Read Fireproof API docs: Read file `{pluginRoot}/docs/fireproof.txt`
 4. Read style guidance: Read file `{pluginRoot}/skills/vibes/defaults/style-prompt.txt`
+4b. Read advanced effects: Read file `{pluginRoot}/skills/vibes/defaults/advanced-effects-prompt.txt` — pick the visual complexity tier that matches your chosen theme's mood
 5. Read theme catalog: Read file `{pluginRoot}/skills/vibes/themes/catalog.txt` — then read ONLY the theme files for your selected themes
 6. Output ONLY a default-export JSX component — no import statements, no HTML wrapper, no import map, no Babel script tags
 7. Export a default function component: `export default function App() { ... }`
