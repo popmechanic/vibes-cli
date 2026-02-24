@@ -1,7 +1,7 @@
-window.__VIBES_THEMES__ = [{ id: "rift", name: "Rift Portal" }, { id: "palate", name: "Palate Notes" }];
+window.__VIBES_THEMES__ = [{ id: "default", name: "Neo-Brutalist" }];
 
 function useVibesTheme() {
-  const [theme, setTheme] = React.useState(() => localStorage.getItem("vibes-theme") || "palate");
+  const [theme, setTheme] = React.useState(() => localStorage.getItem("vibes-theme") || "default");
   React.useEffect(() => {
     const handler = (e) => { const t = e.detail?.theme; if (t) { setTheme(t); localStorage.setItem("vibes-theme", t); } };
     document.addEventListener("vibes-design-request", handler);
@@ -10,712 +10,482 @@ function useVibesTheme() {
   return theme;
 }
 
-const { useState, useEffect, useRef, useCallback, useMemo } = React;
-const { useFireproofClerk } = window;
-
-/* ── SVG ICON COMPONENTS ────────────────────────────────── */
-
-function StarIcon({ size = 24, color = "oklch(0.93 0.006 265)" }) {
+/* ── SVG Icons ── */
+function SpartanHelmet({ size = 48, color = "var(--comp-accent)" }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <path d="M12 2l2.4 7.2H22l-6 4.8 2.4 7.2L12 16.4l-6.4 4.8 2.4-7.2-6-4.8h7.6z"
-        fill={color} opacity="0.9">
-        <animate attributeName="opacity" values="0.7;1;0.7" dur="3s" repeatCount="indefinite" />
-      </path>
+    <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
+      <path d="M32 4C18 4 10 16 10 28c0 6 2 11 5 15l2 3v10c0 2 2 4 4 4h22c2 0 4-2 4-4V46l2-3c3-4 5-9 5-15C54 16 46 4 32 4z" fill={color} opacity="0.15" stroke={color} strokeWidth="2.5"/>
+      <path d="M16 30h32" stroke={color} strokeWidth="2.5" strokeLinecap="round"/>
+      <path d="M18 30c0 0 2-8 14-8s14 8 14 8" stroke={color} strokeWidth="2" fill="none"/>
+      <rect x="18" y="30" width="28" height="6" rx="2" fill={color} opacity="0.3"/>
+      <path d="M22 33h8" stroke={color} strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
+      <path d="M34 33h8" stroke={color} strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
     </svg>
   );
 }
 
-function PlanetIcon({ size = 24, color = "oklch(0.82 0.006 265)" }) {
+function HaloRingIcon({ size = 24, color = "var(--comp-accent)" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="7" fill={color} opacity="0.85" />
-      <ellipse cx="12" cy="12" rx="11" ry="3" stroke={color} strokeWidth="1.2" fill="none"
-        transform="rotate(-20 12 12)" opacity="0.6" />
-      <circle cx="9" cy="10" r="1.5" fill="rgba(0,0,0,0.25)" />
-      <circle cx="14" cy="14" r="1" fill="rgba(0,0,0,0.15)" />
+      <ellipse cx="12" cy="12" rx="10" ry="4" stroke={color} strokeWidth="2" opacity="0.6"/>
+      <circle cx="12" cy="12" r="3" fill={color} opacity="0.3"/>
+      <circle cx="12" cy="12" r="1.5" fill={color}/>
     </svg>
   );
 }
 
-function NebulaIcon({ size = 24, color = "oklch(0.71 0.02 261)" }) {
+function EnergySwordIcon({ size = 24, color = "oklch(0.75 0.15 200)" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <defs>
-        <radialGradient id="nebIc">
-          <stop offset="0%" stopColor={color} stopOpacity="0.8" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      <circle cx="12" cy="12" r="10" fill="url(#nebIc)">
-        <animate attributeName="r" values="9;11;9" dur="4s" repeatCount="indefinite" />
+      <path d="M4 20L10 14" stroke={color} strokeWidth="2.5" strokeLinecap="round"/>
+      <path d="M10 14L20 4" stroke={color} strokeWidth="2" strokeLinecap="round" opacity="0.7"/>
+      <path d="M10 14L8 16" stroke={color} strokeWidth="3" strokeLinecap="round"/>
+      <circle cx="20" cy="4" r="1.5" fill={color} opacity="0.5">
+        <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
       </circle>
-      <circle cx="8" cy="10" r="4" fill={color} opacity="0.3" />
-      <circle cx="15" cy="14" r="3" fill={color} opacity="0.25" />
     </svg>
   );
 }
 
-function GalaxyIcon({ size = 24, color = "oklch(0.87 0.006 265)" }) {
+function UNSCEagle({ size = 24, color = "var(--comp-muted)" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <ellipse cx="12" cy="12" rx="9" ry="4" fill={color} opacity="0.3" transform="rotate(-30 12 12)">
-        <animateTransform attributeName="transform" type="rotate" from="-30 12 12" to="330 12 12"
-          dur="20s" repeatCount="indefinite" />
-      </ellipse>
-      <ellipse cx="12" cy="12" rx="7" ry="3" fill={color} opacity="0.4" transform="rotate(15 12 12)">
-        <animateTransform attributeName="transform" type="rotate" from="15 12 12" to="375 12 12"
-          dur="15s" repeatCount="indefinite" />
-      </ellipse>
-      <circle cx="12" cy="12" r="2" fill={color} opacity="0.9" />
+      <path d="M12 2L8 8h8L12 2z" fill={color} opacity="0.6"/>
+      <path d="M6 10l6 12 6-12" stroke={color} strokeWidth="2" fill="none"/>
+      <path d="M4 10h16" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      <circle cx="12" cy="12" r="2" fill={color} opacity="0.4"/>
     </svg>
   );
 }
 
-function TelescopeIcon({ size = 18 }) {
+function CortanaChip({ size = 24, color = "oklch(0.7 0.15 250)" }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <line x1="6" y1="22" x2="12" y2="13" /><line x1="18" y1="22" x2="12" y2="13" />
-      <path d="M3 8l4 2 5-6 8 4-5 6 4 2" /><circle cx="12" cy="4" r="1" fill="currentColor" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <rect x="6" y="2" width="12" height="20" rx="3" stroke={color} strokeWidth="2" opacity="0.6"/>
+      <circle cx="12" cy="10" r="4" stroke={color} strokeWidth="1.5" fill={color} fillOpacity="0.15">
+        <animate attributeName="fillOpacity" values="0.15;0.35;0.15" dur="3s" repeatCount="indefinite"/>
+      </circle>
+      <path d="M10 18h4" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
     </svg>
   );
 }
 
-function SatelliteIcon({ size = 18 }) {
+function StarIcon({ filled, color = "var(--comp-accent)" }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <rect x="8" y="8" width="8" height="8" rx="1" transform="rotate(45 12 12)" />
-      <line x1="4" y1="4" x2="8.5" y2="8.5" /><line x1="15.5" y1="15.5" x2="20" y2="20" />
-      <circle cx="12" cy="12" r="2" fill="currentColor" />
+    <svg width="20" height="20" viewBox="0 0 20 20" style={{ cursor: "pointer", transition: "transform 0.15s ease" }}>
+      <path
+        d="M10 1.5l2.5 5.5 6 .5-4.5 4 1.5 6L10 14.5 4.5 17.5l1.5-6-4.5-4 6-.5z"
+        fill={filled ? color : "none"}
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
 
-/* ── CONSTELLATION EMPTY STATE ──────────────────────────── */
-
-function ConstellationEmpty({ label = "NO OBJECTS DETECTED" }) {
-  return (
-    <svg width="220" height="170" viewBox="0 0 220 170" fill="none" style={{ opacity: 0.6 }}>
-      <circle cx="30" cy="40" r="3" fill="oklch(0.93 0.006 265)"><animate attributeName="opacity" values="0.4;1;0.4" dur="2.5s" repeatCount="indefinite" /></circle>
-      <circle cx="90" cy="20" r="2" fill="oklch(0.93 0.006 265)"><animate attributeName="opacity" values="0.6;1;0.6" dur="3s" repeatCount="indefinite" begin="0.5s" /></circle>
-      <circle cx="130" cy="65" r="3" fill="oklch(0.71 0.02 261)"><animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite" begin="1s" /></circle>
-      <circle cx="180" cy="30" r="2" fill="oklch(0.87 0.006 265)"><animate attributeName="opacity" values="0.4;1;0.4" dur="3.5s" repeatCount="indefinite" begin="0.3s" /></circle>
-      <circle cx="60" cy="100" r="2.5" fill="oklch(0.82 0.006 265)"><animate attributeName="opacity" values="0.5;1;0.5" dur="2.8s" repeatCount="indefinite" begin="0.8s" /></circle>
-      <circle cx="160" cy="105" r="2" fill="oklch(0.93 0.006 265)"><animate attributeName="opacity" values="0.6;1;0.6" dur="2.2s" repeatCount="indefinite" begin="1.2s" /></circle>
-      <circle cx="200" cy="75" r="1.5" fill="oklch(0.71 0.02 261)"><animate attributeName="opacity" values="0.3;0.9;0.3" dur="3.2s" repeatCount="indefinite" begin="0.6s" /></circle>
-      <line x1="30" y1="40" x2="90" y2="20" stroke="oklch(0.93 0.006 265)" strokeWidth="0.5" opacity="0.3" />
-      <line x1="90" y1="20" x2="130" y2="65" stroke="oklch(0.93 0.006 265)" strokeWidth="0.5" opacity="0.3" />
-      <line x1="130" y1="65" x2="180" y2="30" stroke="oklch(0.71 0.02 261)" strokeWidth="0.5" opacity="0.25" />
-      <line x1="130" y1="65" x2="160" y2="105" stroke="oklch(0.71 0.02 261)" strokeWidth="0.5" opacity="0.25" />
-      <line x1="30" y1="40" x2="60" y2="100" stroke="oklch(0.82 0.006 265)" strokeWidth="0.5" opacity="0.25" />
-      <text x="110" y="150" textAnchor="middle" fill="oklch(0.71 0.02 261)" fontFamily="'Cormorant Garamond', serif" fontSize="13" letterSpacing="0.1em">{label}</text>
-    </svg>
-  );
-}
-
-/* ── CARD ILLUSTRATION BACKGROUNDS ──────────────────────── */
-
-function StarFieldBg() {
-  const stars = useMemo(() =>
-    Array.from({ length: 18 }, (_, i) => ({
-      cx: Math.random() * 200, cy: Math.random() * 120,
-      r: 0.5 + Math.random() * 1.5, delay: Math.random() * 3
+/* ── Animated Background ── */
+function HaloRingBackground() {
+  const stars = React.useMemo(() =>
+    Array.from({ length: 30 }, (_, i) => ({
+      cx: Math.random() * 800, cy: Math.random() * 600,
+      r: Math.random() * 1.5 + 0.5,
+      d1: `${Math.random() * 0.3 + 0.1}`,
+      d2: `${Math.random() * 0.6 + 0.3}`,
+      dur: `${Math.random() * 4 + 3}s`
     })), []);
   return (
-    <svg width="100%" height="100%" viewBox="0 0 200 120" preserveAspectRatio="xMidYMid slice" style={{ position: "absolute", inset: 0 }}>
-      <rect width="200" height="120" fill="oklch(0.14 0.000 0)" />
-      {stars.map((s, i) => (
-        <circle key={i} cx={s.cx} cy={s.cy} r={s.r} fill="oklch(0.93 0.006 265)">
-          <animate attributeName="opacity" values="0.05;0.25;0.05" dur={`${2 + s.delay}s`} repeatCount="indefinite" begin={`${s.delay}s`} />
-        </circle>
-      ))}
-      <circle cx="160" cy="35" r="12" fill="oklch(0.93 0.006 265)" opacity="0.03" />
-    </svg>
-  );
-}
-
-function NebulaBg() {
-  return (
-    <svg width="100%" height="100%" viewBox="0 0 200 120" preserveAspectRatio="xMidYMid slice" style={{ position: "absolute", inset: 0 }}>
-      <rect width="200" height="120" fill="oklch(0.14 0.000 0)" />
-      <defs>
-        <radialGradient id="nbg1" cx="30%" cy="40%"><stop offset="0%" stopColor="oklch(0.71 0.02 261)" stopOpacity="0.15" /><stop offset="100%" stopColor="transparent" /></radialGradient>
-        <radialGradient id="nbg2" cx="75%" cy="55%"><stop offset="0%" stopColor="oklch(0.93 0.006 265)" stopOpacity="0.08" /><stop offset="100%" stopColor="transparent" /></radialGradient>
-      </defs>
-      <rect width="200" height="120" fill="url(#nbg1)" /><rect width="200" height="120" fill="url(#nbg2)" />
-      <circle cx="55" cy="55" r="4" fill="oklch(0.71 0.02 261)" opacity="0.1"><animate attributeName="r" values="3;5;3" dur="5s" repeatCount="indefinite" /></circle>
-    </svg>
-  );
-}
-
-function PlanetBg() {
-  return (
-    <svg width="100%" height="100%" viewBox="0 0 200 120" preserveAspectRatio="xMidYMid slice" style={{ position: "absolute", inset: 0 }}>
-      <rect width="200" height="120" fill="oklch(0.14 0.000 0)" />
-      <circle cx="135" cy="75" r="40" fill="oklch(0.82 0.006 265)" opacity="0.04" />
-      <circle cx="135" cy="75" r="28" fill="oklch(0.22 0.000 0)" />
-      <ellipse cx="135" cy="75" rx="45" ry="7" fill="none" stroke="oklch(0.82 0.006 265)" strokeWidth="1" opacity="0.12" />
-      <circle cx="30" cy="25" r="1" fill="oklch(0.93 0.006 265)" opacity="0.15" /><circle cx="170" cy="15" r="1.5" fill="oklch(0.93 0.006 265)" opacity="0.1" />
-    </svg>
-  );
-}
-
-function GalaxyBg() {
-  return (
-    <svg width="100%" height="100%" viewBox="0 0 200 120" preserveAspectRatio="xMidYMid slice" style={{ position: "absolute", inset: 0 }}>
-      <rect width="200" height="120" fill="oklch(0.14 0.000 0)" />
-      <defs>
-        <radialGradient id="gbg"><stop offset="0%" stopColor="oklch(0.87 0.006 265)" stopOpacity="0.15" /><stop offset="60%" stopColor="oklch(0.87 0.006 265)" stopOpacity="0.03" /><stop offset="100%" stopColor="transparent" /></radialGradient>
-      </defs>
-      <ellipse cx="100" cy="60" rx="60" ry="22" fill="url(#gbg)" transform="rotate(-15 100 60)">
-        <animateTransform attributeName="transform" type="rotate" from="-15 100 60" to="345 100 60" dur="25s" repeatCount="indefinite" />
-      </ellipse>
-      <circle cx="100" cy="60" r="3" fill="oklch(0.87 0.006 265)" opacity="0.2" />
-    </svg>
-  );
-}
-
-/* ── CATEGORY CONFIG ────────────────────────────────────── */
-
-const CATEGORIES = {
-  star:   { label: "STAR",   accent: "cyan",   Icon: StarIcon,   Bg: StarFieldBg },
-  planet: { label: "PLANET", accent: "green",  Icon: PlanetIcon, Bg: PlanetBg },
-  nebula: { label: "NEBULA", accent: "pink",   Icon: NebulaIcon, Bg: NebulaBg },
-  galaxy: { label: "GALAXY", accent: "yellow", Icon: GalaxyIcon, Bg: GalaxyBg },
-};
-
-const ACCENTS = {
-  cyan:   "oklch(0.93 0.006 265)",
-  green:  "oklch(0.82 0.006 265)",
-  pink:   "oklch(0.71 0.02 261)",
-  yellow: "oklch(0.87 0.006 265)",
-};
-
-const GLOWS = {
-  cyan:   "none",
-  green:  "none",
-  pink:   "none",
-  yellow: "none",
-};
-
-/* ── MAIN APP ───────────────────────────────────────────── */
-
-function App() {
-  const theme = useVibesTheme();
-  const { database, useLiveQuery, useDocument } = useFireproofClerk("cosmos-atlas-db");
-
-  const [filter, setFilter] = useState("all");
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState(null);
-  const [viewDetail, setViewDetail] = useState(null);
-
-  const queryOpts = filter === "all" ? {} : { key: filter };
-  const { docs } = useLiveQuery("category", queryOpts);
-  const items = useMemo(() => docs.filter(d => d.type === "celestial"), [docs]);
-
-  const blank = { name: "", category: "star", description: "", distance: "", magnitude: "", type: "celestial" };
-  const { doc, merge, submit, reset } = useDocument(editingId ? { _id: editingId } : blank);
-
-  const counts = useMemo(() => {
-    const c = { star: 0, planet: 0, nebula: 0, galaxy: 0 };
-    items.forEach(d => { if (c[d.category] !== undefined) c[d.category]++; });
-    return c;
-  }, [items]);
-
-  const handleSubmit = useCallback(async (e) => {
-    e.preventDefault();
-    if (!doc.name.trim()) return;
-    await submit({ type: "celestial" });
-    reset();
-    setShowForm(false);
-    setEditingId(null);
-  }, [doc.name, submit, reset]);
-
-  const handleEdit = useCallback((item) => {
-    setEditingId(item._id);
-    setShowForm(true);
-    setViewDetail(null);
-  }, []);
-
-  const handleDelete = useCallback(async (id) => {
-    await database.del(id);
-    if (viewDetail && viewDetail._id === id) setViewDetail(null);
-  }, [database, viewDetail]);
-
-  const handleNew = useCallback(() => {
-    setEditingId(null);
-    reset();
-    setShowForm(true);
-  }, [reset]);
-
-  const handleCancel = useCallback(() => {
-    reset();
-    setShowForm(false);
-    setEditingId(null);
-  }, [reset]);
-
-  return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", position: "relative", padding: 32, boxSizing: "border-box" }}>
-      <style>{CSS_TEXT}</style>
-
-      {/* STARS */}
-      <div className="star-field">
-        {Array.from({ length: 50 }, (_, i) => (
-          <div key={i} className="bg-star" style={{
-            width: 2 + (i % 4) * 1.2, height: 2 + (i % 4) * 1.2,
-            top: `${(i * 17 + 5) % 100}%`, left: `${(i * 23 + 3) % 100}%`,
-            animationDelay: `${(i * 0.4) % 5}s`, animationDuration: `${2 + (i % 4)}s`,
-          }} />
+    <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
+      <svg width="100%" height="100%" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice" style={{ opacity: 0.06 }}>
+        <defs>
+          <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="oklch(0.75 0.15 200)" />
+            <stop offset="100%" stopColor="oklch(0.72 0.18 70)" />
+          </linearGradient>
+        </defs>
+        <g transform="translate(400,300)">
+          <ellipse rx="350" ry="120" fill="none" stroke="url(#ringGrad)" strokeWidth="2">
+            <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="60s" repeatCount="indefinite"/>
+          </ellipse>
+          <ellipse rx="280" ry="95" fill="none" stroke="url(#ringGrad)" strokeWidth="1.5" opacity="0.5">
+            <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="45s" repeatCount="indefinite"/>
+          </ellipse>
+          <ellipse rx="200" ry="70" fill="none" stroke="url(#ringGrad)" strokeWidth="1" opacity="0.3">
+            <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="80s" repeatCount="indefinite"/>
+          </ellipse>
+        </g>
+        {stars.map((s, i) => (
+          <circle key={i} cx={s.cx} cy={s.cy} r={s.r} fill="oklch(0.85 0.05 70)">
+            <animate attributeName="opacity" values={`${s.d1};${s.d2};${s.d1}`} dur={s.dur} repeatCount="indefinite"/>
+          </circle>
         ))}
-      </div>
-
-      {/* HEADER */}
-      <header style={{ position: "relative", zIndex: 20, padding: "20px 0 4px", textAlign: "center" }}>
-        <h1 className="hero-title">Cosmos Atlas</h1>
-        <div style={{ marginTop: 4 }}>
-          <div className="subtitle-pill">
-            <span className="subtitle-text">DEEP SPACE CATALOG</span>
-          </div>
-        </div>
-      </header>
-
-      <div className="neon-div-pink" />
-
-      {/* MACHINE FRAME */}
-      <main style={{ flex: 1, position: "relative", zIndex: 10, maxWidth: 800, width: "100%", margin: "0 auto" }}>
-        <div className="machine-frame">
-
-          {/* STATUS BAR */}
-          <div className="status-bar">
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <div className="status-rings">
-                <div className="ring-outer" /><div className="ring-inner" /><div className="ring-center" />
-              </div>
-              <div>
-                <div className="sys-label">SYSTEM STATUS</div>
-                <div className="sys-value">{items.length} OBJECT{items.length !== 1 ? "S" : ""} CATALOGED</div>
-              </div>
-            </div>
-            <div className="stat-grid">
-              {Object.entries(CATEGORIES).map(([key, cat]) => (
-                <div key={key} className="stat-cell">
-                  <cat.Icon size={14} color={ACCENTS[cat.accent]} />
-                  <span className="stat-cell-label">{cat.label}</span>
-                  <span className="stat-cell-val" style={{ color: ACCENTS[cat.accent] }}>{counts[key]}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* NAV */}
-          <nav className="hex-nav">
-            {[{ key: "all", label: "ALL", accent: "cyan" }, ...Object.entries(CATEGORIES).map(([k, c]) => ({ key: k, label: c.label + "S", accent: c.accent }))].map(item => (
-              <button key={item.key} className={`hex-btn ${filter === item.key ? "hex-on" : ""}`}
-                onClick={() => setFilter(item.key)}
-                style={filter === item.key
-                  ? { background: "oklch(0.93 0.006 265)", color: "oklch(0.17 0.000 0)", borderColor: "oklch(0.93 0.006 265)" }
-                  : { borderColor: "oklch(0.37 0.03 260)", color: "oklch(0.93 0.006 265)", boxShadow: GLOWS[item.accent] }}>
-                {item.label}
-              </button>
-            ))}
-            <button className="hex-btn hex-log-btn" onClick={handleNew}
-              style={showForm ? { background: "oklch(0.93 0.006 265)", color: "oklch(0.17 0.000 0)" } : {}}>
-              + LOG
-            </button>
-          </nav>
-
-          {/* FORM */}
-          {showForm && (
-            <div className="form-wrap">
-              <div className="form-card">
-                <div className="form-header">
-                  <span className="form-title">{editingId ? "EDIT OBJECT" : "LOG NEW OBJECT"}</span>
-                  <button onClick={handleCancel} className="close-btn">&times;</button>
-                </div>
-                <form onSubmit={handleSubmit} className="form-body">
-                  <div className="field-row">
-                    <div style={{ flex: 2 }}>
-                      <label className="field-label">DESIGNATION</label>
-                      <input className="field-input" placeholder="e.g. Andromeda, Betelgeuse..."
-                        value={doc.name || ""} onChange={e => merge({ name: e.target.value })} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <label className="field-label">CATEGORY</label>
-                      <select className="field-input" value={doc.category || "star"}
-                        onChange={e => merge({ category: e.target.value })}>
-                        {Object.entries(CATEGORIES).map(([k, c]) => (
-                          <option key={k} value={k}>{c.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="field-label">OBSERVATION NOTES</label>
-                    <textarea className="field-input field-textarea" placeholder="Describe what you observed..."
-                      value={doc.description || ""} onChange={e => merge({ description: e.target.value })} />
-                  </div>
-                  <div className="field-row">
-                    <div style={{ flex: 1 }}>
-                      <label className="field-label">DISTANCE (LY)</label>
-                      <input className="field-input" placeholder="e.g. 4.24"
-                        value={doc.distance || ""} onChange={e => merge({ distance: e.target.value })} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <label className="field-label">MAGNITUDE</label>
-                      <input className="field-input" placeholder="e.g. -1.46"
-                        value={doc.magnitude || ""} onChange={e => merge({ magnitude: e.target.value })} />
-                    </div>
-                  </div>
-                  <div className="form-actions">
-                    <button type="button" onClick={handleCancel} className="cancel-btn">Cancel</button>
-                    <button type="submit" className="hex-btn submit-btn">{editingId ? "Update \u2192" : "Catalog \u2192"}</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
-
-          {/* CARDS */}
-          {items.length === 0 ? (
-            <div className="empty-state">
-              <ConstellationEmpty label={filter === "all" ? "BEGIN CATALOGING THE COSMOS" : `NO ${CATEGORIES[filter]?.label || ""}S FOUND`} />
-            </div>
-          ) : (
-            <div className="card-grid">
-              {items.map((item, idx) => {
-                const cat = CATEGORIES[item.category] || CATEGORIES.star;
-                return (
-                  <div key={item._id} className="portal-card" style={{ borderColor: ACCENTS[cat.accent], animationDelay: `${idx * 0.06}s` }}>
-                    <div className="card-tail" style={{ borderTopColor: ACCENTS[cat.accent] }} />
-                    <div className="card-tail-inner" />
-
-                    <div className="card-image">
-                      <cat.Bg />
-                      <div className="card-overlay" />
-                      <span className="card-badge" style={{ background: "none", color: ACCENTS[cat.accent], border: "1px solid oklch(0.37 0.03 260)" }}>
-                        {cat.label}
-                      </span>
-                    </div>
-
-                    <div className="card-body">
-                      <h3 className="card-title" style={{ color: ACCENTS[cat.accent] }}>{item.name || "Unnamed"}</h3>
-                      <p className="card-desc">{item.description || "No observations recorded."}</p>
-
-                      {(item.distance || item.magnitude) && (
-                        <div className="card-tags">
-                          {item.distance && <span className="tag-pill" style={{ borderColor: "oklch(0.37 0.03 260)" }}>{item.distance} LY</span>}
-                          {item.magnitude && <span className="tag-pill" style={{ borderColor: "oklch(0.37 0.03 260)" }}>MAG {item.magnitude}</span>}
-                        </div>
-                      )}
-
-                      <div className="card-actions">
-                        <button className="card-cta" style={{ color: ACCENTS[cat.accent] }} onClick={() => setViewDetail(item)}>View</button>
-                        <button className="card-cta" style={{ color: ACCENTS[cat.accent] }} onClick={() => handleEdit(item)}>Edit</button>
-                        <button className="card-cta cta-del" onClick={() => handleDelete(item._id)}>Del</button>
-                      </div>
-
-                      <div className="card-progress"><div className="card-progress-fill" style={{ background: `linear-gradient(to right, ${ACCENTS[cat.accent]}, transparent)` }} /></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* DETAIL OVERLAY */}
-      {viewDetail && (() => {
-        const cat = CATEGORIES[viewDetail.category] || CATEGORIES.star;
-        return (
-          <div className="detail-overlay" onClick={e => { if (e.target === e.currentTarget) setViewDetail(null); }}>
-            <div className="detail-panel" style={{ borderColor: "oklch(0.37 0.03 260)" }}>
-              <div className="detail-header" style={{ borderBottomColor: "oklch(0.37 0.03 260)" }}>
-                <cat.Icon size={28} color={ACCENTS[cat.accent]} />
-                <div style={{ flex: 1 }}>
-                  <h2 className="detail-name" style={{ color: "oklch(0.93 0.006 265)" }}>{viewDetail.name || "Unnamed"}</h2>
-                  <span className="detail-cat-badge" style={{ background: "none", color: ACCENTS[cat.accent], border: "1px solid oklch(0.37 0.03 260)" }}>
-                    {cat.label}
-                  </span>
-                </div>
-                <button onClick={() => setViewDetail(null)} className="close-btn">&times;</button>
-              </div>
-              <div className="detail-body">
-                {viewDetail.description && <p className="detail-desc">{viewDetail.description}</p>}
-                <div className="detail-stats">
-                  {viewDetail.distance && (
-                    <div className="detail-stat-item">
-                      <span className="detail-stat-label">DISTANCE</span>
-                      <span className="detail-stat-val" style={{ color: "oklch(0.93 0.006 265)" }}>{viewDetail.distance} LY</span>
-                    </div>
-                  )}
-                  {viewDetail.magnitude && (
-                    <div className="detail-stat-item">
-                      <span className="detail-stat-label">MAGNITUDE</span>
-                      <span className="detail-stat-val" style={{ color: "oklch(0.93 0.006 265)" }}>{viewDetail.magnitude}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="detail-visual">
-                  <cat.Bg />
-                  <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <cat.Icon size={64} color={ACCENTS[cat.accent]} />
-                  </div>
-                </div>
-              </div>
-              <div className="detail-footer">
-                <button className="hex-btn" style={{ fontSize: 14, padding: "8px 24px", borderColor: "oklch(0.37 0.03 260)", color: "oklch(0.93 0.006 265)", boxShadow: "none" }}
-                  onClick={() => handleEdit(viewDetail)}>Edit</button>
-                <button className="hex-btn" style={{ fontSize: 14, padding: "8px 24px", borderColor: "oklch(0.37 0.03 260)", color: "oklch(0.71 0.02 261)", boxShadow: "none" }}
-                  onClick={() => { handleDelete(viewDetail._id); setViewDetail(null); }}>Delete</button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      <div className="neon-div" />
-
-      {/* FOOTER */}
-      <footer style={{ textAlign: "center", padding: "24px 0 12px", position: "relative", zIndex: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, flexWrap: "wrap" }}>
-          <span className="float-anim"><PlanetIcon size={28} color="oklch(0.82 0.006 265)" /></span>
-          <span className="footer-text">Explore the Void</span>
-          <span className="float-anim" style={{ animationDelay: "2s" }}><StarIcon size={28} color="oklch(0.87 0.006 265)" /></span>
-        </div>
-        <p style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: 13, color: "oklch(0.71 0.02 261)", marginTop: 16, letterSpacing: "0.1em" }}>
-          COSMOS ATLAS v1.0 — DATA SYNCED ACROSS THE GALAXY
-        </p>
-      </footer>
+      </svg>
     </div>
   );
 }
 
-/* ── CSS ────────────────────────────────────────────────── */
-
-const CSS_TEXT = `
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&display=swap');
-
-:root {
-  --bg: oklch(0.17 0.000 0);
-  --surface: oklch(0.19 0.000 0);
-  --card: oklch(0.17 0.000 0);
-  --card-inner: oklch(0.22 0.000 0);
-  --border: oklch(0.37 0.03 260);
-  --border-frame: oklch(0.37 0.03 260);
-  --fg: oklch(0.93 0.006 265);
-  --fg-muted: oklch(0.71 0.02 261);
-  --fg-dim: oklch(0.50 0.01 260);
-  --dot: oklch(0.93 0.006 265);
-
-  --comp-bg: oklch(0.17 0.000 0);
-  --comp-text: oklch(0.93 0.006 265);
-  --comp-border: oklch(0.37 0.03 260);
-  --comp-accent: oklch(0.93 0.006 265);
-  --comp-accent-text: oklch(0.17 0.000 0);
-  --comp-muted: oklch(0.71 0.02 261);
-  --color-background: oklch(0.17 0.000 0);
-  --color-text: oklch(0.93 0.006 265);
-  --grid-color: rgba(200, 200, 200, 0.02);
+/* ── Animated Divider ── */
+function EnergySwordDivider() {
+  return (
+    <svg width="100%" height="20" viewBox="0 0 600 20" preserveAspectRatio="none" style={{ display: "block", margin: "1rem 0" }}>
+      <defs>
+        <linearGradient id="swordGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="oklch(0.75 0.15 200)" stopOpacity="0"/>
+          <stop offset="30%" stopColor="oklch(0.75 0.15 200)" stopOpacity="0.8"/>
+          <stop offset="50%" stopColor="oklch(0.85 0.12 200)" stopOpacity="1"/>
+          <stop offset="70%" stopColor="oklch(0.75 0.15 200)" stopOpacity="0.8"/>
+          <stop offset="100%" stopColor="oklch(0.75 0.15 200)" stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      <line x1="0" y1="10" x2="600" y2="10" stroke="url(#swordGrad)" strokeWidth="2"/>
+      <circle cx="300" cy="10" r="3" fill="oklch(0.85 0.12 200)">
+        <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="1;0.5;1" dur="2s" repeatCount="indefinite"/>
+      </circle>
+    </svg>
+  );
 }
 
-*, *::before, *::after { box-sizing: border-box; }
-
-html, body {
-  margin: 0; padding: 0;
-  background: var(--bg);
-  font-family: 'Cormorant Garamond', serif;
-  color: var(--fg);
-  overflow-x: hidden;
-}
-body::before, body::after { display: none !important; }
-
-/* ── Star field (hidden for palate) ── */
-.star-field { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0; }
-@keyframes twinkle {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 0.1; }
-}
-.bg-star {
-  position: absolute; background: oklch(0.93 0.006 265); border-radius: 50%;
-  animation: twinkle 5s infinite ease-in-out;
+/* ── Stats Ring ── */
+function StatsRing({ value, max, label, color = "var(--comp-accent)" }) {
+  const pct = max > 0 ? value / max : 0;
+  const r = 32;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - pct);
+  return (
+    <div style={{ textAlign: "center" }}>
+      <svg width="80" height="80" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r={r} fill="none" stroke="var(--comp-border)" strokeWidth="6" opacity="0.3"/>
+        <circle cx="40" cy="40" r={r} fill="none" stroke={color} strokeWidth="6"
+          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+          transform="rotate(-90 40 40)" style={{ transition: "stroke-dashoffset 0.6s ease" }}/>
+        <text x="40" y="44" textAnchor="middle" fill="var(--comp-text)" fontSize="16" fontWeight="700">{value}</text>
+      </svg>
+      <div style={{ fontSize: "0.75rem", color: "var(--comp-muted)", marginTop: "0.25rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
+    </div>
+  );
 }
 
-/* ── Hero ── */
-.hero-title {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: clamp(32px, 7vw, 56px);
-  font-weight: 400;
-  color: var(--fg);
-  letter-spacing: 0.025em; line-height: 1; margin: 0;
-}
-.subtitle-pill {
-  display: inline-block;
-  background: none;
-  border: none;
-  padding: 4px 0; border-radius: 0;
-  transform: none;
-}
-.subtitle-text {
-  font-family: 'Cormorant Garamond', serif; font-weight: 400;
-  font-size: 14px;
-  color: var(--fg-muted); letter-spacing: 0.1em;
-  text-transform: uppercase;
-  display: inline-block; transform: none;
+/* ── Halo Games Data ── */
+const HALO_GAMES = [
+  { id: "ce", title: "Halo: Combat Evolved", year: 2001, platform: "Xbox", description: "Master Chief awakens on the mysterious Halo ring. The one that started it all." },
+  { id: "2", title: "Halo 2", year: 2004, platform: "Xbox", description: "The Covenant attacks Earth. Dual-wield weapons and play as the Arbiter." },
+  { id: "3", title: "Halo 3", year: 2007, platform: "Xbox 360", description: "Finish the fight. The epic conclusion to the original trilogy." },
+  { id: "odst", title: "Halo 3: ODST", year: 2009, platform: "Xbox 360", description: "Drop into New Mombasa as an Orbital Drop Shock Trooper." },
+  { id: "reach", title: "Halo: Reach", year: 2010, platform: "Xbox 360", description: "Noble Team's last stand. The fall of Reach before Combat Evolved." },
+  { id: "4", title: "Halo 4", year: 2012, platform: "Xbox 360", description: "Chief awakens on Requiem. A new enemy, the Didact, threatens humanity." },
+  { id: "5", title: "Halo 5: Guardians", year: 2015, platform: "Xbox One", description: "Locke hunts Master Chief. Cortana returns with a dangerous plan." },
+  { id: "wars", title: "Halo Wars", year: 2009, platform: "Xbox 360", description: "Real-time strategy on Harvest. Command the crew of the Spirit of Fire." },
+  { id: "wars2", title: "Halo Wars 2", year: 2017, platform: "Xbox One", description: "The Spirit of Fire faces the Banished at the Ark." },
+  { id: "infinite", title: "Halo Infinite", year: 2021, platform: "Xbox Series", description: "Chief lands on Zeta Halo. Open-world exploration meets classic combat." },
+];
+
+/* ── Game Card ── */
+function GameCard({ game, entry, onTogglePlayed, onToggleCompleted, onRate, onEditNote, index }) {
+  const [expanded, setExpanded] = React.useState(false);
+  const [noteText, setNoteText] = React.useState("");
+  const [editing, setEditing] = React.useState(false);
+
+  React.useEffect(() => {
+    if (entry?.note !== undefined) setNoteText(entry.note);
+  }, [entry?.note]);
+
+  const played = entry?.played || false;
+  const completed = entry?.completed || false;
+  const rating = entry?.rating || 0;
+
+  return (
+    <div className="card" style={{
+      animationDelay: `${index * 0.06}s`,
+      animation: "fadeSlideIn 0.4s ease both",
+      transition: "transform 0.2s ease, box-shadow 0.2s ease",
+      position: "relative",
+      overflow: "hidden",
+    }}
+    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 0 20px oklch(0.75 0.15 200 / 0.15)"; }}
+    onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = ""; }}
+    >
+      {completed && (
+        <div style={{ position: "absolute", top: "0.5rem", right: "0.5rem", background: "oklch(0.72 0.18 70 / 0.15)", borderRadius: "6px", padding: "0.2rem 0.5rem", fontSize: "0.65rem", fontWeight: 700, color: "var(--comp-accent)", textTransform: "uppercase", letterSpacing: "0.08em", border: "1px solid oklch(0.72 0.18 70 / 0.25)" }}>
+          Legendary
+        </div>
+      )}
+
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center",
+          background: played ? "oklch(0.72 0.18 70 / 0.12)" : "oklch(0.22 0.02 250 / 0.5)",
+          border: `2px solid ${played ? "var(--comp-accent)" : "var(--comp-border)"}`,
+          transition: "all 0.2s ease", flexShrink: 0,
+        }}>
+          <HaloRingIcon size={20} color={played ? "var(--comp-accent)" : "var(--comp-muted)"} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, lineHeight: 1.2, color: "var(--comp-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{game.title}</h3>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginTop: "0.15rem" }}>
+            <span className="badge" style={{ fontSize: "0.65rem" }}>{game.year}</span>
+            <span style={{ fontSize: "0.7rem", color: "var(--comp-muted)" }}>{game.platform}</span>
+          </div>
+        </div>
+      </div>
+
+      <p style={{ fontSize: "0.8rem", color: "var(--comp-muted)", margin: "0.5rem 0", lineHeight: 1.5 }}>{game.description}</p>
+
+      <div onClick={() => setExpanded(!expanded)} style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.7rem", color: "oklch(0.75 0.15 200)", cursor: "pointer", marginBottom: expanded ? "0.75rem" : 0, transition: "margin 0.2s ease" }}>
+        <EnergySwordIcon size={14} />
+        <span>{expanded ? "Collapse" : "Expand Details"}</span>
+      </div>
+
+      {expanded && (
+        <div style={{ animation: "fadeSlideIn 0.25s ease both" }}>
+          <EnergySwordDivider />
+
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+            <button className={`btn${played ? "" : " btn-gray"}`} style={{ fontSize: "0.75rem", padding: "0.35rem 0.75rem", transition: "all 0.15s ease" }}
+              onClick={e => { e.stopPropagation(); onTogglePlayed(); }}>
+              {played ? "\u2713 Played" : "Mark Played"}
+            </button>
+            <button className={`btn${completed ? "" : " btn-gray"}`} style={{ fontSize: "0.75rem", padding: "0.35rem 0.75rem", transition: "all 0.15s ease" }}
+              onClick={e => { e.stopPropagation(); onToggleCompleted(); }}>
+              {completed ? "\u2713 Completed" : "Mark Completed"}
+            </button>
+          </div>
+
+          <div style={{ marginBottom: "0.75rem" }}>
+            <div style={{ fontSize: "0.7rem", color: "var(--comp-muted)", marginBottom: "0.25rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Rating</div>
+            <div style={{ display: "flex", gap: "0.15rem" }}>
+              {[1,2,3,4,5].map(s => (
+                <span key={s} onClick={e => { e.stopPropagation(); onRate(s === rating ? 0 : s); }}
+                  onMouseEnter={e => e.currentTarget.style.transform = "scale(1.2)"}
+                  onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"} style={{ transition: "transform 0.12s ease" }}>
+                  <StarIcon filled={s <= rating} />
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: "0.7rem", color: "var(--comp-muted)", marginBottom: "0.25rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Personal Notes</div>
+            {editing ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                <textarea className="input" rows={3} value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Your thoughts on this game..." style={{ resize: "vertical", fontSize: "0.8rem" }} onClick={e => e.stopPropagation()} />
+                <div style={{ display: "flex", gap: "0.4rem" }}>
+                  <button className="btn" style={{ fontSize: "0.7rem", padding: "0.25rem 0.6rem" }} onClick={e => { e.stopPropagation(); onEditNote(noteText); setEditing(false); }}>Save</button>
+                  <button className="btn btn-gray" style={{ fontSize: "0.7rem", padding: "0.25rem 0.6rem" }} onClick={e => { e.stopPropagation(); setEditing(false); setNoteText(entry?.note || ""); }}>Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <div onClick={e => { e.stopPropagation(); setEditing(true); }}
+                style={{ fontSize: "0.8rem", color: entry?.note ? "var(--comp-text)" : "var(--comp-muted)", padding: "0.4rem 0.6rem", borderRadius: "6px", border: "1px dashed var(--comp-border)", cursor: "text", minHeight: "2rem", transition: "border-color 0.15s ease", wordBreak: "break-word" }}>
+                {entry?.note || "Click to add notes..."}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
-/* ── Dividers ── */
-.neon-div { width: 100%; height: 1px; margin: 24px 0; background: var(--border); opacity: 0.5; }
-.neon-div-pink { width: 100%; height: 1px; margin: 16px 0 24px; background: var(--border); opacity: 0.5; }
+/* ── Empty State ── */
+function EmptyState() {
+  return (
+    <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
+      <svg width="120" height="120" viewBox="0 0 120 120" style={{ margin: "0 auto 1.5rem", display: "block" }}>
+        <ellipse cx="60" cy="60" rx="50" ry="18" fill="none" stroke="var(--comp-accent)" strokeWidth="2" opacity="0.3">
+          <animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="20s" repeatCount="indefinite"/>
+        </ellipse>
+        <circle cx="60" cy="60" r="12" fill="var(--comp-accent)" opacity="0.15">
+          <animate attributeName="r" values="12;15;12" dur="3s" repeatCount="indefinite"/>
+        </circle>
+        <circle cx="60" cy="60" r="6" fill="var(--comp-accent)" opacity="0.3"/>
+        <circle cx="60" cy="35" r="3" fill="oklch(0.75 0.15 200)" opacity="0.5">
+          <animate attributeName="cy" values="35;32;35" dur="2s" repeatCount="indefinite"/>
+        </circle>
+      </svg>
+      <h3 style={{ color: "var(--comp-text)", margin: "0 0 0.5rem", fontSize: "1.1rem" }}>Begin Your Campaign</h3>
+      <p style={{ color: "var(--comp-muted)", fontSize: "0.85rem", maxWidth: "300px", margin: "0 auto" }}>
+        Mark games as played to start tracking your journey through the Halo universe.
+      </p>
+    </div>
+  );
+}
 
-/* ── Machine frame ── */
-.machine-frame {
-  background: none;
-  border-top: 1px solid var(--border); border-bottom: none;
-  border-radius: 0; padding: 32px 0; position: relative;
-}
-@media (max-width: 640px) { .machine-frame { border-radius: 0; padding: 16px 0; } }
+/* ── Main App ── */
+function App() {
+  const theme = useVibesTheme();
+  const { database, useLiveQuery, useDocument } = useFireproofClerk("halo-tracker-db");
+  const { docs: entries } = useLiveQuery("type", { key: "game-entry" });
+  const [filter, setFilter] = React.useState("all");
 
-/* ── Status bar ── */
-.status-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 32px; padding: 0; }
-.status-rings { position: relative; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; opacity: 0.25; }
-.ring-outer { position: absolute; inset: 0; border: 1px solid var(--border); border-radius: 50%; border-top-color: transparent; animation: spin 10s linear infinite; }
-.ring-inner { position: absolute; inset: 8px; border: 1px solid var(--border); border-radius: 50%; border-bottom-color: transparent; animation: spin 10s linear infinite reverse; }
-.ring-center { width: 4px; height: 4px; background: var(--dot); border-radius: 50%; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.sys-label { font-family: 'Cormorant Garamond', serif; font-size: 14px; color: var(--fg-muted); letter-spacing: 0.1em; text-transform: uppercase; }
-.sys-value { font-family: 'Cormorant Garamond', serif; font-size: 16px; color: var(--fg); margin-top: 2px; }
-.stat-grid { display: flex; gap: 12px; flex-wrap: wrap; }
-.stat-cell { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: none; border: 1px solid var(--border); border-radius: 9999px; }
-.stat-cell-label { font-family: 'Cormorant Garamond', serif; font-size: 14px; color: var(--fg-muted); letter-spacing: 0.1em; text-transform: uppercase; }
-.stat-cell-val { font-family: 'Cormorant Garamond', serif; font-size: 18px; font-weight: 400; }
+  const entryMap = React.useMemo(() => {
+    const map = {};
+    entries.forEach(e => { map[e.gameId] = e; });
+    return map;
+  }, [entries]);
 
-/* ── Nav (pill buttons) ── */
-.hex-nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-bottom: 32px; }
-.hex-btn {
-  clip-path: none;
-  padding: 8px 20px; background: none;
-  border: 1px solid var(--border);
-  font-family: 'Cormorant Garamond', serif; font-weight: 400; font-size: 14px;
-  letter-spacing: 0.05em; color: var(--fg); cursor: pointer;
-  border-radius: 9999px; transition: all 0.2s;
-}
-.hex-btn:hover { color: var(--fg-muted); }
-.hex-log-btn { border-color: var(--border); color: var(--fg); }
-.hex-log-btn:hover { color: var(--fg-muted); }
-.submit-btn { font-size: 14px; padding: 8px 24px; }
+  const playedCount = entries.filter(e => e.played).length;
+  const completedCount = entries.filter(e => e.completed).length;
+  const ratedEntries = entries.filter(e => e.rating > 0);
+  const avgRating = ratedEntries.length > 0
+    ? (ratedEntries.reduce((sum, e) => sum + e.rating, 0) / ratedEntries.length).toFixed(1)
+    : "\u2014";
 
-/* ── Form ── */
-.form-wrap { margin-bottom: 32px; padding: 0; animation: formSlide 0.3s ease; overflow: hidden; }
-@keyframes formSlide { from { opacity: 0; } to { opacity: 1; } }
-.form-card { background: none; border: none; border-top: 1px solid var(--border); border-radius: 0; overflow: hidden; }
-.form-header { padding: 16px 0; border-bottom: none; display: flex; justify-content: space-between; align-items: center; }
-.form-title { font-family: 'Cormorant Garamond', serif; font-size: 14px; color: var(--fg-muted); letter-spacing: 0.1em; text-transform: uppercase; }
-.form-body { padding: 0; padding-top: 16px; display: flex; flex-direction: column; gap: 24px; }
-.form-actions { display: flex; gap: 16px; justify-content: flex-end; margin-top: 8px; }
-.field-row { display: flex; gap: 24px; flex-wrap: wrap; }
-.field-row > div { min-width: 0; }
-.field-label { display: block; font-family: 'Cormorant Garamond', serif; font-size: 12px; color: var(--fg-muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
-.field-input {
-  width: 100%; box-sizing: border-box; padding: 8px 0;
-  background: transparent; border: none; border-bottom: 1px solid var(--border);
-  color: var(--fg); font-family: 'Cormorant Garamond', serif; font-size: 18px; outline: none; transition: border-color 0.2s;
-}
-.field-input:focus { border-bottom-color: var(--fg); }
-.field-input::placeholder { color: var(--fg-dim); }
-.field-textarea { min-height: 60px; resize: vertical; }
-select.field-input { appearance: none; cursor: pointer; }
-.close-btn { background: none; border: none; color: var(--fg); font-size: 18px; cursor: pointer; padding: 2px 8px; transition: color 0.2s; line-height: 1; font-weight: 300; }
-.close-btn:hover { color: var(--fg-muted); }
-.cancel-btn {
-  padding: 8px 0; background: transparent; border: none;
-  color: var(--fg-muted); font-family: 'Cormorant Garamond', serif; font-size: 14px;
-  border-radius: 0; cursor: pointer; letter-spacing: 0.05em; transition: color 0.2s;
-}
-.cancel-btn:hover { color: var(--fg); }
+  const filteredGames = HALO_GAMES.filter(g => {
+    if (filter === "played") return entryMap[g.id]?.played;
+    if (filter === "unplayed") return !entryMap[g.id]?.played;
+    if (filter === "completed") return entryMap[g.id]?.completed;
+    return true;
+  });
 
-/* ── Cards ── */
-.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 32px; padding: 0 0 32px; }
-@keyframes cardEnter { from { opacity: 0; } to { opacity: 1; } }
-.portal-card {
-  position: relative; background: none; border: none;
-  border-top: 1px solid var(--border);
-  border-radius: 0; overflow: visible; display: flex; flex-direction: column;
-  transition: opacity 0.3s ease;
-  animation: cardEnter 0.3s ease-out both;
-  padding-top: 16px;
-}
-.portal-card:hover { transform: none; box-shadow: none; }
-.card-tail { display: none; }
-.card-tail-inner { display: none; }
-.card-image { height: 48px; overflow: hidden; position: relative; border-radius: 0; opacity: 0.35; }
-.card-overlay { position: absolute; inset: 0; background: linear-gradient(to top, var(--bg), transparent 70%); }
-.card-badge {
-  position: absolute; top: 8px; right: 0; padding: 4px 12px;
-  font-family: 'Cormorant Garamond', serif; font-size: 11px; border-radius: 9999px;
-  transform: none; letter-spacing: 0.1em; z-index: 5; text-transform: uppercase;
-}
-.card-body { padding: 12px 0 0; flex: 1; display: flex; flex-direction: column; }
-.card-title {
-  font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 400; letter-spacing: 0.02em;
-  margin: 0 0 8px; line-height: 1.2; word-break: break-word; transition: color 0.2s;
-}
-.portal-card:hover .card-title { text-shadow: none; color: var(--fg-muted); }
-.card-desc {
-  font-family: 'Cormorant Garamond', serif; font-size: 14px; color: var(--fg-muted);
-  line-height: 1.625; margin: 0 0 12px; overflow: hidden; display: -webkit-box;
-  -webkit-line-clamp: 3; -webkit-box-orient: vertical;
-}
-.card-tags { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.tag-pill {
-  font-family: 'Cormorant Garamond', serif; font-size: 13px; color: var(--fg);
-  padding: 6px 14px; border: 1px solid var(--border); border-radius: 9999px; letter-spacing: 0.05em;
-}
-.card-actions { display: flex; gap: 16px; margin-top: auto; }
-.card-cta {
-  flex: none; padding: 4px 0; background: none; border: none;
-  font-family: 'Cormorant Garamond', serif; font-size: 14px; font-weight: 400;
-  letter-spacing: 0.05em; border-radius: 0; cursor: pointer; transition: color 0.2s;
-  color: var(--fg);
-}
-.card-cta:hover { background: none; color: var(--fg-muted); }
-.cta-del { color: var(--fg-muted) !important; }
-.cta-del:hover { background: none !important; color: var(--fg-dim) !important; }
-.card-progress { width: 100%; height: 1px; background: var(--border); border-radius: 0; margin-top: 16px; overflow: hidden; position: relative; }
-.card-progress-fill { width: 0; height: 100%; background: var(--fg) !important; transition: width 0.7s ease-out; }
-.portal-card:hover .card-progress-fill { width: 100%; }
+  async function updateEntry(gameId, updates) {
+    const existing = entryMap[gameId];
+    if (existing) {
+      await database.put({ ...existing, ...updates });
+    } else {
+      await database.put({ type: "game-entry", gameId, played: false, completed: false, rating: 0, note: "", ...updates });
+    }
+  }
 
-/* ── Empty state ── */
-.empty-state { display: flex; flex-direction: column; align-items: center; padding: 60px 0; }
+  return (
+    <div className="grid-background" style={{ minHeight: "100vh", position: "relative" }}>
+      <style>{`
+        :root {
+          --comp-bg: oklch(0.14 0.03 250);
+          --comp-text: oklch(0.92 0.02 70);
+          --comp-border: oklch(0.28 0.03 250);
+          --comp-accent: oklch(0.72 0.18 70);
+          --comp-accent-text: oklch(0.15 0.03 70);
+          --comp-muted: oklch(0.55 0.04 250);
+        }
+        @keyframes fadeSlideIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
 
-/* ── Detail overlay ── */
-.detail-overlay {
-  position: fixed; inset: 0; background: oklch(0.10 0.000 0 / 0.9);
-  z-index: 50; display: flex; align-items: center; justify-content: center;
-  padding: 32px; animation: fadeIn 0.3s ease;
-}
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-.detail-panel {
-  background: var(--bg); border: 1px solid var(--border); border-radius: 0;
-  width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto;
-  animation: cardEnter 0.3s ease-out;
-}
-.detail-header { display: flex; align-items: center; gap: 16px; padding: 24px; border-bottom: 1px solid var(--border); }
-.detail-name { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 400; margin: 0; letter-spacing: 0.02em; line-height: 1.2; word-break: break-word; }
-.detail-cat-badge { display: inline-block; padding: 4px 12px; font-family: 'Cormorant Garamond', serif; font-size: 12px; border-radius: 9999px; margin-top: 4px; letter-spacing: 0.1em; text-transform: uppercase; }
-.detail-body { padding: 24px; }
-.detail-desc { font-family: 'Cormorant Garamond', serif; font-size: 16px; color: var(--fg-muted); line-height: 1.625; margin: 0 0 24px; word-break: break-word; }
-.detail-stats { display: flex; gap: 32px; margin-bottom: 24px; flex-wrap: wrap; }
-.detail-stat-item { display: flex; flex-direction: column; gap: 4px; }
-.detail-stat-label { font-family: 'Cormorant Garamond', serif; font-size: 12px; color: var(--fg-muted); letter-spacing: 0.1em; text-transform: uppercase; }
-.detail-stat-val { font-family: 'Cormorant Garamond', serif; font-size: 20px; font-weight: 400; }
-.detail-visual { position: relative; height: 80px; border-radius: 0; overflow: hidden; border: none; border-top: 1px solid var(--border); opacity: 0.35; }
-.detail-footer { display: flex; gap: 16px; justify-content: center; padding: 24px; border-top: 1px solid var(--border); }
+      <HaloRingBackground />
 
-/* ── Footer ── */
-.footer-text { font-family: 'Cormorant Garamond', serif; font-size: clamp(20px, 4vw, 32px); font-weight: 400; color: var(--fg); letter-spacing: 0.025em; }
-@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-.float-anim { display: inline-block; animation: float 6s ease-in-out infinite; opacity: 0.35; }
-`;
+      <div style={{ position: "relative", zIndex: 1, maxWidth: "900px", margin: "0 auto", padding: "1.5rem 1rem 3rem" }}>
+
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem", animation: "fadeSlideIn 0.4s ease both" }}>
+          <SpartanHelmet size={52} />
+          <div>
+            <h1 style={{ margin: 0, fontSize: "1.8rem", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--comp-text)", lineHeight: 1.1 }}>
+              HALO <span style={{ color: "var(--comp-accent)" }}>TRACKER</span>
+            </h1>
+            <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem", color: "var(--comp-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+              Campaign Progress Database
+            </p>
+          </div>
+        </div>
+
+        <EnergySwordDivider />
+
+        {/* Stats */}
+        <div className="card" style={{ animation: "fadeSlideIn 0.4s ease both", animationDelay: "0.1s", marginBottom: "1.5rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: "1rem" }}>
+            <StatsRing value={playedCount} max={HALO_GAMES.length} label="Played" color="oklch(0.75 0.15 200)" />
+            <StatsRing value={completedCount} max={HALO_GAMES.length} label="Completed" color="var(--comp-accent)" />
+            <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+              <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--comp-accent)", lineHeight: 1 }}>{avgRating}</div>
+              <div style={{ fontSize: "0.75rem", color: "var(--comp-muted)", marginTop: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Avg Rating</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filter Tabs */}
+        <div style={{ display: "flex", gap: "0.4rem", marginBottom: "1.25rem", flexWrap: "wrap", animation: "fadeSlideIn 0.4s ease both", animationDelay: "0.15s" }}>
+          {[
+            { key: "all", label: "All Games", icon: <HaloRingIcon size={14} /> },
+            { key: "played", label: "Played", icon: <UNSCEagle size={14} /> },
+            { key: "unplayed", label: "Unplayed", icon: <CortanaChip size={14} /> },
+            { key: "completed", label: "Completed", icon: <EnergySwordIcon size={14} /> },
+          ].map(f => (
+            <button key={f.key}
+              className={`btn${filter === f.key ? "" : " btn-gray"}`}
+              style={{ fontSize: "0.75rem", padding: "0.35rem 0.75rem", display: "flex", alignItems: "center", gap: "0.3rem", transition: "all 0.15s ease" }}
+              onClick={() => setFilter(f.key)}>
+              {f.icon} {f.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Game Grid */}
+        {filteredGames.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
+            {filteredGames.map((game, i) => (
+              <GameCard
+                key={game.id}
+                game={game}
+                entry={entryMap[game.id]}
+                index={i}
+                onTogglePlayed={() => updateEntry(game.id, { played: !entryMap[game.id]?.played })}
+                onToggleCompleted={() => updateEntry(game.id, { completed: !entryMap[game.id]?.completed })}
+                onRate={(r) => updateEntry(game.id, { rating: r })}
+                onEditNote={(note) => updateEntry(game.id, { note })}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Summary Table */}
+        <div className="card" style={{ marginTop: "2rem", animation: "fadeSlideIn 0.4s ease both", animationDelay: "0.25s", overflowX: "auto" }}>
+          <h2 style={{ margin: "0 0 1rem", fontSize: "1rem", fontWeight: 700, color: "var(--comp-text)", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <UNSCEagle size={18} /> Campaign Log
+          </h2>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
+            <thead>
+              <tr style={{ borderBottom: "2px solid var(--comp-border)" }}>
+                {["Title", "Year", "Platform", "Played", "Completed", "Rating"].map(h => (
+                  <th key={h} style={{ padding: "0.5rem 0.75rem", textAlign: "left", color: "var(--comp-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "0.7rem" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {HALO_GAMES.map(game => {
+                const e = entryMap[game.id];
+                return (
+                  <tr key={game.id} style={{ borderBottom: "1px solid var(--comp-border)", transition: "background 0.15s ease" }}
+                    onMouseEnter={ev => ev.currentTarget.style.background = "oklch(0.18 0.02 250 / 0.5)"}
+                    onMouseLeave={ev => ev.currentTarget.style.background = ""}>
+                    <td style={{ padding: "0.5rem 0.75rem", fontWeight: 600, color: "var(--comp-text)" }}>{game.title}</td>
+                    <td style={{ padding: "0.5rem 0.75rem", color: "var(--comp-muted)" }}>{game.year}</td>
+                    <td style={{ padding: "0.5rem 0.75rem", color: "var(--comp-muted)" }}>{game.platform}</td>
+                    <td style={{ padding: "0.5rem 0.75rem" }}>
+                      <span style={{ color: e?.played ? "oklch(0.75 0.15 150)" : "var(--comp-muted)" }}>{e?.played ? "\u2713" : "\u2014"}</span>
+                    </td>
+                    <td style={{ padding: "0.5rem 0.75rem" }}>
+                      <span style={{ color: e?.completed ? "var(--comp-accent)" : "var(--comp-muted)" }}>{e?.completed ? "\u2713" : "\u2014"}</span>
+                    </td>
+                    <td style={{ padding: "0.5rem 0.75rem" }}>
+                      {e?.rating > 0 ? (
+                        <span style={{ display: "flex", gap: "0.1rem" }}>
+                          {[1,2,3,4,5].map(s => <StarIcon key={s} filled={s <= e.rating} color={s <= e.rating ? "var(--comp-accent)" : "var(--comp-border)"} />)}
+                        </span>
+                      ) : (
+                        <span style={{ color: "var(--comp-muted)" }}>{"\u2014"}</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Footer */}
+        <div style={{ textAlign: "center", marginTop: "2.5rem", animation: "fadeSlideIn 0.4s ease both", animationDelay: "0.3s" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", color: "var(--comp-muted)", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+            <UNSCEagle size={16} /> UNSC Database Terminal <UNSCEagle size={16} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default App;
