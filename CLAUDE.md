@@ -409,6 +409,7 @@ npm run test:e2e:server
 | `skills/vibes/templates/preview.html` | Live preview wrapper (side-by-side chat + theme modal) |
 | `skills/vibes/SKILL.md` | Main vibes skill (has import map) |
 | `skills/vibes/defaults/` | Shipped defaults - style-prompt.txt, dev-credentials.example.json |
+| `skills/vibes/defaults/advanced-effects-prompt.txt` | Advanced visual effects guide (Canvas, WebGL, SVG, CSS) |
 | `skills/riff/defaults/` | Shipped defaults - style-prompt.txt |
 | `skills/riff/template.delta.html` | Riff-specific delta |
 | `skills/riff/templates/index.html` | Generated riff template |
@@ -438,6 +439,7 @@ npm run test:e2e:server
 
 **`skills/*/defaults/`** (git-tracked) - Shipped defaults:
 - `style-prompt.txt` - UI style guidance (in `skills/vibes/defaults/` and `skills/riff/defaults/`)
+- `advanced-effects-prompt.txt` - Advanced visual effects (Canvas 2D, WebGL shaders, interactive SVG, CSS @property) in `skills/vibes/defaults/`
 - `dev-credentials.example.json` - Example credentials (in `skills/vibes/defaults/`)
 
 **`docs/fireproof.txt`** - Fireproof API reference:
@@ -451,6 +453,7 @@ npm run test:e2e:server
 
 **When to read defaults:**
 - `style-prompt.txt` - Read when you need UI/color guidance beyond what's in SKILL.md
+- `advanced-effects-prompt.txt` - Read when apps need interactive visuals, Canvas backgrounds, WebGL effects, or animated SVGs
 
 ## Architecture: JSX + Babel
 
