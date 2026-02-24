@@ -36,6 +36,7 @@ export const BUILD_FILES = {
  */
 export const DEFAULT_FILES = {
   stylePrompt: join(PLUGIN_ROOT, 'skills/vibes/defaults/style-prompt.txt'),
+  advancedEffectsPrompt: join(PLUGIN_ROOT, 'skills/vibes/defaults/advanced-effects-prompt.txt'),
 };
 
 /**
