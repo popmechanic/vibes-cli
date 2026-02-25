@@ -806,6 +806,14 @@
           showThemeImages(msg.images);
         } else if (msg.type === 'theme_created') {
           onThemeCreated(msg.themeId, msg.themeName);
+        } else if (msg.type === 'theme_pass1_complete') {
+          // Instant token/font injection — don't clear thinking (Pass 2 is still running)
+          injectThemePass1(msg.rootCss, msg.fontImports, msg.themeId);
+          addMessage('system', `Colors and fonts applied instantly. Enhancing surfaces, motion, decoration...`);
+        } else if (msg.type === 'theme_validation_failed') {
+          setThinking(false);
+          addMessage('error', msg.message);
+          reloadPreview();
         }
       };
 
@@ -933,6 +941,46 @@
     }
 
     // === Preview ===
+
+    // Inject Pass 1 tokens/fonts into iframe immediately (no reload needed)
+    function injectThemePass1(rootCss, fontImports, themeId) {
+      const frame = document.getElementById('previewFrame');
+      try {
+        const iframeDoc = frame.contentDocument || frame.contentWindow.document;
+        if (!iframeDoc) return;
+
+        // Inject or replace :root CSS
+        if (rootCss) {
+          let styleEl = iframeDoc.getElementById('vibes-theme-pass1');
+          if (!styleEl) {
+            styleEl = iframeDoc.createElement('style');
+            styleEl.id = 'vibes-theme-pass1';
+            iframeDoc.head.appendChild(styleEl);
+          }
+          styleEl.textContent = rootCss;
+        }
+
+        // Inject font imports
+        if (fontImports && fontImports.length > 0) {
+          let fontEl = iframeDoc.getElementById('vibes-theme-fonts');
+          if (!fontEl) {
+            fontEl = iframeDoc.createElement('style');
+            fontEl.id = 'vibes-theme-fonts';
+            iframeDoc.head.appendChild(fontEl);
+          }
+          fontEl.textContent = fontImports.join('\n');
+        }
+
+        // Update theme in localStorage + dispatch event
+        if (themeId) {
+          frame.contentWindow.localStorage.setItem('vibes-theme', themeId);
+          iframeDoc.dispatchEvent(new CustomEvent('vibes-design-request', { detail: { theme: themeId } }));
+        }
+      } catch (e) {
+        console.warn('[Preview] Could not inject Pass 1 styles:', e);
+      }
+    }
+
     function reloadPreview() {
       const frame = document.getElementById('previewFrame');
       frame.src = '/app-frame?t=' + Date.now();

@@ -20,6 +20,8 @@ import { spawn } from 'child_process';
 import { WebSocketServer } from 'ws';
 import { parseThemeCatalog } from './lib/parse-theme-catalog.js';
 import { loadEnvFile, validateClerkKey } from './lib/env-utils.js';
+import { hasThemeMarkers, replaceThemeSection, extractNonThemeSections } from './lib/theme-sections.js';
+import { createBackup, restoreFromBackup } from './lib/backup.js';
 import { homedir } from 'os';
 import { execFile } from 'child_process';
 
@@ -185,7 +187,29 @@ function parseThemeColors(themeId) {
 
   // Only return if we got at least bg and one other
   const count = Object.values(result).filter(Boolean).length;
-  return count >= 2 ? result : null;
+  if (count < 2) return null;
+
+  // Extract full :root block for mechanical theme switching (Pass 1).
+  // Non-greedy match closes at first `}` — works for theme files (flat variable lists)
+  // but would truncate nested braces (e.g. var(--x, var(--y))). Theme files are controlled content.
+  const rootMatch = content.match(/:root\s*\{[\s\S]*?\}/);
+  if (rootMatch) {
+    result.rootBlock = rootMatch[0];
+  } else {
+    // Build :root from individual variable lines
+    const varLines = content.match(/^\s*--[\w-]+:\s*(?:oklch\([^)]+\)|#[0-9a-fA-F]{3,8}).*$/gm);
+    if (varLines && varLines.length > 0) {
+      result.rootBlock = ':root {\n' + varLines.map(l => '  ' + l.trim()).join('\n') + '\n}';
+    }
+  }
+
+  // Extract font @import URLs for mechanical typography switching
+  const fontImports = [...content.matchAll(/@import\s+url\([^)]+\)[^;]*;/g)].map(m => m[0]);
+  if (fontImports.length > 0) {
+    result.fontImports = fontImports;
+  }
+
+  return result;
 }
 
 // Load colors for all themes at startup
@@ -887,16 +911,144 @@ async function handleThemeSwitch(ws, themeId) {
   const themeMeta = themes.find(t => t.id === themeId);
   const themeName = themeMeta ? themeMeta.name : themeId;
 
-  // Extract the :root CSS block — this is the EXACT code Claude must swap in
-  let rootCss = '';
-  const rootMatch = themeContent.match(/:root\s*\{[\s\S]*?\}/);
-  if (rootMatch) {
-    rootCss = rootMatch[0];
+  const appJsxPath = join(PROJECT_ROOT, 'app.jsx');
+  if (!existsSync(appJsxPath)) {
+    ws.send(JSON.stringify({ type: 'error', message: 'No app.jsx found.' }));
+    return;
+  }
+
+  const appCode = readFileSync(appJsxPath, 'utf-8');
+  const colors = parseThemeColors(themeId);
+
+  // Check for theme section markers — determines multi-pass vs legacy
+  if (hasThemeMarkers(appCode)) {
+    await handleThemeSwitchMultiPass(ws, themeId, themeName, themeContent, appCode, appJsxPath, colors);
   } else {
-    const varLines = themeContent.match(/^\s*--[\w-]+:\s*oklch\([^)]+\).*$/gm);
-    if (varLines && varLines.length > 0) {
-      rootCss = ':root {\n' + varLines.map(l => '  ' + l.trim()).join('\n') + '\n}';
+    await handleThemeSwitchLegacy(ws, themeId, themeName, themeContent, colors);
+  }
+}
+
+// Replace __VIBES_THEMES__ array and useVibesTheme default in app code.
+// Uses function replacements to avoid $ backreference issues in theme names.
+// Matches across newlines ([\s\S]) in case the array is formatted multi-line.
+function updateThemeMeta(code, themeId, themeName) {
+  let result = code.replace(
+    /window\.__VIBES_THEMES__\s*=\s*\[[\s\S]*?\]/,
+    () => `window.__VIBES_THEMES__ = [{ id: "${themeId}", name: "${themeName}" }]`
+  );
+  result = result.replace(
+    /localStorage\.getItem\("vibes-theme"\)\s*\|\|\s*"[^"]*"/,
+    () => `localStorage.getItem("vibes-theme") || "${themeId}"`
+  );
+  return result;
+}
+
+// Multi-pass theme switch: instant tokens/typography (Pass 1) + Claude creative (Pass 2)
+async function handleThemeSwitchMultiPass(ws, themeId, themeName, themeContent, appCode, appJsxPath, colors) {
+  console.log(`[ThemeSwitch] Multi-pass for "${themeName}" (${themeId})`);
+
+  // === Pass 1: Mechanical token + typography replacement (instant) ===
+  let updatedCode = appCode;
+
+  // Replace tokens section with theme's :root block
+  if (colors?.rootBlock) {
+    updatedCode = replaceThemeSection(updatedCode, 'tokens', colors.rootBlock);
+    console.log(`[ThemeSwitch] Pass 1: replaced tokens (${colors.rootBlock.split('\n').length} lines)`);
+  }
+
+  // Replace typography section with theme's font imports
+  if (colors?.fontImports?.length > 0) {
+    updatedCode = replaceThemeSection(updatedCode, 'typography', colors.fontImports.join('\n'));
+    console.log(`[ThemeSwitch] Pass 1: replaced typography (${colors.fontImports.length} fonts)`);
+  }
+
+  // Update __VIBES_THEMES__ and useVibesTheme default
+  updatedCode = updateThemeMeta(updatedCode, themeId, themeName);
+
+  // Write Pass 1 result
+  createBackup(appJsxPath);
+  writeFileSync(appJsxPath, updatedCode, 'utf-8');
+
+  // Notify client: colors/fonts are live, send rootBlock for instant iframe injection
+  ws.send(JSON.stringify({
+    type: 'theme_pass1_complete',
+    themeId,
+    themeName,
+    rootCss: colors?.rootBlock || null,
+    fontImports: colors?.fontImports || []
+  }));
+  console.log(`[ThemeSwitch] Pass 1 complete — tokens + typography applied`);
+
+  // === Pass 2: Claude creative restyle of surfaces, motion, decoration ===
+  ws.send(JSON.stringify({
+    type: 'status',
+    status: 'thinking',
+    progress: 40,
+    stage: `Enhancing ${themeName} surfaces, motion, decoration...`,
+    elapsed: 0
+  }));
+
+  // Snapshot non-theme content before Claude edits (for validation)
+  const beforeNonTheme = extractNonThemeSections(readFileSync(appJsxPath, 'utf-8'));
+  // Pass 2 sends 6KB of theme content (vs 4KB in handleGenerate) — Claude needs more
+  // personality detail for creative sections (surfaces, motion, decoration).
+
+  const prompt = `Restyle ONLY the marked theme sections in app.jsx for the "${themeName}" theme. Read app.jsx first.
+
+=== WHAT TO EDIT ===
+
+You MUST only edit content between these marker pairs in app.jsx:
+- \`/* @theme:surfaces */\` ... \`/* @theme:surfaces:end */\` — CSS classes for shadows, borders, backgrounds, glass effects
+- \`/* @theme:motion */\` ... \`/* @theme:motion:end */\` — @keyframes and animation definitions
+- \`{/* @theme:decoration */}\` ... \`{/* @theme:decoration:end */}\` — SVG elements and atmospheric backgrounds
+
+=== THEME PERSONALITY ===
+
+${themeContent.slice(0, 6000)}
+
+=== RULES ===
+
+- Replace the content BETWEEN each marker pair. Keep the markers themselves.
+- Match the theme's personality: shadows, glass effects, gradients, animations, SVG decorations.
+- Do NOT modify anything outside the markers — no layout, no logic, no tokens, no typography.
+- If you need to change anything outside a marker, STOP and explain why instead of editing.
+- No import statements, no TypeScript, keep export default App.
+${extractDataSchema(readFileSync(appJsxPath, 'utf-8'))}`;
+
+  console.log(`[ThemeSwitch] Pass 2: Claude creative restyle, prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
+  await runClaude(ws, prompt, { skipChat: true, tools: 'Edit,Read', maxTurns: 10 });
+
+  // === Post-edit validation (Layer 2 guardrail) ===
+  const afterCode = readFileSync(appJsxPath, 'utf-8');
+  const afterNonTheme = extractNonThemeSections(afterCode);
+
+  if (beforeNonTheme !== afterNonTheme) {
+    const charDiff = afterNonTheme.length - beforeNonTheme.length;
+    console.log(`[ThemeSwitch] GUARDRAIL: Claude modified non-theme content (${charDiff >= 0 ? '+' : ''}${charDiff} chars) — restoring backup`);
+    const restored = restoreFromBackup(appJsxPath);
+    if (restored.success) {
+      // Re-apply Pass 1 changes on top of restored file
+      let restoredCode = readFileSync(appJsxPath, 'utf-8');
+      if (colors?.rootBlock) restoredCode = replaceThemeSection(restoredCode, 'tokens', colors.rootBlock);
+      if (colors?.fontImports?.length > 0) restoredCode = replaceThemeSection(restoredCode, 'typography', colors.fontImports.join('\n'));
+      restoredCode = updateThemeMeta(restoredCode, themeId, themeName);
+      writeFileSync(appJsxPath, restoredCode, 'utf-8');
     }
+    ws.send(JSON.stringify({
+      type: 'theme_validation_failed',
+      message: `Theme "${themeName}" creative pass modified app logic — reverted to safe version with new colors/fonts only.`
+    }));
+  } else {
+    console.log(`[ThemeSwitch] Pass 2 validated — non-theme content unchanged`);
+  }
+}
+
+// Legacy theme switch: full-file Claude restyle (no markers)
+async function handleThemeSwitchLegacy(ws, themeId, themeName, themeContent, colors) {
+  let rootCss = colors?.rootBlock || '';
+  if (!rootCss) {
+    const rootMatch = themeContent.match(/:root\s*\{[\s\S]*?\}/);
+    if (rootMatch) rootCss = rootMatch[0];
   }
 
   const prompt = `Restyle app.jsx to the "${themeName}" (${themeId}) theme. Read app.jsx first.
@@ -931,7 +1083,7 @@ KEEP UNCHANGED:
 - All Fireproof database calls, document types, query filters
 - No import statements, no TypeScript, keep export default App`;
 
-  console.log(`[ThemeSwitch] theme: ${themeId} (${themeName}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
+  console.log(`[ThemeSwitch] Legacy mode for "${themeName}" (${themeId}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
   await runClaude(ws, prompt, { skipChat: true, tools: 'Edit,Read', maxTurns: 10 });
 }
 
@@ -1076,13 +1228,56 @@ Think in a <design> block:
 
 Write the complete app to app.jsx. Rules:
 - FIRST: the exact __VIBES_THEMES__ + useVibesTheme code shown above
-- THEN: <style> tag with the exact :root CSS shown above, plus component styles
+- THEN: <style> tag with theme-sensitive CSS organized into marked sections (see below), plus component styles
 - Add rich visual effects: Canvas 2D backgrounds, animated SVG illustrations, CSS @property animations, hover effects
 - JSX with React hooks (useState, useEffect, useRef, useCallback, useMemo)
 - useFireproofClerk("db-name") for database — returns { database, useLiveQuery, useDocument }
 - NO import statements — runs in Babel script block with globals
 - NO TypeScript. End with: export default App
 - Responsive (mobile-first with Tailwind). className="btn" for buttons, "grid-background" on root
+
+=== THEME SECTION MARKERS ===
+
+Organize ALL theme-sensitive CSS and JSX into marked sections. This enables fast theme switching.
+
+In your <style> tag, wrap theme-sensitive CSS in comment markers:
+
+\`\`\`css
+/* @theme:tokens */
+:root { --comp-bg: ...; --comp-text: ...; /* all color variables */ }
+/* @theme:tokens:end */
+
+/* @theme:typography */
+@import url('...');  /* Google Fonts or other font imports */
+/* @theme:typography:end */
+
+/* @theme:surfaces */
+.glass-card { backdrop-filter: ...; } /* shadows, borders, gradients, glass effects */
+/* @theme:surfaces:end */
+
+/* @theme:motion */
+@keyframes drift { ... } /* all @keyframes and animation definitions */
+/* @theme:motion:end */
+
+/* Non-theme layout styles go OUTSIDE markers */
+.audio-controls { display: grid; }
+\`\`\`
+
+In your JSX, wrap decorative elements:
+
+\`\`\`jsx
+{/* @theme:decoration */}
+<svg className="atmospheric-bg">...</svg>
+<div className="scan-line" />
+{/* @theme:decoration:end */}
+\`\`\`
+
+Rules:
+- EVERY :root block must be inside @theme:tokens markers
+- EVERY @import font URL must be inside @theme:typography markers
+- EVERY @keyframes must be inside @theme:motion markers
+- Decorative SVGs and atmospheric elements go in @theme:decoration
+- App layout, structure, and logic stay OUTSIDE all markers
 
 DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}), database.put/del`;
 

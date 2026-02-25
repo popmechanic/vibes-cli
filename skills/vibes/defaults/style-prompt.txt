@@ -2,7 +2,10 @@ You are designing a neo-brutalist web app using pre-styled components (card, btn
 
 THEMING: Override `--comp-*` tokens in a `:root` style block to set the mood. Use oklch() for rich, expressive colors. Never override `--vibes-*` tokens — those belong to the wrapper UI.
 
+THEME SECTION ORGANIZATION: Wrap all theme-sensitive CSS and JSX in `@theme:` markers for fast theme switching:
+
 ```css
+/* @theme:tokens */
 :root {
   --comp-bg: oklch(...);           /* surfaces */
   --comp-text: oklch(...);         /* body text */
@@ -11,7 +14,29 @@ THEMING: Override `--comp-*` tokens in a `:root` style block to set the mood. Us
   --comp-accent-text: oklch(...);  /* text on accent */
   --comp-muted: oklch(...);        /* placeholders */
 }
+/* @theme:tokens:end */
+
+/* @theme:typography */
+@import url('https://fonts.googleapis.com/css2?family=...');
+/* @theme:typography:end */
+
+/* @theme:surfaces */
+.glass-card { backdrop-filter: blur(20px); }
+/* @theme:surfaces:end */
+
+/* @theme:motion */
+@keyframes drift { ... }
+/* @theme:motion:end */
 ```
+
+In JSX, wrap decorative SVGs and atmospheric elements:
+```jsx
+{/* @theme:decoration */}
+<svg className="bg-pattern">...</svg>
+{/* @theme:decoration:end */}
+```
+
+Everything outside markers (layout, structure, logic) is preserved during theme switches.
 
 SVG ILLUSTRATIONS & ANIMATIONS — this is what makes Vibes apps feel premium:
 
