@@ -885,6 +885,7 @@ async function handleRequest(req, res) {
           themeId: themeMatch ? themeMatch[1] : null,
           themeName: themeMatch ? themeMatch[2] : null,
           size: st.size,
+          hasScreenshot: existsSync(join(dir, 'screenshot.png')),
         });
       }
       // Sort by most recently modified
@@ -921,6 +922,34 @@ async function handleRequest(req, res) {
     copyFileSync(appSrc, join(dest, 'app.jsx'));
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ ok: true }));
+  }
+
+  // GET /editor/apps/screenshot?name=foo → serve screenshot.png
+  if (pathname === '/editor/apps/screenshot' && req.method === 'GET') {
+    const params = new URL(req.url, 'http://localhost').searchParams;
+    const name = params.get('name');
+    if (!name) { res.writeHead(400); return res.end('Missing name'); }
+    const imgPath = join(APPS_DIR, name, 'screenshot.png');
+    if (!existsSync(imgPath)) { res.writeHead(404); return res.end('No screenshot'); }
+    res.writeHead(200, { 'Content-Type': 'image/png', 'Cache-Control': 'no-cache' });
+    return res.end(readFileSync(imgPath));
+  }
+
+  // POST /editor/apps/screenshot?name=foo → save screenshot PNG (raw body)
+  if (pathname === '/editor/apps/screenshot' && req.method === 'POST') {
+    const params = new URL(req.url, 'http://localhost').searchParams;
+    const name = params.get('name');
+    if (!name) { res.writeHead(400); return res.end('Missing name'); }
+    const dest = join(APPS_DIR, name);
+    if (!existsSync(dest)) { mkdirSync(dest, { recursive: true }); }
+    const chunks = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', () => {
+      writeFileSync(join(dest, 'screenshot.png'), Buffer.concat(chunks));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    });
+    return;
   }
 
   // GET /app.jsx → current app.jsx from project root
