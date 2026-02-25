@@ -87,6 +87,12 @@
         100% { transform: translate(-50%, -50%) scale(2.5); opacity: 0; }
       }
       @keyframes vibesDelayedFadeIn { to { opacity: 1 } }
+
+      /* Full-viewport background wrapper — picks up app's --color-background */
+      #container {
+        min-height: 100vh;
+        background: var(--color-background, #1a1a1a);
+      }
     </style>
   </head>
   <body>
