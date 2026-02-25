@@ -78,7 +78,7 @@
       align-items: center;
       height: 63px;
     }
-    .navbar-button-wrapper button {
+    .navbar-button-wrapper > button {
       display: flex;
       align-items: center;
       height: 63px;
@@ -117,17 +117,17 @@
       text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
       flex-shrink: 0;
     }
-    .navbar-button-wrapper:hover button {
+    .navbar-button-wrapper:hover > button {
       width: 180px !important;
       justify-content: flex-start !important;
     }
-    .navbar-button-wrapper:hover .navbar-button-label {
+    .navbar-button-wrapper:hover > button > .navbar-button-label {
       opacity: 1 !important;
       width: auto !important;
       max-width: 120px !important;
       padding: 0 16px 0 4px !important;
     }
-    .navbar-button-wrapper:hover .navbar-button-icon {
+    .navbar-button-wrapper:hover > button > .navbar-button-icon {
       animation: wiggle 0.6s ease-in-out infinite;
     }
     @keyframes wiggle {
@@ -327,6 +327,43 @@
     }
     .generate-existing {
       text-align: center;
+    }
+    .app-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .app-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.65rem 1rem;
+      background: white;
+      border: 2px solid var(--vibes-near-black);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      font-family: inherit;
+      transition: box-shadow 0.1s, transform 0.1s;
+      text-align: left;
+      width: 100%;
+    }
+    .app-item:hover {
+      box-shadow: 3px 3px 0 0 var(--vibes-near-black);
+      transform: translate(-1px, -1px);
+    }
+    .app-item-name {
+      font-weight: 700;
+    }
+    .app-item-meta {
+      font-size: 0.6875rem;
+      color: #888;
+      font-weight: 400;
     }
 
     /* Generate progress overlay */
@@ -727,49 +764,77 @@
 
     /* === DEPLOY DROPDOWN === */
     .deploy-dropdown {
-      position: relative;
       display: inline-block;
     }
     .deploy-menu {
       display: none;
-      position: absolute;
-      top: 100%;
-      right: 0;
-      margin-top: 4px;
+      position: fixed;
       background: var(--vibes-cream);
       border: 2px solid var(--vibes-near-black);
-      border-radius: 8px;
-      overflow: hidden;
-      z-index: 100;
-      min-width: 200px;
-      box-shadow: 4px 4px 0px 0px var(--vibes-green), 4px 4px 0px 2px var(--vibes-near-black);
+      border-radius: 12px;
+      z-index: 9999;
+      min-width: 240px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15), 3px 3px 0px 0px var(--vibes-green), 3px 3px 0px 2px var(--vibes-near-black);
     }
     .deploy-menu.open { display: block; }
+    .deploy-menu-header {
+      padding: 0.75rem 0.85rem;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      background: var(--vibes-cream);
+      border-radius: 10px 10px 0 0;
+    }
+    .deploy-menu-header label {
+      display: block;
+      font-size: 0.625rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #777;
+      margin-bottom: 0.3rem;
+    }
+    .deploy-menu-header input {
+      width: 100%;
+      padding: 0.4rem 0.55rem;
+      border: 1.5px solid #ccc;
+      border-radius: 6px;
+      font-size: 0.8125rem;
+      font-family: inherit;
+      outline: none;
+      background: white;
+      box-sizing: border-box;
+    }
+    .deploy-menu-header input:focus {
+      border-color: var(--vibes-blue);
+      box-shadow: 0 0 0 2px rgba(83,152,201,0.15);
+    }
     .deploy-option {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      padding: 0.65rem 1rem;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
       cursor: pointer;
-      font-size: 0.8125rem;
+      font-size: 0.875rem;
       font-weight: 600;
-      transition: background 0.1s;
+      transition: background 0.15s;
       border: none;
       background: none;
       width: 100%;
       text-align: left;
       font-family: inherit;
+      color: var(--vibes-near-black);
     }
-    .deploy-option:hover { background: rgba(0,154,206,0.1); }
-    .deploy-option:not(:last-child) { border-bottom: 1px solid rgba(0,0,0,0.1); }
-    .deploy-option:disabled { color: #999; cursor: not-allowed; }
+    .deploy-option:hover { background: rgba(0,154,206,0.08); }
+    .deploy-option:last-child { border-radius: 0 0 8px 8px; }
+    .deploy-option:not(:last-child) { border-bottom: 1px solid rgba(0,0,0,0.06); }
+    .deploy-option:disabled { color: #aaa; cursor: not-allowed; }
     .deploy-option:disabled:hover { background: none; }
-    .deploy-option-icon { font-size: 1rem; }
+    .deploy-option-icon { font-size: 1.1rem; width: 1.5rem; text-align: center; }
     .deploy-option-detail {
       font-size: 0.6875rem;
       color: #888;
       font-weight: 400;
     }
+    .deploy-option-detail.ready { color: var(--vibes-green); }
   </style>
 </head>
 <body>
@@ -858,7 +923,7 @@
       <div id="existingAppSection" style="display:none;">
         <div class="generate-or">&#8212; or &#8212;</div>
         <div class="generate-existing">
-          <button class="btn btn-secondary" onclick="useExistingApp()">Use existing app.jsx</button>
+          <div id="savedAppsList"></div>
         </div>
       </div>
     </div>
@@ -923,6 +988,7 @@
   let deployTargets = { cloudflare: false, exe: false };
   let pendingThemeId = null;
   let currentThemeId = null;
+  let currentAppName = null;
 
   // === Phase Navigation ===
   function setPhase(phase) {
@@ -957,7 +1023,7 @@
                 <path d="M24.5 17.5l2.5-2.5M24.5 17.5l2.5 2.5M10.5 17.5L8 15M10.5 17.5L8 20" stroke="var(--vibes-cream)" stroke-width="1.8" stroke-linecap="round"/>
               </svg>
             </div>
-            <div class="navbar-button-label" style="color:var(--vibes-near-black);text-shadow:none">Reload</div>
+            <div class="navbar-button-label" style="color:var(--vibes-near-black)">Reload</div>
           </button>
         </div>
         <div class="navbar-button-wrapper deploy-dropdown" id="deployDropdown">
@@ -972,10 +1038,9 @@
             <div class="navbar-button-label">Deploy</div>
           </button>
           <div class="deploy-menu" id="deployMenu">
-            <div style="padding:0.65rem 1rem;border-bottom:1px solid rgba(0,0,0,0.1);">
-              <label style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#555;">App Name</label>
+            <div class="deploy-menu-header">
+              <label>App Name</label>
               <input type="text" id="deployNameInput" placeholder="my-app"
-                style="width:100%;margin-top:0.25rem;padding:0.35rem 0.5rem;border:2px solid var(--vibes-near-black);border-radius:8px;font-size:0.8125rem;font-family:inherit;outline:none;background:white;"
                 onclick="event.stopPropagation()" />
             </div>
             <button class="deploy-option" id="deployCf" onclick="startDeploy('cloudflare')" disabled>
@@ -1026,6 +1091,8 @@
         if (currentPhase === 'generate') {
           setPhase('edit');
           loadPreview();
+          // Auto-save with a name derived from the prompt
+          autoSaveApp();
         } else {
           reloadPreview();
         }
@@ -1165,14 +1232,92 @@
     }
   }
 
-  async function checkExistingApp() {
+  async function checkExistingApps() {
     try {
-      const res = await fetch('/editor/app-exists');
-      const data = await res.json();
-      if (data.exists) {
-        document.getElementById('existingAppSection').style.display = '';
+      // Check for current app.jsx and saved apps in parallel
+      const [existsRes, appsRes] = await Promise.all([
+        fetch('/editor/app-exists').then(r => r.json()).catch(() => ({ exists: false })),
+        fetch('/editor/apps').then(r => r.json()).catch(() => []),
+      ]);
+
+      const hasCurrentApp = existsRes.exists;
+      const savedApps = Array.isArray(appsRes) ? appsRes : [];
+
+      if (!hasCurrentApp && savedApps.length === 0) return;
+
+      const container = document.getElementById('savedAppsList');
+      let html = '';
+
+      // Show "Continue editing" for current app.jsx
+      if (hasCurrentApp) {
+        html += `<button class="app-item" onclick="useExistingApp()">
+          <div>
+            <div class="app-item-name">Continue current app</div>
+            <div class="app-item-meta">app.jsx in working directory</div>
+          </div>
+          <span style="font-size:1.2rem">&#8594;</span>
+        </button>`;
       }
-    } catch {}
+
+      // Show saved apps
+      for (const app of savedApps.slice(0, 8)) {
+        const ago = timeAgo(new Date(app.modified));
+        const themeLabel = app.themeName ? ` &middot; ${escapeHtml(app.themeName)}` : '';
+        html += `<button class="app-item" onclick="loadSavedApp('${escapeHtml(app.name)}')">
+          <div>
+            <div class="app-item-name">${escapeHtml(app.name)}</div>
+            <div class="app-item-meta">${ago}${themeLabel}</div>
+          </div>
+          <span style="font-size:1.2rem">&#8594;</span>
+        </button>`;
+      }
+
+      container.innerHTML = html;
+      document.getElementById('existingAppSection').style.display = '';
+    } catch (err) {
+      console.error('Failed to check apps:', err);
+    }
+  }
+
+  function timeAgo(date) {
+    const s = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+    return Math.floor(s / 86400) + 'd ago';
+  }
+
+  async function loadSavedApp(name) {
+    try {
+      const res = await fetch('/editor/apps/load?name=' + encodeURIComponent(name), { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to load app');
+      currentAppName = name;
+      setPhase('edit');
+      loadPreview();
+    } catch (err) {
+      alert('Failed to load app: ' + err.message);
+    }
+  }
+
+  function autoSaveApp() {
+    // Derive a name from the prompt or use current app name
+    if (currentAppName) {
+      // Already named — save silently
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'save_app', name: currentAppName }));
+      }
+      return;
+    }
+    // Derive name from prompt: take first 3 words, slugify
+    const prompt = document.getElementById('generatePrompt')?.value || '';
+    const slug = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+    if (slug && ws && ws.readyState === WebSocket.OPEN) {
+      currentAppName = slug;
+      ws.send(JSON.stringify({ type: 'save_app', name: slug }));
+      // Pre-fill deploy name input if empty
+      const deployInput = document.getElementById('deployNameInput');
+      if (deployInput && !deployInput.value) deployInput.value = slug;
+    }
   }
 
   function startGenerate() {
@@ -1248,17 +1393,36 @@
     const exeBtn = document.getElementById('deployExe');
     if (cfBtn) {
       cfBtn.disabled = !deployTargets.cloudflare;
-      document.getElementById('deployCfDetail').textContent = deployTargets.cloudflare ? 'Ready' : 'wrangler not configured';
+      const cfDetail = document.getElementById('deployCfDetail');
+      cfDetail.textContent = deployTargets.cloudflare ? 'Ready' : 'wrangler not configured';
+      cfDetail.classList.toggle('ready', deployTargets.cloudflare);
     }
     if (exeBtn) {
       exeBtn.disabled = !deployTargets.exe;
-      document.getElementById('deployExeDetail').textContent = deployTargets.exe ? 'Ready' : 'SSH not configured';
+      const exeDetail = document.getElementById('deployExeDetail');
+      exeDetail.textContent = deployTargets.exe ? 'Ready' : 'SSH not configured';
+      exeDetail.classList.toggle('ready', deployTargets.exe);
     }
   }
 
   function toggleDeployMenu() {
     const menu = document.getElementById('deployMenu');
+    const opening = !menu.classList.contains('open');
     menu.classList.toggle('open');
+    if (opening) {
+      deployMenuOpenTime = Date.now();
+      // Position below the deploy button
+      const btn = document.querySelector('#deployDropdown button');
+      const rect = btn.getBoundingClientRect();
+      menu.style.top = (rect.bottom + 6) + 'px';
+      menu.style.right = (window.innerWidth - rect.right + 4) + 'px';
+      // Refresh deploy status
+      fetch('/editor/status').then(r => r.json()).then(status => {
+        deployTargets.cloudflare = status.wrangler?.ok || false;
+        deployTargets.exe = status.ssh?.ok || false;
+        updateDeployButtons();
+      }).catch(() => {});
+    }
   }
 
   function startDeploy(target) {
@@ -1276,13 +1440,19 @@
     ws.send(JSON.stringify({ type: 'deploy', target, name }));
   }
 
-  // Close deploy menu on outside click
+  // Close deploy menu on outside click, Escape key, or scroll
+  let deployMenuOpenTime = 0;
+  function closeDeployMenu() {
+    const menu = document.getElementById('deployMenu');
+    if (menu) menu.classList.remove('open');
+  }
   document.addEventListener('click', (e) => {
+    if (Date.now() - deployMenuOpenTime < 100) return;
     const dropdown = document.getElementById('deployDropdown');
-    if (dropdown && !dropdown.contains(e.target)) {
-      const menu = document.getElementById('deployMenu');
-      if (menu) menu.classList.remove('open');
-    }
+    if (dropdown && !dropdown.contains(e.target)) closeDeployMenu();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDeployMenu();
   });
 
   // === Chat ===
@@ -1529,14 +1699,15 @@
 
   // === Init ===
   connectWs();
-  // Run setup check silently — store results for deploy
+  // Run setup check silently — store results for deploy buttons
   fetch('/editor/status').then(r => r.json()).then(status => {
     deployTargets.cloudflare = status.wrangler?.ok || false;
     deployTargets.exe = status.ssh?.ok || false;
+    updateDeployButtons();
   }).catch(() => {});
-  // Load themes + check existing app + fetch initial prompt immediately
+  // Load themes + check existing apps + fetch initial prompt immediately
   populateThemeSelect();
-  checkExistingApp();
+  checkExistingApps();
   fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
     if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;
   }).catch(() => {});

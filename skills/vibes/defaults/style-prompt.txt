@@ -67,6 +67,7 @@ EMOJI POLICY:
 - For icons, ALWAYS create SVG icon components instead of using emoji
 
 LAYOUT PRINCIPLES:
+- **ALWAYS wrap the entire app in a full-page div** with `min-height: 100vh` and an explicit `background-color` — the page must NEVER have a transparent or unstyled background
 - Mobile-first: single column on phones, expand to 2-4 columns at md/lg breakpoints
 - Generous whitespace — let components breathe (gap: 1rem-2rem between sections)
 - Sticky headers or bottom navigation for key actions
