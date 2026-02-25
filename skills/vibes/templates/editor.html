@@ -738,6 +738,44 @@
       border: none;
     }
 
+    /* Undo/Redo bar */
+    .version-bar {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      z-index: 10;
+      background: rgba(255,255,255,0.9);
+      border: 2px solid var(--vibes-near-black);
+      border-radius: 8px;
+      padding: 2px 6px;
+      font-size: 0.6875rem;
+      font-family: inherit;
+      backdrop-filter: blur(4px);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .preview-panel:hover .version-bar,
+    .version-bar:focus-within { opacity: 1; }
+    .version-bar.has-history { opacity: 0.6; }
+    .preview-panel:hover .version-bar.has-history { opacity: 1; }
+    .version-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      padding: 2px 4px;
+      line-height: 1;
+      border-radius: 4px;
+      font-family: inherit;
+      color: var(--vibes-near-black);
+    }
+    .version-btn:hover:not(:disabled) { background: rgba(0,0,0,0.08); }
+    .version-btn:disabled { opacity: 0.25; cursor: default; }
+    .version-count { color: #888; padding: 0 4px; white-space: nowrap; }
+
     /* Splitter */
     .splitter {
       width: 6px;
@@ -1504,6 +1542,11 @@
     <!-- Preview -->
     <div class="preview-panel" id="previewPanel">
       <iframe class="preview-iframe" id="previewFrame" src="about:blank"></iframe>
+      <div class="version-bar" id="versionBar">
+        <button class="version-btn" id="undoBtn" onclick="versionUndo()" disabled title="Undo">&#8592;</button>
+        <span class="version-count" id="versionCount"></span>
+        <button class="version-btn" id="redoBtn" onclick="versionRedo()" disabled title="Redo">&#8594;</button>
+      </div>
     </div>
 
     <!-- Splitter -->
@@ -1646,6 +1689,12 @@
     }
   }
 
+  // Version history (undo/redo) — in-memory only, max 20
+  const MAX_VERSIONS = 20;
+  let versionHistory = [];
+  let versionIndex = -1;
+  let isVersionNav = false; // true when navigating via undo/redo (skip pushing to history)
+
   // === Phase Navigation ===
   function setPhase(phase) {
     currentPhase = phase;
@@ -1746,6 +1795,7 @@
         addMessage(msg.role, msg.content);
       } else if (msg.type === 'app_updated') {
         setThinking(false);
+        if (!isVersionNav) versionPush();
         if (currentPhase === 'generate') {
           setPhase('edit');
           loadPreview();
@@ -2277,6 +2327,9 @@
       currentAppName = name;
       setPhase('edit');
       loadPreview();
+      versionHistory = [];
+      versionIndex = -1;
+      versionPush();
     } catch (err) {
       alert('Failed to load app: ' + err.message);
     }
@@ -2367,6 +2420,74 @@
   function useExistingApp() {
     setPhase('edit');
     loadPreview();
+    versionPush();
+  }
+
+  // === Version History (Undo/Redo) ===
+  async function versionPush() {
+    try {
+      const res = await fetch('/app.jsx');
+      if (!res.ok) return;
+      const content = await res.text();
+
+      // If we're not at the latest, truncate future versions
+      if (versionIndex < versionHistory.length - 1) {
+        versionHistory = versionHistory.slice(0, versionIndex + 1);
+      }
+
+      versionHistory.push(content);
+
+      // Enforce max limit
+      if (versionHistory.length > MAX_VERSIONS) {
+        versionHistory.shift();
+      }
+
+      versionIndex = versionHistory.length - 1;
+      versionUpdateUI();
+    } catch (err) {
+      console.warn('[Version] Failed to save version:', err);
+    }
+  }
+
+  async function versionNavigate(index) {
+    if (index < 0 || index >= versionHistory.length) return;
+    versionIndex = index;
+    isVersionNav = true;
+    try {
+      await fetch('/editor/apps/write', {
+        method: 'POST',
+        body: versionHistory[versionIndex],
+      });
+      reloadPreview();
+    } catch (err) {
+      console.warn('[Version] Failed to navigate:', err);
+    } finally {
+      isVersionNav = false;
+    }
+    versionUpdateUI();
+  }
+
+  function versionUndo() { versionNavigate(versionIndex - 1); }
+  function versionRedo() { versionNavigate(versionIndex + 1); }
+
+  function versionUpdateUI() {
+    const bar = document.getElementById('versionBar');
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+    const count = document.getElementById('versionCount');
+
+    if (versionHistory.length <= 1) {
+      bar.classList.remove('has-history');
+      undoBtn.disabled = true;
+      redoBtn.disabled = true;
+      count.textContent = '';
+      return;
+    }
+
+    bar.classList.add('has-history');
+    undoBtn.disabled = versionIndex <= 0;
+    redoBtn.disabled = versionIndex >= versionHistory.length - 1;
+    count.textContent = (versionIndex + 1) + '/' + versionHistory.length;
   }
 
   function updateGenerateProgress(progress, stage, elapsed) {

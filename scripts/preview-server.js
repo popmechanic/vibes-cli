@@ -952,6 +952,18 @@ async function handleRequest(req, res) {
     return;
   }
 
+  // POST /editor/apps/write → write raw JSX body to PROJECT_ROOT/app.jsx (used by undo/redo)
+  if (pathname === '/editor/apps/write' && req.method === 'POST') {
+    const chunks = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', () => {
+      writeFileSync(join(PROJECT_ROOT, 'app.jsx'), Buffer.concat(chunks).toString('utf-8'));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    });
+    return;
+  }
+
   // GET /app.jsx → current app.jsx from project root
   if (pathname === '/app.jsx') {
     const appPath = join(PROJECT_ROOT, 'app.jsx');
