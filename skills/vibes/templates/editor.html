@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vibes Editor</title>
-  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js" defer></script>
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -486,13 +486,15 @@
 
     /* === PHASE 2: GENERATE === */
     .generate-phase {
-      display: flex;
-      flex-direction: row;
       background: var(--vibes-menu-bg);
       background-image:
         linear-gradient(var(--grid-color) 1px, transparent 1px),
         linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
       background-size: var(--grid-size) var(--grid-size);
+    }
+    .generate-phase.active {
+      display: flex;
+      flex-direction: row;
     }
     .generate-phase.single-panel {
       align-items: center;
@@ -2305,30 +2307,33 @@
     if (!currentAppName) return;
     try {
       const frame = document.getElementById('previewFrame');
-      const doc = frame.contentDocument || frame.contentWindow.document;
+      const iframeWin = frame.contentWindow;
+      const doc = iframeWin && iframeWin.document;
       if (!doc || !doc.body) return;
-      if (typeof html2canvas === 'undefined') return;
-      const canvas = await html2canvas(doc.body, {
-        width: 1280,
-        height: 800,
-        windowWidth: 1280,
-        windowHeight: 800,
-        scale: 0.5,
-        useCORS: true,
-        logging: false,
+
+      // Inject dom-to-image-more (uses SVG foreignObject — browser renders natively, supports oklch)
+      if (typeof iframeWin.domtoimage === 'undefined') {
+        await new Promise((resolve, reject) => {
+          const script = doc.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/dom-to-image-more@3/dist/dom-to-image-more.min.js';
+          script.onload = resolve;
+          script.onerror = reject;
+          doc.head.appendChild(script);
+        });
+      }
+
+      const blob = await iframeWin.domtoimage.toBlob(doc.body, {
+        width: doc.body.scrollWidth || 1280,
+        height: Math.min(doc.body.scrollHeight || 800, 800),
+        style: { overflow: 'hidden' },
       });
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        try {
-          await fetch('/editor/apps/screenshot?name=' + encodeURIComponent(currentAppName), {
-            method: 'POST',
-            body: blob,
-          });
-          console.log('[Screenshot] Saved for', currentAppName);
-        } catch (err) {
-          console.warn('[Screenshot] Failed to save:', err);
-        }
-      }, 'image/png');
+
+      if (!blob || blob.size < 100) return;
+      await fetch('/editor/apps/screenshot?name=' + encodeURIComponent(currentAppName), {
+        method: 'POST',
+        body: blob,
+      });
+      console.log('[Screenshot] Saved for', currentAppName);
     } catch (err) {
       console.warn('[Screenshot] Capture failed:', err);
     }
