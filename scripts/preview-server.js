@@ -663,23 +663,37 @@ async function runClaude(ws, prompt, opts = {}) {
                 const toolName = block.name || '';
                 if (toolName === 'Edit' || toolName === 'Write') hasEdited = true;
 
+                // Extract a short summary of what the tool is operating on
+                const input = block.input || {};
+                const inputSummary =
+                  (toolName === 'Read' || toolName === 'Write' || toolName === 'Edit') ? (input.file_path || '') :
+                  (toolName === 'Glob') ? (input.pattern || '') :
+                  (toolName === 'Grep') ? (input.pattern || '') :
+                  (toolName === 'Bash') ? (input.command || '').slice(0, 80) :
+                  '';
+
                 const toolLabel = toolName === 'Read' ? 'Reading files...' :
                                   toolName === 'Glob' ? 'Searching files...' :
                                   toolName === 'Grep' ? 'Searching code...' :
                                   toolName === 'Edit' ? 'Editing app.jsx...' :
                                   toolName === 'Write' ? 'Writing app.jsx...' : null;
 
+                const elapsed = getElapsed();
                 sendProgress(toolLabel ? { stage: toolLabel } : {});
-                console.log(`[Claude] Tool: ${toolName} (${getElapsed()}s)`);
+                console.log(`[Claude] Tool: ${toolName}${inputSummary ? ` → ${inputSummary}` : ''} (${elapsed}s)`);
+
+                // Forward tool detail to client for debug panel
+                ws.send(JSON.stringify({ type: 'tool_detail', name: toolName, input_summary: inputSummary, elapsed }));
               }
               if (block.type === 'text' && block.text) {
                 resultText = block.text;
               }
             }
-          }
-
-          if (event.type === 'result') {
+          } else if (event.type === 'result') {
             resultText = event.result || resultText || 'Done.';
+          } else {
+            // Log unrecognized event types for diagnostics
+            console.log(`[Claude] Event: ${event.type} (${getElapsed()}s)`);
           }
         } catch {
           // ignore parse errors on partial lines
@@ -728,6 +742,9 @@ async function runClaude(ws, prompt, opts = {}) {
       }
       ws.send(JSON.stringify({ type: 'app_updated' }));
       console.log(`[Claude] Completed in ${getElapsed()}s (${toolsUsed} tools used)`);
+      if (stderr.trim()) {
+        console.log(`[Claude] stderr (${stderr.length} bytes, truncated):\n${stderr.slice(0, 1000)}`);
+      }
       resolve(resultText);
     });
 
