@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Theme Sections — Architecture Explorer</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #0a0a0f;
+  color: #d1d5db;
+  line-height: 1.6;
+  overflow: hidden;
+  height: 100vh;
+}
+
+#app {
+  display: grid;
+  grid-template-rows: 52px 1fr auto;
+  height: 100vh;
+}
+
+/* ─── NAV ─── */
+nav {
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  background: #111118;
+  border-bottom: 1px solid #1e1e2e;
+  gap: 6px;
+}
+
+.logo {
+  font-weight: 800;
+  font-size: 14px;
+  color: #f3f4f6;
+  margin-right: 6px;
+  letter-spacing: -0.02em;
+}
+
+.logo-dim { color: #6b7280; font-weight: 400; }
+
+.nav-sep {
+  width: 1px;
+  height: 20px;
+  background: #2e2e3e;
+  margin: 0 12px;
+}
+
+.tab {
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tab:hover { background: #1a1a2e; color: #d1d5db; }
+.tab.active { background: #1e1e2e; color: #f3f4f6; font-weight: 600; }
+
+/* ─── LAYOUT ─── */
+#content {
+  display: flex;
+  overflow: hidden;
+}
+
+#sidebar {
+  width: 240px;
+  background: #111118;
+  border-right: 1px solid #1e1e2e;
+  padding: 16px 14px;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+#main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 32px;
+}
+
+/* ─── SIDEBAR ─── */
+.sb-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #4b5563;
+  margin-bottom: 8px;
+  margin-top: 18px;
+}
+
+.sb-label:first-child { margin-top: 0; }
+
+.layer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.12s;
+  margin-bottom: 1px;
+  user-select: none;
+}
+
+.layer-row:hover { background: #1a1a2e; }
+.layer-row.off { opacity: 0.3; }
+
+.layer-row input { display: none; }
+
+.ldot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.layer-row .lname {
+  font-size: 12px;
+  color: #d1d5db;
+  flex: 1;
+}
+
+.layer-row .lmethod {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+.lmethod.mech { background: #064e3b; color: #34d399; }
+.lmethod.ai { background: #4c1d95; color: #c4b5fd; }
+
+.sb-note {
+  font-size: 11px;
+  color: #4b5563;
+  margin-top: 12px;
+  padding: 8px;
+  background: #0d0d14;
+  border-radius: 6px;
+  line-height: 1.5;
+}
+
+/* ─── PROMPT BAR ─── */
+#prompt-bar {
+  background: #111118;
+  border-top: 1px solid #1e1e2e;
+  padding: 10px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+#prompt-text {
+  flex: 1;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #6b7280;
+  overflow-y: auto;
+  max-height: 100px;
+  white-space: pre-wrap;
+}
+
+#copy-btn {
+  padding: 5px 12px;
+  border-radius: 5px;
+  border: 1px solid #2e2e3e;
+  background: #1a1a2e;
+  color: #9ca3af;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+#copy-btn:hover { background: #2a2a3e; color: #d1d5db; }
+#copy-btn.copied { background: #064e3b; border-color: #10b981; color: #34d399; }
+
+/* ─── VIEWS ─── */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ─── OVERVIEW ─── */
+.ov-hero {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.ov-hero h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #f3f4f6;
+  letter-spacing: -0.03em;
+  margin-bottom: 8px;
+}
+
+.ov-hero p {
+  font-size: 14px;
+  color: #6b7280;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.ov-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 820px;
+  margin: 0 auto 28px;
+}
+
+.card {
+  background: #14141f;
+  border: 1px solid #1e1e2e;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.card h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.badge.bad { background: #7f1d1d; color: #fca5a5; }
+.badge.good { background: #064e3b; color: #6ee7b7; }
+
+.metric {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 12px;
+}
+
+.metric:last-child { border-bottom: none; }
+.metric .ml { color: #6b7280; }
+.metric .mv { font-family: 'SF Mono', monospace; font-weight: 600; color: #f3f4f6; }
+.mv.red { color: #f87171; }
+.mv.green { color: #34d399; }
+
+.ov-full { grid-column: 1 / -1; }
+
+.bar-group { margin-bottom: 14px; }
+
+.bar-label {
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 3px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.bar-track {
+  height: 18px;
+  background: #0d0d14;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 0;
+}
+
+.bar-fill.red { background: linear-gradient(90deg, #991b1b, #dc2626); }
+.bar-fill.green { background: linear-gradient(90deg, #065f46, #10b981); }
+.bar-fill.blue { background: linear-gradient(90deg, #1e3a5f, #3b82f6); }
+
+.guardrail {
+  background: #14141f;
+  border: 1px solid #1e1e2e;
+  border-left: 3px solid #f59e0b;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.guardrail h4 { font-size: 12px; font-weight: 700; color: #fbbf24; margin-bottom: 4px; }
+.guardrail p { font-size: 12px; color: #9ca3af; }
+
+/* ─── ANATOMY ─── */
+.anatomy-wrap {
+  display: flex;
+  gap: 20px;
+  max-width: 1050px;
+}
+
+.code-panel {
+  flex: 1;
+  background: #0d0d14;
+  border: 1px solid #1e1e2e;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.code-titlebar {
+  padding: 8px 14px;
+  background: #14141f;
+  border-bottom: 1px solid #1e1e2e;
+  font-family: 'SF Mono', monospace;
+  font-size: 11px;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.code-titlebar .dots { display: flex; gap: 5px; margin-right: 8px; }
+.code-titlebar .dots span { width: 8px; height: 8px; border-radius: 50%; }
+
+.code-body {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  line-height: 1.75;
+  overflow-y: auto;
+  max-height: calc(100vh - 240px);
+}
+
+.cs {
+  padding: 6px 14px;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.cs:hover { background: rgba(255,255,255,0.015); }
+.cs.active { background: rgba(255,255,255,0.03); }
+.cs.hidden-section { display: none; }
+
+.cs .cm { color: #374151; }
+.cs .cl { color: #6b7280; }
+.cs.non-theme .cl { color: #2a2a3a; }
+
+.cs .cs-badge {
+  position: absolute;
+  right: 10px;
+  top: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+  opacity: 0.8;
+}
+
+.detail-side {
+  width: 290px;
+  flex-shrink: 0;
+}
+
+.detail-card {
+  background: #14141f;
+  border: 1px solid #1e1e2e;
+  border-radius: 10px;
+  padding: 18px;
+  position: sticky;
+  top: 0;
+}
+
+.detail-card h3 { font-size: 15px; font-weight: 700; color: #f3f4f6; margin-bottom: 4px; }
+
+.detail-card .dm {
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+
+.dm.mech { background: #064e3b; color: #34d399; }
+.dm.ai { background: #4c1d95; color: #c4b5fd; }
+
+.detail-card p { font-size: 12px; color: #9ca3af; margin-bottom: 10px; line-height: 1.6; }
+
+.detail-card ul {
+  list-style: none;
+  padding: 0;
+}
+
+.detail-card ul li {
+  font-size: 11px;
+  color: #d1d5db;
+  padding: 3px 0 3px 14px;
+  position: relative;
+}
+
+.detail-card ul li::before { content: '\2192'; position: absolute; left: 0; color: #4b5563; }
+
+.detail-card .empty-hint {
+  color: #374151;
+  font-size: 12px;
+  text-align: center;
+  padding: 24px 0;
+}
+
+/* ─── FLOW ─── */
+.flow-wrap { max-width: 720px; margin: 0 auto; }
+
+.flow-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.flow-header h2 { font-size: 18px; font-weight: 700; color: #f3f4f6; margin-bottom: 4px; }
+.flow-header p { font-size: 13px; color: #6b7280; }
+
+.flow-btns {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.fbtn {
+  padding: 7px 18px;
+  border-radius: 6px;
+  border: 1px solid #2e2e3e;
+  background: #1a1a2e;
+  color: #9ca3af;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.fbtn:hover { background: #2a2a3e; color: #d1d5db; }
+.fbtn.playing { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+
+.flow-rail {
+  position: relative;
+  padding-left: 36px;
+}
+
+.flow-rail::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #1e1e2e;
+}
+
+.fs {
+  position: relative;
+  padding: 14px 18px;
+  margin-bottom: 12px;
+  background: #14141f;
+  border: 1px solid #1e1e2e;
+  border-radius: 8px;
+  transition: all 0.35s;
+}
+
+.fs.active { border-color: #3b82f6; box-shadow: 0 0 20px rgba(59,130,246,0.08); }
+.fs.done { border-color: #10b981; }
+.fs.done .fs-dot { background: #10b981; border-color: #34d399; }
+
+.fs-dot {
+  position: absolute;
+  left: -30px;
+  top: 18px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #1e1e2e;
+  border: 2px solid #2e2e3e;
+  z-index: 1;
+  transition: all 0.3s;
+}
+
+.fs.active .fs-dot { background: #3b82f6; border-color: #60a5fa; box-shadow: 0 0 8px rgba(59,130,246,0.5); }
+
+.fs h4 { font-size: 13px; font-weight: 600; color: #f3f4f6; }
+
+.fs .fs-time {
+  font-size: 10px;
+  font-family: 'SF Mono', monospace;
+  color: #4b5563;
+  margin-top: 2px;
+}
+
+.fs .fs-desc {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 6px;
+  display: none;
+}
+
+.fs.active .fs-desc { display: block; color: #9ca3af; }
+
+.fs .chips {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+/* ─── BLUEPRINT ─── */
+.bp-wrap { max-width: 900px; margin: 0 auto; }
+
+.bp-section { margin-bottom: 28px; }
+
+.bp-section h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bp-cat {
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.bp-cat.gen { background: #1e3a5f; color: #93c5fd; }
+.bp-cat.sw { background: #3b1d5e; color: #c4b5fd; }
+.bp-cat.util { background: #1e3a2e; color: #86efac; }
+
+.file-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+}
+
+.fc {
+  background: #14141f;
+  border: 1px solid #1e1e2e;
+  border-radius: 7px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border-left: 3px solid transparent;
+}
+
+.fc:hover { background: #1a1a2e; }
+.fc.sel { background: #1a1a2e; border-left-color: #3b82f6; }
+
+.fc .fp {
+  font-family: 'SF Mono', monospace;
+  font-size: 10px;
+  color: #60a5fa;
+  margin-bottom: 3px;
+  word-break: break-all;
+}
+
+.fc .fd { font-size: 11px; color: #6b7280; }
+
+.impl-rail {
+  position: relative;
+  padding-left: 44px;
+  max-width: 660px;
+}
+
+.impl-rail::before {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  background: #1e1e2e;
+}
+
+.is {
+  position: relative;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background: #14141f;
+  border: 1px solid #1e1e2e;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.is:hover { background: #1a1a2e; }
+.is.sel { background: #1a1a2e; border-color: #3b82f6; }
+
+.is-num {
+  position: absolute;
+  left: -36px;
+  top: 12px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #1e1e2e;
+  color: #6b7280;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.is.sel .is-num { background: #3b82f6; color: #fff; }
+
+.is h4 { font-size: 12px; font-weight: 600; color: #f3f4f6; }
+
+.is .is-detail {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 6px;
+  display: none;
+  line-height: 1.6;
+}
+
+.is.sel .is-detail { display: block; }
+
+/* ─── COLORS ─── */
+:root {
+  --c-tokens: #f59e0b;
+  --c-typo: #a78bfa;
+  --c-surfaces: #60a5fa;
+  --c-motion: #34d399;
+  --c-decor: #f472b6;
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2e2e3e; border-radius: 3px; }
+
+@media (max-width: 800px) {
+  #sidebar { display: none; }
+  .ov-grid { grid-template-columns: 1fr; }
+  .anatomy-wrap { flex-direction: column; }
+  .detail-side { width: 100%; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- NAV -->
+<nav>
+  <span class="logo">Theme Sections <span class="logo-dim">Architecture</span></span>
+  <span class="nav-sep"></span>
+  <button class="tab active" data-view="overview">Overview</button>
+  <button class="tab" data-view="anatomy">Anatomy</button>
+  <button class="tab" data-view="flow">Flow</button>
+  <button class="tab" data-view="blueprint">Blueprint</button>
+</nav>
+
+<!-- CONTENT -->
+<div id="content">
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sb-label">Theme Layers</div>
+
+  <label class="layer-row" data-layer="tokens">
+    <input type="checkbox" checked>
+    <span class="ldot" style="background:var(--c-tokens)"></span>
+    <span class="lname">Tokens</span>
+    <span class="lmethod mech">MECH</span>
+  </label>
+
+  <label class="layer-row" data-layer="typography">
+    <input type="checkbox" checked>
+    <span class="ldot" style="background:var(--c-typo)"></span>
+    <span class="lname">Typography</span>
+    <span class="lmethod mech">MECH</span>
+  </label>
+
+  <label class="layer-row" data-layer="surfaces">
+    <input type="checkbox" checked>
+    <span class="ldot" style="background:var(--c-surfaces)"></span>
+    <span class="lname">Surfaces</span>
+    <span class="lmethod ai">CLAUDE</span>
+  </label>
+
+  <label class="layer-row" data-layer="motion">
+    <input type="checkbox" checked>
+    <span class="ldot" style="background:var(--c-motion)"></span>
+    <span class="lname">Motion</span>
+    <span class="lmethod ai">CLAUDE</span>
+  </label>
+
+  <label class="layer-row" data-layer="decoration">
+    <input type="checkbox" checked>
+    <span class="ldot" style="background:var(--c-decor)"></span>
+    <span class="lname">Decoration</span>
+    <span class="lmethod ai">CLAUDE</span>
+  </label>
+
+  <div class="sb-label">Pass Breakdown</div>
+  <div class="sb-note">
+    <strong style="color:#34d399">Pass 1</strong> — Tokens + Typography<br>
+    Mechanical string replace, &lt;100ms<br><br>
+    <strong style="color:#c4b5fd">Pass 2</strong> — Surfaces + Motion + Decoration<br>
+    Claude creative restyle, 30-90s
+  </div>
+
+  <div class="sb-label">Key Insight</div>
+  <div class="sb-note">
+    Colors and fonts appear <em>instantly</em>. Creative effects arrive seconds later. No layout shift because structure is never touched.
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div id="main">
+
+<!-- ═══ OVERVIEW ═══ -->
+<div class="view active" id="v-overview">
+  <div class="ov-hero">
+    <h1>Targeted, Not Shallow</h1>
+    <p>Theme switching takes 3-10+ minutes because Claude rewrites the entire file. Section markers let us target only theme-sensitive code &mdash; same creative depth, fraction of the time.</p>
+  </div>
+
+  <div class="ov-grid">
+    <div class="card">
+      <h3><span class="badge bad">Before</span> Full-File Restyle</h3>
+      <div class="metric"><span class="ml">File read</span><span class="mv">38KB (entire file)</span></div>
+      <div class="metric"><span class="ml">Claude output</span><span class="mv red">~800 lines</span></div>
+      <div class="metric"><span class="ml">Edit calls</span><span class="mv">1 massive Edit</span></div>
+      <div class="metric"><span class="ml">Time</span><span class="mv red">3-10+ min</span></div>
+      <div class="metric"><span class="ml">Progress signal</span><span class="mv red">None</span></div>
+    </div>
+
+    <div class="card">
+      <h3><span class="badge good">After</span> Section-Targeted</h3>
+      <div class="metric"><span class="ml">File read</span><span class="mv">38KB (same)</span></div>
+      <div class="metric"><span class="ml">Claude output</span><span class="mv green">~50-150 lines</span></div>
+      <div class="metric"><span class="ml">Edit calls</span><span class="mv">3 small Edits</span></div>
+      <div class="metric"><span class="ml">Time</span><span class="mv green">&lt;100ms + 30-90s</span></div>
+      <div class="metric"><span class="ml">Progress signal</span><span class="mv green">Instant color change</span></div>
+    </div>
+
+    <div class="card ov-full">
+      <h3>Time Comparison</h3>
+      <div class="bar-group">
+        <div class="bar-label"><span>Before: Single-pass full rewrite</span><span style="color:#f87171">3-10 min</span></div>
+        <div class="bar-track"><div class="bar-fill red" id="bar-before"></div></div>
+      </div>
+      <div class="bar-group">
+        <div class="bar-label"><span>After Pass 1: Tokens + Typography (mechanical)</span><span style="color:#34d399">&lt;100ms</span></div>
+        <div class="bar-track"><div class="bar-fill green" id="bar-p1"></div></div>
+      </div>
+      <div class="bar-group">
+        <div class="bar-label"><span>After Pass 2: Surfaces + Motion + Decoration (Claude)</span><span style="color:#60a5fa">30-90s</span></div>
+        <div class="bar-track"><div class="bar-fill blue" id="bar-p2"></div></div>
+      </div>
+    </div>
+
+    <div class="card ov-full">
+      <h3>Safety Guardrails</h3>
+      <div class="guardrail">
+        <h4>Layer 1 &mdash; Prompt Constraint</h4>
+        <p>Claude is told: "Edit ONLY between @theme: markers. If you need to change anything outside a marker, stop and explain why." This prevents accidental layout or logic changes.</p>
+      </div>
+      <div class="guardrail">
+        <h4>Layer 2 &mdash; Post-Edit Validation</h4>
+        <p>After Claude finishes, the server diffs all content <em>outside</em> theme markers. If anything changed, the edit is rejected, app.jsx is restored from backup, and the user is notified.</p>
+      </div>
+      <div class="guardrail" style="border-left-color: #6b7280;">
+        <h4>Backwards Compatibility</h4>
+        <p>Apps without @theme: markers fall back to the current full-file restyle. No existing apps break.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ANATOMY ═══ -->
+<div class="view" id="v-anatomy">
+  <div class="anatomy-wrap">
+    <div class="code-panel">
+      <div class="code-titlebar">
+        <span class="dots"><span style="background:#f87171"></span><span style="background:#fbbf24"></span><span style="background:#34d399"></span></span>
+        app.jsx
+      </div>
+      <div class="code-body" id="code-body">
+        <!-- Generated by JS -->
+      </div>
+    </div>
+    <div class="detail-side">
+      <div class="detail-card" id="detail-card">
+        <div class="empty-hint">Click a highlighted section to explore it</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ FLOW ═══ -->
+<div class="view" id="v-flow">
+  <div class="flow-wrap">
+    <div class="flow-header">
+      <h2>Multi-Pass Theme Switch</h2>
+      <p>Watch the two-phase process: instant mechanical swap, then creative enhancement</p>
+    </div>
+
+    <div class="flow-btns">
+      <button class="fbtn" id="flow-play">&#9654; Play Animation</button>
+      <button class="fbtn" id="flow-reset">Reset</button>
+    </div>
+
+    <div class="flow-rail" id="flow-rail">
+      <!-- Generated by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ═══ BLUEPRINT ═══ -->
+<div class="view" id="v-blueprint">
+  <div class="bp-wrap">
+
+    <div class="bp-section">
+      <h3>Files to Modify <span class="bp-cat gen">Generation</span> <span class="bp-cat sw">Switching</span> <span class="bp-cat util">Utility</span></h3>
+      <div class="file-grid" id="file-grid">
+        <!-- Generated by JS -->
+      </div>
+    </div>
+
+    <div class="bp-section">
+      <h3>Implementation Order</h3>
+      <div class="impl-rail" id="impl-rail">
+        <!-- Generated by JS -->
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /content -->
+
+<!-- PROMPT BAR -->
+<div id="prompt-bar">
+  <div id="prompt-text"></div>
+  <button id="copy-btn">Copy</button>
+</div>
+
+</div><!-- /app -->
+
+<script>
+// ─── STATE ───
+const state = {
+  view: 'overview',
+  layers: { tokens: true, typography: true, surfaces: true, motion: true, decoration: true },
+  selectedSection: null,
+  flowStep: -1,
+  flowPlaying: false,
+  selectedFile: null,
+  selectedImpl: null
+};
+
+// ─── DATA ───
+const LAYERS = {
+  tokens: {
+    color: '#f59e0b', label: 'Tokens', method: 'mechanical', pass: 1,
+    desc: 'CSS custom properties that define the color palette. These are the foundation — every other style references these variables.',
+    contains: [':root { } CSS variable declarations', 'oklch() color values', 'Spacing and sizing tokens', 'Border radius values'],
+    code: [
+      '/* @theme:tokens */',
+      ':root {',
+      '  --comp-bg: oklch(0.12 0.03 280);',
+      '  --comp-text: oklch(0.93 0.02 80);',
+      '  --comp-accent: oklch(0.72 0.15 75);',
+      '  --comp-surface: oklch(0.18 0.02 280);',
+      '}',
+      '/* @theme:tokens:end */'
+    ]
+  },
+  typography: {
+    color: '#a78bfa', label: 'Typography', method: 'mechanical', pass: 1,
+    desc: 'Font imports and family declarations. Swapped mechanically because each theme specifies exact font URLs and families.',
+    contains: ['Google Fonts @import URLs', 'font-family declarations', 'Font weight mappings'],
+    code: [
+      '/* @theme:typography */',
+      "@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');",
+      '/* @theme:typography:end */'
+    ]
+  },
+  surfaces: {
+    color: '#60a5fa', label: 'Surfaces', method: 'creative', pass: 2,
+    desc: 'Visual depth and materiality — how elements feel physically. Claude interprets the theme personality to create cohesive shadows, borders, and texture effects.',
+    contains: ['Box shadows and depth', 'Border styles and widths', 'Backdrop filters (glass/blur)', 'Background gradients', 'Surface textures'],
+    code: [
+      '/* @theme:surfaces */',
+      '.glass-card {',
+      '  backdrop-filter: blur(20px);',
+      '  border: 1px solid rgba(255,255,255,0.1);',
+      '  box-shadow: 0 8px 32px rgba(0,0,0,0.3);',
+      '}',
+      '/* @theme:surfaces:end */'
+    ]
+  },
+  motion: {
+    color: '#34d399', label: 'Motion', method: 'creative', pass: 2,
+    desc: 'Animations and transitions that bring the theme to life. Claude designs motion that matches the personality — bouncy for playful themes, smooth for elegant ones.',
+    contains: ['@keyframes definitions', 'Transition timings', 'Hover/focus animations', 'Loading indicators'],
+    code: [
+      '/* @theme:motion */',
+      '@keyframes drift {',
+      '  0% { transform: translate(0, 0); }',
+      '  50% { transform: translate(15px, -10px); }',
+      '  100% { transform: translate(30px, -20px); }',
+      '}',
+      '/* @theme:motion:end */'
+    ]
+  },
+  decoration: {
+    color: '#f472b6', label: 'Decoration', method: 'creative', pass: 2,
+    desc: 'Atmospheric visual elements — SVGs, background canvases, scan lines, particle effects. These are the most theme-distinctive elements.',
+    contains: ['SVG corner/border elements', 'Background canvases or patterns', 'Atmospheric effects (scan lines, noise)', 'Decorative separators'],
+    code: [
+      '{/* @theme:decoration */}',
+      '<svg className="circuit-corner">',
+      '  <path d="M0 0 L40 0 L40 40" stroke="var(--comp-accent)" />',
+      '</svg>',
+      '<div className="scan-line" />',
+      '{/* @theme:decoration:end */}'
+    ]
+  }
+};
+
+const NON_THEME_STYLE = [
+  '',
+  '/* App layout (not theme-sensitive) */',
+  '.audio-controls {',
+  '  display: grid;',
+  '  grid-template-columns: repeat(3, 1fr);',
+  '  gap: 1rem;',
+  '}',
+  '.sidebar { width: 260px; }',
+  ''
+];
+
+const NON_THEME_JSX = [
+  '',
+  '{/* App content (not theme-sensitive) */}',
+  '<div className="audio-controls">',
+  '  <TrackCard track={currentTrack} />',
+  '  <VolumeSlider value={volume} />',
+  '</div>'
+];
+
+const FLOW_STEPS = [
+  {
+    title: 'User clicks theme',
+    time: 't=0',
+    desc: 'Theme switch triggered. The preview server receives the request and loads the target theme file.',
+    chips: []
+  },
+  {
+    title: 'Backup app.jsx',
+    time: 't=0',
+    desc: 'Current app.jsx is backed up before any modifications. If validation fails later, we restore from this backup.',
+    chips: []
+  },
+  {
+    title: 'Pass 1: Mechanical swap',
+    time: 't < 100ms',
+    desc: 'Extract :root block and font imports from the theme file. String-replace content between @theme:tokens and @theme:typography markers. Pure JavaScript, no AI.',
+    chips: [
+      { label: 'TOKENS', bg: '#78350f', color: '#fbbf24' },
+      { label: 'TYPOGRAPHY', bg: '#4c1d95', color: '#c4b5fd' }
+    ]
+  },
+  {
+    title: 'Instant preview update',
+    time: 't ~ 100ms',
+    desc: 'User sees color and font changes immediately via iframe postMessage injection. The app looks different already — just missing creative details.',
+    chips: [
+      { label: 'VISIBLE TO USER', bg: '#064e3b', color: '#34d399' }
+    ]
+  },
+  {
+    title: 'Pass 2: Claude creative restyle',
+    time: 't = 1s - 90s',
+    desc: 'Spawn claude -p with a focused prompt: "Replace ONLY content between @theme:surfaces, @theme:motion, and @theme:decoration markers." Claude reads the full file for context but only generates ~50-150 lines of replacement.',
+    chips: [
+      { label: 'SURFACES', bg: '#1e3a5f', color: '#93c5fd' },
+      { label: 'MOTION', bg: '#064e3b', color: '#6ee7b7' },
+      { label: 'DECORATION', bg: '#831843', color: '#f9a8d4' }
+    ]
+  },
+  {
+    title: 'Post-edit validation',
+    time: 't + 0ms',
+    desc: 'Diff all content outside @theme: markers between backup and result. If non-theme code changed, reject the edit and restore from backup.',
+    chips: [
+      { label: 'GUARDRAIL', bg: '#78350f', color: '#fbbf24' }
+    ]
+  },
+  {
+    title: 'Full theme applied',
+    time: 'complete',
+    desc: 'Surfaces, motion, and decoration are now updated. The preview refreshes with the complete theme transformation. If user switches again before this, the subprocess is cancelled.',
+    chips: [
+      { label: 'ALL LAYERS', bg: '#1e1e2e', color: '#d1d5db' }
+    ]
+  }
+];
+
+const FILES = [
+  { path: 'scripts/lib/theme-sections.js', desc: 'New utility: extract, replace, validate theme sections', cat: 'util' },
+  { path: 'scripts/preview-server.js', desc: 'handleGenerate(): add marker convention to prompt', cat: 'gen' },
+  { path: 'scripts/preview-server.js', desc: 'handleThemeSwitch(): multi-pass with fallback', cat: 'sw' },
+  { path: 'scripts/preview-server.js', desc: 'parseThemeColors(): extract full :root + fonts', cat: 'sw' },
+  { path: 'skills/vibes/SKILL.md', desc: 'Add marker convention to output boilerplate', cat: 'gen' },
+  { path: 'skills/vibes/defaults/style-prompt.txt', desc: 'Add section organization guidance', cat: 'gen' },
+  { path: 'skills/vibes/templates/preview.html', desc: '"Enhancing theme..." indicator + instant :root injection', cat: 'sw' },
+];
+
+const IMPL_STEPS = [
+  { title: 'theme-sections.js utility', detail: 'Pure functions: extractThemeSections(code), replaceThemeSection(code, name, content), extractNonThemeSections(code). Easy to test in isolation. No I/O.' },
+  { title: 'Generation prompt update', detail: 'Update handleGenerate() and SKILL.md so new apps include @theme: markers in their generated code. Existing apps are unaffected.' },
+  { title: 'parseThemeColors() extension', detail: 'Extend the existing parser to extract the full :root CSS block and @import font URLs from theme files, not just swatch hex values.' },
+  { title: 'handleThemeSwitch() rewrite', detail: 'Detect markers → multi-pass (mechanical + Claude). If no markers found, fall back to current full-file restyle. Handles subprocess cancellation on re-switch.' },
+  { title: 'Post-edit validation', detail: 'Layer 2 guardrail: compare non-theme content before and after Claude\'s edit. Reject and restore if anything outside markers changed.' },
+  { title: 'Client-side instant preview', detail: 'iframe :root CSS variable injection via postMessage for instant Pass 1 feedback. "Enhancing theme..." spinner while Pass 2 runs.' },
+  { title: 'Tests', detail: 'Unit tests for theme-sections.js (extract, replace, validate). Integration test for the full theme switch flow with marker detection and fallback.' },
+];
+
+// ─── RENDER ───
+function renderAll() {
+  renderLayers();
+  renderCodeBody();
+  renderFlowRail();
+  renderFileGrid();
+  renderImplRail();
+  updatePrompt();
+  animateBars();
+}
+
+function renderLayers() {
+  document.querySelectorAll('.layer-row').forEach(row => {
+    const layer = row.dataset.layer;
+    const on = state.layers[layer];
+    row.classList.toggle('off', !on);
+    row.querySelector('input').checked = on;
+  });
+}
+
+function renderCodeBody() {
+  const el = document.getElementById('code-body');
+  let html = '';
+
+  // STYLE block opening
+  html += sec('non-theme', null, ['const STYLE = `']);
+
+  // Theme sections in CSS
+  ['tokens', 'typography', 'surfaces', 'motion'].forEach(layer => {
+    const L = LAYERS[layer];
+    const visible = state.layers[layer];
+    const active = state.selectedSection === layer;
+    html += sec(
+      layer,
+      { label: L.label, color: L.color, method: L.method },
+      L.code,
+      visible,
+      active
+    );
+  });
+
+  // Non-theme CSS
+  html += sec('non-theme', null, NON_THEME_STYLE);
+
+  // Close STYLE, open JSX return
+  html += sec('non-theme', null, ['`;', '', 'return (', '  <div className="app">']);
+
+  // Decoration section (JSX)
+  const dL = LAYERS.decoration;
+  html += sec(
+    'decoration',
+    { label: dL.label, color: dL.color, method: dL.method },
+    dL.code,
+    state.layers.decoration,
+    state.selectedSection === 'decoration'
+  );
+
+  // Non-theme JSX
+  html += sec('non-theme', null, NON_THEME_JSX);
+
+  // Close
+  html += sec('non-theme', null, ['  </div>', ');']);
+
+  el.innerHTML = html;
+
+  // Click handlers
+  el.querySelectorAll('.cs[data-layer]').forEach(s => {
+    s.addEventListener('click', () => {
+      state.selectedSection = state.selectedSection === s.dataset.layer ? null : s.dataset.layer;
+      renderCodeBody();
+      renderDetail();
+      updatePrompt();
+    });
+  });
+}
+
+function sec(layer, badge, lines, visible = true, active = false) {
+  const isTheme = layer !== 'non-theme';
+  const cls = ['cs'];
+  if (!isTheme) cls.push('non-theme');
+  if (active) cls.push('active');
+  if (isTheme && !visible) cls.push('hidden-section');
+
+  const borderColor = isTheme && badge ? badge.color : 'transparent';
+  const badgeHtml = badge
+    ? `<span class="cs-badge" style="background:${badge.color}20;color:${badge.color}">${badge.label} (${badge.method === 'mechanical' ? 'MECH' : 'CLAUDE'})</span>`
+    : '';
+
+  const linesHtml = lines.map(l => {
+    const isMarker = l.includes('@theme:');
+    return `<div class="${isMarker ? 'cm' : 'cl'}">${esc(l)}</div>`;
+  }).join('');
+
+  return `<div class="${cls.join(' ')}" style="border-left-color:${borderColor}" ${isTheme ? `data-layer="${layer}"` : ''}>${badgeHtml}${linesHtml}</div>`;
+}
+
+function renderDetail() {
+  const el = document.getElementById('detail-card');
+  if (!state.selectedSection) {
+    el.innerHTML = '<div class="empty-hint">Click a highlighted section<br>in the code to explore it</div>';
+    return;
+  }
+  const L = LAYERS[state.selectedSection];
+  el.innerHTML = `
+    <h3 style="color:${L.color}">${L.label}</h3>
+    <span class="dm ${L.method === 'mechanical' ? 'mech' : 'ai'}">
+      ${L.method === 'mechanical' ? 'Mechanical — Pass 1 (<100ms)' : 'Claude Creative — Pass 2 (30-90s)'}
+    </span>
+    <p>${L.desc}</p>
+    <p style="font-size:11px;color:#4b5563;font-weight:600;margin-bottom:6px">CONTAINS</p>
+    <ul>${L.contains.map(c => `<li>${c}</li>`).join('')}</ul>
+  `;
+}
+
+function renderFlowRail() {
+  const el = document.getElementById('flow-rail');
+  el.innerHTML = FLOW_STEPS.map((s, i) => {
+    const cls = ['fs'];
+    if (i === state.flowStep) cls.push('active');
+    if (i < state.flowStep) cls.push('done');
+    const chipsHtml = s.chips.length
+      ? `<div class="chips">${s.chips.map(c => `<span class="chip" style="background:${c.bg};color:${c.color}">${c.label}</span>`).join('')}</div>`
+      : '';
+    return `
+      <div class="${cls.join(' ')}">
+        <div class="fs-dot"></div>
+        <h4>${s.title}</h4>
+        <div class="fs-time">${s.time}</div>
+        <div class="fs-desc">${s.desc}</div>
+        ${chipsHtml}
+      </div>`;
+  }).join('');
+}
+
+function renderFileGrid() {
+  const el = document.getElementById('file-grid');
+  el.innerHTML = FILES.map((f, i) => {
+    const cls = state.selectedFile === i ? 'fc sel' : 'fc';
+    const catLabel = { gen: 'Generation', sw: 'Switching', util: 'Utility' }[f.cat];
+    const catCls = { gen: 'gen', sw: 'sw', util: 'util' }[f.cat];
+    return `
+      <div class="${cls}" data-idx="${i}" style="border-left-color:${state.selectedFile === i ? ({ gen: '#93c5fd', sw: '#c4b5fd', util: '#86efac' }[f.cat]) : 'transparent'}">
+        <div class="fp">${f.path} <span class="bp-cat ${catCls}">${catLabel}</span></div>
+        <div class="fd">${f.desc}</div>
+      </div>`;
+  }).join('');
+
+  el.querySelectorAll('.fc').forEach(c => {
+    c.addEventListener('click', () => {
+      const idx = parseInt(c.dataset.idx);
+      state.selectedFile = state.selectedFile === idx ? null : idx;
+      renderFileGrid();
+      updatePrompt();
+    });
+  });
+}
+
+function renderImplRail() {
+  const el = document.getElementById('impl-rail');
+  el.innerHTML = IMPL_STEPS.map((s, i) => {
+    const cls = state.selectedImpl === i ? 'is sel' : 'is';
+    return `
+      <div class="${cls}" data-idx="${i}">
+        <div class="is-num">${i + 1}</div>
+        <h4>${s.title}</h4>
+        <div class="is-detail">${s.detail}</div>
+      </div>`;
+  }).join('');
+
+  el.querySelectorAll('.is').forEach(s => {
+    s.addEventListener('click', () => {
+      const idx = parseInt(s.dataset.idx);
+      state.selectedImpl = state.selectedImpl === idx ? null : idx;
+      renderImplRail();
+      updatePrompt();
+    });
+  });
+}
+
+function animateBars() {
+  if (state.view !== 'overview') return;
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      document.getElementById('bar-before').style.width = '100%';
+      document.getElementById('bar-p1').style.width = '1.5%';
+      document.getElementById('bar-p2').style.width = '15%';
+    }, 200);
+  });
+}
+
+// ─── PROMPT ───
+function updatePrompt() {
+  const parts = [];
+  parts.push('Theme Sections Architecture — Vibes Plugin');
+  parts.push('');
+
+  if (state.view === 'overview') {
+    parts.push('PROBLEM: Theme switching rewrites entire 38KB+ app.jsx in one pass (3-10 min, no progress signal).');
+    parts.push('');
+    parts.push('SOLUTION: Comment-delimited @theme: sections enable multi-pass switching:');
+    parts.push('  Pass 1 (mechanical, <100ms): Swap tokens + typography via string replacement');
+    parts.push('  Pass 2 (Claude, 30-90s): Only rewrite surfaces, motion, decoration sections');
+    parts.push('');
+    parts.push('GUARDRAILS: Prompt constraint + post-edit validation (diff non-theme content, reject if changed).');
+  }
+
+  if (state.view === 'anatomy') {
+    const active = Object.entries(state.layers).filter(([,v]) => v).map(([k]) => LAYERS[k].label);
+    parts.push(`Viewing ${active.length} of 5 theme layers: ${active.join(', ')}`);
+    if (state.selectedSection) {
+      const L = LAYERS[state.selectedSection];
+      parts.push('');
+      parts.push(`Selected: ${L.label} (${L.method === 'mechanical' ? 'Pass 1, mechanical' : 'Pass 2, Claude creative'})`);
+      parts.push(L.desc);
+    }
+  }
+
+  if (state.view === 'flow') {
+    if (state.flowStep >= 0) {
+      const s = FLOW_STEPS[state.flowStep];
+      parts.push(`Flow step ${state.flowStep + 1}/${FLOW_STEPS.length}: ${s.title}`);
+      parts.push(s.desc);
+    } else {
+      parts.push('Click "Play Animation" to walk through the multi-pass theme switch flow.');
+    }
+  }
+
+  if (state.view === 'blueprint') {
+    parts.push('FILES: 3 generation changes, 3 switching changes, 1 new utility');
+    parts.push('IMPL: 7 steps — start with pure utility functions, end with tests');
+    if (state.selectedFile !== null) {
+      const f = FILES[state.selectedFile];
+      parts.push('');
+      parts.push(`File: ${f.path}`);
+      parts.push(`Change: ${f.desc}`);
+    }
+    if (state.selectedImpl !== null) {
+      const s = IMPL_STEPS[state.selectedImpl];
+      parts.push('');
+      parts.push(`Step ${state.selectedImpl + 1}: ${s.title}`);
+      parts.push(s.detail);
+    }
+  }
+
+  document.getElementById('prompt-text').textContent = parts.join('\n');
+}
+
+// ─── FLOW ANIMATION ───
+let flowTimer = null;
+
+function playFlow() {
+  if (state.flowPlaying) { stopFlow(); return; }
+  state.flowPlaying = true;
+  state.flowStep = -1;
+  document.getElementById('flow-play').classList.add('playing');
+  document.getElementById('flow-play').innerHTML = '&#9724; Pause';
+  advanceFlow();
+}
+
+function advanceFlow() {
+  if (!state.flowPlaying) return;
+  state.flowStep++;
+  if (state.flowStep >= FLOW_STEPS.length) {
+    stopFlow();
+    return;
+  }
+  renderFlowRail();
+  updatePrompt();
+  // Vary timing: Pass 1 steps are fast, Pass 2 slower
+  const delay = state.flowStep === 2 ? 1200 : state.flowStep === 4 ? 2500 : 1500;
+  flowTimer = setTimeout(advanceFlow, delay);
+}
+
+function stopFlow() {
+  state.flowPlaying = false;
+  clearTimeout(flowTimer);
+  document.getElementById('flow-play').classList.remove('playing');
+  document.getElementById('flow-play').innerHTML = '&#9654; Play Animation';
+}
+
+function resetFlow() {
+  stopFlow();
+  state.flowStep = -1;
+  renderFlowRail();
+  updatePrompt();
+}
+
+// ─── EVENTS ───
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    state.view = tab.dataset.view;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('v-' + state.view).classList.add('active');
+    updatePrompt();
+    if (state.view === 'overview') setTimeout(animateBars, 100);
+    if (state.view === 'anatomy') { renderCodeBody(); renderDetail(); }
+  });
+});
+
+document.querySelectorAll('.layer-row').forEach(row => {
+  row.addEventListener('click', () => {
+    const layer = row.dataset.layer;
+    state.layers[layer] = !state.layers[layer];
+    renderLayers();
+    renderCodeBody();
+    updatePrompt();
+  });
+});
+
+document.getElementById('flow-play').addEventListener('click', playFlow);
+document.getElementById('flow-reset').addEventListener('click', resetFlow);
+
+document.getElementById('copy-btn').addEventListener('click', () => {
+  const text = document.getElementById('prompt-text').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+  });
+});
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─── INIT ───
+renderAll();
+</script>
+</body>
+</html>
