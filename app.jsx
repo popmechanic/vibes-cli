@@ -1,7 +1,7 @@
-window.__VIBES_THEMES__ = [{ id: "default", name: "Neo-Brutalist" }];
+window.__VIBES_THEMES__ = [{ id: "pitch", name: "Pitch Scoreboard" }];
 
 function useVibesTheme() {
-  const [theme, setTheme] = React.useState(() => localStorage.getItem("vibes-theme") || "default");
+  const [theme, setTheme] = React.useState(() => localStorage.getItem("vibes-theme") || "pitch");
   React.useEffect(() => {
     const handler = (e) => { const t = e.detail?.theme; if (t) { setTheme(t); localStorage.setItem("vibes-theme", t); } };
     document.addEventListener("vibes-design-request", handler);
@@ -10,477 +10,1124 @@ function useVibesTheme() {
   return theme;
 }
 
-/* ── SVG Icons ── */
-function SpartanHelmet({ size = 48, color = "var(--comp-accent)" }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" fill="none">
-      <path d="M32 4C18 4 10 16 10 28c0 6 2 11 5 15l2 3v10c0 2 2 4 4 4h22c2 0 4-2 4-4V46l2-3c3-4 5-9 5-15C54 16 46 4 32 4z" fill={color} opacity="0.15" stroke={color} strokeWidth="2.5"/>
-      <path d="M16 30h32" stroke={color} strokeWidth="2.5" strokeLinecap="round"/>
-      <path d="M18 30c0 0 2-8 14-8s14 8 14 8" stroke={color} strokeWidth="2" fill="none"/>
-      <rect x="18" y="30" width="28" height="6" rx="2" fill={color} opacity="0.3"/>
-      <path d="M22 33h8" stroke={color} strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
-      <path d="M34 33h8" stroke={color} strokeWidth="2" strokeLinecap="round" opacity="0.8"/>
-    </svg>
-  );
+const STYLE = `
+:root {
+    --comp-bg: oklch(0.27 0.055 163);
+    --comp-text: oklch(0.95 0.01 100);
+    --comp-border: oklch(0.39 0.065 165);
+    --comp-accent: oklch(0.86 0.18 90);
+    --comp-accent-text: oklch(0.20 0.04 163);
+    --comp-muted: oklch(0.55 0.04 165);
+    --color-background: oklch(0.22 0.05 163);
+    --grid-color: oklch(0.39 0.065 165 / 0.15);
 }
 
-function HaloRingIcon({ size = 24, color = "var(--comp-accent)" }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <ellipse cx="12" cy="12" rx="10" ry="4" stroke={color} strokeWidth="2" opacity="0.6"/>
-      <circle cx="12" cy="12" r="3" fill={color} opacity="0.3"/>
-      <circle cx="12" cy="12" r="1.5" fill={color}/>
-    </svg>
-  );
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Inter:wght@400;500;600&display=swap');
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--color-background);
+  color: var(--comp-text);
+  margin: 0;
 }
 
-function EnergySwordIcon({ size = 24, color = "oklch(0.75 0.15 200)" }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <path d="M4 20L10 14" stroke={color} strokeWidth="2.5" strokeLinecap="round"/>
-      <path d="M10 14L20 4" stroke={color} strokeWidth="2" strokeLinecap="round" opacity="0.7"/>
-      <path d="M10 14L8 16" stroke={color} strokeWidth="3" strokeLinecap="round"/>
-      <circle cx="20" cy="4" r="1.5" fill={color} opacity="0.5">
-        <animate attributeName="opacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite"/>
-      </circle>
-    </svg>
-  );
+.pitch-app {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
 }
 
-function UNSCEagle({ size = 24, color = "var(--comp-muted)" }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <path d="M12 2L8 8h8L12 2z" fill={color} opacity="0.6"/>
-      <path d="M6 10l6 12 6-12" stroke={color} strokeWidth="2" fill="none"/>
-      <path d="M4 10h16" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-      <circle cx="12" cy="12" r="2" fill={color} opacity="0.4"/>
-    </svg>
-  );
+.pitch-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
 }
 
-function CortanaChip({ size = 24, color = "oklch(0.7 0.15 250)" }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <rect x="6" y="2" width="12" height="20" rx="3" stroke={color} strokeWidth="2" opacity="0.6"/>
-      <circle cx="12" cy="10" r="4" stroke={color} strokeWidth="1.5" fill={color} fillOpacity="0.15">
-        <animate attributeName="fillOpacity" values="0.15;0.35;0.15" dur="3s" repeatCount="indefinite"/>
-      </circle>
-      <path d="M10 18h4" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-    </svg>
-  );
+.pitch-content {
+  position: relative;
+  z-index: 1;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1rem;
 }
 
-function StarIcon({ filled, color = "var(--comp-accent)" }) {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" style={{ cursor: "pointer", transition: "transform 0.15s ease" }}>
-      <path
-        d="M10 1.5l2.5 5.5 6 .5-4.5 4 1.5 6L10 14.5 4.5 17.5l1.5-6-4.5-4 6-.5z"
-        fill={filled ? color : "none"}
-        stroke={color}
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
+.pitch-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--comp-border);
+  margin-bottom: 1.5rem;
 }
 
-/* ── Animated Background ── */
-function HaloRingBackground() {
-  const stars = React.useMemo(() =>
-    Array.from({ length: 30 }, (_, i) => ({
-      cx: Math.random() * 800, cy: Math.random() * 600,
-      r: Math.random() * 1.5 + 0.5,
-      d1: `${Math.random() * 0.3 + 0.1}`,
-      d2: `${Math.random() * 0.6 + 0.3}`,
-      dur: `${Math.random() * 4 + 3}s`
-    })), []);
-  return (
-    <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0, overflow: "hidden" }}>
-      <svg width="100%" height="100%" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice" style={{ opacity: 0.06 }}>
-        <defs>
-          <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="oklch(0.75 0.15 200)" />
-            <stop offset="100%" stopColor="oklch(0.72 0.18 70)" />
-          </linearGradient>
-        </defs>
-        <g transform="translate(400,300)">
-          <ellipse rx="350" ry="120" fill="none" stroke="url(#ringGrad)" strokeWidth="2">
-            <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="60s" repeatCount="indefinite"/>
-          </ellipse>
-          <ellipse rx="280" ry="95" fill="none" stroke="url(#ringGrad)" strokeWidth="1.5" opacity="0.5">
-            <animateTransform attributeName="transform" type="rotate" from="360" to="0" dur="45s" repeatCount="indefinite"/>
-          </ellipse>
-          <ellipse rx="200" ry="70" fill="none" stroke="url(#ringGrad)" strokeWidth="1" opacity="0.3">
-            <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="80s" repeatCount="indefinite"/>
-          </ellipse>
-        </g>
-        {stars.map((s, i) => (
-          <circle key={i} cx={s.cx} cy={s.cy} r={s.r} fill="oklch(0.85 0.05 70)">
-            <animate attributeName="opacity" values={`${s.d1};${s.d2};${s.d1}`} dur={s.dur} repeatCount="indefinite"/>
-          </circle>
-        ))}
-      </svg>
-    </div>
-  );
+.pitch-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-/* ── Animated Divider ── */
-function EnergySwordDivider() {
-  return (
-    <svg width="100%" height="20" viewBox="0 0 600 20" preserveAspectRatio="none" style={{ display: "block", margin: "1rem 0" }}>
-      <defs>
-        <linearGradient id="swordGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="oklch(0.75 0.15 200)" stopOpacity="0"/>
-          <stop offset="30%" stopColor="oklch(0.75 0.15 200)" stopOpacity="0.8"/>
-          <stop offset="50%" stopColor="oklch(0.85 0.12 200)" stopOpacity="1"/>
-          <stop offset="70%" stopColor="oklch(0.75 0.15 200)" stopOpacity="0.8"/>
-          <stop offset="100%" stopColor="oklch(0.75 0.15 200)" stopOpacity="0"/>
-        </linearGradient>
-      </defs>
-      <line x1="0" y1="10" x2="600" y2="10" stroke="url(#swordGrad)" strokeWidth="2"/>
-      <circle cx="300" cy="10" r="3" fill="oklch(0.85 0.12 200)">
-        <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/>
-        <animate attributeName="opacity" values="1;0.5;1" dur="2s" repeatCount="indefinite"/>
-      </circle>
-    </svg>
-  );
+.pitch-title .accent-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--comp-accent);
+  display: inline-block;
 }
 
-/* ── Stats Ring ── */
-function StatsRing({ value, max, label, color = "var(--comp-accent)" }) {
-  const pct = max > 0 ? value / max : 0;
-  const r = 32;
-  const circ = 2 * Math.PI * r;
-  const offset = circ * (1 - pct);
-  return (
-    <div style={{ textAlign: "center" }}>
-      <svg width="80" height="80" viewBox="0 0 80 80">
-        <circle cx="40" cy="40" r={r} fill="none" stroke="var(--comp-border)" strokeWidth="6" opacity="0.3"/>
-        <circle cx="40" cy="40" r={r} fill="none" stroke={color} strokeWidth="6"
-          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
-          transform="rotate(-90 40 40)" style={{ transition: "stroke-dashoffset 0.6s ease" }}/>
-        <text x="40" y="44" textAnchor="middle" fill="var(--comp-text)" fontSize="16" fontWeight="700">{value}</text>
-      </svg>
-      <div style={{ fontSize: "0.75rem", color: "var(--comp-muted)", marginTop: "0.25rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</div>
-    </div>
-  );
+.pitch-live {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--comp-accent);
 }
 
-/* ── Halo Games Data ── */
-const HALO_GAMES = [
-  { id: "ce", title: "Halo: Combat Evolved", year: 2001, platform: "Xbox", description: "Master Chief awakens on the mysterious Halo ring. The one that started it all." },
-  { id: "2", title: "Halo 2", year: 2004, platform: "Xbox", description: "The Covenant attacks Earth. Dual-wield weapons and play as the Arbiter." },
-  { id: "3", title: "Halo 3", year: 2007, platform: "Xbox 360", description: "Finish the fight. The epic conclusion to the original trilogy." },
-  { id: "odst", title: "Halo 3: ODST", year: 2009, platform: "Xbox 360", description: "Drop into New Mombasa as an Orbital Drop Shock Trooper." },
-  { id: "reach", title: "Halo: Reach", year: 2010, platform: "Xbox 360", description: "Noble Team's last stand. The fall of Reach before Combat Evolved." },
-  { id: "4", title: "Halo 4", year: 2012, platform: "Xbox 360", description: "Chief awakens on Requiem. A new enemy, the Didact, threatens humanity." },
-  { id: "5", title: "Halo 5: Guardians", year: 2015, platform: "Xbox One", description: "Locke hunts Master Chief. Cortana returns with a dangerous plan." },
-  { id: "wars", title: "Halo Wars", year: 2009, platform: "Xbox 360", description: "Real-time strategy on Harvest. Command the crew of the Spirit of Fire." },
-  { id: "wars2", title: "Halo Wars 2", year: 2017, platform: "Xbox One", description: "The Spirit of Fire faces the Banished at the Ark." },
-  { id: "infinite", title: "Halo Infinite", year: 2021, platform: "Xbox Series", description: "Chief lands on Zeta Halo. Open-world exploration meets classic combat." },
+.pitch-live-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--comp-accent);
+  animation: livePulse 2s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.7); }
+}
+
+.pitch-nav {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--comp-border);
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+}
+
+.pitch-nav button {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 0.6rem 1.2rem;
+  background: transparent;
+  color: var(--comp-muted);
+  border: none;
+  border-right: 1px solid var(--comp-border);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+
+.pitch-nav button:last-child { border-right: none; }
+
+.pitch-nav button.active {
+  background: var(--comp-border);
+  color: var(--comp-text);
+}
+
+.pitch-nav button:hover {
+  background: oklch(0.30 0.055 163);
+  color: var(--comp-text);
+}
+
+.pitch-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1px;
+  background: var(--comp-border);
+}
+
+@media (min-width: 768px) {
+  .pitch-layout {
+    grid-template-columns: 1fr 280px;
+  }
+}
+
+.pitch-main {
+  background: var(--color-background);
+  padding: 1rem;
+}
+
+.pitch-sidebar {
+  background: var(--color-background);
+  padding: 1rem;
+  border-top: 1px solid var(--comp-border);
+}
+
+@media (min-width: 768px) {
+  .pitch-sidebar { border-top: none; }
+}
+
+.pitch-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1px;
+  background: var(--comp-border);
+}
+
+@media (min-width: 640px) {
+  .pitch-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (min-width: 1024px) {
+  .pitch-grid { grid-template-columns: 1fr 1fr 1fr; }
+}
+
+.metric-card {
+  background: var(--comp-bg);
+  padding: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+  border: none;
+  animation: cardFadeIn 0.4s ease both;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+}
+
+.metric-card.highlight {
+  background: var(--comp-accent);
+  color: var(--comp-accent-text);
+}
+
+.metric-card.highlight .metric-label,
+.metric-card.highlight .metric-sublabel {
+  color: var(--comp-accent-text);
+  opacity: 0.7;
+}
+
+.metric-card.highlight .metric-value {
+  color: var(--comp-accent-text);
+}
+
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.metric-label {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--comp-muted);
+  margin-bottom: 0.75rem;
+}
+
+.metric-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-sublabel {
+  font-size: 0.75rem;
+  color: var(--comp-muted);
+}
+
+.image-card {
+  position: relative;
+  min-height: 200px;
+  overflow: hidden;
+  background: var(--comp-bg);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.25rem;
+  animation: cardFadeIn 0.4s ease both;
+}
+
+.image-card .card-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: grayscale(100%);
+  mix-blend-mode: multiply;
+  opacity: 0.4;
+}
+
+.image-card .card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, var(--comp-bg) 20%, transparent 80%);
+}
+
+.image-card .card-content {
+  position: relative;
+  z-index: 1;
+}
+
+.sport-icon-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.sport-icon {
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  border: 1px solid var(--comp-border);
+  color: var(--comp-muted);
+  transition: color 0.2s, border-color 0.2s;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sport-icon:hover,
+.sport-icon.active {
+  color: var(--comp-accent);
+  border-color: var(--comp-accent);
+}
+
+.feed-section-title {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--comp-muted);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--comp-border);
+}
+
+.feed-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid oklch(0.39 0.065 165 / 0.3);
+  font-size: 0.8rem;
+  animation: feedSlide 0.3s ease both;
+}
+
+@keyframes feedSlide {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.feed-item:last-child { border-bottom: none; }
+
+.feed-time {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.7rem;
+  color: var(--comp-muted);
+  white-space: nowrap;
+  min-width: 44px;
+  font-variant-numeric: tabular-nums;
+}
+
+.feed-text {
+  flex: 1;
+  word-break: break-word;
+}
+
+.feed-text strong {
+  color: var(--comp-accent);
+}
+
+.athlete-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--comp-border);
+  background: var(--comp-bg);
+  margin-bottom: 1rem;
+}
+
+.athlete-form .form-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.athlete-form input,
+.athlete-form select {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-background);
+  border: 1px solid var(--comp-border);
+  color: var(--comp-text);
+  flex: 1;
+  min-width: 100px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.athlete-form input:focus,
+.athlete-form select:focus {
+  border-color: var(--comp-accent);
+}
+
+.athlete-form label {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--comp-muted);
+}
+
+.btn-accent {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.6rem 1.2rem;
+  background: var(--comp-accent);
+  color: var(--comp-accent-text);
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.btn-accent:hover { opacity: 0.9; }
+.btn-accent:active { transform: scale(0.97); }
+
+.btn-danger {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.3rem 0.6rem;
+  background: transparent;
+  color: oklch(0.65 0.2 25);
+  border: 1px solid oklch(0.65 0.2 25 / 0.3);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-danger:hover {
+  background: oklch(0.65 0.2 25 / 0.15);
+}
+
+.athlete-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--comp-border);
+  margin-bottom: 1.5rem;
+}
+
+.athlete-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--comp-bg);
+  font-size: 0.8rem;
+  animation: cardFadeIn 0.3s ease both;
+}
+
+@media (max-width: 640px) {
+  .athlete-row {
+    grid-template-columns: 1fr auto;
+    gap: 0.4rem;
+  }
+  .athlete-index,
+  .athlete-sport { display: none; }
+}
+
+.athlete-index {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.6rem;
+  color: var(--comp-muted);
+  letter-spacing: 0.1em;
+}
+
+.athlete-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.athlete-sport {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--comp-muted);
+  border: 1px solid var(--comp-border);
+  padding: 0.15rem 0.5rem;
+  white-space: nowrap;
+}
+
+.athlete-rating {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--comp-accent);
+  white-space: nowrap;
+}
+
+.sparkline-container {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--comp-border);
+  background: var(--comp-bg);
+  overflow: hidden;
+}
+
+.sparkline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.section-label {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--comp-muted);
+  margin-bottom: 1rem;
+}
+
+.divider-svg {
+  width: 100%;
+  height: 40px;
+  margin: 1.5rem 0;
+  display: block;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--comp-muted);
+}
+
+.empty-state svg {
+  margin: 0 auto 1.5rem;
+  display: block;
+}
+
+.empty-state p {
+  font-size: 0.8rem;
+  max-width: 280px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--comp-border);
+  margin-bottom: 1px;
+}
+
+@media (min-width: 640px) {
+  .stats-row { grid-template-columns: repeat(4, 1fr); }
+}
+
+.danger-bar {
+  height: 4px;
+  background: var(--comp-border);
+  margin-top: 0.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.danger-bar-fill {
+  height: 100%;
+  background: var(--comp-accent);
+  transition: width 0.6s ease;
+}
+`;
+
+const SPORTS = [
+  { id: "base", name: "BASE Jumping", unit: "ft", metric: "Altitude" },
+  { id: "surf", name: "Big Wave Surf", unit: "ft", metric: "Wave Height" },
+  { id: "moto", name: "Freestyle MX", unit: "pts", metric: "Score" },
+  { id: "climb", name: "Ice Climbing", unit: "m", metric: "Ascent" },
 ];
 
-/* ── Game Card ── */
-function GameCard({ game, entry, onTogglePlayed, onToggleCompleted, onRate, onEditNote, index }) {
-  const [expanded, setExpanded] = React.useState(false);
-  const [noteText, setNoteText] = React.useState("");
-  const [editing, setEditing] = React.useState(false);
+const SPORT_IMAGES = {
+  base: "https://images.unsplash.com/photo-1601024445121-e5b839c267ee?w=600&q=75",
+  surf: "https://images.unsplash.com/photo-1502680390548-bdbac40e4a9f?w=600&q=75",
+  moto: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=600&q=75",
+  climb: "https://images.unsplash.com/photo-1522163182402-834f871fd851?w=600&q=75",
+};
+
+/* ── SVG ICONS ── */
+
+function ParachuteIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+      <path d="M4 10C4 5.58 7.58 2 12 2s8 3.58 8 8">
+        <animate attributeName="d" values="M4 10C4 5.58 7.58 2 12 2s8 3.58 8 8;M4 11C4 6.58 7.58 3 12 3s8 3.58 8 8;M4 10C4 5.58 7.58 2 12 2s8 3.58 8 8" dur="4s" repeatCount="indefinite"/>
+      </path>
+      <line x1="4" y1="10" x2="12" y2="18"/>
+      <line x1="20" y1="10" x2="12" y2="18"/>
+      <line x1="12" y1="2" x2="12" y2="18"/>
+      <line x1="12" y1="18" x2="12" y2="22"/>
+    </svg>
+  );
+}
+
+function WaveIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+      <path d="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0">
+        <animate attributeName="d" values="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0;M2 13c2-4 4-4 6 0s4 4 6 0 4-4 6 0;M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0" dur="3s" repeatCount="indefinite"/>
+      </path>
+      <path d="M2 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0" opacity="0.5">
+        <animate attributeName="d" values="M2 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0;M2 18c2-3 4-3 6 0s4 3 6 0 4-3 6 0;M2 17c2-2 4-2 6 0s4 2 6 0 4-2 6 0" dur="3.5s" repeatCount="indefinite"/>
+      </path>
+    </svg>
+  );
+}
+
+function MotoIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+      <circle cx="5" cy="17" r="3"/>
+      <circle cx="19" cy="17" r="3"/>
+      <path d="M5 14l4-7h4l2 3h4"/>
+      <path d="M13 7l-3 7"/>
+    </svg>
+  );
+}
+
+function IceAxeIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="square">
+      <path d="M6 2l3 3-1 1 5 5"/>
+      <path d="M13 11l5 5"/>
+      <path d="M18 16l4 4"/>
+      <path d="M14 10l-2 2"/>
+      <path d="M3 5l2-1 1 2"/>
+    </svg>
+  );
+}
+
+const SPORT_ICONS = { base: ParachuteIcon, surf: WaveIcon, moto: MotoIcon, climb: IceAxeIcon };
+
+/* ── MOUNTAIN DIVIDER ── */
+
+function MountainDivider() {
+  return (
+    <svg className="divider-svg" viewBox="0 0 800 40" preserveAspectRatio="none">
+      <path d="M0 40 L100 15 L200 30 L350 5 L500 25 L600 10 L700 28 L800 20 L800 40Z"
+        fill="none" stroke="var(--comp-border)" strokeWidth="1" opacity="0.6">
+        <animate attributeName="d"
+          values="M0 40 L100 15 L200 30 L350 5 L500 25 L600 10 L700 28 L800 20 L800 40Z;M0 40 L100 18 L200 28 L350 8 L500 22 L600 13 L700 25 L800 18 L800 40Z;M0 40 L100 15 L200 30 L350 5 L500 25 L600 10 L700 28 L800 20 L800 40Z"
+          dur="6s" repeatCount="indefinite"/>
+      </path>
+      <path d="M0 40 L150 22 L300 35 L450 12 L550 30 L700 18 L800 30 L800 40Z"
+        fill="var(--comp-border)" opacity="0.15">
+        <animate attributeName="d"
+          values="M0 40 L150 22 L300 35 L450 12 L550 30 L700 18 L800 30 L800 40Z;M0 40 L150 25 L300 32 L450 15 L550 27 L700 21 L800 27 L800 40Z;M0 40 L150 22 L300 35 L450 12 L550 30 L700 18 L800 30 L800 40Z"
+          dur="7s" repeatCount="indefinite"/>
+      </path>
+    </svg>
+  );
+}
+
+/* ── SPARKLINE ── */
+
+function Sparkline({ data, width = 200, height = 40, color = "var(--comp-accent)" }) {
+  if (!data || data.length < 2) return null;
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * width;
+    const y = height - ((v - min) / range) * (height - 4) - 2;
+    return { x, y };
+  });
+  const polyline = pts.map(p => `${p.x},${p.y}`).join(" ");
+  const lastPt = pts[pts.length - 1];
+  return (
+    <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ display: "block" }}>
+      <polyline points={polyline} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round"/>
+      <circle cx={lastPt.x} cy={lastPt.y} r="3" fill={color}>
+        <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/>
+      </circle>
+    </svg>
+  );
+}
+
+/* ── CANVAS BACKGROUND ── */
+
+function PitchCanvas() {
+  const canvasRef = React.useRef(null);
 
   React.useEffect(() => {
-    if (entry?.note !== undefined) setNoteText(entry.note);
-  }, [entry?.note]);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let animId;
+    const particles = [];
 
-  const played = entry?.played || false;
-  const completed = entry?.completed || false;
-  const rating = entry?.rating || 0;
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener("resize", resize);
 
-  return (
-    <div className="card" style={{
-      animationDelay: `${index * 0.06}s`,
-      animation: "fadeSlideIn 0.4s ease both",
-      transition: "transform 0.2s ease, box-shadow 0.2s ease",
-      position: "relative",
-      overflow: "hidden",
-    }}
-    onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-3px)"; e.currentTarget.style.boxShadow = "0 0 20px oklch(0.75 0.15 200 / 0.15)"; }}
-    onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = ""; }}
-    >
-      {completed && (
-        <div style={{ position: "absolute", top: "0.5rem", right: "0.5rem", background: "oklch(0.72 0.18 70 / 0.15)", borderRadius: "6px", padding: "0.2rem 0.5rem", fontSize: "0.65rem", fontWeight: 700, color: "var(--comp-accent)", textTransform: "uppercase", letterSpacing: "0.08em", border: "1px solid oklch(0.72 0.18 70 / 0.25)" }}>
-          Legendary
-        </div>
-      )}
+    for (let i = 0; i < 50; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: Math.random() * 0.4 + 0.1,
+        size: Math.random() * 2 + 0.5,
+        opacity: Math.random() * 0.25 + 0.05,
+      });
+    }
 
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center",
-          background: played ? "oklch(0.72 0.18 70 / 0.12)" : "oklch(0.22 0.02 250 / 0.5)",
-          border: `2px solid ${played ? "var(--comp-accent)" : "var(--comp-border)"}`,
-          transition: "all 0.2s ease", flexShrink: 0,
-        }}>
-          <HaloRingIcon size={20} color={played ? "var(--comp-accent)" : "var(--comp-muted)"} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h3 style={{ margin: 0, fontSize: "1rem", fontWeight: 700, lineHeight: 1.2, color: "var(--comp-text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{game.title}</h3>
-          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginTop: "0.15rem" }}>
-            <span className="badge" style={{ fontSize: "0.65rem" }}>{game.year}</span>
-            <span style={{ fontSize: "0.7rem", color: "var(--comp-muted)" }}>{game.platform}</span>
-          </div>
-        </div>
-      </div>
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const p of particles) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(250, 204, 21, ${p.opacity})`;
+        ctx.fill();
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.y > canvas.height) { p.y = -5; p.x = Math.random() * canvas.width; }
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+      }
+      animId = requestAnimationFrame(draw);
+    }
+    draw();
 
-      <p style={{ fontSize: "0.8rem", color: "var(--comp-muted)", margin: "0.5rem 0", lineHeight: 1.5 }}>{game.description}</p>
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
 
-      <div onClick={() => setExpanded(!expanded)} style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.7rem", color: "oklch(0.75 0.15 200)", cursor: "pointer", marginBottom: expanded ? "0.75rem" : 0, transition: "margin 0.2s ease" }}>
-        <EnergySwordIcon size={14} />
-        <span>{expanded ? "Collapse" : "Expand Details"}</span>
-      </div>
-
-      {expanded && (
-        <div style={{ animation: "fadeSlideIn 0.25s ease both" }}>
-          <EnergySwordDivider />
-
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
-            <button className={`btn${played ? "" : " btn-gray"}`} style={{ fontSize: "0.75rem", padding: "0.35rem 0.75rem", transition: "all 0.15s ease" }}
-              onClick={e => { e.stopPropagation(); onTogglePlayed(); }}>
-              {played ? "\u2713 Played" : "Mark Played"}
-            </button>
-            <button className={`btn${completed ? "" : " btn-gray"}`} style={{ fontSize: "0.75rem", padding: "0.35rem 0.75rem", transition: "all 0.15s ease" }}
-              onClick={e => { e.stopPropagation(); onToggleCompleted(); }}>
-              {completed ? "\u2713 Completed" : "Mark Completed"}
-            </button>
-          </div>
-
-          <div style={{ marginBottom: "0.75rem" }}>
-            <div style={{ fontSize: "0.7rem", color: "var(--comp-muted)", marginBottom: "0.25rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Rating</div>
-            <div style={{ display: "flex", gap: "0.15rem" }}>
-              {[1,2,3,4,5].map(s => (
-                <span key={s} onClick={e => { e.stopPropagation(); onRate(s === rating ? 0 : s); }}
-                  onMouseEnter={e => e.currentTarget.style.transform = "scale(1.2)"}
-                  onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"} style={{ transition: "transform 0.12s ease" }}>
-                  <StarIcon filled={s <= rating} />
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <div style={{ fontSize: "0.7rem", color: "var(--comp-muted)", marginBottom: "0.25rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Personal Notes</div>
-            {editing ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                <textarea className="input" rows={3} value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Your thoughts on this game..." style={{ resize: "vertical", fontSize: "0.8rem" }} onClick={e => e.stopPropagation()} />
-                <div style={{ display: "flex", gap: "0.4rem" }}>
-                  <button className="btn" style={{ fontSize: "0.7rem", padding: "0.25rem 0.6rem" }} onClick={e => { e.stopPropagation(); onEditNote(noteText); setEditing(false); }}>Save</button>
-                  <button className="btn btn-gray" style={{ fontSize: "0.7rem", padding: "0.25rem 0.6rem" }} onClick={e => { e.stopPropagation(); setEditing(false); setNoteText(entry?.note || ""); }}>Cancel</button>
-                </div>
-              </div>
-            ) : (
-              <div onClick={e => { e.stopPropagation(); setEditing(true); }}
-                style={{ fontSize: "0.8rem", color: entry?.note ? "var(--comp-text)" : "var(--comp-muted)", padding: "0.4rem 0.6rem", borderRadius: "6px", border: "1px dashed var(--comp-border)", cursor: "text", minHeight: "2rem", transition: "border-color 0.15s ease", wordBreak: "break-word" }}>
-                {entry?.note || "Click to add notes..."}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  return <canvas ref={canvasRef} className="pitch-canvas"/>;
 }
 
-/* ── Empty State ── */
-function EmptyState() {
+/* ── EMPTY STATE ── */
+
+function EmptyState({ onAdd }) {
   return (
-    <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
-      <svg width="120" height="120" viewBox="0 0 120 120" style={{ margin: "0 auto 1.5rem", display: "block" }}>
-        <ellipse cx="60" cy="60" rx="50" ry="18" fill="none" stroke="var(--comp-accent)" strokeWidth="2" opacity="0.3">
-          <animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="20s" repeatCount="indefinite"/>
-        </ellipse>
-        <circle cx="60" cy="60" r="12" fill="var(--comp-accent)" opacity="0.15">
-          <animate attributeName="r" values="12;15;12" dur="3s" repeatCount="indefinite"/>
-        </circle>
-        <circle cx="60" cy="60" r="6" fill="var(--comp-accent)" opacity="0.3"/>
-        <circle cx="60" cy="35" r="3" fill="oklch(0.75 0.15 200)" opacity="0.5">
-          <animate attributeName="cy" values="35;32;35" dur="2s" repeatCount="indefinite"/>
+    <div className="empty-state">
+      <svg width="80" height="80" viewBox="0 0 80 80" fill="none" stroke="var(--comp-muted)" strokeWidth="1.5">
+        <path d="M10 65 L30 25 L40 40 L55 15 L70 65Z" opacity="0.3">
+          <animate attributeName="opacity" values="0.3;0.5;0.3" dur="4s" repeatCount="indefinite"/>
+        </path>
+        <path d="M10 65 L30 25 L40 40 L55 15 L70 65" fill="none" stroke="var(--comp-accent)" strokeWidth="2">
+          <animate attributeName="stroke-dashoffset" from="200" to="0" dur="2s" fill="freeze"/>
+          <animate attributeName="stroke-dasharray" from="0 200" to="200 0" dur="2s" fill="freeze"/>
+        </path>
+        <circle cx="60" cy="20" r="5" fill="var(--comp-accent)" opacity="0.6">
+          <animate attributeName="opacity" values="0.6;1;0.6" dur="3s" repeatCount="indefinite"/>
         </circle>
       </svg>
-      <h3 style={{ color: "var(--comp-text)", margin: "0 0 0.5rem", fontSize: "1.1rem" }}>Begin Your Campaign</h3>
-      <p style={{ color: "var(--comp-muted)", fontSize: "0.85rem", maxWidth: "300px", margin: "0 auto" }}>
-        Mark games as played to start tracking your journey through the Halo universe.
-      </p>
+      <p>No athletes registered yet. Add your first extreme sports athlete to start tracking performance data.</p>
+      <button className="btn-accent" style={{ marginTop: "1rem" }} onClick={onAdd}>Register Athlete</button>
     </div>
   );
 }
 
-/* ── Main App ── */
+/* ── MAIN APP ── */
+
 function App() {
   const theme = useVibesTheme();
-  const { database, useLiveQuery, useDocument } = useFireproofClerk("halo-tracker-db");
-  const { docs: entries } = useLiveQuery("type", { key: "game-entry" });
-  const [filter, setFilter] = React.useState("all");
+  const { database, useLiveQuery, useDocument } = useFireproofClerk("xtreme-scoreboard");
 
-  const entryMap = React.useMemo(() => {
-    const map = {};
-    entries.forEach(e => { map[e.gameId] = e; });
-    return map;
-  }, [entries]);
+  const [tab, setTab] = React.useState("dashboard");
+  const [showForm, setShowForm] = React.useState(false);
+  const [filterSport, setFilterSport] = React.useState(null);
 
-  const playedCount = entries.filter(e => e.played).length;
-  const completedCount = entries.filter(e => e.completed).length;
-  const ratedEntries = entries.filter(e => e.rating > 0);
-  const avgRating = ratedEntries.length > 0
-    ? (ratedEntries.reduce((sum, e) => sum + e.rating, 0) / ratedEntries.length).toFixed(1)
-    : "\u2014";
-
-  const filteredGames = HALO_GAMES.filter(g => {
-    if (filter === "played") return entryMap[g.id]?.played;
-    if (filter === "unplayed") return !entryMap[g.id]?.played;
-    if (filter === "completed") return entryMap[g.id]?.completed;
-    return true;
+  const { doc: newAthlete, setDoc: setNewAthlete, submit: submitAthlete, reset: resetAthlete } = useDocument({
+    name: "",
+    sport: "base",
+    rating: 75,
+    personalBest: 0,
+    type: "athlete",
   });
 
-  async function updateEntry(gameId, updates) {
-    const existing = entryMap[gameId];
-    if (existing) {
-      await database.put({ ...existing, ...updates });
-    } else {
-      await database.put({ type: "game-entry", gameId, played: false, completed: false, rating: 0, note: "", ...updates });
+  const { doc: newLog, setDoc: setNewLog, submit: submitLog, reset: resetLog } = useDocument({
+    athleteName: "",
+    sport: "base",
+    value: 0,
+    note: "",
+    type: "log",
+  });
+
+  const athletes = useLiveQuery("type", { key: "athlete" });
+  const logs = useLiveQuery("type", { key: "log" });
+
+  const sortedLogs = React.useMemo(() => {
+    return [...(logs.docs || [])].sort((a, b) => (b._id || "").localeCompare(a._id || ""));
+  }, [logs.docs]);
+
+  const recentLogs = sortedLogs.slice(0, 15);
+
+  const filteredAthletes = React.useMemo(() => {
+    if (!filterSport) return athletes.docs || [];
+    return (athletes.docs || []).filter((a) => a.sport === filterSport);
+  }, [athletes.docs, filterSport]);
+
+  const stats = React.useMemo(() => {
+    const docs = athletes.docs || [];
+    const logDocs = logs.docs || [];
+    const topRated = docs.reduce((best, a) => (!best || a.rating > best.rating ? a : best), null);
+    const avgRating = docs.length ? Math.round(docs.reduce((s, a) => s + (a.rating || 0), 0) / docs.length) : 0;
+    const sportCounts = {};
+    docs.forEach((a) => { sportCounts[a.sport] = (sportCounts[a.sport] || 0) + 1; });
+    return { total: docs.length, topRated, avgRating, logCount: logDocs.length, sportCounts };
+  }, [athletes.docs, logs.docs]);
+
+  const sparkData = React.useMemo(() => {
+    return sortedLogs.slice(0, 20).reverse().map((l) => l.value || 0);
+  }, [sortedLogs]);
+
+  async function handleAddAthlete(e) {
+    e.preventDefault();
+    if (!newAthlete.name.trim()) return;
+    await submitAthlete();
+    resetAthlete();
+    setShowForm(false);
+  }
+
+  async function handleLogActivity(e) {
+    e.preventDefault();
+    if (!newLog.athleteName.trim()) return;
+    await submitLog();
+    resetLog();
+  }
+
+  async function handleDelete(doc) {
+    await database.del(doc);
+  }
+
+  function formatTime(id) {
+    if (!id) return "--:--";
+    try {
+      const ts = parseInt(id.substring(0, 8), 16) * 1000;
+      const d = new Date(ts);
+      if (isNaN(d.getTime())) return id.substring(0, 5);
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    } catch {
+      return id.substring(0, 5);
     }
   }
 
+  function getSportInfo(id) {
+    return SPORTS.find((s) => s.id === id) || SPORTS[0];
+  }
+
   return (
-    <div className="grid-background" style={{ minHeight: "100vh", position: "relative" }}>
-      <style>{`
-        :root {
-          --comp-bg: oklch(0.14 0.03 250);
-          --comp-text: oklch(0.92 0.02 70);
-          --comp-border: oklch(0.28 0.03 250);
-          --comp-accent: oklch(0.72 0.18 70);
-          --comp-accent-text: oklch(0.15 0.03 70);
-          --comp-muted: oklch(0.55 0.04 250);
-        }
-        @keyframes fadeSlideIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
-
-      <HaloRingBackground />
-
-      <div style={{ position: "relative", zIndex: 1, maxWidth: "900px", margin: "0 auto", padding: "1.5rem 1rem 3rem" }}>
-
-        {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem", animation: "fadeSlideIn 0.4s ease both" }}>
-          <SpartanHelmet size={52} />
-          <div>
-            <h1 style={{ margin: 0, fontSize: "1.8rem", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--comp-text)", lineHeight: 1.1 }}>
-              HALO <span style={{ color: "var(--comp-accent)" }}>TRACKER</span>
-            </h1>
-            <p style={{ margin: "0.15rem 0 0", fontSize: "0.8rem", color: "var(--comp-muted)", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-              Campaign Progress Database
-            </p>
+    <div className="pitch-app grid-background">
+      <style>{STYLE}</style>
+      <PitchCanvas/>
+      <div className="pitch-content">
+        {/* HEADER */}
+        <header className="pitch-header">
+          <div className="pitch-title">
+            <span className="accent-dot"/>
+            XTREME SCOREBOARD
           </div>
-        </div>
-
-        <EnergySwordDivider />
-
-        {/* Stats */}
-        <div className="card" style={{ animation: "fadeSlideIn 0.4s ease both", animationDelay: "0.1s", marginBottom: "1.5rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-around", flexWrap: "wrap", gap: "1rem" }}>
-            <StatsRing value={playedCount} max={HALO_GAMES.length} label="Played" color="oklch(0.75 0.15 200)" />
-            <StatsRing value={completedCount} max={HALO_GAMES.length} label="Completed" color="var(--comp-accent)" />
-            <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-              <div style={{ fontSize: "2rem", fontWeight: 800, color: "var(--comp-accent)", lineHeight: 1 }}>{avgRating}</div>
-              <div style={{ fontSize: "0.75rem", color: "var(--comp-muted)", marginTop: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Avg Rating</div>
-            </div>
+          <div className="pitch-live">
+            <span className="pitch-live-dot"/>
+            LIVE
           </div>
-        </div>
+        </header>
 
-        {/* Filter Tabs */}
-        <div style={{ display: "flex", gap: "0.4rem", marginBottom: "1.25rem", flexWrap: "wrap", animation: "fadeSlideIn 0.4s ease both", animationDelay: "0.15s" }}>
+        {/* NAV */}
+        <nav className="pitch-nav">
           {[
-            { key: "all", label: "All Games", icon: <HaloRingIcon size={14} /> },
-            { key: "played", label: "Played", icon: <UNSCEagle size={14} /> },
-            { key: "unplayed", label: "Unplayed", icon: <CortanaChip size={14} /> },
-            { key: "completed", label: "Completed", icon: <EnergySwordIcon size={14} /> },
-          ].map(f => (
-            <button key={f.key}
-              className={`btn${filter === f.key ? "" : " btn-gray"}`}
-              style={{ fontSize: "0.75rem", padding: "0.35rem 0.75rem", display: "flex", alignItems: "center", gap: "0.3rem", transition: "all 0.15s ease" }}
-              onClick={() => setFilter(f.key)}>
-              {f.icon} {f.label}
+            { id: "dashboard", label: "T-001 DASHBOARD" },
+            { id: "athletes", label: "T-002 ATHLETES" },
+            { id: "log", label: "T-003 LOG" },
+          ].map((t) => (
+            <button key={t.id} className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)}>
+              {t.label}
             </button>
           ))}
-        </div>
+        </nav>
 
-        {/* Game Grid */}
-        {filteredGames.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
-            {filteredGames.map((game, i) => (
-              <GameCard
-                key={game.id}
-                game={game}
-                entry={entryMap[game.id]}
-                index={i}
-                onTogglePlayed={() => updateEntry(game.id, { played: !entryMap[game.id]?.played })}
-                onToggleCompleted={() => updateEntry(game.id, { completed: !entryMap[game.id]?.completed })}
-                onRate={(r) => updateEntry(game.id, { rating: r })}
-                onEditNote={(note) => updateEntry(game.id, { note })}
-              />
-            ))}
+        {/* LAYOUT */}
+        <div className="pitch-layout">
+          <div className="pitch-main">
+            {tab === "dashboard" && (
+              <>
+                {/* SPORT FILTER */}
+                <div className="sport-icon-row">
+                  {SPORTS.map((s) => {
+                    const Icon = SPORT_ICONS[s.id];
+                    return (
+                      <div key={s.id} className={`sport-icon ${filterSport === s.id ? "active" : ""}`}
+                        onClick={() => setFilterSport(filterSport === s.id ? null : s.id)}
+                        title={s.name}>
+                        <Icon size={24}/>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* STATS ROW */}
+                <div className="stats-row">
+                  <div className="metric-card highlight" style={{ animationDelay: "0s" }}>
+                    <div className="metric-label">METRIC_01 — TOTAL ATHLETES</div>
+                    <div className="metric-value">{stats.total}</div>
+                    <div className="metric-sublabel">Registered</div>
+                  </div>
+                  <div className="metric-card" style={{ animationDelay: "0.05s" }}>
+                    <div className="metric-label">METRIC_02 — AVG RATING</div>
+                    <div className="metric-value">{stats.avgRating}</div>
+                    <div className="metric-sublabel">Performance Index</div>
+                  </div>
+                  <div className="metric-card" style={{ animationDelay: "0.1s" }}>
+                    <div className="metric-label">METRIC_03 — TOP RATED</div>
+                    <div className="metric-value" style={{ fontSize: stats.topRated ? "1.4rem" : "2.5rem" }}>
+                      {stats.topRated ? stats.topRated.name : "\u2014"}
+                    </div>
+                    <div className="metric-sublabel">{stats.topRated ? getSportInfo(stats.topRated.sport).name : "No data"}</div>
+                  </div>
+                  <div className="metric-card" style={{ animationDelay: "0.15s" }}>
+                    <div className="metric-label">METRIC_04 — ACTIVITY LOG</div>
+                    <div className="metric-value">{stats.logCount}</div>
+                    <div className="metric-sublabel">Entries Recorded</div>
+                  </div>
+                </div>
+
+                <MountainDivider/>
+
+                {/* SPORT CARDS */}
+                <div className="section-label">SPORT COVERAGE</div>
+                <div className="pitch-grid">
+                  {SPORTS.map((s, i) => (
+                    <div key={s.id} className="image-card" style={{ animationDelay: `${i * 0.08}s` }}>
+                      <div className="card-bg" style={{ backgroundImage: `url(${SPORT_IMAGES[s.id]})` }}/>
+                      <div className="card-overlay"/>
+                      <div className="card-content">
+                        <div className="metric-label">{s.name.toUpperCase()}</div>
+                        <div className="metric-value" style={{ fontSize: "2rem" }}>
+                          {stats.sportCounts[s.id] || 0}
+                        </div>
+                        <div className="metric-sublabel">Athletes \u00B7 {s.metric} ({s.unit})</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* SPARKLINE */}
+                {sparkData.length >= 2 && (
+                  <div className="sparkline-container">
+                    <div className="sparkline-header">
+                      <span className="metric-label" style={{ margin: 0 }}>PERFORMANCE TREND</span>
+                      <span className="metric-sublabel">Last {sparkData.length} entries</span>
+                    </div>
+                    <Sparkline data={sparkData} width={600} height={50}/>
+                  </div>
+                )}
+              </>
+            )}
+
+            {tab === "athletes" && (
+              <>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                  <div className="section-label" style={{ margin: 0 }}>ATHLETE REGISTRY</div>
+                  <button className="btn-accent" onClick={() => setShowForm(!showForm)}>
+                    {showForm ? "CANCEL" : "+ REGISTER"}
+                  </button>
+                </div>
+
+                {showForm && (
+                  <form className="athlete-form" onSubmit={handleAddAthlete}>
+                    <div className="form-row">
+                      <div style={{ flex: 2, display: "flex", flexDirection: "column", gap: "0.25rem", minWidth: "150px" }}>
+                        <label>ATHLETE NAME</label>
+                        <input value={newAthlete.name} onChange={(e) => setNewAthlete({ ...newAthlete, name: e.target.value })} placeholder="Enter name"/>
+                      </div>
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.25rem", minWidth: "120px" }}>
+                        <label>DISCIPLINE</label>
+                        <select value={newAthlete.sport} onChange={(e) => setNewAthlete({ ...newAthlete, sport: e.target.value })}>
+                          {SPORTS.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="form-row">
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                        <label>RATING (0-100)</label>
+                        <input type="number" min="0" max="100" value={newAthlete.rating} onChange={(e) => setNewAthlete({ ...newAthlete, rating: parseInt(e.target.value) || 0 })}/>
+                      </div>
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                        <label>PERSONAL BEST</label>
+                        <input type="number" min="0" value={newAthlete.personalBest} onChange={(e) => setNewAthlete({ ...newAthlete, personalBest: parseInt(e.target.value) || 0 })}/>
+                      </div>
+                      <button type="submit" className="btn-accent" style={{ alignSelf: "flex-end" }}>SAVE</button>
+                    </div>
+                  </form>
+                )}
+
+                {filteredAthletes.length === 0 ? (
+                  <EmptyState onAdd={() => setShowForm(true)}/>
+                ) : (
+                  <div className="athlete-list">
+                    {filteredAthletes.map((a, i) => {
+                      const sportInfo = getSportInfo(a.sport);
+                      return (
+                        <div key={a._id} className="athlete-row" style={{ animationDelay: `${i * 0.04}s` }}>
+                          <span className="athlete-index">ATH_{String(i + 1).padStart(3, "0")}</span>
+                          <span className="athlete-name">{a.name}</span>
+                          <span className="athlete-sport">{sportInfo.name}</span>
+                          <span className="athlete-rating">{a.rating}<span style={{ color: "var(--comp-muted)", fontWeight: 400, fontSize: "0.7rem" }}>/100</span></span>
+                          <button className="btn-danger" onClick={() => handleDelete(a)}>DEL</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="sport-icon-row" style={{ marginTop: "1rem" }}>
+                  <span className="metric-label" style={{ margin: 0, lineHeight: "32px" }}>FILTER:</span>
+                  {SPORTS.map((s) => {
+                    const Icon = SPORT_ICONS[s.id];
+                    return (
+                      <div key={s.id} className={`sport-icon ${filterSport === s.id ? "active" : ""}`}
+                        onClick={() => setFilterSport(filterSport === s.id ? null : s.id)}
+                        title={s.name}>
+                        <Icon size={24}/>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {tab === "log" && (
+              <>
+                <div className="section-label">LOG ACTIVITY</div>
+                <form className="athlete-form" onSubmit={handleLogActivity}>
+                  <div className="form-row">
+                    <div style={{ flex: 2, display: "flex", flexDirection: "column", gap: "0.25rem", minWidth: "150px" }}>
+                      <label>ATHLETE NAME</label>
+                      <input value={newLog.athleteName} onChange={(e) => setNewLog({ ...newLog, athleteName: e.target.value })} placeholder="Athlete name"/>
+                    </div>
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.25rem", minWidth: "120px" }}>
+                      <label>DISCIPLINE</label>
+                      <select value={newLog.sport} onChange={(e) => setNewLog({ ...newLog, sport: e.target.value })}>
+                        {SPORTS.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                      <label>VALUE ({getSportInfo(newLog.sport).unit})</label>
+                      <input type="number" min="0" value={newLog.value} onChange={(e) => setNewLog({ ...newLog, value: parseInt(e.target.value) || 0 })}/>
+                    </div>
+                    <div style={{ flex: 2, display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                      <label>NOTE</label>
+                      <input value={newLog.note} onChange={(e) => setNewLog({ ...newLog, note: e.target.value })} placeholder="Optional note"/>
+                    </div>
+                    <button type="submit" className="btn-accent" style={{ alignSelf: "flex-end" }}>LOG</button>
+                  </div>
+                </form>
+
+                <MountainDivider/>
+
+                <div className="section-label">ALL ENTRIES</div>
+                {sortedLogs.length === 0 ? (
+                  <div className="empty-state">
+                    <p>No activity logged yet. Record a performance entry above.</p>
+                  </div>
+                ) : (
+                  <div className="athlete-list">
+                    {sortedLogs.map((l, i) => {
+                      const sportInfo = getSportInfo(l.sport);
+                      return (
+                        <div key={l._id} className="athlete-row" style={{ animationDelay: `${i * 0.03}s` }}>
+                          <span className="athlete-index">LOG_{String(i + 1).padStart(3, "0")}</span>
+                          <span className="athlete-name">{l.athleteName}</span>
+                          <span className="athlete-sport">{sportInfo.name}</span>
+                          <span className="athlete-rating">{l.value} <span style={{ color: "var(--comp-muted)", fontWeight: 400, fontSize: "0.7rem" }}>{sportInfo.unit}</span></span>
+                          <button className="btn-danger" onClick={() => handleDelete(l)}>DEL</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
           </div>
-        )}
 
-        {/* Summary Table */}
-        <div className="card" style={{ marginTop: "2rem", animation: "fadeSlideIn 0.4s ease both", animationDelay: "0.25s", overflowX: "auto" }}>
-          <h2 style={{ margin: "0 0 1rem", fontSize: "1rem", fontWeight: 700, color: "var(--comp-text)", textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <UNSCEagle size={18} /> Campaign Log
-          </h2>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.8rem" }}>
-            <thead>
-              <tr style={{ borderBottom: "2px solid var(--comp-border)" }}>
-                {["Title", "Year", "Platform", "Played", "Completed", "Rating"].map(h => (
-                  <th key={h} style={{ padding: "0.5rem 0.75rem", textAlign: "left", color: "var(--comp-muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", fontSize: "0.7rem" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {HALO_GAMES.map(game => {
-                const e = entryMap[game.id];
+          {/* SIDEBAR */}
+          <div className="pitch-sidebar">
+            <div className="feed-section-title">ACTIVITY FEED</div>
+            {recentLogs.length === 0 ? (
+              <div style={{ color: "var(--comp-muted)", fontSize: "0.75rem", padding: "1rem 0" }}>
+                No activity yet. Log a performance entry to see it here.
+              </div>
+            ) : (
+              recentLogs.map((l, i) => {
+                const sportInfo = getSportInfo(l.sport);
                 return (
-                  <tr key={game.id} style={{ borderBottom: "1px solid var(--comp-border)", transition: "background 0.15s ease" }}
-                    onMouseEnter={ev => ev.currentTarget.style.background = "oklch(0.18 0.02 250 / 0.5)"}
-                    onMouseLeave={ev => ev.currentTarget.style.background = ""}>
-                    <td style={{ padding: "0.5rem 0.75rem", fontWeight: 600, color: "var(--comp-text)" }}>{game.title}</td>
-                    <td style={{ padding: "0.5rem 0.75rem", color: "var(--comp-muted)" }}>{game.year}</td>
-                    <td style={{ padding: "0.5rem 0.75rem", color: "var(--comp-muted)" }}>{game.platform}</td>
-                    <td style={{ padding: "0.5rem 0.75rem" }}>
-                      <span style={{ color: e?.played ? "oklch(0.75 0.15 150)" : "var(--comp-muted)" }}>{e?.played ? "\u2713" : "\u2014"}</span>
-                    </td>
-                    <td style={{ padding: "0.5rem 0.75rem" }}>
-                      <span style={{ color: e?.completed ? "var(--comp-accent)" : "var(--comp-muted)" }}>{e?.completed ? "\u2713" : "\u2014"}</span>
-                    </td>
-                    <td style={{ padding: "0.5rem 0.75rem" }}>
-                      {e?.rating > 0 ? (
-                        <span style={{ display: "flex", gap: "0.1rem" }}>
-                          {[1,2,3,4,5].map(s => <StarIcon key={s} filled={s <= e.rating} color={s <= e.rating ? "var(--comp-accent)" : "var(--comp-border)"} />)}
-                        </span>
-                      ) : (
-                        <span style={{ color: "var(--comp-muted)" }}>{"\u2014"}</span>
-                      )}
-                    </td>
-                  </tr>
+                  <div key={l._id} className="feed-item" style={{ animationDelay: `${i * 0.05}s` }}>
+                    <span className="feed-time">{formatTime(l._id)}</span>
+                    <span className="feed-text">
+                      <strong>{l.athleteName}</strong> \u2014 {l.value}{sportInfo.unit} {sportInfo.name}
+                      {l.note && <span style={{ color: "var(--comp-muted)", display: "block", fontSize: "0.7rem", marginTop: "0.15rem" }}>{l.note}</span>}
+                    </span>
+                  </div>
+                );
+              })
+            )}
+
+            <MountainDivider/>
+
+            <div className="feed-section-title">DISCIPLINE BREAKDOWN</div>
+            {SPORTS.map((s) => {
+              const count = stats.sportCounts[s.id] || 0;
+              const Icon = SPORT_ICONS[s.id];
+              return (
+                <div key={s.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.4rem 0", borderBottom: "1px solid oklch(0.39 0.065 165 / 0.2)" }}>
+                  <Icon size={16}/>
+                  <span style={{ flex: 1, fontSize: "0.75rem" }}>{s.name}</span>
+                  <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, color: count > 0 ? "var(--comp-accent)" : "var(--comp-muted)", fontVariantNumeric: "tabular-nums" }}>{count}</span>
+                </div>
+              );
+            })}
+
+            <div style={{ marginTop: "1.5rem" }}>
+              <div className="feed-section-title">DANGER INDEX</div>
+              {SPORTS.map((s) => {
+                const dangerLevels = { base: 95, surf: 82, moto: 78, climb: 88 };
+                return (
+                  <div key={s.id} style={{ marginBottom: "0.6rem" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.65rem", fontFamily: "'Space Grotesk', monospace", letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--comp-muted)", marginBottom: "0.2rem" }}>
+                      <span>{s.id.toUpperCase()}</span>
+                      <span style={{ color: "var(--comp-accent)" }}>{dangerLevels[s.id]}%</span>
+                    </div>
+                    <div className="danger-bar">
+                      <div className="danger-bar-fill" style={{ width: `${dangerLevels[s.id]}%` }}/>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Footer */}
-        <div style={{ textAlign: "center", marginTop: "2.5rem", animation: "fadeSlideIn 0.4s ease both", animationDelay: "0.3s" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", color: "var(--comp-muted)", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.1em" }}>
-            <UNSCEagle size={16} /> UNSC Database Terminal <UNSCEagle size={16} />
+            </div>
           </div>
         </div>
       </div>
