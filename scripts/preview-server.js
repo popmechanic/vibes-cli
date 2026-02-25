@@ -989,11 +989,19 @@ async function handleThemeSwitchMultiPass(ws, themeId, themeName, themeContent, 
   }));
 
   // Snapshot non-theme content before Claude edits (for validation)
-  const beforeNonTheme = extractNonThemeSections(readFileSync(appJsxPath, 'utf-8'));
+  const pass1Code = readFileSync(appJsxPath, 'utf-8');
+  const beforeNonTheme = extractNonThemeSections(pass1Code);
   // Pass 2 sends 6KB of theme content (vs 4KB in handleGenerate) — Claude needs more
   // personality detail for creative sections (surfaces, motion, decoration).
+  // App code is inlined to eliminate a Read tool round-trip (~30s saved).
 
-  const prompt = `Restyle ONLY the marked theme sections in app.jsx for the "${themeName}" theme. Read app.jsx first.
+  const prompt = `Restyle ONLY the marked theme sections in app.jsx for the "${themeName}" theme.
+
+=== CURRENT app.jsx ===
+
+\`\`\`jsx
+${pass1Code}
+\`\`\`
 
 === WHAT TO EDIT ===
 
@@ -1013,10 +1021,10 @@ ${themeContent.slice(0, 6000)}
 - Do NOT modify anything outside the markers — no layout, no logic, no tokens, no typography.
 - If you need to change anything outside a marker, STOP and explain why instead of editing.
 - No import statements, no TypeScript, keep export default App.
-${extractDataSchema(readFileSync(appJsxPath, 'utf-8'))}`;
+${extractDataSchema(pass1Code)}`;
 
   console.log(`[ThemeSwitch] Pass 2: Claude creative restyle, prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
-  await runClaude(ws, prompt, { skipChat: true, tools: 'Edit,Read', maxTurns: 10 });
+  await runClaude(ws, prompt, { skipChat: true, tools: 'Edit', maxTurns: 5 });
 
   // === Post-edit validation (Layer 2 guardrail) ===
   const afterCode = readFileSync(appJsxPath, 'utf-8');
@@ -1051,7 +1059,17 @@ async function handleThemeSwitchLegacy(ws, themeId, themeName, themeContent, col
     if (rootMatch) rootCss = rootMatch[0];
   }
 
-  const prompt = `Restyle app.jsx to the "${themeName}" (${themeId}) theme. Read app.jsx first.
+  // Inline app.jsx to eliminate a Read tool round-trip (~30s saved)
+  const appJsxPath = join(PROJECT_ROOT, 'app.jsx');
+  const appCode = readFileSync(appJsxPath, 'utf-8');
+
+  const prompt = `Restyle app.jsx to the "${themeName}" (${themeId}) theme.
+
+=== CURRENT app.jsx ===
+
+\`\`\`jsx
+${appCode}
+\`\`\`
 
 === MANDATORY CSS CHANGES ===
 
@@ -1084,7 +1102,7 @@ KEEP UNCHANGED:
 - No import statements, no TypeScript, keep export default App`;
 
   console.log(`[ThemeSwitch] Legacy mode for "${themeName}" (${themeId}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
-  await runClaude(ws, prompt, { skipChat: true, tools: 'Edit,Read', maxTurns: 10 });
+  await runClaude(ws, prompt, { skipChat: true, tools: 'Edit', maxTurns: 8 });
 }
 
 // --- Create Theme Handlers ---
@@ -1128,8 +1146,15 @@ async function handleGenerate(ws, userPrompt, themeId) {
   // Resolve common file paths
   const catalogPath = join(PROJECT_ROOT, 'skills/vibes/themes/catalog.txt');
   const stylePath = join(PROJECT_ROOT, 'skills/vibes/defaults/style-prompt.txt');
-  const advancedEffectsPath = join(PROJECT_ROOT, 'skills/vibes/defaults/advanced-effects-prompt.txt');
-  const designTokensPath = join(PROJECT_ROOT, 'build/design-tokens.txt');
+
+  // Inline style-prompt.txt to avoid a Read tool round-trip (~30s saved)
+  let styleGuide = '';
+  try {
+    styleGuide = readFileSync(stylePath, 'utf-8');
+    console.log(`[Generate]   ✓ styleGuide: ${(styleGuide.length / 1024).toFixed(1)}KB (inlined)`);
+  } catch (e) {
+    console.log(`[Generate]   ✗ Could not read style-prompt.txt: ${e.message}`);
+  }
 
   // Two modes: Auto (Claude picks theme from catalog) vs Manual (theme pre-selected)
   const isAuto = !themeId;
@@ -1212,10 +1237,9 @@ ${rootCss || `/* No :root block found — create one with warm oklch colors matc
 
 ${themeEssentials || 'Bold neo-brutalist: strong typography, hard shadows, playful hover effects.'}
 
-=== READ DESIGN GUIDANCE ===
+=== DESIGN GUIDANCE ===
 
-Read this file for style patterns, SVG, animations, and component catalog:
-${stylePath}
+${styleGuide}
 
 === DESIGN REASONING ===
 
@@ -1285,7 +1309,7 @@ DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}),
   ws.send(JSON.stringify({ type: 'theme_selected', themeId, themeName }));
 
   console.log(`[Generate] Starting — theme: ${themeId} (${themeName}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
-  await runClaude(ws, prompt, { skipChat: true, tools: 'Write,Read,Glob', maxTurns: 15 });
+  await runClaude(ws, prompt, { skipChat: true, tools: 'Write', maxTurns: 5 });
 }
 
 // --- Editor: Deploy assembled app ---
