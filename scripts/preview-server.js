@@ -13,7 +13,7 @@
  */
 
 import { createServer } from 'http';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, writeFileSync } from 'fs';
 import { join, dirname, extname } from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
@@ -79,6 +79,10 @@ if (existsSync(catalogPath)) {
 
 // --- Find plugin root for theme files ---
 const THEME_DIR = join(PROJECT_ROOT, 'skills/vibes/themes');
+
+// --- Apps directory for saved projects ---
+const APPS_DIR = join(homedir(), '.vibes', 'apps');
+if (!existsSync(APPS_DIR)) mkdirSync(APPS_DIR, { recursive: true });
 
 // --- Recommend themes based on app.jsx content ---
 function getRecommendedThemeIds() {
@@ -342,8 +346,9 @@ Use oklch() for ALL color values. Study the image carefully for palette, typogra
 function runCommand(cmd, args, timeoutMs = 5000) {
   return new Promise((resolve) => {
     try {
-      execFile(cmd, args, { timeout: timeoutMs, env: { ...process.env } }, (err, stdout) => {
-        resolve({ ok: !err, output: (stdout || '').trim() });
+      execFile(cmd, args, { timeout: timeoutMs, env: { ...process.env } }, (err, stdout, stderr) => {
+        const output = ((stdout || '') + (stderr || '')).trim();
+        resolve({ ok: !err, output });
       });
     } catch {
       resolve({ ok: false, output: '' });
@@ -363,13 +368,16 @@ async function checkEditorDeps() {
   const cloudUrl = env.VITE_CLOUD_URL || '';
   const connectOk = !!(apiUrl && cloudUrl);
 
-  // Wrangler auth (optional)
-  const wranglerResult = await runCommand('wrangler', ['whoami']);
+  // Wrangler auth (optional) — try npx first, then bare wrangler
+  let wranglerResult = await runCommand('npx', ['wrangler', 'whoami'], 15000);
+  if (!wranglerResult.ok) wranglerResult = await runCommand('wrangler', ['whoami']);
   const wranglerOk = wranglerResult.ok && !wranglerResult.output.includes('not authenticated');
 
-  // SSH to exe.dev (optional)
-  const sshResult = await runCommand('ssh', ['-o', 'ConnectTimeout=3', '-o', 'BatchMode=yes', 'exe.dev', 'echo', 'ok']);
-  const sshOk = sshResult.ok && sshResult.output.includes('ok');
+  // SSH to exe.dev (optional) — exe.dev uses a custom REPL, not a shell
+  // Just test if SSH connection succeeds (the REPL returns an error for unknown commands but that means SSH works)
+  const sshResult = await runCommand('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes', 'exe.dev', 'help'], 8000);
+  // Connection succeeded if we got ANY output (even error) — failure would be timeout/refused
+  const sshOk = sshResult.output.length > 0;
 
   return {
     clerk: {
@@ -447,6 +455,62 @@ async function handleRequest(req, res) {
     const exists = existsSync(join(PROJECT_ROOT, 'app.jsx'));
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ exists }));
+  }
+
+  // GET /editor/apps → list saved apps from ~/.vibes/apps/
+  if (pathname === '/editor/apps') {
+    try {
+      const apps = [];
+      for (const name of readdirSync(APPS_DIR)) {
+        const dir = join(APPS_DIR, name);
+        const appFile = join(dir, 'app.jsx');
+        if (!existsSync(appFile)) continue;
+        const st = statSync(appFile);
+        // Read first line to extract theme info
+        const firstLine = readFileSync(appFile, 'utf-8').split('\n')[0] || '';
+        const themeMatch = firstLine.match(/id:\s*"([^"]+)".*?name:\s*"([^"]+)"/);
+        apps.push({
+          name,
+          modified: st.mtime.toISOString(),
+          themeId: themeMatch ? themeMatch[1] : null,
+          themeName: themeMatch ? themeMatch[2] : null,
+          size: st.size,
+        });
+      }
+      // Sort by most recently modified
+      apps.sort((a, b) => new Date(b.modified) - new Date(a.modified));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(apps));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: err.message }));
+    }
+  }
+
+  // POST /editor/apps/load?name=foo → copy saved app to PROJECT_ROOT/app.jsx
+  if (pathname === '/editor/apps/load' && req.method === 'POST') {
+    const params = new URL(req.url, 'http://localhost').searchParams;
+    const name = params.get('name');
+    if (!name) { res.writeHead(400); return res.end('Missing name'); }
+    const src = join(APPS_DIR, name, 'app.jsx');
+    if (!existsSync(src)) { res.writeHead(404); return res.end('App not found'); }
+    copyFileSync(src, join(PROJECT_ROOT, 'app.jsx'));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ ok: true }));
+  }
+
+  // POST /editor/apps/save?name=foo → save current app.jsx to ~/.vibes/apps/foo/
+  if (pathname === '/editor/apps/save' && req.method === 'POST') {
+    const params = new URL(req.url, 'http://localhost').searchParams;
+    const name = (params.get('name') || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 63);
+    if (!name) { res.writeHead(400); return res.end('Missing name'); }
+    const appSrc = join(PROJECT_ROOT, 'app.jsx');
+    if (!existsSync(appSrc)) { res.writeHead(404); return res.end('No app.jsx to save'); }
+    const dest = join(APPS_DIR, name);
+    mkdirSync(dest, { recursive: true });
+    copyFileSync(appSrc, join(dest, 'app.jsx'));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ ok: true }));
   }
 
   // GET /app.jsx → current app.jsx from project root
@@ -536,6 +600,16 @@ wss.on('connection', (ws) => {
         await handleGenerate(ws, msg.prompt, msg.themeId);
       } else if (msg.type === 'deploy') {
         await handleDeploy(ws, msg.target, msg.name);
+      } else if (msg.type === 'save_app') {
+        const name = (msg.name || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 63);
+        if (!name) { ws.send(JSON.stringify({ type: 'error', message: 'App name is required' })); return; }
+        const appSrc = join(PROJECT_ROOT, 'app.jsx');
+        if (!existsSync(appSrc)) { ws.send(JSON.stringify({ type: 'error', message: 'No app.jsx to save' })); return; }
+        const dest = join(APPS_DIR, name);
+        mkdirSync(dest, { recursive: true });
+        copyFileSync(appSrc, join(dest, 'app.jsx'));
+        ws.send(JSON.stringify({ type: 'app_saved', name }));
+        console.log(`[Save] Saved app to ${dest}`);
       }
     } catch (err) {
       console.error('[WS] Handler error:', err);
@@ -1069,6 +1143,48 @@ async function handleDeploy(ws, target, name) {
   if (!assembleResult.ok) {
     ws.send(JSON.stringify({ type: 'error', message: `Assembly failed: ${assembleResult.stderr.slice(0, 300)}` }));
     return;
+  }
+
+  // Patch assembled HTML so the app's background shows through the template frame
+  try {
+    const appCode = readFileSync(appJsxPath, 'utf8');
+    let html = readFileSync(indexHtmlPath, 'utf8');
+
+    // Extract the app's --color-background value (literal color, not a var reference)
+    const rootMatch = appCode.match(/:root\s*\{([^}]+)\}/);
+    let bgColor = '';
+    if (rootMatch) {
+      const bgMatch = rootMatch[1].match(/--color-background\s*:\s*([^;]+)/);
+      if (bgMatch) bgColor = bgMatch[1].trim();
+    }
+    // Fallback: check for body { background: <value> } if no --color-background
+    if (!bgColor) {
+      const bodyBgMatch = appCode.match(/body\s*\{[^}]*background\s*:\s*([^;]+)/);
+      if (bodyBgMatch) bgColor = bodyBgMatch[1].trim();
+    }
+
+    const bg = bgColor || 'inherit';
+
+    // Two patches:
+    // 1. In <head>: body::before gets the app's background color for the frame
+    // 2. Before </body>: a <style> that overrides HiddenMenuWrapper's white bg
+    //    and makes the app root div show the correct background.
+    //    Placed last so it wins over all dynamically injected styles.
+    const headPatch = `<style>
+      #container { padding: 10px !important; }
+      body::before { background-color: ${bg} !important; }
+    </style>`;
+    html = html.replace('</head>', headPatch + '\n</head>');
+
+    const bodyPatch = `<style>
+      div[style*="z-index: 10"][style*="position: fixed"] { background: ${bg} !important; }
+    </style>`;
+    html = html.replace('</body>', bodyPatch + '\n</body>');
+
+    writeFileSync(indexHtmlPath, html);
+    console.log('[Deploy] Patched body::before background' + (bgColor ? `: ${bgColor}` : ''));
+  } catch (e) {
+    console.error('[Deploy] Patch failed:', e.message);
   }
 
   ws.send(JSON.stringify({ type: 'status', status: 'thinking', progress: 30, stage: 'Deploying...', elapsed: getElapsed() }));

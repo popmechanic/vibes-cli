@@ -77,6 +77,7 @@ export default function App() {
 }
 
 Requirements:
+- ALWAYS wrap the entire app in a full-page div with min-h-screen and an explicit background-color — the page must NEVER have a transparent or unstyled background
 - Follow the visual direction closely - it defines colors, mood, aesthetic
 - Use OKLCH colors for vibrant results: bg-[oklch(L_C_H)]
 - Use OKLCH gradients: bg-[linear-gradient(in_oklch,oklch(...),oklch(...))]
