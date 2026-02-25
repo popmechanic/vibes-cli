@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vibes Editor</title>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js" defer></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1782,6 +1783,7 @@
       } else if (msg.type === 'deploy_complete') {
         setThinking(false);
         addMessage('deploy-success', 'Deployed! ' + (msg.url || ''));
+        captureScreenshot();
       } else if (msg.type === 'studio-progress') {
         const logEl = document.getElementById('studioDeployLog');
         if (logEl) {
@@ -2296,6 +2298,39 @@
       // Pre-fill deploy name input if empty
       const deployInput = document.getElementById('deployNameInput');
       if (deployInput && !deployInput.value) deployInput.value = slug;
+    }
+  }
+
+  async function captureScreenshot() {
+    if (!currentAppName) return;
+    try {
+      const frame = document.getElementById('previewFrame');
+      const doc = frame.contentDocument || frame.contentWindow.document;
+      if (!doc || !doc.body) return;
+      if (typeof html2canvas === 'undefined') return;
+      const canvas = await html2canvas(doc.body, {
+        width: 1280,
+        height: 800,
+        windowWidth: 1280,
+        windowHeight: 800,
+        scale: 0.5,
+        useCORS: true,
+        logging: false,
+      });
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        try {
+          await fetch('/editor/apps/screenshot?name=' + encodeURIComponent(currentAppName), {
+            method: 'POST',
+            body: blob,
+          });
+          console.log('[Screenshot] Saved for', currentAppName);
+        } catch (err) {
+          console.warn('[Screenshot] Failed to save:', err);
+        }
+      }, 'image/png');
+    } catch (err) {
+      console.warn('[Screenshot] Capture failed:', err);
     }
   }
 
