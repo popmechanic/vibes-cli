@@ -485,13 +485,101 @@
 
     /* === PHASE 2: GENERATE === */
     .generate-phase {
-      align-items: center;
-      justify-content: center;
+      display: flex;
+      flex-direction: row;
       background: var(--vibes-menu-bg);
       background-image:
         linear-gradient(var(--grid-color) 1px, transparent 1px),
         linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
       background-size: var(--grid-size) var(--grid-size);
+    }
+    .generate-phase.single-panel {
+      align-items: center;
+      justify-content: center;
+    }
+    .generate-left {
+      flex: 0 0 40%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .generate-phase.single-panel .generate-left {
+      flex: none;
+    }
+    .generate-right {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2rem;
+      border-left: 2px solid var(--vibes-near-black);
+    }
+    .gallery-title {
+      font-size: 1rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 1rem;
+    }
+    .app-gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .app-card {
+      background: white;
+      border: 2px solid var(--vibes-near-black);
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: box-shadow 0.15s, transform 0.15s;
+    }
+    .app-card:hover {
+      box-shadow: 4px 4px 0 0 var(--vibes-near-black);
+      transform: translate(-2px, -2px);
+    }
+    .app-card-thumb {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      background: var(--vibes-menu-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border-bottom: 2px solid var(--vibes-near-black);
+    }
+    .app-card-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .app-card-placeholder {
+      font-size: 2rem;
+      opacity: 0.3;
+    }
+    .app-card-info {
+      padding: 0.5rem 0.75rem;
+    }
+    .app-card-name {
+      font-weight: 700;
+      font-size: 0.8125rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .app-card-meta {
+      font-size: 0.6875rem;
+      color: #888;
+    }
+    .gallery-divider {
+      border: none;
+      border-top: 1px dashed #bbb;
+      margin: 0.5rem 0 1rem;
+    }
+    @media (max-width: 768px) {
+      .generate-phase { flex-direction: column; }
+      .generate-left { flex: none; width: 100%; }
+      .generate-right { border-left: none; border-top: 2px solid var(--vibes-near-black); }
     }
     .generate-card {
       background: var(--vibes-cream);
@@ -1365,44 +1453,46 @@
   </div>
 
   <!-- Phase 2: Generate -->
-  <div class="phase generate-phase" id="phaseGenerate">
-    <div class="generate-card">
-      <div class="generate-title">What do you want to build?</div>
-      <div class="generate-subtitle">Describe your app idea. Be as specific or vague as you like.</div>
-      <textarea class="generate-textarea" id="generatePrompt" placeholder="A task manager with categories and drag-to-reorder..."
-        onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();startGenerate();}"></textarea>
-      <div class="theme-select-row">
-        <span class="theme-select-label">Theme:</span>
-        <select class="theme-select" id="themeSelect">
-          <option value="">Auto (let AI choose)</option>
-        </select>
-      </div>
-      <div class="generate-actions" id="generateActions">
-        <button class="btn btn-primary" id="generateBtn" onclick="startGenerate()">Generate</button>
-      </div>
-      <div class="generate-progress" id="generateProgress">
-        <div class="thinking-header">
-          <div class="thinking-dots">
-            <div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div>
+  <div class="phase generate-phase single-panel" id="phaseGenerate">
+    <div class="generate-left">
+      <div class="generate-card">
+        <div class="generate-title">What do you want to build?</div>
+        <div class="generate-subtitle">Describe your app idea. Be as specific or vague as you like.</div>
+        <textarea class="generate-textarea" id="generatePrompt" placeholder="A task manager with categories and drag-to-reorder..."
+          onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();startGenerate();}"></textarea>
+        <div class="theme-select-row">
+          <span class="theme-select-label">Theme:</span>
+          <select class="theme-select" id="themeSelect">
+            <option value="">Auto (let AI choose)</option>
+          </select>
+        </div>
+        <div class="generate-actions" id="generateActions">
+          <button class="btn btn-primary" id="generateBtn" onclick="startGenerate()">Generate</button>
+        </div>
+        <div class="generate-progress" id="generateProgress">
+          <div class="thinking-header">
+            <div class="thinking-dots">
+              <div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div>
+            </div>
+            <span class="thinking-stage" id="genStage">Starting...</span>
           </div>
-          <span class="thinking-stage" id="genStage">Starting...</span>
+          <div class="thinking-progress-bar">
+            <div class="thinking-progress-fill" id="genProgressFill" style="width: 0%"></div>
+          </div>
+          <div class="thinking-footer">
+            <span class="thinking-pct" id="genPct">0%</span>
+            <span class="thinking-timer" id="genTimer">0s</span>
+            <button class="thinking-cancel" onclick="cancelRequest()">Cancel</button>
+          </div>
         </div>
-        <div class="thinking-progress-bar">
-          <div class="thinking-progress-fill" id="genProgressFill" style="width: 0%"></div>
-        </div>
-        <div class="thinking-footer">
-          <span class="thinking-pct" id="genPct">0%</span>
-          <span class="thinking-timer" id="genTimer">0s</span>
-          <button class="thinking-cancel" onclick="cancelRequest()">Cancel</button>
-        </div>
+        <div class="generate-error" id="generateError" style="display:none;background:var(--vibes-red);color:white;padding:0.75rem 1rem;border-radius:8px;font-size:0.85rem;margin-top:0.75rem;word-break:break-word;"></div>
       </div>
-      <div class="generate-error" id="generateError" style="display:none;background:var(--vibes-red);color:white;padding:0.75rem 1rem;border-radius:8px;font-size:0.85rem;margin-top:0.75rem;word-break:break-word;"></div>
-      <div id="existingAppSection" style="display:none;">
-        <div class="generate-or">&#8212; or &#8212;</div>
-        <div class="generate-existing">
-          <div id="savedAppsList"></div>
-        </div>
-      </div>
+    </div>
+    <div class="generate-right" id="generateRight" style="display:none;">
+      <div class="gallery-title">Your Apps</div>
+      <div class="app-gallery-grid" id="appGalleryGrid"></div>
+      <hr class="gallery-divider" id="galleryDivider" style="display:none;">
+      <div class="app-list" id="appListOlder"></div>
     </div>
   </div>
 
@@ -2092,7 +2182,6 @@
 
   async function checkExistingApps() {
     try {
-      // Check for current app.jsx and saved apps in parallel
       const [existsRes, appsRes] = await Promise.all([
         fetch('/editor/app-exists').then(r => r.json()).catch(() => ({ exists: false })),
         fetch('/editor/apps').then(r => r.json()).catch(() => []),
@@ -2103,25 +2192,54 @@
 
       if (!hasCurrentApp && savedApps.length === 0) return;
 
-      const container = document.getElementById('savedAppsList');
-      let html = '';
+      // Show right panel, remove single-panel centering
+      const phase = document.getElementById('phaseGenerate');
+      const right = document.getElementById('generateRight');
+      phase.classList.remove('single-panel');
+      right.style.display = '';
 
-      // Show "Continue editing" for current app.jsx
+      const grid = document.getElementById('appGalleryGrid');
+      const olderList = document.getElementById('appListOlder');
+      const divider = document.getElementById('galleryDivider');
+
+      let gridHtml = '';
+      let listHtml = '';
+
+      // "Continue current app" always goes first as a card
       if (hasCurrentApp) {
-        html += `<button class="app-item" onclick="useExistingApp()">
-          <div>
-            <div class="app-item-name">Continue current app</div>
-            <div class="app-item-meta">app.jsx in working directory</div>
+        gridHtml += `<div class="app-card" onclick="useExistingApp()">
+          <div class="app-card-thumb"><span class="app-card-placeholder">&#9998;</span></div>
+          <div class="app-card-info">
+            <div class="app-card-name">Continue current app</div>
+            <div class="app-card-meta">app.jsx in working directory</div>
           </div>
-          <span style="font-size:1.2rem">&#8594;</span>
-        </button>`;
+        </div>`;
       }
 
-      // Show saved apps
-      for (const app of savedApps.slice(0, 8)) {
+      // Top 8 recent apps get cards with screenshots
+      const recentApps = savedApps.slice(0, 8);
+      const olderApps = savedApps.slice(8);
+
+      for (const app of recentApps) {
         const ago = timeAgo(new Date(app.modified));
-        const themeLabel = app.themeName ? ` &middot; ${escapeHtml(app.themeName)}` : '';
-        html += `<button class="app-item" onclick="loadSavedApp('${escapeHtml(app.name)}')">
+        const themeLabel = app.themeName ? ' \u00b7 ' + escapeHtml(app.themeName) : '';
+        const thumbContent = app.hasScreenshot
+          ? `<img src="/editor/apps/screenshot?name=${encodeURIComponent(app.name)}" alt="${escapeHtml(app.name)}" loading="lazy">`
+          : `<span class="app-card-placeholder">&#9670;</span>`;
+        gridHtml += `<div class="app-card" onclick="loadSavedApp('${escapeHtml(app.name)}')">
+          <div class="app-card-thumb">${thumbContent}</div>
+          <div class="app-card-info">
+            <div class="app-card-name">${escapeHtml(app.name)}</div>
+            <div class="app-card-meta">${ago}${themeLabel}</div>
+          </div>
+        </div>`;
+      }
+
+      // Older apps get compact list items
+      for (const app of olderApps) {
+        const ago = timeAgo(new Date(app.modified));
+        const themeLabel = app.themeName ? ' \u00b7 ' + escapeHtml(app.themeName) : '';
+        listHtml += `<button class="app-item" onclick="loadSavedApp('${escapeHtml(app.name)}')">
           <div>
             <div class="app-item-name">${escapeHtml(app.name)}</div>
             <div class="app-item-meta">${ago}${themeLabel}</div>
@@ -2130,8 +2248,11 @@
         </button>`;
       }
 
-      container.innerHTML = html;
-      document.getElementById('existingAppSection').style.display = '';
+      grid.innerHTML = gridHtml;
+      if (listHtml) {
+        divider.style.display = '';
+        olderList.innerHTML = listHtml;
+      }
     } catch (err) {
       console.error('Failed to check apps:', err);
     }
@@ -2720,6 +2841,7 @@
   });
 
   // === Init ===
+  setPhase('generate');
   connectWs();
 
   // Check status → decide setup wizard vs generate
