@@ -200,32 +200,68 @@ Write to `./theme.html`. The user can open it in a browser, request changes, and
 
 ### Step 2: Output Code
 
-After reasoning, output the complete JSX in `<code>` tags:
+After reasoning, output the complete JSX in `<code>` tags.
+
+**Theme Section Markers**: Organize all theme-sensitive CSS and JSX into marked sections. This enables fast, targeted theme switching.
 
 ```
 <code>
 import React, { useState } from "react";
 import { useFireproofClerk } from "use-fireproof";
 
+const STYLE = `
+/* @theme:tokens */
+:root {
+  --comp-bg: oklch(0.15 0.02 280);
+  --comp-text: oklch(0.93 0.02 80);
+  --comp-accent: oklch(0.72 0.15 75);
+}
+/* @theme:tokens:end */
+
+/* @theme:typography */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+/* @theme:typography:end */
+
+/* @theme:surfaces */
+.card-glass { backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+/* @theme:surfaces:end */
+
+/* @theme:motion */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+/* @theme:motion:end */
+
+/* Non-theme layout (outside markers) */
+.app-grid { display: grid; gap: 1rem; }
+`;
+
 export default function App() {
   const { database, useLiveQuery, useDocument, syncStatus } = useFireproofClerk("app-name-db");
   // ... component logic
 
   return (
-    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-text)] p-4">
-      {/* Sync status indicator (optional) */}
-      <div className="text-xs text-gray-500 mb-2">Sync: {syncStatus}</div>
-      {/* Use --app-* tokens for surfaces and accents */}
-      <div className="bg-[var(--app-surface)] border-4 border-[var(--app-border)] p-4">
-        <button className="px-4 py-2 bg-[var(--app-accent)] text-white hover:bg-[var(--app-accent-hover)]">
-          Action
-        </button>
+    <>
+      <style>{STYLE}</style>
+      <div className="min-h-screen bg-[var(--comp-bg)] text-[var(--comp-text)] p-4">
+        {/* @theme:decoration */}
+        <svg className="atmospheric-bg">...</svg>
+        {/* @theme:decoration:end */}
+
+        {/* App content (not theme-sensitive) */}
+        <div className="app-grid">...</div>
       </div>
-    </div>
+    </>
   );
 }
 </code>
 ```
+
+**Section rules:**
+- `@theme:tokens` — `:root` CSS variables (colors, spacing tokens)
+- `@theme:typography` — `@import` font URLs, `font-family` rules
+- `@theme:surfaces` — Shadows, borders, glass effects, gradient backgrounds
+- `@theme:motion` — `@keyframes` and animation definitions
+- `@theme:decoration` — SVG elements, atmospheric backgrounds (in JSX)
+- Everything else (layout, structure, logic) stays **outside** markers
 
 **⚠️ CRITICAL: Fireproof Hook Pattern**
 
