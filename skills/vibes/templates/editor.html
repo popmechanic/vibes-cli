@@ -1048,6 +1048,15 @@
           document.getElementById('generateBtn').disabled = false;
         }
         addMessage('system', 'Request cancelled.');
+      } else if (msg.type === 'theme_selected') {
+        // Server tells us which theme was selected (including auto-selection)
+        currentThemeId = msg.themeId;
+        const theme = themes.find(t => t.id === msg.themeId);
+        const name = theme ? theme.name : msg.themeName || msg.themeId;
+        // Update the dropdown to reflect the selected theme
+        const select = document.getElementById('themeSelect');
+        if (select && msg.themeId) select.value = msg.themeId;
+        console.log('[Theme] Selected:', msg.themeId, name);
       } else if (msg.type === 'deploy_complete') {
         setThinking(false);
         addMessage('deploy-success', 'Deployed! ' + (msg.url || ''));

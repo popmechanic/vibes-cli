@@ -704,8 +704,20 @@ async function runClaude(ws, prompt, opts = {}) {
       if (!wasActive) { resolve(null); return; }
 
       if (code !== 0) {
-        console.error('[Claude] Error:', stderr.slice(0, 300));
-        ws.send(JSON.stringify({ type: 'error', message: `Claude exited with code ${code}: ${stderr.slice(0, 200)}` }));
+        console.error(`[Claude] Exit code ${code}, stderr (${stderr.length} bytes):\n${stderr}`);
+        // Show a useful error message — max_turns exceeded is not a real failure
+        const isMaxTurns = stderr.includes('max_turns') || stderr.includes('maxTurns');
+        if (isMaxTurns && hasEdited) {
+          // Claude ran out of turns but DID edit/write — treat as success
+          console.log('[Claude] Hit max_turns but had edits — treating as success');
+          ws.send(JSON.stringify({ type: 'status', status: 'thinking', progress: 100, stage: 'Done!', elapsed: getElapsed() }));
+          ws.send(JSON.stringify({ type: 'app_updated' }));
+          resolve(resultText);
+          return;
+        }
+        const errMsg = isMaxTurns ? 'Claude ran out of turns before completing. Try again.' :
+          stderr.slice(0, 500) || `Claude exited with code ${code}`;
+        ws.send(JSON.stringify({ type: 'error', message: errMsg }));
         resolve(null);
         return;
       }
@@ -771,43 +783,65 @@ RULES:
 - Do NOT add imports, do NOT use TypeScript, keep export default App
 - Never change Fireproof document types or query filters`;
 
-  await runClaude(ws, prompt, { tools: 'Edit,Read', maxTurns: 4 });
+  await runClaude(ws, prompt, { tools: 'Edit,Read', maxTurns: 8 });
 }
 
 async function handleThemeSwitch(ws, themeId) {
-  const themeFile = join(THEME_DIR, `${themeId}.md`);
+  const txtFile = join(THEME_DIR, `${themeId}.txt`);
+  const mdFile = join(THEME_DIR, `${themeId}.md`);
   let themeContent = '';
-  if (existsSync(themeFile)) {
-    themeContent = readFileSync(themeFile, 'utf-8');
-  } else {
-    const txtFile = join(THEME_DIR, `${themeId}.txt`);
-    if (existsSync(txtFile)) {
-      themeContent = readFileSync(txtFile, 'utf-8');
-    }
-  }
-
-  // Trim: remove REFERENCE STYLES + REFERENCE CSS (bulk CSS examples) — keep colors, principles, personality, animations
-  themeContent = themeContent.replace(/REFERENCE STYLES:[\s\S]*?(?=DESIGN PRINCIPLES:|EXAMPLE SKELETON:|PERSONALITY:|ANIMATIONS:|SVG ELEMENTS:|$)/, '');
-  const refIdx = themeContent.indexOf('REFERENCE CSS');
-  const trimmedTheme = refIdx > 0 ? themeContent.slice(0, refIdx) : themeContent;
+  if (existsSync(txtFile)) themeContent = readFileSync(txtFile, 'utf-8');
+  else if (existsSync(mdFile)) themeContent = readFileSync(mdFile, 'utf-8');
 
   const themeMeta = themes.find(t => t.id === themeId);
   const themeName = themeMeta ? themeMeta.name : themeId;
 
-  const prompt = `Restyle app.jsx with the "${themeName}" (${themeId}) theme. Read app.jsx first, then Edit it.
+  // Extract the :root CSS block — this is the EXACT code Claude must swap in
+  let rootCss = '';
+  const rootMatch = themeContent.match(/:root\s*\{[\s\S]*?\}/);
+  if (rootMatch) {
+    rootCss = rootMatch[0];
+  } else {
+    const varLines = themeContent.match(/^\s*--[\w-]+:\s*oklch\([^)]+\).*$/gm);
+    if (varLines && varLines.length > 0) {
+      rootCss = ':root {\n' + varLines.map(l => '  ' + l.trim()).join('\n') + '\n}';
+    }
+  }
 
-Theme identity:
-${trimmedTheme}
+  const prompt = `Restyle app.jsx to the "${themeName}" (${themeId}) theme. Read app.jsx first.
 
-RULES — ONLY change visual styling:
-- Edit app.jsx — change: colors (oklch/var tokens), shadows, borders, spacing, font sizes, backgrounds
-- KEEP every component, hook, function, state, layout structure unchanged
-- Update __VIBES_THEMES__ array to include { id: "${themeId}", name: "${themeName}" }
-- Set useVibesTheme() default to "${themeId}"
-- Do NOT add imports, do NOT use TypeScript, keep export default App
-- Never change Fireproof document types or query filters`;
+=== MANDATORY CSS CHANGES ===
 
-  await runClaude(ws, prompt, { skipChat: true, tools: 'Edit,Read', maxTurns: 3 });
+Replace the ENTIRE :root block in the <style> tag with this EXACT CSS:
+
+\`\`\`css
+${rootCss || `/* Build :root with oklch colors matching "${themeName}" */`}
+\`\`\`
+
+Replace __VIBES_THEMES__ with: [{ id: "${themeId}", name: "${themeName}" }]
+Replace useVibesTheme default with: "${themeId}"
+
+=== THEME PERSONALITY ===
+
+Study this theme to update backgrounds, shadows, borders, fonts, animations, SVGs:
+
+${themeContent.slice(0, 8000)}
+
+=== RULES ===
+
+CHANGE (visual only):
+- :root CSS variables → use the EXACT block above
+- Backgrounds, shadows, borders, fonts → match theme's design principles
+- Animations, SVG elements → match theme's mood
+- __VIBES_THEMES__ and useVibesTheme default → "${themeId}"
+
+KEEP UNCHANGED:
+- All components, hooks, functions, state, data models, layout structure
+- All Fireproof database calls, document types, query filters
+- No import statements, no TypeScript, keep export default App`;
+
+  console.log(`[ThemeSwitch] theme: ${themeId} (${themeName}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
+  await runClaude(ws, prompt, { skipChat: true, tools: 'Edit,Read', maxTurns: 10 });
 }
 
 // --- Create Theme Handlers ---
@@ -846,137 +880,126 @@ async function handleGenerate(ws, userPrompt, themeId) {
     return;
   }
 
-  // Read style prompt (creative guidelines for SVG, animations, components)
-  let stylePrompt = '';
+  console.log(`[Generate] ▸ START prompt="${userPrompt.slice(0, 60)}" themeId=${themeId || '(auto)'}`);
+
+  // Resolve common file paths
+  const catalogPath = join(PROJECT_ROOT, 'skills/vibes/themes/catalog.txt');
   const stylePath = join(PROJECT_ROOT, 'skills/vibes/defaults/style-prompt.txt');
-  if (existsSync(stylePath)) {
-    stylePrompt = readFileSync(stylePath, 'utf-8');
-  }
-
-  // Read advanced effects prompt (Canvas, WebGL, interactive SVG, CSS advanced)
-  let advancedEffectsPrompt = '';
   const advancedEffectsPath = join(PROJECT_ROOT, 'skills/vibes/defaults/advanced-effects-prompt.txt');
-  if (existsSync(advancedEffectsPath)) {
-    advancedEffectsPrompt = readFileSync(advancedEffectsPath, 'utf-8');
-  }
+  const designTokensPath = join(PROJECT_ROOT, 'build/design-tokens.txt');
 
-  // Auto-select theme if none chosen
-  if (!themeId) {
+  // Two modes: Auto (Claude picks theme from catalog) vs Manual (theme pre-selected)
+  const isAuto = !themeId;
+
+  if (isAuto) {
+    // Server pre-selects for the theme_selected message, but Claude will read the file
     themeId = autoSelectTheme(userPrompt);
-    console.log(`[Generate] Auto-selected theme: ${themeId}`);
+    console.log(`[Generate]   ✓ autoSelectTheme => "${themeId}"`);
+  } else {
+    console.log(`[Generate]   ✓ user selected theme: "${themeId}"`);
   }
 
-  // Read theme file (design principles, color tokens, personality, animations)
-  let themeContent = '';
-  let themeName = '';
-  const meta = themes.find(t => t.id === themeId);
-  themeName = meta ? meta.name : themeId;
+  const themeName = (themes.find(t => t.id === themeId) || {}).name || themeId;
   const txtFile = join(THEME_DIR, `${themeId}.txt`);
   const mdFile = join(THEME_DIR, `${themeId}.md`);
-  if (existsSync(txtFile)) themeContent = readFileSync(txtFile, 'utf-8');
-  else if (existsSync(mdFile)) themeContent = readFileSync(mdFile, 'utf-8');
+  const themeFilePath = existsSync(txtFile) ? txtFile : existsSync(mdFile) ? mdFile : '';
 
-  // Trim: remove REFERENCE STYLES section (bulk CSS examples) — keep colors, principles, personality, animations
-  themeContent = themeContent.replace(/REFERENCE STYLES:[\s\S]*?(?=DESIGN PRINCIPLES:|EXAMPLE SKELETON:|PERSONALITY:|ANIMATIONS:|SVG ELEMENTS:|$)/, '');
-  // Also trim REFERENCE CSS if present
-  const refIdx = themeContent.indexOf('REFERENCE CSS');
-  if (refIdx > 0) themeContent = themeContent.slice(0, refIdx);
+  // Read theme content — inject directly so Claude can't ignore it
+  let themeContent = '';
+  if (themeFilePath) {
+    themeContent = readFileSync(themeFilePath, 'utf-8');
+    console.log(`[Generate]   ✓ themeFile: ${(themeContent.length / 1024).toFixed(1)}KB — "${themeName}"`);
+  } else {
+    console.log(`[Generate]   ✗ NO THEME FILE for "${themeId}"`);
+  }
 
-  // Build the catalog summary for context (theme names + moods only, not full files)
-  const catalogSummary = themes.map(t => `  ${t.id}: ${t.name} — ${t.mood}`).join('\n');
+  // Extract the :root CSS block — this is the EXACT code Claude must use
+  // Extract the :root CSS block — the exact code Claude must use in <style>
+  let rootCss = '';
+  const rootMatch = themeContent.match(/:root\s*\{[\s\S]*?\}/);
+  if (rootMatch) {
+    rootCss = rootMatch[0];
+  } else {
+    // Some themes list variables without a :root block — build one from --var: oklch(...) lines
+    const varLines = themeContent.match(/^\s*--[\w-]+:\s*oklch\([^)]+\).*$/gm);
+    if (varLines && varLines.length > 0) {
+      rootCss = ':root {\n' + varLines.map(l => '  ' + l.trim()).join('\n') + '\n}';
+    }
+  }
+  console.log(`[Generate]   rootCss: ${rootCss ? rootCss.split('\n').length + ' lines' : 'MISSING'}`);
 
-  const prompt = `You are an expert React app designer and developer. You create beautifully designed, highly creative single-file React apps with custom SVG artwork, animations, and thematic personality.
+  // Trim theme content: keep personality sections, drop the huge REFERENCE STYLES CSS (~12KB)
+  // The :root CSS is already extracted above, so Claude doesn't need the full CSS examples
+  let themeEssentials = themeContent
+    .replace(/REFERENCE STYLES[\s\S]*?(?=\n[A-Z]{2,}[A-Z ]*[:|\n]|$)/, '')
+    .replace(/```css[\s\S]*?```/g, '') // Remove remaining CSS code blocks
+    .trim();
+  // Cap at 4KB to keep prompt manageable
+  if (themeEssentials.length > 4000) themeEssentials = themeEssentials.slice(0, 4000) + '\n...';
+
+  const prompt = `You are an expert React app designer. Generate a beautiful, creative app.
 
 USER REQUEST: "${userPrompt}"
 
-SELECTED THEME: "${themeName}" (${themeId})
-Available themes for reference:
-${catalogSummary}
+=== MANDATORY THEME: "${themeName}" (id: "${themeId}") ===
 
-=== STEP 1: DESIGN REASONING ===
+Your app.jsx MUST start with these EXACT lines (copy-paste, do not modify):
 
-Before writing ANY code, think through the design in a <design> block:
+\`\`\`jsx
+window.__VIBES_THEMES__ = [{ id: "${themeId}", name: "${themeName}" }];
 
-<design>
-- What is the core functionality and user flow?
-- What OKLCH colors fit this app? (dark/light, warm/cool, vibrant/muted)
-- What layout best serves the content? (cards, list, dashboard, single-focus)
-- What custom SVG illustrations would make this app feel premium?
-- What micro-interactions would feel satisfying? (hover states, transitions, animations)
-- How does the "${themeName}" theme personality inform the visual choices?
-</design>
-
-=== STEP 2: THEME DESIGN PRINCIPLES ===
-
-${themeContent ? `Apply this theme's full design language — colors, personality, animation tempo, SVG guidelines:\n\n${themeContent}` : `Use the default neo-brutalist style with bold borders, hard shadows, and strong typography.`}
-
-CREATIVE LIBERTY: The theme is a mood board, not a template. Use the color tokens exactly (they define the mood), follow the design principles, but INVENT unique layouts, card designs, hover effects, and decorative SVG elements specific to this app. Two apps with the same theme should FEEL related but LOOK different.
-
-=== STEP 3: STYLE & VISUAL GUIDELINES ===
-
-${stylePrompt}
-
-=== STEP 3b: ADVANCED VISUAL EFFECTS ===
-
-${advancedEffectsPrompt}
-
-=== STEP 4: DESIGN TOKENS ===
-
-Override --comp-* tokens in a :root style block to set the mood. Use oklch() for rich colors.
-
-\`\`\`css
-:root {
-  --comp-bg: oklch(...);           /* surfaces */
-  --comp-text: oklch(...);         /* body text */
-  --comp-border: oklch(...);       /* outlines */
-  --comp-accent: oklch(...);       /* primary accent */
-  --comp-accent-text: oklch(...);  /* text on accent */
-  --comp-muted: oklch(...);        /* placeholders */
+function useVibesTheme() {
+  const [theme, setTheme] = React.useState(() => localStorage.getItem("vibes-theme") || "${themeId}");
+  React.useEffect(() => {
+    const handler = (e) => { const t = e.detail?.theme; if (t) { setTheme(t); localStorage.setItem("vibes-theme", t); } };
+    document.addEventListener("vibes-design-request", handler);
+    return () => document.removeEventListener("vibes-design-request", handler);
+  }, []);
+  return theme;
 }
 \`\`\`
 
-Pre-styled components: card, btn, input, badge, tabs, alert, separator, table, accordion, dialog, progress, nav
-- Buttons: className="btn" (variants: btn-red, btn-yellow, btn-gray)
-- Cards: className="card" (variants: card-red, card-yellow)
-- Badges: className="badge" (variants: badge-blue, badge-red, badge-yellow)
-- Root container: className="grid-background"
-- Shadows: var(--shadow-brutalist-blue) for cards, var(--shadow-brutalist-red) for delete
-- Never override --vibes-* tokens (wrapper UI). Only override --comp-* tokens (your app).
+Your <style> tag MUST include these EXACT CSS custom properties from the "${themeName}" theme:
 
-=== STEP 5: CODE OUTPUT ===
+\`\`\`css
+${rootCss || `/* No :root block found — create one with warm oklch colors matching "${themeName}" */`}
+\`\`\`
 
-Write the complete app to app.jsx. Follow these rules exactly:
+=== THEME PERSONALITY ===
 
-THEME SUPPORT (required):
-- Start with: window.__VIBES_THEMES__ = [{ id: "${themeId}", name: "${themeName}" }];
-- Include this hook for theme switching:
-  function useVibesTheme() {
-    const [theme, setTheme] = React.useState(() => localStorage.getItem("vibes-theme") || "${themeId}");
-    React.useEffect(() => {
-      const handler = (e) => { const t = e.detail?.theme; if (t) { setTheme(t); localStorage.setItem("vibes-theme", t); } };
-      document.addEventListener("vibes-design-request", handler);
-      return () => document.removeEventListener("vibes-design-request", handler);
-    }, []);
-    return theme;
-  }
+${themeEssentials || 'Bold neo-brutalist: strong typography, hard shadows, playful hover effects.'}
 
-CODE RULES:
-- Use JSX with React hooks (useState, useEffect, useRef, useCallback, useMemo)
-- Use useFireproofClerk("db-name") for database — returns { database, useLiveQuery, useDocument }
-- Do NOT add import statements — the app runs in a Babel script block with globals
-- Do NOT use TypeScript
-- End with: export default App
-- Make the app responsive (mobile-first with Tailwind breakpoints)
-- Use className="btn" for pre-styled buttons, "btn btn-red" for destructive
-- Use className="grid-background" on the app root container
+=== READ DESIGN GUIDANCE ===
 
-DATABASE PATTERNS:
-Form: const { doc, merge, submit, reset } = useDocument({ text: "", type: "item" });
-List: const { docs } = useLiveQuery("type", { key: "item" });
-Direct: database.put({ text: "new", type: "item" }), database.del(doc._id)`;
+Read this file for style patterns, SVG, animations, and component catalog:
+${stylePath}
 
-  console.log(`[Generate] Starting — prompt: "${userPrompt.slice(0, 60)}...", theme: ${themeId} (${themeName}), total prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
-  await runClaude(ws, prompt, { skipChat: true, tools: 'Write,Read', maxTurns: 5 });
+=== DESIGN REASONING ===
+
+Think in a <design> block:
+- How does "${themeName}" personality shape the visual choices?
+- What custom SVG illustrations fit this app?
+- What animations and effects match the theme mood? (Canvas particles, animated SVG, scroll reveals, card tilt, cursor glow)
+
+=== WRITE app.jsx ===
+
+Write the complete app to app.jsx. Rules:
+- FIRST: the exact __VIBES_THEMES__ + useVibesTheme code shown above
+- THEN: <style> tag with the exact :root CSS shown above, plus component styles
+- Add rich visual effects: Canvas 2D backgrounds, animated SVG illustrations, CSS @property animations, hover effects
+- JSX with React hooks (useState, useEffect, useRef, useCallback, useMemo)
+- useFireproofClerk("db-name") for database — returns { database, useLiveQuery, useDocument }
+- NO import statements — runs in Babel script block with globals
+- NO TypeScript. End with: export default App
+- Responsive (mobile-first with Tailwind). className="btn" for buttons, "grid-background" on root
+
+DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}), database.put/del`;
+
+  // Tell the client which theme was selected
+  ws.send(JSON.stringify({ type: 'theme_selected', themeId, themeName }));
+
+  console.log(`[Generate] Starting — theme: ${themeId} (${themeName}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
+  await runClaude(ws, prompt, { skipChat: true, tools: 'Write,Read,Glob', maxTurns: 15 });
 }
 
 // --- Editor: Deploy assembled app ---
