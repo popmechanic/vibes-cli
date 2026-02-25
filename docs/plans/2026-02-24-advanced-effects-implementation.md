@@ -1,0 +1,665 @@
+# Advanced Visual Effects Prompt — Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** Add a separate prompt file that instructs the LLM to generate apps with Canvas 2D, WebGL shaders, interactive SVGs, and advanced CSS — using only native browser APIs.
+
+**Architecture:** New file `advanced-effects-prompt.txt` loaded alongside existing `style-prompt.txt`. Model auto-selects visual complexity tier based on theme mood. Integration into preview-server, builder prompt, SKILL.md, and CLAUDE.md.
+
+**Tech Stack:** Native browser APIs (Canvas 2D, WebGL, SVG SMIL, CSS @property, IntersectionObserver). No new import map entries.
+
+---
+
+### Task 1: Create the advanced effects prompt file
+
+**Files:**
+- Create: `skills/vibes/defaults/advanced-effects-prompt.txt`
+
+**Step 1: Write the file**
+
+```text
+ADVANCED VISUAL EFFECTS — Native Browser APIs
+
+This file extends style-prompt.txt with advanced techniques. Use these to make apps
+feel cinematic, interactive, and alive. Every technique here uses ONLY native browser
+APIs — no libraries needed.
+
+VISUAL COMPLEXITY TIERS — choose based on the theme's MOOD:
+
+  Tier 1 (Restrained) — editorial, archival, minimal, professional moods:
+    Use: CSS @property animated gradients, subtle SVG filters (blur, grain),
+    micro-animations (0.15-0.3s transitions), animated underlines, soft parallax.
+    Avoid: Canvas, WebGL, heavy particle effects.
+
+  Tier 2 (Expressive) — bold, playful, rounded, modern, warm moods:
+    Use: Everything in Tier 1, PLUS Canvas 2D particle backgrounds, interactive
+    SVG hover morphs, scroll-driven reveals, mouse-follow effects, animated
+    SVG path drawing, clip-path morphing.
+    Avoid: WebGL shaders (overkill for this mood).
+
+  Tier 3 (Spectacular) — neon, cyberpunk, cosmic, glitch, arcade, futuristic moods:
+    Use: Everything in Tiers 1-2, PLUS WebGL fragment shaders (aurora, plasma,
+    noise), generative Canvas art, full interactive SVG scenes, heavy particle
+    systems, displacement filters, glow compositing.
+
+  If unsure, default to Tier 2. The theme's MOOD field is your guide — words like
+  "minimal" or "restrained" signal Tier 1; "bold" or "playful" signal Tier 2;
+  "neon" or "cosmic" signal Tier 3.
+
+=== CANVAS 2D BACKGROUNDS ===
+
+Create animated Canvas backgrounds as React components using useRef + useEffect.
+Place them behind content with position: fixed, z-index: 0, pointer-events: none.
+
+Pattern — particle field (Tier 2+):
+
+  function ParticleBackground({ color = "rgba(255,255,255,0.3)", count = 60 }) {
+    const canvasRef = React.useRef(null);
+
+    React.useEffect(() => {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      let animId;
+
+      function resize() {
+        canvas.width = window.innerWidth * devicePixelRatio;
+        canvas.height = window.innerHeight * devicePixelRatio;
+        ctx.scale(devicePixelRatio, devicePixelRatio);
+      }
+      resize();
+      window.addEventListener("resize", resize);
+
+      const particles = Array.from({ length: count }, () => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        r: Math.random() * 2 + 1,
+      }));
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width / devicePixelRatio, canvas.height / devicePixelRatio);
+        ctx.fillStyle = color;
+        for (const p of particles) {
+          p.x += p.vx; p.y += p.vy;
+          if (p.x < 0 || p.x > window.innerWidth) p.vx *= -1;
+          if (p.y < 0 || p.y > window.innerHeight) p.vy *= -1;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        animId = requestAnimationFrame(draw);
+      }
+      draw();
+
+      return () => {
+        cancelAnimationFrame(animId);
+        window.removeEventListener("resize", resize);
+      };
+    }, [color, count]);
+
+    return <canvas ref={canvasRef} style={{
+      position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
+      width: "100vw", height: "100vh"
+    }} />;
+  }
+
+Variations to create (adapt the draw loop):
+  - Connected dots: draw lines between particles within 100px distance
+  - Floating shapes: rectangles/triangles with rotation that drift and fade
+  - Noise terrain: use sine waves with time offset for undulating line landscapes
+  - Mouse-reactive: pass mouse position via onMouseMove on a parent div, particles
+    accelerate away from cursor then drift back
+
+Performance rules:
+  - ALWAYS use devicePixelRatio for crisp rendering on retina
+  - ALWAYS return cleanup: cancelAnimationFrame + removeEventListener
+  - Keep particle count under 100 for mobile (check window.innerWidth < 768)
+  - Use simple shapes (arc, rect) — avoid complex paths in animation loops
+  - Canvas dimensions: set via JS (width/height attributes), NOT CSS
+
+=== WEBGL SHADERS ===
+
+For Tier 3 themes, use WebGL fragment shaders for dramatic backgrounds.
+These create effects impossible with CSS: plasma, aurora, noise displacement.
+
+Pattern — shader background component:
+
+  function ShaderBackground({ fragmentSource }) {
+    const canvasRef = React.useRef(null);
+
+    React.useEffect(() => {
+      const canvas = canvasRef.current;
+      const gl = canvas.getContext("webgl");
+      if (!gl) return;
+
+      function resize() {
+        canvas.width = window.innerWidth * devicePixelRatio;
+        canvas.height = window.innerHeight * devicePixelRatio;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      }
+      resize();
+      window.addEventListener("resize", resize);
+
+      // Fullscreen quad
+      const vs = `attribute vec2 p; void main(){ gl_Position=vec4(p,0,1); }`;
+      function compile(src, type) {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        return s;
+      }
+      const prog = gl.createProgram();
+      gl.attachShader(prog, compile(vs, gl.VERTEX_SHADER));
+      gl.attachShader(prog, compile(fragmentSource, gl.FRAGMENT_SHADER));
+      gl.linkProgram(prog);
+      gl.useProgram(prog);
+
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+      const loc = gl.getAttribLocation(prog, "p");
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+      const uTime = gl.getUniformLocation(prog, "u_time");
+      const uRes = gl.getUniformLocation(prog, "u_resolution");
+      const uMouse = gl.getUniformLocation(prog, "u_mouse");
+      let mouse = [0.5, 0.5];
+      let animId;
+
+      function render(t) {
+        gl.uniform1f(uTime, t * 0.001);
+        gl.uniform2f(uRes, canvas.width, canvas.height);
+        gl.uniform2f(uMouse, mouse[0], mouse[1]);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        animId = requestAnimationFrame(render);
+      }
+      render(0);
+
+      const onMove = (e) => { mouse = [e.clientX / window.innerWidth, 1.0 - e.clientY / window.innerHeight]; };
+      window.addEventListener("mousemove", onMove);
+
+      return () => {
+        cancelAnimationFrame(animId);
+        window.removeEventListener("resize", resize);
+        window.removeEventListener("mousemove", onMove);
+      };
+    }, [fragmentSource]);
+
+    return <canvas ref={canvasRef} style={{
+      position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none",
+      width: "100vw", height: "100vh"
+    }} />;
+  }
+
+Fragment shader recipes (pass as fragmentSource string):
+
+  Aurora / northern lights:
+    precision mediump float;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    void main(){
+      vec2 uv = gl_FragCoord.xy / u_resolution;
+      float wave = sin(uv.x * 6.0 + u_time) * 0.5 + 0.5;
+      wave *= sin(uv.y * 4.0 - u_time * 0.7) * 0.5 + 0.5;
+      vec3 col = mix(vec3(0.05, 0.0, 0.15), vec3(0.0, 0.8, 0.6), wave);
+      col += vec3(0.4, 0.0, 0.6) * sin(uv.x * 10.0 + u_time * 1.3) * 0.3;
+      gl_FragColor = vec4(col, 1.0);
+    }
+
+  Plasma / lava lamp:
+    precision mediump float;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    void main(){
+      vec2 uv = gl_FragCoord.xy / u_resolution;
+      float v = sin(uv.x*10.0+u_time)+sin(uv.y*10.0+u_time);
+      v += sin((uv.x+uv.y)*10.0+u_time*0.5);
+      v += sin(length(uv-0.5)*15.0-u_time*2.0);
+      v = v * 0.25 + 0.5;
+      vec3 col = vec3(v, v*0.6, 1.0-v);
+      gl_FragColor = vec4(col, 1.0);
+    }
+
+  Noise gradient mesh (mouse-reactive):
+    precision mediump float;
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform vec2 u_mouse;
+    float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+    float noise(vec2 p){
+      vec2 i=floor(p), f=fract(p);
+      f=f*f*(3.0-2.0*f);
+      return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
+                 mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);
+    }
+    void main(){
+      vec2 uv=gl_FragCoord.xy/u_resolution;
+      float n=noise(uv*4.0+u_time*0.3+u_mouse*2.0);
+      n+=noise(uv*8.0-u_time*0.2)*0.5;
+      vec3 c=mix(vec3(0.1,0.0,0.2),vec3(0.0,0.5,0.8),n);
+      c=mix(c,vec3(0.9,0.3,0.5),noise(uv*3.0+u_time*0.5)*0.4);
+      gl_FragColor=vec4(c,1.0);
+    }
+
+Rules:
+  - ALWAYS check `if (!gl) return;` — graceful fallback if WebGL unavailable
+  - Use `precision mediump float;` — highp causes issues on some mobile GPUs
+  - Keep shader complexity moderate — avoid deep loop nesting
+  - Cleanup: cancelAnimationFrame + remove listeners in useEffect return
+
+=== INTERACTIVE SVG ===
+
+Go beyond static SVG decoration. Make SVGs respond to user interaction.
+
+1. Hover morph (SMIL animation):
+   <svg viewBox="0 0 100 100" style={{ cursor: "pointer" }}>
+     <path d="M10,50 Q50,10 90,50 Q50,90 10,50" fill="currentColor">
+       <animate attributeName="d"
+         to="M10,10 Q50,50 90,10 Q50,50 10,90"
+         begin="mouseover" dur="0.4s" fill="freeze" />
+       <animate attributeName="d"
+         to="M10,50 Q50,10 90,50 Q50,90 10,50"
+         begin="mouseout" dur="0.4s" fill="freeze" />
+     </path>
+   </svg>
+
+2. Click-triggered path drawing (stroke animation):
+   Create a path with stroke-dasharray equal to its total length, and
+   stroke-dashoffset also equal to total length (hidden). On click, animate
+   dashoffset to 0:
+
+   const [drawn, setDrawn] = React.useState(false);
+   <svg viewBox="0 0 200 100">
+     <path d="M10,80 C40,10 65,10 95,80 S150,150 180,80"
+       fill="none" stroke="currentColor" strokeWidth="3"
+       strokeDasharray="300" strokeDashoffset={drawn ? 0 : 300}
+       style={{ transition: "stroke-dashoffset 1.5s ease" }}
+       onClick={() => setDrawn(!drawn)} />
+   </svg>
+
+3. SVG filters — liquid distortion:
+   <svg style={{ position: "absolute", width: 0, height: 0 }}>
+     <defs>
+       <filter id="liquid">
+         <feTurbulence type="fractalNoise" baseFrequency="0.015"
+           numOctaves="3" seed="1">
+           <animate attributeName="baseFrequency"
+             values="0.015;0.025;0.015" dur="8s" repeatCount="indefinite" />
+         </feTurbulence>
+         <feDisplacementMap in="SourceGraphic" scale="20" />
+       </filter>
+     </defs>
+   </svg>
+   Then apply: style={{ filter: "url(#liquid)" }}
+
+4. SVG filters — glow effect:
+   <filter id="glow">
+     <feGaussianBlur stdDeviation="3" result="blur" />
+     <feComposite in="SourceGraphic" in2="blur" operator="over" />
+   </filter>
+   Apply to any SVG element: filter="url(#glow)"
+
+5. Mouse-follow SVG elements:
+   const [mouse, setMouse] = React.useState({ x: 50, y: 50 });
+   <div onMouseMove={(e) => {
+     const rect = e.currentTarget.getBoundingClientRect();
+     setMouse({ x: (e.clientX - rect.left) / rect.width * 100,
+                y: (e.clientY - rect.top) / rect.height * 100 });
+   }}>
+     <svg viewBox="0 0 100 100">
+       <circle cx={mouse.x} cy={mouse.y} r="15" fill="currentColor" opacity="0.3"
+         style={{ transition: "cx 0.1s, cy 0.1s" }} />
+       {/* Multiple circles at different lag speeds for trail effect */}
+     </svg>
+   </div>
+
+6. Animated SVG pattern backgrounds:
+   <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+     <defs>
+       <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+         <circle cx="20" cy="20" r="1.5" fill="currentColor" opacity="0.2">
+           <animate attributeName="r" values="1.5;2.5;1.5" dur="4s"
+             repeatCount="indefinite" />
+         </circle>
+       </pattern>
+     </defs>
+     <rect width="100%" height="100%" fill="url(#grid)" />
+   </svg>
+
+Rules:
+  - SMIL animations (`<animate>`) work in all modern browsers including Safari
+  - Use `fill="freeze"` on hover/click animations to hold the end state
+  - For complex morphs, keep the same number of path points in from/to values
+  - SVG filters are GPU-accelerated — safe for backgrounds and decorative elements
+  - Use feDisplacementMap scale < 30 to avoid visual artifacts
+  - For mouse-follow, use requestAnimationFrame or transition CSS — never
+    update state on every mousemove without throttling
+
+=== CSS ADVANCED ===
+
+Modern CSS features that create rich effects without JavaScript.
+
+1. @property for animated gradients:
+   <style>{`
+     @property --angle {
+       syntax: "<angle>";
+       initial-value: 0deg;
+       inherits: false;
+     }
+     @property --color-1 {
+       syntax: "<color>";
+       initial-value: oklch(0.5 0.2 250);
+       inherits: false;
+     }
+     @keyframes rotate-gradient {
+       to { --angle: 360deg; }
+     }
+     @keyframes shift-color {
+       50% { --color-1: oklch(0.6 0.25 330); }
+     }
+     .animated-gradient {
+       background: linear-gradient(var(--angle), var(--color-1), oklch(0.3 0.15 180));
+       animation: rotate-gradient 8s linear infinite, shift-color 6s ease infinite;
+     }
+   `}</style>
+
+2. Clip-path morph animations:
+   <style>{`
+     @keyframes morph {
+       0% { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+       50% { clip-path: polygon(25% 0%, 100% 25%, 75% 100%, 0% 75%); }
+       100% { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+     }
+     .morphing { animation: morph 6s ease infinite; }
+   `}</style>
+
+3. mix-blend-mode compositing:
+   Layer colored divs with mix-blend-mode for rich blending:
+   <div style={{ position: "relative" }}>
+     <div style={{ position: "absolute", inset: 0, background: "oklch(0.5 0.3 250)",
+       mixBlendMode: "screen", pointerEvents: "none", opacity: 0.3 }} />
+     {/* Content here */}
+   </div>
+
+4. Backdrop-filter depth stacking:
+   Create layered glass effects:
+   style={{ backdropFilter: "blur(12px) saturate(1.8)", background: "rgba(0,0,0,0.3)" }}
+
+5. Conic-gradient spinner / color wheel:
+   <style>{`
+     @property --spin {
+       syntax: "<angle>";
+       initial-value: 0deg;
+       inherits: false;
+     }
+     @keyframes spin { to { --spin: 360deg; } }
+     .color-wheel {
+       background: conic-gradient(from var(--spin), oklch(0.7 0.25 0), oklch(0.7 0.25 120),
+         oklch(0.7 0.25 240), oklch(0.7 0.25 360));
+       animation: spin 10s linear infinite;
+       border-radius: 50%;
+     }
+   `}</style>
+
+Rules:
+  - @property is supported in Chrome, Edge, Safari 15.4+ — wide enough for production
+  - ALWAYS define @property in a <style> tag inside the component, not in external CSS
+  - clip-path morphs must have the same number of polygon points in all keyframes
+  - mix-blend-mode: "screen" brightens, "multiply" darkens, "overlay" adds contrast,
+    "difference" creates inversions — choose based on theme mood
+  - backdrop-filter requires a semi-transparent background to show the blur
+
+=== SCROLL & INTERACTION EFFECTS ===
+
+Make the app respond to scrolling and mouse movement.
+
+1. IntersectionObserver reveal-on-scroll:
+   function useRevealOnScroll() {
+     const ref = React.useRef(null);
+     const [visible, setVisible] = React.useState(false);
+     React.useEffect(() => {
+       const el = ref.current;
+       if (!el) return;
+       const obs = new IntersectionObserver(([e]) => {
+         if (e.isIntersecting) { setVisible(true); obs.disconnect(); }
+       }, { threshold: 0.15 });
+       obs.observe(el);
+       return () => obs.disconnect();
+     }, []);
+     return { ref, visible };
+   }
+
+   Usage on elements:
+   const { ref, visible } = useRevealOnScroll();
+   <div ref={ref} style={{
+     opacity: visible ? 1 : 0,
+     transform: visible ? "translateY(0)" : "translateY(30px)",
+     transition: "opacity 0.6s ease, transform 0.6s ease"
+   }}>...</div>
+
+   For staggered lists, apply different transition-delay per item:
+   style={{ transitionDelay: `${index * 100}ms` }}
+
+2. Parallax layers:
+   function useParallax(speed = 0.3) {
+     const [offset, setOffset] = React.useState(0);
+     React.useEffect(() => {
+       let ticking = false;
+       const onScroll = () => {
+         if (!ticking) {
+           requestAnimationFrame(() => {
+             setOffset(window.scrollY * speed);
+             ticking = false;
+           });
+           ticking = true;
+         }
+       };
+       window.addEventListener("scroll", onScroll, { passive: true });
+       return () => window.removeEventListener("scroll", onScroll);
+     }, [speed]);
+     return offset;
+   }
+   Usage: <div style={{ transform: `translateY(${offset}px)` }}>
+
+3. Mouse-follow cursor glow:
+   const [pos, setPos] = React.useState({ x: 0, y: 0 });
+   <div onMouseMove={(e) => setPos({ x: e.clientX, y: e.clientY })}
+     style={{ position: "relative", overflow: "hidden" }}>
+     <div style={{
+       position: "fixed",
+       width: "300px", height: "300px",
+       borderRadius: "50%",
+       background: "radial-gradient(circle, oklch(0.7 0.2 250 / 0.15), transparent 70%)",
+       transform: `translate(${pos.x - 150}px, ${pos.y - 150}px)`,
+       pointerEvents: "none",
+       zIndex: 1,
+       transition: "transform 0.15s ease-out"
+     }} />
+     {/* Content */}
+   </div>
+
+4. Card tilt on hover (CSS perspective):
+   function TiltCard({ children }) {
+     const [tilt, setTilt] = React.useState({ x: 0, y: 0 });
+     const onMove = (e) => {
+       const rect = e.currentTarget.getBoundingClientRect();
+       const x = (e.clientY - rect.top - rect.height / 2) / 10;
+       const y = -(e.clientX - rect.left - rect.width / 2) / 10;
+       setTilt({ x, y });
+     };
+     const onLeave = () => setTilt({ x: 0, y: 0 });
+     return (
+       <div onMouseMove={onMove} onMouseLeave={onLeave}
+         style={{
+           perspective: "800px",
+           transformStyle: "preserve-3d",
+         }}>
+         <div style={{
+           transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+           transition: "transform 0.15s ease-out",
+         }}>
+           {children}
+         </div>
+       </div>
+     );
+   }
+
+Rules:
+  - IntersectionObserver: disconnect after first trigger to avoid memory leaks
+  - Parallax: use { passive: true } on scroll listeners, throttle with rAF
+  - Mouse-follow: apply a CSS transition for smooth trailing (0.1-0.2s)
+  - Card tilt: cap rotation to +/-15deg max to avoid disorientation
+  - On mobile (touch devices), skip mouse-follow and tilt effects — check
+    window.matchMedia("(hover: hover)").matches before adding them
+```
+
+**Step 2: Commit**
+
+```bash
+git add skills/vibes/defaults/advanced-effects-prompt.txt
+git commit -m "Add advanced visual effects prompt (Canvas, WebGL, SVG, CSS)"
+```
+
+---
+
+### Task 2: Add path constant
+
+**Files:**
+- Modify: `scripts/lib/paths.js:37-39`
+
+**Step 1: Add the new path**
+
+Add `advancedEffectsPrompt` to `DEFAULT_FILES`:
+
+```javascript
+export const DEFAULT_FILES = {
+  stylePrompt: join(PLUGIN_ROOT, 'skills/vibes/defaults/style-prompt.txt'),
+  advancedEffectsPrompt: join(PLUGIN_ROOT, 'skills/vibes/defaults/advanced-effects-prompt.txt'),
+};
+```
+
+**Step 2: Commit**
+
+```bash
+git add scripts/lib/paths.js
+git commit -m "Add advanced effects prompt path constant"
+```
+
+---
+
+### Task 3: Load in preview server
+
+**Files:**
+- Modify: `scripts/preview-server.js:849-853` and `scripts/preview-server.js:910`
+
+**Step 1: Load the file alongside stylePrompt**
+
+After the existing style prompt loading (line 853), add:
+
+```javascript
+  // Read advanced effects prompt (Canvas, WebGL, interactive SVG, CSS advanced)
+  let advancedEffectsPrompt = '';
+  const advancedEffectsPath = join(PROJECT_ROOT, 'skills/vibes/defaults/advanced-effects-prompt.txt');
+  if (existsSync(advancedEffectsPath)) {
+    advancedEffectsPrompt = readFileSync(advancedEffectsPath, 'utf-8');
+  }
+```
+
+**Step 2: Inject into the generation prompt**
+
+After the style prompt section (around line 910, after `${stylePrompt}`), add a new section:
+
+```
+=== STEP 3b: ADVANCED VISUAL EFFECTS ===
+
+${advancedEffectsPrompt}
+```
+
+**Step 3: Commit**
+
+```bash
+git add scripts/preview-server.js
+git commit -m "Load advanced effects prompt in preview server generation"
+```
+
+---
+
+### Task 4: Add reference in SKILL.md
+
+**Files:**
+- Modify: `skills/vibes/SKILL.md:664`
+
+**Step 1: Add row to the "When to Read Extended Docs" table**
+
+After the existing `style-prompt.txt` row, add:
+
+```markdown
+| Advanced visual effects | "interactive", "animated", "3D", "particles", "shader", "canvas" | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/defaults/advanced-effects-prompt.txt` |
+```
+
+**Step 2: Commit**
+
+```bash
+git add skills/vibes/SKILL.md
+git commit -m "Reference advanced effects prompt in vibes SKILL.md"
+```
+
+---
+
+### Task 5: Add to builder agent prompt
+
+**Files:**
+- Modify: `skills/launch/prompts/builder.md:26`
+
+**Step 1: Add as step 4b**
+
+After line 26 (`4. Read style guidance: ...`), add:
+
+```markdown
+4b. Read advanced effects: Read file `{pluginRoot}/skills/vibes/defaults/advanced-effects-prompt.txt` — pick the visual complexity tier that matches your chosen theme's mood
+```
+
+**Step 2: Commit**
+
+```bash
+git add skills/launch/prompts/builder.md
+git commit -m "Add advanced effects to builder agent reading list"
+```
+
+---
+
+### Task 6: Update CLAUDE.md references
+
+**Files:**
+- Modify: `CLAUDE.md`
+
+**Step 1: Add to File Reference table**
+
+Find the `style-prompt.txt` line in the "File Intent Guide" / "File Reference" section and add below it:
+
+```markdown
+| `skills/vibes/defaults/advanced-effects-prompt.txt` | Advanced visual effects guide (Canvas, WebGL, SVG, CSS) |
+```
+
+**Step 2: Add to defaults section**
+
+In the "Build Output and Defaults" section, add alongside `style-prompt.txt`:
+
+```markdown
+- `advanced-effects-prompt.txt` - Advanced visual effects (Canvas 2D, WebGL shaders, interactive SVG, CSS @property) in `skills/vibes/defaults/`
+```
+
+**Step 3: Add to "When to read defaults"**
+
+```markdown
+- `advanced-effects-prompt.txt` - Read when apps need interactive visuals, Canvas backgrounds, WebGL effects, or animated SVGs
+```
+
+**Step 4: Commit**
+
+```bash
+git add CLAUDE.md
+git commit -m "Document advanced effects prompt in CLAUDE.md"
+```
