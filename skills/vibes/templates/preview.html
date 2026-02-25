@@ -235,6 +235,45 @@
       border: none;
       box-shadow: none;
     }
+    /* Debug panel */
+    .debug-panel {
+      display: none;
+      position: absolute;
+      bottom: 60px;
+      right: 0;
+      width: 100%;
+      max-height: 200px;
+      background: var(--vibes-near-black);
+      border-top: 2px solid var(--vibes-blue);
+      z-index: 50;
+      flex-direction: column;
+    }
+    .debug-panel.visible { display: flex; }
+    .debug-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 8px;
+      font-size: 0.7rem;
+      color: var(--vibes-cream);
+      font-weight: 600;
+      border-bottom: 1px solid #333;
+    }
+    .debug-log {
+      overflow-y: auto;
+      padding: 4px 8px;
+      flex: 1;
+    }
+    .debug-entry {
+      font-family: 'Berkeley Mono', 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.65rem;
+      color: #aaa;
+      padding: 1px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .thinking-indicator {
       align-self: flex-start;
       width: 85%;
@@ -688,6 +727,15 @@
         <button class="chat-send" id="sendBtn" onclick="sendMessage()">Send</button>
       </div>
     </div>
+
+    <!-- Debug Panel (toggle with Ctrl+Shift+D) -->
+    <div id="debug-panel" class="debug-panel">
+      <div class="debug-header">
+        <span>Tool Log</span>
+        <button onclick="toggleDebugPanel()" style="background:none;border:none;color:var(--vibes-cream);cursor:pointer;font-size:1rem;">&times;</button>
+      </div>
+      <div id="debug-log" class="debug-log"></div>
+    </div>
   </div>
 
   <!-- Theme Modal -->
@@ -752,6 +800,8 @@
         } else if (msg.type === 'cancelled') {
           setThinking(false);
           addMessage('system', 'Request cancelled.');
+        } else if (msg.type === 'tool_detail') {
+          appendDebugLog(msg);
         } else if (msg.type === 'theme_images') {
           showThemeImages(msg.images);
         } else if (msg.type === 'theme_created') {
@@ -768,6 +818,29 @@
         console.error('[WS] Error:', err);
       };
     }
+
+    // === Debug Log ===
+    function appendDebugLog(msg) {
+      const log = document.getElementById('debug-log');
+      if (!log) return;
+      const entry = document.createElement('div');
+      entry.className = 'debug-entry';
+      entry.textContent = `[${msg.elapsed}s] ${msg.name}${msg.input_summary ? ' → ' + msg.input_summary : ''}`;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function toggleDebugPanel() {
+      const panel = document.getElementById('debug-panel');
+      if (panel) panel.classList.toggle('visible');
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        e.preventDefault();
+        toggleDebugPanel();
+      }
+    });
 
     // === Chat ===
     function sendMessage() {
