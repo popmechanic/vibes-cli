@@ -19,7 +19,7 @@
       --vibes-green: #22c55e;
       --vibes-white: #fff;
       --grid-size: 32px;
-      --grid-color: rgba(255, 255, 255, 0.5);
+      --grid-color: rgba(255, 255, 255, 0.25);
     }
 
     body {
@@ -29,6 +29,8 @@
       height: 100vh;
       overflow: hidden;
       margin: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
     .black-border-wrapper {
       position: fixed;
@@ -86,7 +88,7 @@
       justify-content: center;
       border: none;
       cursor: pointer;
-      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
       overflow: hidden;
       padding: 0;
       position: relative;
@@ -111,25 +113,13 @@
       opacity: 0;
       width: 0;
       padding: 0;
-      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: opacity 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), max-width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), padding 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
       overflow: hidden;
       display: inline-block;
       text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
       flex-shrink: 0;
     }
-    .navbar-button-wrapper:hover button {
-      width: 180px !important;
-      justify-content: flex-start !important;
-    }
-    .navbar-button-wrapper:hover .navbar-button-label {
-      opacity: 1 !important;
-      width: auto !important;
-      max-width: 120px !important;
-      padding: 0 16px 0 4px !important;
-    }
-    .navbar-button-wrapper:hover .navbar-button-icon {
-      animation: wiggle 0.6s ease-in-out infinite;
-    }
+    /* hover rules moved to @media (hover: hover) block */
     @keyframes wiggle {
       0%, 100% { transform: rotate(0deg); }
       25% { transform: rotate(-5deg); }
@@ -172,8 +162,21 @@
       cursor: col-resize;
       flex-shrink: 0;
       transition: background 0.2s;
+      position: relative;
     }
-    .splitter:hover, .splitter.dragging { background: var(--vibes-blue); }
+    .splitter::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 2px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 1px;
+      box-shadow: 4px 0 0 rgba(255, 255, 255, 0.3);
+    }
+    .splitter.dragging { background: var(--vibes-blue); }
 
     /* === CHAT PANEL === */
     .chat-panel {
@@ -337,6 +340,7 @@
       font-size: 0.6875rem;
       color: #555;
       font-weight: 700;
+      font-variant-numeric: tabular-nums;
     }
     .thinking-timer {
       font-size: 0.6875rem;
@@ -352,10 +356,9 @@
       font-size: 0.6875rem;
       font-weight: 700;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
       box-shadow: 3px 3px 0px 0px var(--vibes-red), 3px 3px 0px 2px var(--vibes-near-black);
     }
-    .thinking-cancel:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0px 0px var(--vibes-red), 1px 1px 0px 2px var(--vibes-near-black); }
     .thinking-cancel:active { transform: translate(3px, 3px); box-shadow: none; }
 
     /* === CHAT INPUT === */
@@ -373,7 +376,7 @@
       color: var(--vibes-near-black);
       padding: 0.5rem 0.75rem;
       border-radius: 12px;
-      font-size: 0.8125rem;
+      font-size: 1rem;
       outline: none;
       resize: none;
       font-family: inherit;
@@ -391,12 +394,11 @@
       cursor: pointer;
       font-size: 0.875rem;
       font-weight: 700;
-      transition: all 0.15s ease;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
       flex-shrink: 0;
       letter-spacing: 0.05em;
       box-shadow: 4px 4px 0px 0px var(--vibes-blue), 4px 4px 0px 2px var(--vibes-near-black);
     }
-    .chat-send:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0px 0px var(--vibes-blue), 2px 2px 0px 2px var(--vibes-near-black); }
     .chat-send:active { transform: translate(4px, 4px); box-shadow: none; }
     .chat-send:disabled { background: #ddd; color: #999; cursor: not-allowed; box-shadow: none; transform: none; border-color: #aaa; }
 
@@ -405,13 +407,16 @@
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.5);
-      backdrop-filter: blur(4px);
-      display: none;
+      backdrop-filter: blur(0);
+      display: flex;
       align-items: center;
       justify-content: center;
       z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease-out, backdrop-filter 0.2s ease-out;
     }
-    .modal-overlay.open { display: flex; }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; backdrop-filter: blur(4px); }
     .modal {
       background: var(--vibes-cream);
       border: 3px solid var(--vibes-near-black);
@@ -423,7 +428,10 @@
       flex-direction: column;
       overflow: hidden;
       box-shadow: 8px 10px 0px 0px var(--vibes-blue), 8px 10px 0px 3px var(--vibes-near-black);
+      transform: scale(0.96);
+      transition: transform 0.2s ease-out;
     }
+    .modal-overlay.open .modal { transform: scale(1); }
     .modal-header {
       display: flex;
       align-items: center;
@@ -448,9 +456,8 @@
       line-height: 1;
       border-radius: 8px;
       box-shadow: 3px 3px 0px 0px var(--vibes-red), 3px 3px 0px 2px var(--vibes-near-black);
-      transition: all 0.15s;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
-    .modal-close:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0px 0px var(--vibes-red), 1px 1px 0px 2px var(--vibes-near-black); }
     .modal-create-btn {
       background: var(--vibes-cream);
       border: 2px solid var(--vibes-near-black);
@@ -461,10 +468,9 @@
       font-weight: 700;
       cursor: pointer;
       letter-spacing: 0.05em;
-      transition: all 0.15s;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
       box-shadow: 3px 3px 0px 0px var(--vibes-blue), 3px 3px 0px 2px var(--vibes-near-black);
     }
-    .modal-create-btn:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0px 0px var(--vibes-blue), 1px 1px 0px 2px var(--vibes-near-black); }
     .modal-create-btn:active { transform: translate(3px, 3px); box-shadow: none; }
     .modal-create-btn:disabled { background: #ddd; color: #999; cursor: not-allowed; box-shadow: none; transform: none; border-color: #aaa; }
     .modal-body {
@@ -488,12 +494,8 @@
       border-radius: 8px;
       padding: 0.75rem;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
       box-shadow: 4px 4px 0px 0px var(--vibes-blue), 4px 4px 0px 2px var(--vibes-near-black);
-    }
-    .theme-card:hover {
-      transform: translate(2px, 2px);
-      box-shadow: 2px 2px 0px 0px var(--vibes-blue), 2px 2px 0px 2px var(--vibes-near-black);
     }
     .theme-card-name {
       font-size: 0.8125rem;
@@ -520,7 +522,7 @@
       color: var(--vibes-near-black);
       padding: 0.6rem 0.85rem;
       border-radius: 12px;
-      font-size: 0.8125rem;
+      font-size: 1rem;
       outline: none;
       font-family: inherit;
       margin-bottom: 1rem;
@@ -586,7 +588,7 @@
       color: var(--vibes-near-black);
       padding: 0.6rem 0.85rem;
       border-radius: 12px;
-      font-size: 0.8125rem;
+      font-size: 1rem;
       outline: none;
       font-family: inherit;
     }
@@ -605,16 +607,12 @@
       overflow: hidden;
       cursor: pointer;
       position: relative;
-      transition: all 0.15s;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
       display: flex;
       align-items: center;
       justify-content: center;
       background: var(--vibes-cream);
       box-shadow: 4px 4px 0px 0px var(--vibes-yellow), 4px 4px 0px 2px var(--vibes-near-black);
-    }
-    .image-card:hover {
-      transform: translate(2px, 2px);
-      box-shadow: 2px 2px 0px 0px var(--vibes-yellow), 2px 2px 0px 2px var(--vibes-near-black);
     }
     .image-card img {
       width: 100%;
@@ -622,9 +620,7 @@
       object-fit: cover;
     }
     .image-card.loading { cursor: default; }
-    .image-card.loading:hover { transform: none; box-shadow: 4px 4px 0px 0px var(--vibes-yellow), 4px 4px 0px 2px var(--vibes-near-black); }
     .image-card.failed { border-color: var(--vibes-red); box-shadow: 4px 4px 0px 0px var(--vibes-red), 4px 4px 0px 2px var(--vibes-near-black); cursor: default; }
-    .image-card.failed:hover { transform: none; }
     .image-card .spinner {
       width: 24px;
       height: 24px;
@@ -645,6 +641,101 @@
     }
     .create-status.success { color: var(--vibes-green); }
     .create-status.error { color: var(--vibes-red); }
+
+    /* === SCROLLBARS === */
+    .chat-messages,
+    .modal-body,
+    .debug-log {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    }
+    .chat-messages::-webkit-scrollbar,
+    .modal-body::-webkit-scrollbar,
+    .debug-log::-webkit-scrollbar {
+      width: 6px;
+    }
+    .chat-messages::-webkit-scrollbar-track,
+    .modal-body::-webkit-scrollbar-track,
+    .debug-log::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .chat-messages::-webkit-scrollbar-thumb,
+    .modal-body::-webkit-scrollbar-thumb,
+    .debug-log::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 3px;
+    }
+    .chat-messages::-webkit-scrollbar-thumb:hover,
+    .modal-body::-webkit-scrollbar-thumb:hover,
+    .debug-log::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.35);
+    }
+
+    /* === FOCUS-VISIBLE === */
+    .navbar-button-wrapper button:focus-visible,
+    .chat-send:focus-visible,
+    .thinking-cancel:focus-visible,
+    .modal-close:focus-visible,
+    .modal-create-btn:focus-visible,
+    .theme-card:focus-visible,
+    .chat-input:focus-visible,
+    .theme-search:focus-visible,
+    .create-theme-input:focus-visible {
+      outline: 2px solid var(--vibes-blue);
+      outline-offset: 2px;
+    }
+
+    /* === BUTTON PRESS FEEDBACK === */
+    .navbar-button-wrapper button:active {
+      transform: scale(0.97);
+    }
+
+    /* === ANIMATIONS === */
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* === HOVER GUARDS === */
+    @media (hover: hover) {
+      .navbar-button-wrapper:hover button {
+        width: 180px !important;
+        justify-content: flex-start !important;
+      }
+      .navbar-button-wrapper:hover .navbar-button-label {
+        opacity: 1 !important;
+        width: auto !important;
+        max-width: 120px !important;
+        padding: 0 16px 0 4px !important;
+      }
+      .navbar-button-wrapper:hover .navbar-button-icon {
+        animation: wiggle 0.6s ease-in-out 2;
+      }
+      .splitter:hover { background: var(--vibes-blue); }
+      .thinking-cancel:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0px 0px var(--vibes-red), 1px 1px 0px 2px var(--vibes-near-black); }
+      .chat-send:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0px 0px var(--vibes-blue), 2px 2px 0px 2px var(--vibes-near-black); }
+      .modal-close:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0px 0px var(--vibes-red), 1px 1px 0px 2px var(--vibes-near-black); }
+      .modal-create-btn:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0px 0px var(--vibes-blue), 1px 1px 0px 2px var(--vibes-near-black); }
+      .theme-card:hover {
+        transform: translate(2px, 2px);
+        box-shadow: 2px 2px 0px 0px var(--vibes-blue), 2px 2px 0px 2px var(--vibes-near-black);
+      }
+      .image-card:hover {
+        transform: translate(2px, 2px);
+        box-shadow: 2px 2px 0px 0px var(--vibes-yellow), 2px 2px 0px 2px var(--vibes-near-black);
+      }
+      .image-card.loading:hover { transform: none; box-shadow: 4px 4px 0px 0px var(--vibes-yellow), 4px 4px 0px 2px var(--vibes-near-black); }
+      .image-card.failed:hover { transform: none; }
+    }
+
+    /* === REDUCED MOTION === */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -677,7 +768,7 @@
     </div>
     <div class="header-right">
       <div class="navbar-button-wrapper">
-        <button id="themeBtn" style="background:#5398c9" onclick="openThemeModal()">
+        <button id="themeBtn" style="background:#5398c9" onclick="openThemeModal()" aria-label="Open themes">
           <div class="navbar-button-icon">
             <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="17.5" cy="17.5" r="17.5" fill="#231F20"/>
@@ -691,7 +782,7 @@
         </button>
       </div>
       <div class="navbar-button-wrapper">
-        <button style="background:#eab308" onclick="reloadPreview()">
+        <button style="background:#eab308" onclick="reloadPreview()" aria-label="Reload preview">
           <div class="navbar-button-icon">
             <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="17.5" cy="17.5" r="17.5" fill="#231F20"/>
@@ -718,13 +809,13 @@
 
     <!-- Chat -->
     <div class="chat-panel" id="chatPanel">
-      <div class="chat-messages" id="chatMessages">
-        <div class="chat-bubble system">Connected to Vibes Live Preview. Send a message to iterate on your app, or click Themes to switch designs.</div>
+      <div class="chat-messages" id="chatMessages" role="log" aria-live="polite">
+        <div class="chat-bubble system"><strong>Ready.</strong> Send a message to iterate on your app, or click Themes to switch designs.</div>
       </div>
       <div class="chat-input-bar">
         <textarea class="chat-input" id="chatInput" placeholder="Describe changes to your app..." rows="1"
           onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
-        <button class="chat-send" id="sendBtn" onclick="sendMessage()">Send</button>
+        <button class="chat-send" id="sendBtn" onclick="sendMessage()" title="Send message (Enter)">Send</button>
       </div>
     </div>
 
@@ -732,20 +823,20 @@
     <div id="debug-panel" class="debug-panel">
       <div class="debug-header">
         <span>Tool Log</span>
-        <button onclick="toggleDebugPanel()" style="background:none;border:none;color:var(--vibes-cream);cursor:pointer;font-size:1rem;">&times;</button>
+        <button onclick="toggleDebugPanel()" style="background:none;border:none;color:var(--vibes-cream);cursor:pointer;font-size:1rem;" aria-label="Close debug panel">&times;</button>
       </div>
       <div id="debug-log" class="debug-log"></div>
     </div>
   </div>
 
   <!-- Theme Modal -->
-  <div class="modal-overlay" id="themeModal">
+  <div class="modal-overlay" id="themeModal" role="dialog" aria-modal="true" aria-label="Choose a theme">
     <div class="modal">
       <div class="modal-header">
         <h2>Choose a Theme</h2>
         <div style="display:flex;gap:0.5rem;align-items:center;">
           <button class="modal-create-btn" id="createThemeToggle" onclick="toggleCreateMode()">+ Create</button>
-          <button class="modal-close" onclick="closeThemeModal()">&times;</button>
+          <button class="modal-close" onclick="closeThemeModal()" aria-label="Close">&times;</button>
         </div>
       </div>
       <div class="modal-body">
@@ -876,6 +967,7 @@
       const bubble = document.createElement('div');
       bubble.className = `chat-bubble ${role}`;
       bubble.textContent = content;
+      bubble.style.animation = 'slide-in 0.2s ease-out';
       container.appendChild(bubble);
       container.scrollTop = container.scrollHeight;
     }
@@ -928,7 +1020,7 @@
             <div class="thinking-footer">
               <span class="thinking-pct">${progress || 0}%</span>
               <span class="thinking-timer">${formatElapsed(elapsed || 0)}</span>
-              <button class="thinking-cancel" onclick="cancelRequest()">Cancel</button>
+              <button class="thinking-cancel" onclick="cancelRequest()" aria-label="Cancel request">Cancel</button>
             </div>`;
           container.appendChild(indicator);
         }
@@ -940,7 +1032,11 @@
         sendBtn.disabled = false;
 
         const indicator = container.querySelector('.thinking-indicator');
-        if (indicator) indicator.remove();
+        if (indicator) {
+          indicator.style.transition = 'opacity 0.15s ease';
+          indicator.style.opacity = '0';
+          setTimeout(() => indicator.remove(), 150);
+        }
       }
     }
 
@@ -1043,8 +1139,10 @@
         </div>`;
       }
 
+      let cardIndex = 0;
       function cardHtml(t) {
-        return `<div class="theme-card${t.recommended ? ' recommended' : ''}" onclick="selectTheme('${t.id}')">
+        const i = cardIndex++;
+        return `<div class="theme-card${t.recommended ? ' recommended' : ''}" onclick="selectTheme('${t.id}')" style="animation: slide-in 0.2s ease-out ${i * 30}ms both">
           ${swatchHtml(t.colors)}
           <div class="theme-card-name">${t.name}${t.recommended ? '<span class="theme-card-badge">recommended</span>' : ''}</div>
           <div class="theme-card-mood">${t.mood}</div>
@@ -1067,8 +1165,10 @@
       grid.innerHTML = html;
     }
 
+    let filterDebounceTimer = null;
     function filterThemes(value) {
-      renderThemeGrid(value);
+      clearTimeout(filterDebounceTimer);
+      filterDebounceTimer = setTimeout(() => renderThemeGrid(value), 150);
     }
 
     let pendingThemeId = null;
@@ -1084,20 +1184,46 @@
     }
 
     function openThemeModal() {
-      document.getElementById('themeModal').classList.add('open');
+      const modal = document.getElementById('themeModal');
+      modal.classList.add('open');
       const search = document.getElementById('themeSearch');
       search.value = '';
       renderThemeGrid();
       setTimeout(() => search.focus(), 100);
+      // Focus trap
+      modal.addEventListener('keydown', trapFocus);
     }
 
     function closeThemeModal() {
-      document.getElementById('themeModal').classList.remove('open');
+      const modal = document.getElementById('themeModal');
+      modal.classList.remove('open');
+      modal.removeEventListener('keydown', trapFocus);
     }
 
-    // Close modal on Escape
+    function trapFocus(e) {
+      if (e.key !== 'Tab') return;
+      const modal = document.getElementById('themeModal');
+      const focusable = modal.querySelectorAll('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])');
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    }
+
+    // Unified Escape handler: debug panel first, then modal
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeThemeModal();
+      if (e.key === 'Escape') {
+        const debugPanel = document.getElementById('debug-panel');
+        if (debugPanel && debugPanel.classList.contains('visible')) {
+          toggleDebugPanel();
+        } else {
+          closeThemeModal();
+        }
+      }
     });
 
     // Close modal on overlay click
@@ -1111,29 +1237,44 @@
       const preview = document.getElementById('previewPanel');
       let isDragging = false;
 
-      splitter.addEventListener('mousedown', (e) => {
+      function startDrag(e) {
         isDragging = true;
         splitter.classList.add('dragging');
         document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
         e.preventDefault();
-      });
+      }
 
-      document.addEventListener('mousemove', (e) => {
+      function onDrag(clientX) {
         if (!isDragging) return;
         const mainRect = document.querySelector('.main').getBoundingClientRect();
-        const pct = ((e.clientX - mainRect.left) / mainRect.width) * 100;
+        const pct = ((clientX - mainRect.left) / mainRect.width) * 100;
         const clamped = Math.max(30, Math.min(80, pct));
         preview.style.flex = `0 0 ${clamped}%`;
-      });
+      }
 
-      document.addEventListener('mouseup', () => {
+      function endDrag() {
         if (!isDragging) return;
         isDragging = false;
         splitter.classList.remove('dragging');
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
-      });
+      }
+
+      // Mouse events
+      splitter.addEventListener('mousedown', startDrag);
+      document.addEventListener('mousemove', (e) => onDrag(e.clientX));
+      document.addEventListener('mouseup', endDrag);
+
+      // Touch events
+      splitter.addEventListener('touchstart', (e) => {
+        startDrag(e);
+      }, { passive: false });
+      document.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        onDrag(e.touches[0].clientX);
+      }, { passive: true });
+      document.addEventListener('touchend', endDrag);
     })();
 
     // === Auto-resize textarea ===
@@ -1244,6 +1385,7 @@
       const status = document.createElement('div');
       status.className = 'create-status success';
       status.textContent = 'Theme "' + themeName + '" created!';
+      status.style.animation = 'slide-in 0.2s ease-out';
       area.appendChild(status);
       const btnRow = document.createElement('div');
       btnRow.style.cssText = 'text-align:center;margin-top:0.5rem;';
@@ -1267,6 +1409,10 @@
     connectWs();
     loadThemes();
     checkOpenRouterKey();
+    // Autofocus chat input (skip on touch devices to avoid keyboard pop)
+    if (!('ontouchstart' in window)) {
+      document.getElementById('chatInput').focus();
+    }
   </script>
 </div>
 </div>
