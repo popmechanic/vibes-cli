@@ -136,6 +136,119 @@
       75% { transform: rotate(5deg); }
     }
 
+    /* === VIBES AUDIO TOGGLE === */
+    .vibes-audio-toggle {
+      display: flex;
+      align-items: center;
+      height: 63px;
+      border-left: 1px solid rgba(0,0,0,0.08);
+    }
+    .vibes-audio-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 63px;
+      padding: 0 14px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s ease, box-shadow 0.4s ease;
+      position: relative;
+      font-family: 'Alte Haas Grotesk', 'Inter', sans-serif;
+    }
+    .vibes-audio-btn:hover {
+      background: rgba(0,154,206,0.06);
+    }
+    .vibes-audio-btn.active {
+      background: rgba(0,154,206,0.08);
+    }
+    .vibes-audio-emoji {
+      font-size: 22px;
+      display: inline-block;
+      transition: transform 0.3s ease;
+      line-height: 1;
+    }
+    .vibes-audio-btn.active .vibes-audio-emoji {
+      animation: emojiDance 1.2s ease-in-out infinite;
+    }
+    .vibes-audio-btn:not(.active) .vibes-audio-emoji {
+      opacity: 0.5;
+    }
+    @keyframes emojiDance {
+      0%, 100% { transform: rotate(0deg) scale(1); }
+      20% { transform: rotate(-12deg) scale(1.15); }
+      40% { transform: rotate(8deg) scale(1.05); }
+      60% { transform: rotate(-6deg) scale(1.1); }
+      80% { transform: rotate(10deg) scale(1.05); }
+    }
+    .vibes-waves {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      height: 24px;
+      position: relative;
+    }
+    .vibes-wave-bar {
+      width: 3px;
+      border-radius: 1.5px;
+      background: var(--vibes-blue);
+      transform-origin: center;
+      transition: height 0.4s ease, opacity 0.3s ease;
+    }
+    /* OFF state — flat bars */
+    .vibes-audio-btn:not(.active) .vibes-wave-bar {
+      height: 4px !important;
+      opacity: 0.25;
+      animation: none !important;
+    }
+    /* ON state — bouncing bars */
+    .vibes-audio-btn.active .vibes-wave-bar {
+      opacity: 1;
+      animation: waveBar var(--wave-speed, 0.6s) ease-in-out infinite alternate;
+    }
+    .vibes-audio-btn.active .vibes-wave-bar:nth-child(1) { --wave-speed: 0.45s; height: 10px; }
+    .vibes-audio-btn.active .vibes-wave-bar:nth-child(2) { --wave-speed: 0.55s; height: 16px; animation-delay: 0.1s; }
+    .vibes-audio-btn.active .vibes-wave-bar:nth-child(3) { --wave-speed: 0.4s; height: 22px; animation-delay: 0.05s; }
+    .vibes-audio-btn.active .vibes-wave-bar:nth-child(4) { --wave-speed: 0.5s; height: 18px; animation-delay: 0.15s; }
+    .vibes-audio-btn.active .vibes-wave-bar:nth-child(5) { --wave-speed: 0.48s; height: 12px; animation-delay: 0.08s; }
+    @keyframes waveBar {
+      0% { transform: scaleY(0.3); }
+      100% { transform: scaleY(1); }
+    }
+    /* Glow pulse behind the waves when active */
+    .vibes-audio-btn.active .vibes-waves::after {
+      content: '';
+      position: absolute;
+      inset: 12px 6px;
+      border-radius: 12px;
+      background: radial-gradient(ellipse at center, rgba(0,154,206,0.15), transparent 70%);
+      animation: glowPulse 2s ease-in-out infinite;
+      pointer-events: none;
+      z-index: -1;
+    }
+    @keyframes glowPulse {
+      0%, 100% { opacity: 0.4; transform: scale(0.95); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+    /* ON/OFF label that slides in on hover */
+    .vibes-audio-label {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      opacity: 0;
+      max-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      color: var(--vibes-near-black);
+    }
+    .vibes-audio-btn:hover .vibes-audio-label {
+      opacity: 0.6;
+      max-width: 40px;
+      margin-left: 4px;
+    }
+
     /* === PHASES === */
     .phase { display: none; flex: 1; overflow: hidden; }
     .phase.active { display: flex; }
@@ -994,6 +1107,19 @@
           <path fill-rule="evenodd" clip-rule="evenodd" fill="#fff" d="M449.933,210.636c0.102-3.331,1.886-5.279,4.778-5.22c2.67,0.055,4.829,2.432,4.762,5.243c-0.073,3.021-2.404,5.36-5.242,5.261C451.606,215.829,449.84,213.657,449.933,210.636z"/>
         </svg>
       </div>
+      <div class="vibes-audio-toggle">
+        <button class="vibes-audio-btn" id="vibesAudioBtn" onclick="toggleVibesAudio()" title="Toggle vibes">
+          <span class="vibes-audio-emoji" id="vibesEmoji">🔇</span>
+          <div class="vibes-waves">
+            <div class="vibes-wave-bar" style="height:10px"></div>
+            <div class="vibes-wave-bar" style="height:16px"></div>
+            <div class="vibes-wave-bar" style="height:22px"></div>
+            <div class="vibes-wave-bar" style="height:18px"></div>
+            <div class="vibes-wave-bar" style="height:12px"></div>
+          </div>
+          <span class="vibes-audio-label" id="vibesLabel">OFF</span>
+        </button>
+      </div>
     </div>
     <div class="header-right" id="headerRight">
       <!-- Phase 3 buttons injected here by JS -->
@@ -1237,6 +1363,75 @@
   let sshAvailable = false;
   let studioCheckTimer = null;
   let studioMode = 'existing';
+
+  // === Vibes Audio Toggle ===
+  let vibesAudio = null;
+  let vibesPlaying = false;
+  let vibesFirstPlay = true;
+
+  function toggleVibesAudio() {
+    const btn = document.getElementById('vibesAudioBtn');
+    const emoji = document.getElementById('vibesEmoji');
+    const label = document.getElementById('vibesLabel');
+
+    if (!vibesAudio) {
+      // Fetch as blob so the browser can seek without range request support
+      vibesAudio = new Audio();
+      vibesAudio.loop = true;
+      vibesAudio.volume = 0.6;
+      vibesFirstPlay = true;
+      fetch('/assets/vibes.mp3')
+        .then(r => r.blob())
+        .then(blob => {
+          vibesAudio.src = URL.createObjectURL(blob);
+        });
+      // Fade in when starting
+      vibesAudio.addEventListener('play', () => {
+        vibesAudio.volume = 0;
+        let vol = 0;
+        const fadeIn = setInterval(() => {
+          vol = Math.min(vol + 0.05, 0.6);
+          vibesAudio.volume = vol;
+          if (vol >= 0.6) clearInterval(fadeIn);
+        }, 50);
+      });
+    }
+
+    if (vibesPlaying) {
+      // Fade out then pause
+      let vol = vibesAudio.volume;
+      const fadeOut = setInterval(() => {
+        vol = Math.max(vol - 0.05, 0);
+        vibesAudio.volume = vol;
+        if (vol <= 0) {
+          clearInterval(fadeOut);
+          vibesAudio.pause();
+        }
+      }, 40);
+      btn.classList.remove('active');
+      emoji.textContent = '🔇';
+      label.textContent = 'OFF';
+      vibesPlaying = false;
+    } else {
+      // On first play, jump to a random spot in the track
+      const startPlaying = () => {
+        if (vibesFirstPlay && vibesAudio.duration > 0) {
+          vibesAudio.currentTime = Math.random() * vibesAudio.duration;
+          vibesFirstPlay = false;
+        }
+        vibesAudio.play().catch(e => console.log('Audio play blocked:', e));
+      };
+      if (!vibesAudio.src || !vibesAudio.duration) {
+        vibesAudio.addEventListener('canplaythrough', startPlaying, { once: true });
+      } else {
+        startPlaying();
+      }
+      btn.classList.add('active');
+      emoji.textContent = '🎵';
+      label.textContent = 'ON';
+      vibesPlaying = true;
+    }
+  }
 
   // === Phase Navigation ===
   function setPhase(phase) {
