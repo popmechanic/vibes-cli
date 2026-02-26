@@ -417,6 +417,36 @@ for (const t of themes) {
 }
 console.log(`Parsed colors for ${Object.keys(themeColors).length} themes`);
 
+// --- Extract :root CSS blocks from theme files at startup ---
+const themeRootCss = {};
+for (const t of themes) {
+  const txtFile = join(THEME_DIR, `${t.id}.txt`);
+  const mdFile = join(THEME_DIR, `${t.id}.md`);
+  const filePath = existsSync(txtFile) ? txtFile : existsSync(mdFile) ? mdFile : null;
+  if (!filePath) continue;
+  const content = readFileSync(filePath, 'utf-8');
+  const rootMatch = content.match(/:root\s*\{[\s\S]*?\}/);
+  if (rootMatch) {
+    themeRootCss[t.id] = rootMatch[0];
+  } else {
+    // Build standard --comp-* block from parsed colors
+    const c = themeColors[t.id];
+    if (c) {
+      const lines = [];
+      if (c.bg) lines.push(`  --comp-bg: ${c.bg};`);
+      if (c.text) lines.push(`  --comp-text: ${c.text};`);
+      if (c.border) lines.push(`  --comp-border: ${c.border};`);
+      if (c.accent) lines.push(`  --comp-accent: ${c.accent};`);
+      if (c.text) lines.push(`  --comp-accent-text: ${c.bg || 'oklch(1.00 0 0)'};`);
+      if (c.muted) lines.push(`  --comp-muted: ${c.muted};`);
+      if (c.bg) lines.push(`  --color-background: ${c.bg};`);
+      lines.push(`  --grid-color: transparent;`);
+      if (lines.length > 1) themeRootCss[t.id] = ':root {\n' + lines.join('\n') + '\n}';
+    }
+  }
+}
+console.log(`Extracted :root CSS for ${Object.keys(themeRootCss).length} themes`);
+
 // --- Image generation for theme creation ---
 const IMAGE_VARIATIONS = [
   'card-based layout with prominent content cards arranged in a grid or masonry pattern',
@@ -1123,6 +1153,7 @@ async function runClaude(ws, prompt, opts = {}) {
       '--no-session-persistence',
       '-p', '-',
     ];
+    if (opts.model) args.push('--model', opts.model);
     if (opts.maxTurns) args.push('--max-turns', String(opts.maxTurns));
 
     console.log(`[Claude] Spawning (prompt: ${(prompt.length / 1024).toFixed(1)}KB)...`);
@@ -1142,6 +1173,7 @@ async function runClaude(ws, prompt, opts = {}) {
     let resultText = '';
     let toolsUsed = 0;
     let hasEdited = false;
+    let hitRateLimit = false;
     const startTime = Date.now();
 
     function getElapsed() {
@@ -1228,7 +1260,10 @@ async function runClaude(ws, prompt, opts = {}) {
           } else if (event.type === 'result') {
             resultText = event.result || resultText || 'Done.';
           } else {
-            // Log unrecognized event types for diagnostics
+            if (event.type === 'rate_limit_event') {
+              hitRateLimit = true;
+              sendProgress({ stage: 'Rate limited, waiting...' });
+            }
             console.log(`[Claude] Event: ${event.type} (${getElapsed()}s)`);
           }
         } catch {
@@ -1245,16 +1280,39 @@ async function runClaude(ws, prompt, opts = {}) {
       sendProgress();
     }, 1000);
 
+    // Wall-clock timeout — kill stuck processes (0 = no timeout)
+    const timeoutSec = opts.timeout === 0 ? 0 : (opts.timeout || 120);
+    const killTimer = timeoutSec > 0 ? setTimeout(() => {
+      if (activeClaude === child) {
+        console.error(`[Claude] Timeout after ${timeoutSec}s — killing process`);
+        child.kill('SIGTERM');
+        setTimeout(() => { try { child.kill('SIGKILL'); } catch {} }, 3000);
+      }
+    }, timeoutSec * 1000) : null;
+
     child.on('close', (code) => {
       clearInterval(progressInterval);
+      clearTimeout(killTimer);
       const wasActive = activeClaude === child;
       activeClaude = null;
 
       // If cancelled, the cancel handler already sent the message
       if (!wasActive) { resolve(null); return; }
 
-      if (code !== 0) {
+      if (code !== 0 || code === null) {
         console.error(`[Claude] Exit code ${code}, stderr (${stderr.length} bytes):\n${stderr}`);
+
+        // Killed by signal (code null = SIGTERM/SIGKILL)
+        if (code === null) {
+          const elapsed = getElapsed();
+          const errMsg = timeoutSec > 0
+            ? `Claude timed out after ${elapsed}s. Try again.`
+            : `Claude process was interrupted after ${elapsed}s. Try again.`;
+          ws.send(JSON.stringify({ type: 'error', message: errMsg }));
+          resolve(null);
+          return;
+        }
+
         // Show a useful error message — max_turns exceeded is not a real failure
         const isMaxTurns = stderr.includes('max_turns') || stderr.includes('maxTurns');
         if (isMaxTurns && hasEdited) {
@@ -1286,6 +1344,7 @@ async function runClaude(ws, prompt, opts = {}) {
 
     child.on('error', (err) => {
       clearInterval(progressInterval);
+      clearTimeout(killTimer);
       activeClaude = null;
       console.error('[Claude] Spawn error:', err.message);
       ws.send(JSON.stringify({ type: 'error', message: `Failed to start claude: ${err.message}` }));
@@ -1357,6 +1416,11 @@ async function handleThemeSwitch(ws, themeId) {
   let themeContent = '';
   if (existsSync(txtFile)) themeContent = readFileSync(txtFile, 'utf-8');
   else if (existsSync(mdFile)) themeContent = readFileSync(mdFile, 'utf-8');
+
+  if (!themeContent) {
+    ws.send(JSON.stringify({ type: 'error', message: `Theme "${themeId}" not found` }));
+    return;
+  }
 
   const themeMeta = themes.find(t => t.id === themeId);
   const themeName = themeMeta ? themeMeta.name : themeId;
@@ -1559,6 +1623,7 @@ CHANGE (visual only):
 - Backgrounds, shadows, borders, fonts → match theme's design principles
 - Animations, SVG elements → match theme's mood
 - __VIBES_THEMES__ and useVibesTheme default → "${themeId}"
+- Create a fresh creative layout that matches the theme personality
 
 KEEP UNCHANGED:
 - All components, hooks, functions, state, data models, layout structure
