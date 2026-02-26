@@ -1247,6 +1247,8 @@
         <div class="wizard-dot" data-step="3"></div>
         <div class="wizard-dot-line"></div>
         <div class="wizard-dot" data-step="4"></div>
+        <div class="wizard-dot-line"></div>
+        <div class="wizard-dot" data-step="5"></div>
       </div>
 
       <!-- Step 1: Welcome -->
@@ -1332,13 +1334,30 @@
         </div>
       </div>
 
-      <!-- Step 4: Confirm & Save -->
+      <!-- Step 4: OpenRouter API Key (optional) -->
       <div class="wizard-step" id="wizardStep4">
+        <div class="wizard-section-title">OpenRouter API Key</div>
+        <div class="wizard-help">
+          Enables AI theme generation and the <code>useAI</code> hook in your apps. This is optional.
+          <a class="wizard-link" href="https://openrouter.ai/keys" target="_blank">Get an API key</a>
+        </div>
+        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">API Key</label>
+        <input class="wizard-input" id="wizardOpenRouterKey" type="password" placeholder="sk-or-..." oninput="validateOpenRouterKey()" />
+        <div class="wizard-help" id="wizardOpenRouterHint" style="color:var(--vibes-red);display:none;"></div>
+        <div class="setup-actions" style="margin-top:1rem;">
+          <button class="btn btn-secondary" onclick="setWizardStep(3)">Back</button>
+          <button class="btn btn-secondary" id="wizardOpenRouterSkip" onclick="setWizardStep(5)">Skip</button>
+          <button class="btn btn-primary" id="wizardOpenRouterNext" onclick="setWizardStep(5)" disabled>Next</button>
+        </div>
+      </div>
+
+      <!-- Step 5: Confirm & Save -->
+      <div class="wizard-step" id="wizardStep5">
         <div class="wizard-section-title">Confirm &amp; Save</div>
         <div class="wizard-help">These values will be written to your <code>.env</code> file:</div>
         <div class="wizard-summary-table" id="wizardSummary"></div>
         <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-secondary" onclick="setWizardStep(3)">Back</button>
+          <button class="btn btn-secondary" onclick="setWizardStep(4)">Back</button>
           <button class="btn btn-primary" id="wizardSaveBtn" onclick="wizardSave()">Save &amp; Continue</button>
         </div>
       </div>
@@ -1460,7 +1479,7 @@
   let currentThemeId = null;
   let currentAppName = null;
   let wizardStep = 1;
-  let wizardData = { clerkKey: '', clerkSecret: '', studioName: '', apiUrl: '', cloudUrl: '' };
+  let wizardData = { clerkKey: '', clerkSecret: '', studioName: '', apiUrl: '', cloudUrl: '', openRouterKey: '' };
   let sshAvailable = false;
   let studioCheckTimer = null;
   let studioMode = 'existing';
@@ -1736,6 +1755,7 @@
     const items = [
       { key: 'clerk', label: 'Clerk keys', detail: status.clerk?.detail || '', required: true },
       { key: 'connect', label: 'Connect Studio', detail: status.connect?.detail || '', required: true },
+      { key: 'openrouter', label: 'OpenRouter API key', detail: status.openrouter?.detail || '', required: false },
       { key: 'wrangler', label: 'Cloudflare (wrangler)', detail: status.wrangler?.detail || '', required: false },
       { key: 'ssh', label: 'exe.dev SSH', detail: status.ssh?.detail || '', required: false },
     ];
@@ -1787,7 +1807,7 @@
       dot.classList.toggle('active', s === n);
       dot.classList.toggle('done', s < n);
     });
-    if (n === 4) renderWizardSummary();
+    if (n === 5) renderWizardSummary();
   }
 
   function validateWizardClerkInputs() {
@@ -1926,6 +1946,40 @@
     updateStudioNextButton();
   }
 
+  function validateOpenRouterKey() {
+    const input = document.getElementById('wizardOpenRouterKey');
+    const hint = document.getElementById('wizardOpenRouterHint');
+    const nextBtn = document.getElementById('wizardOpenRouterNext');
+
+    const key = input.value.trim();
+
+    if (!key) {
+      input.classList.remove('valid', 'invalid');
+      hint.style.display = 'none';
+      nextBtn.disabled = true;
+      wizardData.openRouterKey = '';
+      return;
+    }
+
+    const valid = key.startsWith('sk-or-');
+    input.classList.toggle('valid', valid);
+    input.classList.toggle('invalid', !valid);
+
+    if (!valid) {
+      hint.textContent = 'OpenRouter keys start with sk-or-';
+      hint.style.display = '';
+    } else {
+      hint.style.display = 'none';
+    }
+
+    nextBtn.disabled = !valid;
+    if (valid) {
+      wizardData.openRouterKey = key;
+    } else {
+      wizardData.openRouterKey = '';
+    }
+  }
+
   function startStudioDeploy() {
     const name = document.getElementById('wizardNewStudioName').value.trim();
     if (!name) return;
@@ -1955,6 +2009,9 @@
       ['VITE_API_URL', wizardData.apiUrl],
       ['VITE_CLOUD_URL', wizardData.cloudUrl],
     ];
+    if (wizardData.openRouterKey) {
+      vars.push(['OPENROUTER_API_KEY', '••••' + wizardData.openRouterKey.slice(-8)]);
+    }
     table.innerHTML = vars.map(([k, v]) =>
       `<div class="wizard-summary-row">
         <span class="wizard-summary-key">${k}</span>
@@ -1968,23 +2025,29 @@
     btn.disabled = true;
     btn.textContent = 'Saving...';
     try {
+      const payload = {
+        VITE_CLERK_PUBLISHABLE_KEY: wizardData.clerkKey,
+        VITE_CLERK_SECRET_KEY: wizardData.clerkSecret,
+        VITE_API_URL: wizardData.apiUrl,
+        VITE_CLOUD_URL: wizardData.cloudUrl,
+      };
+      if (wizardData.openRouterKey) {
+        payload.OPENROUTER_API_KEY = wizardData.openRouterKey;
+      }
       const res = await fetch('/editor/credentials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          VITE_CLERK_PUBLISHABLE_KEY: wizardData.clerkKey,
-          VITE_CLERK_SECRET_KEY: wizardData.clerkSecret,
-          VITE_API_URL: wizardData.apiUrl,
-          VITE_CLOUD_URL: wizardData.cloudUrl,
-        }),
+        body: JSON.stringify(payload),
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to save');
+        const errMsg = data.errors
+          ? Object.values(data.errors).join('; ')
+          : 'Failed to save';
+        throw new Error(errMsg);
       }
-      const status = await res.json();
-      deployTargets.cloudflare = status.wrangler?.ok || false;
-      deployTargets.exe = status.ssh?.ok || false;
+      deployTargets.cloudflare = data.status?.wrangler?.ok || false;
+      deployTargets.exe = data.status?.ssh?.ok || false;
       goToGenerate();
     } catch (err) {
       btn.disabled = false;
