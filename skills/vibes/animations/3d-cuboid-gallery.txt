@@ -1,0 +1,133 @@
+ANIMATION: 3d-cuboid-gallery
+NAME: Cuboid Gallery
+CATEGORY: 3D
+
+DESCRIPTION: A hero gallery built from 3D cuboids arranged side by side. Each cuboid has 4 visible faces (front, back, left, right) that can hold images, cards, or any content. The cuboids start rotated and animate in with entrance spin, then on hover the outer cuboids splay outward revealing the side/back faces — like opening a physical display case. Use for image galleries, portfolio showcases, feature highlights, or any grid of visual content that benefits from a dramatic 3D reveal.
+
+IMPLEMENTATION RULES:
+- This is a TECHNIQUE — apply it to whatever images/cards/content the user has
+- Native browser APIs only — no GSAP, no jQuery
+- Use CSS preserve-3d on cuboid containers, rotateY + translateX for face positioning
+- Each cuboid is a div with 4 child face divs (front, back, left, right)
+- Face positioning: front rotateY(90deg) translateX(-50%) rotateY(-90deg), back rotateY(90deg) translateX(50%) rotateY(90deg), left translateX(-50%) rotateY(-90deg), right translateX(50%) rotateY(90deg)
+- Images use object-fit: cover to fill each face
+- Container uses perspective: 2000px for realistic depth
+- Hover interaction: outer cuboids rotate ±90deg and translate outward via CSS transition
+- Entrance animation: use CSS @keyframes for initial spin-in
+- Performance: backface-visibility: hidden on faces, will-change: transform on cuboids
+- Responsive: reduce perspective on small screens, stack vertically on mobile
+
+CODE EXAMPLE:
+function CuboidGallery({ items }) {
+  // items = array of { front, back, left, right } image URLs or React elements
+  const [hovered, setHovered] = React.useState(false);
+  const count = items.length;
+
+  return (
+    <>
+      <style>{`
+        @keyframes cuboidEntrance {
+          0% { transform: rotateY(270deg) rotateZ(90deg) translateX(100vw); opacity: 0; }
+          100% { transform: rotateY(0deg) rotateZ(0deg) translateX(0); opacity: 1; }
+        }
+        .cuboid-gallery {
+          perspective: 2000px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          position: relative;
+        }
+        .cuboid-inner {
+          display: flex;
+          transform-style: preserve-3d;
+          width: 100%;
+          max-width: 1080px;
+        }
+        .cuboid {
+          position: relative;
+          transform-style: preserve-3d;
+          flex: 1;
+          aspect-ratio: 1 / 1.2;
+          animation: cuboidEntrance 2s cubic-bezier(0.16,1,0.3,1) both;
+          transition: transform 0.8s cubic-bezier(0.16,1,0.3,1);
+          will-change: transform;
+        }
+        .cuboid:nth-child(1) { animation-delay: 0s; }
+        .cuboid:nth-child(2) { animation-delay: 0.15s; }
+        .cuboid:nth-child(3) { animation-delay: 0.3s; }
+        .cuboid:nth-child(4) { animation-delay: 0.45s; }
+        .cuboid-face {
+          position: absolute;
+          inset: 0;
+          backface-visibility: hidden;
+          overflow: hidden;
+          background: #111;
+        }
+        .cuboid-face img {
+          width: 100%; height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+        .cuboid-face--front  { transform: rotateY(90deg) translateX(-50%) rotateY(-90deg); }
+        .cuboid-face--back   { transform: rotateY(90deg) translateX(50%) rotateY(90deg); }
+        .cuboid-face--left   { transform: translateX(-50%) rotateY(-90deg); }
+        .cuboid-face--right  { transform: translateX(50%) rotateY(90deg); }
+      `}</style>
+      <div
+        className="cuboid-gallery"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        <div className="cuboid-inner" style={{ transform: "translateZ(-135px)" }}>
+          {items.map((item, i) => {
+            // On hover, splay outward: left half rotates left, right half rotates right
+            const mid = count / 2;
+            const isLeft = i < mid;
+            const dist = Math.abs(i - mid + 0.5) / mid;
+            const rot = hovered ? (isLeft ? -90 * dist : 90 * dist) : 0;
+            const tx = hovered ? (isLeft ? -75 * dist : 75 * dist) : 0;
+
+            return (
+              <div key={i} className="cuboid" style={{
+                transform: `translateX(${tx}%) rotateY(${rot}deg)`,
+              }}>
+                <div className="cuboid-face cuboid-face--front">
+                  {typeof item.front === "string" ? <img src={item.front} alt="" /> : item.front}
+                </div>
+                <div className="cuboid-face cuboid-face--back">
+                  {typeof item.back === "string" ? <img src={item.back} alt="" /> : item.back}
+                </div>
+                <div className="cuboid-face cuboid-face--left">
+                  {typeof item.left === "string" ? <img src={item.left} alt="" /> : item.left}
+                </div>
+                <div className="cuboid-face cuboid-face--right">
+                  {typeof item.right === "string" ? <img src={item.right} alt="" /> : item.right}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Usage:
+// <CuboidGallery items={[
+//   { front: "/img1.jpg", back: "/img5.jpg", left: "/img9.jpg", right: "/img13.jpg" },
+//   { front: "/img2.jpg", back: "/img6.jpg", left: "/img10.jpg", right: "/img14.jpg" },
+//   { front: "/img3.jpg", back: "/img7.jpg", left: "/img11.jpg", right: "/img15.jpg" },
+//   { front: "/img4.jpg", back: "/img8.jpg", left: "/img12.jpg", right: "/img16.jpg" },
+// ]} />
+
+INTEGRATION GUIDANCE:
+- Use for hero image showcases, portfolio grids, feature cards, team photos
+- Each face can hold ANY content — images, colored cards with text, icons
+- The hover splay effect reveals hidden content on side/back faces
+- For entrance: cuboids spin in from the right with staggered delays
+- Overlay a gradient at the bottom + logo/title for a cinematic hero section
+- On mobile: show 2 cuboids instead of 4, reduce perspective to 1000px
+- Face images should be the same aspect ratio for clean edges
+- Add a dark gradient overlay (linear-gradient to black at bottom) for text readability on top
+- Keep cuboid count between 2-6 for visual balance

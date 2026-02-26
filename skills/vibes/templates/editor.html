@@ -983,6 +983,373 @@
     .chat-send:active { transform: translate(4px, 4px); box-shadow: none; }
     .chat-send:disabled { background: #ddd; color: #999; cursor: not-allowed; box-shadow: none; transform: none; border-color: #aaa; }
 
+    /* Animation category bar */
+    .animation-icons {
+      display: flex;
+      height: 44px;
+      border-top: 2px solid var(--vibes-near-black);
+      background: var(--vibes-menu-bg);
+      align-items: stretch;
+    }
+    .animation-icon-wrap {
+      display: flex;
+      align-items: stretch;
+    }
+    .animation-icon-btn {
+      display: flex;
+      align-items: center;
+      height: 44px;
+      width: 44px;
+      justify-content: center;
+      border: none;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      overflow: hidden;
+      padding: 0;
+      position: relative;
+      font-family: 'Alte Haas Grotesk', 'Inter', sans-serif;
+      flex-shrink: 0;
+    }
+    .animation-icon-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .anim-btn-icon {
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .anim-btn-label {
+      font-size: 10px;
+      font-weight: bold;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      opacity: 0;
+      width: 0;
+      padding: 0;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      overflow: hidden;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+    .animation-icon-wrap:hover > .animation-icon-btn {
+      width: 140px !important;
+      justify-content: flex-start !important;
+    }
+    .animation-icon-wrap:hover > .animation-icon-btn > .anim-btn-label {
+      opacity: 1 !important;
+      width: auto !important;
+      max-width: 100px !important;
+      padding: 0 10px 0 2px !important;
+    }
+    .animation-icon-wrap:hover > .animation-icon-btn > .anim-btn-icon {
+      animation: wiggle 0.6s ease-in-out infinite;
+    }
+    .animation-active-badge {
+      display: none;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.625rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--vibes-near-black);
+      background: var(--vibes-yellow);
+      border: 2px solid var(--vibes-near-black);
+      border-radius: 999px;
+      padding: 0.2rem 0.5rem 0.2rem 0.6rem;
+      margin: auto 0.5rem;
+      white-space: nowrap;
+    }
+    .animation-active-badge.visible { display: flex; }
+    .animation-active-badge .clear-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.75rem;
+      line-height: 1;
+      padding: 0 0 0 0.15rem;
+      color: var(--vibes-near-black);
+      font-weight: 800;
+    }
+    .animation-active-badge .clear-btn:hover { color: var(--vibes-red); }
+
+    /* Animation modal */
+    .anim-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .anim-modal-overlay.open { display: flex; }
+    .anim-modal {
+      background: var(--vibes-cream);
+      border: 3px solid var(--vibes-near-black);
+      border-radius: 12px;
+      width: 90vw;
+      max-width: 680px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 8px 10px 0px 0px var(--vibes-yellow), 8px 10px 0px 3px var(--vibes-near-black);
+    }
+    .anim-modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      border-bottom: 2px solid var(--vibes-near-black);
+    }
+    .anim-modal-header h2 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--vibes-near-black);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .anim-category-tabs {
+      display: flex;
+      gap: 0.375rem;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      flex-wrap: wrap;
+    }
+    .anim-category-tab {
+      font-family: inherit;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.3rem 0.65rem;
+      border-radius: 999px;
+      border: 2px solid var(--vibes-near-black);
+      background: var(--vibes-cream);
+      color: var(--vibes-near-black);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .anim-category-tab:hover { background: #e8e8e0; }
+    .anim-category-tab.active {
+      background: var(--vibes-near-black);
+      color: var(--vibes-cream);
+    }
+    .anim-modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      background: var(--vibes-menu-bg);
+      background-image:
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+      background-size: var(--grid-size) var(--grid-size);
+    }
+    .anim-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+    .anim-card {
+      background: var(--vibes-cream);
+      border: 2px solid var(--vibes-near-black);
+      border-radius: 8px;
+      padding: 0;
+      cursor: pointer;
+      transition: all 0.15s;
+      box-shadow: 4px 4px 0px 0px var(--vibes-yellow), 4px 4px 0px 2px var(--vibes-near-black);
+      overflow: hidden;
+    }
+    .anim-card:hover {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0px 0px var(--vibes-yellow), 2px 2px 0px 2px var(--vibes-near-black);
+    }
+    .anim-card-preview {
+      height: 80px;
+      background: var(--vibes-near-black);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .anim-card-info {
+      padding: 0.5rem 0.75rem;
+    }
+    .anim-card-name {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--vibes-near-black);
+      margin-bottom: 0.15rem;
+    }
+    .anim-card-desc {
+      font-size: 0.625rem;
+      color: #555;
+      line-height: 1.3;
+    }
+
+    /* === Animation previews === */
+    .ap { position: absolute; }
+
+    /* 3D */
+    @keyframes ap-float-layers { 0%,100% { transform: perspective(300px) rotateX(15deg) rotateY(-10deg); } 50% { transform: perspective(300px) rotateX(15deg) rotateY(10deg); } }
+    .ap-3d-layers .ap { width: 40px; height: 28px; border-radius: 4px; border: 1.5px solid rgba(255,255,255,0.3); animation: ap-float-layers 3s ease-in-out infinite; }
+    .ap-3d-layers .ap:nth-child(1) { background: rgba(234,179,8,0.6); top: 15px; left: calc(50% - 25px); }
+    .ap-3d-layers .ap:nth-child(2) { background: rgba(0,154,206,0.5); top: 25px; left: calc(50% - 15px); animation-delay: -0.5s; }
+    .ap-3d-layers .ap:nth-child(3) { background: rgba(218,41,28,0.4); top: 35px; left: calc(50% - 20px); animation-delay: -1s; }
+
+    @keyframes ap-flip { 0%,45% { transform: rotateY(0); } 50%,95% { transform: rotateY(180deg); } }
+    .ap-3d-flip .ap { width: 36px; height: 44px; border-radius: 4px; background: var(--vibes-blue); animation: ap-flip 3s ease-in-out infinite; transform-style: preserve-3d; }
+    .ap-3d-flip .ap:nth-child(2) { animation-delay: -0.4s; background: var(--vibes-yellow); }
+    .ap-3d-flip .ap { position: relative; display: inline-block; margin: 0 4px; }
+
+    @keyframes ap-carousel { 0% { transform: perspective(300px) rotateY(0deg); } 100% { transform: perspective(300px) rotateY(360deg); } }
+    .ap-3d-carousel { animation: ap-carousel 6s linear infinite; transform-style: preserve-3d; width: 40px; height: 40px; position: relative; }
+    .ap-3d-carousel .ap { width: 30px; height: 30px; border-radius: 3px; border: 1.5px solid rgba(255,255,255,0.4); backface-visibility: hidden; left: 5px; top: 5px; }
+    .ap-3d-carousel .ap:nth-child(1) { background: rgba(234,179,8,0.7); transform: rotateY(0deg) translateZ(25px); }
+    .ap-3d-carousel .ap:nth-child(2) { background: rgba(0,154,206,0.7); transform: rotateY(90deg) translateZ(25px); }
+    .ap-3d-carousel .ap:nth-child(3) { background: rgba(218,41,28,0.7); transform: rotateY(180deg) translateZ(25px); }
+    .ap-3d-carousel .ap:nth-child(4) { background: rgba(34,197,94,0.7); transform: rotateY(270deg) translateZ(25px); }
+
+    @keyframes ap-iso { 0%,100% { transform: perspective(400px) rotateX(45deg) rotateZ(-45deg) scale(0.9); } 50% { transform: perspective(400px) rotateX(45deg) rotateZ(-45deg) scale(1); } }
+    .ap-3d-grid { display: grid; grid-template-columns: repeat(3,16px); gap: 3px; animation: ap-iso 3s ease-in-out infinite; transform-style: preserve-3d; }
+    .ap-3d-grid .ap { position: relative; width: 16px; height: 16px; border-radius: 2px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); }
+    .ap-3d-grid .ap:nth-child(odd) { background: rgba(234,179,8,0.4); }
+
+    @keyframes ap-cuboid-spin { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
+    .ap-cuboid-gallery { display: flex; gap: 2px; perspective: 200px; align-items: center; justify-content: center; width: 100%; height: 100%; }
+    .ap-cuboid { width: 16px; height: 22px; transform-style: preserve-3d; animation: ap-cuboid-spin 4s linear infinite; }
+    .ap-cuboid:nth-child(1) { animation-delay: 0s; }
+    .ap-cuboid:nth-child(2) { animation-delay: -1s; }
+    .ap-cuboid:nth-child(3) { animation-delay: -2s; }
+    .ap-cuboid:nth-child(4) { animation-delay: -3s; }
+    .ap-cuboid .ap { width: 16px; height: 22px; backface-visibility: hidden; }
+    .ap-cuboid .ap:nth-child(1) { background: var(--vibes-blue); transform: rotateY(0deg) translateZ(8px); }
+    .ap-cuboid .ap:nth-child(2) { background: var(--vibes-red); transform: rotateY(90deg) translateZ(8px); }
+    .ap-cuboid .ap:nth-child(3) { background: var(--vibes-yellow); transform: rotateY(180deg) translateZ(8px); }
+    .ap-cuboid .ap:nth-child(4) { background: var(--vibes-green); transform: rotateY(270deg) translateZ(8px); }
+
+    @keyframes ap-amp-breathe { 0%,100% { transform: translateZ(var(--az)) scale(var(--as)); } 50% { transform: translateZ(calc(var(--az) + 4px)) scale(var(--as)); } }
+    @keyframes ap-amp-tilt { 0%,100% { transform: rotateX(2deg) rotateY(-5deg); } 50% { transform: rotateX(-2deg) rotateY(5deg); } }
+    .ap-ampersand { width: 60px; height: 48px; transform-style: preserve-3d; perspective: 80px; animation: ap-amp-tilt 4s ease-in-out infinite; }
+    .ap-ampersand .ap { width: 100%; height: 100%; border-radius: 3px; transform-style: preserve-3d; animation: ap-amp-breathe 2s ease-in-out infinite alternate; }
+    .ap-ampersand .ap:nth-child(1) { --az: -16px; --as: 1; background: var(--vibes-blue); opacity: 0.9; }
+    .ap-ampersand .ap:nth-child(2) { --az: -11px; --as: 0.9; background: #fff; opacity: 0.85; animation-delay: 0.07s; }
+    .ap-ampersand .ap:nth-child(3) { --az: -6px; --as: 0.8; background: var(--vibes-blue); opacity: 0.8; animation-delay: 0.14s; }
+    .ap-ampersand .ap:nth-child(4) { --az: -1px; --as: 0.7; background: #fff; opacity: 0.75; animation-delay: 0.21s; }
+    .ap-ampersand .ap:nth-child(5) { --az: 4px; --as: 0.6; background: var(--vibes-blue); opacity: 0.9; animation-delay: 0.28s; }
+
+    @keyframes ap-parallax-x { 0%,100% { transform: translateX(-6px); } 50% { transform: translateX(6px); } }
+    .ap-3d-parallax .ap { width: 50px; height: 12px; border-radius: 3px; left: calc(50% - 25px); }
+    .ap-3d-parallax .ap:nth-child(1) { background: rgba(255,255,255,0.15); top: 15px; animation: ap-parallax-x 4s ease-in-out infinite; }
+    .ap-3d-parallax .ap:nth-child(2) { background: rgba(234,179,8,0.4); top: 32px; animation: ap-parallax-x 4s ease-in-out infinite reverse; animation-delay: -0.5s; }
+    .ap-3d-parallax .ap:nth-child(3) { background: rgba(0,154,206,0.5); top: 49px; animation: ap-parallax-x 4s ease-in-out infinite; animation-delay: -1s; }
+
+    /* Animated */
+    @keyframes ap-fade-up { 0%,40% { opacity: 0; transform: translateY(10px); } 60%,100% { opacity: 1; transform: translateY(0); } }
+    .ap-scroll-reveal .ap { width: 40px; height: 8px; border-radius: 3px; background: rgba(255,255,255,0.4); left: calc(50% - 20px); animation: ap-fade-up 2.5s ease infinite; }
+    .ap-scroll-reveal .ap:nth-child(1) { top: 18px; }
+    .ap-scroll-reveal .ap:nth-child(2) { top: 32px; animation-delay: 0.2s; }
+    .ap-scroll-reveal .ap:nth-child(3) { top: 46px; animation-delay: 0.4s; width: 30px; left: calc(50% - 15px); }
+
+    @keyframes ap-stagger-in { 0% { opacity: 0; transform: translateX(-15px); } 100% { opacity: 1; transform: translateX(0); } }
+    .ap-staggered .ap { height: 7px; border-radius: 3px; background: rgba(255,255,255,0.4); left: 20px; animation: ap-stagger-in 0.6s ease both; animation-iteration-count: infinite; animation-direction: alternate; animation-duration: 2s; }
+    .ap-staggered .ap:nth-child(1) { top: 16px; width: 40px; animation-delay: 0s; }
+    .ap-staggered .ap:nth-child(2) { top: 28px; width: 35px; animation-delay: 0.15s; background: rgba(234,179,8,0.5); }
+    .ap-staggered .ap:nth-child(3) { top: 40px; width: 45px; animation-delay: 0.3s; }
+    .ap-staggered .ap:nth-child(4) { top: 52px; width: 30px; animation-delay: 0.45s; background: rgba(0,154,206,0.5); }
+
+    @keyframes ap-grad { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    .ap-gradient { width: 100%; height: 100%; background: linear-gradient(45deg, #eab308, #009ACE, #DA291C, #22c55e); background-size: 300% 300%; animation: ap-grad 4s ease infinite; position: absolute; inset: 0; opacity: 0.7; }
+
+    @keyframes ap-clip { 0%,100% { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); } 50% { clip-path: polygon(25% 0%, 100% 25%, 75% 100%, 0% 75%); } }
+    .ap-clip-path { width: 45px; height: 45px; background: var(--vibes-yellow); animation: ap-clip 3s ease-in-out infinite; border-radius: 2px; }
+
+    @keyframes ap-type { 0% { width: 0; } 50%,60% { width: 50px; } 90%,100% { width: 0; } }
+    @keyframes ap-blink { 0%,100% { border-color: transparent; } 50% { border-color: var(--vibes-yellow); } }
+    .ap-typewriter { font-size: 11px; color: rgba(255,255,255,0.8); font-family: monospace; white-space: nowrap; overflow: hidden; border-right: 2px solid var(--vibes-yellow); animation: ap-type 3s steps(8) infinite, ap-blink 0.6s step-end infinite; letter-spacing: 1px; }
+
+    /* Interactive */
+    @keyframes ap-glow-move { 0%,100% { left: 15%; top: 30%; } 33% { left: 60%; top: 20%; } 66% { left: 40%; top: 55%; } }
+    .ap-glow { width: 40px; height: 40px; border-radius: 50%; background: radial-gradient(circle, rgba(0,154,206,0.6), transparent 70%); filter: blur(4px); animation: ap-glow-move 4s ease-in-out infinite; }
+
+    @keyframes ap-tilt { 0%,100% { transform: perspective(200px) rotateX(0) rotateY(0); } 25% { transform: perspective(200px) rotateX(5deg) rotateY(-8deg); } 75% { transform: perspective(200px) rotateX(-5deg) rotateY(8deg); } }
+    .ap-tilt { width: 40px; height: 50px; border-radius: 4px; background: rgba(255,255,255,0.15); border: 1.5px solid rgba(255,255,255,0.3); animation: ap-tilt 3s ease-in-out infinite; }
+
+    @keyframes ap-magnet { 0%,100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+    .ap-magnetic { padding: 6px 14px; border-radius: 4px; background: var(--vibes-blue); color: white; font-size: 9px; font-weight: 700; animation: ap-magnet 2s ease-in-out infinite; letter-spacing: 1px; }
+
+    @keyframes ap-drag1 { 0%,100% { transform: translateY(0); } 50% { transform: translateY(14px); } }
+    @keyframes ap-drag2 { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-14px); } }
+    .ap-drag .ap { width: 50px; height: 12px; border-radius: 3px; left: calc(50% - 25px); }
+    .ap-drag .ap:nth-child(1) { background: rgba(234,179,8,0.6); top: 22px; animation: ap-drag1 2.5s ease-in-out infinite; }
+    .ap-drag .ap:nth-child(2) { background: rgba(0,154,206,0.5); top: 40px; animation: ap-drag2 2.5s ease-in-out infinite; }
+
+    @keyframes ap-trail { 0% { left: 10%; opacity: 1; } 100% { left: 80%; opacity: 0; } }
+    .ap-trail .ap { width: 8px; height: 8px; border-radius: 50%; background: var(--vibes-yellow); top: 36px; animation: ap-trail 2s ease-out infinite; }
+    .ap-trail .ap:nth-child(2) { animation-delay: 0.1s; opacity: 0.7; width: 6px; height: 6px; }
+    .ap-trail .ap:nth-child(3) { animation-delay: 0.2s; opacity: 0.5; width: 5px; height: 5px; }
+    .ap-trail .ap:nth-child(4) { animation-delay: 0.3s; opacity: 0.3; width: 4px; height: 4px; }
+
+    /* Particles */
+    @keyframes ap-float { 0% { transform: translateY(0); opacity: 0.6; } 50% { opacity: 1; } 100% { transform: translateY(-60px); opacity: 0; } }
+    .ap-dots .ap { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.6); bottom: 5px; animation: ap-float 3s ease-in infinite; }
+    .ap-dots .ap:nth-child(1) { left: 20%; animation-delay: 0s; }
+    .ap-dots .ap:nth-child(2) { left: 40%; animation-delay: 0.6s; background: var(--vibes-yellow); }
+    .ap-dots .ap:nth-child(3) { left: 55%; animation-delay: 1.2s; }
+    .ap-dots .ap:nth-child(4) { left: 70%; animation-delay: 0.3s; background: var(--vibes-blue); }
+    .ap-dots .ap:nth-child(5) { left: 85%; animation-delay: 0.9s; }
+
+    @keyframes ap-confetti { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(70px) rotate(360deg); opacity: 0; } }
+    .ap-confetti .ap { width: 6px; height: 6px; top: 0; animation: ap-confetti 1.8s ease-in infinite; }
+    .ap-confetti .ap:nth-child(1) { left: 25%; background: var(--vibes-yellow); animation-delay: 0s; border-radius: 1px; }
+    .ap-confetti .ap:nth-child(2) { left: 40%; background: var(--vibes-red); animation-delay: 0.3s; border-radius: 50%; }
+    .ap-confetti .ap:nth-child(3) { left: 55%; background: var(--vibes-blue); animation-delay: 0.15s; width: 4px; height: 8px; }
+    .ap-confetti .ap:nth-child(4) { left: 70%; background: var(--vibes-green); animation-delay: 0.45s; border-radius: 50%; }
+
+    @keyframes ap-snow { 0% { transform: translateY(-10px) translateX(0); opacity: 1; } 100% { transform: translateY(80px) translateX(10px); opacity: 0.3; } }
+    .ap-snow .ap { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.7); top: 0; animation: ap-snow 3s linear infinite; }
+    .ap-snow .ap:nth-child(1) { left: 15%; animation-delay: 0s; }
+    .ap-snow .ap:nth-child(2) { left: 35%; animation-delay: 0.8s; width: 3px; height: 3px; }
+    .ap-snow .ap:nth-child(3) { left: 55%; animation-delay: 0.4s; }
+    .ap-snow .ap:nth-child(4) { left: 75%; animation-delay: 1.2s; width: 5px; height: 5px; }
+    .ap-snow .ap:nth-child(5) { left: 90%; animation-delay: 0.6s; width: 3px; height: 3px; }
+
+    @keyframes ap-bubble { 0% { transform: translateY(0) scale(1); opacity: 0.6; } 100% { transform: translateY(-65px) scale(1.3); opacity: 0; } }
+    .ap-bubble .ap { border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.08); bottom: 5px; animation: ap-bubble 3.5s ease-in infinite; }
+    .ap-bubble .ap:nth-child(1) { width: 12px; height: 12px; left: 25%; animation-delay: 0s; }
+    .ap-bubble .ap:nth-child(2) { width: 8px; height: 8px; left: 50%; animation-delay: 0.8s; }
+    .ap-bubble .ap:nth-child(3) { width: 10px; height: 10px; left: 70%; animation-delay: 1.5s; }
+
+    @keyframes ap-firefly { 0%,100% { opacity: 0.2; transform: translate(0, 0); } 25% { opacity: 1; transform: translate(8px, -12px); } 50% { opacity: 0.4; transform: translate(-5px, -6px); } 75% { opacity: 0.9; transform: translate(10px, 4px); } }
+    .ap-firefly .ap { width: 5px; height: 5px; border-radius: 50%; background: var(--vibes-yellow); box-shadow: 0 0 6px var(--vibes-yellow); animation: ap-firefly 4s ease-in-out infinite; }
+    .ap-firefly .ap:nth-child(1) { left: 20%; top: 25%; }
+    .ap-firefly .ap:nth-child(2) { left: 55%; top: 45%; animation-delay: -1.5s; }
+    .ap-firefly .ap:nth-child(3) { left: 75%; top: 20%; animation-delay: -3s; }
+    .ap-firefly .ap:nth-child(4) { left: 40%; top: 60%; animation-delay: -2s; }
+
+    /* Shader */
+    @keyframes ap-aurora { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    .ap-aurora { position: absolute; inset: 0; background: linear-gradient(135deg, #050020, #006b5a, #400060, #050020); background-size: 400% 400%; animation: ap-aurora 5s ease infinite; opacity: 0.85; }
+
+    @keyframes ap-plasma { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
+    .ap-plasma { position: absolute; inset: 0; background: radial-gradient(circle at 30% 40%, #ff00ff66, transparent 50%), radial-gradient(circle at 70% 60%, #00ffff66, transparent 50%), radial-gradient(circle at 50% 50%, #ffff0044, transparent 60%); background-color: #1a0030; animation: ap-plasma 4s linear infinite; }
+
+    @keyframes ap-noise-shift { 0%,100% { background-position: 0% 0%; } 50% { background-position: 100% 100%; } }
+    .ap-noise { position: absolute; inset: 0; background: linear-gradient(135deg, #1a0030, #003366, #660033, #003322); background-size: 200% 200%; animation: ap-noise-shift 5s ease-in-out infinite; }
+
+    @keyframes ap-ripple { 0% { transform: scale(0.3); opacity: 0.8; } 100% { transform: scale(2.5); opacity: 0; } }
+    .ap-ripple .ap { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid rgba(0,154,206,0.6); left: calc(50% - 15px); top: calc(50% - 15px); animation: ap-ripple 2.5s ease-out infinite; }
+    .ap-ripple .ap:nth-child(2) { animation-delay: 0.8s; }
+    .ap-ripple .ap:nth-child(3) { animation-delay: 1.6s; }
+
+    @keyframes ap-voronoi-shift { 0%,100% { background-position: 0% 50%; filter: hue-rotate(0deg); } 50% { background-position: 100% 50%; filter: hue-rotate(60deg); } }
+    .ap-voronoi { position: absolute; inset: 0; background: radial-gradient(circle at 20% 30%, #eab30866, transparent 40%), radial-gradient(circle at 70% 20%, #009ACE66, transparent 35%), radial-gradient(circle at 50% 70%, #DA291C44, transparent 45%), radial-gradient(circle at 80% 80%, #22c55e44, transparent 35%); background-color: #0f172a; background-size: 200% 200%; animation: ap-voronoi-shift 6s ease-in-out infinite; }
+
     /* === THEME MODAL === */
     .modal-overlay {
       position: fixed;
@@ -1557,6 +1924,42 @@
       <div class="chat-messages" id="chatMessages">
         <div class="chat-bubble system">Your app is ready. Send a message to iterate, switch themes, or deploy when you're happy with it.</div>
       </div>
+      <div class="animation-icons" id="animationIcons">
+        <div class="animation-icon-wrap">
+          <button class="animation-icon-btn" data-category="3D" style="background:var(--vibes-blue);color:white">
+            <div class="anim-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5"/><path d="M12 12v9"/><path d="M12 12L4 7.5"/></svg></div>
+            <div class="anim-btn-label">3D</div>
+          </button>
+        </div>
+        <div class="animation-icon-wrap">
+          <button class="animation-icon-btn" data-category="Animated" style="background:var(--vibes-yellow);color:var(--vibes-near-black)">
+            <div class="anim-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg></div>
+            <div class="anim-btn-label">Animated</div>
+          </button>
+        </div>
+        <div class="animation-icon-wrap">
+          <button class="animation-icon-btn" data-category="Interactive" style="background:var(--vibes-green);color:white">
+            <div class="anim-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12a6 6 0 0112 0"/><circle cx="12" cy="12" r="2"/><path d="M12 2v4"/><path d="M12 18v4"/></svg></div>
+            <div class="anim-btn-label">Interactive</div>
+          </button>
+        </div>
+        <div class="animation-icon-wrap">
+          <button class="animation-icon-btn" data-category="Particles" style="background:var(--vibes-red);color:white">
+            <div class="anim-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="10" cy="16" r="2"/><circle cx="17" cy="18" r="1.5"/><circle cx="4" cy="12" r="1.5"/></svg></div>
+            <div class="anim-btn-label">Particles</div>
+          </button>
+        </div>
+        <div class="animation-icon-wrap">
+          <button class="animation-icon-btn" data-category="Shader" style="background:#8b5cf6;color:white">
+            <div class="anim-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 3v18"/><path d="M15 9v12"/><path d="M3 15h12"/></svg></div>
+            <div class="anim-btn-label">Shader</div>
+          </button>
+        </div>
+        <span class="animation-active-badge" id="animBadge">
+          <span id="animBadgeName"></span>
+          <button class="clear-btn" onclick="clearAnimation()" title="Clear animation">&times;</button>
+        </span>
+      </div>
       <div class="chat-input-bar">
         <textarea class="chat-input" id="chatInput" placeholder="Describe changes to your app..." rows="1"
           onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
@@ -1590,6 +1993,20 @@
         </div>
         <input type="text" class="theme-search" id="themeSearch" placeholder="Search themes..." oninput="filterThemes(this.value)" />
         <div id="themeGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Animation Modal -->
+  <div class="anim-modal-overlay" id="animModal">
+    <div class="anim-modal">
+      <div class="anim-modal-header">
+        <h2>Choose an Animation</h2>
+        <button class="modal-close" onclick="closeAnimationModal()">&times;</button>
+      </div>
+      <div class="anim-category-tabs" id="animCategoryTabs"></div>
+      <div class="anim-modal-body">
+        <div class="anim-grid" id="animGrid"></div>
       </div>
     </div>
   </div>
@@ -1719,16 +2136,17 @@
           </button>
         </div>
         <div class="navbar-button-wrapper">
-          <button style="background:#eab308" onclick="reloadPreview()">
+          <button style="background:#eab308" onclick="saveApp()">
             <div class="navbar-button-icon">
               <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="17.5" cy="17.5" r="17.5" fill="#231F20"/>
-                <path d="M24.5 17.5a7 7 0 01-12.6 4.2l-1.4 1.4A9 9 0 0026.5 17.5h-2z" fill="var(--vibes-cream)"/>
-                <path d="M10.5 17.5a7 7 0 0112.6-4.2l1.4-1.4A9 9 0 008.5 17.5h2z" fill="var(--vibes-cream)"/>
-                <path d="M24.5 17.5l2.5-2.5M24.5 17.5l2.5 2.5M10.5 17.5L8 15M10.5 17.5L8 20" stroke="var(--vibes-cream)" stroke-width="1.8" stroke-linecap="round"/>
+                <rect x="11" y="10" width="13" height="15" rx="1.5" stroke="var(--vibes-cream)" stroke-width="1.8" fill="none"/>
+                <rect x="13.5" y="10" width="8" height="5.5" rx="0.75" fill="var(--vibes-cream)" opacity="0.5"/>
+                <rect x="13.5" y="19" width="8" height="2" rx="0.5" fill="var(--vibes-cream)"/>
+                <rect x="13.5" y="22" width="5" height="1" rx="0.5" fill="var(--vibes-cream)" opacity="0.6"/>
               </svg>
             </div>
-            <div class="navbar-button-label" style="color:var(--vibes-near-black)">Reload</div>
+            <div class="navbar-button-label" style="color:var(--vibes-near-black)">Save</div>
           </button>
         </div>
         <div class="navbar-button-wrapper deploy-dropdown" id="deployDropdown">
@@ -1806,7 +2224,7 @@
         if (currentPhase === 'generate') {
           setPhase('edit');
           loadPreview();
-          // Auto-save with a name derived from the prompt
+          // Auto-save only on initial generate to set the app name
           autoSaveApp();
         } else {
           reloadPreview();
@@ -1841,6 +2259,7 @@
         console.log('[Theme] Selected:', msg.themeId, name);
       } else if (msg.type === 'deploy_complete') {
         setThinking(false);
+        if (msg.name) currentAppName = msg.name;
         addMessage('deploy-success', 'Deployed! ' + (msg.url || ''));
         captureScreenshot();
       } else if (msg.type === 'studio-progress') {
@@ -2363,6 +2782,27 @@
     }
   }
 
+  function saveApp() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (currentAppName) {
+      ws.send(JSON.stringify({ type: 'save_app', name: currentAppName }));
+      addMessage('system', 'Saved.');
+      captureScreenshot();
+    } else {
+      // No name yet — derive from prompt
+      const prompt = document.getElementById('generatePrompt')?.value || '';
+      const slug = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+      if (slug) {
+        currentAppName = slug;
+        ws.send(JSON.stringify({ type: 'save_app', name: slug }));
+        addMessage('system', 'Saved as "' + slug + '".');
+        captureScreenshot();
+      } else {
+        addMessage('system', 'Generate an app first before saving.');
+      }
+    }
+  }
+
   async function captureScreenshot() {
     if (!currentAppName) return;
     try {
@@ -2605,16 +3045,142 @@
     if (e.key === 'Escape') closeDeployMenu();
   });
 
+  // === Animations ===
+  let allAnimations = [];
+  let activeAnimationId = null;
+  let activeAnimCategory = 'All';
+
+  async function loadAnimations() {
+    try {
+      const res = await fetch('/animations');
+      allAnimations = await res.json();
+      console.log(`Loaded ${allAnimations.length} animations`);
+    } catch (err) {
+      console.error('Failed to load animations:', err);
+    }
+  }
+
+  // Load animations on startup
+  loadAnimations();
+
+  // Icon click → open modal filtered to that category
+  document.getElementById('animationIcons').addEventListener('click', (e) => {
+    const btn = e.target.closest('.animation-icon-btn');
+    if (!btn) return;
+    openAnimationModal(btn.dataset.category);
+  });
+
+  function openAnimationModal(category) {
+    activeAnimCategory = category || 'All';
+    document.getElementById('animModal').classList.add('open');
+    renderAnimCategoryTabs();
+    renderAnimGrid();
+  }
+
+  function closeAnimationModal() {
+    document.getElementById('animModal').classList.remove('open');
+  }
+
+  function renderAnimCategoryTabs() {
+    const tabs = document.getElementById('animCategoryTabs');
+    const categories = ['All', ...new Set(allAnimations.map(a => a.category))];
+    tabs.innerHTML = categories.map(c =>
+      `<button class="anim-category-tab${c === activeAnimCategory ? ' active' : ''}" onclick="filterAnimations('${c}')">${c}</button>`
+    ).join('');
+  }
+
+  function filterAnimations(category) {
+    activeAnimCategory = category;
+    renderAnimCategoryTabs();
+    renderAnimGrid();
+  }
+
+  // Map animation IDs to CSS preview HTML
+  const ANIM_PREVIEWS = {
+    '3d-layers':          '<div class="ap-3d-layers"><div class="ap"></div><div class="ap"></div><div class="ap"></div></div>',
+    '3d-flip-cards':      '<div class="ap-3d-flip" style="display:flex;align-items:center;justify-content:center;width:100%;height:100%"><div class="ap"></div><div class="ap"></div></div>',
+    '3d-perspective-grid':'<div class="ap-3d-grid"><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div></div>',
+    '3d-carousel':        '<div class="ap-3d-carousel"><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div></div>',
+    '3d-parallax':        '<div class="ap-3d-parallax" style="width:100%;height:100%"><div class="ap"></div><div class="ap"></div><div class="ap"></div></div>',
+    '3d-ampersand':       '<div class="ap-ampersand"><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div></div>',
+    '3d-cuboid-gallery':  '<div class="ap-cuboid-gallery"><div class="ap-cuboid"><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div></div><div class="ap-cuboid"><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div></div><div class="ap-cuboid"><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div></div><div class="ap-cuboid"><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div></div></div>',
+    'anim-scroll-reveal': '<div class="ap-scroll-reveal" style="width:100%;height:100%"><div class="ap"></div><div class="ap"></div><div class="ap"></div></div>',
+    'anim-staggered':     '<div class="ap-staggered" style="width:100%;height:100%"><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div></div>',
+    'anim-gradient-morph':'<div class="ap-gradient"></div>',
+    'anim-clip-path':     '<div class="ap-clip-path"></div>',
+    'anim-typewriter':    '<div class="ap-typewriter">vibes_</div>',
+    'int-mouse-glow':     '<div class="ap-glow" style="position:absolute"></div>',
+    'int-tilt-cards':     '<div class="ap-tilt"></div>',
+    'int-magnetic-buttons':'<div class="ap-magnetic">CLICK</div>',
+    'int-drag-sort':      '<div class="ap-drag" style="width:100%;height:100%"><div class="ap"></div><div class="ap"></div></div>',
+    'int-cursor-trail':   '<div class="ap-trail" style="width:100%;height:100%"><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div></div>',
+    'part-floating-dots': '<div class="ap-dots" style="width:100%;height:100%"><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div></div>',
+    'part-confetti':      '<div class="ap-confetti" style="width:100%;height:100%"><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div></div>',
+    'part-snow':          '<div class="ap-snow" style="width:100%;height:100%"><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div></div>',
+    'part-bubbles':       '<div class="ap-bubble" style="width:100%;height:100%"><div class="ap"></div><div class="ap"></div><div class="ap"></div></div>',
+    'part-fireflies':     '<div class="ap-firefly" style="width:100%;height:100%"><div class="ap"></div><div class="ap"></div><div class="ap"></div><div class="ap"></div></div>',
+    'shd-aurora':         '<div class="ap-aurora"></div>',
+    'shd-plasma':         '<div class="ap-plasma"></div>',
+    'shd-noise-gradient': '<div class="ap-noise"></div>',
+    'shd-water-ripple':   '<div class="ap-ripple" style="width:100%;height:100%"><div class="ap"></div><div class="ap"></div><div class="ap"></div></div>',
+    'shd-voronoi':        '<div class="ap-voronoi"></div>',
+  };
+
+  function renderAnimGrid() {
+    const grid = document.getElementById('animGrid');
+    const filtered = activeAnimCategory === 'All'
+      ? allAnimations
+      : allAnimations.filter(a => a.category === activeAnimCategory);
+
+    if (filtered.length === 0) {
+      grid.innerHTML = '<div style="text-align:center;color:#555;padding:2rem;grid-column:1/-1;">No animations in this category</div>';
+      return;
+    }
+
+    grid.innerHTML = filtered.map(a => {
+      const preview = ANIM_PREVIEWS[a.id] || '';
+      return `<div class="anim-card" onclick="selectAnimation('${a.id}')">
+        <div class="anim-card-preview">${preview}</div>
+        <div class="anim-card-info">
+          <div class="anim-card-name">${a.name}</div>
+          <div class="anim-card-desc">${a.description}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function selectAnimation(id) {
+    activeAnimationId = id;
+    const anim = allAnimations.find(a => a.id === id);
+    const badge = document.getElementById('animBadge');
+    const badgeName = document.getElementById('animBadgeName');
+    if (anim) {
+      badgeName.textContent = anim.name;
+      badge.classList.add('visible');
+    }
+    closeAnimationModal();
+  }
+
+  function clearAnimation() {
+    activeAnimationId = null;
+    const badge = document.getElementById('animBadge');
+    badge.classList.remove('visible');
+  }
+
   // === Chat ===
   function sendMessage() {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
     if (!text || isThinking || !ws || ws.readyState !== WebSocket.OPEN) return;
 
-    addMessage('user', text);
-    ws.send(JSON.stringify({ type: 'chat', message: text }));
+    const animLabel = activeAnimationId ? allAnimations.find(a => a.id === activeAnimationId)?.name : null;
+    addMessage('user', text + (animLabel ? '  [' + animLabel + ']' : ''));
+    const payload = { type: 'chat', message: text };
+    if (activeAnimationId) payload.animationId = activeAnimationId;
+    ws.send(JSON.stringify(payload));
     input.value = '';
     input.style.height = 'auto';
+    if (activeAnimationId) clearAnimation();
   }
 
   function addMessage(role, content) {
@@ -2968,11 +3534,15 @@
   }
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeThemeModal();
+    if (e.key === 'Escape') { closeThemeModal(); closeAnimationModal(); }
   });
 
   document.getElementById('themeModal').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeThemeModal();
+  });
+
+  document.getElementById('animModal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeAnimationModal();
   });
 
   // === Resizable Splitter ===

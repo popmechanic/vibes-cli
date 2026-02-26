@@ -1,0 +1,82 @@
+ANIMATION: shd-voronoi
+NAME: Voronoi Cells
+CATEGORY: Shader
+
+DESCRIPTION: Animated cell pattern with shifting colors. Nine seed points orbit in sinusoidal paths while the nearest-neighbor distance field creates organic, membrane-like boundaries between colorful cells.
+
+IMPLEMENTATION RULES:
+- Native WebGL only — no external libraries (no Three.js)
+- Use useRef + useEffect with proper cleanup (cancelAnimationFrame, removeEventListener)
+- Always check if (!gl) return for graceful fallback when WebGL unavailable
+- Use precision mediump float — highp causes issues on some mobile GPUs
+- Pass u_time, u_resolution, u_mouse uniforms
+- Background effects: position fixed, zIndex 0, pointerEvents none
+- Canvas size via JS attributes with devicePixelRatio
+
+CODE EXAMPLE:
+function VoronoiShader() {
+  const canvasRef = React.useRef(null);
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    const gl = canvas.getContext("webgl");
+    if (!gl) return;
+    let animId;
+    let mouse = [0.5, 0.5];
+    function resize() {
+      canvas.width = window.innerWidth * devicePixelRatio;
+      canvas.height = window.innerHeight * devicePixelRatio;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    function onMouseMove(e) {
+      mouse = [e.clientX / window.innerWidth, 1.0 - e.clientY / window.innerHeight];
+    }
+    resize();
+    window.addEventListener("resize", resize);
+    window.addEventListener("mousemove", onMouseMove);
+    const vs = "attribute vec2 p; void main(){ gl_Position=vec4(p,0,1); }";
+    const fs = `precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+void main(){
+  vec2 uv = gl_FragCoord.xy / u_resolution * 4.0;
+  float minDist = 10.0;
+  vec2 minPoint = vec2(0.0);
+  for(int i = 0; i < 9; i++){
+    vec2 cell = vec2(mod(float(i), 3.0), floor(float(i) / 3.0));
+    vec2 point = cell + 0.5 + 0.4 * sin(u_time * 0.5 + cell * 6.28);
+    float d = length(uv - point);
+    if(d < minDist){ minDist = d; minPoint = point; }
+  }
+  vec3 col = vec3(0.5 + 0.5*sin(minPoint.x*3.0+u_time), 0.5+0.5*cos(minPoint.y*2.0+u_time*0.7), 0.6);
+  col *= 1.0 - minDist * 0.5;
+  gl_FragColor = vec4(col, 1.0);
+}`;
+    function compile(src, type) {
+      const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s;
+    }
+    const prog = gl.createProgram();
+    gl.attachShader(prog, compile(vs, gl.VERTEX_SHADER));
+    gl.attachShader(prog, compile(fs, gl.FRAGMENT_SHADER));
+    gl.linkProgram(prog); gl.useProgram(prog);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, "p");
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    const uTime = gl.getUniformLocation(prog, "u_time");
+    const uRes = gl.getUniformLocation(prog, "u_resolution");
+    const uMouse = gl.getUniformLocation(prog, "u_mouse");
+    function render(t) {
+      gl.uniform1f(uTime, t * 0.001);
+      gl.uniform2f(uRes, canvas.width, canvas.height);
+      gl.uniform2f(uMouse, mouse[0], mouse[1]);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      animId = requestAnimationFrame(render);
+    }
+    render(0);
+    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); window.removeEventListener("mousemove", onMouseMove); };
+  }, []);
+  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", width: "100vw", height: "100vh" }} />;
+}

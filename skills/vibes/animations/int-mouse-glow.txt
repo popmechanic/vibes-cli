@@ -1,0 +1,33 @@
+ANIMATION: int-mouse-glow
+NAME: Cursor Glow
+CATEGORY: Interactive
+
+DESCRIPTION: A soft radial glow that tracks the mouse cursor across the viewport. The glow follows with a slight easing delay for a natural feel. Automatically disabled on touch-only devices where hover is not supported.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use useRef + useEffect with proper cleanup (removeEventListener)
+- Track mouse via onMouseMove + getBoundingClientRect for position
+- Performance: throttle mouse events with requestAnimationFrame
+- Responsive: skip mouse effects on touch devices (check window.matchMedia("(hover: hover)"))
+
+CODE EXAMPLE:
+function CursorGlow({ color = "oklch(0.7 0.2 250 / 0.15)", size = 300 }) {
+  const [pos, setPos] = React.useState({ x: -500, y: -500 });
+  React.useEffect(() => {
+    const hasHover = window.matchMedia("(hover: hover)").matches;
+    if (!hasHover) return;
+    const onMove = (e) => setPos({ x: e.clientX, y: e.clientY });
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
+  }, []);
+  return (
+    <div style={{
+      position: "fixed", pointerEvents: "none", zIndex: 1,
+      width: size, height: size, borderRadius: "50%",
+      background: `radial-gradient(circle, ${color}, transparent 70%)`,
+      transform: `translate(${pos.x - size/2}px, ${pos.y - size/2}px)`,
+      transition: "transform 0.15s ease-out"
+    }} />
+  );
+}

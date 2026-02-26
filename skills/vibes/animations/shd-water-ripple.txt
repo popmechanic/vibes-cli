@@ -1,0 +1,78 @@
+ANIMATION: shd-water-ripple
+NAME: Water Ripple
+CATEGORY: Shader
+
+DESCRIPTION: Concentric wave distortion centered on mouse clicks. Ripples radiate outward from the cursor position with exponential decay, creating a water-surface illusion over a deep ocean gradient.
+
+IMPLEMENTATION RULES:
+- Native WebGL only — no external libraries (no Three.js)
+- Use useRef + useEffect with proper cleanup (cancelAnimationFrame, removeEventListener)
+- Always check if (!gl) return for graceful fallback when WebGL unavailable
+- Use precision mediump float — highp causes issues on some mobile GPUs
+- Pass u_time, u_resolution, u_mouse uniforms
+- Background effects: position fixed, zIndex 0, pointerEvents none
+- Canvas size via JS attributes with devicePixelRatio
+
+CODE EXAMPLE:
+function WaterRippleShader() {
+  const canvasRef = React.useRef(null);
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    const gl = canvas.getContext("webgl");
+    if (!gl) return;
+    let animId;
+    let mouse = [0.5, 0.5];
+    function resize() {
+      canvas.width = window.innerWidth * devicePixelRatio;
+      canvas.height = window.innerHeight * devicePixelRatio;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    function onMouseMove(e) {
+      mouse = [e.clientX / window.innerWidth, 1.0 - e.clientY / window.innerHeight];
+    }
+    resize();
+    window.addEventListener("resize", resize);
+    window.addEventListener("mousemove", onMouseMove);
+    const vs = "attribute vec2 p; void main(){ gl_Position=vec4(p,0,1); }";
+    const fs = `precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+void main(){
+  vec2 uv = gl_FragCoord.xy / u_resolution;
+  vec2 center = u_mouse;
+  float dist = length(uv - center);
+  float wave = sin(dist * 40.0 - u_time * 4.0) * exp(-dist * 3.0) * 0.05;
+  vec2 distorted = uv + wave * normalize(uv - center);
+  vec3 col = mix(vec3(0.05, 0.1, 0.2), vec3(0.1, 0.4, 0.6), distorted.y);
+  col += vec3(0.0, 0.2, 0.3) * (1.0 - dist);
+  gl_FragColor = vec4(col, 1.0);
+}`;
+    function compile(src, type) {
+      const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s;
+    }
+    const prog = gl.createProgram();
+    gl.attachShader(prog, compile(vs, gl.VERTEX_SHADER));
+    gl.attachShader(prog, compile(fs, gl.FRAGMENT_SHADER));
+    gl.linkProgram(prog); gl.useProgram(prog);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, "p");
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    const uTime = gl.getUniformLocation(prog, "u_time");
+    const uRes = gl.getUniformLocation(prog, "u_resolution");
+    const uMouse = gl.getUniformLocation(prog, "u_mouse");
+    function render(t) {
+      gl.uniform1f(uTime, t * 0.001);
+      gl.uniform2f(uRes, canvas.width, canvas.height);
+      gl.uniform2f(uMouse, mouse[0], mouse[1]);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      animId = requestAnimationFrame(render);
+    }
+    render(0);
+    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); window.removeEventListener("mousemove", onMouseMove); };
+  }, []);
+  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", width: "100vw", height: "100vh" }} />;
+}

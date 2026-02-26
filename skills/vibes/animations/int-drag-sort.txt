@@ -1,0 +1,49 @@
+ANIMATION: int-drag-sort
+NAME: Drag & Sort
+CATEGORY: Interactive
+
+DESCRIPTION: A reorderable list powered by the native HTML Drag and Drop API. Items can be dragged to new positions with smooth visual feedback indicating the drop target. The dragged item becomes semi-transparent while other items shift to show insertion point.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use useRef + useEffect with proper cleanup (removeEventListener)
+- Track mouse via onMouseMove + getBoundingClientRect for position
+- Performance: throttle mouse events with requestAnimationFrame
+- Responsive: skip mouse effects on touch devices (check window.matchMedia("(hover: hover)"))
+
+CODE EXAMPLE:
+function DragSortList({ items, onReorder, renderItem }) {
+  const [dragging, setDragging] = React.useState(null);
+  const [overIdx, setOverIdx] = React.useState(null);
+  const handleDragStart = (i) => setDragging(i);
+  const handleDragOver = (e, i) => { e.preventDefault(); setOverIdx(i); };
+  const handleDrop = (i) => {
+    if (dragging === null || dragging === i) return;
+    const reordered = [...items];
+    const [moved] = reordered.splice(dragging, 1);
+    reordered.splice(i, 0, moved);
+    onReorder(reordered);
+    setDragging(null);
+    setOverIdx(null);
+  };
+  const handleDragEnd = () => { setDragging(null); setOverIdx(null); };
+  return (
+    <div>
+      {items.map((item, i) => (
+        <div key={item._id || i}
+          draggable
+          onDragStart={() => handleDragStart(i)}
+          onDragOver={(e) => handleDragOver(e, i)}
+          onDrop={() => handleDrop(i)}
+          onDragEnd={handleDragEnd}
+          style={{
+            opacity: dragging === i ? 0.5 : 1,
+            transform: overIdx === i && dragging !== i ? "translateY(4px)" : "none",
+            transition: "transform 0.2s ease, opacity 0.2s ease",
+            cursor: "grab"
+          }}
+        >{renderItem(item, i)}</div>
+      ))}
+    </div>
+  );
+}

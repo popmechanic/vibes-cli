@@ -1,0 +1,31 @@
+ANIMATION: gradient-morph
+NAME: Gradient Morph
+CATEGORY: Animated
+
+DESCRIPTION: Animated gradient backgrounds using CSS @property for smooth hue and angle transitions. The gradient angle rotates continuously while the color shifts between two oklch values. Produces a fluid, organic background effect without any JavaScript animation logic.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use useRef + useEffect with proper cleanup
+- CSS @keyframes, @property, IntersectionObserver, requestAnimationFrame
+- Performance: prefer CSS animations over JS when possible
+- Responsive: reduce animation complexity on prefers-reduced-motion
+
+CODE EXAMPLE:
+function GradientMorph({ children }) {
+  return (
+    <>
+      <style>{`
+        @property --grad-angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+        @property --grad-color { syntax: "<color>"; initial-value: oklch(0.6 0.2 250); inherits: false; }
+        @keyframes morph-gradient { to { --grad-angle: 360deg; } }
+        @keyframes shift-hue { 50% { --grad-color: oklch(0.7 0.25 330); } }
+        .gradient-morph-bg {
+          background: linear-gradient(var(--grad-angle), var(--grad-color), oklch(0.3 0.15 180));
+          animation: morph-gradient 8s linear infinite, shift-hue 6s ease infinite;
+        }
+      `}</style>
+      <div className="gradient-morph-bg" style={{ minHeight: "100vh" }}>{children}</div>
+    </>
+  );
+}

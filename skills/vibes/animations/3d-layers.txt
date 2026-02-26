@@ -1,0 +1,43 @@
+ANIMATION: 3d-layers
+NAME: Layered Depth
+CATEGORY: 3D
+
+DESCRIPTION: Stacked content planes with parallax depth using CSS preserve-3d. Each layer sits at a different translateZ distance, creating a physical sense of depth. Mouse movement tilts the entire stack, making layers shift relative to each other.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use useRef + useEffect with proper cleanup (cancelAnimationFrame, removeEventListener)
+- Use CSS perspective, rotateX/Y/Z, preserve-3d, translateZ for 3D transforms
+- Performance: use will-change on animated elements, prefer CSS transitions over JS animation when possible
+- Responsive: reduce 3D intensity on mobile (smaller perspective values)
+
+CODE EXAMPLE:
+function DepthLayers({ children }) {
+  const containerRef = React.useRef(null);
+  const [tilt, setTilt] = React.useState({ x: 0, y: 0 });
+
+  React.useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onMove = (e) => {
+      const rect = el.getBoundingClientRect();
+      const x = ((e.clientY - rect.top) / rect.height - 0.5) * 10;
+      const y = -((e.clientX - rect.left) / rect.width - 0.5) * 10;
+      setTilt({ x, y });
+    };
+    const onLeave = () => setTilt({ x: 0, y: 0 });
+    el.addEventListener("mousemove", onMove);
+    el.addEventListener("mouseleave", onLeave);
+    return () => { el.removeEventListener("mousemove", onMove); el.removeEventListener("mouseleave", onLeave); };
+  }, []);
+
+  return (
+    <div ref={containerRef} style={{ perspective: "1000px", perspectiveOrigin: "center" }}>
+      <div style={{ transformStyle: "preserve-3d", transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`, transition: "transform 0.15s ease-out" }}>
+        <div style={{ transform: "translateZ(60px)", position: "relative" }}>{/* Front layer */}</div>
+        <div style={{ transform: "translateZ(30px)", position: "relative" }}>{/* Middle layer */}</div>
+        <div style={{ transform: "translateZ(0px)", position: "relative" }}>{/* Back layer */}</div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,108 @@
+ANIMATION: 3d-ampersand
+NAME: Extruded Layers
+CATEGORY: 3D
+
+DESCRIPTION: Take ANY text, SVG shape, icon, or UI element the user describes and give it a dramatic extruded 3D look by duplicating it into 4-6 stacked layers at different Z depths. Each layer is slightly scaled down and offset in depth, alternating between the theme's primary color and white, creating a physical sliced/extruded appearance. The stack breathes along the z-axis with staggered timing, and the entire group tilts to follow mouse movement. Apply this technique to whatever the user's prompt mentions — headings, logos, icons, cards, entire sections.
+
+IMPLEMENTATION RULES:
+- This is a TECHNIQUE, not a specific shape — apply it to whatever element the user asks for
+- For TEXT: use the text itself as the content of each layer (stack 4-6 identical text elements at different z-depths)
+- For SVG/ICONS: duplicate the SVG element across layers
+- For CARDS/UI: duplicate the card container across layers
+- Native browser APIs only — no GSAP, no jQuery, no external libraries
+- Use useRef + useEffect with proper cleanup (cancelAnimationFrame, removeEventListener)
+- CSS perspective on container, preserve-3d on wrapper, translateZ per layer
+- Mouse-tilt: track mousemove on container, apply rotateX/Y to the wrapper
+- Breathing pulse: CSS @keyframes animating translateZ with staggered animation-delay per layer
+- Layers alternate fills: primary color → white → primary → white → primary
+- Drop shadow via CSS filter: drop-shadow() on each layer for depth
+- Performance: will-change: transform on animated layers
+- Responsive: reduce perspective and tilt intensity on mobile
+
+CODE EXAMPLE (text-based — adapt the inner content for any element):
+function ExtrudedElement({ children, layers = 5 }) {
+  const containerRef = React.useRef(null);
+  const [tilt, setTilt] = React.useState({ x: 0, y: 0 });
+
+  React.useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onMove = (e) => {
+      const rect = el.getBoundingClientRect();
+      const x = ((e.clientY - rect.top) / rect.height - 0.5) * 8;
+      const y = -((e.clientX - rect.left) / rect.width - 0.5) * 8;
+      setTilt({ x, y });
+    };
+    const onLeave = () => setTilt({ x: 0, y: 0 });
+    el.addEventListener("mousemove", onMove);
+    el.addEventListener("mouseleave", onLeave);
+    return () => {
+      el.removeEventListener("mousemove", onMove);
+      el.removeEventListener("mouseleave", onLeave);
+    };
+  }, []);
+
+  const layerConfigs = Array.from({ length: layers }, (_, i) => ({
+    z: -((layers - 1 - i) * 20),
+    scale: 1 - i * 0.08,
+    color: i % 2 === 0 ? "var(--color-primary, #008fce)" : "#fff",
+  }));
+
+  return (
+    <>
+      <style>{`
+        @keyframes extrudeBreathe {
+          0%, 100% { transform: translateZ(var(--ez)) scale(var(--es)); }
+          50% { transform: translateZ(calc(var(--ez) + 10px)) scale(var(--es)); }
+        }
+      `}</style>
+      <div ref={containerRef} style={{
+        perspective: "300px",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        width: "100%", position: "relative", cursor: "default",
+      }}>
+        <div style={{
+          transformStyle: "preserve-3d",
+          transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+          transition: "transform 0.3s ease-out",
+          position: "relative",
+        }}>
+          {layerConfigs.map((layer, i) => (
+            <div key={i} style={{
+              position: i === 0 ? "relative" : "absolute",
+              inset: i === 0 ? undefined : 0,
+              color: layer.color,
+              willChange: "transform",
+              transform: `translateZ(${layer.z}px) scale(${layer.scale})`,
+              animation: "extrudeBreathe 2s ease-in-out infinite",
+              animationDelay: `${i * 0.07}s`,
+              "--ez": `${layer.z}px`,
+              "--es": layer.scale,
+              filter: `drop-shadow(2px 8px 8px rgba(0,0,0,${0.15 - i * 0.02}))`,
+              WebkitTextStroke: i > 0 ? "1px currentColor" : "none",
+            }}>
+              {/* Render whatever content — text, SVG, card, icon */}
+              {children}
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Usage examples:
+// Text:    <ExtrudedElement><h1 style={{fontSize:"6rem",fontWeight:900}}>HELLO</h1></ExtrudedElement>
+// SVG:     <ExtrudedElement><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40"/></svg></ExtrudedElement>
+// Card:    <ExtrudedElement layers={4}><div className="card">Content</div></ExtrudedElement>
+// Icon:    <ExtrudedElement layers={3}><span style={{fontSize:"5rem"}}>★</span></ExtrudedElement>
+
+INTEGRATION GUIDANCE:
+- Apply to headings, hero text, logos, icons, cards — ANY element the user mentions
+- The key visual: duplicated layers at staggered Z depths creating an extruded/sliced look
+- Alternating color/white layers reinforce the layered effect
+- Mouse-tilt adds interactivity — the stack shifts as you move the cursor
+- Breathing pulse keeps it alive — small amplitude (10px), staggered delays
+- Use as hero element, section header decoration, or loading state
+- On mobile: reduce perspective to 500px and tilt multiplier to 4
+- Keep layer count between 3-6 — more layers = more extrusion depth

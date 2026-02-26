@@ -1,0 +1,37 @@
+ANIMATION: 3d-perspective-grid
+NAME: Perspective Grid
+CATEGORY: 3D
+
+DESCRIPTION: An isometric-style grid layout with items positioned in 3D space. The grid is tilted using rotateX and rotateY to create a dramatic perspective view. Individual items float at different translateZ depths and lift further on hover.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use useRef + useEffect with proper cleanup (cancelAnimationFrame, removeEventListener)
+- Use CSS perspective, rotateX/Y/Z, preserve-3d, translateZ for 3D transforms
+- Performance: use will-change on animated elements, prefer CSS transitions over JS animation when possible
+- Responsive: reduce 3D intensity on mobile (smaller perspective values)
+
+CODE EXAMPLE:
+function PerspectiveGrid({ items }) {
+  return (
+    <div style={{ perspective: "1200px", perspectiveOrigin: "50% 30%" }}>
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1.5rem",
+        transformStyle: "preserve-3d", transform: "rotateX(15deg) rotateY(-5deg)", padding: "2rem"
+      }}>
+        {items.map((item, i) => (
+          <div key={i} style={{
+            transform: `translateZ(${i % 3 * 20}px)`,
+            transition: "transform 0.3s ease, box-shadow 0.3s ease",
+            borderRadius: "12px", padding: "1.5rem",
+            background: "var(--comp-bg, white)",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.1)"
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.transform = `translateZ(${i % 3 * 20 + 30}px)`}
+          onMouseLeave={(e) => e.currentTarget.style.transform = `translateZ(${i % 3 * 20}px)`}
+          >{item}</div>
+        ))}
+      </div>
+    </div>
+  );
+}

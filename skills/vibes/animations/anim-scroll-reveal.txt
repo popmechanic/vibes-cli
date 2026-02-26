@@ -1,0 +1,40 @@
+ANIMATION: scroll-reveal
+NAME: Scroll Reveal
+CATEGORY: Animated
+
+DESCRIPTION: Elements fade and slide in as they enter the viewport using IntersectionObserver. Supports four directional variants (up, down, left, right). Each element animates once when it first becomes visible, then stays revealed.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use useRef + useEffect with proper cleanup
+- CSS @keyframes, @property, IntersectionObserver, requestAnimationFrame
+- Performance: prefer CSS animations over JS when possible
+- Responsive: reduce animation complexity on prefers-reduced-motion
+
+CODE EXAMPLE:
+function useScrollReveal() {
+  const ref = React.useRef(null);
+  const [visible, setVisible] = React.useState(false);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setVisible(true); obs.disconnect(); }
+    }, { threshold: 0.15 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return { ref, visible };
+}
+
+function RevealOnScroll({ children, direction = "up" }) {
+  const { ref, visible } = useScrollReveal();
+  const transforms = { up: "translateY(40px)", down: "translateY(-40px)", left: "translateX(40px)", right: "translateX(-40px)" };
+  return (
+    <div ref={ref} style={{
+      opacity: visible ? 1 : 0,
+      transform: visible ? "translate(0)" : transforms[direction],
+      transition: "opacity 0.6s ease, transform 0.6s ease"
+    }}>{children}</div>
+  );
+}

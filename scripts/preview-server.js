@@ -19,6 +19,7 @@ import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import { WebSocketServer } from 'ws';
 import { parseThemeCatalog } from './lib/parse-theme-catalog.js';
+import { parseAnimationCatalog } from './lib/parse-animation-catalog.js';
 import { loadEnvFile, validateClerkKey, populateConnectConfig, validateClerkSecretKey, validateConnectUrl, deriveConnectUrls, writeEnvFile } from './lib/env-utils.js';
 import { hasThemeMarkers, replaceThemeSection, extractNonThemeSections } from './lib/theme-sections.js';
 import { createBackup, restoreFromBackup } from './lib/backup.js';
@@ -80,6 +81,22 @@ let themes = [];
 if (existsSync(catalogPath)) {
   themes = parseThemeCatalog(readFileSync(catalogPath, 'utf-8'));
   console.log(`Loaded ${themes.length} themes from catalog`);
+}
+
+// --- Load animation catalog at startup ---
+const animCatalogPath = join(PROJECT_ROOT, 'skills/vibes/animations/catalog.txt');
+let animations = [];
+if (existsSync(animCatalogPath)) {
+  animations = parseAnimationCatalog(readFileSync(animCatalogPath, 'utf-8'));
+  console.log(`Loaded ${animations.length} animations from catalog`);
+}
+
+const ANIMATION_DIR = join(PROJECT_ROOT, 'skills/vibes/animations');
+
+function getAnimationInstructions(animationId) {
+  const filePath = join(ANIMATION_DIR, `${animationId}.txt`);
+  if (existsSync(filePath)) return readFileSync(filePath, 'utf-8');
+  return null;
 }
 
 // --- Find plugin root for theme files ---
@@ -1019,6 +1036,12 @@ async function handleRequest(req, res) {
     return res.end(JSON.stringify({ hasKey: !!OPENROUTER_KEY }));
   }
 
+  // GET /animations → JSON array of animations from catalog
+  if (pathname === '/animations') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(animations));
+  }
+
   // GET /app-frame → assembled vibes template with real Fireproof
   if (pathname === '/app-frame') {
     const appPath = join(PROJECT_ROOT, 'app.jsx');
@@ -1074,7 +1097,7 @@ wss.on('connection', (ws) => {
 
     try {
       if (msg.type === 'chat') {
-        await handleChat(ws, msg.message);
+        await handleChat(ws, msg.message, msg.effects || [], msg.animationId || null);
       } else if (msg.type === 'theme') {
         await handleThemeSwitch(ws, msg.themeId);
       } else if (msg.type === 'cancel') {
@@ -1280,19 +1303,10 @@ async function runClaude(ws, prompt, opts = {}) {
       sendProgress();
     }, 1000);
 
-    // Wall-clock timeout — kill stuck processes (0 = no timeout)
-    const timeoutSec = opts.timeout === 0 ? 0 : (opts.timeout || 120);
-    const killTimer = timeoutSec > 0 ? setTimeout(() => {
-      if (activeClaude === child) {
-        console.error(`[Claude] Timeout after ${timeoutSec}s — killing process`);
-        child.kill('SIGTERM');
-        setTimeout(() => { try { child.kill('SIGKILL'); } catch {} }, 3000);
-      }
-    }, timeoutSec * 1000) : null;
+    // No wall-clock timeout — let Claude run to completion
 
     child.on('close', (code) => {
       clearInterval(progressInterval);
-      clearTimeout(killTimer);
       const wasActive = activeClaude === child;
       activeClaude = null;
 
@@ -1305,9 +1319,7 @@ async function runClaude(ws, prompt, opts = {}) {
         // Killed by signal (code null = SIGTERM/SIGKILL)
         if (code === null) {
           const elapsed = getElapsed();
-          const errMsg = timeoutSec > 0
-            ? `Claude timed out after ${elapsed}s. Try again.`
-            : `Claude process was interrupted after ${elapsed}s. Try again.`;
+          const errMsg = `Claude process was interrupted after ${elapsed}s. Try again.`;
           ws.send(JSON.stringify({ type: 'error', message: errMsg }));
           resolve(null);
           return;
@@ -1344,7 +1356,6 @@ async function runClaude(ws, prompt, opts = {}) {
 
     child.on('error', (err) => {
       clearInterval(progressInterval);
-      clearTimeout(killTimer);
       activeClaude = null;
       console.error('[Claude] Spawn error:', err.message);
       ws.send(JSON.stringify({ type: 'error', message: `Failed to start claude: ${err.message}` }));
@@ -1383,10 +1394,55 @@ function extractDataSchema(appCode) {
   return `\nDATA SCHEMA (these document types have user data in IndexedDB — do NOT rename or change them):\n${unique.join('\n')}\n`;
 }
 
-async function handleChat(ws, message) {
+const EFFECT_INSTRUCTIONS = {
+  '3d': `MANDATORY: Use WebGL or CSS 3D transforms (perspective, rotateX/Y/Z, preserve-3d) for this feature. Create actual 3D depth — not flat elements with shadows. Consider: rotating 3D cards, perspective grids, WebGL scenes with Three.js-style raw GL, isometric layouts, parallax depth layers. Use useRef + useEffect for any canvas/WebGL setup with proper cleanup.`,
+  'animated': `MANDATORY: Add rich CSS & JS animations. Use @keyframes, CSS transitions, requestAnimationFrame loops, staggered animation-delay on lists, scroll-triggered reveals with IntersectionObserver, @property for animated gradients, clip-path morphing, and entrance/exit animations. Everything should feel alive and in motion.`,
+  'interactive': `MANDATORY: Make elements respond to user interaction. Add mouse-follow effects (cursor glow, tilt cards on hover with perspective), drag & drop, hover state morphs, click-triggered path drawing, SMIL animate on mouseover/mouseout, parallax on scroll, and mouse-reactive particle displacement. Use onMouseMove with getBoundingClientRect for position tracking.`,
+  'particles': `MANDATORY: Add a Canvas 2D particle system background. Use useRef + useEffect with requestAnimationFrame. Create floating particles that drift, connect particles with lines when close, add mouse-reactive displacement. Use devicePixelRatio for retina, keep count under 100 for mobile. The particles should be behind content with position:fixed, zIndex:0, pointerEvents:none.`,
+  'shader': `MANDATORY: Add a WebGL fragment shader background. Create a fullscreen quad with vertex shader, pass u_time/u_resolution/u_mouse uniforms. Use effects like: aurora (sine wave color mixing), plasma (layered sine interference), noise gradient mesh (hash-based noise with mouse reactivity), or animated color fields. Use precision mediump float. Graceful fallback if WebGL unavailable.`,
+};
+
+async function handleChat(ws, message, effects = [], animationId = null) {
+  let effectBlock = '';
+
+  // New animation catalog system — single animation selection
+  if (animationId) {
+    const instructions = getAnimationInstructions(animationId);
+    if (instructions) {
+      const animMeta = animations.find(a => a.id === animationId);
+      const animName = animMeta ? animMeta.name : animationId;
+      effectBlock = `\n\nANIMATION MODIFIER: "${animName}" (${animationId})
+The user selected this animation effect — you MUST implement it in the app.
+
+${instructions}
+
+ANIMATION RULES:
+- Use ONLY native browser APIs (Canvas 2D, WebGL, CSS @property, IntersectionObserver, SVG SMIL) — no external libraries
+- All Canvas/WebGL must use useRef + useEffect with proper cleanup (cancelAnimationFrame + removeEventListener)
+- Background effects: position fixed, zIndex 0, pointerEvents none
+- Performance: devicePixelRatio for retina, rAF for animations, passive scroll listeners`;
+    }
+  }
+
+  // Legacy effect chips support (backward compat with preview.html)
+  if (!animationId && effects.length > 0) {
+    const instructions = effects
+      .filter(e => EFFECT_INSTRUCTIONS[e])
+      .map(e => EFFECT_INSTRUCTIONS[e]);
+    if (instructions.length > 0) {
+      effectBlock = `\n\nEFFECT MODIFIERS (the user toggled these — you MUST implement them):\n${instructions.join('\n\n')}
+
+EFFECT RULES:
+- Use ONLY native browser APIs (Canvas 2D, WebGL, CSS @property, IntersectionObserver, SVG SMIL) — no external libraries
+- All Canvas/WebGL must use useRef + useEffect with proper cleanup (cancelAnimationFrame + removeEventListener)
+- Background effects: position fixed, zIndex 0, pointerEvents none
+- Performance: devicePixelRatio for retina, rAF for animations, passive scroll listeners`;
+    }
+  }
+
   const prompt = `The user is iterating on a React app in app.jsx. Read app.jsx first, then Edit it.
 
-User says: "${message}"
+User says: "${message}"${effectBlock}
 
 RULES:
 - Read app.jsx, then Edit ONLY what the user asked for
@@ -1396,7 +1452,8 @@ RULES:
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
 - Never change Fireproof document types or query filters`;
 
-  await runClaude(ws, prompt, { tools: 'Edit,Read', maxTurns: 8 });
+  const maxTurns = (animationId || effects.length > 0) ? 12 : 8;
+  await runClaude(ws, prompt, { tools: 'Edit,Read', maxTurns });
 
   // Sanitize CSS unicode escapes that would crash Babel
   const chatAppPath = join(PROJECT_ROOT, 'app.jsx');
@@ -1934,7 +1991,10 @@ async function handleDeploy(ws, target, name) {
     // 2. Before </body>: a <style> that overrides HiddenMenuWrapper's white bg
     //    and makes the app root div show the correct background.
     //    Placed last so it wins over all dynamically injected styles.
-    const headPatch = `<style>
+    const headPatch = `<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <style>
       #container { padding: 10px !important; }
       body::before { background-color: ${bg} !important; }
     </style>`;
@@ -2001,8 +2061,18 @@ async function handleDeploy(ws, target, name) {
   const urlMatch = deployResult.stdout.match(/(https?:\/\/[^\s]+)/);
   if (urlMatch) deployUrl = urlMatch[1];
 
+  // Save the deployed version to ~/.vibes/apps/ so it persists across editor restarts
+  try {
+    const saveDest = join(APPS_DIR, appName);
+    mkdirSync(saveDest, { recursive: true });
+    copyFileSync(appJsxPath, join(saveDest, 'app.jsx'));
+    console.log(`[Deploy] Saved deployed app.jsx to ${saveDest}`);
+  } catch (e) {
+    console.error('[Deploy] Failed to save app.jsx:', e.message);
+  }
+
   ws.send(JSON.stringify({ type: 'status', status: 'thinking', progress: 100, stage: 'Done!', elapsed: getElapsed() }));
-  ws.send(JSON.stringify({ type: 'deploy_complete', url: deployUrl }));
+  ws.send(JSON.stringify({ type: 'deploy_complete', url: deployUrl, name: appName }));
   ws.send(JSON.stringify({ type: 'chat', role: 'assistant', content: deployUrl ? `Deployed to ${deployUrl}` : 'Deployment complete!' }));
 
   console.log(`[Deploy] ${target} deploy "${appName}" complete${deployUrl ? `: ${deployUrl}` : ''}`);
@@ -2225,6 +2295,7 @@ server.listen(PORT, () => {
 │  Open:     http://localhost:${PORT}                │
 │  Mode:     ${modeLabel.padEnd(37)}│
 │  Themes:   ${String(themes.length).padEnd(3)} loaded                       │
+│  Anims:    ${String(animations.length).padEnd(3)} loaded                       │
 │                                                 │
 │  Press Ctrl+C to stop                           │
 └─────────────────────────────────────────────────┘

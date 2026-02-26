@@ -1,0 +1,82 @@
+ANIMATION: shd-noise-gradient
+NAME: Noise Gradient
+CATEGORY: Shader
+
+DESCRIPTION: Smooth animated noise mesh that reacts to mouse position. Layered value noise creates organic gradients that shift between deep purples, ocean blues, and warm pinks as you move the cursor across the screen.
+
+IMPLEMENTATION RULES:
+- Native WebGL only — no external libraries (no Three.js)
+- Use useRef + useEffect with proper cleanup (cancelAnimationFrame, removeEventListener)
+- Always check if (!gl) return for graceful fallback when WebGL unavailable
+- Use precision mediump float — highp causes issues on some mobile GPUs
+- Pass u_time, u_resolution, u_mouse uniforms
+- Background effects: position fixed, zIndex 0, pointerEvents none
+- Canvas size via JS attributes with devicePixelRatio
+
+CODE EXAMPLE:
+function NoiseGradientShader() {
+  const canvasRef = React.useRef(null);
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    const gl = canvas.getContext("webgl");
+    if (!gl) return;
+    let animId;
+    let mouse = [0.5, 0.5];
+    function resize() {
+      canvas.width = window.innerWidth * devicePixelRatio;
+      canvas.height = window.innerHeight * devicePixelRatio;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    function onMouseMove(e) {
+      mouse = [e.clientX / window.innerWidth, 1.0 - e.clientY / window.innerHeight];
+    }
+    resize();
+    window.addEventListener("resize", resize);
+    window.addEventListener("mousemove", onMouseMove);
+    const vs = "attribute vec2 p; void main(){ gl_Position=vec4(p,0,1); }";
+    const fs = `precision mediump float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+float noise(vec2 p){
+  vec2 i=floor(p), f=fract(p);
+  f=f*f*(3.0-2.0*f);
+  return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);
+}
+void main(){
+  vec2 uv=gl_FragCoord.xy/u_resolution;
+  float n=noise(uv*4.0+u_time*0.3+u_mouse*2.0);
+  n+=noise(uv*8.0-u_time*0.2)*0.5;
+  vec3 c=mix(vec3(0.1,0.0,0.2),vec3(0.0,0.5,0.8),n);
+  c=mix(c,vec3(0.9,0.3,0.5),noise(uv*3.0+u_time*0.5)*0.4);
+  gl_FragColor=vec4(c,1.0);
+}`;
+    function compile(src, type) {
+      const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s;
+    }
+    const prog = gl.createProgram();
+    gl.attachShader(prog, compile(vs, gl.VERTEX_SHADER));
+    gl.attachShader(prog, compile(fs, gl.FRAGMENT_SHADER));
+    gl.linkProgram(prog); gl.useProgram(prog);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, "p");
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    const uTime = gl.getUniformLocation(prog, "u_time");
+    const uRes = gl.getUniformLocation(prog, "u_resolution");
+    const uMouse = gl.getUniformLocation(prog, "u_mouse");
+    function render(t) {
+      gl.uniform1f(uTime, t * 0.001);
+      gl.uniform2f(uRes, canvas.width, canvas.height);
+      gl.uniform2f(uMouse, mouse[0], mouse[1]);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      animId = requestAnimationFrame(render);
+    }
+    render(0);
+    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); window.removeEventListener("mousemove", onMouseMove); };
+  }, []);
+  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", width: "100vw", height: "100vh" }} />;
+}
