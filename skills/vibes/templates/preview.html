@@ -797,6 +797,10 @@
         } else if (msg.type === 'error') {
           setThinking(false);
           addMessage('error', msg.message);
+          if (pendingThemeId) {
+            pendingThemeId = null;
+            reloadPreview();  // Still reload to show Pass 1 changes
+          }
         } else if (msg.type === 'cancelled') {
           setThinking(false);
           addMessage('system', 'Request cancelled.');
