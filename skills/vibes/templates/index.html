@@ -2962,7 +2962,7 @@ if (typeof window !== 'undefined') {
             isError: true,
             errorDetails: 'Run Connect setup to configure Clerk credentials.'
           },
-            React.createElement('p', { style: { color: '#7f1d1d', fontSize: '0.875rem' } },
+            React.createElement('p', { style: { color: 'var(--comp-accent-red, #7f1d1d)', fontSize: '0.875rem' } },
               'Check your .env file for missing credentials.'
             )
           );
@@ -2993,8 +2993,8 @@ if (typeof window !== 'undefined') {
               onClick: function() { window.location.reload(); },
               style: {
                 padding: '0.75rem 1.5rem',
-                backgroundColor: '#ef4444',
-                color: 'white',
+                backgroundColor: 'var(--comp-accent-red, #ef4444)',
+                color: 'var(--comp-accent-text, white)',
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
@@ -3079,12 +3079,12 @@ if (typeof window !== 'undefined') {
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          background: 'rgba(245, 245, 244, 0.6)',
+          background: 'color-mix(in srgb, var(--comp-bg, rgb(245, 245, 244)) 60%, transparent)',
           backdropFilter: 'blur(8px)',
           WebkitBackdropFilter: 'blur(8px)',
           padding: '6px 12px',
           borderRadius: '100px',
-          border: '1px solid rgba(0, 0, 0, 0.03)',
+          border: '1px solid color-mix(in srgb, var(--comp-border, black) 3%, transparent)',
           fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           fontSize: '12px',
           fontWeight: '500',
@@ -3126,7 +3126,7 @@ if (typeof window !== 'undefined') {
 
         // Label text
         var labelStyle = {
-          color: '#111111',
+          color: 'var(--comp-text, #111111)',
           paddingTop: '1px',
           letterSpacing: '0.01em'
         };
