@@ -72,7 +72,7 @@ function loadOpenRouterKey() {
   console.log('OpenRouter API key not found (image generation disabled)');
   return null;
 }
-const OPENROUTER_KEY = loadOpenRouterKey();
+let OPENROUTER_KEY = loadOpenRouterKey();
 
 // --- Load theme catalog at startup ---
 const catalogPath = join(PROJECT_ROOT, 'skills/vibes/themes/catalog.txt');
@@ -600,6 +600,10 @@ async function checkEditorDeps() {
   // Connection succeeded if we got ANY output (even error) — failure would be timeout/refused
   const sshOk = sshResult.output.length > 0;
 
+  // OpenRouter API key (optional — enables AI theme generation + useAI hook)
+  const orKey = loadOpenRouterKey();
+  const openrouterOk = !!orKey;
+
   return {
     clerk: {
       ok: clerkOk,
@@ -608,6 +612,10 @@ async function checkEditorDeps() {
     connect: {
       ok: connectOk,
       detail: connectOk ? apiUrl : 'No VITE_API_URL / VITE_CLOUD_URL in .env',
+    },
+    openrouter: {
+      ok: openrouterOk,
+      detail: openrouterOk ? `sk-or-...${orKey.slice(-6)}` : 'No OPENROUTER_API_KEY in .env',
     },
     wrangler: {
       ok: wranglerOk,
@@ -737,6 +745,15 @@ async function handleRequest(req, res) {
         }
       }
 
+      // Validate OpenRouter API key (optional)
+      if (body.OPENROUTER_API_KEY) {
+        if (body.OPENROUTER_API_KEY.startsWith('sk-or-')) {
+          validatedVars.OPENROUTER_API_KEY = body.OPENROUTER_API_KEY;
+        } else {
+          errors.OPENROUTER_API_KEY = 'Invalid OpenRouter key (must start with sk-or-)';
+        }
+      }
+
       // If any validation errors, return 400
       if (Object.keys(errors).length > 0) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -746,6 +763,12 @@ async function handleRequest(req, res) {
       // Write validated vars to .env
       if (Object.keys(validatedVars).length > 0) {
         writeEnvFile(PROJECT_ROOT, validatedVars);
+      }
+
+      // Reload OpenRouter key if it was saved (avoids requiring server restart)
+      if (validatedVars.OPENROUTER_API_KEY) {
+        OPENROUTER_KEY = validatedVars.OPENROUTER_API_KEY;
+        console.log('OpenRouter API key updated from wizard');
       }
 
       // Re-check status and return fresh state
