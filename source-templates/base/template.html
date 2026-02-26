@@ -284,6 +284,7 @@
 
       function SyncStatusDot() {
         var statusRef = React.useRef(window.__VIBES_SYNC_STATUS__ || 'idle');
+        var errorRef = React.useRef(window.__VIBES_SYNC_ERROR__ || null);
         var _s = React.useState(0);
         var forceUpdate = _s[1];
 
@@ -291,6 +292,7 @@
           function onStatusChange() {
             var next = window.__VIBES_SYNC_STATUS__ || 'idle';
             statusRef.current = next;
+            errorRef.current = window.__VIBES_SYNC_ERROR__ || null;
             forceUpdate(function(n) { return n + 1; });
           }
           window.addEventListener('vibes-sync-status-change', onStatusChange);
@@ -300,8 +302,14 @@
         }, []);
 
         var status = statusRef.current;
+        var syncError = errorRef.current;
         var color = SYNC_STATUS_COLORS[status] || '#94a3b8';
         var label = SYNC_STATUS_LABELS[status] || '';
+        // Append truncated error detail for error state
+        if (status === 'error' && syncError) {
+          var shortErr = syncError.length > 60 ? syncError.slice(0, 60) + '\u2026' : syncError;
+          label = label + ' \u2014 ' + shortErr;
+        }
         var isIdle = status === 'idle';
         var isSynced = status === 'synced';
 
@@ -370,7 +378,7 @@
         return React.createElement('div', {
           style: containerStyle,
           'aria-hidden': 'true',
-          title: 'Sync: ' + status
+          title: 'Sync: ' + status + (syncError ? ' \u2014 ' + syncError : '')
         },
           React.createElement('div', { style: lightWrapperStyle },
             isSynced ? React.createElement('div', { style: pulseRingStyle }) : null,

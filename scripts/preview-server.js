@@ -19,9 +19,12 @@ import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import { WebSocketServer } from 'ws';
 import { parseThemeCatalog } from './lib/parse-theme-catalog.js';
-import { loadEnvFile, validateClerkKey } from './lib/env-utils.js';
+import { loadEnvFile, validateClerkKey, populateConnectConfig } from './lib/env-utils.js';
 import { hasThemeMarkers, replaceThemeSection, extractNonThemeSections } from './lib/theme-sections.js';
 import { createBackup, restoreFromBackup } from './lib/backup.js';
+import { APP_PLACEHOLDER } from './lib/assembly-utils.js';
+import { stripForTemplate } from './lib/strip-code.js';
+import { TEMPLATES } from './lib/paths.js';
 import { homedir } from 'os';
 import { execFile } from 'child_process';
 
@@ -562,17 +565,26 @@ async function handleRequest(req, res) {
     return res.end(JSON.stringify({ hasKey: !!OPENROUTER_KEY }));
   }
 
-  // GET /app-frame → the inner iframe HTML (mocked Fireproof + Babel)
+  // GET /app-frame → assembled vibes template with real Fireproof
   if (pathname === '/app-frame') {
     const appPath = join(PROJECT_ROOT, 'app.jsx');
-    let appCode = existsSync(appPath) ? readFileSync(appPath, 'utf-8') : '// no app.jsx found';
-    // Strip import/export statements — Babel standalone can't handle ES modules
-    appCode = appCode
-      .replace(/^export\s+default\s+/gm, '')
-      .replace(/^export\s+/gm, '')
-      .replace(/^import\s+.*$/gm, '// [import stripped for preview]');
+    if (!existsSync(appPath)) {
+      res.writeHead(404);
+      return res.end('app.jsx not found');
+    }
+    const appCode = readFileSync(appPath, 'utf-8');
+    const assembled = assembleAppFrame(appCode);
     res.writeHead(200, { 'Content-Type': 'text/html' });
-    return res.end(buildAppFrameHtml(appCode));
+    return res.end(assembled);
+  }
+
+  // Bundle files: import map references these at root paths
+  if (pathname === '/fireproof-vibes-bridge.js' || pathname === '/fireproof-clerk-bundle.js') {
+    const bundlePath = join(PROJECT_ROOT, 'bundles', pathname.slice(1));
+    if (existsSync(bundlePath)) {
+      res.writeHead(200, { 'Content-Type': 'text/javascript' });
+      return res.end(readFileSync(bundlePath));
+    }
   }
 
   // Static file fallback (bundles, assets)
@@ -1537,130 +1549,39 @@ async function handlePickThemeImage(ws, index, prompt) {
   }
 }
 
-// --- App Frame HTML Builder ---
-// Builds the inner iframe HTML with mocked Fireproof + Babel
+// --- App Frame Assembler ---
+// Assembles app.jsx into the real vibes template with Fireproof bundle + Clerk auth
 
-function buildAppFrameHtml(appCode) {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>App Preview</title>
-  <script src="https://cdn.tailwindcss.com"><\/script>
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"><\/script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"><\/script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
-  <script>
-    // Expose React hooks as globals
-    var useState = React.useState;
-    var useEffect = React.useEffect;
-    var useRef = React.useRef;
-    var useCallback = React.useCallback;
-    var useMemo = React.useMemo;
-    var createContext = React.createContext;
-    var useContext = React.useContext;
+function assembleAppFrame(appCode) {
+  const templatePath = TEMPLATES.vibesBasic;
+  if (!existsSync(templatePath)) {
+    return `<html><body><h1>Template not found</h1><p>${templatePath}</p></body></html>`;
+  }
 
-    // Mock useTenant
-    function useTenant() {
-      return { dbName: "preview-db", subdomain: "preview" };
-    }
+  let template = readFileSync(templatePath, 'utf-8');
 
-    // localStorage-backed Fireproof mock — data survives iframe reloads
-    var _STORE_KEY = 'vibes-preview-data';
-    var _storeData = (function() {
-      try { return JSON.parse(localStorage.getItem(_STORE_KEY)) || []; }
-      catch(e) { return []; }
-    })();
-    var _storeListeners = new Set();
-    function _persist() {
-      try { localStorage.setItem(_STORE_KEY, JSON.stringify(_storeData)); } catch(e) {}
-    }
-    function _notify() { _persist(); _storeListeners.forEach(function(cb) { cb(); }); }
+  // Strip imports/exports from app code for template injection
+  const strippedCode = stripForTemplate(appCode);
 
-    function useFireproofClerk(dbName) {
-      var _s = React.useState(0);
-      var revision = _s[0];
-      var setRevision = _s[1];
+  // Replace app code placeholder
+  if (!template.includes(APP_PLACEHOLDER)) {
+    return `<html><body><h1>Template missing placeholder</h1><p>${APP_PLACEHOLDER}</p></body></html>`;
+  }
+  template = template.replace(APP_PLACEHOLDER, strippedCode);
 
-      React.useEffect(function() {
-        var cb = function() { setRevision(function(r) { return r + 1; }); };
-        _storeListeners.add(cb);
-        return function() { _storeListeners.delete(cb); };
-      }, []);
+  // Populate Connect config from .env
+  const envVars = loadEnvFile(PROJECT_ROOT);
+  template = populateConnectConfig(template, envVars);
 
-      var database = React.useMemo(function() {
-        return {
-          put: function(doc) {
-            var id = doc._id || 'doc-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-            var idx = _storeData.findIndex(function(d) { return d._id === id; });
-            var saved = Object.assign({}, doc, { _id: id });
-            if (idx >= 0) _storeData[idx] = saved;
-            else _storeData.push(saved);
-            _notify();
-            return Promise.resolve({ id: id });
-          },
-          del: function(id) {
-            _storeData = _storeData.filter(function(d) { return d._id !== id; });
-            _notify();
-            return Promise.resolve();
-          }
-        };
-      }, []);
+  // Warn if Connect URLs are missing — sync will silently fail without them
+  if (!envVars.VITE_API_URL) {
+    console.warn('[preview] \u26a0 VITE_API_URL missing from .env \u2014 sync will not work');
+  }
+  if (!envVars.VITE_CLOUD_URL) {
+    console.warn('[preview] \u26a0 VITE_CLOUD_URL missing from .env \u2014 sync will not work');
+  }
 
-      function useLiveQuery(field, opts) {
-        void revision;
-        var docs = _storeData.filter(function(d) {
-          return opts && opts.key ? d[field] === opts.key : true;
-        });
-        return { docs: docs };
-      }
-
-      function useDocument(initial) {
-        var _d = React.useState(Object.assign({}, initial));
-        var doc = _d[0];
-        var setDoc = _d[1];
-        return {
-          doc: doc,
-          merge: function(updates) {
-            setDoc(function(prev) { return Object.assign({}, prev, updates); });
-          },
-          submit: function() {
-            var newDoc = Object.assign({}, doc, {
-              _id: 'doc-' + Date.now() + '-' + Math.random().toString(36).slice(2)
-            });
-            _storeData.push(newDoc);
-            _notify();
-            setDoc(Object.assign({}, initial));
-          },
-          reset: function() {
-            setDoc(Object.assign({}, initial));
-          },
-          save: function() {
-            var id = doc._id || 'doc-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-            var saved = Object.assign({}, doc, { _id: id });
-            var idx = _storeData.findIndex(function(d) { return d._id === id; });
-            if (idx >= 0) _storeData[idx] = saved;
-            else _storeData.push(saved);
-            _notify();
-          }
-        };
-      }
-
-      return { database: database, useLiveQuery: useLiveQuery, useDocument: useDocument };
-    }
-  <\/script>
-</head>
-<body>
-  <div id="root"></div>
-  <script type="text/babel">
-${appCode}
-
-    const root = ReactDOM.createRoot(document.getElementById("root"));
-    root.render(<App />);
-  <\/script>
-</body>
-</html>`;
+  return template;
 }
 
 // --- Start ---
