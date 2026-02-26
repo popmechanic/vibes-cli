@@ -1641,7 +1641,9 @@
       const msg = JSON.parse(event.data);
 
       if (msg.type === 'status') {
-        if (currentPhase === 'generate') {
+        if (msg.status === 'extracting_theme' || msg.status === 'generating_images') {
+          updateThemeExtractionProgress(msg.progress, msg.stage, msg.elapsed);
+        } else if (currentPhase === 'generate') {
           updateGenerateProgress(msg.progress, msg.stage, msg.elapsed);
         } else {
           setThinking(true, msg.progress, msg.stage, msg.elapsed);
@@ -1715,8 +1717,10 @@
         const hint = document.getElementById('wizardDeployHint');
         if (hint) { hint.textContent = msg.message; hint.style.color = 'var(--vibes-red)'; }
       } else if (msg.type === 'theme_images') {
+        setThinking(false);
         showThemeImages(msg.images);
       } else if (msg.type === 'theme_created') {
+        setThinking(false);
         onThemeCreated(msg.themeId, msg.themeName);
       }
     };
@@ -2596,10 +2600,30 @@
 
     const statusEl = document.getElementById('imagePickerArea').querySelector('.create-status');
     if (statusEl) {
-      statusEl.innerHTML = '<div class="spinner" style="display:inline-block;width:16px;height:16px;vertical-align:middle;margin-right:0.5rem;"></div>Claude is analyzing the design and writing your theme...';
+      statusEl.innerHTML = `
+        <div class="spinner" style="display:inline-block;width:16px;height:16px;vertical-align:middle;margin-right:0.5rem;"></div>
+        <span id="themeExtractStage">Extracting theme from image...</span>
+        <div class="thinking-progress-bar" style="margin-top:0.5rem;">
+          <div class="thinking-progress-fill" id="themeExtractFill" style="width: 0%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.7rem;opacity:0.7;margin-top:0.25rem;">
+          <span id="themeExtractPct">0%</span>
+          <span id="themeExtractTime">0s</span>
+        </div>`;
     }
 
     ws.send(JSON.stringify({ type: 'pick_theme_image', index, prompt }));
+  }
+
+  function updateThemeExtractionProgress(progress, stage, elapsed) {
+    const fill = document.getElementById('themeExtractFill');
+    const pct = document.getElementById('themeExtractPct');
+    const time = document.getElementById('themeExtractTime');
+    const stageEl = document.getElementById('themeExtractStage');
+    if (fill) fill.style.width = (progress || 0) + '%';
+    if (pct) pct.textContent = (progress || 0) + '%';
+    if (time) time.textContent = (elapsed || 0) + 's';
+    if (stageEl && stage) stageEl.textContent = stage;
   }
 
   function onThemeCreated(themeId, themeName) {
