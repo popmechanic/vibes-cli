@@ -19,7 +19,7 @@ import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import { WebSocketServer } from 'ws';
 import { parseThemeCatalog } from './lib/parse-theme-catalog.js';
-import { loadEnvFile, validateClerkKey, populateConnectConfig } from './lib/env-utils.js';
+import { loadEnvFile, validateClerkKey, populateConnectConfig, validateClerkSecretKey, validateConnectUrl, deriveConnectUrls, writeEnvFile } from './lib/env-utils.js';
 import { hasThemeMarkers, replaceThemeSection, extractNonThemeSections } from './lib/theme-sections.js';
 import { createBackup, restoreFromBackup } from './lib/backup.js';
 import { APP_PLACEHOLDER } from './lib/assembly-utils.js';
@@ -437,6 +437,19 @@ const MIME = {
   '.png': 'image/png',
 };
 
+// --- Helpers ---
+function parseJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try { resolve(JSON.parse(body)); }
+      catch { reject(new Error('Invalid JSON')); }
+    });
+    req.on('error', reject);
+  });
+}
+
 // --- HTTP Server ---
 async function handleRequest(req, res) {
   const url = new URL(req.url, `http://localhost:${PORT}`);
@@ -444,7 +457,7 @@ async function handleRequest(req, res) {
 
   // CORS headers for all responses
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -482,6 +495,104 @@ async function handleRequest(req, res) {
     const exists = existsSync(join(PROJECT_ROOT, 'app.jsx'));
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ exists }));
+  }
+
+  // POST /editor/credentials → validate and save credentials to .env
+  if (pathname === '/editor/credentials' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      const errors = {};
+      const validatedVars = {};
+
+      // Validate Clerk publishable key
+      if (body.VITE_CLERK_PUBLISHABLE_KEY) {
+        if (validateClerkKey(body.VITE_CLERK_PUBLISHABLE_KEY)) {
+          validatedVars.VITE_CLERK_PUBLISHABLE_KEY = body.VITE_CLERK_PUBLISHABLE_KEY;
+        } else {
+          errors.VITE_CLERK_PUBLISHABLE_KEY = 'Invalid Clerk publishable key (must start with pk_test_ or pk_live_)';
+        }
+      }
+
+      // Validate Clerk secret key
+      if (body.VITE_CLERK_SECRET_KEY) {
+        if (validateClerkSecretKey(body.VITE_CLERK_SECRET_KEY)) {
+          validatedVars.VITE_CLERK_SECRET_KEY = body.VITE_CLERK_SECRET_KEY;
+        } else {
+          errors.VITE_CLERK_SECRET_KEY = 'Invalid Clerk secret key (must start with sk_test_ or sk_live_)';
+        }
+      }
+
+      // Validate API URL
+      if (body.VITE_API_URL) {
+        if (validateConnectUrl(body.VITE_API_URL, 'api')) {
+          validatedVars.VITE_API_URL = body.VITE_API_URL;
+        } else {
+          errors.VITE_API_URL = 'Invalid API URL (must start with https://)';
+        }
+      }
+
+      // Validate Cloud URL
+      if (body.VITE_CLOUD_URL) {
+        if (validateConnectUrl(body.VITE_CLOUD_URL, 'cloud')) {
+          validatedVars.VITE_CLOUD_URL = body.VITE_CLOUD_URL;
+        } else {
+          errors.VITE_CLOUD_URL = 'Invalid Cloud URL (must start with fpcloud://)';
+        }
+      }
+
+      // If any validation errors, return 400
+      if (Object.keys(errors).length > 0) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ ok: false, errors }));
+      }
+
+      // Write validated vars to .env
+      if (Object.keys(validatedVars).length > 0) {
+        writeEnvFile(PROJECT_ROOT, validatedVars);
+      }
+
+      // Re-check status and return fresh state
+      const status = await checkEditorDeps();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ ok: true, status }));
+    } catch (err) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ ok: false, errors: { _: err.message } }));
+    }
+  }
+
+  // POST /editor/credentials/check-studio → probe a studio for reachability
+  if (pathname === '/editor/credentials/check-studio' && req.method === 'POST') {
+    try {
+      const body = await parseJsonBody(req);
+      const studioName = body.studio;
+      if (!studioName || typeof studioName !== 'string') {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ reachable: false, error: 'Studio name is required' }));
+      }
+
+      const { apiUrl, cloudUrl } = deriveConnectUrls(studioName);
+
+      let reachable = false;
+      let error;
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const resp = await fetch(apiUrl, { signal: controller.signal });
+        clearTimeout(timeout);
+        reachable = resp.ok || resp.status < 500;
+      } catch (fetchErr) {
+        error = fetchErr.name === 'AbortError' ? 'Connection timed out' : fetchErr.message;
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      const result = { reachable, apiUrl, cloudUrl };
+      if (error) result.error = error;
+      return res.end(JSON.stringify(result));
+    } catch (err) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ reachable: false, error: err.message }));
+    }
   }
 
   // GET /editor/apps → list saved apps from ~/.vibes/apps/
@@ -646,6 +757,8 @@ wss.on('connection', (ws) => {
         copyFileSync(appSrc, join(dest, 'app.jsx'));
         ws.send(JSON.stringify({ type: 'app_saved', name }));
         console.log(`[Save] Saved app to ${dest}`);
+      } else if (msg.type === 'deploy-studio') {
+        await handleDeployStudio(ws, msg.studioName, msg.clerkPublishableKey, msg.clerkSecretKey);
       }
     } catch (err) {
       console.error('[WS] Handler error:', err);
@@ -1473,6 +1586,84 @@ async function handleDeploy(ws, target, name) {
   ws.send(JSON.stringify({ type: 'chat', role: 'assistant', content: deployUrl ? `Deployed to ${deployUrl}` : 'Deployment complete!' }));
 
   console.log(`[Deploy] ${target} deploy "${appName}" complete${deployUrl ? `: ${deployUrl}` : ''}`);
+}
+
+// --- Editor: Deploy Connect Studio ---
+async function handleDeployStudio(ws, studioName, clerkPublishableKey, clerkSecretKey) {
+  if (!studioName) {
+    ws.send(JSON.stringify({ type: 'studio-error', message: 'Studio name is required' }));
+    return;
+  }
+  if (!clerkPublishableKey) {
+    ws.send(JSON.stringify({ type: 'studio-error', message: 'Clerk publishable key is required' }));
+    return;
+  }
+  if (!clerkSecretKey) {
+    ws.send(JSON.stringify({ type: 'studio-error', message: 'Clerk secret key is required' }));
+    return;
+  }
+
+  const deployScript = join(PROJECT_ROOT, 'scripts/deploy-connect.js');
+  const args = [
+    deployScript,
+    '--studio', studioName,
+    '--clerk-publishable-key', clerkPublishableKey,
+    '--clerk-secret-key', clerkSecretKey,
+  ];
+
+  console.log(`[Studio] Deploying Connect studio "${studioName}"...`);
+  ws.send(JSON.stringify({ type: 'studio-progress', line: `Deploying Connect studio "${studioName}"...` }));
+
+  const result = await new Promise((resolve) => {
+    const child = spawn('node', args, {
+      cwd: PROJECT_ROOT,
+      env: { ...process.env },
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (data) => {
+      const text = data.toString();
+      stdout += text;
+      // Stream each line back as progress
+      for (const line of text.split('\n').filter(Boolean)) {
+        try { ws.send(JSON.stringify({ type: 'studio-progress', line })); } catch { /* ws may be closed */ }
+      }
+    });
+
+    child.stderr.on('data', (data) => {
+      const text = data.toString();
+      stderr += text;
+      for (const line of text.split('\n').filter(Boolean)) {
+        try { ws.send(JSON.stringify({ type: 'studio-progress', line })); } catch { /* ws may be closed */ }
+      }
+    });
+
+    child.on('close', (code) => {
+      resolve({ ok: code === 0, stdout, stderr });
+    });
+    child.on('error', (err) => {
+      resolve({ ok: false, stdout: '', stderr: err.message });
+    });
+  });
+
+  if (!result.ok) {
+    ws.send(JSON.stringify({ type: 'studio-error', message: `Studio deploy failed: ${result.stderr.slice(0, 300)}` }));
+    console.error(`[Studio] Deploy failed: ${result.stderr.slice(0, 200)}`);
+    return;
+  }
+
+  // Derive Connect URLs and write to .env
+  const { apiUrl, cloudUrl } = deriveConnectUrls(studioName);
+  writeEnvFile(PROJECT_ROOT, {
+    VITE_API_URL: apiUrl,
+    VITE_CLOUD_URL: cloudUrl,
+  });
+
+  ws.send(JSON.stringify({ type: 'studio-complete', apiUrl, cloudUrl }));
+  console.log(`[Studio] Deploy complete: ${apiUrl}`);
 }
 
 async function handleCreateTheme(ws, prompt) {
