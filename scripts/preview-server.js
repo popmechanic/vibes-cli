@@ -13,7 +13,7 @@
  */
 
 import { createServer } from 'http';
-import { readFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, writeFileSync } from 'fs';
+import { readFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, writeFileSync, unlinkSync } from 'fs';
 import { join, dirname, extname } from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
@@ -25,7 +25,7 @@ import { createBackup, restoreFromBackup } from './lib/backup.js';
 import { APP_PLACEHOLDER } from './lib/assembly-utils.js';
 import { stripForTemplate } from './lib/strip-code.js';
 import { TEMPLATES } from './lib/paths.js';
-import { homedir } from 'os';
+import { homedir, tmpdir } from 'os';
 import { execFile } from 'child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -430,7 +430,7 @@ async function generateThemeImages(prompt) {
   const requests = IMAGE_VARIATIONS.map(async (variation, i) => {
     const fullPrompt = `UI design mockup for a web application theme: ${prompt}. Layout style: ${variation}. Clean, modern interface design with visible color palette and typography. No text labels, focus on visual design language and spatial composition.`;
     try {
-      const resp = await fetch('https://openrouter.ai/api/v1/images/generations', {
+      const resp = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${OPENROUTER_KEY}`,
@@ -439,10 +439,9 @@ async function generateThemeImages(prompt) {
           'X-Title': 'Vibes Theme Creator',
         },
         body: JSON.stringify({
-          model: 'openai/dall-e-3',
-          prompt: fullPrompt,
-          n: 1,
-          size: '1024x1024',
+          model: 'google/gemini-2.5-flash-preview-05-20',
+          messages: [{ role: 'user', content: fullPrompt }],
+          modalities: ['image'],
         }),
       });
       if (!resp.ok) {
@@ -451,7 +450,7 @@ async function generateThemeImages(prompt) {
         return null;
       }
       const data = await resp.json();
-      return data.data?.[0]?.url || null;
+      return data.choices?.[0]?.message?.images?.[0]?.image_url?.url || null;
     } catch (err) {
       console.error(`[ImageGen] Variation ${i} error:`, err.message);
       return null;
@@ -523,9 +522,20 @@ Tasks:
 Use oklch() for ALL color values. Study the image carefully for palette, typography weight, spacing rhythm, and overall composition.`;
 
   return new Promise((resolve, reject) => {
+    // Base64 data URLs are too large for CLI args — write to temp file
+    let imagePath = imageUrl;
+    let tempFile = null;
+    if (imageUrl.startsWith('data:')) {
+      tempFile = join(tmpdir(), `vibes-theme-${themeId}-${Date.now()}.png`);
+      const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+      writeFileSync(tempFile, Buffer.from(base64Data, 'base64'));
+      imagePath = tempFile;
+      console.log(`[ThemeExtract] Wrote base64 image to ${tempFile}`);
+    }
+
     const args = [
       '-p', '-',
-      '--image', imageUrl,
+      '--image', imagePath,
       '--output-format', 'json',
       '--allowedTools', 'Edit,Read,Write,Glob,Grep',
       '--no-session-persistence',
@@ -546,7 +556,12 @@ Use oklch() for ALL color values. Study the image carefully for palette, typogra
     child.stdout.on('data', (d) => { stdout += d.toString(); });
     child.stderr.on('data', (d) => { stderr += d.toString(); });
 
+    const cleanup = () => {
+      if (tempFile) try { unlinkSync(tempFile); } catch {}
+    };
+
     child.on('close', (code) => {
+      cleanup();
       if (code !== 0) {
         console.error(`[ThemeExtract] Failed (code ${code}): ${stderr.slice(0, 300)}`);
         reject(new Error(`Theme extraction failed (exit code ${code})`));
@@ -557,6 +572,7 @@ Use oklch() for ALL color values. Study the image carefully for palette, typogra
     });
 
     child.on('error', (err) => {
+      cleanup();
       console.error(`[ThemeExtract] Spawn error:`, err.message);
       reject(new Error(`Failed to start claude: ${err.message}`));
     });
