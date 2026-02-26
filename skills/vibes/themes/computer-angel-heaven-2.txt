@@ -1,0 +1,669 @@
+THEME: computer-angel-heaven-2
+NAME: Computer Angel Heaven
+MOOD: Luminous, circuitry-divine, pearlescent, tech-ethereal
+
+DESCRIPTION:
+A dashboard interface where sacred geometry meets printed circuit boards. A wide
+hero banner shows angel wings traced in PCB copper lines over a frosted sky, with
+a sidebar of icon nodes connected by faint trace paths. Below, a responsive card
+grid holds glassmorphic panels for data, charts, feeds, and chat — each card
+decorated with hairline circuit traces at its corners. The palette blends icy
+pearl backgrounds with warm gold conductor accents and soft lavender highlights.
+Feels like the control panel of a benevolent AI in the clouds.
+
+BEST FOR:
+  - Dashboard and analytics apps with card-based layouts
+  - Server monitoring, system status, infrastructure panels
+  - Collaborative project trackers, kanban boards
+  - AI tool interfaces, model playgrounds, prompt builders
+  - Network/topology visualizers, connection maps
+  - IoT device managers, smart-home panels
+  - Any app mixing technical data with a calm, aspirational aesthetic
+
+NOT FOR:
+  - Dense spreadsheet-style apps (glass blur + many cells = perf cost)
+  - Dark-mode-first apps (fundamentally a light-sky palette)
+  - Brutalist or raw-industrial aesthetics (this is polished and soft)
+  - High-contrast accessibility-critical apps (low-contrast pastels)
+  - Text-heavy reading apps — novels, long articles (too decorative)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Frosted-glass table container with generous row height
+    (52px+). Header row in slightly darker glass. Gold left-border on hover
+    row. Circuit-trace corner decorations on the table card. Max 5-6 columns
+    to keep the airy feel.
+  - If app has CHARTS: Place inside hero-sized cards. Use gold for primary
+    series, sky-blue for secondary, lavender for tertiary. Transparent chart
+    background so the page gradient shows through. Axis text in muted blue-gray.
+  - If app has FORMS: Inputs get frosted backgrounds with 1px translucent
+    borders. Focus adds gold glow ring. Labels in small-caps muted text.
+    Submit button is gold pill with white text. Group inputs in glass cards.
+  - If app has NO IMAGES: Circuit-trace SVG decorations and subtle radial
+    gradients inside cards carry the visual interest. Add a faint halo glow
+    behind key headings.
+  - If app has TABS/FILTERS: Frosted pill tab bar above the card grid. Active
+    tab gets gold bottom-border and brighter glass fill. Inactive tabs are
+    transparent with muted text.
+  - If app has SIDEBAR: Use the icon-node pattern — a narrow vertical glass
+    strip with round icon buttons connected by faint vertical trace lines.
+    Active icon gets a gold halo glow behind it.
+  - If app has CHAT/MESSAGES: Sent messages in gold-tinted glass bubbles,
+    received in blue-tinted glass. Timestamp in lavender micro-text. Message
+    input at bottom with glass background and gold send button.
+  - If app has REAL-TIME DATA: Use the progress-bar pattern from reference.
+    Gradient fill from sky-blue to gold. Pulse animation on live indicators.
+    "Live" badge is a green dot + label in a frosted pill.
+
+COLOR TOKENS:
+  The palette blends a pearl-cloud sky with gold circuit-conductor accents,
+  icy blues, and soft lavender highlights.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.97 0.006 85);            /* warm pearl-white — base surface */
+    --comp-text: oklch(0.28 0.03 255);           /* deep slate-blue — primary text */
+    --comp-text-secondary: oklch(0.52 0.04 260); /* muted sky-gray — labels, metadata */
+    --comp-heading: oklch(0.22 0.03 255);        /* darker slate — section headings */
+    --comp-accent: oklch(0.76 0.13 82);          /* celestial gold — conductors, halos */
+    --comp-accent-hover: oklch(0.70 0.14 78);    /* deeper gold — hover on accent */
+    --comp-accent-text: oklch(0.98 0.005 85);    /* near-white — text on gold elements */
+    --comp-secondary: oklch(0.78 0.07 238);      /* sky blue — traces, progress bars */
+    --comp-secondary-hover: oklch(0.72 0.09 238);/* deeper sky — hover on blue elements */
+    --comp-tertiary: oklch(0.80 0.07 285);       /* soft lavender — badges, tags */
+    --comp-surface: oklch(0.96 0.005 245 / 0.50);/* frosted glass — card fill */
+    --comp-surface-hover: oklch(0.97 0.005 245 / 0.68);/* brighter glass — hover card */
+    --comp-surface-active: oklch(0.97 0.01 82 / 0.55); /* gold-tinted glass — selected */
+    --comp-border: oklch(0.90 0.012 245 / 0.38); /* translucent blue-white — edges */
+    --comp-border-accent: oklch(0.76 0.13 82 / 0.45);  /* gold border — focus/active */
+    --comp-shadow: oklch(0.68 0.05 255 / 0.10);  /* soft blue shadow — elevation */
+    --comp-glow: oklch(0.82 0.09 82 / 0.35);     /* gold glow — halos, focus rings */
+    --comp-sparkle: oklch(0.94 0.03 245 / 0.75); /* blue-white — sparkle particles */
+    --comp-trace: oklch(0.76 0.13 82 / 0.18);    /* gold — circuit trace lines */
+    --comp-trace-glow: oklch(0.82 0.09 82 / 0.10);/* gold haze — trace glow */
+    --comp-input-bg: oklch(0.98 0.003 245 / 0.42);/* glass — input fields */
+    --comp-input-border: oklch(0.88 0.012 245 / 0.32);/* subtle — input borders */
+    --comp-danger: oklch(0.62 0.18 22);           /* muted rose — errors */
+    --comp-success: oklch(0.73 0.13 152);         /* soft mint — success */
+    --comp-radius: 18px;                          /* generous rounding */
+    --comp-radius-sm: 12px;                       /* smaller cards */
+    --comp-radius-pill: 999px;                    /* pills and tags */
+  }
+  ```
+
+  For DARK variant (rare — this theme is fundamentally light):
+  ```css
+  :root {
+    --comp-bg: oklch(0.14 0.02 250);
+    --comp-text: oklch(0.88 0.01 80);
+    --comp-text-secondary: oklch(0.60 0.03 255);
+    --comp-heading: oklch(0.92 0.01 80);
+    --comp-accent: oklch(0.76 0.13 82);
+    --comp-surface: oklch(0.18 0.015 250 / 0.60);
+    --comp-border: oklch(0.30 0.015 250 / 0.40);
+    --comp-shadow: oklch(0.10 0.02 250 / 0.30);
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  Typography:
+    - Headings: Light weight (300), wide tracking (0.03em+). Geometric sans
+      like Inter, Outfit, or Sora. Airy and expansive — never heavy.
+    - Body: Regular weight (400), line-height 1.65. Comfortable reading.
+    - Labels/metadata: Uppercase micro-text (0.7rem), 500 weight, 0.08em spacing.
+    - Stats/numbers: Tabular figures, 1.2rem+, gold accent color for key values.
+    - AVOID: Bold/black weights, monospace for UI labels, condensed faces.
+
+  Spacing:
+    - Generous whitespace. Card padding: 24-32px. Grid gap: 20-24px.
+    - Section spacing: 32-48px. Elements float in space, not packed.
+    - Sidebar column: 72-80px wide with vertically centered icon nodes.
+    - Hero card spans full width, min-height 200px.
+
+  Borders:
+    - Translucent 1px borders on glass surfaces (--comp-border).
+    - No hard opaque lines. Everything blends into the sky.
+    - Active/focus elements use --comp-border-accent (gold tint).
+    - Border-radius always generous (--comp-radius or larger).
+
+  Shadows and Depth:
+    - Layered box-shadows:
+      `0 4px 24px var(--comp-shadow), 0 1px 4px var(--comp-shadow)`
+    - Hover adds glow: `0 0 24px var(--comp-glow)`
+    - Glass surfaces: `backdrop-filter: blur(22px) saturate(1.15)`
+    - Cards float above the background — visible elevation change on hover.
+
+  Background:
+    - Page: multi-stop gradient — warm pearl → pale sky-blue → subtle lavender.
+    - Optional: faint circuit-board trace pattern as SVG background overlay.
+    - Feeling: open sky with hairline technological grid beneath.
+
+PERSONALITY:
+  This theme speaks like a benevolent machine intelligence — precise yet warm,
+  technical yet reverent. It knows the data but presents it with grace. Empty
+  states: "Awaiting signal — ready when you are." Errors: "A connection
+  faltered. Attempting graceful recovery." Buttons use calm imperatives:
+  "Initiate," "Ascend," "Transmit," "Illuminate." Status labels: "Online,"
+  "Synced," "Ascending." The voice is the calm narration of a system that
+  cares about its users — never cold, never frantic.
+
+ANIMATIONS:
+  Tempo: Measured and fluid. Nothing mechanical. Everything eases gracefully.
+
+  - Page load: Cards float in from below (translateY 16px → 0, opacity 0 → 1,
+    650ms ease-out, staggered 90ms per card).
+  - Hover on cards: Subtle lift (translateY -4px) + gold glow intensifies +
+    border brightens. 300ms cubic-bezier(0.22, 1, 0.36, 1).
+  - Circuit traces: Hair-thin gold lines at card corners that extend on hover
+    (width: 0 → 30px, 400ms ease-out). Creates a "powering up" feel.
+  - Button hover: Gold glow expands (box-shadow scales outward), background
+    brightens a step. 250ms ease.
+  - Active/click: Scale(0.97) spring-back. 150ms ease.
+  - Modal/dialog: Fade + slight scale (0.96 → 1.0) with backdrop blur.
+    400ms ease-out.
+  - Sidebar icon hover: Gold halo fades in behind icon (radial-gradient
+    pseudo-element). 300ms ease.
+  - Sparkle pulse: 4-point star particles at 0.3-0.6 opacity, scale 0.8 →
+    1.2, 3-5s infinite. Scattered sparingly across hero area.
+  - Progress bars: Gradient fill animates left-to-right on load (800ms ease).
+  - Live indicators: Green dot with slow pulse (opacity 0.6-1.0, 2s infinite).
+  - Use `cubic-bezier(0.22, 1, 0.36, 1)` for the signature floaty ease.
+  - AVOID: Bounce, elastic, mechanical snap. Everything drifts like clouds.
+
+SVG ELEMENTS:
+  Decorative SVGs merge circuit-board motifs with celestial symbolism.
+
+  - Circuit-trace corners: L-shaped PCB traces at card corners, drawn in gold.
+    Thin strokes (1-1.5px), rounded line-caps, opacity 0.2-0.35.
+    ```svg
+    <svg viewBox="0 0 40 40" class="trace-corner trace-tl">
+      <path d="M0 20 L0 4 Q0 0 4 0 L20 0" fill="none"
+        stroke="var(--comp-trace)" stroke-width="1.5"
+        stroke-linecap="round" />
+      <circle cx="20" cy="0" r="2" fill="var(--comp-trace)" />
+    </svg>
+    ```
+
+  - Halo ring: Thin gold ellipse behind headings or avatars. Animate with
+    stroke-dasharray draw-in on page load.
+    ```svg
+    <svg viewBox="0 0 100 40" class="halo-ring">
+      <ellipse cx="50" cy="20" rx="45" ry="14"
+        fill="none" stroke="var(--comp-accent)" stroke-width="1.2"
+        opacity="0.4" stroke-dasharray="300"
+        stroke-dashoffset="300" />
+    </svg>
+    ```
+
+  - Chip nodes: Small square-with-pins icons at sidebar endpoints or as
+    decorative markers. 16-20px, gold stroke, no fill.
+
+  - Angel wing accents: Simplified bilateral wing curves flanking the hero
+    heading or logo. Low opacity (0.12-0.20) so they read as background
+    texture. Gold or sky-blue stroke.
+
+  - Sparkle stars: 4-point stars (4-8px) scattered via absolute-positioned
+    elements. Slow pulse animation. Max 5-8 per visible viewport.
+    ```svg
+    <svg viewBox="0 0 20 20" class="sparkle-star">
+      <path d="M10 0 L12 8 L20 10 L12 12 L10 20 L8 12 L0 10 L8 8 Z"
+        fill="var(--comp-sparkle)" />
+    </svg>
+    ```
+
+  - PCB background grid (optional): Ultra-faint straight-line grid with
+    occasional right-angle turns, overlaid on the page background at
+    opacity 0.04-0.06. Gives a subliminal technological substrate.
+
+REFERENCE CSS:
+  One interpretation of Computer Angel Heaven v2 — circuit-dashboard variant.
+  Study the patterns, then create your own version per app.
+
+  ```css
+  /* === FOUNDATION === */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', 'Outfit', system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.65;
+    color: var(--comp-text);
+    background:
+      radial-gradient(ellipse at 25% 15%, oklch(0.93 0.03 82 / 0.35) 0%, transparent 50%),
+      radial-gradient(ellipse at 75% 85%, oklch(0.88 0.05 245 / 0.25) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, oklch(0.92 0.04 285 / 0.12) 0%, transparent 40%),
+      linear-gradient(165deg, oklch(0.97 0.006 85) 0%, oklch(0.94 0.015 240) 60%, oklch(0.92 0.02 275) 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* === LAYOUT SHELL === */
+  .app-layout {
+    display: grid;
+    grid-template-columns: 76px 1fr;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "sidebar hero"
+      "sidebar content";
+    min-height: 100vh;
+    gap: 0;
+  }
+
+  /* === SIDEBAR — NODE COLUMN === */
+  .sidebar {
+    grid-area: sidebar;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 0;
+    gap: 4px;
+    background: var(--comp-surface);
+    backdrop-filter: blur(24px) saturate(1.15);
+    border-right: 1px solid var(--comp-border);
+    position: relative;
+  }
+
+  /* Vertical trace line connecting icons */
+  .sidebar::after {
+    content: '';
+    position: absolute;
+    top: 80px;
+    bottom: 80px;
+    left: 50%;
+    width: 1px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      var(--comp-trace) 15%,
+      var(--comp-trace) 85%,
+      transparent
+    );
+    z-index: 0;
+  }
+
+  .sidebar-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    color: var(--comp-text-secondary);
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .sidebar-icon::before {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border-radius: 18px;
+    background: radial-gradient(circle, var(--comp-glow) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 300ms ease;
+  }
+
+  .sidebar-icon:hover { color: var(--comp-accent); }
+  .sidebar-icon:hover::before { opacity: 1; }
+  .sidebar-icon.active { color: var(--comp-accent); }
+  .sidebar-icon.active::before { opacity: 0.75; }
+
+  /* === HERO BANNER === */
+  .hero {
+    grid-area: hero;
+    position: relative;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 40px;
+    background: var(--comp-surface);
+    backdrop-filter: blur(24px) saturate(1.15);
+    border-bottom: 1px solid var(--comp-border);
+    overflow: hidden;
+  }
+
+  /* Radial glow behind hero content */
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 60%, oklch(0.85 0.07 240 / 0.18) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 30%, oklch(0.90 0.06 82 / 0.12) 0%, transparent 40%);
+    pointer-events: none;
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+
+  .hero-title {
+    font-size: 1.6rem;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    color: var(--comp-heading);
+    margin-bottom: 8px;
+  }
+
+  .hero-subtitle {
+    font-size: 0.8rem;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--comp-text-secondary);
+  }
+
+  .hero-search {
+    margin-top: 20px;
+  }
+
+  .search-input {
+    background: var(--comp-input-bg);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--comp-input-border);
+    border-radius: var(--comp-radius-pill);
+    padding: 10px 24px;
+    font-size: 0.875rem;
+    color: var(--comp-text);
+    outline: none;
+    width: 260px;
+    transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .search-input:focus {
+    border-color: var(--comp-border-accent);
+    box-shadow: 0 0 18px var(--comp-glow);
+    width: 320px;
+  }
+
+  /* === MAIN CONTENT === */
+  .content {
+    grid-area: content;
+    padding: 28px 36px;
+    overflow-y: auto;
+  }
+
+  /* === CARD GRID === */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 22px;
+  }
+
+  /* === GLASS CARDS WITH CIRCUIT CORNERS === */
+  .card {
+    background: var(--comp-surface);
+    backdrop-filter: blur(22px) saturate(1.15);
+    border: 1px solid var(--comp-border);
+    border-radius: var(--comp-radius);
+    padding: 26px;
+    position: relative;
+    overflow: hidden;
+    transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Circuit-trace corner decoration */
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 28px;
+    height: 28px;
+    border-top: 1.5px solid var(--comp-trace);
+    border-left: 1.5px solid var(--comp-trace);
+    border-top-left-radius: 4px;
+    opacity: 0.6;
+    transition: all 400ms ease-out;
+  }
+
+  .card::after {
+    content: '';
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border-bottom: 1.5px solid var(--comp-trace);
+    border-right: 1.5px solid var(--comp-trace);
+    border-bottom-right-radius: 4px;
+    opacity: 0.6;
+    transition: all 400ms ease-out;
+  }
+
+  .card:hover {
+    background: var(--comp-surface-hover);
+    border-color: var(--comp-border-accent);
+    transform: translateY(-4px);
+    box-shadow:
+      0 8px 32px var(--comp-shadow),
+      0 0 24px var(--comp-glow);
+  }
+
+  .card:hover::before {
+    width: 36px;
+    height: 36px;
+    opacity: 1;
+  }
+
+  .card:hover::after {
+    width: 36px;
+    height: 36px;
+    opacity: 1;
+  }
+
+  .card-wide {
+    grid-column: span 2;
+  }
+
+  .card-title {
+    font-size: 1.05rem;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    color: var(--comp-heading);
+    margin-bottom: 12px;
+  }
+
+  .card-meta {
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--comp-text-secondary);
+    margin-bottom: 16px;
+  }
+
+  /* === TYPOGRAPHY === */
+  h1, h2, h3 {
+    font-weight: 300;
+    letter-spacing: 0.03em;
+    color: var(--comp-heading);
+  }
+
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.3rem; }
+  h3 { font-size: 1.05rem; }
+
+  .label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--comp-text-secondary);
+  }
+
+  /* === BUTTONS === */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border: none;
+    border-radius: var(--comp-radius-pill);
+    font-size: 0.875rem;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: all 250ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .btn-primary {
+    background: var(--comp-accent);
+    color: var(--comp-accent-text);
+    box-shadow: 0 2px 14px var(--comp-glow);
+  }
+
+  .btn-primary:hover {
+    background: var(--comp-accent-hover);
+    box-shadow: 0 4px 28px var(--comp-glow);
+    transform: translateY(-2px);
+  }
+
+  .btn-primary:active {
+    transform: scale(0.97);
+    box-shadow: 0 1px 8px var(--comp-glow);
+  }
+
+  .btn-ghost {
+    background: var(--comp-surface);
+    backdrop-filter: blur(12px);
+    color: var(--comp-text);
+    border: 1px solid var(--comp-border);
+  }
+
+  .btn-ghost:hover {
+    background: var(--comp-surface-hover);
+    border-color: var(--comp-border-accent);
+  }
+
+  /* === INPUTS === */
+  input, textarea, select {
+    background: var(--comp-input-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--comp-input-border);
+    border-radius: var(--comp-radius-sm);
+    padding: 10px 16px;
+    font-size: 0.875rem;
+    color: var(--comp-text);
+    outline: none;
+    transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--comp-border-accent);
+    box-shadow: 0 0 18px var(--comp-glow);
+  }
+
+  /* === TAGS / BADGES === */
+  .tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: var(--comp-radius-pill);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    background: var(--comp-tertiary);
+    color: var(--comp-heading);
+  }
+
+  .tag-live {
+    background: var(--comp-success);
+    color: oklch(0.98 0.005 155);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tag-live::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: oklch(0.98 0.005 155);
+    animation: live-pulse 2s ease infinite;
+  }
+
+  /* === PROGRESS BARS === */
+  .progress-track {
+    height: 7px;
+    background: var(--comp-border);
+    border-radius: var(--comp-radius-pill);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--comp-secondary), var(--comp-accent));
+    border-radius: var(--comp-radius-pill);
+    transition: width 800ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* === ENTRY + EFFECT ANIMATIONS === */
+  @keyframes float-in {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes sparkle-pulse {
+    0%, 100% { opacity: 0.25; transform: scale(0.8); }
+    50% { opacity: 0.65; transform: scale(1.2); }
+  }
+
+  @keyframes halo-draw {
+    from { stroke-dashoffset: 300; }
+    to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes live-pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
+  @keyframes trace-extend {
+    from { width: 0; height: 0; opacity: 0; }
+    to { width: 28px; height: 28px; opacity: 0.6; }
+  }
+
+  .card {
+    animation: float-in 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .card:nth-child(1) { animation-delay: 0ms; }
+  .card:nth-child(2) { animation-delay: 90ms; }
+  .card:nth-child(3) { animation-delay: 180ms; }
+  .card:nth-child(4) { animation-delay: 270ms; }
+  .card:nth-child(5) { animation-delay: 360ms; }
+  .card:nth-child(6) { animation-delay: 450ms; }
+
+  /* === SCROLLBAR === */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--comp-border);
+    border-radius: var(--comp-radius-pill);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--comp-secondary);
+  }
+
+  /* === RESPONSIVE === */
+  @media (max-width: 768px) {
+    .app-layout {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto 1fr;
+      grid-template-areas:
+        "hero"
+        "content"
+        "content";
+    }
+    .sidebar { display: none; }
+    .hero { min-height: 140px; padding: 24px 20px; }
+    .content { padding: 16px; }
+    .card-wide { grid-column: span 1; }
+    .card-grid { grid-template-columns: 1fr; }
+  }
+  ```

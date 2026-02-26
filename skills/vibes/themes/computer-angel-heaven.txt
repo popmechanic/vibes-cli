@@ -1,0 +1,507 @@
+THEME: computer-angel-heaven
+NAME: Computer Angel Heaven
+MOOD: Ethereal, glassmorphic, celestial, luminous
+
+DESCRIPTION:
+A heavenly glassmorphic interface floating above a soft cloud-scape. Frosted
+translucent panels with blue-white tint sit over a warm pearlescent sky. Gold
+halo accents mark headings and active elements while scattered sparkle
+particles give everything a divine digital glow. The layout uses a sidebar
+icon column, a top header bar with search, and a main content grid of frosted
+cards — all with generous padding and gentle rounded corners that feel like
+they're suspended in mid-air.
+
+BEST FOR:
+  - Meditation, wellness, and mindfulness apps
+  - Creative portfolios, galleries, moodboards
+  - Note-taking, journaling, dream logs
+  - Music players, ambient sound generators
+  - Collaborative whiteboards, brainstorming tools
+  - Dashboard overviews with card-based layouts
+  - Any app that benefits from a calm, airy, elevated aesthetic
+
+NOT FOR:
+  - Data-heavy tables with dense rows (glass blur + many rows = performance hit)
+  - Dark-mode-only apps (the palette is fundamentally light)
+  - High-contrast accessibility-critical apps (soft palette has lower contrast)
+  - Terminal or code-editor UIs (too decorative for monospace workflows)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Use frosted-glass rows with generous row height (48px+).
+    Add subtle gold left-border on hover rows. Keep columns sparse — this theme
+    breathes, so avoid packing 8+ columns. Use the glass card as table container.
+  - If app has CHARTS: Place charts inside frosted cards. Use the gold accent for
+    primary data series, sky-blue for secondary, lavender for tertiary. Chart
+    backgrounds should be transparent so the cloud texture shows through.
+  - If app has FORMS: Inputs get frosted-glass backgrounds with 1px translucent
+    borders. Focus state adds a soft gold glow (box-shadow). Labels in the muted
+    blue-gray text color. Submit buttons use the gold accent with white text.
+  - If app has NO IMAGES: The glass cards and sparkle decorations carry the visual
+    interest. Add a subtle radial gradient or a faint halo SVG behind key content.
+  - If app has TABS/FILTERS: Frosted pill-shaped tab bar. Active tab gets a gold
+    bottom border and slightly brighter glass background. Inactive tabs are fully
+    transparent with muted text.
+  - If app has SIDEBAR: Use the icon-column pattern from the reference — frosted
+    vertical strip with icon buttons. Active icon gets a gold halo glow behind it.
+  - If app has CHAT/MESSAGES: Sent messages in gold-tinted glass, received in
+    blue-tinted glass. Timestamp text in lavender. Message area scrolls over
+    the cloud background.
+
+COLOR TOKENS:
+  Override these in `:root` for the celestial mood. The palette is pearlescent
+  whites, sky blues, angelic golds, and soft lavenders.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.96 0.008 80);           /* warm pearl — the cloud-sky base */
+    --comp-text: oklch(0.30 0.03 250);          /* deep slate-blue — readable on glass */
+    --comp-text-secondary: oklch(0.55 0.04 260);/* muted sky-gray — metadata, timestamps */
+    --comp-heading: oklch(0.25 0.03 250);       /* darker slate — section headers */
+    --comp-accent: oklch(0.78 0.12 85);         /* celestial gold — halos, active states */
+    --comp-accent-hover: oklch(0.72 0.14 80);   /* deeper gold — hover on accent elements */
+    --comp-accent-text: oklch(0.98 0.005 90);   /* near-white — text on gold buttons */
+    --comp-secondary: oklch(0.80 0.06 240);     /* sky blue — icons, progress bars */
+    --comp-secondary-hover: oklch(0.74 0.08 240);/* deeper blue — hover state */
+    --comp-tertiary: oklch(0.82 0.06 290);      /* soft lavender — tags, badges, subtle UI */
+    --comp-surface: oklch(0.97 0.005 240 / 0.55);/* frosted glass — card/panel fill */
+    --comp-surface-hover: oklch(0.97 0.005 240 / 0.70);/* brighter glass — hovered card */
+    --comp-surface-active: oklch(0.98 0.01 85 / 0.60);/* gold-tinted glass — selected card */
+    --comp-border: oklch(0.92 0.01 240 / 0.40); /* translucent blue-white — panel edges */
+    --comp-border-accent: oklch(0.78 0.12 85 / 0.50);/* gold border — focus, active */
+    --comp-shadow: oklch(0.70 0.05 250 / 0.12); /* soft blue shadow — elevation */
+    --comp-glow: oklch(0.85 0.08 85 / 0.40);    /* gold glow — halos, focus rings */
+    --comp-sparkle: oklch(0.95 0.03 240 / 0.80);/* white-blue — sparkle particles */
+    --comp-input-bg: oklch(0.98 0.003 240 / 0.45);/* light glass — input fields */
+    --comp-input-border: oklch(0.90 0.01 240 / 0.35);/* subtle glass edge — input border */
+    --comp-danger: oklch(0.65 0.18 25);         /* muted rose — delete, error */
+    --comp-success: oklch(0.75 0.12 155);       /* soft mint — confirmations */
+    --comp-radius: 16px;                         /* generous rounding — cloud-soft edges */
+    --comp-radius-sm: 10px;                      /* smaller elements */
+    --comp-radius-pill: 999px;                   /* pill buttons, tags */
+  }
+  ```
+
+DESIGN PRINCIPLES:
+  Typography:
+    - Headings: Light or regular weight (300-400), generous letter-spacing (0.02em+).
+      A geometric sans-serif or elegant serif. The mood is airy — never bold/heavy.
+    - Body: Regular weight (400), comfortable line-height (1.6-1.7).
+    - Metadata/labels: Small caps or uppercase with wide tracking (0.08em).
+    - Numbers/stats: Tabular figures, slightly larger than body text.
+    - AVOID: Heavy/black weights, condensed faces, monospace for UI text.
+
+  Spacing:
+    - Generous whitespace everywhere. Padding inside cards: 24-32px.
+    - Gap between cards: 20-24px. Section margins: 32-48px.
+    - Elements should feel like they float in space, not packed tightly.
+    - The sidebar icon column is narrow (64-80px) with centered icons.
+
+  Borders:
+    - Translucent borders (1px) on glass surfaces using --comp-border.
+    - NO hard opaque borders. Everything blends softly.
+    - Active/focus elements get --comp-border-accent (gold tint).
+    - Border-radius is always generous (--comp-radius or higher).
+
+  Shadows and Depth:
+    - Layered box-shadows for floating effect:
+      `0 4px 24px var(--comp-shadow), 0 1px 4px var(--comp-shadow)`
+    - Active/hovered elements add a glow layer:
+      `0 0 20px var(--comp-glow)`
+    - Cards feel like they hover above the background.
+    - Glass surfaces use `backdrop-filter: blur(20px) saturate(1.2)`.
+
+  Background:
+    - Page background: soft gradient from warm pearl to pale sky-blue.
+    - Optionally overlay a subtle cloud/mist texture via CSS or SVG.
+    - The background should feel expansive — like looking into an open sky.
+
+PERSONALITY:
+  This theme speaks with quiet reverence and gentle wonder. It is the
+  interface of a benevolent digital consciousness — precise but kind,
+  powerful but soft. Empty states say things like "Nothing here yet —
+  a blank canvas awaits" rather than "No data found." Error messages
+  are reassuring: "Something went astray. Let's try again." The overall
+  voice is calm, slightly poetic, and never clinical. Buttons use soft
+  imperatives: "Begin," "Discover," "Ascend," "Illuminate."
+
+ANIMATIONS:
+  Tempo: Slow and graceful. Nothing snaps — everything drifts into place.
+
+  - Page load: Cards fade in with a gentle upward float (translateY 12px → 0,
+    opacity 0 → 1, 600ms ease-out, staggered 80ms per card).
+  - Hover on cards: Subtle lift (translateY -3px) + glow intensifies + border
+    brightens to gold. Transition 300ms ease.
+  - Button hover: Soft gold glow expands outward (box-shadow animation).
+    Background brightens slightly. 250ms ease.
+  - Active/click: Brief scale(0.97) then back to 1.0. 150ms ease.
+  - Modal/dialog open: Fade in from center with slight scale (0.95 → 1.0),
+    backdrop blurs in simultaneously. 400ms ease-out.
+  - Sidebar icon hover: Gold halo appears behind the icon (radial gradient
+    or pseudo-element scale-in). 300ms ease.
+  - Sparkle effect: Tiny star particles drift slowly across cards or the
+    background using CSS keyframes. Subtle, not distracting.
+  - Transitions use `cubic-bezier(0.22, 1, 0.36, 1)` for that floaty ease-out.
+  - AVOID: Bounce, elastic, or fast mechanical easing. Everything is smooth.
+
+SVG ELEMENTS:
+  Decorative SVGs enhance the celestial mood without overwhelming content.
+
+  - Halo ring: A thin gold circle (stroke, no fill) placed behind headings
+    or avatar images. Use `stroke-dasharray` animation for a drawing-in effect.
+    ```svg
+    <svg viewBox="0 0 100 100" class="halo-ring">
+      <ellipse cx="50" cy="50" rx="45" ry="18"
+        fill="none" stroke="var(--comp-accent)" stroke-width="1.5"
+        opacity="0.5" />
+    </svg>
+    ```
+
+  - Wing accents: Simplified angel wing shapes flanking logo or heading.
+    Keep them small and low-opacity (0.15-0.25) so they read as texture.
+
+  - Sparkle stars: 4-point star shapes scattered via positioned pseudo-elements
+    or an SVG pattern. Each star is 4-8px, opacity 0.3-0.6, animated with a
+    slow pulse (scale 0.8 → 1.2, opacity cycle, 3-5s infinite).
+    ```svg
+    <svg viewBox="0 0 20 20" class="sparkle">
+      <path d="M10 0 L12 8 L20 10 L12 12 L10 20 L8 12 L0 10 L8 8 Z"
+        fill="var(--comp-sparkle)" />
+    </svg>
+    ```
+
+  - Sacred geometry (optional): Very faint concentric circles or golden-ratio
+    spirals in the page background. Opacity under 0.08. Adds subliminal depth.
+
+  - Cloud wisps: Soft SVG blobs with feGaussianBlur filter placed at page edges.
+    Opacity 0.1-0.2, scale slowly drifting via CSS animation.
+
+REFERENCE CSS:
+  One interpretation of Computer Angel Heaven. Study the tokens and principles,
+  then create your own version per app.
+
+  ```css
+  /* === GLASS FOUNDATION === */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', 'SF Pro Display', system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.65;
+    color: var(--comp-text);
+    background:
+      radial-gradient(ellipse at 30% 20%, oklch(0.94 0.02 85 / 0.4) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 80%, oklch(0.90 0.04 240 / 0.3) 0%, transparent 50%),
+      linear-gradient(170deg, oklch(0.97 0.008 80) 0%, oklch(0.93 0.02 230) 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* === LAYOUT SHELL === */
+  .app-layout {
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    grid-template-rows: 64px 1fr;
+    grid-template-areas:
+      "sidebar header"
+      "sidebar main";
+    min-height: 100vh;
+    gap: 0;
+  }
+
+  /* === HEADER === */
+  .header {
+    grid-area: header;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    background: var(--comp-surface);
+    backdrop-filter: blur(24px) saturate(1.2);
+    border-bottom: 1px solid var(--comp-border);
+  }
+
+  .header-title {
+    font-size: 0.8rem;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--comp-text-secondary);
+  }
+
+  .search-input {
+    background: var(--comp-input-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--comp-input-border);
+    border-radius: var(--comp-radius-pill);
+    padding: 8px 20px;
+    font-size: 0.875rem;
+    color: var(--comp-text);
+    outline: none;
+    width: 220px;
+    transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .search-input:focus {
+    border-color: var(--comp-border-accent);
+    box-shadow: 0 0 16px var(--comp-glow);
+    width: 280px;
+  }
+
+  /* === SIDEBAR === */
+  .sidebar {
+    grid-area: sidebar;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0;
+    gap: 8px;
+    background: var(--comp-surface);
+    backdrop-filter: blur(24px) saturate(1.2);
+    border-right: 1px solid var(--comp-border);
+  }
+
+  .sidebar-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    color: var(--comp-text-secondary);
+    cursor: pointer;
+    position: relative;
+    transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .sidebar-icon::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 18px;
+    background: radial-gradient(circle, var(--comp-glow) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity 300ms ease;
+  }
+
+  .sidebar-icon:hover { color: var(--comp-accent); }
+  .sidebar-icon:hover::before { opacity: 1; }
+  .sidebar-icon.active { color: var(--comp-accent); }
+  .sidebar-icon.active::before { opacity: 0.8; }
+
+  /* === MAIN CONTENT === */
+  .main {
+    grid-area: main;
+    padding: 24px 32px;
+    overflow-y: auto;
+  }
+
+  /* === GLASS CARDS === */
+  .card {
+    background: var(--comp-surface);
+    backdrop-filter: blur(20px) saturate(1.2);
+    border: 1px solid var(--comp-border);
+    border-radius: var(--comp-radius);
+    padding: 24px;
+    transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card:hover {
+    background: var(--comp-surface-hover);
+    border-color: var(--comp-border-accent);
+    transform: translateY(-3px);
+    box-shadow:
+      0 8px 32px var(--comp-shadow),
+      0 0 20px var(--comp-glow);
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .card-hero {
+    grid-column: span 2;
+    min-height: 240px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+      radial-gradient(ellipse at center, oklch(0.85 0.06 240 / 0.2) 0%, transparent 60%),
+      var(--comp-surface);
+  }
+
+  /* === TYPOGRAPHY === */
+  h1, h2, h3 {
+    font-weight: 300;
+    letter-spacing: 0.02em;
+    color: var(--comp-heading);
+  }
+
+  h1 { font-size: 1.75rem; }
+  h2 { font-size: 1.35rem; }
+  h3 { font-size: 1.1rem; }
+
+  .label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--comp-text-secondary);
+  }
+
+  /* === BUTTONS === */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border: none;
+    border-radius: var(--comp-radius-pill);
+    font-size: 0.875rem;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: all 250ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .btn-primary {
+    background: var(--comp-accent);
+    color: var(--comp-accent-text);
+    box-shadow: 0 2px 12px var(--comp-glow);
+  }
+
+  .btn-primary:hover {
+    background: var(--comp-accent-hover);
+    box-shadow: 0 4px 24px var(--comp-glow);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active {
+    transform: scale(0.97);
+    box-shadow: 0 1px 8px var(--comp-glow);
+  }
+
+  .btn-ghost {
+    background: var(--comp-surface);
+    backdrop-filter: blur(12px);
+    color: var(--comp-text);
+    border: 1px solid var(--comp-border);
+  }
+
+  .btn-ghost:hover {
+    background: var(--comp-surface-hover);
+    border-color: var(--comp-border-accent);
+  }
+
+  /* === INPUTS === */
+  input, textarea, select {
+    background: var(--comp-input-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--comp-input-border);
+    border-radius: var(--comp-radius-sm);
+    padding: 10px 16px;
+    font-size: 0.875rem;
+    color: var(--comp-text);
+    outline: none;
+    transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--comp-border-accent);
+    box-shadow: 0 0 16px var(--comp-glow);
+  }
+
+  /* === TAGS / BADGES === */
+  .tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: var(--comp-radius-pill);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    background: var(--comp-tertiary);
+    color: var(--comp-heading);
+  }
+
+  /* === PROGRESS / GAUGE === */
+  .progress-track {
+    height: 6px;
+    background: var(--comp-border);
+    border-radius: var(--comp-radius-pill);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--comp-secondary), var(--comp-accent));
+    border-radius: var(--comp-radius-pill);
+    transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* === ENTRY ANIMATIONS === */
+  @keyframes float-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes sparkle-pulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 0.7; transform: scale(1.2); }
+  }
+
+  @keyframes halo-draw {
+    from { stroke-dashoffset: 300; }
+    to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes cloud-drift {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(30px); }
+  }
+
+  .card {
+    animation: float-in 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .card:nth-child(1) { animation-delay: 0ms; }
+  .card:nth-child(2) { animation-delay: 80ms; }
+  .card:nth-child(3) { animation-delay: 160ms; }
+  .card:nth-child(4) { animation-delay: 240ms; }
+  .card:nth-child(5) { animation-delay: 320ms; }
+  .card:nth-child(6) { animation-delay: 400ms; }
+
+  /* === SCROLLBAR === */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--comp-border);
+    border-radius: var(--comp-radius-pill);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--comp-secondary);
+  }
+
+  /* === RESPONSIVE === */
+  @media (max-width: 768px) {
+    .app-layout {
+      grid-template-columns: 1fr;
+      grid-template-rows: 56px 1fr;
+      grid-template-areas:
+        "header"
+        "main";
+    }
+    .sidebar { display: none; }
+    .main { padding: 16px; }
+    .card-hero { grid-column: span 1; }
+    .card-grid { grid-template-columns: 1fr; }
+  }
+  ```
