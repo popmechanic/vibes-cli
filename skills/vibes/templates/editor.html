@@ -1777,6 +1777,12 @@
 
     ws.onopen = () => {
       console.log('[WS] Connected');
+      // Reset thinking state on reconnect — a dropped connection kills the
+      // active Claude process on the server, so any in-progress operation is lost
+      if (isThinking) {
+        console.log('[WS] Resetting stuck thinking state after reconnect');
+        setThinking(false);
+      }
     };
 
     ws.onmessage = (event) => {
@@ -1794,6 +1800,7 @@
         setThinking(false);
         addMessage(msg.role, msg.content);
       } else if (msg.type === 'app_updated') {
+        console.log('[app_updated] phase:', currentPhase, 'pendingTheme:', pendingThemeId);
         setThinking(false);
         if (!isVersionNav) versionPush();
         if (currentPhase === 'generate') {
@@ -2475,6 +2482,7 @@
     const undoBtn = document.getElementById('undoBtn');
     const redoBtn = document.getElementById('redoBtn');
     const count = document.getElementById('versionCount');
+    if (!bar || !undoBtn || !redoBtn || !count) return;
 
     if (versionHistory.length <= 1) {
       bar.classList.remove('has-history');
@@ -2509,6 +2517,7 @@
 
   function reloadPreview() {
     const frame = document.getElementById('previewFrame');
+    console.log('[reloadPreview] pendingThemeId:', pendingThemeId);
 
     if (pendingThemeId) {
       const themeToSet = pendingThemeId;
@@ -2518,6 +2527,7 @@
           const iframeDoc = frame.contentDocument || frame.contentWindow.document;
           frame.contentWindow.localStorage.setItem('vibes-theme', themeToSet);
           iframeDoc.dispatchEvent(new CustomEvent('vibes-design-request', { detail: { theme: themeToSet } }));
+          console.log('[reloadPreview] Theme dispatched:', themeToSet);
         } catch (e) {
           console.warn('[Preview] Could not dispatch theme event:', e);
         }
@@ -2767,6 +2777,7 @@
     addMessage('user', `Switch to theme: ${theme ? theme.name : themeId}`);
     pendingThemeId = themeId;
     currentThemeId = themeId;
+    setThinking(true, 0, 'Switching theme...');
     ws.send(JSON.stringify({ type: 'theme', themeId }));
     closeThemeModal();
   }
