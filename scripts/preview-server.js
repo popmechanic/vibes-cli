@@ -1356,7 +1356,13 @@ ${extractPass2ThemeContext(themeContent, 12000)}
 ${extractDataSchema(pass1Code)}`;
 
   console.log(`[ThemeSwitch] Pass 2: Claude creative restyle, prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
-  await runClaude(ws, prompt, { skipChat: true, tools: 'Edit', maxTurns: 5 });
+  const claudeResult = await runClaude(ws, prompt, { skipChat: true, tools: 'Edit', maxTurns: 5 });
+
+  // If runClaude failed (returned null), it sent 'error' but not 'app_updated'.
+  // Send app_updated so the preview reloads with at least Pass 1 changes.
+  if (claudeResult === null) {
+    ws.send(JSON.stringify({ type: 'app_updated' }));
+  }
 
   // === Post-edit validation (Layer 2 guardrail) ===
   const afterCode = readFileSync(appJsxPath, 'utf-8');
