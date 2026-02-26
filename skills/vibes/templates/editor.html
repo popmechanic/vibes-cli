@@ -1082,6 +1082,95 @@
       font-weight: 400;
     }
     .deploy-option-detail.ready { color: var(--vibes-green); }
+
+    /* === CREATE THEME === */
+    .modal-create-btn {
+      background: var(--vibes-cream);
+      border: 2px solid var(--vibes-near-black);
+      color: var(--vibes-near-black);
+      padding: 0.3rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      transition: all 0.15s;
+      box-shadow: 3px 3px 0px 0px var(--vibes-blue), 3px 3px 0px 2px var(--vibes-near-black);
+    }
+    .modal-create-btn:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0px 0px var(--vibes-blue), 1px 1px 0px 2px var(--vibes-near-black); }
+    .modal-create-btn:active { transform: translate(3px, 3px); box-shadow: none; }
+    .modal-create-btn:disabled { background: #ddd; color: #999; cursor: not-allowed; box-shadow: none; transform: none; border-color: #aaa; }
+    .create-theme-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .create-theme-input {
+      flex: 1;
+      background: var(--vibes-cream);
+      border: 2px solid var(--vibes-near-black);
+      color: var(--vibes-near-black);
+      padding: 0.6rem 0.85rem;
+      border-radius: 12px;
+      font-size: 0.8125rem;
+      outline: none;
+      font-family: inherit;
+    }
+    .create-theme-input:focus { border-color: var(--vibes-blue); box-shadow: 0 0 0 2px rgba(0,154,206,0.25); }
+    .create-theme-input::placeholder { color: #999; }
+    .image-picker {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .image-card {
+      aspect-ratio: 1;
+      border-radius: 8px;
+      border: 2px solid var(--vibes-near-black);
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--vibes-cream);
+      box-shadow: 4px 4px 0px 0px var(--vibes-yellow), 4px 4px 0px 2px var(--vibes-near-black);
+    }
+    .image-card:hover {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0px 0px var(--vibes-yellow), 2px 2px 0px 2px var(--vibes-near-black);
+    }
+    .image-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .image-card.loading { cursor: default; }
+    .image-card.loading:hover { transform: none; box-shadow: 4px 4px 0px 0px var(--vibes-yellow), 4px 4px 0px 2px var(--vibes-near-black); }
+    .image-card.failed { border-color: var(--vibes-red); box-shadow: 4px 4px 0px 0px var(--vibes-red), 4px 4px 0px 2px var(--vibes-near-black); cursor: default; }
+    .image-card.failed:hover { transform: none; }
+    .image-card .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(0,0,0,0.1);
+      border-top-color: var(--vibes-blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .create-status {
+      text-align: center;
+      font-size: 0.8125rem;
+      color: #555;
+      padding: 0.5rem 0;
+      font-weight: 600;
+    }
+    .create-status.success { color: var(--vibes-green); }
+    .create-status.error { color: var(--vibes-red); }
   </style>
 </head>
 <body>
@@ -1329,9 +1418,21 @@
           <h2>Choose a Theme</h2>
           <span id="currentThemeBadge" style="font-size:0.6875rem;background:var(--vibes-blue);color:var(--vibes-cream);padding:0.15rem 0.5rem;border-radius:4px;font-weight:700;text-transform:uppercase;display:none;"></span>
         </div>
-        <button class="modal-close" onclick="closeThemeModal()">&times;</button>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <button class="modal-create-btn" id="createThemeToggle" onclick="toggleCreateMode()">+ Create</button>
+          <button class="modal-close" onclick="closeThemeModal()">&times;</button>
+        </div>
       </div>
       <div class="modal-body">
+        <div id="createThemeSection" style="display:none;">
+          <div class="create-theme-bar">
+            <input type="text" class="create-theme-input" id="createThemePrompt"
+              placeholder="Describe your theme (e.g. cyberpunk neon Tokyo)"
+              onkeydown="if(event.key==='Enter'){generateThemeImages();}" />
+            <button class="modal-create-btn" id="createThemeBtn" onclick="generateThemeImages()">Generate</button>
+          </div>
+          <div id="imagePickerArea"></div>
+        </div>
         <input type="text" class="theme-search" id="themeSearch" placeholder="Search themes..." oninput="filterThemes(this.value)" />
         <div id="themeGrid"></div>
       </div>
@@ -1594,6 +1695,10 @@
         if (btn) { btn.disabled = false; btn.textContent = 'Retry Deploy'; }
         const hint = document.getElementById('wizardDeployHint');
         if (hint) { hint.textContent = msg.message; hint.style.color = 'var(--vibes-red)'; }
+      } else if (msg.type === 'theme_images') {
+        showThemeImages(msg.images);
+      } else if (msg.type === 'theme_created') {
+        onThemeCreated(msg.themeId, msg.themeName);
       }
     };
 
@@ -2338,6 +2443,150 @@
     document.getElementById('themeModal').classList.remove('open');
   }
 
+  // === Create Theme ===
+  let createMode = false;
+  let hasOpenRouterKey = false;
+
+  async function checkOpenRouterKey() {
+    try {
+      const res = await fetch('/themes/has-key');
+      const data = await res.json();
+      hasOpenRouterKey = data.hasKey;
+    } catch { /* ignore */ }
+  }
+
+  function toggleCreateMode() {
+    createMode = !createMode;
+    document.getElementById('createThemeSection').style.display = createMode ? '' : 'none';
+    document.getElementById('themeSearch').style.display = createMode ? 'none' : '';
+    document.getElementById('themeGrid').style.display = createMode ? 'none' : '';
+    document.getElementById('createThemeToggle').textContent = createMode ? 'Browse' : '+ Create';
+    if (createMode) {
+      if (!hasOpenRouterKey) {
+        document.getElementById('createThemeBtn').disabled = true;
+        document.getElementById('createThemePrompt').disabled = true;
+        document.getElementById('imagePickerArea').innerHTML =
+          '<div class="create-status error">Add OPENROUTER_API_KEY to .env and restart the preview server to enable theme creation.</div>';
+      } else {
+        document.getElementById('createThemeBtn').disabled = false;
+        document.getElementById('createThemePrompt').disabled = false;
+        document.getElementById('createThemePrompt').focus();
+        document.getElementById('imagePickerArea').innerHTML = '';
+      }
+    } else {
+      renderThemeGrid();
+    }
+  }
+
+  function generateThemeImages() {
+    const input = document.getElementById('createThemePrompt');
+    const prompt = input.value.trim();
+    if (!prompt || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+    document.getElementById('createThemeBtn').disabled = true;
+    document.getElementById('imagePickerArea').innerHTML =
+      '<div class="image-picker">' +
+      '<div class="image-card loading"><div class="spinner"></div></div>'.repeat(3) +
+      '</div>' +
+      '<div class="create-status">Generating 3 design variations...</div>';
+
+    ws.send(JSON.stringify({ type: 'create_theme', prompt }));
+  }
+
+  function showThemeImages(images) {
+    const area = document.getElementById('imagePickerArea');
+    const picker = document.createElement('div');
+    picker.className = 'image-picker';
+    images.forEach((url, i) => {
+      const card = document.createElement('div');
+      card.className = 'image-card' + (url ? '' : ' failed');
+      if (url) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = 'Variation ' + (i + 1);
+        card.appendChild(img);
+        card.onclick = () => pickThemeImage(i);
+      } else {
+        card.textContent = 'Failed';
+        card.style.cssText = 'color:var(--vibes-red);font-size:0.75rem;font-weight:700;';
+      }
+      picker.appendChild(card);
+    });
+    area.innerHTML = '';
+    area.appendChild(picker);
+    const status = document.createElement('div');
+    status.className = 'create-status';
+    status.textContent = 'Click the design you like best';
+    area.appendChild(status);
+    document.getElementById('createThemeBtn').disabled = false;
+  }
+
+  function pickThemeImage(index) {
+    const prompt = document.getElementById('createThemePrompt').value.trim();
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+    const cards = document.querySelectorAll('.image-card');
+    cards.forEach((c, i) => {
+      c.style.opacity = i === index ? '1' : '0.3';
+      c.style.pointerEvents = 'none';
+    });
+
+    const statusEl = document.getElementById('imagePickerArea').querySelector('.create-status');
+    if (statusEl) {
+      statusEl.innerHTML = '<div class="spinner" style="display:inline-block;width:16px;height:16px;vertical-align:middle;margin-right:0.5rem;"></div>Claude is analyzing the design and writing your theme...';
+    }
+
+    ws.send(JSON.stringify({ type: 'pick_theme_image', index, prompt }));
+  }
+
+  function onThemeCreated(themeId, themeName) {
+    const area = document.getElementById('imagePickerArea');
+    area.innerHTML = '';
+    const status = document.createElement('div');
+    status.className = 'create-status success';
+    status.textContent = 'Theme "' + themeName + '" created!';
+    area.appendChild(status);
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'text-align:center;margin-top:0.5rem;';
+    const applyBtn = document.createElement('button');
+    applyBtn.className = 'modal-create-btn';
+    applyBtn.textContent = 'Apply ' + themeName;
+    applyBtn.onclick = () => selectTheme(themeId);
+    const browseBtn = document.createElement('button');
+    browseBtn.className = 'modal-create-btn';
+    browseBtn.style.marginLeft = '0.5rem';
+    browseBtn.textContent = 'Browse themes';
+    browseBtn.onclick = () => toggleCreateMode();
+    btnRow.appendChild(applyBtn);
+    btnRow.appendChild(browseBtn);
+    area.appendChild(btnRow);
+    document.getElementById('createThemeBtn').disabled = false;
+    // Reload theme list to include the new theme
+    reloadThemes();
+  }
+
+  async function reloadThemes() {
+    try {
+      const res = await fetch('/themes');
+      themes = await res.json();
+      // Refresh the generate-phase select dropdown
+      const select = document.getElementById('themeSelect');
+      if (select) {
+        const prev = select.value;
+        select.innerHTML = '<option value="">Auto (let AI choose)</option>';
+        for (const t of themes) {
+          const opt = document.createElement('option');
+          opt.value = t.id;
+          opt.textContent = t.name + (t.mood ? ` — ${t.mood}` : '');
+          select.appendChild(opt);
+        }
+        if (prev) select.value = prev;
+      }
+    } catch (err) {
+      console.error('Failed to reload themes:', err);
+    }
+  }
+
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeThemeModal();
   });
@@ -2422,6 +2671,7 @@
   });
 
   populateThemeSelect();
+  checkOpenRouterKey();
 </script>
 </div>
 </div>
