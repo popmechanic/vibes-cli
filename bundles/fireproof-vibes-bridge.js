@@ -101,7 +101,8 @@ export function useFireproofClerk(name, opts) {
                     _delay = Math.min(_delay * 2, 8000);
                   }
                 }
-              }).catch(function () {
+              }).catch(function (err) {
+                console.warn('[vibes] Ledger re-discovery failed:', err && err.message);
                 if (++_attempts < _maxAttempts) {
                   setTimeout(_discover, _delay);
                   _delay = Math.min(_delay * 2, 8000);
@@ -112,7 +113,8 @@ export function useFireproofClerk(name, opts) {
           }
           return result;
         });
-      }).catch(function () {
+      }).catch(function (err) {
+        console.warn('[vibes] Ledger discovery failed, falling back:', err && err.message);
         return _origEnsure(req);
       });
     };
@@ -121,6 +123,7 @@ export function useFireproofClerk(name, opts) {
   _currentDbName = name;
   var result = _originalUseFireproofClerk(name, opts);
   var syncVal = result.syncStatus || "idle";
+  var syncErr = result.lastSyncError ? String(result.lastSyncError) : null;
 
   // Auto-redeem invite from ?invite=<id> URL param
   React.useEffect(function () {
@@ -147,11 +150,14 @@ export function useFireproofClerk(name, opts) {
 
   // Sync status bridge: forward to window global + dispatch event for SyncStatusDot
   React.useEffect(function () {
-    if (window.__VIBES_SYNC_STATUS__ !== syncVal) {
+    var changed = window.__VIBES_SYNC_STATUS__ !== syncVal;
+    var errChanged = window.__VIBES_SYNC_ERROR__ !== syncErr;
+    if (changed || errChanged) {
       window.__VIBES_SYNC_STATUS__ = syncVal;
+      window.__VIBES_SYNC_ERROR__ = syncErr;
       window.dispatchEvent(new CustomEvent("vibes-sync-status-change"));
     }
-  }, [syncVal]);
+  }, [syncVal, syncErr]);
 
   // onTock kick: Fireproof's fast-forward path sets clock.head without
   // firing onTock. Poll allDocs and kick notifications when data appears.
@@ -176,13 +182,14 @@ export function useFireproofClerk(name, opts) {
                 "docs"
               );
             } catch (e) {
-              console.debug("[vibes] onTock kick failed:", e);
+              console.warn("[vibes] onTock kick failed:", e);
             }
           } else if (!kicked) {
             setTimeout(poll, 2000);
           }
         })
-        .catch(function () {
+        .catch(function (err) {
+          console.debug('[vibes] allDocs poll error:', err && err.message);
           if (!kicked) setTimeout(poll, 2000);
         });
     };

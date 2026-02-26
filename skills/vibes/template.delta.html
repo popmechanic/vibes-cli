@@ -19,6 +19,13 @@
           return <ConfigError message="Missing Clerk publishable key. Apps require authentication." />;
         }
 
+        // Warn if Connect URLs are missing (sync won't work but app can still run locally)
+        if (!config?.tokenApiUri || !config?.cloudBackendUrl ||
+            config.tokenApiUri.startsWith('__') || config.cloudBackendUrl.startsWith('__')) {
+          console.warn('[vibes] Connect URLs missing or unreplaced \u2014 data will not sync.',
+            'tokenApiUri:', config?.tokenApiUri, 'cloudBackendUrl:', config?.cloudBackendUrl);
+        }
+
         // Check if Clerk components loaded
         if (!window.ClerkFireproofProvider) {
           return <LoadingError error={window.__CLERK_LOAD_ERROR__ || 'Clerk components not available'} />;
