@@ -536,7 +536,7 @@ Use oklch() for ALL color values. Study the image carefully for palette, typogra
 
     const args = [
       '-p', '-',
-      '--output-format', 'json',
+      '--output-format', 'stream-json',
       '--add-dir', tmpdir(),
       '--allowedTools', 'Edit,Read,Write,Glob,Grep',
       '--no-session-persistence',
@@ -553,9 +553,36 @@ Use oklch() for ALL color values. Study the image carefully for palette, typogra
     child.stdin.write(extractionPrompt);
     child.stdin.end();
 
-    let stdout = '';
+    let buffer = '';
     let stderr = '';
-    child.stdout.on('data', (d) => { stdout += d.toString(); });
+    let resultText = '';
+
+    // Parse stream-json events (same pattern as runClaude/handleGenerate)
+    child.stdout.on('data', (data) => {
+      buffer += data.toString();
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const event = JSON.parse(line);
+          if (event.type === 'assistant' && event.message?.content) {
+            for (const block of event.message.content) {
+              if (block.type === 'text' && block.text) resultText = block.text;
+              if (block.type === 'tool_use') {
+                const toolName = block.name || '';
+                console.log(`[ThemeExtract] Tool: ${toolName}`);
+              }
+            }
+          } else if (event.type === 'result') {
+            resultText = event.result || resultText || 'Done.';
+          }
+        } catch {
+          // ignore partial line parse errors
+        }
+      }
+    });
     child.stderr.on('data', (d) => { stderr += d.toString(); });
 
     const EXTRACT_TIMEOUT = 120_000; // 2 minutes max
@@ -577,7 +604,7 @@ Use oklch() for ALL color values. Study the image carefully for palette, typogra
         return;
       }
       console.log(`[ThemeExtract] Theme "${themeId}" created successfully`);
-      resolve(stdout);
+      resolve(resultText);
     });
 
     child.on('error', (err) => {
