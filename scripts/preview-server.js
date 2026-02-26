@@ -439,9 +439,9 @@ async function generateThemeImages(prompt) {
           'X-Title': 'Vibes Theme Creator',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash-preview-05-20',
+          model: 'google/gemini-3-pro-image-preview',
           messages: [{ role: 'user', content: fullPrompt }],
-          modalities: ['image'],
+          modalities: ['image', 'text'],
         }),
       });
       if (!resp.ok) {
@@ -485,9 +485,19 @@ async function extractThemeFromImage(imageUrl, prompt, themeId, themeName) {
     formatRef = readFileSync(archivePath, 'utf-8').slice(0, 2000);
   }
 
+  // Write base64 data URL to temp file so Claude can read it as an image
+  const tempFile = join(tmpdir(), `vibes-theme-${themeId}-${Date.now()}.png`);
+  if (imageUrl.startsWith('data:')) {
+    const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
+    writeFileSync(tempFile, Buffer.from(base64Data, 'base64'));
+  } else {
+    return Promise.reject(new Error('Expected base64 data URL from image generation'));
+  }
+  console.log(`[ThemeExtract] Wrote image to ${tempFile}`);
+
   const extractionPrompt = `You are creating a new theme file for the Vibes design system.
 
-Analyze the attached image and create a complete theme file based on the visual design you see.
+FIRST: Read the image file at ${tempFile} using the Read tool. Analyze its visual design.
 
 User's theme description: "${prompt}"
 Theme ID: ${themeId}
@@ -500,7 +510,8 @@ ${formatRef}
 ---
 
 Tasks:
-1. Write the theme file to skills/vibes/themes/${themeId}.txt with ALL these sections:
+1. Read the image at ${tempFile} to analyze the visual design.
+2. Write the theme file to skills/vibes/themes/${themeId}.txt with ALL these sections:
    - THEME: ${themeId}
    - NAME: ${themeName}
    - MOOD: (3-4 adjectives describing the visual mood from the image)
@@ -515,28 +526,18 @@ Tasks:
    - SVG ELEMENTS: (decorative SVG patterns if appropriate)
    - REFERENCE CSS: (complete CSS implementing the theme)
 
-2. Append a catalog row to skills/vibes/themes/catalog.txt.
+3. Append a catalog row to skills/vibes/themes/catalog.txt.
    Insert a new row BEFORE the line that says "HOW TO CHOOSE".
    Format: | ${themeId} | ${themeName} | <mood> | <best-for summary> |
 
 Use oklch() for ALL color values. Study the image carefully for palette, typography weight, spacing rhythm, and overall composition.`;
 
   return new Promise((resolve, reject) => {
-    // Base64 data URLs are too large for CLI args — write to temp file
-    let imagePath = imageUrl;
-    let tempFile = null;
-    if (imageUrl.startsWith('data:')) {
-      tempFile = join(tmpdir(), `vibes-theme-${themeId}-${Date.now()}.png`);
-      const base64Data = imageUrl.replace(/^data:image\/\w+;base64,/, '');
-      writeFileSync(tempFile, Buffer.from(base64Data, 'base64'));
-      imagePath = tempFile;
-      console.log(`[ThemeExtract] Wrote base64 image to ${tempFile}`);
-    }
 
     const args = [
       '-p', '-',
-      '--image', imagePath,
       '--output-format', 'json',
+      '--add-dir', tmpdir(),
       '--allowedTools', 'Edit,Read,Write,Glob,Grep',
       '--no-session-persistence',
     ];
@@ -1992,7 +1993,23 @@ async function handlePickThemeImage(ws, index, prompt) {
     ws.send(JSON.stringify({ type: 'status', status: 'extracting_theme', stage: 'Extracting theme from image...', themeId, themeName, progress: 0, elapsed: 0 }));
     console.log(`[CreateTheme] Extracting theme "${themeId}" from image ${index}...`);
 
-    await extractThemeFromImage(imageUrl, prompt, themeId, themeName);
+    // Time-based progress updates — extraction typically takes 30-60s
+    const startTime = Date.now();
+    const expectedDuration = 45_000; // 45s expected
+    const progressInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      // Asymptotic curve: approaches 90% but never reaches it
+      const progress = Math.min(90, Math.round((elapsed / expectedDuration) * 80));
+      const stages = ['Reading image...', 'Analyzing colors and layout...', 'Generating theme tokens...', 'Writing theme file...'];
+      const stageIdx = Math.min(stages.length - 1, Math.floor((elapsed / expectedDuration) * stages.length));
+      ws.send(JSON.stringify({ type: 'status', status: 'extracting_theme', stage: stages[stageIdx], themeId, themeName, progress, elapsed: Math.round(elapsed / 1000) }));
+    }, 2000);
+
+    try {
+      await extractThemeFromImage(imageUrl, prompt, themeId, themeName);
+    } finally {
+      clearInterval(progressInterval);
+    }
 
     // Verify the theme file was actually created
     const themeFilePath = join(THEME_DIR, `${themeId}.txt`);
