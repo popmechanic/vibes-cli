@@ -540,6 +540,7 @@ Use oklch() for ALL color values. Study the image carefully for palette, typogra
       '--add-dir', tmpdir(),
       '--allowedTools', 'Edit,Read,Write,Glob,Grep',
       '--no-session-persistence',
+      '--max-turns', '5',
     ];
 
     console.log(`[ThemeExtract] Spawning claude for theme "${themeId}" (with image)...`);
@@ -557,7 +558,14 @@ Use oklch() for ALL color values. Study the image carefully for palette, typogra
     child.stdout.on('data', (d) => { stdout += d.toString(); });
     child.stderr.on('data', (d) => { stderr += d.toString(); });
 
+    const EXTRACT_TIMEOUT = 120_000; // 2 minutes max
+    const timeout = setTimeout(() => {
+      console.error(`[ThemeExtract] Timeout after ${EXTRACT_TIMEOUT / 1000}s — killing subprocess`);
+      child.kill('SIGTERM');
+    }, EXTRACT_TIMEOUT);
+
     const cleanup = () => {
+      clearTimeout(timeout);
       if (tempFile) try { unlinkSync(tempFile); } catch {}
     };
 
@@ -2002,7 +2010,10 @@ async function handlePickThemeImage(ws, index, prompt) {
       const progress = Math.min(90, Math.round((elapsed / expectedDuration) * 80));
       const stages = ['Reading image...', 'Analyzing colors and layout...', 'Generating theme tokens...', 'Writing theme file...'];
       const stageIdx = Math.min(stages.length - 1, Math.floor((elapsed / expectedDuration) * stages.length));
-      ws.send(JSON.stringify({ type: 'status', status: 'extracting_theme', stage: stages[stageIdx], themeId, themeName, progress, elapsed: Math.round(elapsed / 1000) }));
+      const stage = elapsed > expectedDuration * 1.5
+        ? 'Still processing... (this is taking longer than usual)'
+        : stages[stageIdx];
+      ws.send(JSON.stringify({ type: 'status', status: 'extracting_theme', stage, themeId, themeName, progress, elapsed: Math.round(elapsed / 1000) }));
     }, 2000);
 
     try {
