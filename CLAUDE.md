@@ -393,6 +393,7 @@ npm run test:e2e:server
 | `scripts/lib/parse-theme-catalog.js` | Parser for theme catalog.txt → JSON array |
 | `scripts/__tests__/fixtures/` | Pre-written JSX test fixtures |
 | `lib/resolve-paths.js` | Find plugin directory across install locations |
+| `bundles/fireproof-vibes-bridge.js` | ES module bridge -- wraps @fireproof/clerk with Vibes-specific logic (sync status, ledger routing, invite redemption) |
 | `assets/` | Favicon, branding images, auth card designs |
 | `docs/plans/` | Architecture decision records and planning docs |
 | `components/` | Local TypeScript components - source of truth for UI/UX |

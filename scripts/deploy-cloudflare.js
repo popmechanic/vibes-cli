@@ -10,6 +10,7 @@
  *
  * Automatically copies:
  *   - index.html to public/
+ *   - bundles/fireproof-vibes-bridge.js to public/ (Vibes-specific wrapper)
  *   - assets/ to public/assets/ (images, icons)
  *
  * Clerk key and webhook secret auto-detected from .env if not provided via flags.
@@ -168,7 +169,14 @@ async function main() {
   console.log(`\nCopying ${basename(srcFile)} to public/`);
   copyFileSync(srcFile, destFile);
 
-  // 2. Copy assets/ to public/assets/ (images, favicons, etc.)
+  // 2. Copy Vibes bridge to public/
+  const bridgePath = resolve(PLUGIN_ROOT, "bundles", "fireproof-vibes-bridge.js");
+  if (existsSync(bridgePath)) {
+    console.log(`\nCopying fireproof-vibes-bridge.js to public/`);
+    copyFileSync(bridgePath, join(publicDir, "fireproof-vibes-bridge.js"));
+  }
+
+  // 3. Copy assets/ to public/assets/ (images, favicons, etc.)
   const assetsDir = resolve(PLUGIN_ROOT, "assets");
   const publicAssetsDir = resolve(publicDir, "assets");
   if (existsSync(assetsDir)) {

@@ -257,6 +257,40 @@ async function phase4FileUpload(args) {
   }
 }
 
+// Upload Vibes bridge module (Vibes-specific wrapper around @fireproof/clerk)
+async function phase4bBridgeUpload(args) {
+  const bridgeFile = 'fireproof-vibes-bridge.js';
+  const bridgePath = join(__dirname, '..', 'bundles', bridgeFile);
+
+  if (!existsSync(bridgePath)) {
+    console.log('\nPhase 4b: Bridge Upload... SKIPPED (bridge not found)');
+    return;
+  }
+
+  console.log('\nPhase 4b: Bridge Upload...');
+
+  const vmHost = `${args.name}.exe.xyz`;
+
+  if (args.dryRun) {
+    console.log(`  [DRY RUN] Would upload ${bridgeFile} to ${vmHost}:/var/www/html/${bridgeFile}`);
+    return;
+  }
+
+  try {
+    const tmpPath = `/home/exedev/${bridgeFile}`;
+    await uploadFile(bridgePath, vmHost, tmpPath);
+
+    const client = await connect(vmHost);
+    await runCommand(client, `sudo mv ${tmpPath} /var/www/html/${bridgeFile}`);
+    await runCommand(client, `sudo chown www-data:www-data /var/www/html/${bridgeFile}`);
+    client.end();
+
+    console.log(`  ✓ ${bridgeFile} uploaded`);
+  } catch (err) {
+    console.warn(`  Warning: Bridge upload failed: ${err.message}`);
+  }
+}
+
 // Upload auth card images for AuthScreen component
 async function phase4cAuthCardsUpload(args) {
   const CARDS_DIR = join(__dirname, '..', 'assets', 'auth-cards');
@@ -676,6 +710,7 @@ ${'━'.repeat(60)}
     await phase2CreateVM(args);
     await phase3ServerSetup(args);
     await phase4FileUpload(args);
+    await phase4bBridgeUpload(args);
     await phase4cAuthCardsUpload(args);
     await phase4dFaviconUpload(args);
     await phase5AIProxy(args);
