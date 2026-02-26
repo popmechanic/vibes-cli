@@ -890,6 +890,11 @@
           addMessage('error', msg.message);
           if (pendingThemeId) {
             pendingThemeId = null;
+            // Show error in the theme creation modal if it's open
+            const area = document.getElementById('imagePickerArea');
+            if (area && area.querySelector('.create-status')) {
+              area.innerHTML = '<div class="create-status error">' + msg.message + '</div>';
+            }
             reloadPreview();  // Still reload to show Pass 1 changes
           }
         } else if (msg.type === 'cancelled') {
