@@ -142,6 +142,182 @@ function getRecommendedThemeIds() {
   return new Set(top.map(s => s.id));
 }
 
+// --- Bridge theme-specific variable names to --comp-* namespace ---
+// Themes use custom names (--bg, --fg, --gold-base) but app CSS references
+// var(--comp-bg), var(--comp-text), etc. This builds the mapping lines.
+function buildCompTokenMapping(varLines) {
+  // Parse variable lines into name→value map
+  const vars = {};
+  for (const line of varLines) {
+    const m = line.match(/^\s*(--[\w-]+)\s*:\s*(.+?)\s*(?:\/\*.*)?;?\s*$/);
+    if (m) vars[m[1]] = m[2].replace(/;$/, '').trim();
+  }
+
+  const names = Object.keys(vars);
+  const find = (patterns) => {
+    for (const p of patterns) {
+      if (typeof p === 'string') {
+        const exact = names.find(n => n === p);
+        if (exact) return `var(${exact})`;
+      } else {
+        // regex
+        const match = names.find(n => p.test(n));
+        if (match) return `var(${match})`;
+      }
+    }
+    return null;
+  };
+
+  const compBg = find(['--bg', '--background', '--surface', '--void', '--concrete', '--editor-bg', /^--bg-start$/, /^--bg-gradient-start$/, /^--bg-gradient-from$/]);
+  const compText = find(['--fg', '--text', '--foreground', '--ink', '--code-text', '--white', '--text-light', /^--bone-text$/, /^--neon-core$/]);
+  const compAccent = find([/^--accent$/, '--primary', '--brand', /^--neon-/, '--gold-base', '--copper', /^--accent-/, '--acid', '--green', /^--syn-keyword$/, '--border-fg', '--dot', /^--aether-/, '--fg']);
+  const compMuted = find(['--fg-muted', '--fg-dim', '--muted', '--dim', '--secondary', '--text-dim', '--gutter', /^--muted$/]);
+  const compBorder = find(['--border', '--separator', '--stroke', '--rule', /^--border$/, '--green-border']);
+
+  // Derive accent-text from bg lightness: dark bg → white text, light bg → dark text
+  let compAccentText = 'oklch(1.00 0 0)'; // default white
+  if (compBg) {
+    // Extract oklch lightness from the resolved value
+    const bgVal = vars[compBg.replace(/^var\(/, '').replace(/\)$/, '')] || '';
+    const lMatch = bgVal.match(/oklch\(\s*([\d.]+)/);
+    if (lMatch && parseFloat(lMatch[1]) >= 0.5) {
+      compAccentText = 'oklch(0.15 0 0)'; // dark text for light backgrounds
+    }
+  }
+
+  const lines = [];
+  if (compBg) lines.push(`  --comp-bg: ${compBg};`);
+  if (compText) lines.push(`  --comp-text: ${compText};`);
+  if (compAccent) lines.push(`  --comp-accent: ${compAccent};`);
+  lines.push(`  --comp-accent-text: ${compAccentText};`);
+  if (compMuted) lines.push(`  --comp-muted: ${compMuted};`);
+  if (compBorder) lines.push(`  --comp-border: ${compBorder};`);
+  if (compBg) lines.push(`  --color-background: ${compBg};`);
+  lines.push(`  --grid-color: transparent;`);
+
+  return lines;
+}
+
+// --- Sanitize CSS unicode escapes that crash Babel ---
+// CSS `content: '\2192'` is valid CSS but invalid JS inside a template literal.
+// Replace with actual Unicode characters. Only targets content: properties.
+const CSS_UNICODE_MAP = {
+  '2192': '\u2192', // →
+  '2190': '\u2190', // ←
+  '2191': '\u2191', // ↑
+  '2193': '\u2193', // ↓
+  '2022': '\u2022', // •
+  '25CF': '\u25CF', // ●
+  '00BB': '\u00BB', // »
+  '00AB': '\u00AB', // «
+  '2014': '\u2014', // —
+  '2013': '\u2013', // –
+  '2026': '\u2026', // …
+  '00D7': '\u00D7', // ×
+  '2715': '\u2715', // ✕
+  '2713': '\u2713', // ✓
+  '2717': '\u2717', // ✗
+  '25B6': '\u25B6', // ▶
+  '25C0': '\u25C0', // ◀
+  '25B2': '\u25B2', // ▲
+  '25BC': '\u25BC', // ▼
+  '2605': '\u2605', // ★
+  '2606': '\u2606', // ☆
+  '2764': '\u2764', // ❤
+  '2716': '\u2716', // ✖
+};
+
+function sanitizeCssEscapes(code) {
+  // Match content: '...\XXXX...' or content: "...\XXXX..." in CSS
+  return code.replace(/(content\s*:\s*['"])([^'"]*\\[0-9a-fA-F]{2,6}[^'"]*?)(['"])/g, (full, pre, inner, post) => {
+    const replaced = inner.replace(/\\([0-9a-fA-F]{2,6})/g, (esc, hex) => {
+      const upper = hex.toUpperCase().replace(/^0+/, '') || '0';
+      // Pad to 4 digits for lookup
+      const padded = upper.padStart(4, '0');
+      if (CSS_UNICODE_MAP[padded]) return CSS_UNICODE_MAP[padded];
+      // Generic fallback: convert hex to Unicode char
+      const cp = parseInt(hex, 16);
+      return cp > 0 && cp < 0x110000 ? String.fromCodePoint(cp) : esc;
+    });
+    return pre + replaced + post;
+  });
+}
+
+// --- Extract targeted theme context for Pass 2 creative prompts ---
+// Instead of a flat slice(0, 6000) that truncates REFERENCE STYLES,
+// extract the most valuable sections for creative guidance.
+function extractPass2ThemeContext(themeContent, maxBytes = 12000) {
+  const sections = [];
+  let total = 0;
+
+  // Helper: extract text between section header and next section header
+  const extractSection = (name) => {
+    const re = new RegExp(`${name}[:\\s]*\\n([\\s\\S]*?)(?=\\n[A-Z]{2,}[A-Z ]*[:\\n]|$)`);
+    const m = themeContent.match(re);
+    return m ? m[1].trim() : '';
+  };
+
+  // 1. DESCRIPTION + MOOD (~500B) — personality summary
+  const desc = extractSection('DESCRIPTION');
+  const mood = themeContent.match(/^MOOD:\s*(.+)$/m);
+  if (mood) {
+    const moodLine = `MOOD: ${mood[1]}`;
+    sections.push(moodLine);
+    total += moodLine.length;
+  }
+  if (desc && total + desc.length < maxBytes) {
+    sections.push(`DESCRIPTION:\n${desc}`);
+    total += desc.length;
+  }
+
+  // 2. ADAPTATION NOTES (~1-2KB) — creative implementation guidance
+  const adapt = extractSection('ADAPTATION NOTES');
+  if (adapt && total + adapt.length < maxBytes) {
+    sections.push(`ADAPTATION NOTES:\n${adapt}`);
+    total += adapt.length;
+  }
+
+  // 3. COLOR TOKENS (~500B) — variable reference for var() usage
+  const colors = extractSection('COLOR TOKENS');
+  if (colors && total + colors.length < maxBytes) {
+    sections.push(`COLOR TOKENS:\n${colors}`);
+    total += colors.length;
+  }
+
+  // 4. REFERENCE STYLES — extract the most creative subsections
+  const refStyles = extractSection('REFERENCE STYLES');
+  if (refStyles) {
+    // Extract blocks containing creative CSS: @keyframes, box-shadow,
+    // backdrop-filter, gradients, SVG, ::before/::after
+    const creativePatterns = /@keyframes|box-shadow|backdrop-filter|linear-gradient|radial-gradient|conic-gradient|::before|::after|animation:|filter:|clip-path:|mask:|text-shadow:/;
+    const cssBlocks = refStyles.split(/\n\s*\/\* ----/);
+    const creativeBlocks = [];
+    for (const block of cssBlocks) {
+      if (creativePatterns.test(block)) {
+        const fullBlock = block.startsWith(' ') ? '  /* ----' + block : block;
+        if (total + fullBlock.length < maxBytes) {
+          creativeBlocks.push(fullBlock);
+          total += fullBlock.length;
+        }
+      }
+    }
+    if (creativeBlocks.length > 0) {
+      sections.push(`REFERENCE STYLES (creative excerpts):\n${creativeBlocks.join('\n')}`);
+    }
+  }
+
+  // 5. ANIMATIONS, SVG ELEMENTS, PERSONALITY — if space remains
+  for (const extra of ['ANIMATIONS', 'SVG ELEMENTS', 'PERSONALITY', 'DESIGN PRINCIPLES']) {
+    const text = extractSection(extra);
+    if (text && total + text.length < maxBytes) {
+      sections.push(`${extra}:\n${text}`);
+      total += text.length;
+    }
+  }
+
+  return sections.join('\n\n');
+}
+
 // --- Parse color tokens from theme files ---
 function parseThemeColors(themeId) {
   const txtFile = join(THEME_DIR, `${themeId}.txt`);
@@ -196,13 +372,31 @@ function parseThemeColors(themeId) {
   // Non-greedy match closes at first `}` — works for theme files (flat variable lists)
   // but would truncate nested braces (e.g. var(--x, var(--y))). Theme files are controlled content.
   const rootMatch = content.match(/:root\s*\{[\s\S]*?\}/);
+  // Extract all variable lines for comp-* mapping (needed in both branches)
+  const allVarLines = content.match(/^\s*--[\w-]+:\s*(?:oklch\([^)]+\)|#[0-9a-fA-F]{3,8}).*$/gm);
   if (rootMatch) {
-    result.rootBlock = rootMatch[0];
+    // If :root exists but lacks --comp-* tokens, inject them
+    if (!rootMatch[0].includes('--comp-bg') && allVarLines?.length > 0) {
+      const compLines = buildCompTokenMapping(allVarLines);
+      if (compLines.length > 0) {
+        // Insert comp-* tokens before the closing brace
+        result.rootBlock = rootMatch[0].replace(/\}$/, '\n\n  /* comp-* token bridge */\n' + compLines.join('\n') + '\n}');
+      } else {
+        result.rootBlock = rootMatch[0];
+      }
+    } else {
+      result.rootBlock = rootMatch[0];
+    }
   } else {
-    // Build :root from individual variable lines
-    const varLines = content.match(/^\s*--[\w-]+:\s*(?:oklch\([^)]+\)|#[0-9a-fA-F]{3,8}).*$/gm);
-    if (varLines && varLines.length > 0) {
-      result.rootBlock = ':root {\n' + varLines.map(l => '  ' + l.trim()).join('\n') + '\n}';
+    // Build :root from individual variable lines + comp-* bridge
+    if (allVarLines && allVarLines.length > 0) {
+      const themeVarLines = allVarLines.map(l => '  ' + l.trim().replace(/;?\s*$/, ';')).join('\n');
+      const compLines = buildCompTokenMapping(allVarLines);
+      if (compLines.length > 0) {
+        result.rootBlock = `:root {\n${themeVarLines}\n\n  /* comp-* token bridge */\n${compLines.join('\n')}\n}`;
+      } else {
+        result.rootBlock = ':root {\n' + themeVarLines + '\n}';
+      }
     }
   }
 
@@ -1021,9 +1215,21 @@ RULES:
 - ADD to the existing app — never rewrite from scratch
 - Preserve all components, hooks, state, data models, __VIBES_THEMES__, useVibesTheme()
 - Do NOT add imports, do NOT use TypeScript, keep export default App
+- Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
 - Never change Fireproof document types or query filters`;
 
   await runClaude(ws, prompt, { tools: 'Edit,Read', maxTurns: 8 });
+
+  // Sanitize CSS unicode escapes that would crash Babel
+  const chatAppPath = join(PROJECT_ROOT, 'app.jsx');
+  if (existsSync(chatAppPath)) {
+    const chatCode = readFileSync(chatAppPath, 'utf-8');
+    const chatSanitized = sanitizeCssEscapes(chatCode);
+    if (chatSanitized !== chatCode) {
+      writeFileSync(chatAppPath, chatSanitized, 'utf-8');
+      console.log(`[Chat] Sanitized CSS unicode escapes`);
+    }
+  }
 }
 
 async function handleThemeSwitch(ws, themeId) {
@@ -1137,7 +1343,7 @@ You MUST only edit content between these marker pairs in app.jsx:
 
 === THEME PERSONALITY ===
 
-${themeContent.slice(0, 6000)}
+${extractPass2ThemeContext(themeContent, 12000)}
 
 === RULES ===
 
@@ -1146,6 +1352,7 @@ ${themeContent.slice(0, 6000)}
 - Do NOT modify anything outside the markers — no layout, no logic, no tokens, no typography.
 - If you need to change anything outside a marker, STOP and explain why instead of editing.
 - No import statements, no TypeScript, keep export default App.
+- Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
 ${extractDataSchema(pass1Code)}`;
 
   console.log(`[ThemeSwitch] Pass 2: Claude creative restyle, prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
@@ -1173,6 +1380,13 @@ ${extractDataSchema(pass1Code)}`;
     }));
   } else {
     console.log(`[ThemeSwitch] Pass 2 validated — non-theme content unchanged`);
+    // Sanitize CSS unicode escapes that would crash Babel
+    const validatedCode = readFileSync(appJsxPath, 'utf-8');
+    const sanitized = sanitizeCssEscapes(validatedCode);
+    if (sanitized !== validatedCode) {
+      writeFileSync(appJsxPath, sanitized, 'utf-8');
+      console.log(`[ThemeSwitch] Sanitized CSS unicode escapes`);
+    }
   }
 }
 
@@ -1211,7 +1425,7 @@ Replace useVibesTheme default with: "${themeId}"
 
 Study this theme to update backgrounds, shadows, borders, fonts, animations, SVGs:
 
-${themeContent.slice(0, 8000)}
+${extractPass2ThemeContext(themeContent, 14000)}
 
 === RULES ===
 
@@ -1224,10 +1438,19 @@ CHANGE (visual only):
 KEEP UNCHANGED:
 - All components, hooks, functions, state, data models, layout structure
 - All Fireproof database calls, document types, query filters
-- No import statements, no TypeScript, keep export default App`;
+- No import statements, no TypeScript, keep export default App
+- Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.`;
 
   console.log(`[ThemeSwitch] Legacy mode for "${themeName}" (${themeId}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
   await runClaude(ws, prompt, { skipChat: true, tools: 'Edit', maxTurns: 8 });
+
+  // Sanitize CSS unicode escapes that would crash Babel
+  const legacyCode = readFileSync(join(PROJECT_ROOT, 'app.jsx'), 'utf-8');
+  const legacySanitized = sanitizeCssEscapes(legacyCode);
+  if (legacySanitized !== legacyCode) {
+    writeFileSync(join(PROJECT_ROOT, 'app.jsx'), legacySanitized, 'utf-8');
+    console.log(`[ThemeSwitch] Sanitized CSS unicode escapes (legacy)`);
+  }
 }
 
 // --- Create Theme Handlers ---
@@ -1306,18 +1529,13 @@ async function handleGenerate(ws, userPrompt, themeId) {
     console.log(`[Generate]   ✗ NO THEME FILE for "${themeId}"`);
   }
 
-  // Extract the :root CSS block — this is the EXACT code Claude must use
-  // Extract the :root CSS block — the exact code Claude must use in <style>
-  let rootCss = '';
-  const rootMatch = themeContent.match(/:root\s*\{[\s\S]*?\}/);
-  if (rootMatch) {
-    rootCss = rootMatch[0];
-  } else {
-    // Some themes list variables without a :root block — build one from --var: oklch(...) lines
-    const varLines = themeContent.match(/^\s*--[\w-]+:\s*oklch\([^)]+\).*$/gm);
-    if (varLines && varLines.length > 0) {
-      rootCss = ':root {\n' + varLines.map(l => '  ' + l.trim()).join('\n') + '\n}';
-    }
+  // Use the parsed colors (which already include comp-* bridge) for rootCss
+  const genColors = parseThemeColors(themeId);
+  let rootCss = genColors?.rootBlock || '';
+  if (!rootCss) {
+    // Last resort: extract :root directly from theme content
+    const rootMatch = themeContent.match(/:root\s*\{[\s\S]*?\}/);
+    if (rootMatch) rootCss = rootMatch[0];
   }
   console.log(`[Generate]   rootCss: ${rootCss ? rootCss.split('\n').length + ' lines' : 'MISSING'}`);
 
@@ -1383,6 +1601,7 @@ Write the complete app to app.jsx. Rules:
 - useFireproofClerk("db-name") for database — returns { database, useLiveQuery, useDocument }
 - NO import statements — runs in Babel script block with globals
 - NO TypeScript. End with: export default App
+- Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
 - Responsive (mobile-first with Tailwind). className="btn" for buttons, "grid-background" on root
 
 === THEME SECTION MARKERS ===
@@ -1435,6 +1654,17 @@ DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}),
 
   console.log(`[Generate] Starting — theme: ${themeId} (${themeName}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
   await runClaude(ws, prompt, { skipChat: true, tools: 'Write', maxTurns: 5 });
+
+  // Sanitize CSS unicode escapes that would crash Babel
+  const genAppPath = join(PROJECT_ROOT, 'app.jsx');
+  if (existsSync(genAppPath)) {
+    const genCode = readFileSync(genAppPath, 'utf-8');
+    const genSanitized = sanitizeCssEscapes(genCode);
+    if (genSanitized !== genCode) {
+      writeFileSync(genAppPath, genSanitized, 'utf-8');
+      console.log(`[Generate] Sanitized CSS unicode escapes`);
+    }
+  }
 }
 
 // --- Editor: Deploy assembled app ---
