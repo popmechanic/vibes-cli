@@ -1,0 +1,46 @@
+ANIMATION: int-magnetic-buttons
+NAME: Magnetic Buttons
+CATEGORY: Interactive
+
+DESCRIPTION: Buttons subtly pull toward the cursor when it enters a proximity threshold, creating a magnetic attraction effect. The displacement is proportional to cursor distance and a configurable strength factor. Buttons snap back smoothly when the cursor moves away.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use useRef + useEffect with proper cleanup (removeEventListener)
+- Track mouse via onMouseMove + getBoundingClientRect for position
+- Performance: throttle mouse events with requestAnimationFrame
+- Responsive: skip mouse effects on touch devices (check window.matchMedia("(hover: hover)"))
+
+CODE EXAMPLE:
+function MagneticButton({ children, strength = 0.3, ...props }) {
+  const btnRef = React.useRef(null);
+  const [offset, setOffset] = React.useState({ x: 0, y: 0 });
+  React.useEffect(() => {
+    const btn = btnRef.current;
+    if (!btn) return;
+    const onMove = (e) => {
+      const rect = btn.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 120) {
+        setOffset({ x: dx * strength, y: dy * strength });
+      } else {
+        setOffset({ x: 0, y: 0 });
+      }
+    };
+    const onLeave = () => setOffset({ x: 0, y: 0 });
+    window.addEventListener("mousemove", onMove);
+    btn.addEventListener("mouseleave", onLeave);
+    return () => { window.removeEventListener("mousemove", onMove); btn.removeEventListener("mouseleave", onLeave); };
+  }, [strength]);
+  return (
+    <button ref={btnRef} {...props} style={{
+      ...props.style,
+      transform: `translate(${offset.x}px, ${offset.y}px)`,
+      transition: "transform 0.2s ease-out"
+    }}>{children}</button>
+  );
+}

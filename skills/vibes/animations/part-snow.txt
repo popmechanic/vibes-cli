@@ -1,0 +1,59 @@
+ANIMATION: part-snow
+NAME: Snowfall
+CATEGORY: Particles
+
+DESCRIPTION: Gentle falling snow particles with wind drift and wobble motion. Snowflakes vary in size and speed, wrapping around screen edges for a seamless effect. Ideal as an ambient background for winter-themed or cozy apps.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use Canvas 2D with useRef + useEffect, cleanup with cancelAnimationFrame + removeEventListener
+- Always use devicePixelRatio for retina displays
+- Keep particle count under 100 for mobile (check window.innerWidth < 768)
+- Background effects: position fixed, zIndex 0, pointerEvents none
+- Canvas size via JS attributes, NOT CSS
+
+CODE EXAMPLE:
+function Snowfall({ count = 80 }) {
+  const canvasRef = React.useRef(null);
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    let animId;
+    const n = window.innerWidth < 768 ? Math.min(count, 40) : count;
+    function resize() {
+      canvas.width = window.innerWidth * devicePixelRatio;
+      canvas.height = window.innerHeight * devicePixelRatio;
+      ctx.scale(devicePixelRatio, devicePixelRatio);
+    }
+    resize();
+    window.addEventListener("resize", resize);
+    const flakes = Array.from({ length: n }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      r: Math.random() * 3 + 1,
+      speed: Math.random() * 1 + 0.5,
+      wind: Math.random() * 0.5 - 0.25,
+      wobble: Math.random() * Math.PI * 2,
+    }));
+    function draw() {
+      const w = window.innerWidth, h = window.innerHeight;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = "rgba(255,255,255,0.8)";
+      for (const f of flakes) {
+        f.y += f.speed;
+        f.x += f.wind + Math.sin(f.wobble) * 0.3;
+        f.wobble += 0.01;
+        if (f.y > h) { f.y = -5; f.x = Math.random() * w; }
+        if (f.x > w) f.x = 0;
+        if (f.x < 0) f.x = w;
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      animId = requestAnimationFrame(draw);
+    }
+    draw();
+    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
+  }, [count]);
+  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", width: "100vw", height: "100vh" }} />;
+}

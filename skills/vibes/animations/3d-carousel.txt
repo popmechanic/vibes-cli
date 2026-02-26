@@ -1,0 +1,42 @@
+ANIMATION: 3d-carousel
+NAME: 3D Carousel
+CATEGORY: 3D
+
+DESCRIPTION: Items arranged in a circle using translateZ with rotation, creating a rotating carousel in true 3D space. Each item is positioned at an equal angle around the circumference and the entire carousel rotates on click. The radius is calculated dynamically based on item count.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use useRef + useEffect with proper cleanup (cancelAnimationFrame, removeEventListener)
+- Use CSS perspective, rotateX/Y/Z, preserve-3d, translateZ for 3D transforms
+- Performance: use will-change on animated elements, prefer CSS transitions over JS animation when possible
+- Responsive: reduce 3D intensity on mobile (smaller perspective values)
+
+CODE EXAMPLE:
+function Carousel3D({ items }) {
+  const [angle, setAngle] = React.useState(0);
+  const count = items.length;
+  const theta = 360 / count;
+  const radius = Math.round((250 / 2) / Math.tan(Math.PI / count));
+
+  return (
+    <div style={{ perspective: "1000px", height: "300px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{
+        transformStyle: "preserve-3d",
+        transform: `rotateY(${angle}deg)`,
+        transition: "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)",
+        width: "250px", height: "250px", position: "relative"
+      }}>
+        {items.map((item, i) => (
+          <div key={i} style={{
+            position: "absolute", width: "250px", height: "250px",
+            transform: `rotateY(${i * theta}deg) translateZ(${radius}px)`,
+            backfaceVisibility: "hidden", borderRadius: "12px", padding: "1rem",
+            display: "flex", alignItems: "center", justifyContent: "center"
+          }}>{item}</div>
+        ))}
+      </div>
+      <button onClick={() => setAngle(a => a - theta)} style={{ position: "absolute", left: "1rem" }}>&#8592;</button>
+      <button onClick={() => setAngle(a => a + theta)} style={{ position: "absolute", right: "1rem" }}>&#8594;</button>
+    </div>
+  );
+}

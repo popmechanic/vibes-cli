@@ -1,0 +1,38 @@
+ANIMATION: staggered
+NAME: Staggered Entrance
+CATEGORY: Animated
+
+DESCRIPTION: Items animate in sequence with cascading delays, creating a wave-like entrance effect. Uses IntersectionObserver to trigger the animation when the container scrolls into view. Each item receives an incremental delay based on its index.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use useRef + useEffect with proper cleanup
+- CSS @keyframes, @property, IntersectionObserver, requestAnimationFrame
+- Performance: prefer CSS animations over JS when possible
+- Responsive: reduce animation complexity on prefers-reduced-motion
+
+CODE EXAMPLE:
+function StaggeredList({ items, renderItem }) {
+  const [visible, setVisible] = React.useState(false);
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { setVisible(true); obs.disconnect(); }
+    }, { threshold: 0.1 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return (
+    <div ref={ref}>
+      {items.map((item, i) => (
+        <div key={i} style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(20px)",
+          transition: `opacity 0.4s ease ${i * 80}ms, transform 0.4s ease ${i * 80}ms`
+        }}>{renderItem(item, i)}</div>
+      ))}
+    </div>
+  );
+}

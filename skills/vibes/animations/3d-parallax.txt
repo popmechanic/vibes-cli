@@ -1,0 +1,47 @@
+ANIMATION: 3d-parallax
+NAME: Parallax Depth
+CATEGORY: 3D
+
+DESCRIPTION: Multi-layer parallax that responds to mouse movement across the entire viewport. Each layer moves at a different speed based on its depth, creating a convincing sense of spatial depth. Layers closer to the viewer move more dramatically than those further away.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use useRef + useEffect with proper cleanup (cancelAnimationFrame, removeEventListener)
+- Use CSS perspective, rotateX/Y/Z, preserve-3d, translateZ for 3D transforms
+- Performance: use will-change on animated elements, prefer CSS transitions over JS animation when possible
+- Responsive: reduce 3D intensity on mobile (smaller perspective values)
+
+CODE EXAMPLE:
+function ParallaxScene() {
+  const sceneRef = React.useRef(null);
+  const [offset, setOffset] = React.useState({ x: 0, y: 0 });
+
+  React.useEffect(() => {
+    const onMove = (e) => {
+      const x = (e.clientX / window.innerWidth - 0.5) * 2;
+      const y = (e.clientY / window.innerHeight - 0.5) * 2;
+      setOffset({ x, y });
+    };
+    window.addEventListener("mousemove", onMove);
+    return () => window.removeEventListener("mousemove", onMove);
+  }, []);
+
+  const layers = [
+    { z: 0, speed: 0.02, content: "Background" },
+    { z: 50, speed: 0.05, content: "Middle" },
+    { z: 100, speed: 0.1, content: "Foreground" },
+  ];
+
+  return (
+    <div ref={sceneRef} style={{ perspective: "1000px", height: "100vh", overflow: "hidden", position: "relative" }}>
+      {layers.map((layer, i) => (
+        <div key={i} style={{
+          position: "absolute", inset: "-10%",
+          transform: `translateZ(${layer.z}px) translate(${offset.x * layer.speed * 100}px, ${offset.y * layer.speed * 100}px)`,
+          transition: "transform 0.3s ease-out",
+          display: "flex", alignItems: "center", justifyContent: "center"
+        }}>{layer.content}</div>
+      ))}
+    </div>
+  );
+}

@@ -1,0 +1,69 @@
+ANIMATION: part-confetti
+NAME: Confetti Burst
+CATEGORY: Particles
+
+DESCRIPTION: A colorful confetti explosion triggered by user actions. Returns a hook with a fire(x, y) function and a ConfettiCanvas component. Particles burst outward with gravity, rotation, and fade, then clean up automatically when all particles expire.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use Canvas 2D with useRef + useEffect, cleanup with cancelAnimationFrame + removeEventListener
+- Always use devicePixelRatio for retina displays
+- Keep particle count under 100 for mobile (check window.innerWidth < 768)
+- Background effects: position fixed, zIndex 0, pointerEvents none
+- Canvas size via JS attributes, NOT CSS
+
+CODE EXAMPLE:
+function useConfetti() {
+  const canvasRef = React.useRef(null);
+  const particlesRef = React.useRef([]);
+  const animRef = React.useRef(null);
+
+  const fire = React.useCallback((x, y) => {
+    const colors = ["#DA291C", "#009ACE", "#eab308", "#22c55e", "#f472b6"];
+    for (let i = 0; i < 40; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 8 + 2;
+      particlesRef.current.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: Math.random() * 6 + 3,
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 10,
+        life: 1
+      });
+    }
+    if (!animRef.current) animate();
+  }, []);
+
+  function animate() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth * devicePixelRatio;
+    canvas.height = window.innerHeight * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    const alive = [];
+    for (const p of particlesRef.current) {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.2;
+      p.rotation += p.rotSpeed; p.life -= 0.015;
+      if (p.life <= 0) continue;
+      alive.push(p);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation * Math.PI / 180);
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size/2, -p.size/4, p.size, p.size/2);
+      ctx.restore();
+    }
+    particlesRef.current = alive;
+    if (alive.length > 0) { animRef.current = requestAnimationFrame(animate); }
+    else { animRef.current = null; }
+  }
+
+  const ConfettiCanvas = () => <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 999, pointerEvents: "none", width: "100vw", height: "100vh" }} />;
+  return { fire, ConfettiCanvas };
+}

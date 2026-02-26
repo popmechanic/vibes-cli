@@ -1,0 +1,31 @@
+ANIMATION CATALOG
+
+| Animation ID | Name | Category | Description |
+|---|---|---|---|
+| 3d-layers | Layered Depth | 3D | Stacked content planes with parallax depth using CSS preserve-3d |
+| 3d-flip-cards | Flip Cards | 3D | Cards that flip to reveal back content on hover using rotateY |
+| 3d-perspective-grid | Perspective Grid | 3D | Isometric grid layout with CSS perspective and rotateX/Y transforms |
+| 3d-carousel | 3D Carousel | 3D | Rotating carousel of items arranged in a 3D circle using translateZ |
+| 3d-parallax | Parallax Depth | 3D | Multi-layer parallax that responds to mouse movement with 3D transforms |
+| 3d-ampersand | Extruded Layers | 3D | Duplicate any element into stacked z-depth layers with breathing pulse and mouse-tilt |
+| 3d-cuboid-gallery | Cuboid Gallery | 3D | Row of rotating 3D cuboids with images/content on each face, reveal on hover |
+| anim-scroll-reveal | Scroll Reveal | Animated | Elements fade and slide in as they enter the viewport via IntersectionObserver |
+| anim-staggered | Staggered Entrance | Animated | List items animate in sequence with increasing delay for cascade effect |
+| anim-gradient-morph | Gradient Morph | Animated | Animated gradient backgrounds using CSS @property and keyframes |
+| anim-clip-path | Clip Path Morph | Animated | Elements morph between shapes using animated clip-path polygons |
+| anim-typewriter | Typewriter Text | Animated | Text appears character by character with blinking cursor effect |
+| int-mouse-glow | Cursor Glow | Interactive | Radial glow follows mouse position across the page |
+| int-tilt-cards | Tilt Cards | Interactive | Cards tilt toward cursor on hover using perspective transforms |
+| int-magnetic-buttons | Magnetic Buttons | Interactive | Buttons subtly pull toward cursor when mouse is nearby |
+| int-drag-sort | Drag & Sort | Interactive | Items can be dragged and reordered with smooth position transitions |
+| int-cursor-trail | Cursor Trail | Interactive | Trail of fading dots follows the mouse across the screen |
+| part-floating-dots | Floating Dots | Particles | Canvas 2D particle field with drifting connected dots |
+| part-confetti | Confetti Burst | Particles | Colorful confetti explosion triggered by user actions |
+| part-snow | Snowfall | Particles | Gentle falling snow particles with wind drift and rotation |
+| part-bubbles | Rising Bubbles | Particles | Translucent bubbles float upward with wobble and pop effects |
+| part-fireflies | Fireflies | Particles | Glowing orbs drift and pulse like fireflies in the background |
+| shd-aurora | Aurora | Shader | Northern lights effect with flowing color bands via WebGL |
+| shd-plasma | Plasma | Shader | Lava-lamp style interference patterns using layered sine waves |
+| shd-noise-gradient | Noise Gradient | Shader | Smooth animated noise mesh that reacts to mouse position |
+| shd-water-ripple | Water Ripple | Shader | Concentric wave distortion effect centered on mouse clicks |
+| shd-voronoi | Voronoi Cells | Shader | Animated cell pattern with shifting colors and boundaries |

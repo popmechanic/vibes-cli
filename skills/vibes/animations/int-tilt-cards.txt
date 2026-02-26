@@ -1,0 +1,33 @@
+ANIMATION: int-tilt-cards
+NAME: Tilt Cards
+CATEGORY: Interactive
+
+DESCRIPTION: Cards respond to mouse position by tilting toward the cursor on hover using CSS 3D transforms. The tilt angle is proportional to cursor distance from center, with a configurable maximum. Cards smoothly reset to flat when the mouse leaves.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use useRef + useEffect with proper cleanup (removeEventListener)
+- Track mouse via onMouseMove + getBoundingClientRect for position
+- Performance: throttle mouse events with requestAnimationFrame
+- Responsive: skip mouse effects on touch devices (check window.matchMedia("(hover: hover)"))
+
+CODE EXAMPLE:
+function TiltCard({ children, maxTilt = 12 }) {
+  const [tilt, setTilt] = React.useState({ x: 0, y: 0 });
+  const onMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientY - rect.top) / rect.height - 0.5) * maxTilt;
+    const y = -((e.clientX - rect.left) / rect.width - 0.5) * maxTilt;
+    setTilt({ x, y });
+  };
+  const onLeave = () => setTilt({ x: 0, y: 0 });
+  return (
+    <div onMouseMove={onMove} onMouseLeave={onLeave} style={{ perspective: "800px" }}>
+      <div style={{
+        transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+        transition: "transform 0.15s ease-out",
+        transformStyle: "preserve-3d"
+      }}>{children}</div>
+    </div>
+  );
+}

@@ -1,0 +1,62 @@
+ANIMATION: int-cursor-trail
+NAME: Cursor Trail
+CATEGORY: Interactive
+
+DESCRIPTION: A trail of fading dots follows the mouse cursor using a fixed-size canvas overlay. Each dot in the chain eases toward the previous one, creating a smooth trailing effect. The canvas handles high-DPI displays and automatically resizes with the viewport.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use useRef + useEffect with proper cleanup (removeEventListener)
+- Track mouse via onMouseMove + getBoundingClientRect for position
+- Performance: throttle mouse events with requestAnimationFrame
+- Responsive: skip mouse effects on touch devices (check window.matchMedia("(hover: hover)"))
+
+CODE EXAMPLE:
+function CursorTrail({ color = "var(--comp-accent, #009ACE)", count = 12 }) {
+  const canvasRef = React.useRef(null);
+  React.useEffect(() => {
+    const hasHover = window.matchMedia("(hover: hover)").matches;
+    if (!hasHover) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    let animId;
+    const trail = Array.from({ length: count }, () => ({ x: -100, y: -100 }));
+    let mouse = { x: -100, y: -100 };
+
+    function resize() {
+      canvas.width = window.innerWidth * devicePixelRatio;
+      canvas.height = window.innerHeight * devicePixelRatio;
+      ctx.scale(devicePixelRatio, devicePixelRatio);
+    }
+    resize();
+
+    const onMove = (e) => { mouse = { x: e.clientX, y: e.clientY }; };
+    const onResize = () => resize();
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("resize", onResize);
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width / devicePixelRatio, canvas.height / devicePixelRatio);
+      trail[0].x += (mouse.x - trail[0].x) * 0.3;
+      trail[0].y += (mouse.y - trail[0].y) * 0.3;
+      for (let i = 1; i < trail.length; i++) {
+        trail[i].x += (trail[i-1].x - trail[i].x) * 0.3;
+        trail[i].y += (trail[i-1].y - trail[i].y) * 0.3;
+      }
+      for (let i = trail.length - 1; i >= 0; i--) {
+        const alpha = 1 - i / trail.length;
+        const r = (1 - i / trail.length) * 6;
+        ctx.beginPath();
+        ctx.arc(trail[i].x, trail[i].y, r, 0, Math.PI * 2);
+        ctx.fillStyle = `oklch(0.6 0.15 230 / ${alpha * 0.6})`;
+        ctx.fill();
+      }
+      animId = requestAnimationFrame(draw);
+    }
+    draw();
+
+    return () => { cancelAnimationFrame(animId); window.removeEventListener("mousemove", onMove); window.removeEventListener("resize", onResize); };
+  }, [count]);
+
+  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 1, pointerEvents: "none", width: "100vw", height: "100vh" }} />;
+}

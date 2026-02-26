@@ -1,0 +1,40 @@
+ANIMATION: typewriter
+NAME: Typewriter Text
+CATEGORY: Animated
+
+DESCRIPTION: Text appears character by character with a blinking cursor, simulating a typewriter effect. The typing speed is configurable and the cursor blinks independently at a natural cadence. Both the typing interval and cursor blink are cleaned up properly on unmount.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use useRef + useEffect with proper cleanup
+- CSS @keyframes, @property, IntersectionObserver, requestAnimationFrame
+- Performance: prefer CSS animations over JS when possible
+- Responsive: reduce animation complexity on prefers-reduced-motion
+
+CODE EXAMPLE:
+function Typewriter({ text, speed = 50 }) {
+  const [displayed, setDisplayed] = React.useState("");
+  const [showCursor, setShowCursor] = React.useState(true);
+
+  React.useEffect(() => {
+    let i = 0;
+    setDisplayed("");
+    const timer = setInterval(() => {
+      if (i < text.length) { setDisplayed(text.slice(0, i + 1)); i++; }
+      else clearInterval(timer);
+    }, speed);
+    return () => clearInterval(timer);
+  }, [text, speed]);
+
+  React.useEffect(() => {
+    const blink = setInterval(() => setShowCursor(v => !v), 530);
+    return () => clearInterval(blink);
+  }, []);
+
+  return (
+    <span style={{ fontFamily: "monospace" }}>
+      {displayed}
+      <span style={{ opacity: showCursor ? 1 : 0, transition: "opacity 0.1s" }}>|</span>
+    </span>
+  );
+}

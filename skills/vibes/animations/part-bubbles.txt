@@ -1,0 +1,64 @@
+ANIMATION: part-bubbles
+NAME: Rising Bubbles
+CATEGORY: Particles
+
+DESCRIPTION: Translucent bubbles float upward with a gentle wobble motion. Each bubble has a subtle highlight for a glassy look. Bubbles wrap from bottom to top, creating a continuous rising effect perfect for aquatic or dreamy interfaces.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use Canvas 2D with useRef + useEffect, cleanup with cancelAnimationFrame + removeEventListener
+- Always use devicePixelRatio for retina displays
+- Keep particle count under 100 for mobile (check window.innerWidth < 768)
+- Background effects: position fixed, zIndex 0, pointerEvents none
+- Canvas size via JS attributes, NOT CSS
+
+CODE EXAMPLE:
+function RisingBubbles({ count = 25 }) {
+  const canvasRef = React.useRef(null);
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    let animId;
+    function resize() {
+      canvas.width = window.innerWidth * devicePixelRatio;
+      canvas.height = window.innerHeight * devicePixelRatio;
+      ctx.scale(devicePixelRatio, devicePixelRatio);
+    }
+    resize();
+    window.addEventListener("resize", resize);
+    const bubbles = Array.from({ length: count }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: window.innerHeight + Math.random() * 200,
+      r: Math.random() * 20 + 8,
+      speed: Math.random() * 1.5 + 0.5,
+      wobbleSpeed: Math.random() * 0.02 + 0.01,
+      wobbleAmp: Math.random() * 30 + 10,
+      phase: Math.random() * Math.PI * 2,
+      opacity: Math.random() * 0.3 + 0.1,
+    }));
+    function draw() {
+      const w = window.innerWidth, h = window.innerHeight;
+      ctx.clearRect(0, 0, w, h);
+      for (const b of bubbles) {
+        b.y -= b.speed;
+        b.phase += b.wobbleSpeed;
+        const wx = b.x + Math.sin(b.phase) * b.wobbleAmp;
+        if (b.y + b.r < 0) { b.y = h + b.r; b.x = Math.random() * w; }
+        ctx.beginPath();
+        ctx.arc(wx, b.y, b.r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255,255,255,${b.opacity})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        // Highlight
+        ctx.beginPath();
+        ctx.arc(wx - b.r * 0.3, b.y - b.r * 0.3, b.r * 0.2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${b.opacity * 0.8})`;
+        ctx.fill();
+      }
+      animId = requestAnimationFrame(draw);
+    }
+    draw();
+    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
+  }, [count]);
+  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", width: "100vw", height: "100vh" }} />;
+}

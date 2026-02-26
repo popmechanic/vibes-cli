@@ -1,0 +1,67 @@
+ANIMATION: part-fireflies
+NAME: Fireflies
+CATEGORY: Particles
+
+DESCRIPTION: Glowing orbs drift lazily across the screen with random direction changes, pulsing in and out of brightness. Each firefly has a warm radial gradient glow. Creates a magical nighttime atmosphere, great for nature-themed or ambient apps.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries
+- Use Canvas 2D with useRef + useEffect, cleanup with cancelAnimationFrame + removeEventListener
+- Always use devicePixelRatio for retina displays
+- Keep particle count under 100 for mobile (check window.innerWidth < 768)
+- Background effects: position fixed, zIndex 0, pointerEvents none
+- Canvas size via JS attributes, NOT CSS
+
+CODE EXAMPLE:
+function Fireflies({ count = 30 }) {
+  const canvasRef = React.useRef(null);
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    let animId;
+    const n = window.innerWidth < 768 ? Math.min(count, 15) : count;
+    function resize() {
+      canvas.width = window.innerWidth * devicePixelRatio;
+      canvas.height = window.innerHeight * devicePixelRatio;
+      ctx.scale(devicePixelRatio, devicePixelRatio);
+    }
+    resize();
+    window.addEventListener("resize", resize);
+    const flies = Array.from({ length: n }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      vx: (Math.random() - 0.5) * 0.8,
+      vy: (Math.random() - 0.5) * 0.8,
+      phase: Math.random() * Math.PI * 2,
+      pulseSpeed: Math.random() * 0.03 + 0.01,
+      r: Math.random() * 3 + 2,
+    }));
+    function draw() {
+      const w = window.innerWidth, h = window.innerHeight;
+      ctx.clearRect(0, 0, w, h);
+      for (const f of flies) {
+        f.x += f.vx; f.y += f.vy;
+        f.vx += (Math.random() - 0.5) * 0.05;
+        f.vy += (Math.random() - 0.5) * 0.05;
+        f.vx = Math.max(-1, Math.min(1, f.vx));
+        f.vy = Math.max(-1, Math.min(1, f.vy));
+        if (f.x < 0) f.x = w; if (f.x > w) f.x = 0;
+        if (f.y < 0) f.y = h; if (f.y > h) f.y = 0;
+        f.phase += f.pulseSpeed;
+        const glow = (Math.sin(f.phase) + 1) / 2;
+        const gradient = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.r * 4);
+        gradient.addColorStop(0, `rgba(255, 240, 100, ${glow * 0.8})`);
+        gradient.addColorStop(0.5, `rgba(255, 220, 50, ${glow * 0.3})`);
+        gradient.addColorStop(1, "rgba(255, 220, 50, 0)");
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.r * 4, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+      }
+      animId = requestAnimationFrame(draw);
+    }
+    draw();
+    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
+  }, [count]);
+  return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", width: "100vw", height: "100vh" }} />;
+}
