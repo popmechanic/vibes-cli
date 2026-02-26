@@ -3,10 +3,10 @@
  */
 
 import { describe, it, expect, afterEach } from 'vitest';
-import { writeFileSync, mkdirSync, rmSync } from 'fs';
+import { writeFileSync, readFileSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { validateOpenRouterKey, validateClerkUserId, validateClerkKey, loadEnvFile } from '../../lib/env-utils.js';
+import { validateOpenRouterKey, validateClerkUserId, validateClerkKey, loadEnvFile, validateClerkSecretKey, validateConnectUrl, deriveConnectUrls, writeEnvFile } from '../../lib/env-utils.js';
 
 describe('validateOpenRouterKey', () => {
   it('accepts valid OpenRouter keys', () => {
@@ -135,5 +135,122 @@ describe('loadEnvFile', () => {
     expect(env.A).toBe('hello');
     expect(env.B).toBe('world');
     expect(env.C).toBe('quoted');
+  });
+});
+
+describe('validateClerkSecretKey', () => {
+  it('accepts valid secret keys', () => {
+    expect(validateClerkSecretKey('sk_test_abc123')).toBe(true);
+    expect(validateClerkSecretKey('sk_live_abc123')).toBe(true);
+  });
+  it('rejects invalid keys', () => {
+    expect(validateClerkSecretKey('pk_test_abc')).toBeFalsy();
+    expect(validateClerkSecretKey('sk_abc')).toBeFalsy();
+    expect(validateClerkSecretKey(null)).toBeFalsy();
+    expect(validateClerkSecretKey(undefined)).toBeFalsy();
+    expect(validateClerkSecretKey('')).toBeFalsy();
+  });
+});
+
+describe('validateConnectUrl', () => {
+  it('accepts valid API URLs', () => {
+    expect(validateConnectUrl('https://studio.exe.xyz/api/', 'api')).toBe(true);
+    expect(validateConnectUrl('https://example.com', 'api')).toBe(true);
+  });
+  it('rejects invalid API URLs', () => {
+    expect(validateConnectUrl('http://example.com', 'api')).toBe(false);
+    expect(validateConnectUrl('fpcloud://example.com', 'api')).toBe(false);
+    expect(validateConnectUrl('', 'api')).toBe(false);
+    expect(validateConnectUrl(null, 'api')).toBe(false);
+  });
+  it('accepts valid Cloud URLs', () => {
+    expect(validateConnectUrl('fpcloud://studio.exe.xyz?protocol=wss', 'cloud')).toBe(true);
+  });
+  it('rejects invalid Cloud URLs', () => {
+    expect(validateConnectUrl('https://studio.exe.xyz', 'cloud')).toBe(false);
+    expect(validateConnectUrl('', 'cloud')).toBe(false);
+    expect(validateConnectUrl(null, 'cloud')).toBe(false);
+  });
+});
+
+describe('deriveConnectUrls', () => {
+  it('derives URLs from simple studio name', () => {
+    const urls = deriveConnectUrls('my-studio');
+    expect(urls.apiUrl).toBe('https://my-studio.exe.xyz/api/');
+    expect(urls.cloudUrl).toBe('fpcloud://my-studio.exe.xyz?protocol=wss');
+  });
+  it('handles full hostnames (with dots)', () => {
+    const urls = deriveConnectUrls('custom.example.com');
+    expect(urls.apiUrl).toBe('https://custom.example.com/api/');
+    expect(urls.cloudUrl).toBe('fpcloud://custom.example.com?protocol=wss');
+  });
+  it('trims whitespace', () => {
+    const urls = deriveConnectUrls('  my-studio  ');
+    expect(urls.apiUrl).toBe('https://my-studio.exe.xyz/api/');
+  });
+  it('throws on empty input', () => {
+    expect(() => deriveConnectUrls('')).toThrow();
+    expect(() => deriveConnectUrls(null)).toThrow();
+    expect(() => deriveConnectUrls(undefined)).toThrow();
+  });
+});
+
+describe('writeEnvFile', () => {
+  let tempDir;
+  function makeTempDir() {
+    tempDir = join(tmpdir(), 'env-write-test-' + Date.now());
+    mkdirSync(tempDir, { recursive: true });
+    return tempDir;
+  }
+  afterEach(() => {
+    if (tempDir) {
+      rmSync(tempDir, { recursive: true, force: true });
+      tempDir = null;
+    }
+  });
+
+  it('creates new .env file', () => {
+    const dir = makeTempDir();
+    writeEnvFile(dir, { KEY: 'value' });
+    const content = readFileSync(join(dir, '.env'), 'utf8');
+    expect(content).toContain('KEY=value');
+  });
+
+  it('merges keys into existing file', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, '.env'), 'EXISTING=hello\n');
+    writeEnvFile(dir, { NEW: 'world' });
+    const content = readFileSync(join(dir, '.env'), 'utf8');
+    expect(content).toContain('EXISTING=hello');
+    expect(content).toContain('NEW=world');
+  });
+
+  it('overwrites matching keys', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, '.env'), 'KEY=old\n');
+    writeEnvFile(dir, { KEY: 'new' });
+    const content = readFileSync(join(dir, '.env'), 'utf8');
+    expect(content).toContain('KEY=new');
+    expect(content).not.toContain('KEY=old');
+  });
+
+  it('preserves comments and blank lines', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, '.env'), '# This is a comment\n\nKEY=value\n');
+    writeEnvFile(dir, { OTHER: 'test' });
+    const content = readFileSync(join(dir, '.env'), 'utf8');
+    expect(content).toContain('# This is a comment');
+    expect(content).toContain('KEY=value');
+    expect(content).toContain('OTHER=test');
+  });
+
+  it('preserves unrelated keys', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, '.env'), 'A=1\nB=2\nC=3\n');
+    writeEnvFile(dir, { B: 'updated' });
+    const content = readFileSync(join(dir, '.env'), 'utf8');
+    expect(content).toContain('A=1');
+    expect(content).toContain('B=updated');
+    expect(content).toContain('C=3');
   });
 });
