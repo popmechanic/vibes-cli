@@ -46,3 +46,10 @@ skills/cloudflare/worker/public/
 
 # Design mockups (not part of plugin)
 designs/
+
+# Binary assets (audio, large media)
+*.mp3
+
+# Timestamped backups from assembly
+*.bak.jsx
+*.bak.html

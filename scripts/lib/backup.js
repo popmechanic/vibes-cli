@@ -5,8 +5,10 @@
  * Creates timestamped backups in format: file.YYYYMMDD-HHMMSS.bak.ext
  */
 
-import { existsSync, copyFileSync, readdirSync } from 'fs';
+import { existsSync, copyFileSync, readdirSync, unlinkSync } from 'fs';
 import { dirname, join, basename, parse, format } from 'path';
+
+const MAX_BACKUPS = 3;
 
 /**
  * Generate timestamp string for backup filenames
@@ -37,7 +39,29 @@ export function createBackup(filePath) {
     ext: parsed.ext || '.bak'
   });
   copyFileSync(filePath, backupPath);
+  pruneOldBackups(filePath);
   return backupPath;
+}
+
+/**
+ * Remove old backups beyond MAX_BACKUPS, keeping the most recent ones.
+ */
+function pruneOldBackups(filePath) {
+  const dir = dirname(filePath);
+  const parsed = parse(filePath);
+  const ext = parsed.ext ? `\\${parsed.ext}` : '\\.bak';
+  const pattern = new RegExp(`^${parsed.name}\\.\\d{8}-\\d{6}\\.bak${ext}$`);
+
+  try {
+    const backups = readdirSync(dir)
+      .filter(e => pattern.test(e))
+      .sort()
+      .reverse(); // Most recent first
+
+    for (const old of backups.slice(MAX_BACKUPS)) {
+      unlinkSync(join(dir, old));
+    }
+  } catch { /* ignore */ }
 }
 
 /**
