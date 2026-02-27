@@ -10,6 +10,13 @@ metadata:
 
 > **Plan mode**: If you are planning work, this entire skill is ONE plan step: "Invoke /vibes:cloudflare". Do not decompose the steps below into separate plan tasks.
 
+```
+  ╔═══════════════════════════════════════════════╗
+  ║   ☁️  CLOUDFLARE WORKERS DEPLOY               ║
+  ║   KV Registry · JWT Auth · Edge Functions     ║
+  ╚═══════════════════════════════════════════════╝
+```
+
 ## Deploy to Cloudflare
 
 Deploy your Vibes app to Cloudflare Workers with the subdomain registry.
@@ -166,3 +173,33 @@ The `--ai-key` flag sets the `OPENROUTER_API_KEY` secret on the worker after dep
 npx wrangler secret put OPENROUTER_API_KEY --name myapp
 # Paste your OpenRouter API key
 ```
+
+### Troubleshooting
+
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| `wrangler: command not found` | Wrangler not installed | `npm install -g wrangler` or use `npx wrangler` |
+| KV namespace errors | Namespace doesn't exist or wrong ID | Run `npx wrangler kv namespace list` to verify |
+| JWT verification fails (401) | Missing or wrong PEM key | Check `CLERK_PEM_PUBLIC_KEY` is set: `npx wrangler secret list --name <app>` |
+| JWT azp mismatch (403) | Origins not configured | Set `PERMITTED_ORIGINS` to include your domain |
+| 404 on subdomain URL | Workers.dev doesn't support nested subdomains | Set up a custom domain (see Custom Domain Setup above) |
+| `/api/ai/chat` returns "AI not configured" | Missing OpenRouter key | Set `OPENROUTER_API_KEY` secret or redeploy with `--ai-key` |
+| `wrangler deploy` auth error | Not logged in | Run `npx wrangler login` |
+| Stale content after redeploy | Browser cache | Hard refresh (Cmd+Shift+R) or clear cache |
+
+### What's Next?
+
+After successful deployment, present these options:
+
+AskUserQuestion:
+  question: "Your app is deployed! What would you like to do next?"
+  header: "Next steps"
+  options:
+    - label: "Set up custom domain"
+      description: "Configure DNS for subdomain routing (required for multi-tenant)"
+    - label: "Enable AI features"
+      description: "Add OpenRouter API key for the useAI() hook"
+    - label: "Add billing & auth"
+      description: "Transform into SaaS with /vibes:sell, then redeploy"
+    - label: "Open in browser"
+      description: "Visit the deployed URL to verify everything works"

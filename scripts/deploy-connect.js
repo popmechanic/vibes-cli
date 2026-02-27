@@ -43,6 +43,7 @@ import {
 } from './lib/deploy-utils.js';
 
 import { generateSessionTokens, generateDeviceCAKeys } from './lib/crypto-utils.js';
+import { validateClerkKey, validateClerkSecretKey, extractClerkDomain } from './lib/env-utils.js';
 
 // ============== Argument Parsing ==============
 
@@ -104,26 +105,14 @@ function printHelp() {
  * The base64 portion decodes to the Clerk domain
  */
 function deriveJwtUrl(publishableKey) {
-  try {
-    // Extract the base64 portion after pk_test_ or pk_live_
-    const prefix = publishableKey.startsWith('pk_live_') ? 'pk_live_' : 'pk_test_';
-    const base64Part = publishableKey.slice(prefix.length);
-
-    // Decode base64 to get the Clerk domain
-    const decoded = Buffer.from(base64Part, 'base64').toString('utf-8');
-
-    // The decoded value is typically the Clerk frontend API domain
-    // e.g., "clerk.your-app.com" or "your-app.clerk.accounts.dev"
-    const domain = decoded.replace(/\$$/, ''); // Remove trailing $ if present
-
-    return `https://${domain}/.well-known/jwks.json`;
-  } catch {
-    // Fallback: ask user to provide it
+  const domain = extractClerkDomain(publishableKey);
+  if (!domain) {
     throw new Error(
       'Could not derive JWT URL from publishable key. ' +
       'Please find your JWKS URL in Clerk Dashboard > API Keys.'
     );
   }
+  return `https://${domain}/.well-known/jwks.json`;
 }
 
 /**
@@ -152,10 +141,10 @@ async function phase1PreFlight(args) {
   await preFlightSSH({ dryRun: args.dryRun });
 
   // Validate Clerk keys
-  if (!args.clerkPublishableKey.startsWith('pk_test_') && !args.clerkPublishableKey.startsWith('pk_live_')) {
+  if (!validateClerkKey(args.clerkPublishableKey)) {
     throw new Error('Clerk publishable key must start with pk_test_ or pk_live_');
   }
-  if (!args.clerkSecretKey.startsWith('sk_test_') && !args.clerkSecretKey.startsWith('sk_live_')) {
+  if (!validateClerkSecretKey(args.clerkSecretKey)) {
     throw new Error('Clerk secret key must start with sk_test_ or sk_live_');
   }
   console.log('  ✓ Clerk keys validated');

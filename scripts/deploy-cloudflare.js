@@ -22,7 +22,7 @@ import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync, readFileSyn
 import { resolve, join, basename, dirname } from "path";
 import { createPublicKey } from "crypto";
 import { PLUGIN_ROOT } from "./lib/paths.js";
-import { loadEnvFile } from "./lib/env-utils.js";
+import { loadEnvFile, extractClerkDomain } from "./lib/env-utils.js";
 import { validateName } from "./lib/deploy-utils.js";
 const WORKER_DIR = resolve(PLUGIN_ROOT, "skills/cloudflare/worker");
 
@@ -50,17 +50,6 @@ function copyDirRecursive(src, dest) {
       console.log(`  Copied ${entry}`);
     }
   }
-}
-
-/**
- * Decode a Clerk publishable key to extract the Frontend API domain.
- * pk_test_<base64(domain + "$")> or pk_live_<base64(domain + "$")>
- */
-function clerkDomainFromKey(publishableKey) {
-  const match = publishableKey.match(/^pk_(test|live)_(.+)$/);
-  if (!match) return null;
-  const decoded = Buffer.from(match[2], "base64").toString("utf8");
-  return decoded.replace(/\$$/, ""); // strip trailing $
 }
 
 /**
@@ -294,7 +283,7 @@ async function main() {
 
   // Set Clerk secrets for JWT verification (sell apps with /claim endpoint)
   if (clerkKey) {
-    const clerkDomain = clerkDomainFromKey(clerkKey);
+    const clerkDomain = extractClerkDomain(clerkKey);
     if (!clerkDomain) {
       throw new Error("Invalid Clerk publishable key format");
     }

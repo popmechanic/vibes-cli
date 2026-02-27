@@ -14,23 +14,19 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { loadEnvFile, populateConnectConfig } from './lib/env-utils.js';
-import { APP_PLACEHOLDER } from './lib/assembly-utils.js';
+import { APP_PLACEHOLDER, loadAndValidateTemplate } from './lib/assembly-utils.js';
 
-const PLACEHOLDER = APP_PLACEHOLDER;
 const templatePath = TEMPLATES.vibesBasic;
 
-// Read template once
-if (!existsSync(templatePath)) {
-  console.error(`Template not found: ${templatePath}`);
+// Load and validate template (checks existence + placeholder)
+let template;
+try {
+  template = loadAndValidateTemplate(templatePath, readFileSync);
+} catch (err) {
+  console.error(err.message);
   process.exit(1);
 }
-const template = readFileSync(templatePath, 'utf8');
 const envVars = loadEnvFile(process.cwd());
-
-if (!template.includes(PLACEHOLDER)) {
-  console.error(`Template missing placeholder: ${PLACEHOLDER}`);
-  process.exit(1);
-}
 
 // Get riff directories from args
 const riffDirs = process.argv.slice(2);
@@ -52,7 +48,7 @@ const results = await Promise.all(
 
     try {
       const appCode = readFileSync(appPath, 'utf8').trim();
-      const assembled = template.replace(PLACEHOLDER, appCode);
+      const assembled = template.replace(APP_PLACEHOLDER, appCode);
       const output = populateConnectConfig(assembled, envVars);
       writeFileSync(outputPath, output);
       return { dir, success: true };
