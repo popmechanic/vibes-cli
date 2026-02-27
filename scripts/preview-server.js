@@ -38,9 +38,8 @@ const INITIAL_PROMPT = process.argv.find((_, i, a) => a[i - 1] === '--prompt') |
 // --- Clean env for spawning claude subprocesses (removes nesting guard) ---
 function cleanEnv() {
   const env = { ...process.env };
-  for (const key of Object.keys(env)) {
-    if (key.startsWith('CLAUDE')) delete env[key];
-  }
+  delete env.CLAUDECODE;
+  delete env.CLAUDE_CODE_ENTRYPOINT;
   return env;
 }
 
@@ -646,17 +645,10 @@ Use oklch() for ALL color values. Study the image carefully for palette, typogra
 
     child.on('close', (code) => {
       cleanup();
-      // Check if the theme file was written regardless of exit code —
-      // claude -p can exit 1 after completing the Write but failing a
-      // subsequent Edit (e.g., catalog update), or running out of turns.
-      const themeFilePath = join(THEME_DIR, `${themeId}.txt`);
-      if (code !== 0 && !existsSync(themeFilePath)) {
-        console.error(`[ThemeExtract] Failed (code ${code}): ${stderr.slice(0, 300)}`);
-        reject(new Error(`Theme extraction failed (exit code ${code}): ${stderr.slice(0, 200)}`));
-        return;
-      }
       if (code !== 0) {
-        console.warn(`[ThemeExtract] claude exited ${code} but theme file exists — treating as success`);
+        console.error(`[ThemeExtract] Failed (code ${code}): ${stderr.slice(0, 300)}`);
+        reject(new Error(`Theme extraction failed (exit code ${code})`));
+        return;
       }
       console.log(`[ThemeExtract] Theme "${themeId}" created successfully`);
       resolve(resultText);
@@ -1131,6 +1123,8 @@ wss.on('connection', (ws) => {
         copyFileSync(appSrc, join(dest, 'app.jsx'));
         ws.send(JSON.stringify({ type: 'app_saved', name }));
         console.log(`[Save] Saved app to ${dest}`);
+      } else if (msg.type === 'palette_theme') {
+        await handlePaletteTheme(ws, msg.colors);
       } else if (msg.type === 'deploy-studio') {
         await handleDeployStudio(ws, msg.studioName, msg.clerkPublishableKey, msg.clerkSecretKey);
       }
@@ -1473,6 +1467,49 @@ RULES:
       console.log(`[Chat] Sanitized CSS unicode escapes`);
     }
   }
+}
+
+async function handlePaletteTheme(ws, colors) {
+  if (!colors || typeof colors !== 'object' || Object.keys(colors).length === 0) {
+    ws.send(JSON.stringify({ type: 'error', message: 'Invalid palette colors' }));
+    return;
+  }
+
+  const appJsxPath = join(PROJECT_ROOT, 'app.jsx');
+  if (!existsSync(appJsxPath)) {
+    ws.send(JSON.stringify({ type: 'error', message: 'No app.jsx found.' }));
+    return;
+  }
+
+  let appCode = readFileSync(appJsxPath, 'utf-8');
+
+  // Build :root CSS block from palette colors (keys are CSS var names like --comp-bg)
+  const lines = Object.entries(colors).map(([varName, value]) => `    ${varName}: ${value};`);
+  const rootBlock = `:root {\n${lines.join('\n')}\n}`;
+
+  if (hasThemeMarkers(appCode)) {
+    // Replace tokens section with palette's :root block
+    appCode = replaceThemeSection(appCode, 'tokens', rootBlock);
+    console.log('[Palette] Replaced tokens section with custom palette');
+  } else {
+    // No theme markers — find and replace existing :root { ... } block directly
+    const rootRegex = /:root\s*\{[^}]*\}/;
+    if (rootRegex.test(appCode)) {
+      appCode = appCode.replace(rootRegex, rootBlock);
+      console.log('[Palette] Replaced :root block in app code');
+    } else {
+      console.log('[Palette] No :root block found, cannot apply palette');
+      ws.send(JSON.stringify({ type: 'error', message: 'No :root token block found in app.jsx' }));
+      return;
+    }
+  }
+
+  createBackup(appJsxPath);
+  writeFileSync(appJsxPath, appCode, 'utf-8');
+
+  // Reassemble and notify
+  ws.send(JSON.stringify({ type: 'app_updated' }));
+  console.log('[Palette] Custom palette applied');
 }
 
 async function handleThemeSwitch(ws, themeId) {
@@ -2239,27 +2276,8 @@ async function handlePickThemeImage(ws, index, prompt) {
       throw new Error('Theme file was not created — Claude may have encountered an issue');
     }
 
-    // Ensure catalog has an entry for this theme (Claude may not have gotten to it)
+    // Reload themes from catalog
     if (existsSync(catalogPath)) {
-      const catalogText = readFileSync(catalogPath, 'utf-8');
-      if (!catalogText.includes(`| ${themeId} |`)) {
-        // Extract mood from theme file header if possible
-        const themeText = readFileSync(themeFilePath, 'utf-8');
-        const moodMatch = themeText.match(/^MOOD:\s*(.+)/m);
-        const bestForMatch = themeText.match(/^BEST FOR:\s*\n([\s\S]*?)(?=\n[A-Z])/m);
-        const mood = moodMatch ? moodMatch[1].trim() : 'Custom theme';
-        const bestFor = bestForMatch
-          ? bestForMatch[1].replace(/^[\s-•*]+/gm, '').split('\n').filter(Boolean).slice(0, 3).join(', ')
-          : 'General purpose';
-        const row = `| ${themeId} | ${themeName} | ${mood} | ${bestFor} |`;
-        const insertPoint = catalogText.indexOf('HOW TO CHOOSE');
-        if (insertPoint !== -1) {
-          const before = catalogText.slice(0, insertPoint).trimEnd();
-          const after = catalogText.slice(insertPoint);
-          writeFileSync(catalogPath, `${before}\n${row}\n\n${after}`);
-          console.log(`[CreateTheme] Added catalog entry for "${themeId}"`);
-        }
-      }
       themes = parseThemeCatalog(readFileSync(catalogPath, 'utf-8'));
       console.log(`[CreateTheme] Reloaded ${themes.length} themes from catalog`);
     }
