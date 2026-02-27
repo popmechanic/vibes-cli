@@ -38,8 +38,9 @@ const INITIAL_PROMPT = process.argv.find((_, i, a) => a[i - 1] === '--prompt') |
 // --- Clean env for spawning claude subprocesses (removes nesting guard) ---
 function cleanEnv() {
   const env = { ...process.env };
-  delete env.CLAUDECODE;
-  delete env.CLAUDE_CODE_ENTRYPOINT;
+  for (const key of Object.keys(env)) {
+    if (key.startsWith('CLAUDE')) delete env[key];
+  }
   return env;
 }
 
@@ -645,10 +646,17 @@ Use oklch() for ALL color values. Study the image carefully for palette, typogra
 
     child.on('close', (code) => {
       cleanup();
-      if (code !== 0) {
+      // Check if the theme file was written regardless of exit code —
+      // claude -p can exit 1 after completing the Write but failing a
+      // subsequent Edit (e.g., catalog update), or running out of turns.
+      const themeFilePath = join(THEME_DIR, `${themeId}.txt`);
+      if (code !== 0 && !existsSync(themeFilePath)) {
         console.error(`[ThemeExtract] Failed (code ${code}): ${stderr.slice(0, 300)}`);
-        reject(new Error(`Theme extraction failed (exit code ${code})`));
+        reject(new Error(`Theme extraction failed (exit code ${code}): ${stderr.slice(0, 200)}`));
         return;
+      }
+      if (code !== 0) {
+        console.warn(`[ThemeExtract] claude exited ${code} but theme file exists — treating as success`);
       }
       console.log(`[ThemeExtract] Theme "${themeId}" created successfully`);
       resolve(resultText);
@@ -2231,8 +2239,27 @@ async function handlePickThemeImage(ws, index, prompt) {
       throw new Error('Theme file was not created — Claude may have encountered an issue');
     }
 
-    // Reload themes from catalog
+    // Ensure catalog has an entry for this theme (Claude may not have gotten to it)
     if (existsSync(catalogPath)) {
+      const catalogText = readFileSync(catalogPath, 'utf-8');
+      if (!catalogText.includes(`| ${themeId} |`)) {
+        // Extract mood from theme file header if possible
+        const themeText = readFileSync(themeFilePath, 'utf-8');
+        const moodMatch = themeText.match(/^MOOD:\s*(.+)/m);
+        const bestForMatch = themeText.match(/^BEST FOR:\s*\n([\s\S]*?)(?=\n[A-Z])/m);
+        const mood = moodMatch ? moodMatch[1].trim() : 'Custom theme';
+        const bestFor = bestForMatch
+          ? bestForMatch[1].replace(/^[\s-•*]+/gm, '').split('\n').filter(Boolean).slice(0, 3).join(', ')
+          : 'General purpose';
+        const row = `| ${themeId} | ${themeName} | ${mood} | ${bestFor} |`;
+        const insertPoint = catalogText.indexOf('HOW TO CHOOSE');
+        if (insertPoint !== -1) {
+          const before = catalogText.slice(0, insertPoint).trimEnd();
+          const after = catalogText.slice(insertPoint);
+          writeFileSync(catalogPath, `${before}\n${row}\n\n${after}`);
+          console.log(`[CreateTheme] Added catalog entry for "${themeId}"`);
+        }
+      }
       themes = parseThemeCatalog(readFileSync(catalogPath, 'utf-8'));
       console.log(`[CreateTheme] Reloaded ${themes.length} themes from catalog`);
     }
