@@ -16,11 +16,9 @@ import { resolve, dirname } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { createBackup } from './lib/backup.js';
 import { loadEnvFile, validateClerkKey, populateConnectConfig } from './lib/env-utils.js';
-import { APP_PLACEHOLDER, validateAssembly } from './lib/assembly-utils.js';
+import { APP_PLACEHOLDER, validateAssembly, loadAndValidateTemplate } from './lib/assembly-utils.js';
 import { stripForTemplate } from './lib/strip-code.js';
 
-
-const PLACEHOLDER = APP_PLACEHOLDER;
 
 function main() {
   // Parse args
@@ -36,22 +34,14 @@ function main() {
   const resolvedAppPath = resolve(appPath);
   const resolvedOutputPath = resolve(outputPath);
 
-  // Check files exist
-  if (!existsSync(templatePath)) {
-    throw new Error(`Template not found: ${templatePath}`);
-  }
+  // Check app file exists
   if (!existsSync(resolvedAppPath)) {
     throw new Error(`App file not found: ${resolvedAppPath}`);
   }
 
-  // Read files
-  const template = readFileSync(templatePath, 'utf8');
+  // Load and validate template (checks existence + placeholder)
+  const template = loadAndValidateTemplate(templatePath, readFileSync);
   const appCode = readFileSync(resolvedAppPath, 'utf8').trim();
-
-  // Verify placeholder exists
-  if (!template.includes(PLACEHOLDER)) {
-    throw new Error(`Template missing placeholder: ${PLACEHOLDER}`);
-  }
 
   // Load env vars from .env if present (for Connect config)
   const outputDir = dirname(resolvedOutputPath);
@@ -77,7 +67,7 @@ function main() {
   const cleanedAppCode = stripForTemplate(appCode);
 
   // Assemble: insert app code at placeholder, then populate Connect config
-  let output = template.replace(PLACEHOLDER, cleanedAppCode);
+  let output = template.replace(APP_PLACEHOLDER, cleanedAppCode);
   output = populateConnectConfig(output, envVars);
 
   // Validate output

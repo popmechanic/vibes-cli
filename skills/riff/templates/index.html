@@ -3406,6 +3406,13 @@ if (typeof window !== 'undefined') {
           return <ConfigError message="Missing Clerk publishable key. Apps require authentication." />;
         }
 
+        // Warn if Connect URLs are missing (sync won't work but app can still run locally)
+        if (!config?.tokenApiUri || !config?.cloudBackendUrl ||
+            config.tokenApiUri.startsWith('__') || config.cloudBackendUrl.startsWith('__')) {
+          console.warn('[riff] Connect URLs missing or unreplaced — data will not sync.',
+            'tokenApiUri:', config?.tokenApiUri, 'cloudBackendUrl:', config?.cloudBackendUrl);
+        }
+
         // Check if Clerk components loaded
         if (!window.ClerkFireproofProvider) {
           return <LoadingError error={window.__CLERK_LOAD_ERROR__ || 'Clerk components not available'} />;
@@ -3413,19 +3420,24 @@ if (typeof window !== 'undefined') {
 
         const { ClerkFireproofProvider, SignedIn, SignedOut, SignInButton } = window.ClerkComponents;
 
+        // Use shared components from window
+        const AuthScreen = window.AuthScreen;
+        const VibesButton = window.VibesButton;
+        const RED = window.RED;
+
         // AuthGate shown when user is not signed in
         const AuthGate = () => (
-          <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
-              <h1 className="text-2xl font-bold mb-4">Sign in to continue</h1>
-              <p className="text-gray-600 mb-6">This app uses cloud sync and requires authentication.</p>
-              <SignInButton mode="modal">
-                <button className="px-6 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
-                  Sign In
-                </button>
-              </SignInButton>
-            </div>
-          </div>
+          <AuthScreen
+            title="Sign in to continue"
+            message="This app uses cloud sync and requires authentication."
+            showCard={true}
+          >
+            <SignInButton mode="modal">
+              <VibesButton variant={RED} buttonType="form">
+                Sign In
+              </VibesButton>
+            </SignInButton>
+          </AuthScreen>
         );
 
         return (
@@ -3442,6 +3454,7 @@ if (typeof window !== 'undefined') {
                 <AuthGate />
               </SignedOut>
               <SignedIn>
+                <SharingBridge />
                 <HiddenMenuWrapper menuContent={<VibesPanel />}>
                   <App />
                 </HiddenMenuWrapper>
@@ -3469,6 +3482,10 @@ if (typeof window !== 'undefined') {
           window.SignedOut = clerkModule.SignedOut;
           window.SignInButton = clerkModule.SignInButton;
           window.UserButton = clerkModule.UserButton;
+          window.useUser = clerkModule.useUser;
+          // Export sharing APIs for user's App code and SharingBridge
+          window.useClerkFireproofContext = clerkModule.useClerkFireproofContext;
+          if (clerkModule.useSharing) window.useSharing = clerkModule.useSharing;
           // Export Fireproof hook for user's App code, with sync status bridge
           var _originalUseFireproofClerk = clerkModule.useFireproofClerk;
           window.useFireproofClerk = function(name, opts) {

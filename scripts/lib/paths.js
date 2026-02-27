@@ -45,17 +45,3 @@ export const DEFAULT_FILES = {
 export const SKILL_FILES = {
   vibesSkill: join(PLUGIN_ROOT, 'skills/vibes/SKILL.md'),
 };
-
-/**
- * Convert absolute path to plugin-relative path for display
- * Works cross-platform (handles both / and \ separators)
- *
- * @param {string} absolutePath - Absolute file path
- * @returns {string} - Path relative to plugin root
- */
-export function relativeToPlugin(absolutePath) {
-  if (!absolutePath) return '';
-  return absolutePath
-    .replace(PLUGIN_ROOT, '')
-    .replace(/^[/\\]/, '');
-}

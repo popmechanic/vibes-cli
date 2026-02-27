@@ -51,6 +51,19 @@ export function validateClerkKey(key) {
 }
 
 /**
+ * Extract the Clerk Frontend API domain from a publishable key.
+ * Keys are formatted as pk_test_<base64(domain + "$")> or pk_live_<base64(domain + "$")>
+ * @param {string} publishableKey - Clerk publishable key
+ * @returns {string|null} The decoded domain, or null if invalid format
+ */
+export function extractClerkDomain(publishableKey) {
+  const match = publishableKey?.match(/^pk_(test|live)_(.+)$/);
+  if (!match) return null;
+  const decoded = Buffer.from(match[2], 'base64').toString('utf8');
+  return decoded.replace(/\$$/, '');
+}
+
+/**
  * Validate that an OpenRouter API key has the correct format
  */
 export function validateOpenRouterKey(key) {
