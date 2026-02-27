@@ -12,6 +12,7 @@ import {
   stripConfig,
   stripConstants,
   stripReactDestructuring,
+  stripWindowDestructuring,
   stripForTemplate
 } from '../../lib/strip-code.js';
 
@@ -233,6 +234,51 @@ function App() {}`;
   });
 });
 
+describe('stripWindowDestructuring', () => {
+  it('removes single-line window destructuring', () => {
+    const code = `const { useFireproofClerk } = window;
+function App() {}`;
+    const result = stripWindowDestructuring(code);
+    expect(result).not.toContain('const { useFireproofClerk } = window');
+    expect(result).toContain('function App');
+  });
+
+  it('removes multi-name window destructuring', () => {
+    const code = `const { useFireproofClerk, useSharing } = window;
+function App() {}`;
+    const result = stripWindowDestructuring(code);
+    expect(result).not.toContain('useFireproofClerk');
+    expect(result).toContain('function App');
+  });
+
+  it('removes multi-line window destructuring', () => {
+    const code = `const {
+  useFireproofClerk,
+  useSharing
+} = window;
+function App() {}`;
+    const result = stripWindowDestructuring(code);
+    expect(result).not.toContain('useFireproofClerk');
+    expect(result).toContain('function App');
+  });
+
+  it('does not strip non-window destructuring', () => {
+    const code = `const { database, useLiveQuery } = useFireproofClerk("mydb");
+const { doc, merge } = useDocument();`;
+    const result = stripWindowDestructuring(code);
+    expect(result).toContain('const { database, useLiveQuery } = useFireproofClerk');
+    expect(result).toContain('const { doc, merge } = useDocument()');
+  });
+
+  it('handles missing semicolon', () => {
+    const code = `const { useFireproofClerk } = window
+function App() {}`;
+    const result = stripWindowDestructuring(code);
+    expect(result).not.toContain('const { useFireproofClerk } = window');
+    expect(result).toContain('function App');
+  });
+});
+
 describe('stripForTemplate', () => {
   it('strips all template conflicts', () => {
     const code = `import React from "react";
@@ -272,6 +318,20 @@ function App() {}`;
     const code = 'import React from "react";\nfunction App() {}';
     const result = stripForTemplate(code, []);
     expect(result).not.toContain('import');
+    expect(result).toContain('function App');
+  });
+
+  it('strips window destructuring alongside imports', () => {
+    const code = `const { useFireproofClerk } = window;
+function App() {
+  const { database } = useFireproofClerk("mydb");
+  return <div>Hello</div>;
+}
+export default App;`;
+    const result = stripForTemplate(code);
+    expect(result).not.toContain('const { useFireproofClerk } = window');
+    expect(result).not.toContain('export default');
+    expect(result).toContain('const { database } = useFireproofClerk("mydb")');
     expect(result).toContain('function App');
   });
 });
