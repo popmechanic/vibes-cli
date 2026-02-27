@@ -44,17 +44,22 @@ Generate React web applications using Fireproof for local-first data persistence
 ## Step 0: Terminal or Editor UI?
 
 **This is the very first question — ask before anything else.**
+**DO NOT check .env, credentials, or project state before asking this question.**
+**DO NOT invoke /vibes:connect or any other skill before asking this question.**
+**If Editor is chosen, skip ALL pre-flight checks — the editor handles everything.**
 
 Ask the user:
 > "How do you want to build? **Terminal** (I'll generate and deploy from here) or **Editor** (opens a browser UI with live preview, chat, and deploy button)?"
 
-- **If Editor**: Start the editor server. If the user already described what they want to build (e.g., `/vibes a dogs app`), pass it via `--prompt`:
+- **If Editor**: Start the editor server. Resolve the plugin root first, then launch:
   ```bash
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
+  PLUGIN_ROOT=$(find ~/.claude/plugins/cache/vibes-cli -name "preview-server.js" -path "*/scripts/*" 2>/dev/null | head -1 | xargs dirname)
+  node "${PLUGIN_ROOT}/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
   ```
   If no prompt was given, omit `--prompt`:
   ```bash
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor
+  PLUGIN_ROOT=$(find ~/.claude/plugins/cache/vibes-cli -name "preview-server.js" -path "*/scripts/*" 2>/dev/null | head -1 | xargs dirname)
+  node "${PLUGIN_ROOT}/preview-server.js" --mode=editor
   ```
   Tell the user: "Open http://localhost:3333 — the editor handles everything from here: describe your app, preview it live, switch themes, and deploy with one click."
   **Then stop.** The editor UI takes over the entire workflow (setup, generation, preview, deploy). Do not continue with the steps below.

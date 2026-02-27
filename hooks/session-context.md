@@ -71,12 +71,17 @@ When user intent matches a row below, invoke it via the Skill tool
 
 ## Workflow
 
+The FIRST question for /vibes:vibes and /vibes:launch is always "Terminal or Editor?".
+If Editor is chosen, start preview-server.js and STOP — the editor handles everything
+including credentials. Do NOT check .env or credentials before asking this question.
+
+.env checks only apply to Terminal mode. If the user chooses Terminal:
+.env with Clerk keys + Connect URLs must exist before generating apps.
+If missing, invoke `/vibes:connect` first.
+
 generate app.jsx → assemble into index.html → deploy → verify in browser
 
 Iterate: edit app.jsx → reassemble → redeploy → verify. Always redeploy.
 
 When reassembling, always invoke the skill that originally built the app.
 The SessionStart hook detects the template type and tells you which skill to use.
-
-.env with Clerk keys + Connect URLs must exist before generating apps.
-If missing, invoke `/vibes:connect` first.
