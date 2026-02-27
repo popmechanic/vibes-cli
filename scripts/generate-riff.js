@@ -86,7 +86,8 @@ Requirements:
 - Use useLiveQuery for real-time data
 - Use useDocument for form state (NOT useState for form data)
 - Include meaningful CRUD operations
-- Make it visually distinctive and immersive`;
+- Make it visually distinctive and immersive
+- Include a seedDemo function that populates 3-5 realistic sample documents with database.put() and a "Load Demo Data" button that only renders when the primary useLiveQuery returns zero docs`;
 
 try {
   const result = spawnSync('claude', ['-p', prompt], {
