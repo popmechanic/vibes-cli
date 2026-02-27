@@ -53,3 +53,6 @@ designs/
 # Timestamped backups from assembly
 *.bak.jsx
 *.bak.html
+
+# Assembled app (build artifact from assemble.js)
+index.html
