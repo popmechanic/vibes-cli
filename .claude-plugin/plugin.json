@@ -1,7 +1,7 @@
 {
   "name": "vibes",
   "version": "0.1.74",
-  "description": "Vibes is a vibe coding framework for rapidly making secure web apps for clusters of small user groups.",
+  "description": "Vibes is for people who use Claude Code, but don't know how to code",
   "author": {
     "name": "Marcus Estes",
     "email": "marcus@vibes.diy"
