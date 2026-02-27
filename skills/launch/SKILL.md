@@ -112,7 +112,7 @@ Theme switching is handled by the live preview wrapper, not inside the app. The 
 
 ### 1.1 Setup
 
-1. Resolve plugin root: `echo "${CLAUDE_PLUGIN_ROOT}"` → store as `pluginRoot`
+1. Resolve plugin root: `printenv CLAUDE_PLUGIN_ROOT` → store as `pluginRoot`
 2. Create team: `TeamCreate("launch-{appName}", "Full SaaS pipeline for {appName}")`
 3. Create all tasks per the table in LAUNCH-REFERENCE.md. If `CONNECT_READY`: mark T2+T3 completed immediately.
 
