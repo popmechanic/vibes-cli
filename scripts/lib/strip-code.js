@@ -65,6 +65,20 @@ export function stripReactDestructuring(code) {
 }
 
 /**
+ * Remove window destructuring assignments (e.g., const { useFireproofClerk } = window;)
+ * These conflict with templates that already provide these via ES imports.
+ * @param {string} code - Source code
+ * @returns {string} Code with window destructuring removed
+ */
+export function stripWindowDestructuring(code) {
+  return code
+    // Multi-line first (greedy): const {\n  useFireproofClerk,\n} = window;
+    .replace(/^const\s+\{[\s\S]*?\}\s*=\s*window\s*;?\s*$/gm, '')
+    // Single-line: const { useFireproofClerk } = window;
+    .replace(/^const\s+\{[^}]*\}\s*=\s*window\s*;?\s*$/gm, '');
+}
+
+/**
  * Strip all template conflicts from app code (imports, exports, CONFIG, constants)
  * @param {string} code - Source code
  * @param {string[]} [templateConstants] - Additional constants the template provides
@@ -74,6 +88,7 @@ export function stripForTemplate(code, templateConstants = []) {
   let result = code.trim();
   result = stripImports(result);
   result = stripReactDestructuring(result);
+  result = stripWindowDestructuring(result);
   result = stripExportDefault(result);
   result = stripConfig(result);
   if (templateConstants.length > 0) {

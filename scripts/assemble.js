@@ -17,6 +17,7 @@ import { TEMPLATES } from './lib/paths.js';
 import { createBackup } from './lib/backup.js';
 import { loadEnvFile, validateClerkKey, populateConnectConfig } from './lib/env-utils.js';
 import { APP_PLACEHOLDER, validateAssembly } from './lib/assembly-utils.js';
+import { stripForTemplate } from './lib/strip-code.js';
 
 
 const PLACEHOLDER = APP_PLACEHOLDER;
@@ -72,8 +73,11 @@ function main() {
 
   console.log('Connect mode: Clerk auth + cloud sync enabled');
 
+  // Strip imports/exports/destructuring that conflict with the template
+  const cleanedAppCode = stripForTemplate(appCode);
+
   // Assemble: insert app code at placeholder, then populate Connect config
-  let output = template.replace(PLACEHOLDER, appCode);
+  let output = template.replace(PLACEHOLDER, cleanedAppCode);
   output = populateConnectConfig(output, envVars);
 
   // Validate output
