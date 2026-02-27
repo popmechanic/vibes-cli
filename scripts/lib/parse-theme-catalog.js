@@ -12,6 +12,8 @@ export function parseThemeCatalog(text) {
 
     // Detect table rows: must start with | and contain at least 4 pipe-separated cells
     if (!trimmed.startsWith('|')) {
+      // Skip blank lines within the table (e.g., between groups of themes)
+      if (trimmed === '') continue;
       if (inTable && themes.length > 0) break; // past the table
       continue;
     }

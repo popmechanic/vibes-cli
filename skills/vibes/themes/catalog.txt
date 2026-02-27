@@ -191,9 +191,7 @@ THEME CATALOG
 | neon        | Neon Arcade       | Hot-gradient-light, neon-pink-glow-frame, dark-panel-on-bright | Bright cyberpunk apps, anime UIs, arcade games, entertainment portals |
 | nexus       | Nexus Grid        | Pure-black, acid-lime, voxel-generative, hyper-minimal         | Creative studios, generative art, dev landing pages, minimal portfolios |
 | rune        | Rune Interface    | Abyss-dark, cyan-neon-glow, Norse-rune, three-column-RPG       | RPG character sheets, dark fantasy UIs, stat trackers, game inventories  |
-
 | computer-angel-heaven | Computer Angel Heaven | Ethereal-glassmorphic, celestial-gold, luminous-pearl, cloud-soft | Wellness apps, creative portfolios, journals, moodboards, ambient dashboards |
-| computer-angel-heaven-2 | Computer Angel Heaven | Luminous, circuitry-divine, pearlescent, tech-ethereal | Dashboards, server monitors, AI tools, IoT panels, project trackers |
 
 HOW TO CHOOSE
 -------------
