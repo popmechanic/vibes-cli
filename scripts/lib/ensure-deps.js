@@ -47,3 +47,12 @@ export async function ensureDependency(moduleName, scriptPath) {
 export async function ensureDeps(scriptPath) {
   return ensureDependency('jsonwebtoken', scriptPath);
 }
+
+/**
+ * Ensure preview server dependencies are installed (ws)
+ * @param {string} [scriptPath] - Path to the calling script
+ * @returns {Promise<void>}
+ */
+export async function ensurePreviewDeps(scriptPath) {
+  return ensureDependency('ws', scriptPath);
+}
