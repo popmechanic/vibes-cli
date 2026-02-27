@@ -19,7 +19,7 @@ await ensurePreviewDeps(fileURLToPath(import.meta.url));
 import { createServer } from 'http';
 import { readFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, writeFileSync, unlinkSync } from 'fs';
 import { join, dirname, extname } from 'path';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import { WebSocketServer } from 'ws';
 import { parseThemeCatalog } from './lib/parse-theme-catalog.js';
 import { parseAnimationCatalog } from './lib/parse-animation-catalog.js';
@@ -2332,10 +2332,60 @@ function assembleAppFrame(appCode) {
   return template;
 }
 
+// --- Graceful port takeover ---
+// Kill any existing process on the port BEFORE attempting to listen,
+// so the WSS (which shares the HTTP server) never sees EADDRINUSE.
+function killProcessOnPort(port) {
+  try {
+    const pids = execSync(`lsof -ti:${port}`, { encoding: 'utf8' }).trim();
+    if (pids) {
+      for (const pid of pids.split('\n')) {
+        if (pid && parseInt(pid) !== process.pid) {
+          process.kill(parseInt(pid), 'SIGTERM');
+        }
+      }
+      return true;
+    }
+  } catch {
+    // lsof returns non-zero when no process found — that's fine
+  }
+  return false;
+}
+
+function waitForPort(port, attempts = 10) {
+  return new Promise((resolve, reject) => {
+    let tries = 0;
+    function check() {
+      try {
+        const pids = execSync(`lsof -ti:${port}`, { encoding: 'utf8' }).trim();
+        if (pids) {
+          tries++;
+          if (tries >= attempts) {
+            reject(new Error(`Port ${port} still in use after ${attempts} attempts`));
+          } else {
+            setTimeout(check, 300);
+          }
+        } else {
+          resolve();
+        }
+      } catch {
+        resolve(); // no process found — port is free
+      }
+    }
+    check();
+  });
+}
+
 // --- Start ---
-server.listen(PORT, () => {
-  const modeLabel = MODE === 'editor' ? 'Editor' : 'Preview';
-  console.log(`
+async function start() {
+  if (killProcessOnPort(PORT)) {
+    console.log(`Port ${PORT} in use — taking over from previous server...`);
+    await waitForPort(PORT);
+  }
+
+  server.listen(PORT, () => {
+    const modeLabel = MODE === 'editor' ? 'Editor' : 'Preview';
+    console.log(`
 ┌─────────────────────────────────────────────────┐
 │  Vibes ${modeLabel.padEnd(7)} Server                       │
 ├─────────────────────────────────────────────────┤
@@ -2347,14 +2397,13 @@ server.listen(PORT, () => {
 │                                                 │
 │  Press Ctrl+C to stop                           │
 └─────────────────────────────────────────────────┘
-  `);
-});
+    `);
+  });
 
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} in use. Try: node scripts/preview-server.js --port 3334`);
-  } else {
+  server.on('error', (err) => {
     console.error('Server error:', err);
-  }
-  process.exit(1);
-});
+    process.exit(1);
+  });
+}
+
+start();
