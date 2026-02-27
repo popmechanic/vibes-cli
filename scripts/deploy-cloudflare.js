@@ -34,6 +34,11 @@ function run(cmd, options = {}) {
 /**
  * Recursively copy a directory
  */
+// Extensions to skip when copying assets to the worker's public dir
+const SKIP_EXTENSIONS = new Set(['.mp3', '.mp4', '.wav', '.ogg', '.webm', '.mov', '.avi']);
+const SKIP_FILES = new Set(['.DS_Store']);
+const MAX_ASSET_SIZE = 25 * 1024 * 1024; // 25 MiB (Cloudflare Workers limit)
+
 function copyDirRecursive(src, dest) {
   if (!existsSync(src)) return;
 
@@ -42,10 +47,21 @@ function copyDirRecursive(src, dest) {
   for (const entry of readdirSync(src)) {
     const srcPath = join(src, entry);
     const destPath = join(dest, entry);
+    const stats = statSync(srcPath);
 
-    if (statSync(srcPath).isDirectory()) {
+    if (stats.isDirectory()) {
       copyDirRecursive(srcPath, destPath);
     } else {
+      if (SKIP_FILES.has(entry)) continue;
+      const ext = entry.substring(entry.lastIndexOf('.')).toLowerCase();
+      if (SKIP_EXTENSIONS.has(ext)) {
+        console.log(`  Skipped ${entry} (${ext} not supported by Workers)`);
+        continue;
+      }
+      if (stats.size > MAX_ASSET_SIZE) {
+        console.log(`  Skipped ${entry} (${(stats.size / 1024 / 1024).toFixed(1)} MiB exceeds 25 MiB limit)`);
+        continue;
+      }
       copyFileSync(srcPath, destPath);
       console.log(`  Copied ${entry}`);
     }
