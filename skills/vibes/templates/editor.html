@@ -514,7 +514,9 @@
       flex: 1;
       overflow-y: auto;
       padding: 2rem;
-      border-left: 2px solid var(--vibes-near-black);
+      background: #1a1a1a;
+      border-left: none;
+      box-shadow: -4px 0 12px rgba(0, 0, 0, 0.3);
     }
     .gallery-title {
       font-size: 1rem;
@@ -522,6 +524,7 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
       margin-bottom: 1rem;
+      color: #f0f0f0;
     }
     .app-gallery-grid {
       display: grid;
@@ -530,26 +533,26 @@
       margin-bottom: 1.5rem;
     }
     .app-card {
-      background: white;
-      border: 2px solid var(--vibes-near-black);
+      background: #2a2a2a;
+      border: 2px solid #444;
       border-radius: 10px;
       overflow: hidden;
       cursor: pointer;
       transition: box-shadow 0.15s, transform 0.15s;
     }
     .app-card:hover {
-      box-shadow: 4px 4px 0 0 var(--vibes-near-black);
+      box-shadow: 4px 4px 0 0 rgba(255, 255, 255, 0.15);
       transform: translate(-2px, -2px);
     }
     .app-card-thumb {
       width: 100%;
       aspect-ratio: 16 / 10;
-      background: var(--vibes-menu-bg);
+      background: #333;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      border-bottom: 2px solid var(--vibes-near-black);
+      border-bottom: 2px solid #444;
     }
     .app-card-thumb img {
       width: 100%;
@@ -569,90 +572,269 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      color: #f0f0f0;
     }
     .app-card-meta {
       font-size: 0.6875rem;
-      color: #888;
+      color: #999;
     }
     .gallery-divider {
       border: none;
-      border-top: 1px dashed #bbb;
+      border-top: 1px dashed #555;
       margin: 0.5rem 0 1rem;
     }
     @media (max-width: 768px) {
       .generate-phase { flex-direction: column; }
       .generate-left { flex: none; width: 100%; }
-      .generate-right { border-left: none; border-top: 2px solid var(--vibes-near-black); }
+      .generate-right { border-top: 2px solid #333; }
     }
     .generate-card {
-      background: var(--vibes-cream);
-      border: 3px solid var(--vibes-near-black);
-      border-radius: 12px;
-      padding: 2rem;
-      width: 560px;
+      width: 600px;
       max-width: 90vw;
-      box-shadow: 8px 10px 0px 0px var(--vibes-yellow), 8px 10px 0px 3px var(--vibes-near-black);
-      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
     }
     .generate-title {
-      font-size: 1.25rem;
+      font-size: clamp(2rem, 5vw, 3.5rem);
       font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.5rem;
+      color: var(--vibes-near-black);
+      text-align: center;
     }
-    .generate-subtitle {
-      font-size: 0.8125rem;
-      color: #555;
-      margin-bottom: 1.5rem;
+    .generate-title u { text-decoration: underline; text-underline-offset: 4px; }
+    .generate-subtitle { display: none; }
+
+    /* Prompt box */
+    .generate-prompt-box {
+      display: flex;
+      flex-direction: row;
+      min-height: 200px;
+      border: 2px solid var(--vibes-near-black);
+      border-radius: 8px;
+      background: var(--vibes-cream);
+      overflow: hidden;
+    }
+    .generate-prompt-label {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      padding: 20px 8px;
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--vibes-near-black);
+      border-left: 2px solid var(--vibes-near-black);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .generate-textarea-wrap {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
     }
     .generate-textarea {
+      flex: 1;
       width: 100%;
-      background: white;
-      border: 2px solid var(--vibes-near-black);
+      background: transparent;
+      border: none;
       color: var(--vibes-near-black);
-      padding: 0.75rem;
-      border-radius: 12px;
-      font-size: 0.875rem;
+      padding: 1.25rem 4rem 1.25rem 1.25rem;
+      font-size: 1.05rem;
       outline: none;
       resize: none;
       font-family: inherit;
-      min-height: 120px;
-      margin-bottom: 1rem;
     }
-    .generate-textarea:focus { border-color: var(--vibes-blue); box-shadow: 0 0 0 2px rgba(0,154,206,0.25); }
+    .generate-textarea:focus { box-shadow: none; }
     .generate-textarea::placeholder { color: #999; }
-    .theme-select-row {
+    .generate-submit-btn {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: none;
+      background: var(--vibes-near-black);
+      color: white;
+      font-size: 1.25rem;
+      font-weight: bold;
+      cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      margin-bottom: 1.25rem;
+      justify-content: center;
+      transition: transform 0.15s ease;
     }
-    .theme-select-label {
+    .generate-submit-btn:hover { transform: scale(1.08); }
+    .generate-submit-btn:disabled { background: #aaa; cursor: not-allowed; transform: none; }
+
+    /* Theme carousel */
+    .theme-carousel {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+    .theme-carousel-arrow {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 1.5rem;
+      color: var(--vibes-near-black);
+      padding: 0;
+    }
+    .theme-carousel-viewport {
+      flex: 1;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .theme-carousel-track {
+      display: flex;
+      gap: 12px;
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .theme-carousel-btn {
+      flex-shrink: 0;
+      padding: 0.5rem 1.25rem;
+      border: 2px solid var(--vibes-near-black);
+      border-radius: 8px;
+      background: var(--vibes-cream);
+      font-family: inherit;
       font-size: 0.8125rem;
       font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      white-space: nowrap;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .theme-carousel-btn::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+    }
+    .theme-carousel-btn:nth-child(3n+1)::after { background: var(--vibes-blue); }
+    .theme-carousel-btn:nth-child(3n+2)::after { background: var(--vibes-red); }
+    .theme-carousel-btn:nth-child(3n)::after { background: var(--vibes-yellow); }
+    .theme-carousel-btn.active {
+      background: white;
+      transform: translateY(-2px);
+      box-shadow: 3px 4px 0 0 var(--vibes-near-black);
+    }
+    .theme-carousel-btn:hover { background: white; }
+    .theme-select { display: none; }
+    .theme-select-row { display: none; }
+    .theme-select-label { display: none; }
+    .generate-bottom { display: none; }
+    .generate-actions { display: none; }
+
+    /* Gallery section */
+    .generate-gallery-box {
+      display: flex;
+      flex-direction: row;
+      border: 2px solid var(--vibes-near-black);
+      border-radius: 8px;
+      background: #D3D3D3;
+      overflow: hidden;
+    }
+    .generate-gallery-label {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      padding: 20px 8px;
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--vibes-near-black);
+      border-left: 2px solid var(--vibes-near-black);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .generate-gallery-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .generate-gallery-icons {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      padding: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .generate-gallery-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+    .generate-gallery-icon-wrap {
+      position: relative;
+      width: 100px;
+      height: 100px;
+    }
+    .generate-gallery-shadow {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      width: 100px;
+      height: 100px;
+      border-radius: 24px;
+      overflow: hidden;
+      transition: top 0.2s ease, left 0.2s ease;
+      z-index: 0;
+    }
+    .generate-gallery-icon-wrap:hover .generate-gallery-shadow {
+      left: 10px;
+    }
+    .generate-gallery-icon {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      border-radius: 24px;
+      background: rgb(255, 254, 240);
+      border: 2px solid var(--vibes-near-black);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      box-sizing: border-box;
+      transition: transform 0.2s ease;
+      cursor: pointer;
+      z-index: 1;
+    }
+    .generate-gallery-icon-wrap:hover .generate-gallery-icon {
+      transform: translate(-2px, -2px);
+    }
+    .generate-gallery-icon svg { width: 100%; height: 100%; }
+    .generate-gallery-name {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--vibes-near-black);
+      text-align: center;
+      width: 110px;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
-    .theme-select {
-      flex: 1;
-      min-width: 0;
-      background: white;
-      border: 2px solid var(--vibes-near-black);
+    .generate-gallery-desc {
+      font-size: 1.1rem;
+      font-weight: 500;
       color: var(--vibes-near-black);
-      padding: 0.5rem 0.75rem;
-      border-radius: 10px;
-      font-size: 0.8125rem;
-      font-family: inherit;
-      outline: none;
-      cursor: pointer;
-      max-width: 100%;
-    }
-    .theme-select:focus { border-color: var(--vibes-blue); }
-    .generate-actions {
-      display: flex;
-      gap: 0.75rem;
-      justify-content: flex-end;
-      align-items: center;
+      text-align: left;
+      border-top: 2px solid var(--vibes-near-black);
+      padding: 6px 1.5rem;
     }
     .generate-or {
       text-align: center;
@@ -791,6 +973,7 @@
       flex: 1;
       display: flex;
       flex-direction: column;
+      position: relative;
       background: var(--vibes-menu-bg);
       background-image:
         linear-gradient(var(--grid-color) 1px, transparent 1px),
@@ -1505,6 +1688,74 @@
       min-width: 0;
     }
 
+    /* === PALETTE SIDEBAR === */
+    .palette-sidebar {
+      position:absolute; inset:0; z-index:10;
+      display:flex; flex-direction:column;
+      background:var(--vibes-menu-bg);
+      background-image:
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+      background-size: var(--grid-size) var(--grid-size);
+    }
+    .palette-sidebar-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:0.75rem 1rem; border-bottom:2px solid var(--vibes-near-black);
+      background:var(--vibes-cream);
+    }
+    .palette-sidebar-header h3 {
+      font-size:0.9rem; font-weight:800; text-transform:uppercase;
+      letter-spacing:0.05em; color:var(--vibes-near-black); margin:0;
+    }
+    .palette-sidebar-body { flex:1; overflow-y:auto; padding:1rem; }
+    .palette-harmony-bar { display:flex; align-items:center; gap:0.75rem; margin-bottom:1rem; }
+    .palette-harmony-bar label { font-weight:700; font-size:0.8rem; text-transform:uppercase; }
+    .palette-harmony-bar select {
+      padding:0.35rem 0.5rem; border:2px solid var(--vibes-near-black);
+      border-radius:6px; font-family:inherit; font-size:0.8rem; background:white;
+    }
+    .palette-slots { display:flex; flex-direction:column; gap:0.5rem; margin-bottom:1rem; }
+    .palette-slot {
+      padding:0.5rem 0.75rem; border:2px solid var(--vibes-near-black);
+      border-radius:8px; background:white; display:flex; align-items:center; gap:0.75rem;
+    }
+    .palette-slot-label { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; white-space:nowrap; min-width:5rem; }
+    .palette-slot-preview {
+      width:36px; height:36px; border-radius:4px; border:1px solid #ccc; cursor:pointer;
+      position:relative; overflow:hidden; flex-shrink:0;
+    }
+    .palette-slot-preview input[type=color] {
+      position:absolute; inset:0; width:200%; height:200%; border:none; padding:0; cursor:pointer;
+      opacity:0;
+    }
+    .palette-slot-value {
+      flex:1; min-width:0; padding:0.25rem 0.4rem; border:1px solid #ccc; border-radius:4px;
+      font-family:monospace; font-size:0.75rem; box-sizing:border-box;
+    }
+    .palette-contrast {
+      padding:0.5rem 0.75rem; background:#f5f5f0; border-radius:6px;
+      font-size:0.75rem; margin-bottom:1rem; display:flex; gap:1.5rem;
+    }
+    .palette-contrast-item { display:flex; align-items:center; gap:0.4rem; }
+    .palette-contrast-badge {
+      padding:0.1rem 0.4rem; border-radius:3px; font-weight:700; font-size:0.65rem;
+    }
+    .palette-contrast-badge.pass { background:#22c55e; color:white; }
+    .palette-contrast-badge.fail { background:#ef4444; color:white; }
+    .palette-actions { display:flex; gap:0.75rem; justify-content:flex-end; }
+    .palette-cancel-btn, .palette-save-btn {
+      padding:0.5rem 1.5rem; border:2px solid var(--vibes-near-black); border-radius:8px;
+      font-family:inherit; font-weight:700; font-size:0.8rem; cursor:pointer;
+      text-transform:uppercase;
+    }
+    .palette-cancel-btn { background:white; }
+    .palette-cancel-btn:hover { background:#f0f0f0; }
+    .palette-save-btn {
+      background:var(--vibes-blue); color:white; border-color:var(--vibes-blue);
+      box-shadow:3px 3px 0px 0px var(--vibes-near-black);
+    }
+    .palette-save-btn:hover { transform:translate(1px,1px); box-shadow:2px 2px 0px 0px var(--vibes-near-black); }
+
     /* === DEPLOY DROPDOWN === */
     .deploy-dropdown {
       display: inline-block;
@@ -1694,7 +1945,7 @@
       </div>
       <div class="vibes-audio-toggle">
         <button class="vibes-audio-btn" id="vibesAudioBtn" onclick="toggleVibesAudio()" title="Toggle vibes">
-          <span class="vibes-audio-emoji" id="vibesEmoji">🔇</span>
+          <span class="vibes-audio-emoji" id="vibesEmoji"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg></span>
           <div class="vibes-waves">
             <div class="vibes-wave-bar" style="height:10px"></div>
             <div class="vibes-wave-bar" style="height:16px"></div>
@@ -1864,19 +2115,82 @@
   <div class="phase generate-phase single-panel" id="phaseGenerate">
     <div class="generate-left">
       <div class="generate-card">
-        <div class="generate-title">What do you want to build?</div>
-        <div class="generate-subtitle">Describe your app idea. Be as specific or vague as you like.</div>
-        <textarea class="generate-textarea" id="generatePrompt" placeholder="A task manager with categories and drag-to-reorder..."
-          onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();startGenerate();}"></textarea>
-        <div class="theme-select-row">
-          <span class="theme-select-label">Theme:</span>
-          <select class="theme-select" id="themeSelect">
-            <option value="">Auto (let AI choose)</option>
-          </select>
+        <div class="generate-title">What's the <u>vibe</u>? Try it.</div>
+        <div class="generate-subtitle"></div>
+
+        <!-- Prompt box -->
+        <div class="generate-prompt-box">
+          <div class="generate-prompt-label">Prompt</div>
+          <div class="generate-textarea-wrap">
+            <textarea class="generate-textarea" id="generatePrompt" placeholder="Describe your vibe to make it an app."
+              onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();startGenerate();}"></textarea>
+            <button class="generate-submit-btn" id="generateBtn" onclick="startGenerate()" title="Generate">&#8593;</button>
+          </div>
         </div>
-        <div class="generate-actions" id="generateActions">
-          <button class="btn btn-primary" id="generateBtn" onclick="startGenerate()">Generate</button>
+
+        <!-- Theme carousel -->
+        <div class="theme-carousel">
+          <button class="theme-carousel-arrow" onclick="themeCarouselPrev()" aria-label="Previous themes">&#9664;</button>
+          <div class="theme-carousel-viewport" id="themeCarouselViewport">
+            <div class="theme-carousel-track" id="themeCarouselTrack"></div>
+          </div>
+          <button class="theme-carousel-arrow" onclick="themeCarouselNext()" aria-label="Next themes">&#9654;</button>
         </div>
+
+        <!-- Hidden select for JS compat -->
+        <select class="theme-select" id="themeSelect" style="display:none">
+          <option value="">Auto (let AI choose)</option>
+        </select>
+
+        <!-- Gallery -->
+        <div class="generate-gallery-box">
+          <div class="generate-gallery-label">Gallery</div>
+          <div class="generate-gallery-content">
+            <!-- Textured pattern definition (reused by all cards) -->
+            <svg style="position:absolute;width:0;height:0" aria-hidden="true"><defs><pattern id="vibe-texture" x="0" y="0" width="9" height="9" patternTransform="scale(.8)" patternUnits="userSpaceOnUse"><rect fill="#fff" width="9" height="9"/><rect fill="#231f20" x="0" y="0" width="1.12" height="1.12"/><rect fill="#231f20" x="1.13" y="1.13" width="1.12" height="1.12"/><rect fill="#231f20" x="2.25" y="0" width="1.12" height="1.12"/><rect fill="#231f20" x="3.38" y="1.13" width="1.12" height="1.12"/><rect fill="#231f20" x="4.5" y="0" width="1.12" height="1.12"/><rect fill="#231f20" x="5.63" y="1.13" width="1.12" height="1.12"/><rect fill="#231f20" x="6.75" y="0" width="1.12" height="1.12"/><rect fill="#231f20" x="7.88" y="1.13" width="1.12" height="1.12"/><rect fill="#231f20" x="0" y="2.25" width="1.12" height="1.12"/><rect fill="#231f20" x="1.13" y="3.38" width="1.12" height="1.12"/><rect fill="#231f20" x="2.25" y="2.25" width="1.12" height="1.12"/><rect fill="#231f20" x="3.38" y="3.38" width="1.12" height="1.12"/><rect fill="#231f20" x="4.5" y="2.25" width="1.12" height="1.12"/><rect fill="#231f20" x="5.63" y="3.38" width="1.12" height="1.12"/><rect fill="#231f20" x="6.75" y="2.25" width="1.12" height="1.12"/><rect fill="#231f20" x="7.88" y="3.38" width="1.12" height="1.12"/><rect fill="#231f20" x="0" y="4.5" width="1.12" height="1.12"/><rect fill="#231f20" x="1.13" y="5.63" width="1.12" height="1.12"/><rect fill="#231f20" x="2.25" y="4.5" width="1.12" height="1.12"/><rect fill="#231f20" x="3.38" y="5.63" width="1.12" height="1.12"/><rect fill="#231f20" x="4.5" y="4.5" width="1.12" height="1.12"/><rect fill="#231f20" x="5.63" y="5.63" width="1.12" height="1.12"/><rect fill="#231f20" x="6.75" y="4.5" width="1.12" height="1.12"/><rect fill="#231f20" x="7.88" y="5.63" width="1.12" height="1.12"/><rect fill="#231f20" x="0" y="6.75" width="1.12" height="1.12"/><rect fill="#231f20" x="1.13" y="7.88" width="1.12" height="1.12"/><rect fill="#231f20" x="2.25" y="6.75" width="1.12" height="1.12"/><rect fill="#231f20" x="3.38" y="7.88" width="1.12" height="1.12"/><rect fill="#231f20" x="4.5" y="6.75" width="1.12" height="1.12"/><rect fill="#231f20" x="5.63" y="7.88" width="1.12" height="1.12"/><rect fill="#231f20" x="6.75" y="6.75" width="1.12" height="1.12"/><rect fill="#231f20" x="7.88" y="7.88" width="1.12" height="1.12"/></pattern></defs></svg>
+            <div class="generate-gallery-icons">
+              <div class="generate-gallery-card" data-category="art" onclick="galleryCardClick('art')">
+                <div class="generate-gallery-icon-wrap">
+                  <div class="generate-gallery-shadow"><svg width="100" height="100"><rect fill="url(#vibe-texture)" width="100" height="100" rx="24" ry="24"/></svg></div>
+                  <div class="generate-gallery-icon">
+                    <svg viewBox="0 0 48.06 44.18" xmlns="http://www.w3.org/2000/svg"><g><path fill="#231f20" d="M10.15,19.97c-.6-1.78-2.32-3.07-4.25-3.2-1.15-.1-2.71-.2-3.75.06h-.02c-.45.14-.54.55-.54.96-.01.76,0,2.02,0,3.55,0,3.85,0,11.71,0,14.66-.08,1.24.85,1.2,2.05,1.24.74,0,1.54-.01,2.29-.1,2.03-.17,3.69-1.48,4.28-3.37.36-1.09.27-2.57.29-4.09,0-1.77,0-3.65,0-5.4-.04-1.56.14-2.88-.35-4.32ZM6.02,34.76h-.03c-1.61.43-2.16-.08-2.06-1.72v-4.67c0-2.25,0-4.43,0-6.62.02-.8-.07-1.89.17-2.25.65-.95,2.26-.33,3.03.21,1.11.8,1.01,2.22,1.02,3.45,0,2.1,0,5.79,0,7.8.05,1.79-.18,3.21-2.13,3.8Z"/><path fill="#231f20" d="M16.96,29.38c2.3.1,3.19-2.99,1.47-4.36-1.17-.95-2.9-.4-3.43.98v.02c-.61,1.44.33,3.3,1.96,3.37Z"/><path fill="#231f20" d="M33.97,25.02c-1.17-.95-2.9-.4-3.43.98v.02c-.61,1.44.33,3.3,1.96,3.37,2.3.1,3.19-2.99,1.47-4.36Z"/><path fill="#231f20" d="M23.67,36.2c0,.17.03.33.08.47.38.89,2.24.76,2.24-.33.05-3.7,0-14.62.02-18.33,0-.32,0-.67-.17-.91-.3-.43-1.04-.52-1.57-.33h-.02c-.75.33-.55.89-.59,1.92,0,.46,0,.91,0,1.39,0,3.8,0,8.96,0,12.84,0,1.41,0,2.57,0,3.29Z"/><path fill="#231f20" d="M45.59,17.78c-.42.6-.65,1.34-.9,2.03-.24.57-.68,2.37-1.16,2.19-.11-.05-.19-.18-.26-.3-.3-.52-.68-1.73-1.06-2.74-.29-.76-.7-1.54-1.38-1.98l-.02-.02c-.78-.49-1.55-.3-1.64.43-.04.33.08.76.2,1.12.8,2.5,2.13,5.77,2.81,8.36.33,2.77-.04,6.18.19,9.08.07.85.86,1.58,1.69,1.21.78-.35.85-1.36.85-2.15.06-2.58-.13-5.55.11-8.04.5-2.12,1.5-4.43,2.2-6.61.3-.96.73-1.81.85-2.77.02-1.41-1.75-1.01-2.47.17Z"/><path fill="#231f20" d="M34.11,38c-2.61,2.61-6,4.05-9.54,4.05-.05,0-.1,0-.14,0-3.53-.04-6.89-1.48-9.46-4.05-.42-.42-1.09-.42-1.51,0-.42.42-.42,1.09,0,1.51,2.97,2.97,6.86,4.63,10.95,4.67.06,0,.11,0,.17,0,4.12,0,8.04-1.66,11.05-4.67.42-.42.42-1.09,0-1.51-.42-.42-1.09-.42-1.51,0Z"/><path fill="#231f20" d="M24.06,8.15c.84-.03,1.56-.2,2.3-.58.64-.33,1.19-.91,1.56-1.52.43-.71.55-1.42.64-2.23.07-.66-.04-1.34-.15-1.99-.08-.33-.23-.61-.45-.85-.18-.27-.41-.49-.7-.64-.29-.18-.6-.28-.93-.3-.33-.07-.66-.06-1,.04-.6.2-1.19.57-1.49,1.15l-.25.6c-.12.44-.12.89,0,1.33,0,.06.02.12.03.19l-.09-.66c.05.4.07.81.02,1.21l.09-.66c-.03.23-.09.45-.18.67l.25-.6c-.06.14-.14.28-.24.4l.39-.51c-.08.1-.18.2-.28.28l.51-.39c-.12.09-.24.16-.38.22l.6-.25c-.2.08-.4.13-.61.16l.66-.09c-.1.01-.21.02-.32.03-.66.03-1.3.26-1.77.73-.24.23-.42.49-.52.8-.16.3-.23.62-.22.96.03.65.24,1.32.73,1.77s1.1.76,1.77.73h0Z"/><g><path fill="#231f20" d="M4.09,10.79c-1.42-.39-1.98-2.32-1.4-3.7s1.92-2.26,3.27-2.87c2.98-1.35,6.35-1.78,9.57-1.21,5.9,1.04,10.99,5.26,16.95,5.85,2.36.23,4.75-.12,7.04-.75.65-.18,1.4-.36,1.95.03.77.55.51,1.88-.26,2.44s-1.77.57-2.71.56c-11.29-.12-22.57-.25-33.86-.37"/><path fill="#231f20" d="M4.76,8.38c.44.16.12-.04.25-.35.31-.74,1.21-1.17,1.88-1.49,2.18-1.06,4.69-1.41,7.1-1.22,4.66.36,8.82,3.22,13.11,4.8,2.32.85,4.79,1.37,7.27,1.31,1.33-.03,2.66-.21,3.96-.47.54-.11,1.39-.16,1.85-.44,1.06-.64.19.01.35-.11-.81-.33-1.18-.79-1.09-1.39.01-.16.09-.29.22-.4.04-.16.79-.08-.2,0-.18.01-.39.01-.55.01-.63,0-1.27-.01-1.9-.02-1.49-.02-2.99-.03-4.48-.05-2.82-.03-5.64-.06-8.46-.09-6.47-.07-12.95-.14-19.42-.21-3.22-.04-3.22,4.96,0,5,7.22.08,14.44.16,21.66.24,3.57.04,7.14.08,10.7.12,1.62.02,3.32.15,4.83-.55s2.65-2.25,2.6-3.99c-.05-1.6-1.04-3.01-2.59-3.5s-3.28.25-4.84.56c-3.11.61-6.03.13-8.96-.99-2.76-1.05-5.36-2.47-8.13-3.5C16.96.54,13.8.02,10.65.39,7.24.8,3.2,1.96,1.1,4.88S-.03,11.96,3.43,13.2c1.27.46,2.74-.51,3.08-1.75.38-1.39-.47-2.62-1.75-3.08h0Z"/></g></g></svg>
+                  </div>
+                </div>
+                <div class="generate-gallery-name">Art</div>
+              </div>
+              <div class="generate-gallery-card" data-category="music" onclick="galleryCardClick('music')">
+                <div class="generate-gallery-icon-wrap">
+                  <div class="generate-gallery-shadow"><svg width="100" height="100"><rect fill="url(#vibe-texture)" width="100" height="100" rx="24" ry="24"/></svg></div>
+                  <div class="generate-gallery-icon">
+                  <svg viewBox="0 0 46.47 47.65" xmlns="http://www.w3.org/2000/svg"><g><g><path fill="#231f20" d="M8.56,23.44c-.6-1.78-2.32-3.07-4.25-3.2-1.15-.1-2.71-.2-3.75.06h-.02c-.45.14-.54.55-.54.96-.01.76,0,2.02,0,3.55C0,28.66,0,36.52,0,39.47c-.08,1.24.85,1.2,2.05,1.24.74,0,1.54-.01,2.29-.1,2.03-.17,3.69-1.48,4.28-3.37.36-1.09.27-2.57.29-4.09,0-1.77,0-3.65,0-5.4-.04-1.56.14-2.88-.35-4.32ZM4.44,38.23h-.03c-1.61.43-2.16-.08-2.06-1.72v-4.67c0-2.25,0-4.43,0-6.62.02-.8-.07-1.89.17-2.25.65-.95,2.26-.33,3.03.21,1.11.8,1.01,2.22,1.02,3.45,0,2.1,0,5.79,0,7.8.05,1.79-.18,3.21-2.13,3.8Z"/><path fill="#231f20" d="M15.38,32.85c2.3.1,3.19-2.99,1.47-4.36-1.17-.95-2.9-.4-3.43.98v.02c-.61,1.44.33,3.3,1.96,3.37Z"/><path fill="#231f20" d="M32.38,28.48c-1.17-.95-2.9-.4-3.43.98v.02c-.61,1.44.33,3.3,1.96,3.37,2.3.1,3.19-2.99,1.47-4.36Z"/><path fill="#231f20" d="M22.09,39.66c0,.17.03.33.08.47.38.89,2.24.76,2.24-.33.05-3.7,0-14.62.02-18.33,0-.32,0-.67-.17-.91-.3-.43-1.04-.52-1.57-.33h-.02c-.75.33-.55.89-.59,1.92,0,.46,0,.91,0,1.39,0,3.8,0,8.96,0,12.84,0,1.41,0,2.57,0,3.29Z"/><path fill="#231f20" d="M44,21.25c-.42.6-.65,1.34-.9,2.03-.24.57-.68,2.37-1.16,2.19-.11-.05-.19-.18-.26-.3-.3-.52-.68-1.73-1.06-2.74-.29-.76-.7-1.54-1.38-1.98l-.02-.02c-.78-.49-1.55-.3-1.64.43-.04.33.08.76.2,1.12.8,2.5,2.13,5.77,2.81,8.36.33,2.77-.04,6.18.19,9.08.07.85.86,1.58,1.69,1.21.78-.35.85-1.36.85-2.15.06-2.58-.13-5.55.11-8.04.5-2.12,1.5-4.43,2.2-6.61.3-.96.73-1.81.85-2.77.02-1.41-1.75-1.01-2.47.17Z"/><path fill="#231f20" d="M32.53,41.46c-2.61,2.61-6,4.05-9.54,4.05-.05,0-.1,0-.14,0-3.53-.04-6.89-1.48-9.46-4.05-.42-.42-1.09-.42-1.51,0-.42.42-.42,1.09,0,1.51,2.97,2.97,6.86,4.63,10.95,4.67.06,0,.11,0,.17,0,4.12,0,8.04-1.66,11.05-4.67.42-.42.42-1.09,0-1.51-.42-.42-1.09-.42-1.51,0Z"/></g><path fill="#231f20" d="M5.75,16.51c-.4.08-.59.01-.93-.19-.22-.13-.43-.28-.63-.43l-.14-.1c.06.04.06.04.01-.01-.11-.13.1.18-.06-.09-.11-.18-.17-.35-.13-.68.01-.1-.03.08.02-.08.1-.27-.06.06.03-.07.04-.06.03-.05-.02.02l.07-.06s-.3.12-.03.05c1.1-.29.88-2.01-.27-1.99-.12,0-.13,0-.05.01-.08-.01-.16-.03-.23-.06-.1-.03-.14-.05-.23-.09-.02-.01-.3-.21-.28-.21.08-.03.05.37.05.36,0,.12-.03.02,0,0,.1-.06.22-.15.31-.19s.24-.06.35-.1c0,0,0-.02.08,0,.77.2,1.72-.75,1.15-1.49-.26-.34-.4-.83-.08-1.19.28-.31.68-.19.93.08.77.83,2.26-.27,1.59-1.23-.25-.35-.32-.89.02-1.2.26-.23.71-.16.92.17.71,1.09,2.37.13,1.75-1.02-.15-.28-.1-.8.17-1,.22-.16.71-.1.85.24.18.42.49.74.98.74.41,0,.91-.31.98-.74.1-.68.29-1.62.94-1.98.15-.08.36-.05.52.05.03.02.18.16.18.15.02.03.05.15.03.07-.02-.1-.01.18-.01.2h2.03c.03-.51.06-.95.27-1.47.1-.25.27-.46.57-.51.06,0,.12,0,.18,0-.09-.01-.08,0,.03.02,0,0-.29-.13-.09-.02-.07-.09-.08-.09-.02.01-.04-.1-.05-.1,0,.02.01.04.06.31.03.12.06.47,0,.96-.02,1.43-.04.99,1.43,1.4,1.89.51.39-.75.87-1.84,1.71-2.2.27-.12.5-.08.75.06.11.06.23.17.28.24.04.07.07.12.06.18-.25,1.3,1.48,1.75,1.96.54.3-.76,1.28-1.63,2.09-1.25.63.3.85,1.2.5,1.71-.31.46-.09,1.12.36,1.39.51.3,1.06.08,1.39-.36.46-.63,1.27-1.46,2.11-1.39.29.03.58.23.77.48.23.31.21.52.09.83-.33.85.78,1.57,1.49,1.15.59-.35,1.19-.71,1.87-.89.25-.07.52-.1.78-.05.07.02.14.04.2.06-.06-.03-.06-.03,0,0,.12.05.11.06.14.09.18.16.17.17.27.35.05.1.12.27.15.48-.02-.17,0,.14,0,.15,0-.17-.03.08-.03.12.01-.14-.04.05,0,0,.04-.05.03-.04-.05.04.08-.06.06-.05-.04.01l1.23,1.59c.22-.2.47-.4.75-.52.08-.03.16-.06.25-.07.07-.01.28.04.13-.02.05.02.1.1.12.24,0,.02,0,.07,0,.07.04-.05.03-.16.1-.2l1.23,1.59c-.05.05.13-.02.02-.03.33,0-.19-.06.15-.01-.16-.02.15.05.16.05-.1-.04.16.1.16.1.06.04.17.16.24.31-.05-.11.03.15.01.05,0,.04,0,.06-.02.16-.13.48.16,1.17.71,1.25.24.03.57.2.46.53-.07.21-.29.26-.4.23l-.27,1.99c.33,0-.18-.03.13.01-.13-.02.05.08-.02,0,.05.06.15.16.2.29.06.15.06.13.05.35,0-.16-.03.11-.04.14.05-.14-.12.1-.02,0-.6.64-.18,1.72.72,1.73.19,0,.38-.04.56-.08.08-.02.15-.04.23-.05,0,0,.3-.05.15-.04.09,0,.19-.02.28,0,.15.02,0-.01,0-.01.31-.07.08.11.08.06-.01-.16-.05.09,0,0,.05-.1-.04.19,0,0-.02.09-.04.18-.07.27-.02.06-.13.29-.22.43-.06.09-.12.17-.27.29.13-.11-.07.05-.1.05.04,0,.34-.05.15-.06-1.3-.08-1.3,1.95,0,2.03,1.45.09,2.58-1.82,2.53-3.1-.04-.89-.66-1.67-1.53-1.9-.4-.11-.81-.09-1.22-.02-.15.02-.3.06-.45.09-.06.01-.11.02-.17.04-.14.03.23,0,.06-.01l.72,1.73c1.35-1.45.38-4.29-1.74-4.24-1.12.03-1.4,1.7-.27,1.99,1.27.33,2.65-.48,2.92-1.78s-.58-2.71-1.9-2.89l.71,1.25c.6-2.27-2.32-4.27-4.11-2.6-.85.79.24,2.16,1.23,1.59,1.19-.69,1.11-2.37.21-3.27-1.22-1.22-2.95-.35-4.02.59-.88.78.25,2.15,1.23,1.59,1.55-.88,1.32-3.01.26-4.18-1.54-1.71-3.98-.64-5.6.33l1.49,1.15c.63-1.61-.64-3.41-2.22-3.79-1.84-.45-3.45.94-4.45,2.31l1.75,1.02c1.04-1.56.19-3.86-1.47-4.59-2.06-.9-4.1.7-4.83,2.57l1.96.54c.33-1.71-1.13-3.17-2.84-3.11-1.82.07-2.91,1.83-3.66,3.26l1.89.51c.03-.72.12-1.48-.11-2.18-.3-.91-1.06-1.47-2.03-1.43-2.16.09-2.74,2.22-2.86,4.01-.04.55.49,1.01,1.01,1.01.6,0,.95-.47,1.01-1.01.17-1.58-1.48-2.73-2.93-2.51-1.64.25-2.49,2-2.71,3.48h1.96c-.59-1.42-2.26-2.34-3.72-1.51-1.33.75-1.7,2.53-1,3.84l1.75-1.02c-.83-1.28-2.61-1.75-3.87-.79-1.15.88-1.41,2.68-.59,3.86l1.59-1.23c-.96-1.03-2.66-1.14-3.71-.17s-1.17,2.66-.33,3.74l1.15-1.49c-1.2-.31-2.92.45-3.24,1.72-.37,1.5,1.41,2.56,2.7,2.55l-.27-1.99c-1.58.42-1.87,2.32-1.25,3.62.33.7,1.01,1.16,1.65,1.55.79.48,1.59.57,2.49.4.54-.1.85-.75.71-1.25-.15-.56-.71-.81-1.25-.71h0Z"/></g></svg>
+                </div>
+                </div>
+                <div class="generate-gallery-name">Music</div>
+              </div>
+              <div class="generate-gallery-card" data-category="games" onclick="galleryCardClick('games')">
+                <div class="generate-gallery-icon-wrap">
+                  <div class="generate-gallery-shadow"><svg width="100" height="100"><rect fill="url(#vibe-texture)" width="100" height="100" rx="24" ry="24"/></svg></div>
+                  <div class="generate-gallery-icon">
+                    <svg viewBox="0 0 46.51 41.2" xmlns="http://www.w3.org/2000/svg"><g><g><path fill="#231f20" d="M.35,30.97c.6,1.78,2.32,3.07,4.25,3.2,1.15.1,2.71.2,3.75-.06h.02c.45-.14.54-.55.54-.96.01-.76,0-2.02,0-3.55,0-3.85,0-11.71,0-14.66.08-1.24-.85-1.2-2.05-1.24-.74,0-1.54.01-2.29.1-2.03.17-3.69,1.48-4.28,3.37C-.07,18.25.02,19.74,0,21.25c0,1.77,0,3.65,0,5.4.04,1.56-.14,2.88.35,4.32Z"/><path fill="#231f20" d="M46.16,16.93c-.6-1.78-2.32-3.07-4.25-3.2-1.15-.1-2.71-.2-3.75.06h-.02c-.45.14-.54.55-.54.96-.01.76,0,2.02,0,3.55,0,3.85,0,11.71,0,14.66-.08,1.24.85,1.2,2.05,1.24.74,0,1.54-.01,2.29-.1,2.03-.17,3.69-1.48,4.28-3.37.36-1.09.27-2.57.29-4.09,0-1.77,0-3.65,0-5.4-.04-1.56.14-2.88-.35-4.32Z"/><path fill="#231f20" d="M15.38,26.4c2.3.1,3.19-2.99,1.47-4.36-1.17-.95-2.9-.4-3.43.98v.02c-.61,1.44.33,3.3,1.96,3.37Z"/><path fill="#231f20" d="M32.38,22.04c-1.17-.95-2.9-.4-3.43.98v.02c-.61,1.44.33,3.3,1.96,3.37,2.3.1,3.19-2.99,1.47-4.36Z"/><path fill="#231f20" d="M22.09,33.22c0,.17.03.33.08.47.38.89,2.24.76,2.24-.33.05-3.7,0-14.62.02-18.33,0-.32,0-.67-.17-.91-.3-.43-1.04-.52-1.57-.33h-.02c-.75.33-.55.89-.59,1.92,0,.46,0,.91,0,1.39,0,3.8,0,8.96,0,12.84,0,1.41,0,2.57,0,3.29Z"/><path fill="#231f20" d="M32.53,35.02c-2.61,2.61-6,4.05-9.54,4.05-.05,0-.1,0-.14,0-3.53-.04-6.89-1.48-9.46-4.05-.42-.42-1.09-.42-1.51,0-.42.42-.42,1.09,0,1.51,2.97,2.97,6.86,4.63,10.95,4.67.06,0,.11,0,.17,0,4.12,0,8.04-1.66,11.05-4.67.42-.42.42-1.09,0-1.51-.42-.42-1.09-.42-1.51,0Z"/></g><path fill="none" stroke="#231f20" stroke-miterlimit="10" stroke-width="3" d="M4.57,22.45S.04,1.5,23.25,1.5s18.69,20.95,18.69,20.95"/></g></svg>
+                  </div>
+                </div>
+                <div class="generate-gallery-name">Games</div>
+              </div>
+              <div class="generate-gallery-card" data-category="random" onclick="galleryCardClick('random')">
+                <div class="generate-gallery-icon-wrap">
+                  <div class="generate-gallery-shadow"><svg width="100" height="100"><rect fill="url(#vibe-texture)" width="100" height="100" rx="24" ry="24"/></svg></div>
+                  <div class="generate-gallery-icon">
+                    <svg viewBox="0 0 46.47 52.08" xmlns="http://www.w3.org/2000/svg"><g><path fill="#231f20" d="M8.56,27.87c-.6-1.78-2.32-3.07-4.25-3.2-1.15-.1-2.71-.2-3.75.06h-.02c-.45.14-.54.55-.54.96-.01.76,0,2.02,0,3.55C0,33.1,0,40.96,0,43.91c-.08,1.24.85,1.2,2.05,1.24.74,0,1.54-.01,2.29-.1,2.03-.17,3.69-1.48,4.28-3.37.36-1.09.27-2.57.29-4.09,0-1.77,0-3.65,0-5.4-.04-1.56.14-2.88-.35-4.32ZM4.44,42.66h-.03c-1.61.43-2.16-.08-2.06-1.72v-4.67c0-2.25,0-4.43,0-6.62.02-.8-.07-1.89.17-2.25.65-.95,2.26-.33,3.03.21,1.11.8,1.01,2.22,1.02,3.45,0,2.1,0,5.79,0,7.8.05,1.79-.18,3.21-2.13,3.8Z"/><path fill="#231f20" d="M15.38,37.28c2.3.1,3.19-2.99,1.47-4.36-1.17-.95-2.9-.4-3.43.98v.02c-.61,1.44.33,3.3,1.96,3.37Z"/><path fill="#231f20" d="M32.38,32.92c-1.17-.95-2.9-.4-3.43.98v.02c-.61,1.44.33,3.3,1.96,3.37,2.3.1,3.19-2.99,1.47-4.36Z"/><path fill="#231f20" d="M22.09,44.1c0,.17.03.33.08.47.38.89,2.24.76,2.24-.33.05-3.7,0-14.62.02-18.33,0-.32,0-.67-.17-.91-.3-.43-1.04-.52-1.57-.33h-.02c-.75.33-.55.89-.59,1.92,0,.46,0,.91,0,1.39,0,3.8,0,8.96,0,12.84,0,1.41,0,2.57,0,3.29Z"/><path fill="#231f20" d="M44,25.68c-.42.6-.65,1.34-.9,2.03-.24.57-.68,2.37-1.16,2.19-.11-.05-.19-.18-.26-.3-.3-.52-.68-1.73-1.06-2.74-.29-.76-.7-1.54-1.38-1.98l-.02-.02c-.78-.49-1.55-.3-1.64.43-.04.33.08.76.2,1.12.8,2.5,2.13,5.77,2.81,8.36.33,2.77-.04,6.18.19,9.08.07.85.86,1.58,1.69,1.21.78-.35.85-1.36.85-2.15.06-2.58-.13-5.55.11-8.04.5-2.12,1.5-4.43,2.2-6.61.3-.96.73-1.81.85-2.77.02-1.41-1.75-1.01-2.47.17Z"/><path fill="#231f20" d="M32.53,45.9c-2.61,2.61-6,4.05-9.54,4.05-.05,0-.1,0-.14,0-3.53-.04-6.89-1.48-9.46-4.05-.42-.42-1.09-.42-1.51,0-.42.42-.42,1.09,0,1.51,2.97,2.97,6.86,4.63,10.95,4.67.06,0,.11,0,.17,0,4.12,0,8.04-1.66,11.05-4.67.42-.42.42-1.09,0-1.51-.42-.42-1.09-.42-1.51,0Z"/><path fill="#231f20" d="M19.55,24.35c1.37-2.57,2.75-5.15,4.12-7.72,2.19-4.1,4.38-8.21,6.57-12.31.5-.94,1-1.88,1.51-2.82.61-1.14-1.05-2.11-1.74-1.01-1.67,2.66-3.34,5.32-5.01,7.98-2.64,4.2-5.28,8.41-7.92,12.61-.61.97-1.22,1.94-1.83,2.91l1.84.77c.94-2.43,1.87-4.87,2.81-7.3,1.49-3.88,2.99-7.76,4.48-11.64.34-.89.68-1.78,1.03-2.67.19-.51-.22-1.1-.7-1.24-.58-.16-1.03.2-1.24.7-1.01,2.39-2.01,4.78-3.02,7.16-1.6,3.79-3.19,7.58-4.79,11.37-.37.87-.74,1.75-1.1,2.62l1.97.27c.37-4.97.74-9.93,1.11-14.9.05-.7.1-1.4.16-2.1h-2.01c-.24,4.35-.45,8.71-.59,13.07-.05,1.46-.08,2.93-.08,4.39l1.87-.51c-.24-.35-.44-.72-.62-1.1s-.3-.69-.46-1.16c-.36-1.01-.63-2.06-.88-3.1s-.43-2.02-.6-3.04c-.08-.45-.15-.9-.22-1.35-.03-.18-.05-.35-.08-.53-.01-.09-.03-.19-.04-.28-.03-.18.02.17,0-.07-.05-.38-.1-.77-.14-1.15l-1.97.27c.68,3.14,1.41,6.28,2.27,9.38.27.98.55,1.95.9,2.9l1.84-.77c-.32-.64-.84-1.21-1.29-1.76-.66-.82-1.36-1.63-2.05-2.42-.92-1.06-1.86-2.11-2.8-3.15-.37-.4-1.05-.37-1.42,0-.41.41-.36,1.01,0,1.42.73.84,1.45,1.69,2.16,2.55,1.1,1.32,2.14,2.54,3.07,3.92l1.14-1.48c-1.73-.49-3.5-.88-5.25-1.3-1.09-.26-1.79,1.26-.77,1.84.78.44,1.61.81,2.44,1.15,1.32.53,2.75.95,4.18.71.54-.09.84-.75.7-1.24-.16-.57-.7-.79-1.24-.7.19-.03-.2.01-.24.01-.15,0-.29,0-.44-.02-.17-.02-.51-.08-.79-.15-.6-.15-1.19-.36-1.76-.59-.54-.22-1.26-.57-1.85-.9l-.77,1.84c1.75.42,3.51.81,5.25,1.3.81.23,1.64-.73,1.14-1.48-1.64-2.43-3.63-4.66-5.54-6.88l-1.42,1.42c.92,1.01,1.83,2.03,2.73,3.07.68.78,1.35,1.56,2,2.36.13.16.26.33.39.49.17.21,0,0,.09.12.06.08.12.16.17.23.15.21.31.42.43.66.51,1,2.23.3,1.84-.77-.67-1.83-1.15-3.74-1.62-5.63s-.89-3.67-1.3-5.51c-.09-.38-.17-.76-.25-1.14-.24-1.09-2.09-.87-1.97.27.34,3.29.89,6.65,1.94,9.79.35,1.04.76,2.09,1.37,3,.54.8,1.87.54,1.87-.51,0-5.31.31-10.63.59-15.94.03-.51.05-1.01.08-1.52.03-.54-.48-1.01-1.01-1.01-.58,0-.96.46-1.01,1.01-.37,4.97-.74,9.93-1.11,14.9-.05.7-.1,1.4-.16,2.1-.04.49.41.93.87.99.54.06.9-.24,1.1-.72,1.01-2.39,2.01-4.78,3.02-7.16,1.6-3.79,3.19-7.58,4.79-11.37.37-.87.74-1.75,1.1-2.62l-1.94-.53c-.94,2.43-1.87,4.87-2.81,7.3l-4.48,11.64c-.34.89-.68,1.78-1.03,2.67-.42,1.1,1.25,1.7,1.84.77,1.67-2.66,3.34-5.32,5.01-7.98,2.64-4.2,5.28-8.41,7.92-12.61.61-.97,1.22-1.94,1.83-2.91l-1.74-1.01c-1.37,2.57-2.75,5.15-4.12,7.72-2.19,4.1-4.38,8.21-6.57,12.31-.5.94-1,1.88-1.51,2.82-.61,1.14,1.13,2.16,1.74,1.01h0Z"/></g></svg>
+                  </div>
+                </div>
+                <div class="generate-gallery-name">Random</div>
+              </div>
+            </div>
+            <div class="generate-gallery-desc">Pick a vibe and let the magic happen.</div>
+          </div>
+        </div>
+
+        <div class="generate-actions" id="generateActions"></div>
         <div class="generate-progress" id="generateProgress">
           <div class="thinking-header">
             <div class="thinking-dots">
@@ -1965,6 +2279,31 @@
           onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
         <button class="chat-send" id="sendBtn" onclick="sendMessage()">Send</button>
       </div>
+      <!-- Palette Sidebar (replaces chat content when active) -->
+      <div id="paletteSidebar" class="palette-sidebar" style="display:none;">
+        <div class="palette-sidebar-header">
+          <h3>Color Palette</h3>
+          <button class="modal-close" onclick="closePalette()">&times;</button>
+        </div>
+        <div class="palette-sidebar-body">
+          <div class="palette-harmony-bar">
+            <label>Harmony:</label>
+            <select id="harmonyMode" onchange="applyHarmony()">
+              <option value="custom">Custom</option>
+              <option value="complementary">Complementary</option>
+              <option value="analogous">Analogous</option>
+              <option value="triadic">Triadic</option>
+              <option value="monochromatic">Monochromatic</option>
+            </select>
+          </div>
+          <div class="palette-slots" id="paletteSlots"></div>
+          <div class="palette-contrast" id="paletteContrast"></div>
+          <div class="palette-actions">
+            <button class="palette-cancel-btn" onclick="cancelPalette()">Cancel</button>
+            <button class="palette-save-btn" onclick="savePalette()">Save</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1977,6 +2316,7 @@
           <span id="currentThemeBadge" style="font-size:0.6875rem;background:var(--vibes-blue);color:var(--vibes-cream);padding:0.15rem 0.5rem;border-radius:4px;font-weight:700;text-transform:uppercase;display:none;"></span>
         </div>
         <div style="display:flex;gap:0.5rem;align-items:center;">
+          <button class="modal-create-btn" onclick="closeThemeModal();openPalette()">Color Palette</button>
           <button class="modal-create-btn" id="createThemeToggle" onclick="toggleCreateMode()">+ Create</button>
           <button class="modal-close" onclick="closeThemeModal()">&times;</button>
         </div>
@@ -2048,13 +2388,16 @@
     const label = document.getElementById('vibesLabel');
 
     if (!vibesAudio) {
+      // Fetch as blob so the browser can seek without range request support
       vibesAudio = new Audio();
       vibesAudio.loop = true;
       vibesAudio.volume = 0.6;
-      vibesAudio.preload = 'auto';
-      vibesAudio.crossOrigin = 'anonymous';
-      vibesAudio.src = 'https://pub-e36a1ee9446e4db6bebcb6b041dc3d33.r2.dev/vibes.mp3';
       vibesFirstPlay = true;
+      fetch('/assets/vibes.mp3')
+        .then(r => r.blob())
+        .then(blob => {
+          vibesAudio.src = URL.createObjectURL(blob);
+        });
       // Fade in when starting
       vibesAudio.addEventListener('play', () => {
         vibesAudio.volume = 0;
@@ -2079,7 +2422,7 @@
         }
       }, 40);
       btn.classList.remove('active');
-      emoji.textContent = '🔇';
+      emoji.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>';
       label.textContent = 'OFF';
       vibesPlaying = false;
     } else {
@@ -2097,7 +2440,7 @@
         startPlaying();
       }
       btn.classList.add('active');
-      emoji.textContent = '🎵';
+      emoji.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>';
       label.textContent = 'ON';
       vibesPlaying = true;
     }
@@ -2641,10 +2984,14 @@
   }
 
   // === Phase 2: Generate ===
+  let themeCarouselIndex = 0;
+  let selectedThemeId = '';
+
   async function populateThemeSelect() {
     try {
       const res = await fetch('/themes');
       themes = await res.json();
+      // Populate hidden select for JS compat
       const select = document.getElementById('themeSelect');
       for (const t of themes) {
         const opt = document.createElement('option');
@@ -2652,9 +2999,51 @@
         opt.textContent = t.name + (t.mood ? ` — ${t.mood}` : '');
         select.appendChild(opt);
       }
+      // Build carousel
+      buildThemeCarousel();
     } catch (err) {
       console.error('Failed to load themes:', err);
     }
+  }
+
+  function buildThemeCarousel() {
+    const track = document.getElementById('themeCarouselTrack');
+    if (!track) return;
+    // "Auto" + all themes
+    const items = [{ id: '', name: 'Auto' }, ...themes];
+    track.innerHTML = items.map((t, i) =>
+      `<button class="theme-carousel-btn${t.id === selectedThemeId ? ' active' : ''}" data-theme-id="${t.id}" onclick="selectThemeCarousel('${t.id}')">${t.name}</button>`
+    ).join('');
+    updateCarouselPosition();
+  }
+
+  function selectThemeCarousel(id) {
+    selectedThemeId = id;
+    document.getElementById('themeSelect').value = id;
+    document.querySelectorAll('.theme-carousel-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.themeId === id);
+    });
+  }
+
+  function themeCarouselPrev() {
+    themeCarouselIndex = Math.max(0, themeCarouselIndex - 1);
+    updateCarouselPosition();
+  }
+
+  function themeCarouselNext() {
+    const total = 1 + themes.length; // Auto + themes
+    const visible = 3;
+    themeCarouselIndex = Math.min(Math.max(0, total - visible), themeCarouselIndex + 1);
+    updateCarouselPosition();
+  }
+
+  function updateCarouselPosition() {
+    const track = document.getElementById('themeCarouselTrack');
+    if (!track || !track.children.length) return;
+    const btn = track.children[0];
+    const gap = 12;
+    const offset = themeCarouselIndex * (btn.offsetWidth + gap);
+    track.style.transform = `translateX(-${offset}px)`;
   }
 
   async function checkExistingApps() {
@@ -2804,11 +3193,25 @@
     if (!currentAppName) return;
     try {
       const frame = document.getElementById('previewFrame');
+
+      // Ensure iframe is fully loaded
+      if (!frame.contentDocument || frame.contentDocument.readyState !== 'complete') {
+        await new Promise(r => { frame.addEventListener('load', r, { once: true }); });
+      }
+
       const iframeWin = frame.contentWindow;
       const doc = iframeWin && iframeWin.document;
       if (!doc || !doc.body) return;
 
-      // Inject dom-to-image-more (uses SVG foreignObject — browser renders natively, supports oklch)
+      // Wait for React to mount + CSS animations to finish
+      await new Promise(r => setTimeout(r, 3000));
+
+      // Double-check body has actual content
+      if (doc.body.scrollHeight < 10) return;
+
+      console.log('[Screenshot] Capturing:', doc.body.scrollWidth, 'x', doc.body.scrollHeight, 'children:', doc.body.children.length);
+
+      // Inject dom-to-image-more
       if (typeof iframeWin.domtoimage === 'undefined') {
         await new Promise((resolve, reject) => {
           const script = doc.createElement('script');
@@ -2819,11 +3222,19 @@
         });
       }
 
+      // Make borders transparent to remove foreignObject artifact lines
+      const cleanupStyle = doc.createElement('style');
+      cleanupStyle.textContent = '*, *::before, *::after { border-color: transparent !important; outline-color: transparent !important; }';
+      doc.head.appendChild(cleanupStyle);
+
       const blob = await iframeWin.domtoimage.toBlob(doc.body, {
         width: doc.body.scrollWidth || 1280,
         height: Math.min(doc.body.scrollHeight || 800, 800),
         style: { overflow: 'hidden' },
+        imagePlaceholder: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
       });
+
+      cleanupStyle.remove();
 
       if (!blob || blob.size < 100) return;
       await fetch('/editor/apps/screenshot?name=' + encodeURIComponent(currentAppName), {
@@ -2834,6 +3245,44 @@
     } catch (err) {
       console.warn('[Screenshot] Capture failed:', err);
     }
+  }
+
+  const GALLERY_CATEGORIES = {
+    art: [
+      "A digital art gallery where users upload paintings and visitors can leave sticky-note comments on specific parts of the canvas",
+      "An interactive color palette generator inspired by famous art movements — impressionism, pop art, bauhaus",
+      "A collaborative pixel art board where multiple people draw together in real-time",
+      "A generative art studio that creates abstract compositions from user-uploaded photos",
+      "A virtual museum with rooms for different art styles, each with zoomable high-res images"
+    ],
+    music: [
+      "A beat sequencer with a grid of pads where you tap to create drum patterns and loops",
+      "A collaborative playlist builder where friends vote on which songs stay or go",
+      "A music mood journal — log your mood each day and get song recommendations that match",
+      "A vinyl record collection tracker with album art covers displayed in a crate-digging UI",
+      "An interactive music theory cheat sheet with playable chord diagrams and scales"
+    ],
+    games: [
+      "A trivia quiz game with categories, score tracking, and a leaderboard",
+      "A word scramble puzzle game where you unscramble letters against a countdown timer",
+      "A choose-your-own-adventure story engine where readers vote on plot decisions",
+      "A memory card matching game with different difficulty levels and fun animations",
+      "A two-player tic-tac-toe with win streaks, animations, and a rematch button"
+    ],
+    random: [
+      "A recipe box app where you save favorite recipes with photos and rate them with stars",
+      "A daily habit tracker with streaks, confetti celebrations, and weekly progress charts",
+      "A plant care reminder app with watering schedules and cute plant avatars",
+      "A book club organizer with reading lists, discussion threads, and progress tracking",
+      "A travel bucket list with a world map showing places you've visited vs want to visit"
+    ]
+  };
+
+  function galleryCardClick(category) {
+    const prompts = GALLERY_CATEGORIES[category];
+    const prompt = prompts[Math.floor(Math.random() * prompts.length)];
+    document.getElementById('generatePrompt').value = prompt;
+    document.getElementById('generatePrompt').focus();
   }
 
   function startGenerate() {
@@ -3541,6 +3990,283 @@
   document.getElementById('animModal').addEventListener('click', (e) => {
     if (e.target === e.currentTarget) closeAnimationModal();
   });
+
+  // === Color Palette ===
+
+  // --- OKLCH <-> sRGB math ---
+  function hexToRgb(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+    const n = parseInt(hex, 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+  }
+  function linearize(v) { v /= 255; return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+  function delinearize(v) { return v <= 0.0031308 ? v * 12.92 * 255 : (1.055 * Math.pow(v, 1 / 2.4) - 0.055) * 255; }
+
+  function rgbToOklab(r, g, b) {
+    const lr = linearize(r), lg = linearize(g), lb = linearize(b);
+    const l_ = 0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb;
+    const m_ = 0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb;
+    const s_ = 0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb;
+    const l = Math.cbrt(l_), m = Math.cbrt(m_), s = Math.cbrt(s_);
+    return [
+      0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+      1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+      0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s
+    ];
+  }
+  function oklabToRgb(L, a, b) {
+    const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+    const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+    const s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+    const l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+    return [
+      delinearize(+4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
+      delinearize(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
+      delinearize(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s)
+    ];
+  }
+
+  function hexToOklch(hex) {
+    const [r, g, b] = hexToRgb(hex);
+    const [L, a, bv] = rgbToOklab(r, g, b);
+    const C = Math.sqrt(a * a + bv * bv);
+    let h = Math.atan2(bv, a) * 180 / Math.PI;
+    if (h < 0) h += 360;
+    return { l: L, c: C, h };
+  }
+  function oklchToHex(l, c, h) {
+    const hRad = h * Math.PI / 180;
+    const a = c * Math.cos(hRad), b = c * Math.sin(hRad);
+    const [r, g, bv] = oklabToRgb(l, a, b);
+    return rgbToHex(r, g, bv);
+  }
+
+  // Clamp oklch to gamut by reducing chroma
+  function oklchClamp(l, c, h) {
+    l = Math.max(0, Math.min(1, l));
+    for (let i = 0; i < 20; i++) {
+      const hex = oklchToHex(l, c, h);
+      const [r, g, b] = hexToRgb(hex);
+      if (r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255) return hex;
+      c *= 0.9;
+    }
+    return oklchToHex(l, 0, h);
+  }
+
+  // --- WCAG contrast ---
+  function relativeLuminance(hex) {
+    const [r, g, b] = hexToRgb(hex);
+    return 0.2126 * linearize(r) + 0.7152 * linearize(g) + 0.0722 * linearize(b);
+  }
+  function contrastRatio(hex1, hex2) {
+    const l1 = relativeLuminance(hex1), l2 = relativeLuminance(hex2);
+    const lighter = Math.max(l1, l2), darker = Math.min(l1, l2);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  // --- Harmony generators ---
+  function generateHarmony(baseHex, mode) {
+    const base = hexToOklch(baseHex);
+    const { l, c, h } = base;
+    let bg, text, accent, muted, accentText;
+
+    // Pick high-contrast text: light bg → dark text, dark bg → light text
+    const textL = l > 0.6 ? 0.15 : 0.95;
+    text = oklchClamp(textL, 0.01, h);
+
+    switch (mode) {
+      case 'complementary':
+        bg = baseHex;
+        accent = oklchClamp(Math.min(l + 0.15, 0.85), Math.min(c + 0.05, 0.15), (h + 180) % 360);
+        muted = oklchClamp(l, Math.max(c - 0.06, 0.01), h);
+        accentText = contrastRatio(accent, '#ffffff') >= 4.5 ? '#ffffff' : '#1a1a1a';
+        break;
+      case 'analogous':
+        bg = baseHex;
+        accent = oklchClamp(Math.min(l + 0.1, 0.85), Math.min(c + 0.04, 0.15), (h + 30) % 360);
+        muted = oklchClamp(l, Math.max(c - 0.04, 0.01), (h + 330) % 360);
+        accentText = contrastRatio(accent, '#ffffff') >= 4.5 ? '#ffffff' : '#1a1a1a';
+        break;
+      case 'triadic':
+        bg = baseHex;
+        accent = oklchClamp(Math.min(l + 0.1, 0.85), Math.min(c + 0.04, 0.15), (h + 120) % 360);
+        muted = oklchClamp(l, Math.max(c - 0.04, 0.01), (h + 240) % 360);
+        accentText = contrastRatio(accent, '#ffffff') >= 4.5 ? '#ffffff' : '#1a1a1a';
+        break;
+      case 'monochromatic':
+        bg = baseHex;
+        accent = oklchClamp(Math.min(l + 0.2, 0.9), Math.min(c + 0.08, 0.15), h);
+        muted = oklchClamp(Math.max(l - 0.15, 0.1), Math.max(c - 0.06, 0.01), h);
+        accentText = contrastRatio(accent, '#ffffff') >= 4.5 ? '#ffffff' : '#1a1a1a';
+        break;
+      default:
+        return null;
+    }
+    return { bg, text, accent, muted, accentText };
+  }
+
+  // --- Palette state ---
+  let paletteState = { bg:'#1a1a2e', text:'#eaeaea', border:'#334455', accent:'#e94560', accentText:'#ffffff', muted:'#555555', colorBg:'#111122', gridColor:'#33445522' };
+  let savedPaletteState = null;
+
+  const PALETTE_SLOTS = [
+    { key:'bg', label:'Background', cssVar:'--comp-bg' },
+    { key:'text', label:'Text', cssVar:'--comp-text' },
+    { key:'border', label:'Border', cssVar:'--comp-border' },
+    { key:'accent', label:'Accent', cssVar:'--comp-accent' },
+    { key:'accentText', label:'Accent Text', cssVar:'--comp-accent-text' },
+    { key:'muted', label:'Muted', cssVar:'--comp-muted' },
+    { key:'colorBg', label:'Page BG', cssVar:'--color-background' },
+    { key:'gridColor', label:'Grid', cssVar:'--grid-color' },
+  ];
+
+  function renderPaletteSlots() {
+    const container = document.getElementById('paletteSlots');
+    container.innerHTML = PALETTE_SLOTS.map(s => {
+      const val = paletteState[s.key];
+      return `<div class="palette-slot">
+        <div class="palette-slot-label">${s.label}</div>
+        <div class="palette-slot-preview" style="background:${val}">
+          <input type="color" value="${val}" onchange="onSlotColorChange('${s.key}', this.value)" oninput="onSlotColorChange('${s.key}', this.value)" />
+        </div>
+        <input class="palette-slot-value" type="text" value="${val}" data-slot="${s.key}"
+          onchange="onSlotHexInput('${s.key}', this.value)" />
+      </div>`;
+    }).join('');
+    updateContrastDisplay();
+  }
+
+  function onSlotColorChange(key, hex) {
+    paletteState[key] = hex;
+    // Update text input
+    const textInput = document.querySelector(`.palette-slot-value[data-slot="${key}"]`);
+    if (textInput) textInput.value = hex;
+    // Update preview swatch
+    const slot = textInput?.closest('.palette-slot');
+    if (slot) slot.querySelector('.palette-slot-preview').style.background = hex;
+    // Reset harmony to custom since user manually edited
+    document.getElementById('harmonyMode').value = 'custom';
+    applyPaletteLive();
+  }
+
+  function onSlotHexInput(key, value) {
+    const hex = value.trim();
+    if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+      paletteState[key] = hex;
+      const slot = document.querySelector(`.palette-slot-value[data-slot="${key}"]`)?.closest('.palette-slot');
+      if (slot) {
+        slot.querySelector('.palette-slot-preview').style.background = hex;
+        slot.querySelector('input[type=color]').value = hex;
+      }
+      applyPaletteLive();
+    }
+  }
+
+  function applyHarmony() {
+    const mode = document.getElementById('harmonyMode').value;
+    if (mode === 'custom') return;
+    const result = generateHarmony(paletteState.bg, mode);
+    if (!result) return;
+    paletteState = { ...result };
+    renderPaletteSlots();
+    applyPaletteLive();
+  }
+
+  function updateContrastDisplay() {
+    const el = document.getElementById('paletteContrast');
+    const textBg = contrastRatio(paletteState.text, paletteState.bg);
+    const accentAt = contrastRatio(paletteState.accentText, paletteState.accent);
+    function badge(ratio) {
+      const pass = ratio >= 4.5;
+      return `<span class="palette-contrast-badge ${pass ? 'pass' : 'fail'}">${ratio.toFixed(1)}:1 ${pass ? 'AA' : 'Fail'}</span>`;
+    }
+    el.innerHTML = `
+      <div class="palette-contrast-item">Text / Bg: ${badge(textBg)}</div>
+      <div class="palette-contrast-item">Accent Text / Accent: ${badge(accentAt)}</div>
+    `;
+  }
+
+  // --- Live preview injection ---
+  function applyPaletteLive() {
+    const frame = document.getElementById('previewFrame');
+    const doc = frame?.contentDocument;
+    if (!doc) return;
+    const root = doc.documentElement;
+    PALETTE_SLOTS.forEach(s => {
+      root.style.setProperty(s.cssVar, paletteState[s.key]);
+    });
+    updateContrastDisplay();
+  }
+
+  // --- Init palette from current preview ---
+  function cssColorToHex(val) {
+    // Already hex
+    if (/^#[0-9a-fA-F]{6}$/.test(val)) return val;
+    if (/^#[0-9a-fA-F]{3}$/.test(val)) {
+      return '#' + val[1]+val[1]+val[2]+val[2]+val[3]+val[3];
+    }
+    // Use browser to resolve oklch/rgb/hsl etc to rgb
+    const temp = document.createElement('div');
+    temp.style.color = val;
+    document.body.appendChild(temp);
+    const computed = getComputedStyle(temp).color;
+    document.body.removeChild(temp);
+    const m = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+    return m ? rgbToHex(+m[1], +m[2], +m[3]) : null;
+  }
+
+  function initPaletteFromPreview() {
+    const frame = document.getElementById('previewFrame');
+    const doc = frame?.contentDocument;
+    if (!doc) return;
+    const cs = getComputedStyle(doc.documentElement);
+    PALETTE_SLOTS.forEach(s => {
+      const val = cs.getPropertyValue(s.cssVar)?.trim();
+      if (val) {
+        const hex = cssColorToHex(val);
+        if (hex) paletteState[s.key] = hex;
+      }
+    });
+  }
+
+  // --- Palette sidebar open / close ---
+  function openPalette() {
+    // Read current app colors from iframe FIRST, then snapshot
+    initPaletteFromPreview();
+    savedPaletteState = { ...paletteState };
+    renderPaletteSlots();
+    document.getElementById('paletteSidebar').style.display = 'flex';
+  }
+
+  function closePalette() {
+    document.getElementById('paletteSidebar').style.display = 'none';
+  }
+
+  function cancelPalette() {
+    // Remove all inline style overrides so iframe reverts to its original CSS
+    const frame = document.getElementById('previewFrame');
+    const root = frame?.contentDocument?.documentElement;
+    if (root) {
+      PALETTE_SLOTS.forEach(s => root.style.removeProperty(s.cssVar));
+    }
+    // Restore palette state to what we read on open
+    if (savedPaletteState) paletteState = { ...savedPaletteState };
+    closePalette();
+  }
+
+  function savePalette() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    // Send all palette slots dynamically
+    const colors = {};
+    PALETTE_SLOTS.forEach(s => { colors[s.cssVar] = paletteState[s.key]; });
+    ws.send(JSON.stringify({ type: 'palette_theme', colors }));
+    addMessage('user', 'Apply custom color palette');
+    closePalette();
+  }
 
   // === Resizable Splitter ===
   (function() {
