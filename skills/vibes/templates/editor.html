@@ -2048,16 +2048,13 @@
     const label = document.getElementById('vibesLabel');
 
     if (!vibesAudio) {
-      // Fetch as blob so the browser can seek without range request support
       vibesAudio = new Audio();
       vibesAudio.loop = true;
       vibesAudio.volume = 0.6;
+      vibesAudio.preload = 'auto';
+      vibesAudio.crossOrigin = 'anonymous';
+      vibesAudio.src = 'https://pub-e36a1ee9446e4db6bebcb6b041dc3d33.r2.dev/vibes.mp3';
       vibesFirstPlay = true;
-      fetch('/assets/vibes.mp3')
-        .then(r => r.blob())
-        .then(blob => {
-          vibesAudio.src = URL.createObjectURL(blob);
-        });
       // Fade in when starting
       vibesAudio.addEventListener('play', () => {
         vibesAudio.volume = 0;
