@@ -1,2 +1,1 @@
 bin/transpile filter=lfs diff=lfs merge=lfs -text
-assets/vibes.mp3 filter=lfs diff=lfs merge=lfs -text
