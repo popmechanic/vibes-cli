@@ -12,10 +12,13 @@
  * Usage: node scripts/preview-server.js [--port 3333] [--mode=editor]
  */
 
+import { fileURLToPath } from 'url';
+import { ensurePreviewDeps } from './lib/ensure-deps.js';
+await ensurePreviewDeps(fileURLToPath(import.meta.url));
+
 import { createServer } from 'http';
 import { readFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, writeFileSync, unlinkSync } from 'fs';
 import { join, dirname, extname } from 'path';
-import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import { WebSocketServer } from 'ws';
 import { parseThemeCatalog } from './lib/parse-theme-catalog.js';

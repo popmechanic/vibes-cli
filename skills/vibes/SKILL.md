@@ -48,7 +48,9 @@ Generate React web applications using Fireproof for local-first data persistence
 **If Editor is chosen, skip ALL pre-flight checks — the editor handles everything.**
 
 Ask the user:
-> "How do you want to build? **Terminal** (I'll generate and deploy from here) or **Editor** (opens a browser UI with live preview, chat, and deploy button)?"
+> "How do you want to build? **Editor** (opens a browser UI with live preview, chat, and deploy button) or **Terminal** (I'll generate and deploy from here)?"
+
+Present Editor as the first/recommended option.
 
 - **If Editor**: Start the editor server. Resolve the plugin root first, then launch:
   ```bash
