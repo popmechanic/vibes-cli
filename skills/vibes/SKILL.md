@@ -5,7 +5,6 @@ license: MIT
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 metadata:
   author: "Marcus Estes"
-  version: "0.1.63"
 ---
 
 > **Plan mode**: If you are planning work, this entire skill is ONE plan step: "Invoke /vibes:vibes". Do not decompose the steps below into separate plan tasks.
