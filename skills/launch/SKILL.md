@@ -32,9 +32,30 @@ For architecture context, see `LAUNCH-REFERENCE.md` in this directory.
 
 ---
 
-### Terminal or Editor UI?
+## FIRST: Terminal or Editor UI?
 
-Detect whether you're running in a terminal (Claude Code CLI, Codex) or an editor (Cursor, Windsurf, VS Code with Copilot). **Terminal agents** use `AskUserQuestion` for all input. **Editor agents** present requirements as a checklist comment, wait for user edits, then proceed. See the vibes skill for the full detection and interaction pattern.
+**This is the very first question — ask before anything else.**
+**DO NOT check .env, credentials, or project state before asking this question.**
+**DO NOT invoke /vibes:connect or any other skill before asking this question.**
+**If Editor is chosen, skip ALL pre-flight checks — the editor handles everything.**
+
+Ask the user:
+> "How do you want to build? **Terminal** (I'll generate and deploy from here) or **Editor** (opens a browser UI with live preview, chat, and deploy button)?"
+
+- **If Editor**: Start the editor server. Resolve the plugin root first, then launch:
+  ```bash
+  PLUGIN_ROOT=$(find ~/.claude/plugins/cache/vibes-cli -name "preview-server.js" -path "*/scripts/*" 2>/dev/null | head -1 | xargs dirname)
+  node "${PLUGIN_ROOT}/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
+  ```
+  If no prompt was given, omit `--prompt`:
+  ```bash
+  PLUGIN_ROOT=$(find ~/.claude/plugins/cache/vibes-cli -name "preview-server.js" -path "*/scripts/*" 2>/dev/null | head -1 | xargs dirname)
+  node "${PLUGIN_ROOT}/preview-server.js" --mode=editor
+  ```
+  Tell the user: "Open http://localhost:3333 — the editor handles everything from here: describe your app, preview it live, switch themes, and deploy with one click."
+  **Then stop.** The editor UI takes over the entire workflow (setup, generation, preview, deploy). Do not continue with the phases below.
+
+- **If Terminal**: Continue with the pre-flight checks and normal workflow below.
 
 ---
 
