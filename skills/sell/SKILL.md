@@ -696,8 +696,8 @@ The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk i
     "react/jsx-dev-runtime": "https://esm.sh/stable/react@19.2.4/jsx-dev-runtime",
     "react-dom": "https://esm.sh/stable/react-dom@19.2.4",
     "react-dom/client": "https://esm.sh/stable/react-dom@19.2.4/client",
-    "use-fireproof": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom",
-    "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.3?external=react,react-dom"
+    "use-fireproof": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom",
+    "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom"
   }
 }
 ```

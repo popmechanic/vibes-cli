@@ -277,7 +277,7 @@ export async function uploadFileWithSudo(localPath, host, remotePath, options = 
   await uploadFile(localPath, host, tempPath, options);
 
   // Move to final location with sudo
-  await runVMCommand(host, `sudo cp ${tempPath} ${remotePath} && sudo chown www-data:www-data ${remotePath} && rm ${tempPath}`, options);
+  await runVMCommand(host, `sudo mv ${tempPath} ${remotePath} && sudo chown www-data:www-data ${remotePath}`, options);
 }
 
 /**

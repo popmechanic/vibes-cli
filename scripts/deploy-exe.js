@@ -270,50 +270,31 @@ async function phase4FileUpload(args) {
   }
 }
 
-// TEMPORARY: Deploy local Fireproof bundle + vibes bridge until upstream package is fixed
-// Issue: @necrodome/fireproof-clerk@0.0.3 from esm.sh has client-side CID stringification bug
-// Remove this phase when the npm package is updated with the fix
-// See: https://github.com/fireproof-storage/fireproof/issues/XXX
-async function phase4bBundleUpload(args) {
-  const BUNDLE_FILES = [
-    'fireproof-clerk-bundle.js',
-    'fireproof-vibes-bridge.js',
-  ];
-  const bundlesDir = join(__dirname, '..', 'bundles');
+// Upload Vibes bridge module (Vibes-specific wrapper around @fireproof/clerk)
+async function phase4bBridgeUpload(args) {
+  const bridgeFile = 'fireproof-vibes-bridge.js';
+  const bridgePath = join(__dirname, '..', 'bundles', bridgeFile);
 
-  // Check that at least the main bundle exists
-  if (!existsSync(join(bundlesDir, BUNDLE_FILES[0]))) {
-    console.log('\nPhase 4b: Bundle Upload... SKIPPED (bundle not found)');
-    console.log('  Warning: Apps will use esm.sh package (may have CID bug)');
+  if (!existsSync(bridgePath)) {
+    console.log('\nPhase 4b: Bridge Upload... SKIPPED (bridge not found)');
     return;
   }
 
-  console.log('\nPhase 4b: Bundle Upload (temporary workaround)...');
+  console.log('\nPhase 4b: Bridge Upload...');
 
   const vmHost = `${args.name}.exe.xyz`;
 
   if (args.dryRun) {
-    for (const file of BUNDLE_FILES) {
-      console.log(`  [DRY RUN] Would upload ${file} to ${vmHost}:/var/www/html/${file}`);
-    }
+    console.log(`  [DRY RUN] Would upload ${bridgeFile} to ${vmHost}:/var/www/html/${bridgeFile}`);
     return;
   }
 
   try {
-    for (const file of BUNDLE_FILES) {
-      const localPath = join(bundlesDir, file);
-      if (!existsSync(localPath)) {
-        console.warn(`  Warning: ${file} not found, skipping`);
-        continue;
-      }
-      await uploadFileWithSudo(localPath, vmHost, `/var/www/html/${file}`);
-    }
+    await uploadFileWithSudo(bridgePath, vmHost, `/var/www/html/${bridgeFile}`);
 
-    console.log(`  ✓ ${BUNDLE_FILES.length} bundle files uploaded`);
+    console.log(`  ✓ ${bridgeFile} uploaded`);
   } catch (err) {
-    // Non-fatal - warn but don't fail deployment
-    console.warn(`  Warning: Bundle upload failed: ${err.message}`);
-    console.warn('  Apps may experience CID stringification issues');
+    console.warn(`  Warning: Bridge upload failed: ${err.message}`);
   }
 }
 
@@ -701,7 +682,7 @@ ${'━'.repeat(60)}
     await phase2CreateVM(args);
     await phase3ServerSetup(args);
     await phase4FileUpload(args);
-    await phase4bBundleUpload(args);
+    await phase4bBridgeUpload(args);
     await phase4cAuthCardsUpload(args);
     await phase4dFaviconUpload(args);
     await phase5AIProxy(args);
