@@ -52,7 +52,9 @@ Ask the user:
 
 Present Editor as the first/recommended option.
 
-- **If Editor**: Start the editor server. Resolve the plugin root first, then launch:
+- **If Editor**: Start the editor server and **END YOUR TURN. Do not ask any more questions. Do not continue to Pre-Flight Check or any step below.** The editor UI handles the entire workflow — setup, generation, preview, deploy.
+
+  Resolve the plugin root first, then launch:
   ```bash
   PLUGIN_ROOT=$(find ~/.claude/plugins/cache/vibes-cli -name "preview-server.js" -path "*/scripts/*" 2>/dev/null | head -1 | xargs dirname)
   node "${PLUGIN_ROOT}/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
@@ -62,10 +64,19 @@ Present Editor as the first/recommended option.
   PLUGIN_ROOT=$(find ~/.claude/plugins/cache/vibes-cli -name "preview-server.js" -path "*/scripts/*" 2>/dev/null | head -1 | xargs dirname)
   node "${PLUGIN_ROOT}/preview-server.js" --mode=editor
   ```
-  Tell the user: "Open http://localhost:3333 — the editor handles everything from here: describe your app, preview it live, switch themes, and deploy with one click."
-  **Then stop.** The editor UI takes over the entire workflow (setup, generation, preview, deploy). Do not continue with the steps below.
+  Tell the user: "Open http://localhost:3333 — the editor handles everything from here."
+  **Your job is done. Stop. Do not read further. Do not proceed to any step below.**
 
 - **If Terminal**: Continue with the pre-flight check and normal generation workflow below.
+
+---
+
+## ⛔ EVERYTHING BELOW IS TERMINAL MODE ONLY
+
+**If the user chose Editor above, STOP. Do not read or execute anything below this line.**
+**The editor UI handles setup, generation, preview, and deployment.**
+
+---
 
 ## Pre-Flight Check: Connect Status
 

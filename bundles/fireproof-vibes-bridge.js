@@ -1,18 +1,21 @@
 /**
  * Vibes Bridge Module
  *
- * Sits between the import map and the raw Fireproof bundle.
- * Wraps useFireproofClerk with:
- *   1. Sync status bridge → window.__VIBES_SYNC_STATUS__ + custom event
- *   2. onTock kick → polls allDocs() after sync, fires noPayloadWatchers
+ * Thin wrapper around @necrodome/fireproof-clerk (resolved via import map to esm.sh).
+ * Adds Vibes-specific application logic:
+ *   1. Sync status bridge -> window.__VIBES_SYNC_STATUS__ + custom event for SyncStatusDot
+ *   2. Ledger discovery -> 3-tier routing for multi-tenant apps
+ *   3. dashApi patching -> routes ensureCloudToken to correct per-database ledger
+ *   4. Invite auto-redemption -> reads ?invite= URL param
+ *   5. onTock kick -> polls allDocs() after sync, fires noPayloadWatchers
  *
- * Import map: "use-fireproof" → this file
- * This file: imports from ./fireproof-clerk-bundle.js (relative, bypasses import map)
+ * Import map: "use-fireproof" -> this file
+ *             "@fireproof/clerk" -> esm.sh (raw package)
  */
 
 import React from "react";
-export * from "./fireproof-clerk-bundle.js";
-import { useFireproofClerk as _originalUseFireproofClerk, useClerkFireproofContext } from "./fireproof-clerk-bundle.js";
+export * from "@fireproof/clerk";
+import { useFireproofClerk as _originalUseFireproofClerk, useClerkFireproofContext } from "@fireproof/clerk";
 
 var _patchedApis = typeof WeakSet !== 'undefined' ? new WeakSet() : { has: function(){return false;}, add: function(){} };
 var _currentDbName = null;
@@ -45,7 +48,7 @@ export function useFireproofClerk(name, opts) {
         return _origEnsure(req);
       }
 
-      // Tier 3: Discovery — find ledger matching this database name
+      // Tier 3: Discovery -- find ledger matching this database name
       return dashApi.listLedgersByUser({}).then(function (rLedgers) {
         if (rLedgers.isOk()) {
           var ledgers = rLedgers.Ok().ledgers || [];
@@ -57,7 +60,7 @@ export function useFireproofClerk(name, opts) {
             if (appHost && l.name.includes(appHost)) return true;
             return false;
           });
-          // NO fallback to ledgers[0] — unmatched databases get new ledgers
+          // NO fallback to ledgers[0] -- unmatched databases get new ledgers
 
           if (matched) {
             if (typeof window !== 'undefined') {
@@ -67,9 +70,9 @@ export function useFireproofClerk(name, opts) {
             req = Object.assign({}, req, { ledger: matched.ledgerId });
             console.debug('[vibes] Discovered ledger:', matched.ledgerId, 'for', dbName);
           } else {
-            // No match — clear bundle's wrong ledger so Connect creates a new one
+            // No match -- clear bundle's wrong ledger so Connect creates a new one
             req = Object.assign({}, req, { ledger: undefined });
-            console.debug('[vibes] No ledger match for', dbName, '— creating new');
+            console.debug('[vibes] No ledger match for', dbName, '-- creating new');
           }
         }
         // After _origEnsure resolves, discover the newly created ledger (polling retry)
