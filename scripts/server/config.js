@@ -99,14 +99,50 @@ export function loadConfig() {
 }
 
 /**
- * Reload themes and colors from disk (after theme creation).
+ * Reload themes, colors, and :root CSS from disk (after theme creation).
  */
 export function reloadThemes(ctx) {
   const catalogPath = join(ctx.projectRoot, 'skills/vibes/themes/catalog.txt');
-  if (existsSync(catalogPath)) {
-    ctx.themes = parseThemeCatalog(readFileSync(catalogPath, 'utf-8'));
-    console.log(`Reloaded ${ctx.themes.length} themes from catalog`);
+  if (!existsSync(catalogPath)) return;
+
+  ctx.themes = parseThemeCatalog(readFileSync(catalogPath, 'utf-8'));
+
+  // Rebuild colors for all themes (cheap — just regex on txt files)
+  ctx.themeColors = {};
+  for (const t of ctx.themes) {
+    const colors = parseThemeColors(ctx.themeDir, t.id);
+    if (colors) ctx.themeColors[t.id] = colors;
   }
+
+  // Rebuild :root CSS blocks
+  ctx.themeRootCss = {};
+  for (const t of ctx.themes) {
+    const txtFile = join(ctx.themeDir, `${t.id}.txt`);
+    const mdFile = join(ctx.themeDir, `${t.id}.md`);
+    const filePath = existsSync(txtFile) ? txtFile : existsSync(mdFile) ? mdFile : null;
+    if (!filePath) continue;
+    const content = readFileSync(filePath, 'utf-8');
+    const rootMatch = content.match(/:root\s*\{[\s\S]*?\}/);
+    if (rootMatch) {
+      ctx.themeRootCss[t.id] = rootMatch[0];
+    } else {
+      const c = ctx.themeColors[t.id];
+      if (c) {
+        const lines = [];
+        if (c.bg) lines.push(`  --comp-bg: ${c.bg};`);
+        if (c.text) lines.push(`  --comp-text: ${c.text};`);
+        if (c.border) lines.push(`  --comp-border: ${c.border};`);
+        if (c.accent) lines.push(`  --comp-accent: ${c.accent};`);
+        if (c.text) lines.push(`  --comp-accent-text: ${c.bg || 'oklch(1.00 0 0)'};`);
+        if (c.muted) lines.push(`  --comp-muted: ${c.muted};`);
+        if (c.bg) lines.push(`  --color-background: ${c.bg};`);
+        lines.push(`  --grid-color: transparent;`);
+        if (lines.length > 1) ctx.themeRootCss[t.id] = ':root {\n' + lines.join('\n') + '\n}';
+      }
+    }
+  }
+
+  console.log(`Reloaded ${ctx.themes.length} themes (${Object.keys(ctx.themeColors).length} with colors)`);
 }
 
 // --- Internal helpers ---
