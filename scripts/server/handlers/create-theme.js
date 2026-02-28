@@ -121,7 +121,7 @@ Tasks:
 Use oklch() for ALL color values. Study the image carefully for palette, typography weight, spacing rhythm, and overall composition.`;
 
   return new Promise((resolve, reject) => {
-    const args = buildClaudeArgs({ ...{ outputFormat: 'stream-json', maxTurns: 5, timeoutMs: 120_000 }, addDirs: [tmpdir()], model });
+    const args = buildClaudeArgs({ ...{ outputFormat: 'stream-json', maxTurns: 10, timeoutMs: 240_000, tools: 'Edit,Read,Write' }, addDirs: [tmpdir()], model });
 
     console.log(`[ThemeExtract] Spawning claude for theme "${themeId}" (with image)...`);
     const child = spawn('claude', args, {
@@ -164,7 +164,7 @@ Use oklch() for ALL color values. Study the image carefully for palette, typogra
     });
     child.stderr.on('data', (d) => { stderr += d.toString(); });
 
-    const EXTRACT_TIMEOUT = 120_000;
+    const EXTRACT_TIMEOUT = 240_000;
     const timeout = setTimeout(() => {
       console.error(`[ThemeExtract] Timeout after ${EXTRACT_TIMEOUT / 1000}s — killing subprocess`);
       child.kill('SIGTERM');
