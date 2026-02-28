@@ -10,7 +10,7 @@
  *
  * Automatically copies:
  *   - index.html to public/
- *   - bundles/*.js to public/ (fireproof-clerk-bundle.js workaround)
+ *   - bundles/fireproof-vibes-bridge.js to public/ (Vibes-specific wrapper)
  *   - assets/ to public/assets/ (images, icons)
  *
  * Clerk key and webhook secret auto-detected from .env if not provided via flags.
@@ -174,17 +174,11 @@ async function main() {
   console.log(`\nCopying ${basename(srcFile)} to public/`);
   copyFileSync(srcFile, destFile);
 
-  // 2. Copy bundles/ to public/ (e.g., fireproof-clerk-bundle.js)
-  const bundlesDir = resolve(PLUGIN_ROOT, "bundles");
-  if (existsSync(bundlesDir)) {
-    console.log(`\nCopying bundles/ to public/`);
-    for (const entry of readdirSync(bundlesDir)) {
-      const srcPath = join(bundlesDir, entry);
-      if (!statSync(srcPath).isDirectory() && entry.endsWith(".js")) {
-        copyFileSync(srcPath, join(publicDir, entry));
-        console.log(`  Copied ${entry}`);
-      }
-    }
+  // 2. Copy Vibes bridge to public/
+  const bridgePath = resolve(PLUGIN_ROOT, "bundles", "fireproof-vibes-bridge.js");
+  if (existsSync(bridgePath)) {
+    console.log(`\nCopying fireproof-vibes-bridge.js to public/`);
+    copyFileSync(bridgePath, join(publicDir, "fireproof-vibes-bridge.js"));
   }
 
   // 3. Copy assets/ to public/assets/ (images, favicons, etc.)
