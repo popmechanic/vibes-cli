@@ -29,6 +29,7 @@ import { createBackup, restoreFromBackup } from './lib/backup.js';
 import { APP_PLACEHOLDER } from './lib/assembly-utils.js';
 import { stripForTemplate } from './lib/strip-code.js';
 import { TEMPLATES } from './lib/paths.js';
+import { buildClaudeArgs, cleanEnv, TASK_PROFILES } from './lib/claude-subprocess.js';
 import { homedir, tmpdir } from 'os';
 import { execFile } from 'child_process';
 
@@ -37,14 +38,6 @@ const PROJECT_ROOT = join(__dirname, '..');
 const PORT = parseInt(process.argv.find((_, i, a) => a[i - 1] === '--port') || '3333', 10);
 const MODE = (process.argv.find(a => a.startsWith('--mode=')) || '--mode=preview').split('=')[1];
 const INITIAL_PROMPT = process.argv.find((_, i, a) => a[i - 1] === '--prompt') || '';
-
-// --- Clean env for spawning claude subprocesses (removes nesting guard) ---
-function cleanEnv() {
-  const env = { ...process.env };
-  delete env.CLAUDECODE;
-  delete env.CLAUDE_CODE_ENTRYPOINT;
-  return env;
-}
 
 // --- Load OpenRouter API key ---
 function loadOpenRouterKey() {
@@ -527,7 +520,7 @@ function uniqueThemeId(base) {
   return `${base}-${n}`;
 }
 
-async function extractThemeFromImage(imageUrl, prompt, themeId, themeName) {
+async function extractThemeFromImage(imageUrl, prompt, themeId, themeName, model) {
   // Read archive.txt as format reference
   const archivePath = join(THEME_DIR, 'archive.txt');
   let formatRef = '';
@@ -584,14 +577,7 @@ Use oklch() for ALL color values. Study the image carefully for palette, typogra
 
   return new Promise((resolve, reject) => {
 
-    const args = [
-      '-p', '-',
-      '--output-format', 'stream-json',
-      '--add-dir', tmpdir(),
-      '--allowedTools', 'Edit,Read,Write,Glob,Grep',
-      '--no-session-persistence',
-      '--max-turns', '5',
-    ];
+    const args = buildClaudeArgs({ ...TASK_PROFILES.themeExtract, addDirs: [tmpdir()], model });
 
     console.log(`[ThemeExtract] Spawning claude for theme "${themeId}" (with image)...`);
     const child = spawn('claude', args, {
@@ -1099,21 +1085,24 @@ wss.on('connection', (ws) => {
     }
 
     try {
+      // Extract model preference from client (undefined = auto/default)
+      const model = msg.model || undefined;
+
       if (msg.type === 'chat') {
-        await handleChat(ws, msg.message, msg.effects || [], msg.animationId || null);
+        await handleChat(ws, msg.message, msg.effects || [], msg.animationId || null, model);
       } else if (msg.type === 'theme') {
-        await handleThemeSwitch(ws, msg.themeId);
+        await handleThemeSwitch(ws, msg.themeId, model);
       } else if (msg.type === 'cancel') {
         cancelClaude(ws);
       } else if (msg.type === 'create_theme') {
         const prompt = String(msg.prompt || '').replace(/[\x00-\x1f]/g, '').slice(0, 500);
         if (!prompt) { ws.send(JSON.stringify({ type: 'error', message: 'Prompt is required' })); return; }
-        await handleCreateTheme(ws, prompt);
+        await handleCreateTheme(ws, prompt, model);
       } else if (msg.type === 'pick_theme_image') {
         const prompt = String(msg.prompt || '').replace(/[\x00-\x1f]/g, '').slice(0, 500);
-        await handlePickThemeImage(ws, msg.index, prompt);
+        await handlePickThemeImage(ws, msg.index, prompt, model);
       } else if (msg.type === 'generate') {
-        await handleGenerate(ws, msg.prompt, msg.themeId);
+        await handleGenerate(ws, msg.prompt, msg.themeId, model);
       } else if (msg.type === 'deploy') {
         await handleDeploy(ws, msg.target, msg.name);
       } else if (msg.type === 'save_app') {
@@ -1172,17 +1161,12 @@ async function runClaude(ws, prompt, opts = {}) {
   ws.send(JSON.stringify({ type: 'status', status: 'thinking', progress: 0, stage: 'Starting Claude...', elapsed: 0 }));
 
   return new Promise((resolve) => {
-    const tools = opts.tools || 'Edit,Read,Write,Glob,Grep';
     // Use stdin piping to avoid OS arg length limits on large prompts
-    const args = [
-      '--output-format', 'stream-json',
-      '--verbose',
-      '--allowedTools', tools,
-      '--no-session-persistence',
-      '-p', '-',
-    ];
-    if (opts.model) args.push('--model', opts.model);
-    if (opts.maxTurns) args.push('--max-turns', String(opts.maxTurns));
+    const args = buildClaudeArgs({
+      outputFormat: 'stream-json',
+      maxTurns: opts.maxTurns,
+      model: opts.model,
+    });
 
     console.log(`[Claude] Spawning (prompt: ${(prompt.length / 1024).toFixed(1)}KB)...`);
     const child = spawn('claude', args, {
@@ -1407,7 +1391,7 @@ const EFFECT_INSTRUCTIONS = {
   'shader': `MANDATORY: Add a WebGL fragment shader background. Create a fullscreen quad with vertex shader, pass u_time/u_resolution/u_mouse uniforms. Use effects like: aurora (sine wave color mixing), plasma (layered sine interference), noise gradient mesh (hash-based noise with mouse reactivity), or animated color fields. Use precision mediump float. Graceful fallback if WebGL unavailable.`,
 };
 
-async function handleChat(ws, message, effects = [], animationId = null) {
+async function handleChat(ws, message, effects = [], animationId = null, model) {
   let effectBlock = '';
 
   // New animation catalog system — single animation selection
@@ -1458,7 +1442,7 @@ RULES:
 - Never change Fireproof document types or query filters`;
 
   const maxTurns = (animationId || effects.length > 0) ? 12 : 8;
-  await runClaude(ws, prompt, { tools: 'Edit,Read', maxTurns });
+  await runClaude(ws, prompt, { maxTurns, model });
 
   // Sanitize CSS unicode escapes that would crash Babel
   const chatAppPath = join(PROJECT_ROOT, 'app.jsx');
@@ -1515,7 +1499,7 @@ async function handlePaletteTheme(ws, colors) {
   console.log('[Palette] Custom palette applied');
 }
 
-async function handleThemeSwitch(ws, themeId) {
+async function handleThemeSwitch(ws, themeId, model) {
   const txtFile = join(THEME_DIR, `${themeId}.txt`);
   const mdFile = join(THEME_DIR, `${themeId}.md`);
   let themeContent = '';
@@ -1541,9 +1525,9 @@ async function handleThemeSwitch(ws, themeId) {
 
   // Check for theme section markers — determines multi-pass vs legacy
   if (hasThemeMarkers(appCode)) {
-    await handleThemeSwitchMultiPass(ws, themeId, themeName, themeContent, appCode, appJsxPath, colors);
+    await handleThemeSwitchMultiPass(ws, themeId, themeName, themeContent, appCode, appJsxPath, colors, model);
   } else {
-    await handleThemeSwitchLegacy(ws, themeId, themeName, themeContent, colors);
+    await handleThemeSwitchLegacy(ws, themeId, themeName, themeContent, colors, model);
   }
 }
 
@@ -1563,7 +1547,7 @@ function updateThemeMeta(code, themeId, themeName) {
 }
 
 // Multi-pass theme switch: instant tokens/typography (Pass 1) + Claude creative (Pass 2)
-async function handleThemeSwitchMultiPass(ws, themeId, themeName, themeContent, appCode, appJsxPath, colors) {
+async function handleThemeSwitchMultiPass(ws, themeId, themeName, themeContent, appCode, appJsxPath, colors, model) {
   console.log(`[ThemeSwitch] Multi-pass for "${themeName}" (${themeId})`);
 
   // === Pass 1: Mechanical token + typography replacement (instant) ===
@@ -1644,7 +1628,7 @@ ${extractPass2ThemeContext(themeContent, 12000)}
 ${extractDataSchema(pass1Code)}`;
 
   console.log(`[ThemeSwitch] Pass 2: Claude creative restyle, prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
-  const claudeResult = await runClaude(ws, prompt, { skipChat: true, tools: 'Edit', maxTurns: 5 });
+  const claudeResult = await runClaude(ws, prompt, { skipChat: true, maxTurns: 5, model });
 
   // If runClaude failed (returned null), it sent 'error' but not 'app_updated'.
   // Send app_updated so the preview reloads with at least Pass 1 changes.
@@ -1685,7 +1669,7 @@ ${extractDataSchema(pass1Code)}`;
 }
 
 // Legacy theme switch: full-file Claude restyle (no markers)
-async function handleThemeSwitchLegacy(ws, themeId, themeName, themeContent, colors) {
+async function handleThemeSwitchLegacy(ws, themeId, themeName, themeContent, colors, model) {
   let rootCss = colors?.rootBlock || '';
   if (!rootCss) {
     const rootMatch = themeContent.match(/:root\s*\{[\s\S]*?\}/);
@@ -1737,7 +1721,7 @@ KEEP UNCHANGED:
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.`;
 
   console.log(`[ThemeSwitch] Legacy mode for "${themeName}" (${themeId}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
-  await runClaude(ws, prompt, { skipChat: true, tools: 'Edit', maxTurns: 8 });
+  await runClaude(ws, prompt, { skipChat: true, maxTurns: 8, model });
 
   // Sanitize CSS unicode escapes that would crash Babel
   const legacyCode = readFileSync(join(PROJECT_ROOT, 'app.jsx'), 'utf-8');
@@ -1778,7 +1762,7 @@ function autoSelectTheme(userPrompt) {
 }
 
 // --- Editor: Generate app from scratch ---
-async function handleGenerate(ws, userPrompt, themeId) {
+async function handleGenerate(ws, userPrompt, themeId, model) {
   if (!userPrompt) {
     ws.send(JSON.stringify({ type: 'error', message: 'Please describe what you want to build.' }));
     return;
@@ -1948,7 +1932,7 @@ DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}),
   ws.send(JSON.stringify({ type: 'theme_selected', themeId, themeName }));
 
   console.log(`[Generate] Starting — theme: ${themeId} (${themeName}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
-  await runClaude(ws, prompt, { skipChat: true, tools: 'Write', maxTurns: 5 });
+  await runClaude(ws, prompt, { skipChat: true, maxTurns: 5, model });
 
   // Sanitize CSS unicode escapes that would crash Babel
   const genAppPath = join(PROJECT_ROOT, 'app.jsx');
@@ -2204,7 +2188,7 @@ async function handleDeployStudio(ws, studioName, clerkPublishableKey, clerkSecr
   console.log(`[Studio] Deploy complete: ${apiUrl}`);
 }
 
-async function handleCreateTheme(ws, prompt) {
+async function handleCreateTheme(ws, prompt, model) {
   if (!OPENROUTER_KEY) {
     ws.send(JSON.stringify({ type: 'error', message: 'OpenRouter API key not configured. Add OPENROUTER_API_KEY to .env to enable theme creation.' }));
     return;
@@ -2229,7 +2213,7 @@ async function handleCreateTheme(ws, prompt) {
   }
 }
 
-async function handlePickThemeImage(ws, index, prompt) {
+async function handlePickThemeImage(ws, index, prompt, model) {
   if (!prompt) {
     ws.send(JSON.stringify({ type: 'error', message: 'Prompt is required' }));
     return;
@@ -2268,7 +2252,7 @@ async function handlePickThemeImage(ws, index, prompt) {
     }, 2000);
 
     try {
-      await extractThemeFromImage(imageUrl, prompt, themeId, themeName);
+      await extractThemeFromImage(imageUrl, prompt, themeId, themeName, model);
     } finally {
       clearInterval(progressInterval);
     }

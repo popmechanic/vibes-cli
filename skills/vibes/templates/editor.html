@@ -1165,6 +1165,21 @@
     .chat-send:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0px 0px var(--vibes-blue), 2px 2px 0px 2px var(--vibes-near-black); }
     .chat-send:active { transform: translate(4px, 4px); box-shadow: none; }
     .chat-send:disabled { background: #ddd; color: #999; cursor: not-allowed; box-shadow: none; transform: none; border-color: #aaa; }
+    .model-select {
+      background: var(--vibes-cream);
+      border: 2px solid var(--vibes-near-black);
+      color: var(--vibes-near-black);
+      padding: 0 0.5rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      height: 38px;
+      font-family: inherit;
+      outline: none;
+    }
+    .model-select:focus { border-color: var(--vibes-blue); box-shadow: 0 0 0 2px rgba(0,154,206,0.25); }
 
     /* Animation category bar */
     .animation-icons {
@@ -2277,6 +2292,11 @@
       <div class="chat-input-bar">
         <textarea class="chat-input" id="chatInput" placeholder="Describe changes to your app..." rows="1"
           onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+        <select class="model-select" id="modelSelect" title="AI Model">
+          <option value="">Auto</option>
+          <option value="haiku">Fast</option>
+          <option value="sonnet">Balanced</option>
+        </select>
         <button class="chat-send" id="sendBtn" onclick="sendMessage()">Send</button>
       </div>
       <!-- Palette Sidebar (replaces chat content when active) -->
@@ -3304,7 +3324,7 @@
     document.getElementById('generateError').style.display = 'none';
     document.getElementById('generateProgress').classList.add('active');
 
-    ws.send(JSON.stringify({ type: 'generate', prompt, themeId: themeId || null }));
+    ws.send(JSON.stringify({ type: 'generate', prompt, themeId: themeId || null, model: getModel() }));
   }
 
   function useExistingApp() {
@@ -3611,6 +3631,11 @@
   }
 
   // === Chat ===
+  function getModel() {
+    const sel = document.getElementById('modelSelect');
+    return sel && sel.value ? sel.value : undefined;
+  }
+
   function sendMessage() {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
@@ -3618,7 +3643,7 @@
 
     const animLabel = activeAnimationId ? allAnimations.find(a => a.id === activeAnimationId)?.name : null;
     addMessage('user', text + (animLabel ? '  [' + animLabel + ']' : ''));
-    const payload = { type: 'chat', message: text };
+    const payload = { type: 'chat', message: text, model: getModel() };
     if (activeAnimationId) payload.animationId = activeAnimationId;
     ws.send(JSON.stringify(payload));
     input.value = '';
@@ -3787,7 +3812,7 @@
     pendingThemeId = themeId;
     currentThemeId = themeId;
     setThinking(true, 0, 'Switching theme...');
-    ws.send(JSON.stringify({ type: 'theme', themeId }));
+    ws.send(JSON.stringify({ type: 'theme', themeId, model: getModel() }));
     closeThemeModal();
   }
 
@@ -3859,7 +3884,7 @@
       '</div>' +
       '<div class="create-status">Generating 3 design variations...</div>';
 
-    ws.send(JSON.stringify({ type: 'create_theme', prompt }));
+    ws.send(JSON.stringify({ type: 'create_theme', prompt, model: getModel() }));
   }
 
   function showThemeImages(images) {
@@ -3914,7 +3939,7 @@
         </div>`;
     }
 
-    ws.send(JSON.stringify({ type: 'pick_theme_image', index, prompt }));
+    ws.send(JSON.stringify({ type: 'pick_theme_image', index, prompt, model: getModel() }));
   }
 
   function updateThemeExtractionProgress(progress, stage, elapsed) {
@@ -4260,7 +4285,7 @@
     // Send all palette slots dynamically
     const colors = {};
     PALETTE_SLOTS.forEach(s => { colors[s.cssVar] = paletteState[s.key]; });
-    ws.send(JSON.stringify({ type: 'palette_theme', colors }));
+    ws.send(JSON.stringify({ type: 'palette_theme', colors, model: getModel() }));
     addMessage('user', 'Apply custom color palette');
     closePalette();
   }
@@ -4303,6 +4328,17 @@
   });
 
   // === Init ===
+
+  // Restore AI model preference from localStorage
+  const savedModel = localStorage.getItem('vibes-ai-model') || '';
+  const modelSelect = document.getElementById('modelSelect');
+  if (modelSelect) {
+    modelSelect.value = savedModel;
+    modelSelect.addEventListener('change', () => {
+      localStorage.setItem('vibes-ai-model', modelSelect.value);
+    });
+  }
+
   setPhase('generate');
   connectWs();
 
