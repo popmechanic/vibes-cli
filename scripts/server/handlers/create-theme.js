@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { spawn } from 'child_process';
 import { tmpdir } from 'os';
-import { reloadThemes, parseThemeColors } from '../config.js';
+import { reloadThemes } from '../config.js';
 import { buildClaudeArgs, cleanEnv } from '../../lib/claude-subprocess.js';
 
 const IMAGE_VARIATIONS = [
@@ -273,9 +273,6 @@ export async function handlePickThemeImage(ctx, onEvent, index, prompt, model, c
     }
 
     reloadThemes(ctx);
-
-    const newColors = parseThemeColors(ctx.themeDir, themeId);
-    if (newColors) ctx.themeColors[themeId] = newColors;
 
     onEvent({ type: 'theme_created', themeId, themeName });
     console.log(`[CreateTheme] Theme "${themeId}" (${themeName}) created and loaded`);
