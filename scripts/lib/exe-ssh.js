@@ -15,7 +15,7 @@ import { spawn } from 'child_process';
 // exe.dev VM constants
 export const EXE_HOME_DIR = '/home/exedev';
 export const EXE_DEFAULT_USER = 'exedev';
-import { readFileSync, createReadStream, statSync } from 'fs';
+import { statSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 
@@ -371,6 +371,24 @@ export async function createVM(vmName) {
 }
 
 /**
+ * Parse an exe.dev CLI command result, checking for success/error indicators.
+ * @param {string} output - Command output
+ * @param {string[]} successPatterns - Words that indicate success
+ * @returns {{success: boolean, message: string}}
+ */
+function parseExeResult(output, successPatterns) {
+  const lower = output.toLowerCase();
+  if (successPatterns.some(p => lower.includes(p))) {
+    return { success: true, message: output };
+  }
+  if (lower.includes('error') || lower.includes('fail') || lower.includes('not found')) {
+    return { success: false, message: output.trim() };
+  }
+  // No clear indicator — assume success (command completed without error)
+  return { success: true, message: output };
+}
+
+/**
  * Set a VM to public access
  * @param {string} vmName - VM name
  * @returns {Promise<{success: boolean, message: string}>}
@@ -378,20 +396,7 @@ export async function createVM(vmName) {
 export async function setPublic(vmName) {
   try {
     const output = await runExeCommand(`share set-public ${vmName}`, { timeout: 30000 });
-
-    // Check for success indicators in output
-    const lowerOutput = output.toLowerCase();
-    if (lowerOutput.includes('public') || lowerOutput.includes('success') || lowerOutput.includes('ok')) {
-      return { success: true, message: output };
-    }
-
-    // Check for error indicators
-    if (lowerOutput.includes('error') || lowerOutput.includes('fail') || lowerOutput.includes('not found')) {
-      return { success: false, message: output.trim() };
-    }
-
-    // If no clear indicator, assume success (command completed without error)
-    return { success: true, message: output };
+    return parseExeResult(output, ['public', 'success', 'ok']);
   } catch (err) {
     return { success: false, message: err.message };
   }
@@ -406,20 +411,7 @@ export async function setPublic(vmName) {
 export async function setPort(vmName, port) {
   try {
     const output = await runExeCommand(`share port ${vmName} ${port}`, { timeout: 30000 });
-
-    // Check for success indicators in output
-    const lowerOutput = output.toLowerCase();
-    if (lowerOutput.includes('success') || lowerOutput.includes('updated') || lowerOutput.includes('port')) {
-      return { success: true, message: output };
-    }
-
-    // Check for error indicators
-    if (lowerOutput.includes('error') || lowerOutput.includes('fail') || lowerOutput.includes('not found')) {
-      return { success: false, message: output.trim() };
-    }
-
-    // If no clear indicator, assume success (command completed without error)
-    return { success: true, message: output };
+    return parseExeResult(output, ['success', 'updated', 'port']);
   } catch (err) {
     return { success: false, message: err.message };
   }

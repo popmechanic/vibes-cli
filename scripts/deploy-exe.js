@@ -44,9 +44,8 @@ await ensureDeps(__filename);
 import {
   connect,
   runCommand,
-  runExeCommand,
-  uploadFile,
   uploadFileWithSudo,
+  runVMCommand,
   setPublic,
 } from './lib/exe-ssh.js';
 
@@ -54,7 +53,6 @@ import {
   preFlightSSH,
   createAndSetupVM,
   ensureBun,
-  uploadFilesWithSudo,
   verifyDeployment as verifyURL,
   validateName,
 } from './lib/deploy-utils.js';
@@ -261,15 +259,7 @@ async function phase4FileUpload(args) {
     const tmpLocalPath = join(__dirname, '..', '.vibes-deploy-tmp.html');
     writeFileSync(tmpLocalPath, htmlContent);
 
-    // First upload to home directory, then move with sudo (in case of permission issues)
-    const tmpPath = '/home/exedev/vibes-index.html';
-
-    await uploadFile(tmpLocalPath, vmHost, tmpPath);
-
-    const client = await connect(vmHost);
-    await runCommand(client, `sudo mv ${tmpPath} ${remotePath}`);
-    await runCommand(client, `sudo chown www-data:www-data ${remotePath}`);
-    client.end();
+    await uploadFileWithSudo(tmpLocalPath, vmHost, remotePath);
 
     // Clean up temp file
     try { unlinkSync(tmpLocalPath); } catch {}
@@ -316,13 +306,7 @@ async function phase4bBundleUpload(args) {
         console.warn(`  Warning: ${file} not found, skipping`);
         continue;
       }
-      const tmpPath = `/home/exedev/${file}`;
-      await uploadFile(localPath, vmHost, tmpPath);
-
-      const client = await connect(vmHost);
-      await runCommand(client, `sudo mv ${tmpPath} /var/www/html/${file}`);
-      await runCommand(client, `sudo chown www-data:www-data /var/www/html/${file}`);
-      client.end();
+      await uploadFileWithSudo(localPath, vmHost, `/var/www/html/${file}`);
     }
 
     console.log(`  ✓ ${BUNDLE_FILES.length} bundle files uploaded`);
@@ -355,31 +339,15 @@ async function phase4cAuthCardsUpload(args) {
   }
 
   try {
-    const client = await connect(vmHost);
+    await runVMCommand(vmHost, `sudo mkdir -p ${remoteDir} && sudo chown www-data:www-data ${remoteDir}`);
 
-    // Create cards directory on server
-    await runCommand(client, `sudo mkdir -p ${remoteDir}`);
-    await runCommand(client, `sudo chown www-data:www-data ${remoteDir}`);
-
-    client.end();
-
-    // Upload each card image
     for (const cardFile of CARD_FILES) {
       const localPath = join(CARDS_DIR, cardFile);
       if (!existsSync(localPath)) {
         console.log(`  Warning: ${cardFile} not found, skipping`);
         continue;
       }
-
-      const tmpPath = `/home/exedev/${cardFile}`;
-      const remotePath = `${remoteDir}/${cardFile}`;
-
-      await uploadFile(localPath, vmHost, tmpPath);
-
-      const client2 = await connect(vmHost);
-      await runCommand(client2, `sudo mv ${tmpPath} ${remotePath}`);
-      await runCommand(client2, `sudo chown www-data:www-data ${remotePath}`);
-      client2.end();
+      await uploadFileWithSudo(localPath, vmHost, `${remoteDir}/${cardFile}`);
     }
 
     console.log(`  ✓ ${CARD_FILES.length} card images uploaded to /assets/auth-cards/`);
@@ -420,28 +388,15 @@ async function phase4dFaviconUpload(args) {
   }
 
   try {
-    // Create directory on server
-    const client0 = await connect(vmHost);
-    await runCommand(client0, `sudo mkdir -p ${remoteDir} && sudo chown www-data:www-data ${remoteDir}`);
-    client0.end();
+    await runVMCommand(vmHost, `sudo mkdir -p ${remoteDir} && sudo chown www-data:www-data ${remoteDir}`);
 
-    // Upload each favicon file
     for (const file of FAVICON_FILES) {
       const localPath = join(FAVICON_DIR, file);
       if (!existsSync(localPath)) {
         console.warn(`  Warning: ${file} not found, skipping`);
         continue;
       }
-
-      const tmpPath = `/home/exedev/${file}`;
-      const remotePath = `${remoteDir}/${file}`;
-
-      await uploadFile(localPath, vmHost, tmpPath);
-
-      const client = await connect(vmHost);
-      await runCommand(client, `sudo mv ${tmpPath} ${remotePath}`);
-      await runCommand(client, `sudo chown www-data:www-data ${remotePath}`);
-      client.end();
+      await uploadFileWithSudo(localPath, vmHost, `${remoteDir}/${file}`);
     }
 
     console.log(`  ✓ ${FAVICON_FILES.length} favicon files uploaded`);
@@ -594,18 +549,12 @@ async function phase6Handoff(args) {
     // Generate handoff document
     const handoffContent = generateHandoff(context);
 
-    // Write to temp file
+    // Write to temp file and upload
     const tmpHandoff = '/tmp/vibes-handoff.md';
     writeFileSync(tmpHandoff, handoffContent);
 
-    // Upload to VM
     console.log('  Generating HANDOFF.md...');
-    await uploadFile(tmpHandoff, vmHost, '/tmp/HANDOFF.md');
-
-    const client = await connect(vmHost);
-    await runCommand(client, 'sudo mv /tmp/HANDOFF.md /var/www/html/HANDOFF.md');
-    await runCommand(client, 'sudo chown www-data:www-data /var/www/html/HANDOFF.md');
-    client.end();
+    await uploadFileWithSudo(tmpHandoff, vmHost, '/var/www/html/HANDOFF.md');
 
     console.log('  ✓ HANDOFF.md uploaded for remote Claude context');
   } catch (err) {
