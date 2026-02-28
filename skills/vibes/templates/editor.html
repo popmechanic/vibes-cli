@@ -4342,6 +4342,9 @@
   setPhase('generate');
   connectWs();
 
+  // App gallery only needs filesystem data — load immediately, don't wait for wrangler/ssh
+  checkExistingApps();
+
   // Check status → decide setup wizard vs generate
   fetch('/editor/status').then(r => r.json()).then(status => {
     sshAvailable = status.ssh?.ok || false;
@@ -4357,9 +4360,7 @@
     }
 
     if (status.clerk?.ok && status.connect?.ok) {
-      // Credentials present → go to generate with app list
-      setPhase('generate');
-      checkExistingApps();
+      // Credentials present → stay in generate phase
       fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
         if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;
       }).catch(() => {});
@@ -4371,9 +4372,6 @@
       prefillFromStatus(status);
     }
   }).catch(err => {
-    // Status check failed — show generate phase as fallback
-    setPhase('generate');
-    checkExistingApps();
     document.getElementById('generatePrompt').focus();
   });
 
