@@ -12,6 +12,7 @@
 import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { buildClaudeArgs, TASK_PROFILES, cleanEnv } from './lib/claude-subprocess.js';
 
 const [,, theme, lens, outputPath, visual] = process.argv;
 
@@ -90,10 +91,13 @@ Requirements:
 - Include a seedDemo function that populates 3-5 realistic sample documents with database.put() and a "Load Demo Data" button that only renders when the primary useLiveQuery returns zero docs`;
 
 try {
-  const result = spawnSync('claude', ['-p', prompt], {
+  const args = buildClaudeArgs(TASK_PROFILES.riffGenerate);
+  const result = spawnSync('claude', args, {
+    input: prompt,
     encoding: 'utf-8',
     maxBuffer: 10 * 1024 * 1024, // 10MB buffer
-    timeout: 300000 // 5 minute timeout
+    timeout: 300000, // 5 minute timeout
+    env: cleanEnv()
   });
 
   if (result.status !== 0) {
@@ -101,7 +105,9 @@ try {
     throw new Error(errorMsg);
   }
 
-  const output = result.stdout;
+  // --output-format json returns { result: "..." }
+  const parsed = JSON.parse(result.stdout);
+  const output = parsed.result;
 
   // Extract reasoning if present
   const reasoningMatch = output.match(/<reasoning>([\s\S]*?)<\/reasoning>/);
