@@ -164,6 +164,9 @@ Pattern — shader background component:
         cancelAnimationFrame(animId);
         window.removeEventListener("resize", resize);
         window.removeEventListener("mousemove", onMove);
+        gl.deleteProgram(prog);
+        gl.deleteBuffer(buf);
+        gl.getExtension('WEBGL_lose_context')?.loseContext();
       };
     }, [fragmentSource]);
 
@@ -227,7 +230,7 @@ Rules:
   - ALWAYS check `if (!gl) return;` — graceful fallback if WebGL unavailable
   - Use `precision mediump float;` — highp causes issues on some mobile GPUs
   - Keep shader complexity moderate — avoid deep loop nesting
-  - Cleanup: cancelAnimationFrame + remove listeners in useEffect return
+  - Cleanup: cancelAnimationFrame + remove listeners + gl.deleteProgram(prog) + gl.deleteBuffer(buf) + gl.getExtension('WEBGL_lose_context')?.loseContext() in useEffect return
 
 === INTERACTIVE SVG ===
 
