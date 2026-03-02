@@ -72,7 +72,7 @@ void main(){
       animId = requestAnimationFrame(render);
     }
     render(0);
-    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); window.removeEventListener("mousemove", onMouseMove); };
+    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); window.removeEventListener("mousemove", onMouseMove); gl.deleteProgram(prog); gl.deleteBuffer(buf); gl.getExtension('WEBGL_lose_context')?.loseContext(); };
   }, []);
   return <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", width: "100vw", height: "100vh" }} />;
 }

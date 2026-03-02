@@ -49,13 +49,17 @@ function Fireflies({ count = 30 }) {
         if (f.y < 0) f.y = h; if (f.y > h) f.y = 0;
         f.phase += f.pulseSpeed;
         const glow = (Math.sin(f.phase) + 1) / 2;
-        const gradient = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.r * 4);
-        gradient.addColorStop(0, `rgba(255, 240, 100, ${glow * 0.8})`);
-        gradient.addColorStop(0.5, `rgba(255, 220, 50, ${glow * 0.3})`);
-        gradient.addColorStop(1, "rgba(255, 220, 50, 0)");
         ctx.beginPath();
         ctx.arc(f.x, f.y, f.r * 4, 0, Math.PI * 2);
-        ctx.fillStyle = gradient;
+        ctx.fillStyle = `rgba(255, 220, 50, ${glow * 0.15})`;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.r * 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 240, 100, ${glow * 0.5})`;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 250, 150, ${glow * 0.8})`;
         ctx.fill();
       }
       animId = requestAnimationFrame(draw);

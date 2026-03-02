@@ -862,6 +862,10 @@
     let ws = null;
     let isThinking = false;
     let themes = [];
+    let wsRetries = 0;
+    const WS_MAX_RETRIES = 20;
+    const WS_BASE_DELAY = 2000;
+    const WS_MAX_DELAY = 30000;
 
     // === WebSocket ===
     function connectWs() {
@@ -870,6 +874,7 @@
 
       ws.onopen = () => {
         console.log('[WS] Connected');
+        wsRetries = 0;
       };
 
       ws.onmessage = (event) => {
@@ -918,8 +923,16 @@
       };
 
       ws.onclose = () => {
-        console.log('[WS] Disconnected, reconnecting in 2s...');
-        setTimeout(connectWs, 2000);
+        ws = null;
+        if (wsRetries >= WS_MAX_RETRIES) {
+          console.log('[WS] Max retries reached, giving up');
+          addMessage('system', 'Disconnected from server. Refresh the page to reconnect.');
+          return;
+        }
+        const delay = Math.min(WS_BASE_DELAY * Math.pow(2, wsRetries), WS_MAX_DELAY);
+        wsRetries++;
+        console.log(`[WS] Disconnected, reconnecting in ${delay/1000}s (attempt ${wsRetries}/${WS_MAX_RETRIES})...`);
+        setTimeout(connectWs, delay);
       };
 
       ws.onerror = (err) => {
@@ -974,6 +987,7 @@
       bubble.textContent = content;
       bubble.style.animation = 'slide-in 0.2s ease-out';
       container.appendChild(bubble);
+      while (container.children.length > 100) container.removeChild(container.firstChild);
       container.scrollTop = container.scrollHeight;
     }
 

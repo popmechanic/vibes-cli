@@ -64,6 +64,10 @@ function useConfetti() {
     else { animRef.current = null; }
   }
 
+  React.useEffect(() => {
+    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+  }, []);
+
   const ConfettiCanvas = () => <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 999, pointerEvents: "none", width: "100vw", height: "100vh" }} />;
   return { fire, ConfettiCanvas };
 }
