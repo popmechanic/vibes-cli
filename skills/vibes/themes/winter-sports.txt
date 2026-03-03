@@ -1,0 +1,716 @@
+THEME: winter-sports
+NAME: winter sports
+MOOD: Athletic, alpine-cool, data-rich, rounded-modern
+
+DESCRIPTION:
+A light, airy sports dashboard with cool blue-purple tones evoking ice, snow,
+and altitude. Rounded card surfaces float on subtle shadows over a particle-
+dusted canvas background. Monospace labels and large tabular-nums values give
+it a scoreboard feel, while pill-shaped navigation and generous border-radius
+keep the mood approachable and modern. Feels like a broadcast-quality stats
+overlay for winter athletics.
+
+BEST FOR:
+  - Sports analytics, athlete trackers, performance dashboards
+  - Fitness apps, workout logs, health metrics with sparklines
+  - Leaderboards, scoreboards, ranking tables
+  - Event trackers with activity feeds and timelines
+  - Any app combining: data cards + forms + lists + charts/sparklines
+
+NOT FOR:
+  - Dark-mode-only apps (committed to light alpine palette)
+  - Minimal single-purpose utilities (too many layout patterns)
+  - Creative portfolios or photography (data-forward, not image-forward)
+  - Elegant/refined editorial layouts (too sporty and casual)
+  - Chat/messaging apps (no thread or conversation patterns)
+
+ADAPTATION NOTES:
+  - If app has TABLES: Use the `.pitch-table` pattern — monospace uppercase
+    headers, thin bottom-borders, hover row highlight, tabular-nums for data
+    columns. Sort arrows in accent color. Keep border-radius: 0 on table.
+  - If app has CHARTS: Place SVG sparklines inside metric-card components.
+    Use accent color for primary series, muted for secondary. Pulsing endpoint
+    dot on live data. Wrap in `.sparkline-container` with border + bg.
+  - If app has FORMS: Use `.athlete-form` pattern — column layout inside a
+    bordered card, bottom-border inputs on background color, accent focus
+    state. Monospace uppercase labels above each field.
+  - If app has NO IMAGES: Drop image-card components. The theme still works
+    with metric-card grid + feed sidebar + sparklines + table.
+  - If app has TABS/FILTERS: Use `.pitch-nav` pill buttons — rounded 20px,
+    border + bg on inactive, solid accent fill on active. Horizontal scroll
+    overflow on mobile.
+  - If app has ICONS: Use stroke-only SVGs (strokeWidth 2, strokeLinecap
+    square) with subtle SMIL animations. Keep icons 24x24 or 32x32.
+
+COLOR TOKENS:
+  Override these in `:root` for the winter-sports mood. The palette is cool,
+  light, and alpine — icy blues with a purple-tinted accent.
+
+  ```css
+  :root {
+    --comp-bg: oklch(0.99 0.003 240);        /* near-white, faint cool tint */
+    --comp-text: oklch(0.22 0.025 250);       /* dark navy ink */
+    --comp-border: oklch(0.88 0.012 235);     /* light blue-gray divider */
+    --comp-accent: oklch(0.55 0.19 250);      /* medium blue-purple, scoreboard highlight */
+    --comp-accent-text: oklch(0.99 0 0);      /* pure white on accent */
+    --comp-muted: oklch(0.55 0.02 250);       /* gray-blue secondary text */
+    --color-background: oklch(0.95 0.015 230);/* light ice-blue page */
+    --grid-color: oklch(0.85 0.02 240 / 0.12);/* subtle blue grid lines */
+  }
+  ```
+
+  Danger/delete accent (use sparingly):
+  ```css
+  /* destructive actions */
+  color: oklch(0.65 0.2 25);
+  border-color: oklch(0.65 0.2 25 / 0.3);
+  ```
+
+DESIGN PRINCIPLES:
+  - Generous border-radius on cards and buttons (16px cards, 20px pill nav)
+  - Shadows for elevation, NOT borders — `0 2px 12px oklch(0.22 0.02 250 / 0.07)`
+  - Hover lift: `translateY(-2px)` with deeper shadow
+  - Monospace uppercase labels: Space Grotesk 0.65rem, letter-spacing 0.15em
+  - Large display values: Space Grotesk 2.5rem, weight 700, tabular-nums
+  - Body text: Inter 400/500/600, clean and functional
+  - Nav text: Nunito 600, 0.75rem uppercase, 0.08em tracking
+  - Thin 1px borders only on structural dividers (header, sidebar, form fields)
+  - Responsive grid: 1-col → 2-col → 3-col cards; main + 280px sidebar above 768px
+  - Max-width 1280px centered with 1rem padding
+  - Highlight cards: swap bg to accent, text to accent-text for featured metrics
+  - Danger bars: 4px track with animated fill for progress indicators
+
+PERSONALITY:
+  This theme feels like a premium sports broadcast overlay — clean data
+  presentation with just enough visual flair to keep it engaging. The cool
+  palette suggests altitude, ice, and crisp mountain air. Numbers are the
+  star — large, bold, tabular. Labels are quiet monospace whispers above
+  them. Animated SVG sport vignettes add character without overwhelming
+  the data. It's confident and athletic but never aggressive.
+
+ANIMATIONS:
+  Winter-sports uses MODERATE animations — data-focused with sport flair:
+  - Card entrance: `opacity 0→1, translateY(8px→0)` 0.4s ease (cardFadeIn)
+  - Feed slide: `opacity 0→1, translateX(-8px→0)` 0.3s ease (feedSlide)
+  - Live pulse: dot `scale(1→0.7)` + `opacity(1→0.4)` 2s infinite
+  - Sparkline endpoint: `r 3→5→3` pulsing circle, 2s infinite
+  - Card hover: `translateY(-2px)` + shadow deepen, 0.2s ease
+  - Button press: `scale(0.97)` on :active
+  - Nav hover: background lighten, 0.2s ease
+  - Mountain divider: SVG path morph, 6-7s gentle undulation
+  - Sport-specific SVG vignettes: parachute sway, surfboard bob, moto jump arc, climber ascend
+  - Canvas particles: 50 falling dots (snow-like), random drift, warm yellow tint
+  - Typewriter text: character-by-character reveal with blinking cursor
+  - Danger bar fill: `width` transition 0.6s ease
+
+SVG ELEMENTS:
+  Sport-themed SVGs are a signature of this theme:
+  - Stroke-only sport icons (24px): parachute, wave, motorcycle, ice axe
+    Use `strokeWidth="2" strokeLinecap="square"` with subtle SMIL path animations
+  - Mountain divider: full-width 800x40 viewBox, two layered mountain silhouette
+    paths with gentle `<animate>` morphing (6-7s cycle)
+  - Sport vignettes (60-120px wide): mini animated scenes per sport category
+    (surfer on wave, parachutist descending, motocross jump, ice climber)
+  - Sparkline charts: SVG polyline with pulsing endpoint circle
+  - Empty state: animated mountain outline with drawing stroke-dasharray reveal
+  - Canvas background: <canvas> element with 50 falling particles (not SVG)
+  - Keep all SVGs stroke-based, no heavy fills — matches the light, airy mood
+
+REFERENCE CSS:
+  These styles show ONE interpretation of the winter-sports aesthetic.
+  Study the patterns (rounded surfaces, shadow elevation, monospace labels,
+  responsive grids) then create your own version for each app.
+
+  ```css
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap');
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    font-family: 'Inter', sans-serif;
+    background: var(--color-background);
+    color: var(--comp-text);
+    margin: 0;
+  }
+
+  /* ── App Shell ── */
+  .app-container {
+    min-height: 100vh;
+    position: relative;
+    overflow: hidden;
+    background: var(--color-background);
+  }
+
+  .app-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .app-content {
+    position: relative;
+    z-index: 1;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+
+  /* ── Header ── */
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--comp-border);
+    margin-bottom: 1.5rem;
+  }
+
+  .app-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .accent-dot {
+    width: 10px;
+    height: 10px;
+    background: var(--comp-accent);
+    display: inline-block;
+  }
+
+  .live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--comp-accent);
+  }
+
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--comp-accent);
+    animation: livePulse 2s ease-in-out infinite;
+  }
+
+  @keyframes livePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  /* ── Pill Navigation ── */
+  .pill-nav {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    padding: 0.25rem;
+  }
+
+  .pill-nav button {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.6rem 1.2rem;
+    background: var(--comp-bg);
+    color: var(--comp-muted);
+    border: 1px solid var(--comp-border);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .pill-nav button.active {
+    background: var(--comp-accent);
+    color: var(--comp-accent-text);
+    border-color: var(--comp-accent);
+  }
+
+  .pill-nav button:hover {
+    background: oklch(0.93 0.01 240);
+    color: var(--comp-text);
+  }
+
+  /* ── Main + Sidebar Layout ── */
+  .content-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .content-layout {
+      grid-template-columns: 1fr 280px;
+    }
+  }
+
+  .content-main {
+    background: var(--color-background);
+    padding: 1rem;
+  }
+
+  .content-sidebar {
+    background: var(--color-background);
+    padding: 1rem;
+    border-top: 1px solid var(--comp-border);
+  }
+
+  @media (min-width: 768px) {
+    .content-sidebar { border-top: none; }
+  }
+
+  /* ── Responsive Card Grid ── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .card-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (min-width: 1024px) {
+    .card-grid { grid-template-columns: 1fr 1fr 1fr; }
+  }
+
+  /* ── Metric Cards ── */
+  .metric-card {
+    background: var(--comp-bg);
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px oklch(0.22 0.02 250 / 0.07);
+    animation: cardFadeIn 0.4s ease both;
+  }
+
+  .metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px oklch(0.22 0.02 250 / 0.12);
+  }
+
+  .metric-card.highlight {
+    background: var(--comp-accent);
+    color: var(--comp-accent-text);
+  }
+
+  .metric-card.highlight .metric-label,
+  .metric-card.highlight .metric-sublabel {
+    color: var(--comp-accent-text);
+    opacity: 0.7;
+  }
+
+  .metric-card.highlight .metric-value {
+    color: var(--comp-accent-text);
+  }
+
+  @keyframes cardFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .metric-label {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--comp-muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .metric-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .metric-sublabel {
+    font-size: 0.75rem;
+    color: var(--comp-muted);
+  }
+
+  /* ── Image Cards ── */
+  .image-card {
+    position: relative;
+    min-height: 200px;
+    overflow: hidden;
+    background: var(--comp-bg);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 1.25rem;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px oklch(0.22 0.02 250 / 0.07);
+    animation: cardFadeIn 0.4s ease both;
+  }
+
+  .image-card .card-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.55;
+    border-radius: 16px;
+  }
+
+  .image-card .card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, var(--comp-bg) 20%, transparent 80%);
+  }
+
+  .image-card .card-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── Icon Row ── */
+  .icon-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+    border: 1px solid var(--comp-border);
+    color: var(--comp-muted);
+    transition: color 0.2s, border-color 0.2s;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .icon-btn:hover,
+  .icon-btn.active {
+    color: var(--comp-accent);
+    border-color: var(--comp-accent);
+  }
+
+  /* ── Feed / Activity List ── */
+  .section-title {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--comp-muted);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--comp-border);
+  }
+
+  .feed-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid oklch(0.85 0.01 240 / 0.2);
+    font-size: 0.8rem;
+    animation: feedSlide 0.3s ease both;
+  }
+
+  @keyframes feedSlide {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .feed-item:last-child { border-bottom: none; }
+
+  .feed-time {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.7rem;
+    color: var(--comp-muted);
+    white-space: nowrap;
+    min-width: 44px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .feed-text {
+    flex: 1;
+    word-break: break-word;
+  }
+
+  .feed-text strong {
+    color: var(--comp-accent);
+  }
+
+  /* ── Forms ── */
+  .input-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid var(--comp-border);
+    background: var(--comp-bg);
+    margin-bottom: 1rem;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .input-form input,
+  .input-form select {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--color-background);
+    border: 1px solid var(--comp-border);
+    color: var(--comp-text);
+    flex: 1;
+    min-width: 100px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .input-form input:focus,
+  .input-form select:focus {
+    border-color: var(--comp-accent);
+  }
+
+  .input-form label {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--comp-muted);
+  }
+
+  /* ── Buttons ── */
+  .btn-accent {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.6rem 1.2rem;
+    background: var(--comp-accent);
+    color: var(--comp-accent-text);
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .btn-accent:hover { opacity: 0.9; }
+  .btn-accent:active { transform: scale(0.97); }
+
+  .btn-danger {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.3rem 0.6rem;
+    background: transparent;
+    color: oklch(0.65 0.2 25);
+    border: 1px solid oklch(0.65 0.2 25 / 0.3);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-danger:hover {
+    background: oklch(0.65 0.2 25 / 0.15);
+  }
+
+  /* ── Data Rows ── */
+  .data-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--comp-bg);
+    font-size: 0.8rem;
+    animation: cardFadeIn 0.3s ease both;
+  }
+
+  @media (max-width: 640px) {
+    .data-row {
+      grid-template-columns: 1fr auto;
+      gap: 0.4rem;
+    }
+  }
+
+  .row-index {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.6rem;
+    color: var(--comp-muted);
+    letter-spacing: 0.1em;
+  }
+
+  .row-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .row-tag {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--comp-muted);
+    border: 1px solid var(--comp-border);
+    padding: 0.15rem 0.5rem;
+    white-space: nowrap;
+  }
+
+  .row-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--comp-accent);
+    white-space: nowrap;
+  }
+
+  /* ── Sparkline Container ── */
+  .sparkline-container {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border: 1px solid var(--comp-border);
+    background: var(--comp-bg);
+    overflow: hidden;
+  }
+
+  .sparkline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  /* ── Stats Row ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 1px;
+  }
+
+  @media (min-width: 640px) {
+    .stats-row { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  /* ── Progress Bar ── */
+  .progress-bar {
+    height: 4px;
+    background: var(--comp-border);
+    margin-top: 0.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--comp-accent);
+    transition: width 0.6s ease;
+  }
+
+  /* ── Data Table ── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+
+  .data-table thead th {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--comp-muted);
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 2px solid var(--comp-border);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+  }
+
+  .data-table thead th:hover {
+    color: var(--comp-accent);
+  }
+
+  .data-table tbody tr {
+    border-bottom: 1px solid oklch(0.85 0.01 240 / 0.2);
+    animation: cardFadeIn 0.3s ease both;
+    transition: background 0.2s;
+  }
+
+  .data-table tbody tr:hover {
+    background: oklch(0.93 0.01 240);
+  }
+
+  .data-table td {
+    padding: 0.6rem 0.75rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sort-arrow {
+    display: inline-block;
+    margin-left: 0.3rem;
+    font-size: 0.55rem;
+    color: var(--comp-accent);
+  }
+
+  /* ── Section Label ── */
+  .section-label {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--comp-muted);
+    margin-bottom: 1rem;
+  }
+
+  /* ── SVG Divider ── */
+  .divider-svg {
+    width: 100%;
+    height: 40px;
+    margin: 1.5rem 0;
+    display: block;
+  }
+
+  /* ── Empty State ── */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--comp-muted);
+  }
+
+  .empty-state svg {
+    margin: 0 auto 1.5rem;
+    display: block;
+  }
+
+  .empty-state p {
+    font-size: 0.8rem;
+    max-width: 280px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+  ```
