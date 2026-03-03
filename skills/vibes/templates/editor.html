@@ -506,6 +506,8 @@
       align-items: center;
       justify-content: center;
       padding: 2rem;
+      transition: flex-grow 0.6s cubic-bezier(0.25, 0.1, 0.25, 1),
+                  flex-basis 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
     .generate-phase.single-panel .generate-left {
       flex: none;
@@ -517,6 +519,14 @@
       background: #1a1a1a;
       border-left: none;
       box-shadow: -4px 0 12px rgba(0, 0, 0, 0.3);
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOutRight {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
     }
     .gallery-title {
       font-size: 1rem;
@@ -1398,6 +1408,12 @@
     .imggen-action-btn.retry { background: var(--vibes-cream); color: var(--vibes-near-black); }
     .imggen-action-btn.retry:hover { background: var(--vibes-yellow); }
     .imggen-counter { text-align: center; font-size: 0.65rem; font-weight: 700; color: var(--vibes-near-black); }
+    .imggen-key-form { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.25rem 0; }
+    .imggen-key-form label { font-size: 0.7rem; font-weight: 700; color: var(--vibes-near-black); }
+    .imggen-key-link { font-size: 0.65rem; color: var(--vibes-blue); text-decoration: underline; }
+    .imggen-key-link:hover { color: #007ab5; }
+    .imggen-key-hint { font-size: 0.6rem; color: var(--vibes-red); display: none; }
+    .imggen-key-form .imggen-go-btn { align-self: flex-end; }
     /* Generate-phase toolbar */
     .gen-toolbar {
       display: flex;
@@ -2431,7 +2447,15 @@
                     <span>Image Generator</span>
                     <button class="imggen-drag-close" onclick="genCloseImgGen()">&times;</button>
                   </div>
-                  <div class="imggen-input-row">
+                  <div class="imggen-key-form" id="genImggenKeyForm">
+                    <label>OpenRouter API Key required</label>
+                    <a class="imggen-key-link" href="https://openrouter.ai/keys" target="_blank" rel="noopener">Get a key at openrouter.ai/keys</a>
+                    <input type="password" class="imggen-input" id="genImggenKeyInput" placeholder="sk-or-..."
+                      onkeydown="if(event.key==='Enter'){saveImgGenKey('genImggenKeyInput','genImggenKeyHint');}" />
+                    <span class="imggen-key-hint" id="genImggenKeyHint"></span>
+                    <button class="imggen-go-btn" onclick="saveImgGenKey('genImggenKeyInput','genImggenKeyHint')">Save Key</button>
+                  </div>
+                  <div class="imggen-input-row" id="genImggenPromptRow">
                     <input type="text" class="imggen-input" id="genImggenPrompt" placeholder="Generate a UI for... (e.g. task manager with dark sidebar)"
                       onkeydown="if(event.key==='Enter'){genGenerateImage();}" />
                     <button class="imggen-go-btn" id="genImggenGoBtn" onclick="genGenerateImage()">Go</button>
@@ -2627,7 +2651,15 @@
                   <span>Image Generator</span>
                   <button class="imggen-drag-close" onclick="closeImgGen()">&times;</button>
                 </div>
-                <div class="imggen-input-row">
+                <div class="imggen-key-form" id="imggenKeyForm">
+                  <label>OpenRouter API Key required</label>
+                  <a class="imggen-key-link" href="https://openrouter.ai/keys" target="_blank" rel="noopener">Get a key at openrouter.ai/keys</a>
+                  <input type="password" class="imggen-input" id="imggenKeyInput" placeholder="sk-or-..."
+                    onkeydown="if(event.key==='Enter'){saveImgGenKey('imggenKeyInput','imggenKeyHint');}" />
+                  <span class="imggen-key-hint" id="imggenKeyHint"></span>
+                  <button class="imggen-go-btn" onclick="saveImgGenKey('imggenKeyInput','imggenKeyHint')">Save Key</button>
+                </div>
+                <div class="imggen-input-row" id="imggenPromptRow">
                   <input type="text" class="imggen-input" id="imggenPrompt" placeholder="Generate a UI for... (e.g. task manager with dark sidebar)"
                     onkeydown="if(event.key==='Enter'){generateImage();}" />
                   <button class="imggen-go-btn" id="imggenGoBtn" onclick="generateImage()">Go</button>
@@ -2826,14 +2858,76 @@
   let versionIndex = -1;
   let isVersionNav = false; // true when navigating via undo/redo (skip pushing to history)
 
+  // === Apps Panel Toggle ===
+  let appsPanelVisible = false;
+  function toggleAppsPanel() {
+    const right = document.getElementById('generateRight');
+    const phase = document.getElementById('phaseGenerate');
+    const left = phase.querySelector('.generate-left');
+    appsPanelVisible = !appsPanelVisible;
+    if (appsPanelVisible) {
+      // Show menu with slide-in, shrink prompt to 40%
+      phase.classList.remove('single-panel');
+      left.style.flexGrow = '';
+      left.style.flexBasis = '';
+      right.style.display = '';
+      right.style.animation = 'slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+    } else {
+      // Slide menu out, prompt glides back to center
+      left.style.flexGrow = '1';
+      left.style.flexBasis = '0';
+      right.style.animation = 'slideOutRight 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+      right.addEventListener('animationend', function handler() {
+        right.removeEventListener('animationend', handler);
+        right.style.display = 'none';
+        right.style.animation = '';
+      });
+    }
+  }
+
   // === Phase Navigation ===
   function setPhase(phase) {
     currentPhase = phase;
     document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
     document.getElementById('phase' + phase.charAt(0).toUpperCase() + phase.slice(1)).classList.add('active');
 
+    // Reset apps panel state when entering generate phase
+    if (phase === 'generate') {
+      appsPanelVisible = false;
+      const right = document.getElementById('generateRight');
+      if (right) { right.style.display = 'none'; right.style.animation = ''; }
+      const pg = document.getElementById('phaseGenerate');
+      if (pg) {
+        pg.classList.add('single-panel');
+        const left = pg.querySelector('.generate-left');
+        if (left) { left.style.flexGrow = ''; left.style.flexBasis = ''; }
+      }
+    }
+
     const headerRight = document.getElementById('headerRight');
-    if (phase === 'edit') {
+    if (phase === 'generate') {
+      // Show apps button only if there are apps to show
+      const appsGrid = document.getElementById('appGalleryGrid');
+      if (appsGrid && appsGrid.innerHTML.trim()) {
+        headerRight.innerHTML = `
+          <div class="navbar-button-wrapper">
+            <button style="background:var(--vibes-yellow)" onclick="toggleAppsPanel()">
+              <div class="navbar-button-icon">
+                <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="17.5" cy="17.5" r="17.5" fill="#231F20"/>
+                  <rect x="9" y="9" width="7" height="7" rx="1.5" fill="var(--vibes-cream)"/>
+                  <rect x="19" y="9" width="7" height="7" rx="1.5" fill="var(--vibes-cream)"/>
+                  <rect x="9" y="19" width="7" height="7" rx="1.5" fill="var(--vibes-cream)"/>
+                  <rect x="19" y="19" width="7" height="7" rx="1.5" fill="var(--vibes-cream)"/>
+                </svg>
+              </div>
+              <div class="navbar-button-label" style="color:var(--vibes-near-black)">Apps</div>
+            </button>
+          </div>`;
+      } else {
+        headerRight.innerHTML = '';
+      }
+    } else if (phase === 'edit') {
       headerRight.innerHTML = `
         <div class="navbar-button-wrapper">
           <button style="background:#5398c9" onclick="openThemeModal()">
@@ -3448,12 +3542,7 @@
 
       if (!hasCurrentApp && savedApps.length === 0) return;
 
-      // Show right panel, remove single-panel centering
-      const phase = document.getElementById('phaseGenerate');
-      const right = document.getElementById('generateRight');
-      phase.classList.remove('single-panel');
-      right.style.display = '';
-
+      // Populate grid content but keep panel hidden until toggled
       const grid = document.getElementById('appGalleryGrid');
       const olderList = document.getElementById('appListOlder');
       const divider = document.getElementById('galleryDivider');
@@ -3508,6 +3597,11 @@
       if (listHtml) {
         divider.style.display = '';
         olderList.innerHTML = listHtml;
+      }
+
+      // Add the apps navbar button now that content is populated
+      if (currentPhase === 'generate') {
+        setPhase('generate');
       }
     } catch (err) {
       console.error('Failed to check apps:', err);
@@ -4190,16 +4284,54 @@
   })();
 
   // === Image Generation ===
+  let hasOpenRouterKey = false;
   let imggenImages = []; // array of { url, prompt }
   let imggenIndex = 0;
+
+  function updateImgGenKeyUI() {
+    document.getElementById('imggenKeyForm').style.display = hasOpenRouterKey ? 'none' : 'flex';
+    document.getElementById('imggenPromptRow').style.display = hasOpenRouterKey ? 'flex' : 'none';
+    document.getElementById('genImggenKeyForm').style.display = hasOpenRouterKey ? 'none' : 'flex';
+    document.getElementById('genImggenPromptRow').style.display = hasOpenRouterKey ? 'flex' : 'none';
+  }
+
+  function saveImgGenKey(inputId, hintId) {
+    const input = document.getElementById(inputId);
+    const hint = document.getElementById(hintId);
+    const key = input.value.trim();
+    if (!key.startsWith('sk-or-') || key.length < 10) {
+      hint.textContent = 'Key must start with sk-or- and be at least 10 characters';
+      hint.style.display = 'block';
+      return;
+    }
+    hint.style.display = 'none';
+    fetch('/editor/credentials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ OPENROUTER_API_KEY: key })
+    }).then(r => r.json()).then(data => {
+      if (data.error) {
+        hint.textContent = data.error;
+        hint.style.display = 'block';
+      } else {
+        hasOpenRouterKey = true;
+        updateImgGenKeyUI();
+      }
+    }).catch(() => {
+      hint.textContent = 'Failed to save key';
+      hint.style.display = 'block';
+    });
+  }
 
   function toggleImgGen() {
     const pop = document.getElementById('imggenPopover');
     const isOpen = pop.classList.contains('open');
     if (isOpen) { closeImgGen(); return; }
+    updateImgGenKeyUI();
     positionPopover(pop, document.getElementById('imggenBtn'));
     pop.classList.add('open');
-    document.getElementById('imggenPrompt').focus();
+    if (hasOpenRouterKey) document.getElementById('imggenPrompt').focus();
+    else document.getElementById('imggenKeyInput').focus();
   }
 
   function closeImgGen() {
@@ -4350,9 +4482,11 @@
     const pop = document.getElementById('genImggenPopover');
     const isOpen = pop.classList.contains('open');
     if (isOpen) { genCloseImgGen(); return; }
+    updateImgGenKeyUI();
     positionPopover(pop, document.getElementById('genImggenBtn'));
     pop.classList.add('open');
-    document.getElementById('genImggenPrompt').focus();
+    if (hasOpenRouterKey) document.getElementById('genImggenPrompt').focus();
+    else document.getElementById('genImggenKeyInput').focus();
   }
 
   function genCloseImgGen() {
@@ -5175,6 +5309,7 @@
   });
 
   populateThemeSelect();
+  fetch('/themes/has-key').then(r => r.json()).then(d => { hasOpenRouterKey = !!d.hasKey; }).catch(() => {});
 </script>
 </div>
 </div>
