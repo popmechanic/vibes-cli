@@ -274,9 +274,11 @@ async function phase4bPatchNginx(args) {
   if (hasReqRes) {
     console.log('  ✓ /fp proxy_pass already has ?capabilities=reqRes');
   } else {
-    // Match the proxy_pass line inside /fp block and append ?capabilities=reqRes&$args
-    const reqResSedCmd = `sudo sed -i '/location = \\/fp/,/}/ {
-      s|proxy_pass http://\\([^;]*\\):8909/fp;|proxy_pass http://\\1:8909/fp?capabilities=reqRes\\&\\$args;|
+    // Match the proxy_pass line inside the /fp location block only.
+    // Upstream uses `proxy_pass http://cloud_backend;` (nginx upstream name, no port/path).
+    // We append /fp?capabilities=reqRes&$args to force HTTP polling mode.
+    const reqResSedCmd = `sudo sed -i '/location = \\/fp {/,/}/ {
+      s|proxy_pass http://\\([^/;]*\\);|proxy_pass http://\\1/fp?capabilities=reqRes\\&\\$args;|
     }' ${nginxConf}`;
 
     const reqResResult = await runCommand(client, reqResSedCmd);
@@ -389,6 +391,76 @@ async function phase4bPatchNginx(args) {
   client.end();
 }
 
+async function phase4cPatchUpstream(args) {
+  console.log('\nPhase 4c: Patch upstream source bugs...');
+
+  const vmHost = `${args.studio}.exe.xyz`;
+
+  if (args.dryRun) {
+    console.log('  [DRY RUN] Would patch ensure-cloud-token.ts (empty tenants/ledgers arrays)');
+    return;
+  }
+
+  const client = await connect(vmHost);
+
+  // Find ensure-cloud-token.ts — path varies across repo branches
+  const findResult = await runCommand(client, `find /opt/fireproof -name 'ensure-cloud-token.ts' -not -path '*/node_modules/*' 2>/dev/null`);
+  const tokenFile = (findResult.stdout || '').trim().split('\n')[0];
+
+  if (!tokenFile) {
+    console.log('  ⚠ ensure-cloud-token.ts not found — skipping patch');
+    client.end();
+    return;
+  }
+
+  console.log(`  Found: ${tokenFile}`);
+
+  // Check if the bug is present
+  const checkResult = await runCommand(client, `grep -c 'tenants: \\[\\],' ${tokenFile} 2>/dev/null || echo "0"`);
+  const bugPresent = parseInt(checkResult.stdout.trim(), 10) > 0;
+
+  if (!bugPresent) {
+    console.log('  ✓ ensure-cloud-token.ts already patched (or upstream fixed)');
+    args._needsDashboardRebuild = false;
+    client.end();
+    return;
+  }
+
+  // Patch: populate tenants and ledgers arrays with resolved IDs
+  console.log('  Patching ensure-cloud-token.ts (empty tenants/ledgers arrays)...');
+
+  const patchTenants = await runCommand(client,
+    `sudo sed -i 's/tenants: \\[\\],/tenants: [{ id: tenantId, role: "admin" }],/' ${tokenFile}`
+  );
+  if (patchTenants.code !== 0) {
+    console.log(`  ⚠ tenants patch failed: ${patchTenants.stderr}`);
+    client.end();
+    return;
+  }
+
+  const patchLedgers = await runCommand(client,
+    `sudo sed -i 's/ledgers: \\[\\],/ledgers: [{ id: ledgerId, role: "admin", right: "write" }],/' ${tokenFile}`
+  );
+  if (patchLedgers.code !== 0) {
+    console.log(`  ⚠ ledgers patch failed: ${patchLedgers.stderr}`);
+    client.end();
+    return;
+  }
+
+  // Verify the patch took effect
+  const verifyResult = await runCommand(client, `grep -c 'tenants: \\[\\],' ${tokenFile} 2>/dev/null || echo "0"`);
+  const stillBugged = parseInt(verifyResult.stdout.trim(), 10) > 0;
+
+  if (stillBugged) {
+    console.log('  ⚠ Patch applied but bug pattern still detected — check file manually');
+  } else {
+    console.log('  ✓ ensure-cloud-token.ts patched (tenants/ledgers populated)');
+    args._needsDashboardRebuild = true;
+  }
+
+  client.end();
+}
+
 async function phase5GenerateCredentials(args) {
   console.log('\nPhase 5: Generate Security Credentials...');
 
@@ -490,11 +562,28 @@ async function phase7StartServices(args) {
     throw new Error('docker/start.sh not found. Is the repo cloned correctly?');
   }
 
-  // Make start.sh executable and run it
-  console.log('  Starting services (this may take a few minutes on first run)...');
+  // Make start.sh executable
   await runCommand(client, 'chmod +x /opt/fireproof/docker/start.sh');
 
-  // Run start.sh with a longer timeout
+  // If upstream source was patched, rebuild the dashboard image from local source
+  // and remove the pre-built ghcr.io image so compose uses our build.
+  if (args._needsDashboardRebuild) {
+    console.log('  Rebuilding dashboard from patched source (this may take a few minutes)...');
+    // Stop existing dashboard container first
+    await runCommand(client, 'cd /opt/fireproof && sudo docker compose stop dashboard 2>&1 || true');
+    // Remove the pre-built image so compose uses local build
+    await runCommand(client, 'sudo docker rmi ghcr.io/fireproof-storage/fireproof/dashboard:latest 2>&1 || true');
+    // Build from patched source
+    const buildResult = await runCommand(client, 'cd /opt/fireproof && sudo docker compose build dashboard 2>&1 | tail -10');
+    if (buildResult.code !== 0) {
+      console.log(`  ⚠ Dashboard build failed: ${buildResult.stderr || buildResult.stdout}`);
+    } else {
+      console.log('  ✓ Dashboard rebuilt from patched source');
+    }
+  }
+
+  // Run start.sh
+  console.log('  Starting services (this may take a few minutes on first run)...');
   const startResult = await runCommand(client, 'cd /opt/fireproof && sudo ./docker/start.sh 2>&1 | tail -20');
 
   if (startResult.code !== 0 && startResult.stderr && !startResult.stderr.includes('Warning')) {
@@ -641,6 +730,7 @@ ${'━'.repeat(60)}
     await phase3CloneRepo(args);
     await phase4InstallDocker(args);
     await phase4bPatchNginx(args);
+    await phase4cPatchUpstream(args);
     const credentials = await phase5GenerateCredentials(args);
     await phase6WriteEnv(args, credentials);
     await phase7StartServices(args);
