@@ -247,7 +247,7 @@ const STYLE = `
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 /* @theme:motion:end */
 
-/* Non-theme layout (outside markers) */
+/* Pure-layout ONLY (no visual properties) */
 .app-grid { display: grid; gap: 1rem; }
 `;
 
@@ -274,11 +274,11 @@ export default function App() {
 
 **Section rules:**
 - `@theme:tokens` — `:root` CSS variables (colors, spacing tokens)
-- `@theme:typography` — `@import` font URLs, `font-family` rules
-- `@theme:surfaces` — Shadows, borders, glass effects, gradient backgrounds
+- `@theme:typography` — `@import` font URLs
+- `@theme:surfaces` — ANY class with visual properties: color, background, border, box-shadow, font-family, font-size, font-weight, text-shadow, fill, stroke, opacity, gradients. Mixed layout+visual classes go here too.
 - `@theme:motion` — `@keyframes` and animation definitions
 - `@theme:decoration` — SVG elements, atmospheric backgrounds (in JSX)
-- Everything else (layout, structure, logic) stays **outside** markers
+- **Outside markers:** ONLY pure-layout classes (display, grid, gap, padding, margin, position, width/height, flex, overflow). If a class has ANY visual property, it goes in `@theme:surfaces`.
 
 **⚠️ CRITICAL: Fireproof Hook Pattern**
 
