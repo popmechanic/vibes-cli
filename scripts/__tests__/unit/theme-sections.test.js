@@ -14,7 +14,8 @@ import {
   hasThemeMarkers,
   extractThemeSections,
   replaceThemeSection,
-  extractNonThemeSections
+  extractNonThemeSections,
+  moveVisualCSSToSurfaces
 } from '../../lib/theme-sections.js';
 
 // Fixture: app.jsx with all 5 theme layers
@@ -102,6 +103,72 @@ function App() {
   );
 }
 export default App;`;
+
+// Fixture: app with visual CSS orphaned outside markers
+const ORPHANED_VISUAL_CSS = `const STYLE = \`
+/* @theme:tokens */
+:root { --comp-bg: oklch(0.12 0.03 280); }
+/* @theme:tokens:end */
+
+/* @theme:typography */
+@import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
+/* @theme:typography:end */
+
+/* @theme:surfaces */
+.glass-card { backdrop-filter: blur(20px); }
+/* @theme:surfaces:end */
+
+/* @theme:motion */
+@keyframes drift { from { opacity: 0; } to { opacity: 1; } }
+/* @theme:motion:end */
+
+/* Layout */
+.title-fancy {
+  font-family: 'Cinzel Decorative', serif;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.pure-layout {
+  display: grid;
+  gap: 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.nav-label {
+  font-family: 'Homemade Apple', cursive;
+  font-size: 0.55rem;
+  color: var(--brass-dark);
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .nav-item { width: 38px; height: 38px; font-size: 0.85rem; }
+}
+\`;
+
+function App() {
+  return <div>Content</div>;
+}
+export default App;`;
+
+// Fixture: visual CSS before tokens (edge case)
+const VISUAL_BEFORE_TOKENS = `const STYLE = \`
+.orphan-header {
+  background: linear-gradient(to right, red, blue);
+  border: 2px solid black;
+}
+
+/* @theme:tokens */
+:root { --comp-bg: oklch(0.12 0.03 280); }
+/* @theme:tokens:end */
+
+/* @theme:surfaces */
+.card { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+/* @theme:surfaces:end */
+\`;
+export default function App() { return <div />; }`;
 
 describe('SECTION_NAMES', () => {
   it('contains all five theme layers', () => {
@@ -330,5 +397,80 @@ describe('edge cases', () => {
     const result = replaceThemeSection(code, 'tokens', newContent);
     expect(result).toContain('$100');
     expect(result).toContain('$50 (half off)');
+  });
+});
+
+describe('moveVisualCSSToSurfaces', () => {
+  it('moves visual CSS classes into @theme:surfaces', () => {
+    const result = moveVisualCSSToSurfaces(ORPHANED_VISUAL_CSS);
+
+    // Visual classes moved into surfaces
+    const sections = extractThemeSections(result);
+    expect(sections.surfaces).toContain('.title-fancy');
+    expect(sections.surfaces).toContain("font-family: 'Cinzel Decorative'");
+    expect(sections.surfaces).toContain('.nav-label');
+    expect(sections.surfaces).toContain("color: var(--brass-dark)");
+  });
+
+  it('leaves pure-layout CSS outside markers', () => {
+    const result = moveVisualCSSToSurfaces(ORPHANED_VISUAL_CSS);
+
+    // Pure layout stays outside
+    const sections = extractThemeSections(result);
+    expect(sections.surfaces).not.toContain('.pure-layout');
+    // But it's still in the file
+    expect(result).toContain('.pure-layout');
+    expect(result).toContain('display: grid');
+  });
+
+  it('moves media queries containing visual properties', () => {
+    const result = moveVisualCSSToSurfaces(ORPHANED_VISUAL_CSS);
+
+    const sections = extractThemeSections(result);
+    expect(sections.surfaces).toContain('@media (max-width: 480px)');
+    expect(sections.surfaces).toContain('font-size: 0.85rem');
+  });
+
+  it('moves visual CSS found before @theme:tokens', () => {
+    const result = moveVisualCSSToSurfaces(VISUAL_BEFORE_TOKENS);
+
+    const sections = extractThemeSections(result);
+    expect(sections.surfaces).toContain('.orphan-header');
+    expect(sections.surfaces).toContain('linear-gradient');
+  });
+
+  it('preserves existing surfaces content', () => {
+    const result = moveVisualCSSToSurfaces(ORPHANED_VISUAL_CSS);
+
+    const sections = extractThemeSections(result);
+    expect(sections.surfaces).toContain('.glass-card');
+    expect(sections.surfaces).toContain('backdrop-filter: blur(20px)');
+  });
+
+  it('returns unchanged code when no orphaned visual CSS exists', () => {
+    const result = moveVisualCSSToSurfaces(FULL_APP);
+    expect(result).toBe(FULL_APP);
+  });
+
+  it('returns unchanged code for legacy apps without markers', () => {
+    const result = moveVisualCSSToSurfaces(LEGACY_APP);
+    expect(result).toBe(LEGACY_APP);
+  });
+
+  it('does not move JS/JSX code, only CSS rules', () => {
+    const result = moveVisualCSSToSurfaces(ORPHANED_VISUAL_CSS);
+
+    // JS code stays in place
+    expect(result).toContain('function App()');
+    expect(result).toContain('export default App');
+    const sections = extractThemeSections(result);
+    expect(sections.surfaces).not.toContain('function App');
+  });
+
+  it('logs moved classes count', () => {
+    // moveVisualCSSToSurfaces returns { code, movedCount } or just string
+    // Implementation decides — test the string result at minimum
+    const result = moveVisualCSSToSurfaces(ORPHANED_VISUAL_CSS);
+    expect(typeof result).toBe('string');
   });
 });
