@@ -187,7 +187,7 @@ export async function checkStudio(ctx, req, res) {
       const timeout = setTimeout(() => controller.abort(), 5000);
       const resp = await fetch(apiUrl, { signal: controller.signal });
       clearTimeout(timeout);
-      reachable = resp.ok || resp.status < 500;
+      reachable = true;  // Any HTTP response means studio is up (dashboard returns 503 for GET)
     } catch (fetchErr) {
       error = fetchErr.name === 'AbortError' ? 'Connection timed out' : fetchErr.message;
     }

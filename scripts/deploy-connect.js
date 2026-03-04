@@ -227,8 +227,10 @@ async function phase4bPatchNginx(args) {
   if (args.dryRun) {
     console.log('  [DRY RUN] Would check nginx.conf and patch if needed:');
     console.log('    - WebSocket upgrade headers on /fp block');
+    console.log('    - HTTP polling fallback (?capabilities=reqRes on /fp)');
     console.log('    - client_max_body_size (for blob uploads)');
     console.log('    - CORS headers (allow cross-origin requests from Vibes apps)');
+    console.log('    - Restart proxy container after patching');
     return;
   }
 
@@ -262,7 +264,30 @@ async function phase4bPatchNginx(args) {
     }
   }
 
-  // 2. Body size limit for blob uploads (photos, files)
+  // 2. Force HTTP polling on /fp (exe.dev's HTTPS proxy negotiates HTTP/2 via ALPN,
+  //    which doesn't relay WebSocket data frames — sync stalls on "connecting").
+  //    Client's cleanParams() strips query params from the cloud URL, so this MUST
+  //    be done server-side in nginx.
+  const fpProxyPass = fpBlock ? fpBlock[0] : '';
+  const hasReqRes = fpProxyPass.includes('capabilities=reqRes');
+
+  if (hasReqRes) {
+    console.log('  ✓ /fp proxy_pass already has ?capabilities=reqRes');
+  } else {
+    // Match the proxy_pass line inside /fp block and append ?capabilities=reqRes&$args
+    const reqResSedCmd = `sudo sed -i '/location = \\/fp/,/}/ {
+      s|proxy_pass http://\\([^;]*\\):8909/fp;|proxy_pass http://\\1:8909/fp?capabilities=reqRes\\&\\$args;|
+    }' ${nginxConf}`;
+
+    const reqResResult = await runCommand(client, reqResSedCmd);
+    if (reqResResult.code !== 0) {
+      console.log(`  ⚠ reqRes patch failed: ${reqResResult.stderr}`);
+    } else {
+      console.log('  ✓ Added ?capabilities=reqRes to /fp proxy_pass');
+    }
+  }
+
+  // 3. Body size limit for blob uploads (photos, files)
   // Detect: any client_max_body_size directive
   const hasBodySize = config.includes('client_max_body_size');
 
@@ -280,16 +305,34 @@ async function phase4bPatchNginx(args) {
     }
   }
 
-  // 3. CORS headers
+  // 4. CORS headers
   // Detect: any Access-Control-Allow-Origin directive (upstream may do it per-location or in http block)
   const hasCors = config.includes('Access-Control-Allow-Origin');
+  const usesHttpOrigin = config.includes('$http_origin');
 
-  if (hasCors) {
-    console.log('  ✓ CORS headers already present (upstream)');
+  if (hasCors && !usesHttpOrigin) {
+    console.log('  ✓ CORS headers already present with wildcard origin');
+  } else if (hasCors && usesHttpOrigin) {
+    // Upstream ships with $http_origin — replace with * so cross-origin apps work
+    console.log('  Replacing $http_origin with * for CORS...');
+    const fixOriginCmd = `sudo sed -i 's/\\$http_origin/*/g' ${nginxConf}`;
+    const fixOriginResult = await runCommand(client, fixOriginCmd);
+    if (fixOriginResult.code !== 0) {
+      console.log(`  ⚠ CORS origin fix failed: ${fixOriginResult.stderr}`);
+    } else {
+      console.log('  ✓ CORS origin changed from $http_origin to *');
+    }
+
+    // Ensure Expose-Headers is present (upstream may not include it)
+    if (!config.includes('Access-Control-Expose-Headers')) {
+      const exposeCmd = `sudo sed -i '/Access-Control-Allow-Origin/a\\    add_header Access-Control-Expose-Headers * always;' ${nginxConf}`;
+      await runCommand(client, exposeCmd);
+      console.log('  ✓ Added Access-Control-Expose-Headers');
+    }
   } else {
-    // Add to http block so it applies to all locations (/blob, /api, /fp, /ws).
+    // No CORS at all — add to http block
     // Using * for origin because Clerk JWT auth is enforced by the Fireproof backend.
-    const corsCmd = `sudo sed -i '/http {/a\\    add_header Access-Control-Allow-Origin * always;\\n    add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;\\n    add_header Access-Control-Allow-Headers "DNT, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Range, Authorization" always;\\n    add_header Access-Control-Expose-Headers "Content-Length, Content-Range" always;' ${nginxConf}`;
+    const corsCmd = `sudo sed -i '/http {/a\\    add_header Access-Control-Allow-Origin * always;\\n    add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;\\n    add_header Access-Control-Allow-Headers "Authorization, X-Requested-With, Content-Type, Accept, DNT, User-Agent, If-Modified-Since, Cache-Control, Range" always;\\n    add_header Access-Control-Expose-Headers * always;' ${nginxConf}`;
 
     const corsResult = await runCommand(client, corsCmd);
     if (corsResult.code !== 0) {
@@ -330,6 +373,17 @@ async function phase4bPatchNginx(args) {
     console.log('  Deployment will continue — upstream nginx.conf structure may have changed.');
   } else {
     console.log('  ✓ nginx config validated');
+  }
+
+  // 7. Restart proxy container to pick up config changes
+  // Must use `docker compose restart proxy` — not `nginx -s reload` — because
+  // bind-mounted configs have stale inode issues inside the container.
+  const restartResult = await runCommand(client, 'cd /opt/fireproof && sudo docker compose restart proxy 2>&1');
+  if (restartResult.code !== 0) {
+    // Fresh deploy: containers may not be running yet — that's fine, start.sh will handle it
+    console.log('  ⚠ Proxy restart skipped (containers may not be running yet)');
+  } else {
+    console.log('  ✓ Proxy container restarted with updated config');
   }
 
   client.end();
