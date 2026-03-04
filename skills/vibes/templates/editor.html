@@ -16,7 +16,7 @@
       --vibes-menu-bg: #CCCDC8;
       --vibes-blue: #009ACE;
       --vibes-red: #DA291C;
-      --vibes-yellow: #eab308;
+      --vibes-yellow: #fedd00;
       --vibes-green: #22c55e;
       --vibes-white: #fff;
       --grid-size: 32px;
@@ -506,6 +506,8 @@
       align-items: center;
       justify-content: center;
       padding: 2rem;
+      transition: flex-grow 0.6s cubic-bezier(0.25, 0.1, 0.25, 1),
+                  flex-basis 0.6s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
     .generate-phase.single-panel .generate-left {
       flex: none;
@@ -517,6 +519,14 @@
       background: #1a1a1a;
       border-left: none;
       box-shadow: -4px 0 12px rgba(0, 0, 0, 0.3);
+    }
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOutRight {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
     }
     .gallery-title {
       font-size: 1rem;
@@ -612,7 +622,6 @@
       border: 2px solid var(--vibes-near-black);
       border-radius: 8px;
       background: var(--vibes-cream);
-      overflow: hidden;
     }
     .generate-prompt-label {
       writing-mode: vertical-rl;
@@ -625,6 +634,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      border-radius: 0 0 0 6px;
     }
     .generate-textarea-wrap {
       flex: 1;
@@ -638,7 +648,7 @@
       background: transparent;
       border: none;
       color: var(--vibes-near-black);
-      padding: 1.25rem 4rem 1.25rem 1.25rem;
+      padding: 1.25rem;
       font-size: 1.05rem;
       outline: none;
       resize: none;
@@ -692,6 +702,7 @@
       flex: 1;
       overflow: hidden;
       min-width: 0;
+      padding: 6px 0;
     }
     .theme-carousel-track {
       display: flex;
@@ -727,11 +738,13 @@
     .theme-carousel-btn:nth-child(3n+2)::after { background: var(--vibes-red); }
     .theme-carousel-btn:nth-child(3n)::after { background: var(--vibes-yellow); }
     .theme-carousel-btn.active {
-      background: white;
+      background: var(--vibes-near-black);
+      color: var(--vibes-cream);
       transform: translateY(-2px);
-      box-shadow: 3px 4px 0 0 var(--vibes-near-black);
+      box-shadow: 3px 4px 0 0 rgba(0,0,0,0.3);
+      border-color: var(--vibes-near-black);
     }
-    .theme-carousel-btn:hover { background: white; }
+    .theme-carousel-btn:hover { background: white; color: var(--vibes-near-black); }
     .theme-select { display: none; }
     .theme-select-row { display: none; }
     .theme-select-label { display: none; }
@@ -1028,6 +1041,7 @@
       font-style: italic;
       border: none;
       box-shadow: none;
+      text-align: center;
     }
     .chat-bubble.deploy-success {
       align-self: center;
@@ -1124,62 +1138,329 @@
     .thinking-cancel:hover { transform: translate(2px, 2px); box-shadow: 1px 1px 0px 0px var(--vibes-red), 1px 1px 0px 2px var(--vibes-near-black); }
     .thinking-cancel:active { transform: translate(3px, 3px); box-shadow: none; }
 
-    /* Chat Input */
-    .chat-input-bar {
-      display: flex;
-      padding: 0.75rem;
-      gap: 0.5rem;
+    /* Chat Input — unified composer */
+    .chat-composer {
       border-top: 2px solid var(--vibes-near-black);
       background: var(--vibes-menu-bg);
+      padding: 0.5rem;
+    }
+    .chat-composer-box {
+      background: var(--vibes-near-black);
+      border-radius: 16px;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    /* Reference badge row inside composer */
+    .ref-badge-row {
+      display: none;
+      padding: 0.5rem 0.75rem 0;
+    }
+    .ref-badge-row.visible { display: block; }
+    .ref-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--vibes-near-black);
+      background: var(--vibes-yellow);
+      border-radius: 8px;
+      padding: 0.3rem 0.5rem 0.3rem 0.35rem;
+      white-space: nowrap;
+    }
+    .ref-badge-icon {
+      width: 20px;
+      height: 20px;
+      background: var(--vibes-yellow);
+      border: 2px solid var(--vibes-near-black);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .ref-badge-icon svg { width: 12px; height: 12px; }
+    .ref-badge .clear-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.875rem;
+      line-height: 1;
+      padding: 0 0 0 0.2rem;
+      color: var(--vibes-near-black);
+      font-weight: 800;
+      opacity: 0.6;
+    }
+    .ref-badge .clear-btn:hover { opacity: 1; color: var(--vibes-red); }
+    /* Intent picker for image references */
+    .ref-intent-picker { display:flex; align-items:center; gap:0.5rem; padding:0.4rem 0.75rem; }
+    .ref-intent-picker .ref-intent-label { font-size:0.7rem; font-weight:700; text-transform:uppercase; white-space:nowrap; color:var(--vibes-cream); }
+    .ref-intent-btn {
+      padding:0.3rem 0.6rem; border:1.5px solid var(--vibes-near-black);
+      border-radius:6px; font-size:0.65rem; font-weight:600; cursor:pointer;
+      background:var(--vibes-cream); font-family:inherit; text-transform:uppercase;
+    }
+    .ref-intent-btn:hover { background:var(--vibes-blue); color:white; border-color:var(--vibes-blue); }
+    /* Composer inner — flex-wrap layout */
+    .chat-composer-inner {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.4rem 0.5rem;
+      transition: padding 0.2s ease;
     }
     .chat-input {
       flex: 1;
-      background: var(--vibes-cream);
-      border: 2px solid var(--vibes-near-black);
-      color: var(--vibes-near-black);
-      padding: 0.5rem 0.75rem;
-      border-radius: 12px;
-      font-size: 0.8125rem;
+      min-width: 0;
+      background: transparent;
+      border: none;
+      color: var(--vibes-cream);
+      padding: 0.35rem 0.25rem;
+      font-size: 0.875rem;
       outline: none;
       resize: none;
       font-family: inherit;
-      min-height: 38px;
-      max-height: 120px;
+      min-height: 32px;
+      max-height: 140px;
+      line-height: 1.4;
+      transition: min-height 0.2s ease, font-size 0.2s ease;
+      order: 0;
     }
-    .chat-input:focus { border-color: var(--vibes-blue); box-shadow: 0 0 0 2px rgba(0,154,206,0.25); }
-    .chat-input::placeholder { color: #999; }
-    .chat-send {
-      background: var(--vibes-cream);
-      border: 2px solid var(--vibes-near-black);
-      color: var(--vibes-near-black);
-      padding: 0 1rem;
-      border-radius: 12px;
+    .chat-input::placeholder { color: #666; }
+    .chat-btn-spacer { display: none; }
+    /* Expanded state on focus */
+    .chat-composer-box:focus-within .chat-composer-inner {
+      flex-wrap: wrap;
+      padding: 0.5rem;
+    }
+    .chat-composer-box:focus-within .chat-input {
+      width: 100%;
+      flex: none;
+      order: -1;
+      min-height: 56px;
+      font-size: 1rem;
+      padding: 0.25rem 0.25rem 0.35rem;
+    }
+    .chat-composer-box:focus-within .chat-input::placeholder { font-size: 1rem; }
+    .chat-composer-box:focus-within .chat-btn-spacer { display: block; flex: 1; }
+    /* Left action buttons */
+    .composer-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 2px solid rgba(255,255,255,0.2);
+      background: transparent;
+      color: rgba(255,255,255,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
-      font-size: 0.875rem;
-      font-weight: 700;
+      flex-shrink: 0;
+      padding: 0;
       transition: all 0.15s ease;
-      flex-shrink: 0;
-      letter-spacing: 0.05em;
-      box-shadow: 4px 4px 0px 0px var(--vibes-blue), 4px 4px 0px 2px var(--vibes-near-black);
     }
-    .chat-send:hover { transform: translate(2px, 2px); box-shadow: 2px 2px 0px 0px var(--vibes-blue), 2px 2px 0px 2px var(--vibes-near-black); }
-    .chat-send:active { transform: translate(4px, 4px); box-shadow: none; }
-    .chat-send:disabled { background: #ddd; color: #999; cursor: not-allowed; box-shadow: none; transform: none; border-color: #aaa; }
-    .model-select {
+    .composer-btn:hover {
+      border-color: var(--vibes-blue);
+      color: var(--vibes-blue);
+    }
+    .composer-btn.active {
+      border-color: var(--vibes-blue);
+      background: var(--vibes-blue);
+      color: white;
+    }
+    .composer-btn svg { width: 16px; height: 16px; }
+    /* Model picker popover */
+    .model-picker-wrap { position: relative; }
+    .model-popover {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
       background: var(--vibes-cream);
       border: 2px solid var(--vibes-near-black);
-      color: var(--vibes-near-black);
-      padding: 0 0.5rem;
-      border-radius: 12px;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 4px 4px 0 var(--vibes-near-black);
+      z-index: 20;
+      white-space: nowrap;
+    }
+    .model-popover.open { display: flex; flex-direction: column; }
+    .model-opt {
+      background: none;
+      border: none;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+      padding: 0.4rem 0.75rem;
       font-size: 0.75rem;
-      font-weight: 600;
-      cursor: pointer;
-      flex-shrink: 0;
-      height: 38px;
+      font-weight: 700;
       font-family: inherit;
+      color: var(--vibes-near-black);
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.1s;
+    }
+    .model-opt:last-child { border-bottom: none; }
+    .model-opt:hover { background: #e8e8e0; }
+    .model-opt.active { background: var(--vibes-near-black); color: var(--vibes-cream); }
+    /* Image generation popover */
+    .imggen-wrap { position: relative; }
+    .imggen-popover {
+      display: none;
+      position: fixed;
+      background: var(--vibes-cream);
+      border: 2px solid var(--vibes-near-black);
+      border-radius: 12px;
+      box-shadow: 6px 6px 0 var(--vibes-near-black);
+      z-index: 100;
+      width: 320px;
+      padding: 0.75rem;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .imggen-popover.open { display: flex; }
+    .imggen-drag-handle {
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: grab; user-select: none;
+      margin: -0.75rem -0.75rem 0.25rem -0.75rem;
+      padding: 0.4rem 0.75rem;
+      border-bottom: 1.5px solid rgba(0,0,0,0.1);
+      border-radius: 12px 12px 0 0;
+    }
+    .imggen-drag-handle:active { cursor: grabbing; }
+    .imggen-drag-handle span { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; color: var(--vibes-near-black); opacity: 0.5; }
+    .imggen-drag-close {
+      background: none; border: none; cursor: pointer;
+      font-size: 1rem; font-weight: 800; color: var(--vibes-near-black); opacity: 0.5;
+      padding: 0; line-height: 1;
+    }
+    .imggen-drag-close:hover { opacity: 1; color: var(--vibes-red); }
+    .imggen-input-row { display: flex; gap: 0.4rem; }
+    .imggen-input {
+      flex: 1;
+      border: 1.5px solid var(--vibes-near-black);
+      border-radius: 6px;
+      padding: 0.35rem 0.5rem;
+      font-size: 0.75rem;
+      font-family: inherit;
+      background: white;
       outline: none;
     }
-    .model-select:focus { border-color: var(--vibes-blue); box-shadow: 0 0 0 2px rgba(0,154,206,0.25); }
+    .imggen-input:focus { border-color: var(--vibes-blue); }
+    .imggen-go-btn {
+      padding: 0.35rem 0.6rem;
+      border: 1.5px solid var(--vibes-near-black);
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--vibes-near-black);
+      color: var(--vibes-cream);
+      font-family: inherit;
+      text-transform: uppercase;
+    }
+    .imggen-go-btn:hover { background: var(--vibes-blue); border-color: var(--vibes-blue); }
+    .imggen-go-btn:disabled { opacity: 0.4; cursor: default; }
+    .imggen-preview {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      border: 1.5px solid var(--vibes-near-black);
+      overflow: hidden;
+      background: var(--vibes-near-black);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .imggen-preview img { width: 100%; height: 100%; object-fit: contain; }
+    .imggen-preview .spinner { width: 24px; height: 24px; }
+    .imggen-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 1.5px solid var(--vibes-cream);
+      background: rgba(26,26,26,0.7);
+      color: var(--vibes-cream);
+      font-size: 14px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      padding: 0;
+    }
+    .imggen-nav:hover { background: var(--vibes-blue); border-color: var(--vibes-blue); }
+    .imggen-nav.prev { left: 6px; }
+    .imggen-nav.next { right: 6px; }
+    .imggen-actions { display: flex; gap: 0.4rem; justify-content: center; }
+    .imggen-action-btn {
+      padding: 0.3rem 0.75rem;
+      border: 1.5px solid var(--vibes-near-black);
+      border-radius: 6px;
+      font-size: 0.65rem; font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      text-transform: uppercase;
+    }
+    .imggen-action-btn.accept { background: var(--vibes-blue); color: white; border-color: var(--vibes-blue); }
+    .imggen-action-btn.accept:hover { background: #007ab5; }
+    .imggen-action-btn.retry { background: var(--vibes-cream); color: var(--vibes-near-black); }
+    .imggen-action-btn.retry:hover { background: var(--vibes-yellow); }
+    .imggen-counter { text-align: center; font-size: 0.65rem; font-weight: 700; color: var(--vibes-near-black); }
+    .imggen-key-form { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.25rem 0; }
+    .imggen-key-form label { font-size: 0.7rem; font-weight: 700; color: var(--vibes-near-black); }
+    .imggen-key-link { font-size: 0.65rem; color: var(--vibes-blue); text-decoration: underline; }
+    .imggen-key-link:hover { color: #007ab5; }
+    .imggen-key-hint { font-size: 0.6rem; color: var(--vibes-red); display: none; }
+    .imggen-key-form .imggen-go-btn { align-self: flex-end; }
+    /* Generate-phase toolbar */
+    .gen-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.5rem;
+    }
+    .gen-toolbar-btn {
+      width: 32px; height: 32px;
+      border-radius: 6px;
+      border: none;
+      background: var(--vibes-near-black);
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0; transition: all 0.15s;
+      font-family: inherit;
+    }
+    .gen-toolbar-btn svg { width: 16px; height: 16px; }
+    .gen-toolbar-btn:hover { background: var(--vibes-blue); color: white; }
+    .gen-toolbar-btn.active { background: var(--vibes-blue); color: white; }
+    .gen-imggen-wrap { position: relative; }
+    .gen-toolbar .generate-submit-btn {
+      position: static;
+      margin-left: auto;
+    }
+    .gen-ref-badge-row { display: none; padding: 0.5rem 0.75rem 0; }
+    .gen-ref-badge-row.visible { display: block; }
+    /* Send button */
+    .chat-send {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      padding: 0;
+      transition: all 0.15s ease;
+    }
+    .chat-send:hover { background: rgba(255,255,255,0.2); color: white; }
+    .chat-send:disabled { opacity: 0.3; cursor: not-allowed; }
+    .chat-send svg { width: 18px; height: 18px; }
 
     /* Animation category bar */
     .animation-icons {
@@ -1462,7 +1743,7 @@
     .ap-staggered .ap:nth-child(4) { top: 52px; width: 30px; animation-delay: 0.45s; background: rgba(0,154,206,0.5); }
 
     @keyframes ap-grad { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-    .ap-gradient { width: 100%; height: 100%; background: linear-gradient(45deg, #eab308, #009ACE, #DA291C, #22c55e); background-size: 300% 300%; animation: ap-grad 4s ease infinite; position: absolute; inset: 0; opacity: 0.7; }
+    .ap-gradient { width: 100%; height: 100%; background: linear-gradient(45deg, var(--vibes-yellow), var(--vibes-blue), #DA291C, #22c55e); background-size: 300% 300%; animation: ap-grad 4s ease infinite; position: absolute; inset: 0; opacity: 0.7; }
 
     @keyframes ap-clip { 0%,100% { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); } 50% { clip-path: polygon(25% 0%, 100% 25%, 75% 100%, 0% 75%); } }
     .ap-clip-path { width: 45px; height: 45px; background: var(--vibes-yellow); animation: ap-clip 3s ease-in-out infinite; border-radius: 2px; }
@@ -1546,7 +1827,7 @@
     .ap-ripple .ap:nth-child(3) { animation-delay: 1.6s; }
 
     @keyframes ap-voronoi-shift { 0%,100% { background-position: 0% 50%; filter: hue-rotate(0deg); } 50% { background-position: 100% 50%; filter: hue-rotate(60deg); } }
-    .ap-voronoi { position: absolute; inset: 0; background: radial-gradient(circle at 20% 30%, #eab30866, transparent 40%), radial-gradient(circle at 70% 20%, #009ACE66, transparent 35%), radial-gradient(circle at 50% 70%, #DA291C44, transparent 45%), radial-gradient(circle at 80% 80%, #22c55e44, transparent 35%); background-color: #0f172a; background-size: 200% 200%; animation: ap-voronoi-shift 6s ease-in-out infinite; }
+    .ap-voronoi { position: absolute; inset: 0; background: radial-gradient(circle at 20% 30%, #fedd0066, transparent 40%), radial-gradient(circle at 70% 20%, #009ACE66, transparent 35%), radial-gradient(circle at 50% 70%, #DA291C44, transparent 45%), radial-gradient(circle at 80% 80%, #22c55e44, transparent 35%); background-color: #0f172a; background-size: 200% 200%; animation: ap-voronoi-shift 6s ease-in-out infinite; }
 
     /* === THEME MODAL === */
     .modal-overlay {
@@ -1615,6 +1896,7 @@
       gap: 0.75rem;
     }
     .theme-card {
+      position: relative;
       background: var(--vibes-cream);
       border: 2px solid var(--vibes-near-black);
       border-radius: 8px;
@@ -1623,6 +1905,18 @@
       transition: all 0.15s;
       box-shadow: 4px 4px 0px 0px var(--vibes-blue), 4px 4px 0px 2px var(--vibes-near-black);
     }
+    .theme-card-delete {
+      position: absolute; top: 4px; right: 4px;
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 1.5px solid var(--vibes-near-black);
+      background: var(--vibes-cream); color: var(--vibes-near-black);
+      font-size: 12px; font-weight: 800; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; opacity: 0; transition: opacity 0.15s;
+      padding: 0; font-family: inherit;
+    }
+    .theme-card:hover .theme-card-delete { opacity: 0.6; }
+    .theme-card-delete:hover { opacity: 1 !important; background: var(--vibes-red); color: white; border-color: var(--vibes-red); }
     .theme-card:hover {
       transform: translate(2px, 2px);
       box-shadow: 2px 2px 0px 0px var(--vibes-blue), 2px 2px 0px 2px var(--vibes-near-black);
@@ -2137,9 +2431,45 @@
         <div class="generate-prompt-box">
           <div class="generate-prompt-label">Prompt</div>
           <div class="generate-textarea-wrap">
-            <textarea class="generate-textarea" id="generatePrompt" placeholder="Describe your vibe to make it an app."
+            <div class="gen-ref-badge-row" id="genRefBadgeRow"></div>
+            <textarea class="generate-textarea" id="generatePrompt" placeholder="Describe your vibe to make it an app. Tip: starting with a reference image gives better results!"
               onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();startGenerate();}"></textarea>
-            <button class="generate-submit-btn" id="generateBtn" onclick="startGenerate()" title="Generate">&#8593;</button>
+            <div class="gen-toolbar">
+              <button class="gen-toolbar-btn" onclick="genPickReference()" title="Add image reference">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+              <div class="gen-imggen-wrap">
+                <button class="gen-toolbar-btn" id="genImggenBtn" onclick="genToggleImgGen()" title="Generate UI image">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                </button>
+                <div class="imggen-popover" id="genImggenPopover">
+                  <div class="imggen-drag-handle" data-drag="genImggenPopover">
+                    <span>Image Generator</span>
+                    <button class="imggen-drag-close" onclick="genCloseImgGen()">&times;</button>
+                  </div>
+                  <div class="imggen-key-form" id="genImggenKeyForm">
+                    <label>OpenRouter API Key required</label>
+                    <a class="imggen-key-link" href="https://openrouter.ai/keys" target="_blank" rel="noopener">Get a key at openrouter.ai/keys</a>
+                    <input type="password" class="imggen-input" id="genImggenKeyInput" placeholder="sk-or-..."
+                      onkeydown="if(event.key==='Enter'){saveImgGenKey('genImggenKeyInput','genImggenKeyHint');}" />
+                    <span class="imggen-key-hint" id="genImggenKeyHint"></span>
+                    <button class="imggen-go-btn" onclick="saveImgGenKey('genImggenKeyInput','genImggenKeyHint')">Save Key</button>
+                  </div>
+                  <div class="imggen-input-row" id="genImggenPromptRow">
+                    <input type="text" class="imggen-input" id="genImggenPrompt" placeholder="Generate a UI for... (e.g. task manager with dark sidebar)"
+                      onkeydown="if(event.key==='Enter'){genGenerateImage();}" />
+                    <button class="imggen-go-btn" id="genImggenGoBtn" onclick="genGenerateImage()">Go</button>
+                  </div>
+                  <div class="imggen-preview" id="genImggenPreview" style="display:none;"></div>
+                  <div class="imggen-counter" id="genImggenCounter" style="display:none;"></div>
+                  <div class="imggen-actions" id="genImggenActions" style="display:none;">
+                    <button class="imggen-action-btn retry" onclick="genGenerateImage()">Retry</button>
+                    <button class="imggen-action-btn accept" onclick="genAcceptImage()">Use Image</button>
+                  </div>
+                </div>
+              </div>
+              <button class="generate-submit-btn" id="generateBtn" onclick="startGenerate()" title="Generate">&#8593;</button>
+            </div>
           </div>
         </div>
 
@@ -2289,16 +2619,70 @@
           <button class="clear-btn" onclick="clearAnimation()" title="Clear animation">&times;</button>
         </span>
       </div>
-      <div class="chat-input-bar">
-        <textarea class="chat-input" id="chatInput" placeholder="Describe changes to your app..." rows="1"
-          onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
-        <select class="model-select" id="modelSelect" title="AI Model">
-          <option value="">Auto</option>
-          <option value="haiku">Fast</option>
-          <option value="sonnet">Balanced</option>
-        </select>
-        <button class="chat-send" id="sendBtn" onclick="sendMessage()">Send</button>
+      <div class="chat-composer">
+        <div class="chat-composer-box">
+          <div class="ref-badge-row" id="refBadgeRow">
+            <span class="ref-badge">
+              <span class="ref-badge-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
+              <span id="refBadgeName"></span>
+              <button class="clear-btn" onclick="clearReference()" title="Remove reference">&times;</button>
+            </span>
+          </div>
+          <div class="chat-composer-inner">
+            <button class="composer-btn" id="refBtn" onclick="pickReference()" title="Add image or HTML reference">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <div class="model-picker-wrap">
+              <button class="composer-btn" id="modelBtn" onclick="toggleModelPicker()" title="AI Model">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+              </button>
+              <div class="model-popover" id="modelPopover">
+                <button class="model-opt active" data-model="" onclick="pickModel(this)">Auto</button>
+                <button class="model-opt" data-model="haiku" onclick="pickModel(this)">Fast</button>
+                <button class="model-opt" data-model="sonnet" onclick="pickModel(this)">Balanced</button>
+              </div>
+            </div>
+            <div class="imggen-wrap">
+              <button class="composer-btn" id="imggenBtn" onclick="toggleImgGen()" title="Generate image">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+              </button>
+              <div class="imggen-popover" id="imggenPopover">
+                <div class="imggen-drag-handle" data-drag="imggenPopover">
+                  <span>Image Generator</span>
+                  <button class="imggen-drag-close" onclick="closeImgGen()">&times;</button>
+                </div>
+                <div class="imggen-key-form" id="imggenKeyForm">
+                  <label>OpenRouter API Key required</label>
+                  <a class="imggen-key-link" href="https://openrouter.ai/keys" target="_blank" rel="noopener">Get a key at openrouter.ai/keys</a>
+                  <input type="password" class="imggen-input" id="imggenKeyInput" placeholder="sk-or-..."
+                    onkeydown="if(event.key==='Enter'){saveImgGenKey('imggenKeyInput','imggenKeyHint');}" />
+                  <span class="imggen-key-hint" id="imggenKeyHint"></span>
+                  <button class="imggen-go-btn" onclick="saveImgGenKey('imggenKeyInput','imggenKeyHint')">Save Key</button>
+                </div>
+                <div class="imggen-input-row" id="imggenPromptRow">
+                  <input type="text" class="imggen-input" id="imggenPrompt" placeholder="Generate a UI for... (e.g. task manager with dark sidebar)"
+                    onkeydown="if(event.key==='Enter'){generateImage();}" />
+                  <button class="imggen-go-btn" id="imggenGoBtn" onclick="generateImage()">Go</button>
+                </div>
+                <div class="imggen-preview" id="imggenPreview" style="display:none;"></div>
+                <div class="imggen-counter" id="imggenCounter" style="display:none;"></div>
+                <div class="imggen-actions" id="imggenActions" style="display:none;">
+                  <button class="imggen-action-btn retry" onclick="generateImage()">Retry</button>
+                  <button class="imggen-action-btn accept" onclick="acceptGenImage()">Use Image</button>
+                </div>
+              </div>
+            </div>
+            <textarea class="chat-input" id="chatInput" placeholder="Describe changes to your app..." rows="1"
+              onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+            <div class="chat-btn-spacer"></div>
+            <button class="chat-send" id="sendBtn" onclick="sendMessage()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
+      <input type="file" id="refFileInput" accept="image/*,.html,.htm" style="display:none" onchange="handleRefFile(event)" />
+      <input type="file" id="genRefFileInput" accept="image/*" style="display:none" onchange="genHandleRefFile(event)" />
       <!-- Palette Sidebar (replaces chat content when active) -->
       <div id="paletteSidebar" class="palette-sidebar" style="display:none;">
         <div class="palette-sidebar-header">
@@ -2337,19 +2721,19 @@
         </div>
         <div style="display:flex;gap:0.5rem;align-items:center;">
           <button class="modal-create-btn" onclick="closeThemeModal();openPalette()">Color Palette</button>
-          <button class="modal-create-btn" id="createThemeToggle" onclick="toggleCreateMode()">+ Create</button>
+          <button class="modal-create-btn" id="saveThemeToggle" onclick="toggleSaveMode()">Save Theme</button>
           <button class="modal-close" onclick="closeThemeModal()">&times;</button>
         </div>
       </div>
       <div class="modal-body">
-        <div id="createThemeSection" style="display:none;">
+        <div id="saveThemeSection" style="display:none;">
           <div class="create-theme-bar">
-            <input type="text" class="create-theme-input" id="createThemePrompt"
-              placeholder="Describe your theme (e.g. cyberpunk neon Tokyo)"
-              onkeydown="if(event.key==='Enter'){generateThemeImages();}" />
-            <button class="modal-create-btn" id="createThemeBtn" onclick="generateThemeImages()">Generate</button>
+            <input type="text" class="create-theme-input" id="saveThemeName"
+              placeholder="Name your theme (e.g. Cyberpunk Neon)"
+              onkeydown="if(event.key==='Enter'){saveCurrentTheme();}" />
+            <button class="modal-create-btn" id="saveThemeBtn" onclick="saveCurrentTheme()">Save</button>
           </div>
-          <div id="imagePickerArea"></div>
+          <div id="saveThemeStatus"></div>
         </div>
         <input type="text" class="theme-search" id="themeSearch" placeholder="Search themes..." oninput="filterThemes(this.value)" />
         <div id="themeGrid"></div>
@@ -2374,6 +2758,7 @@
 </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 <script>
   // === Helpers ===
   function escapeHtml(str) {
@@ -2473,14 +2858,76 @@
   let versionIndex = -1;
   let isVersionNav = false; // true when navigating via undo/redo (skip pushing to history)
 
+  // === Apps Panel Toggle ===
+  let appsPanelVisible = false;
+  function toggleAppsPanel() {
+    const right = document.getElementById('generateRight');
+    const phase = document.getElementById('phaseGenerate');
+    const left = phase.querySelector('.generate-left');
+    appsPanelVisible = !appsPanelVisible;
+    if (appsPanelVisible) {
+      // Show menu with slide-in, shrink prompt to 40%
+      phase.classList.remove('single-panel');
+      left.style.flexGrow = '';
+      left.style.flexBasis = '';
+      right.style.display = '';
+      right.style.animation = 'slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+    } else {
+      // Slide menu out, prompt glides back to center
+      left.style.flexGrow = '1';
+      left.style.flexBasis = '0';
+      right.style.animation = 'slideOutRight 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+      right.addEventListener('animationend', function handler() {
+        right.removeEventListener('animationend', handler);
+        right.style.display = 'none';
+        right.style.animation = '';
+      });
+    }
+  }
+
   // === Phase Navigation ===
   function setPhase(phase) {
     currentPhase = phase;
     document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
     document.getElementById('phase' + phase.charAt(0).toUpperCase() + phase.slice(1)).classList.add('active');
 
+    // Reset apps panel state when entering generate phase
+    if (phase === 'generate') {
+      appsPanelVisible = false;
+      const right = document.getElementById('generateRight');
+      if (right) { right.style.display = 'none'; right.style.animation = ''; }
+      const pg = document.getElementById('phaseGenerate');
+      if (pg) {
+        pg.classList.add('single-panel');
+        const left = pg.querySelector('.generate-left');
+        if (left) { left.style.flexGrow = ''; left.style.flexBasis = ''; }
+      }
+    }
+
     const headerRight = document.getElementById('headerRight');
-    if (phase === 'edit') {
+    if (phase === 'generate') {
+      // Show apps button only if there are apps to show
+      const appsGrid = document.getElementById('appGalleryGrid');
+      if (appsGrid && appsGrid.innerHTML.trim()) {
+        headerRight.innerHTML = `
+          <div class="navbar-button-wrapper">
+            <button style="background:var(--vibes-yellow)" onclick="toggleAppsPanel()">
+              <div class="navbar-button-icon">
+                <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="17.5" cy="17.5" r="17.5" fill="#231F20"/>
+                  <rect x="9" y="9" width="7" height="7" rx="1.5" fill="var(--vibes-cream)"/>
+                  <rect x="19" y="9" width="7" height="7" rx="1.5" fill="var(--vibes-cream)"/>
+                  <rect x="9" y="19" width="7" height="7" rx="1.5" fill="var(--vibes-cream)"/>
+                  <rect x="19" y="19" width="7" height="7" rx="1.5" fill="var(--vibes-cream)"/>
+                </svg>
+              </div>
+              <div class="navbar-button-label" style="color:var(--vibes-near-black)">Apps</div>
+            </button>
+          </div>`;
+      } else {
+        headerRight.innerHTML = '';
+      }
+    } else if (phase === 'edit') {
       headerRight.innerHTML = `
         <div class="navbar-button-wrapper">
           <button style="background:#5398c9" onclick="openThemeModal()">
@@ -2497,7 +2944,7 @@
           </button>
         </div>
         <div class="navbar-button-wrapper">
-          <button style="background:#eab308" onclick="saveApp()">
+          <button style="background:var(--vibes-yellow)" onclick="saveApp()">
             <div class="navbar-button-icon">
               <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="17.5" cy="17.5" r="17.5" fill="#231F20"/>
@@ -2569,8 +3016,8 @@
       const msg = JSON.parse(event.data);
 
       if (msg.type === 'status') {
-        if (msg.status === 'extracting_theme' || msg.status === 'generating_images') {
-          updateThemeExtractionProgress(msg.progress, msg.stage, msg.elapsed);
+        if (msg.status === 'saving_theme') {
+          updateSaveThemeProgress(msg.progress, msg.stage, msg.elapsed);
         } else if (currentPhase === 'generate') {
           updateGenerateProgress(msg.progress, msg.stage, msg.elapsed);
         } else {
@@ -2648,12 +3095,19 @@
         if (btn) { btn.disabled = false; btn.textContent = 'Retry Deploy'; }
         const hint = document.getElementById('wizardDeployHint');
         if (hint) { hint.textContent = msg.message; hint.style.color = 'var(--vibes-red)'; }
-      } else if (msg.type === 'theme_images') {
-        setThinking(false);
-        showThemeImages(msg.images);
       } else if (msg.type === 'theme_created') {
         setThinking(false);
         onThemeCreated(msg.themeId, msg.themeName);
+      } else if (msg.type === 'theme_deleted') {
+        onThemeDeleted(msg.themeId);
+      } else if (msg.type === 'imggen_result') {
+        if (window._imggenContext === 'gen') {
+          genOnImgGenResult(msg.imageUrl, msg.prompt);
+        } else {
+          onImgGenResult(msg.imageUrl, msg.prompt);
+        }
+      } else if (msg.type === 'imggen_status') {
+        // generating state handled by UI spinner already
       }
     };
 
@@ -3088,12 +3542,7 @@
 
       if (!hasCurrentApp && savedApps.length === 0) return;
 
-      // Show right panel, remove single-panel centering
-      const phase = document.getElementById('phaseGenerate');
-      const right = document.getElementById('generateRight');
-      phase.classList.remove('single-panel');
-      right.style.display = '';
-
+      // Populate grid content but keep panel hidden until toggled
       const grid = document.getElementById('appGalleryGrid');
       const olderList = document.getElementById('appListOlder');
       const divider = document.getElementById('galleryDivider');
@@ -3148,6 +3597,11 @@
       if (listHtml) {
         divider.style.display = '';
         olderList.innerHTML = listHtml;
+      }
+
+      // Add the apps navbar button now that content is populated
+      if (currentPhase === 'generate') {
+        setPhase('generate');
       }
     } catch (err) {
       console.error('Failed to check apps:', err);
@@ -3337,7 +3791,17 @@
     document.getElementById('generateError').style.display = 'none';
     document.getElementById('generateProgress').classList.add('active');
 
-    ws.send(JSON.stringify({ type: 'generate', prompt, themeId: themeId || null, model: getModel() }));
+    const payload = { type: 'generate', prompt, themeId: themeId || null, model: getModel() };
+    if (genReferenceFile) {
+      payload.reference = {
+        name: genReferenceFile.name,
+        type: genReferenceFile.type,
+        dataUrl: genReferenceFile.dataUrl,
+        intent: genReferenceFile.intent || 'match'
+      };
+    }
+    ws.send(JSON.stringify(payload));
+    genClearReference();
   }
 
   function useExistingApp() {
@@ -3633,6 +4097,7 @@
     if (anim) {
       badgeName.textContent = anim.name;
       badge.classList.add('visible');
+      document.getElementById('chatInput').placeholder = `Describe what you want the "${anim.name}" animation applied to...`;
     }
     closeAnimationModal();
   }
@@ -3641,27 +4106,512 @@
     activeAnimationId = null;
     const badge = document.getElementById('animBadge');
     badge.classList.remove('visible');
+    document.getElementById('chatInput').placeholder = 'Describe changes to your app...';
   }
 
-  // === Chat ===
-  function getModel() {
-    const sel = document.getElementById('modelSelect');
-    return sel && sel.value ? sel.value : undefined;
+  // === Model picker ===
+  let selectedModel = '';
+
+  function toggleModelPicker() {
+    document.getElementById('modelPopover').classList.toggle('open');
   }
+
+  function pickModel(btn) {
+    selectedModel = btn.dataset.model;
+    document.querySelectorAll('.model-opt').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('modelPopover').classList.remove('open');
+    // Highlight the model button when non-default
+    document.getElementById('modelBtn').classList.toggle('active', !!selectedModel);
+  }
+
+  // Close popover on outside click
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.model-picker-wrap')) {
+      document.getElementById('modelPopover').classList.remove('open');
+    }
+  });
+
+  function getModel() {
+    return selectedModel || undefined;
+  }
+
+  // === Reference file (image or HTML) ===
+  let referenceFile = null; // { name, type, dataUrl }
+
+  function pickReference() {
+    document.getElementById('refFileInput').click();
+  }
+
+  function handleRefFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    attachRefFromFile(file);
+    event.target.value = '';
+  }
+
+  function clearReference() {
+    referenceFile = null;
+    document.getElementById('refBadgeRow').classList.remove('visible');
+    document.getElementById('refBtn').classList.remove('active');
+  }
+
+  // Allow pasting images directly into the textarea
+  function attachRefFromFile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      referenceFile = { name: file.name, type: file.type, dataUrl: reader.result, intent: 'match' };
+      const isImage = file.type.startsWith('image/');
+      if (isImage) {
+        showRefIntentPicker(file);
+      } else {
+        // HTML files go straight to badge with match intent
+        showRefBadge(file.name, null);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function showRefIntentPicker(file) {
+    const display = file.name.length > 20
+      ? file.name.slice(0, 8) + '...' + file.name.slice(-8)
+      : file.name;
+    const row = document.getElementById('refBadgeRow');
+    row.innerHTML = `<div class="ref-intent-picker">
+      <span class="ref-intent-label">${display}</span>
+      <button class="ref-intent-btn" onclick="pickRefIntent('none')">Context</button>
+      <button class="ref-intent-btn" onclick="pickRefIntent('mood')">Mood</button>
+      <button class="ref-intent-btn" onclick="pickRefIntent('match')">Match Layout</button>
+      <button class="clear-btn" onclick="clearReference()" title="Remove reference" style="background:none;border:none;cursor:pointer;font-size:0.875rem;font-weight:800;opacity:0.6;padding:0 0 0 0.2rem;color:var(--vibes-near-black)">&times;</button>
+    </div>`;
+    row.classList.add('visible');
+    document.getElementById('refBtn').classList.add('active');
+  }
+
+  function pickRefIntent(intent) {
+    if (!referenceFile) return;
+    referenceFile.intent = intent;
+    const intentLabels = { none: '', mood: ' (Mood)', match: ' (Match)' };
+    showRefBadge(referenceFile.name, intentLabels[intent] || '');
+    document.getElementById('chatInput').focus();
+  }
+
+  function showRefBadge(name, intentSuffix) {
+    const display = name.length > 20
+      ? name.slice(0, 8) + '...' + name.slice(-8)
+      : name;
+    const label = display + (intentSuffix || '');
+    const row = document.getElementById('refBadgeRow');
+    row.innerHTML = `<span class="ref-badge">
+      <span class="ref-badge-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
+      <span id="refBadgeName">${label}</span>
+      <button class="clear-btn" onclick="clearReference()" title="Remove reference">&times;</button>
+    </span>`;
+    row.classList.add('visible');
+    document.getElementById('refBtn').classList.add('active');
+  }
+
+  document.getElementById('chatInput').addEventListener('paste', (e) => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          const named = new File([file], file.name || 'pasted-image.png', { type: file.type });
+          attachRefFromFile(named);
+        }
+        return;
+      }
+    }
+  });
+
+  // Also support drag & drop onto the composer
+  const composerBox = document.querySelector('.chat-composer-box');
+  composerBox.addEventListener('dragover', (e) => { e.preventDefault(); composerBox.style.outline = '2px solid var(--vibes-blue)'; });
+  composerBox.addEventListener('dragleave', () => { composerBox.style.outline = ''; });
+  composerBox.addEventListener('drop', (e) => {
+    e.preventDefault();
+    composerBox.style.outline = '';
+    const file = e.dataTransfer.files[0];
+    if (file && (file.type.startsWith('image/') || /\.html?$/i.test(file.name))) {
+      attachRefFromFile(file);
+    }
+  });
+
+  // === Draggable popover helpers ===
+  function positionPopover(pop, btn) {
+    const r = btn.getBoundingClientRect();
+    let left = r.left + r.width / 2 - 160; // 320/2
+    let top = r.top - 8;
+    // Clamp to viewport
+    left = Math.max(8, Math.min(left, window.innerWidth - 328));
+    top = Math.max(8, top);
+    // If not enough room above, place below
+    if (top < 100) top = r.bottom + 8;
+    else top = top - pop.offsetHeight || top - 200;
+    pop.style.left = left + 'px';
+    pop.style.top = Math.max(8, top) + 'px';
+  }
+
+  (function initDrag() {
+    let dragging = null, startX, startY, origX, origY;
+    document.addEventListener('mousedown', (e) => {
+      const handle = e.target.closest('.imggen-drag-handle');
+      if (!handle || e.target.closest('.imggen-drag-close')) return;
+      const popId = handle.dataset.drag;
+      if (!popId) return;
+      dragging = document.getElementById(popId);
+      const rect = dragging.getBoundingClientRect();
+      startX = e.clientX; startY = e.clientY;
+      origX = rect.left; origY = rect.top;
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - startX, dy = e.clientY - startY;
+      dragging.style.left = Math.max(0, Math.min(origX + dx, window.innerWidth - dragging.offsetWidth)) + 'px';
+      dragging.style.top = Math.max(0, Math.min(origY + dy, window.innerHeight - dragging.offsetHeight)) + 'px';
+    });
+    document.addEventListener('mouseup', () => { dragging = null; });
+    document.addEventListener('mousedown', (e) => {
+      const chatPop = document.getElementById('imggenPopover');
+      const genPop = document.getElementById('genImggenPopover');
+      if (chatPop.classList.contains('open') && !chatPop.contains(e.target) && !e.target.closest('#imggenBtn')) closeImgGen();
+      if (genPop.classList.contains('open') && !genPop.contains(e.target) && !e.target.closest('#genImggenBtn')) genCloseImgGen();
+    });
+  })();
+
+  // === Image Generation ===
+  let hasOpenRouterKey = false;
+  let imggenImages = []; // array of { url, prompt }
+  let imggenIndex = 0;
+
+  function updateImgGenKeyUI() {
+    document.getElementById('imggenKeyForm').style.display = hasOpenRouterKey ? 'none' : 'flex';
+    document.getElementById('imggenPromptRow').style.display = hasOpenRouterKey ? 'flex' : 'none';
+    document.getElementById('genImggenKeyForm').style.display = hasOpenRouterKey ? 'none' : 'flex';
+    document.getElementById('genImggenPromptRow').style.display = hasOpenRouterKey ? 'flex' : 'none';
+  }
+
+  function saveImgGenKey(inputId, hintId) {
+    const input = document.getElementById(inputId);
+    const hint = document.getElementById(hintId);
+    const key = input.value.trim();
+    if (!key.startsWith('sk-or-') || key.length < 10) {
+      hint.textContent = 'Key must start with sk-or- and be at least 10 characters';
+      hint.style.display = 'block';
+      return;
+    }
+    hint.style.display = 'none';
+    fetch('/editor/credentials', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ OPENROUTER_API_KEY: key })
+    }).then(r => r.json()).then(data => {
+      if (data.error) {
+        hint.textContent = data.error;
+        hint.style.display = 'block';
+      } else {
+        hasOpenRouterKey = true;
+        updateImgGenKeyUI();
+      }
+    }).catch(() => {
+      hint.textContent = 'Failed to save key';
+      hint.style.display = 'block';
+    });
+  }
+
+  function toggleImgGen() {
+    const pop = document.getElementById('imggenPopover');
+    const isOpen = pop.classList.contains('open');
+    if (isOpen) { closeImgGen(); return; }
+    updateImgGenKeyUI();
+    positionPopover(pop, document.getElementById('imggenBtn'));
+    pop.classList.add('open');
+    if (hasOpenRouterKey) document.getElementById('imggenPrompt').focus();
+    else document.getElementById('imggenKeyInput').focus();
+  }
+
+  function closeImgGen() {
+    const pop = document.getElementById('imggenPopover');
+    pop.classList.remove('open');
+    pop.style.left = ''; pop.style.top = '';
+    document.getElementById('imggenBtn').classList.remove('active');
+  }
+
+  function generateImage() {
+    const prompt = document.getElementById('imggenPrompt').value.trim();
+    if (!prompt || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+    document.getElementById('imggenGoBtn').disabled = true;
+    document.getElementById('imggenPreview').style.display = 'flex';
+    document.getElementById('imggenPreview').innerHTML = '<div class="spinner"></div>';
+    document.getElementById('imggenActions').style.display = 'none';
+    document.getElementById('imggenCounter').style.display = 'none';
+
+    window._imggenContext = 'chat';
+    ws.send(JSON.stringify({ type: 'generate_image', prompt, model: getModel() }));
+  }
+
+  function onImgGenResult(imageUrl, prompt) {
+    imggenImages.push({ url: imageUrl, prompt });
+    imggenIndex = imggenImages.length - 1;
+    renderImgGenPreview();
+    document.getElementById('imggenGoBtn').disabled = false;
+  }
+
+  function renderImgGenPreview() {
+    if (imggenImages.length === 0) return;
+    const img = imggenImages[imggenIndex];
+    const preview = document.getElementById('imggenPreview');
+    preview.style.display = 'flex';
+    preview.innerHTML = `<img src="${img.url}" alt="Generated image" />`;
+    if (imggenImages.length > 1) {
+      preview.innerHTML += `<button class="imggen-nav prev" onclick="event.stopPropagation();imggenPrev()">&#8249;</button>`;
+      preview.innerHTML += `<button class="imggen-nav next" onclick="event.stopPropagation();imggenNext()">&#8250;</button>`;
+    }
+    document.getElementById('imggenCounter').style.display = '';
+    document.getElementById('imggenCounter').textContent = (imggenIndex + 1) + ' / ' + imggenImages.length;
+    document.getElementById('imggenActions').style.display = 'flex';
+  }
+
+  function imggenPrev() {
+    if (imggenImages.length === 0) return;
+    imggenIndex = (imggenIndex - 1 + imggenImages.length) % imggenImages.length;
+    renderImgGenPreview();
+  }
+
+  function imggenNext() {
+    if (imggenImages.length === 0) return;
+    imggenIndex = (imggenIndex + 1) % imggenImages.length;
+    renderImgGenPreview();
+  }
+
+  function acceptGenImage() {
+    if (imggenImages.length === 0) return;
+    const img = imggenImages[imggenIndex];
+    // Convert data URL to a File-like reference and attach it
+    referenceFile = {
+      name: 'generated-' + Date.now() + '.png',
+      type: 'image/png',
+      dataUrl: img.url,
+      intent: 'match'
+    };
+    showRefIntentPicker({ name: referenceFile.name, type: 'image/png' });
+    closeImgGen();
+    imggenImages = [];
+    imggenIndex = 0;
+    document.getElementById('imggenPreview').style.display = 'none';
+    document.getElementById('imggenActions').style.display = 'none';
+    document.getElementById('imggenCounter').style.display = 'none';
+  }
+
+  // === Generate-phase reference & image gen ===
+  let genReferenceFile = null;
+  let genImggenImages = [];
+  let genImggenIndex = 0;
+
+  function genPickReference() {
+    document.getElementById('genRefFileInput').click();
+  }
+
+  function genHandleRefFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    genAttachRefFromFile(file);
+    event.target.value = '';
+  }
+
+  function genClearReference() {
+    genReferenceFile = null;
+    document.getElementById('genRefBadgeRow').classList.remove('visible');
+  }
+
+  function genAttachRefFromFile(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      genReferenceFile = { name: file.name, type: file.type, dataUrl: reader.result, intent: 'match' };
+      if (file.type.startsWith('image/')) {
+        genShowRefIntentPicker(file);
+      } else {
+        genShowRefBadge(file.name, null);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function genShowRefIntentPicker(file) {
+    const display = file.name.length > 20
+      ? file.name.slice(0, 8) + '...' + file.name.slice(-8)
+      : file.name;
+    const row = document.getElementById('genRefBadgeRow');
+    row.innerHTML = `<div class="ref-intent-picker">
+      <span class="ref-intent-label">${display}</span>
+      <button class="ref-intent-btn" onclick="genPickRefIntent('mood')">Mood</button>
+      <button class="ref-intent-btn" onclick="genPickRefIntent('match')">Match Layout</button>
+      <button class="clear-btn" onclick="genClearReference()" title="Remove reference" style="background:none;border:none;cursor:pointer;font-size:0.875rem;font-weight:800;opacity:0.6;padding:0 0 0 0.2rem;color:var(--vibes-cream)">&times;</button>
+    </div>`;
+    row.classList.add('visible');
+  }
+
+  function genPickRefIntent(intent) {
+    if (!genReferenceFile) return;
+    genReferenceFile.intent = intent;
+    const intentLabels = { mood: ' (Mood)', match: ' (Match)' };
+    genShowRefBadge(genReferenceFile.name, intentLabels[intent] || '');
+    document.getElementById('generatePrompt').focus();
+  }
+
+  function genShowRefBadge(name, intentSuffix) {
+    const display = name.length > 20
+      ? name.slice(0, 8) + '...' + name.slice(-8)
+      : name;
+    const label = display + (intentSuffix || '');
+    const row = document.getElementById('genRefBadgeRow');
+    row.innerHTML = `<span class="ref-badge">
+      <span class="ref-badge-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
+      <span>${label}</span>
+      <button class="clear-btn" onclick="genClearReference()" title="Remove reference">&times;</button>
+    </span>`;
+    row.classList.add('visible');
+  }
+
+  function genToggleImgGen() {
+    const pop = document.getElementById('genImggenPopover');
+    const isOpen = pop.classList.contains('open');
+    if (isOpen) { genCloseImgGen(); return; }
+    updateImgGenKeyUI();
+    positionPopover(pop, document.getElementById('genImggenBtn'));
+    pop.classList.add('open');
+    if (hasOpenRouterKey) document.getElementById('genImggenPrompt').focus();
+    else document.getElementById('genImggenKeyInput').focus();
+  }
+
+  function genCloseImgGen() {
+    const pop = document.getElementById('genImggenPopover');
+    pop.classList.remove('open');
+    pop.style.left = ''; pop.style.top = '';
+    document.getElementById('genImggenBtn').classList.remove('active');
+  }
+
+  function genGenerateImage() {
+    const prompt = document.getElementById('genImggenPrompt').value.trim();
+    if (!prompt || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+    document.getElementById('genImggenGoBtn').disabled = true;
+    document.getElementById('genImggenPreview').style.display = 'flex';
+    document.getElementById('genImggenPreview').innerHTML = '<div class="spinner"></div>';
+    document.getElementById('genImggenActions').style.display = 'none';
+    document.getElementById('genImggenCounter').style.display = 'none';
+
+    // Tag as gen context so onImgGenResult routes correctly
+    window._imggenContext = 'gen';
+    ws.send(JSON.stringify({ type: 'generate_image', prompt, model: getModel() }));
+  }
+
+  function genOnImgGenResult(imageUrl, prompt) {
+    genImggenImages.push({ url: imageUrl, prompt });
+    genImggenIndex = genImggenImages.length - 1;
+    genRenderImgGenPreview();
+    document.getElementById('genImggenGoBtn').disabled = false;
+  }
+
+  function genRenderImgGenPreview() {
+    if (genImggenImages.length === 0) return;
+    const img = genImggenImages[genImggenIndex];
+    const preview = document.getElementById('genImggenPreview');
+    preview.style.display = 'flex';
+    preview.innerHTML = `<img src="${img.url}" alt="Generated image" />`;
+    if (genImggenImages.length > 1) {
+      preview.innerHTML += `<button class="imggen-nav prev" onclick="event.stopPropagation();genImggenPrev()">&#8249;</button>`;
+      preview.innerHTML += `<button class="imggen-nav next" onclick="event.stopPropagation();genImggenNext()">&#8250;</button>`;
+    }
+    document.getElementById('genImggenCounter').style.display = '';
+    document.getElementById('genImggenCounter').textContent = (genImggenIndex + 1) + ' / ' + genImggenImages.length;
+    document.getElementById('genImggenActions').style.display = 'flex';
+  }
+
+  function genImggenPrev() {
+    if (genImggenImages.length === 0) return;
+    genImggenIndex = (genImggenIndex - 1 + genImggenImages.length) % genImggenImages.length;
+    genRenderImgGenPreview();
+  }
+
+  function genImggenNext() {
+    if (genImggenImages.length === 0) return;
+    genImggenIndex = (genImggenIndex + 1) % genImggenImages.length;
+    genRenderImgGenPreview();
+  }
+
+  function genAcceptImage() {
+    if (genImggenImages.length === 0) return;
+    const img = genImggenImages[genImggenIndex];
+    genReferenceFile = {
+      name: 'generated-' + Date.now() + '.png',
+      type: 'image/png',
+      dataUrl: img.url,
+      intent: 'match'
+    };
+    genShowRefIntentPicker({ name: genReferenceFile.name, type: 'image/png' });
+    genCloseImgGen();
+    genImggenImages = [];
+    genImggenIndex = 0;
+    document.getElementById('genImggenPreview').style.display = 'none';
+    document.getElementById('genImggenActions').style.display = 'none';
+    document.getElementById('genImggenCounter').style.display = 'none';
+  }
+
+  // Paste support on generate textarea
+  document.getElementById('generatePrompt').addEventListener('paste', (e) => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          const named = new File([file], file.name || 'pasted-image.png', { type: file.type });
+          genAttachRefFromFile(named);
+        }
+        return;
+      }
+    }
+  });
 
   function sendMessage() {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
-    if (!text || isThinking || !ws || ws.readyState !== WebSocket.OPEN) return;
+    if ((!text && !referenceFile) || isThinking || !ws || ws.readyState !== WebSocket.OPEN) return;
 
     const animLabel = activeAnimationId ? allAnimations.find(a => a.id === activeAnimationId)?.name : null;
-    addMessage('user', text + (animLabel ? '  [' + animLabel + ']' : ''));
-    const payload = { type: 'chat', message: text, model: getModel() };
+    const refLabel = referenceFile ? referenceFile.name : null;
+    const intentLabels = { none: '', mood: ' (Mood)', match: ' (Match)' };
+    const refIntent = referenceFile ? (referenceFile.intent || 'match') : null;
+    let displayText = text || (refLabel ? 'Style the app using this reference' : '');
+    if (animLabel) displayText += '  [' + animLabel + ']';
+    if (refLabel) displayText += '  [ref: ' + refLabel + (intentLabels[refIntent] || '') + ']';
+    addMessage('user', displayText);
+
+    const defaultMsg = refIntent === 'none' ? '' : 'Style the app to match the attached reference';
+    const payload = { type: 'chat', message: text || defaultMsg, model: getModel() };
     if (activeAnimationId) payload.animationId = activeAnimationId;
-    ws.send(JSON.stringify(payload));
+    if (referenceFile) {
+      payload.reference = {
+        name: referenceFile.name,
+        type: referenceFile.type,
+        dataUrl: referenceFile.dataUrl,
+        intent: refIntent
+      };
+    }
+    const json = JSON.stringify(payload);
+    console.log('[Send] payload size:', (json.length / 1024).toFixed(1) + 'KB', 'hasRef:', !!payload.reference);
+    ws.send(json);
     input.value = '';
     input.style.height = 'auto';
     if (activeAnimationId) clearAnimation();
+    if (referenceFile) clearReference();
   }
 
   function addMessage(role, content) {
@@ -3793,6 +4743,7 @@
 
     function cardHtml(t) {
       return `<div class="theme-card${t.recommended ? ' recommended' : ''}" onclick="selectTheme('${t.id}')">
+        <button class="theme-card-delete" onclick="event.stopPropagation();confirmDeleteTheme('${t.id}','${t.name.replace(/'/g, "\\'")}')" title="Delete theme">&times;</button>
         ${swatchHtml(t.colors)}
         <div class="theme-card-name">${t.name}${t.recommended ? '<span class="theme-card-badge">recommended</span>' : ''}</div>
         <div class="theme-card-mood">${t.mood}</div>
@@ -3830,6 +4781,33 @@
     closeThemeModal();
   }
 
+  function confirmDeleteTheme(themeId, themeName) {
+    const card = event.target.closest('.theme-card');
+    if (card.querySelector('.delete-confirm')) return; // already showing
+
+    const confirm = document.createElement('div');
+    confirm.className = 'delete-confirm';
+    confirm.style.cssText = 'position:absolute;inset:0;background:rgba(26,26,26,0.92);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem;z-index:2;';
+    confirm.innerHTML = `
+      <div style="color:var(--vibes-cream);font-size:0.75rem;font-weight:700;text-align:center;padding:0 0.5rem;">Delete "${themeName}"?</div>
+      <div style="display:flex;gap:0.4rem;">
+        <button onclick="event.stopPropagation();deleteTheme('${themeId}')" style="background:var(--vibes-red);color:white;border:1.5px solid var(--vibes-red);border-radius:6px;padding:0.25rem 0.6rem;font-size:0.65rem;font-weight:700;cursor:pointer;font-family:inherit;text-transform:uppercase;">Delete</button>
+        <button onclick="event.stopPropagation();this.closest('.delete-confirm').remove()" style="background:var(--vibes-cream);color:var(--vibes-near-black);border:1.5px solid var(--vibes-near-black);border-radius:6px;padding:0.25rem 0.6rem;font-size:0.65rem;font-weight:700;cursor:pointer;font-family:inherit;text-transform:uppercase;">Cancel</button>
+      </div>`;
+    confirm.onclick = (e) => e.stopPropagation();
+    card.appendChild(confirm);
+  }
+
+  function deleteTheme(themeId) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({ type: 'delete_theme', themeId }));
+  }
+
+  function onThemeDeleted(themeId) {
+    themes = themes.filter(t => t.id !== themeId);
+    renderThemeGrid(document.getElementById('themeSearch')?.value || '');
+  }
+
   function openThemeModal() {
     document.getElementById('themeModal').classList.add('open');
     const search = document.getElementById('themeSearch');
@@ -3851,116 +4829,52 @@
     document.getElementById('themeModal').classList.remove('open');
   }
 
-  // === Create Theme ===
-  let createMode = false;
-  let hasOpenRouterKey = false;
+  // === Save Current Theme ===
+  let saveMode = false;
 
-  async function checkOpenRouterKey() {
-    try {
-      const res = await fetch('/themes/has-key');
-      const data = await res.json();
-      hasOpenRouterKey = data.hasKey;
-    } catch { /* ignore */ }
-  }
-
-  function toggleCreateMode() {
-    createMode = !createMode;
-    document.getElementById('createThemeSection').style.display = createMode ? '' : 'none';
-    document.getElementById('themeSearch').style.display = createMode ? 'none' : '';
-    document.getElementById('themeGrid').style.display = createMode ? 'none' : '';
-    document.getElementById('createThemeToggle').textContent = createMode ? 'Browse' : '+ Create';
-    if (createMode) {
-      if (!hasOpenRouterKey) {
-        document.getElementById('createThemeBtn').disabled = true;
-        document.getElementById('createThemePrompt').disabled = true;
-        document.getElementById('imagePickerArea').innerHTML =
-          '<div class="create-status error">Add OPENROUTER_API_KEY to .env and restart the preview server to enable theme creation.</div>';
-      } else {
-        document.getElementById('createThemeBtn').disabled = false;
-        document.getElementById('createThemePrompt').disabled = false;
-        document.getElementById('createThemePrompt').focus();
-        document.getElementById('imagePickerArea').innerHTML = '';
-      }
+  function toggleSaveMode() {
+    saveMode = !saveMode;
+    document.getElementById('saveThemeSection').style.display = saveMode ? '' : 'none';
+    document.getElementById('themeSearch').style.display = saveMode ? 'none' : '';
+    document.getElementById('themeGrid').style.display = saveMode ? 'none' : '';
+    document.getElementById('saveThemeToggle').textContent = saveMode ? 'Browse' : 'Save Theme';
+    if (saveMode) {
+      document.getElementById('saveThemeBtn').disabled = false;
+      document.getElementById('saveThemeName').disabled = false;
+      document.getElementById('saveThemeName').focus();
+      document.getElementById('saveThemeStatus').innerHTML = '';
     } else {
       renderThemeGrid();
     }
   }
 
-  function generateThemeImages() {
-    const input = document.getElementById('createThemePrompt');
-    const prompt = input.value.trim();
-    if (!prompt || !ws || ws.readyState !== WebSocket.OPEN) return;
+  function saveCurrentTheme() {
+    const input = document.getElementById('saveThemeName');
+    const name = input.value.trim();
+    if (!name || !ws || ws.readyState !== WebSocket.OPEN) return;
 
-    document.getElementById('createThemeBtn').disabled = true;
-    document.getElementById('imagePickerArea').innerHTML =
-      '<div class="image-picker">' +
-      '<div class="image-card loading"><div class="spinner"></div></div>'.repeat(3) +
-      '</div>' +
-      '<div class="create-status">Generating 3 design variations...</div>';
-
-    ws.send(JSON.stringify({ type: 'create_theme', prompt, model: getModel() }));
-  }
-
-  function showThemeImages(images) {
-    const area = document.getElementById('imagePickerArea');
-    const picker = document.createElement('div');
-    picker.className = 'image-picker';
-    images.forEach((url, i) => {
-      const card = document.createElement('div');
-      card.className = 'image-card' + (url ? '' : ' failed');
-      if (url) {
-        const img = document.createElement('img');
-        img.src = url;
-        img.alt = 'Variation ' + (i + 1);
-        card.appendChild(img);
-        card.onclick = () => pickThemeImage(i);
-      } else {
-        card.textContent = 'Failed';
-        card.style.cssText = 'color:var(--vibes-red);font-size:0.75rem;font-weight:700;';
-      }
-      picker.appendChild(card);
-    });
-    area.innerHTML = '';
-    area.appendChild(picker);
-    const status = document.createElement('div');
-    status.className = 'create-status';
-    status.textContent = 'Click the design you like best';
-    area.appendChild(status);
-    document.getElementById('createThemeBtn').disabled = false;
-  }
-
-  function pickThemeImage(index) {
-    const prompt = document.getElementById('createThemePrompt').value.trim();
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-
-    const cards = document.querySelectorAll('.image-card');
-    cards.forEach((c, i) => {
-      c.style.opacity = i === index ? '1' : '0.3';
-      c.style.pointerEvents = 'none';
-    });
-
-    const statusEl = document.getElementById('imagePickerArea').querySelector('.create-status');
-    if (statusEl) {
-      statusEl.innerHTML = `
+    document.getElementById('saveThemeBtn').disabled = true;
+    document.getElementById('saveThemeStatus').innerHTML = `
+      <div class="create-status">
         <div class="spinner" style="display:inline-block;width:16px;height:16px;vertical-align:middle;margin-right:0.5rem;"></div>
-        <span id="themeExtractStage">Extracting theme from image...</span>
+        <span id="saveThemeStage">Analyzing app styles...</span>
         <div class="thinking-progress-bar" style="margin-top:0.5rem;">
-          <div class="thinking-progress-fill" id="themeExtractFill" style="width: 0%"></div>
+          <div class="thinking-progress-fill" id="saveThemeFill" style="width: 0%"></div>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:0.7rem;opacity:0.7;margin-top:0.25rem;">
-          <span id="themeExtractPct">0%</span>
-          <span id="themeExtractTime">0s</span>
-        </div>`;
-    }
+          <span id="saveThemePct">0%</span>
+          <span id="saveThemeTime">0s</span>
+        </div>
+      </div>`;
 
-    ws.send(JSON.stringify({ type: 'pick_theme_image', index, prompt, model: getModel() }));
+    ws.send(JSON.stringify({ type: 'save_theme', name, model: getModel() }));
   }
 
-  function updateThemeExtractionProgress(progress, stage, elapsed) {
-    const fill = document.getElementById('themeExtractFill');
-    const pct = document.getElementById('themeExtractPct');
-    const time = document.getElementById('themeExtractTime');
-    const stageEl = document.getElementById('themeExtractStage');
+  function updateSaveThemeProgress(progress, stage, elapsed) {
+    const fill = document.getElementById('saveThemeFill');
+    const pct = document.getElementById('saveThemePct');
+    const time = document.getElementById('saveThemeTime');
+    const stageEl = document.getElementById('saveThemeStage');
     if (fill) fill.style.width = (progress || 0) + '%';
     if (pct) pct.textContent = (progress || 0) + '%';
     if (time) time.textContent = (elapsed || 0) + 's';
@@ -3968,29 +4882,34 @@
   }
 
   function onThemeCreated(themeId, themeName) {
-    const area = document.getElementById('imagePickerArea');
-    area.innerHTML = '';
-    const status = document.createElement('div');
-    status.className = 'create-status success';
-    status.textContent = 'Theme "' + themeName + '" created!';
-    area.appendChild(status);
-    const btnRow = document.createElement('div');
-    btnRow.style.cssText = 'text-align:center;margin-top:0.5rem;';
-    const applyBtn = document.createElement('button');
-    applyBtn.className = 'modal-create-btn';
-    applyBtn.textContent = 'Apply ' + themeName;
-    applyBtn.onclick = () => selectTheme(themeId);
-    const browseBtn = document.createElement('button');
-    browseBtn.className = 'modal-create-btn';
-    browseBtn.style.marginLeft = '0.5rem';
-    browseBtn.textContent = 'Browse themes';
-    browseBtn.onclick = () => toggleCreateMode();
-    btnRow.appendChild(applyBtn);
-    btnRow.appendChild(browseBtn);
-    area.appendChild(btnRow);
-    document.getElementById('createThemeBtn').disabled = false;
-    // Reload theme list to include the new theme
+    document.getElementById('saveThemeBtn').disabled = false;
+
+    // Floating toast in center of screen
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:var(--vibes-near-black);color:var(--vibes-cream);padding:1.25rem 2.5rem;border-radius:12px;font-size:1.2rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;border:2px solid var(--vibes-cream);box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;transition:opacity 0.3s;';
+    toast.textContent = '"' + themeName + '" saved!';
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.style.opacity = '1');
+
+    // Rainbow confetti burst
+    const rainbowColors = ['#ff0000', '#ffa500', '#fedd00', '#008000', '#009ace', '#4b0082', '#ee82ee'];
+    const duration = 2000;
+    const end = Date.now() + duration;
+    (function frame() {
+      confetti({ particleCount: 7, angle: 60, spread: 55, origin: { x: 0 }, colors: rainbowColors, zIndex: 10000 });
+      confetti({ particleCount: 7, angle: 120, spread: 55, origin: { x: 1 }, colors: rainbowColors, zIndex: 10000 });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    })();
+
     reloadThemes();
+
+    // Fade out toast and close modal after 2.5s
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 300);
+      closeThemeModal();
+      saveMode = false;
+    }, 2500);
   }
 
   async function reloadThemes() {
@@ -4390,7 +5309,7 @@
   });
 
   populateThemeSelect();
-  checkOpenRouterKey();
+  fetch('/themes/has-key').then(r => r.json()).then(d => { hasOpenRouterKey = !!d.hasKey; }).catch(() => {});
 </script>
 </div>
 </div>
