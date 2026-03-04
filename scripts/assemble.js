@@ -63,8 +63,10 @@ function main() {
 
   console.log('Connect mode: Clerk auth + cloud sync enabled');
 
-  // Strip imports/exports/destructuring that conflict with the template
-  const cleanedAppCode = stripForTemplate(appCode);
+  // Strip imports/exports/destructuring that conflict with the template.
+  // Keep React destructuring — vibes template provides React as a global,
+  // so app code needs `const { useState } = React;` to access hooks.
+  const cleanedAppCode = stripForTemplate(appCode, { stripReactHooks: false });
 
   // Assemble: insert app code at placeholder, then populate Connect config
   let output = template.replace(APP_PLACEHOLDER, cleanedAppCode);

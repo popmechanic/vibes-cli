@@ -81,13 +81,29 @@ export function stripWindowDestructuring(code) {
 /**
  * Strip all template conflicts from app code (imports, exports, CONFIG, constants)
  * @param {string} code - Source code
- * @param {string[]} [templateConstants] - Additional constants the template provides
+ * @param {string[]|object} [templateConstantsOrOptions] - Array of constants OR options object
+ * @param {string[]} [templateConstantsOrOptions.templateConstants] - Constants the template provides
+ * @param {boolean} [templateConstantsOrOptions.stripReactHooks=true] - Strip `const { useState } = React;`
+ *   Set false for vibes template (React is a global, hooks need destructuring).
+ *   Set true for sell template (hooks provided via ES imports, destructuring causes duplicates).
  * @returns {string} Cleaned code ready for template injection
  */
-export function stripForTemplate(code, templateConstants = []) {
+export function stripForTemplate(code, templateConstantsOrOptions = []) {
+  // Support both old signature (string[]) and new signature (options object)
+  let templateConstants = [];
+  let stripReactHooks = true;
+  if (Array.isArray(templateConstantsOrOptions)) {
+    templateConstants = templateConstantsOrOptions;
+  } else {
+    templateConstants = templateConstantsOrOptions.templateConstants || [];
+    stripReactHooks = templateConstantsOrOptions.stripReactHooks !== false;
+  }
+
   let result = code.trim();
   result = stripImports(result);
-  result = stripReactDestructuring(result);
+  if (stripReactHooks) {
+    result = stripReactDestructuring(result);
+  }
   result = stripWindowDestructuring(result);
   result = stripExportDefault(result);
   result = stripConfig(result);
