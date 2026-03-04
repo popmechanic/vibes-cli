@@ -31,7 +31,7 @@ const ctx = loadConfig();
 const server = createServer((req, res) => handleRequest(ctx, req, res));
 
 // --- WebSocket Server ---
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ server, maxPayload: 50 * 1024 * 1024 /* 50MB for image refs */ });
 setupWebSocket(wss, ctx, wsAdapter);
 
 // --- Start ---

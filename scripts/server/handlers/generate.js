@@ -2,7 +2,7 @@
  * Generate handler — create a new app from scratch via Claude.
  */
 
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { runClaude } from '../claude-bridge.js';
 import { sanitizeAppJsx } from '../post-process.js';
@@ -15,7 +15,7 @@ import { TEMPLATES } from '../../lib/paths.js';
 /**
  * Generate a new app from a user prompt.
  */
-export async function handleGenerate(ctx, onEvent, userPrompt, themeId, model) {
+export async function handleGenerate(ctx, onEvent, userPrompt, themeId, model, reference = null) {
   if (!userPrompt) {
     onEvent({ type: 'error', message: 'Please describe what you want to build.' });
     return;
@@ -69,7 +69,60 @@ export async function handleGenerate(ctx, onEvent, userPrompt, themeId, model) {
     .trim();
   if (themeEssentials.length > 4000) themeEssentials = themeEssentials.slice(0, 4000) + '\n...';
 
-  const prompt = `You are an expert React app designer. Generate a beautiful, creative app.
+  // Handle reference image
+  let referenceBlock = '';
+  if (reference && reference.name && reference.dataUrl) {
+    const intent = reference.intent || 'match';
+    const base64 = reference.dataUrl.split(',')[1];
+    const tmpDir = join(ctx.projectRoot, '.vibes-tmp');
+    mkdirSync(tmpDir, { recursive: true });
+    const refPath = join(tmpDir, reference.name);
+    writeFileSync(refPath, Buffer.from(base64, 'base64'));
+    console.log(`[Generate]   ✓ reference image saved: ${refPath} (intent: ${intent})`);
+
+    if (intent === 'mood') {
+      referenceBlock = `MANDATORY FIRST STEP: Read the image at ${refPath} using the Read tool.
+
+ANALYZE the image like a theme designer — before writing any code, identify:
+- MOOD: 3-4 adjectives describing the visual feeling
+- COLOR PALETTE: extract every distinct color as oklch() — background, text, accent, borders, muted tones
+- DESIGN PRINCIPLES: border styles, shadow depth, spacing rhythm
+- TYPOGRAPHY FEEL: weight, style, sizing hierarchy
+- SURFACE TREATMENT: glass/frosted effects, gradients, textures, card styles
+- MOTION ENERGY: calm/lively/dramatic — what kind of transitions and hover effects fit
+- DECORATIVE ELEMENTS: any SVG patterns, background shapes, dividers, icons style
+
+Apply the MOOD and COLOR PALETTE from this image to the app you generate.
+Use the extracted oklch() colors for the --comp-* tokens and :root block INSTEAD of the theme file colors.
+Keep the theme's layout patterns and structural ideas but OVERRIDE all colors and visual mood with what you see in the image.
+--color-background MUST match the image's background. Never leave it transparent or unset.
+
+`;
+    } else {
+      // intent === 'match'
+      referenceBlock = `MANDATORY FIRST STEP: Read the image at ${refPath} using the Read tool.
+
+ANALYZE the image like a theme designer — before writing any code, identify:
+- MOOD: 3-4 adjectives describing the visual feeling
+- COLOR PALETTE: extract every distinct color as oklch() — background, text, accent, borders, muted tones
+- DESIGN PRINCIPLES: border styles, shadow depth, spacing rhythm
+- TYPOGRAPHY FEEL: weight, style, sizing hierarchy
+- SURFACE TREATMENT: glass/frosted effects, gradients, textures, card styles
+- LAYOUT STRUCTURE: how is the space divided? sidebar? header? grid? cards? split-pane?
+- MOTION ENERGY: calm/lively/dramatic
+- DECORATIVE ELEMENTS: any SVG patterns, background shapes, dividers, icons style
+
+Apply BOTH the visual style AND layout structure from this image to the app you generate.
+Use the extracted oklch() colors for the --comp-* tokens and :root block INSTEAD of the theme file colors.
+Match the layout structure, spatial organization, component arrangement, and visual hierarchy of the image.
+--color-background MUST match the image's background. Never leave it transparent or unset.
+The goal: the generated app should look like the image was its design spec.
+
+`;
+    }
+  }
+
+  const prompt = `${referenceBlock}You are an expert React app designer. Generate a beautiful, creative app.
 
 USER REQUEST: "${userPrompt}"
 
@@ -174,8 +227,9 @@ DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}),
 
   onEvent({ type: 'theme_selected', themeId, themeName });
 
-  console.log(`[Generate] Starting — theme: ${themeId} (${themeName}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
-  await runClaude(prompt, { skipChat: true, maxTurns: 5, model, cwd: ctx.projectRoot }, onEvent);
+  const maxTurns = reference ? 8 : 5;
+  console.log(`[Generate] Starting — theme: ${themeId} (${themeName}), prompt: ${(prompt.length / 1024).toFixed(1)}KB${reference ? `, ref: ${reference.name} (${reference.intent})` : ''}`);
+  await runClaude(prompt, { skipChat: true, maxTurns, model, cwd: ctx.projectRoot }, onEvent);
 
   sanitizeAppJsx(ctx.projectRoot);
 }
