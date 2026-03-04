@@ -168,14 +168,13 @@ export async function runClaude(prompt, opts = {}, onEvent) {
         }
 
         const isMaxTurns = stderr.includes('max_turns') || stderr.includes('maxTurns');
-        if (isMaxTurns && hasEdited) {
-          console.log('[Claude] Hit max_turns but had edits — treating as success');
+        if (isMaxTurns) {
+          console.log(`[Claude] Hit max_turns (hasEdited=${hasEdited}) — treating as success`);
           onEvent({ type: 'complete', text: resultText || 'Done.', toolsUsed, elapsed: getElapsed(), hasEdited, skipChat: opts.skipChat });
           resolve(resultText);
           return;
         }
-        const errMsg = isMaxTurns ? 'Claude ran out of turns before completing. Try again.' :
-          stderr.slice(0, 500) || `Claude exited with code ${code}`;
+        const errMsg = stderr.slice(0, 500) || `Claude exited with code ${code}`;
         onEvent({ type: 'error', message: errMsg });
         resolve(null);
         return;
