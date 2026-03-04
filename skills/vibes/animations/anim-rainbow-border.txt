@@ -1,0 +1,121 @@
+ANIMATION: anim-rainbow-border
+NAME: Rainbow Border
+CATEGORY: Animated
+
+DESCRIPTION: Buttons and cards get an animated rainbow gradient border that flows continuously around the element. The fill stays solid while the border cycles through the full spectrum. Hover speeds up the animation. Includes a confetti burst on click using Canvas 2D particles.
+
+IMPLEMENTATION RULES:
+- Native browser APIs only — no external libraries (the confetti is hand-rolled Canvas 2D, not a library)
+- Use Canvas 2D with useRef + useEffect for confetti, cleanup with cancelAnimationFrame
+- The rainbow border is pure CSS — uses background layering with padding-box and border-box
+- Keep particle count under 100 for mobile (check window.innerWidth < 768)
+- Confetti canvas: position fixed, zIndex 999, pointerEvents none
+
+CODE EXAMPLE:
+/* Add these keyframes to the app's style block */
+const rainbowBorderCSS = `
+@keyframes movingRainbowBorder {
+  0% { background-position: 0 0, 0% 50%; }
+  100% { background-position: 0 0, 100% 50%; }
+}
+`;
+
+/* Apply this style to any button or card that should have the rainbow border */
+function getRainbowBorderStyle(fillColor = "var(--color-background, #111827)") {
+  return {
+    border: "2px solid transparent",
+    background: `linear-gradient(${fillColor}, ${fillColor}) padding-box, linear-gradient(90deg, #ff0000, #ffa500, #ffff00, #00c853, #00b0ff, #7c4dff, #ff2d95, #ff0000) border-box`,
+    backgroundSize: "100% 100%, 400% 400%",
+    animation: "movingRainbowBorder 3.25s linear infinite",
+    willChange: "background-position",
+    borderRadius: "12px",
+  };
+}
+
+/* Confetti burst hook — fire from both sides on button click */
+function useRainbowConfetti() {
+  const canvasRef = React.useRef(null);
+  const particlesRef = React.useRef([]);
+  const animRef = React.useRef(null);
+
+  const rainbowColors = ["#ff0000", "#ffa500", "#ffff00", "#008000", "#0000ff", "#4b0082", "#ee82ee"];
+
+  const fire = React.useCallback(() => {
+    // Left side burst
+    for (let i = 0; i < 30; i++) {
+      const angle = (Math.random() * 0.6 + 0.15) * Math.PI; // ~27-135 degrees
+      const speed = Math.random() * 8 + 3;
+      particlesRef.current.push({
+        x: 0, y: window.innerHeight * 0.5,
+        vx: Math.cos(angle) * speed,
+        vy: -Math.sin(angle) * speed,
+        color: rainbowColors[Math.floor(Math.random() * rainbowColors.length)],
+        size: Math.random() * 6 + 3,
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 12,
+        life: 1
+      });
+    }
+    // Right side burst
+    for (let i = 0; i < 30; i++) {
+      const angle = (Math.random() * 0.6 + 0.15) * Math.PI;
+      const speed = Math.random() * 8 + 3;
+      particlesRef.current.push({
+        x: window.innerWidth, y: window.innerHeight * 0.5,
+        vx: -Math.cos(angle) * speed,
+        vy: -Math.sin(angle) * speed,
+        color: rainbowColors[Math.floor(Math.random() * rainbowColors.length)],
+        size: Math.random() * 6 + 3,
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 12,
+        life: 1
+      });
+    }
+    if (!animRef.current) animate();
+  }, []);
+
+  function animate() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth * devicePixelRatio;
+    canvas.height = window.innerHeight * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    const alive = [];
+    for (const p of particlesRef.current) {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.25;
+      p.rotation += p.rotSpeed; p.life -= 0.012;
+      if (p.life <= 0) continue;
+      alive.push(p);
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation * Math.PI / 180);
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size/2, -p.size/4, p.size, p.size/2);
+      ctx.restore();
+    }
+    particlesRef.current = alive;
+    if (alive.length > 0) { animRef.current = requestAnimationFrame(animate); }
+    else { animRef.current = null; }
+  }
+
+  React.useEffect(() => () => { if (animRef.current) cancelAnimationFrame(animRef.current); }, []);
+
+  const ConfettiCanvas = () => <canvas ref={canvasRef} style={{ position: "fixed", inset: 0, zIndex: 999, pointerEvents: "none", width: "100vw", height: "100vh" }} />;
+  return { fire, ConfettiCanvas };
+}
+
+/* Usage in a component:
+const { fire, ConfettiCanvas } = useRainbowConfetti();
+
+return (
+  <div>
+    <ConfettiCanvas />
+    <button style={getRainbowBorderStyle()} onClick={fire}>
+      Celebrate!
+    </button>
+  </div>
+);
+*/

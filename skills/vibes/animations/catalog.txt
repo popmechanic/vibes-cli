@@ -14,6 +14,7 @@ ANIMATION CATALOG
 | anim-gradient-morph | Gradient Morph | Animated | Animated gradient backgrounds using CSS @property and keyframes |
 | anim-clip-path | Clip Path Morph | Animated | Elements morph between shapes using animated clip-path polygons |
 | anim-typewriter | Typewriter Text | Animated | Text appears character by character with blinking cursor effect |
+| anim-rainbow-border | Rainbow Border | Animated | Animated rainbow gradient border that flows around buttons and cards with confetti burst on click |
 | int-mouse-glow | Cursor Glow | Interactive | Radial glow follows mouse position across the page |
 | int-tilt-cards | Tilt Cards | Interactive | Cards tilt toward cursor on hover using perspective transforms |
 | int-magnetic-buttons | Magnetic Buttons | Interactive | Buttons subtly pull toward cursor when mouse is nearby |

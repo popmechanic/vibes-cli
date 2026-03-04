@@ -192,6 +192,7 @@ THEME CATALOG
 | nexus       | Nexus Grid        | Pure-black, acid-lime, voxel-generative, hyper-minimal         | Creative studios, generative art, dev landing pages, minimal portfolios |
 | rune        | Rune Interface    | Abyss-dark, cyan-neon-glow, Norse-rune, three-column-RPG       | RPG character sheets, dark fantasy UIs, stat trackers, game inventories  |
 | computer-angel-heaven | Computer Angel Heaven | Ethereal-glassmorphic, celestial-gold, luminous-pearl, cloud-soft | Wellness apps, creative portfolios, journals, moodboards, ambient dashboards |
+| winter-sports | winter sports | Athletic, alpine-cool, data-rich, rounded-modern | Sports analytics, athlete trackers, fitness apps, leaderboards, scoreboards |
 
 HOW TO CHOOSE
 -------------
