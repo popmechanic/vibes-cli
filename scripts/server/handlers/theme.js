@@ -7,7 +7,7 @@ import { join } from 'path';
 import { runClaude } from '../claude-bridge.js';
 import { sanitizeAppJsx } from '../post-process.js';
 import { parseThemeColors, extractPass2ThemeContext } from '../config.js';
-import { hasThemeMarkers, replaceThemeSection, extractNonThemeSections } from '../../lib/theme-sections.js';
+import { hasThemeMarkers, replaceThemeSection, extractNonThemeSections, moveVisualCSSToSurfaces } from '../../lib/theme-sections.js';
 import { createBackup, restoreFromBackup } from '../../lib/backup.js';
 
 /**
@@ -109,6 +109,9 @@ async function handleThemeSwitchMultiPass(ctx, onEvent, themeId, themeName, them
   }
 
   updatedCode = updateThemeMeta(updatedCode, themeId, themeName);
+
+  // Move orphaned visual CSS into @theme:surfaces before Pass 2
+  updatedCode = moveVisualCSSToSurfaces(updatedCode);
 
   createBackup(appJsxPath);
   writeFileSync(appJsxPath, updatedCode, 'utf-8');
