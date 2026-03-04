@@ -127,9 +127,9 @@ Write the complete app to app.jsx. Rules:
 
 === THEME SECTION MARKERS ===
 
-Organize ALL theme-sensitive CSS and JSX into marked sections. This enables fast theme switching.
+Organize ALL visual CSS into marked sections. This enables fast theme switching.
 
-In your <style> tag, wrap theme-sensitive CSS in comment markers:
+In your <style> tag, wrap CSS in comment markers:
 
 \`\`\`css
 /* @theme:tokens */
@@ -141,15 +141,16 @@ In your <style> tag, wrap theme-sensitive CSS in comment markers:
 /* @theme:typography:end */
 
 /* @theme:surfaces */
-.glass-card { backdrop-filter: ...; } /* shadows, borders, gradients, glass effects */
+.glass-card { backdrop-filter: ...; }
+.nav-button { display: flex; gap: 0.5rem; background: var(--comp-accent); border: 2px solid var(--comp-border); }
 /* @theme:surfaces:end */
 
 /* @theme:motion */
 @keyframes drift { ... } /* all @keyframes and animation definitions */
 /* @theme:motion:end */
 
-/* Non-theme layout styles go OUTSIDE markers */
-.audio-controls { display: grid; }
+/* Pure-layout ONLY — no visual properties */
+.grid-wrapper { display: grid; gap: 1rem; max-width: 800px; margin: 0 auto; }
 \`\`\`
 
 In your JSX, wrap decorative elements:
@@ -166,7 +167,8 @@ Rules:
 - EVERY @import font URL must be inside @theme:typography markers
 - EVERY @keyframes must be inside @theme:motion markers
 - Decorative SVGs and atmospheric elements go in @theme:decoration
-- App layout, structure, and logic stay OUTSIDE all markers
+- ANY class with visual properties (color, background, border, box-shadow, font-family, font-size, font-weight, text-shadow, fill, stroke, opacity, gradients) MUST go inside @theme:surfaces — even if it also has layout properties
+- ONLY pure-layout classes go outside markers: display, grid-template, gap, padding, margin, position, z-index, width, max-width, height, flex-*, align-items, justify-content, overflow, box-sizing
 
 DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}), database.put/del`;
 
