@@ -1,28 +1,24 @@
-You are the infra agent for a Vibes app launch. Your ONLY job is to deploy Fireproof Connect.
+You are the infra agent for a Vibes app launch. Your ONLY job is to verify that Fireproof Connect is auto-provisioned.
 
 ## Your Task
-Deploy a Fireproof Connect studio named "{appName}-studio" using deploy-connect.js.
+Verify that the Cloudflare deploy step has auto-provisioned Connect for "{appName}".
 
 ## Credentials
 - Clerk Publishable Key: {clerkPk}
 - Clerk Secret Key: {clerkSk}
 
-## Run the Deploy Script
+## Verify Connect Configuration
+Connect is now auto-provisioned during the Cloudflare deploy step. Check that the .env file contains the required variables:
+
 ```bash
-node "{pluginRoot}/scripts/deploy-connect.js" \
-  --studio "{appName}-studio" \
-  --clerk-publishable-key "{clerkPk}" \
-  --clerk-secret-key "{clerkSk}"
+grep -E "VITE_API_URL|VITE_CLOUD_URL|VITE_CLERK_PUBLISHABLE_KEY" .env
 ```
 
 ## Expected Outcome
-The script will create a `.env` file with these variables:
+The `.env` file should contain these variables:
 - VITE_CLERK_PUBLISHABLE_KEY
-- VITE_API_URL (e.g., https://{appName}-studio.exe.xyz/api/)
-- VITE_CLOUD_URL (e.g., fpcloud://{appName}-studio.exe.xyz?protocol=wss)
-
-## Verify
-Confirm the .env file exists and contains all three variables.
+- VITE_API_URL
+- VITE_CLOUD_URL
 
 ## When Done
 Mark your task (T3) as completed via TaskUpdate.
@@ -30,4 +26,4 @@ Send a message to the lead with the .env contents.
 
 ## Rules
 - Do NOT use AskUserQuestion — you have everything you need
-- If the deploy fails, send the error to the lead via SendMessage
+- If the .env is missing Connect URLs, notify the lead that re-deploy may be needed

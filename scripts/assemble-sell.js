@@ -363,14 +363,14 @@ console.log(`
 
 This is a client-side only SaaS app. No backend server required.
 
-STEP 1: DEPLOY TO exe.dev
-─────────────────────────
+STEP 1: DEPLOY TO CLOUDFLARE WORKERS
+─────────────────────────────────────
 
-  Run /vibes:exe to deploy to exe.dev, or manually:
+  Run /vibes:cloudflare to deploy, or manually:
 
-  node "\${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name ${appName} --file index.html
-
-  Your app will be live at: https://${appName}.exe.xyz
+  node "\${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \\
+    --name ${appName} --file index.html \\
+    --clerk-key pk_test_YOUR_KEY --webhook-secret whsec_YOUR_SECRET
 
 STEP 2: SET UP CLERK (REQUIRED BEFORE TESTING)
 ───────────────────────────────────────────────
@@ -399,21 +399,15 @@ STEP 2: SET UP CLERK (REQUIRED BEFORE TESTING)
 STEP 3: SET UP DNS (Required for custom domains)
 ─────────────────────────────────────────────────
 
-  Configure your DNS provider with these records:
+  The app is immediately available at the Workers URL.
+  For a custom domain, configure in Cloudflare dashboard:
 
-  ┌────────┬──────┬─────────────────────────┐
-  │ Type   │ Name │ Value                   │
-  ├────────┼──────┼─────────────────────────┤
-  │ ALIAS  │ @    │ exe.xyz                 │
-  │ CNAME  │ *    │ ${appName}.exe.xyz      │
-  └────────┴──────┴─────────────────────────┘
+  Workers & Pages → your worker → Settings → Domains & Routes
 
-  This routes both apex (${domain}) and wildcards
-  (*.${domain}) through exe.dev's proxy, which
-  handles SSL termination automatically.
+  For wildcard subdomains (*.${domain}), add a wildcard route.
 
-  Note: If your DNS provider doesn't support ALIAS,
-  use ?subdomain= query parameters instead.
+  Note: Until a custom domain with wildcard SSL is configured,
+  use ?subdomain= query parameters for tenant routing.
 
 STEP 4: CONFIGURE BILLING (if --billing-mode required)
 ───────────────────────────────────────────────────────

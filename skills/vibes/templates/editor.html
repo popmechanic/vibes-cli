@@ -2379,9 +2379,9 @@
         <!-- Advanced: raw URLs -->
         <div id="studioAdvanced" style="display:none;">
           <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">API URL</label>
-          <input class="wizard-input" id="wizardApiUrl" type="text" placeholder="https://my-studio.exe.xyz/api/" oninput="validateAdvancedUrls()" />
+          <input class="wizard-input" id="wizardApiUrl" type="text" placeholder="https://my-studio.example.com/api/" oninput="validateAdvancedUrls()" />
           <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Cloud URL</label>
-          <input class="wizard-input" id="wizardCloudUrl" type="text" placeholder="fpcloud://my-studio.exe.xyz?protocol=wss" oninput="validateAdvancedUrls()" />
+          <input class="wizard-input" id="wizardCloudUrl" type="text" placeholder="fpcloud://my-studio.example.com?protocol=wss" oninput="validateAdvancedUrls()" />
         </div>
 
         <div class="setup-actions" style="margin-top:1rem;">
@@ -2776,13 +2776,12 @@
   let isThinking = false;
   let themes = [];
   let currentPhase = 'loading';
-  let deployTargets = { cloudflare: false, exe: false };
+  let deployTargets = { cloudflare: false };
   let pendingThemeId = null;
   let currentThemeId = null;
   let currentAppName = null;
   let wizardStep = 1;
   let wizardData = { clerkKey: '', clerkSecret: '', studioName: '', apiUrl: '', cloudUrl: '', openRouterKey: '' };
-  let sshAvailable = false;
   let studioCheckTimer = null;
   let studioMode = 'existing';
 
@@ -2986,13 +2985,6 @@
                 <div class="deploy-option-detail" id="deployCfDetail">Checking...</div>
               </div>
             </button>
-            <button class="deploy-option" id="deployExe" onclick="startDeploy('exe')" disabled>
-              <span class="deploy-option-icon">&#128421;</span>
-              <div>
-                <div>exe.dev VM</div>
-                <div class="deploy-option-detail" id="deployExeDetail">Checking...</div>
-              </div>
-            </button>
           </div>
         </div>`;
       updateDeployButtons();
@@ -3160,11 +3152,9 @@
       { key: 'connect', label: 'Connect Studio', detail: status.connect?.detail || '', required: true },
       { key: 'openrouter', label: 'OpenRouter API key', detail: status.openrouter?.detail || '', required: false },
       { key: 'wrangler', label: 'Cloudflare (wrangler)', detail: status.wrangler?.detail || '', required: false },
-      { key: 'ssh', label: 'exe.dev SSH', detail: status.ssh?.detail || '', required: false },
     ];
 
     deployTargets.cloudflare = status.wrangler?.ok || false;
-    deployTargets.exe = status.ssh?.ok || false;
 
     const requiredOk = items.filter(i => i.required).every(i => status[i.key]?.ok);
     const allOk = items.every(i => status[i.key]?.ok);
@@ -3450,7 +3440,6 @@
         throw new Error(errMsg);
       }
       deployTargets.cloudflare = data.status?.wrangler?.ok || false;
-      deployTargets.exe = data.status?.ssh?.ok || false;
       goToGenerate();
     } catch (err) {
       btn.disabled = false;
@@ -3925,18 +3914,11 @@
 
   function updateDeployButtons() {
     const cfBtn = document.getElementById('deployCf');
-    const exeBtn = document.getElementById('deployExe');
     if (cfBtn) {
       cfBtn.disabled = !deployTargets.cloudflare;
       const cfDetail = document.getElementById('deployCfDetail');
       cfDetail.textContent = deployTargets.cloudflare ? 'Ready' : 'wrangler not configured';
       cfDetail.classList.toggle('ready', deployTargets.cloudflare);
-    }
-    if (exeBtn) {
-      exeBtn.disabled = !deployTargets.exe;
-      const exeDetail = document.getElementById('deployExeDetail');
-      exeDetail.textContent = deployTargets.exe ? 'Ready' : 'SSH not configured';
-      exeDetail.classList.toggle('ready', deployTargets.exe);
     }
   }
 
@@ -3954,8 +3936,7 @@
       // Refresh deploy status
       fetch('/editor/status').then(r => r.json()).then(status => {
         deployTargets.cloudflare = status.wrangler?.ok || false;
-        deployTargets.exe = status.ssh?.ok || false;
-        updateDeployButtons();
+            updateDeployButtons();
       }).catch(() => {});
     }
   }
@@ -3971,7 +3952,7 @@
     }
     nameInput.style.borderColor = 'var(--vibes-near-black)';
     document.getElementById('deployMenu').classList.remove('open');
-    addMessage('user', 'Deploy "' + name + '" to ' + (target === 'cloudflare' ? 'Cloudflare Workers' : 'exe.dev'));
+    addMessage('user', 'Deploy "' + name + '" to Cloudflare Workers');
     ws.send(JSON.stringify({ type: 'deploy', target, name }));
   }
 
@@ -5285,17 +5266,7 @@
 
   // Check status → decide setup wizard vs generate
   fetch('/editor/status').then(r => r.json()).then(status => {
-    sshAvailable = status.ssh?.ok || false;
     deployTargets.cloudflare = status.wrangler?.ok || false;
-    deployTargets.exe = status.ssh?.ok || false;
-
-    // Disable deploy radio if SSH not available
-    const deployRadio = document.getElementById('wizardDeployRadio');
-    if (deployRadio && !sshAvailable) {
-      deployRadio.classList.add('disabled');
-      deployRadio.title = 'SSH to exe.dev not available';
-      deployRadio.querySelector('input').disabled = true;
-    }
 
     if (status.clerk?.ok && status.connect?.ok) {
       // Credentials present → stay in generate phase

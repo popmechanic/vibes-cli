@@ -442,7 +442,7 @@ The template uses neutral colors by default. To match the user's brand:
 
 ## Step 5: Deployment
 
-**Deploy Target: Cloudflare Workers.** SaaS apps always deploy to Cloudflare Workers (not exe.dev). The KV registry and subdomain routing require the CF Worker runtime.
+**Deploy Target: Cloudflare Workers.** SaaS apps always deploy to Cloudflare Workers. The KV registry and subdomain routing require the CF Worker runtime.
 
 **Registry server credentials are REQUIRED for SaaS apps.**
 
