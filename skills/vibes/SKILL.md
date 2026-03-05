@@ -24,7 +24,7 @@ metadata:
 ## Quick Navigation
 
 - [Terminal or Editor](#step-0-terminal-or-editor-ui) - Choose how to build (ask first!)
-- [Pre-Flight Check](#pre-flight-check-connect-status) - Validate Connect setup before coding
+- [Pre-Flight Check](#pre-flight-check) - Validate credentials before coding
 - [Core Rules](#core-rules) - Essential guidelines for app generation
 - [Generation Process](#generation-process) - Design reasoning and code output
 - [Assembly Workflow](#assembly-workflow) - Build the final app
@@ -44,7 +44,7 @@ Generate React web applications using Fireproof for local-first data persistence
 
 **This is the very first question — ask before anything else.**
 **DO NOT check .env, credentials, or project state before asking this question.**
-**DO NOT invoke /vibes:connect or any other skill before asking this question.**
+**DO NOT invoke any other skill before asking this question.**
 **If Editor is chosen, skip ALL pre-flight checks — the editor handles everything.**
 
 Ask the user:
@@ -76,27 +76,24 @@ Present Editor as the first/recommended option.
 
 ---
 
-## Pre-Flight Check: Connect Status
+## Pre-Flight Check
 
 **MANDATORY: Complete these steps BEFORE generating any app code.**
 
-Run this command first to validate all required credentials:
+- Clerk publishable key must be available (in .env or provided during deploy)
+- Connect deploys automatically on first app deploy — no manual setup needed
+
+Run this command to check for existing credentials:
 ```bash
 if test -f "./.env" && \
-   grep -qE "^VITE_CLERK_PUBLISHABLE_KEY=pk_(test|live)_" ./.env 2>/dev/null && \
-   grep -qE "^VITE_API_URL=" ./.env 2>/dev/null && \
-   grep -qE "^VITE_CLOUD_URL=" ./.env 2>/dev/null; then
-  echo "CONNECT_READY"
+   grep -qE "^VITE_CLERK_PUBLISHABLE_KEY=pk_(test|live)_" ./.env 2>/dev/null; then
+  echo "CREDENTIALS_READY"
 else
-  echo "CONNECT_NOT_READY"
+  echo "CREDENTIALS_NOT_READY"
 fi
 ```
 
-**If output is "CONNECT_NOT_READY"**, Connect setup is required:
-
-> Connect with Clerk authentication is required for Vibes apps.
-
-Invoke `/vibes:connect` to deploy Connect, then return here when complete.
+**If output is "CREDENTIALS_NOT_READY"**, Clerk credentials are needed. Ask the user for their Clerk Publishable Key before proceeding.
 
 **Platform Name vs User Intent**: "Vibes" is the name of this app platform (Vibes DIY). When users say "vibe" or "vibes" in their prompt, interpret it as:
 - Their project/brand name ("my vibes tracker")
@@ -810,4 +807,4 @@ Options:
 - "I'm done" → Confirm files saved, wish them well
 
 **Do NOT proceed to code generation until:**
-Connect setup is complete with valid Clerk credentials in .env (pre-flight check returns CONNECT_READY).
+Clerk credentials are available (pre-flight check returns CREDENTIALS_READY).

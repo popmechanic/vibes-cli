@@ -105,7 +105,7 @@ Detect whether you're running in a terminal (Claude Code CLI, Codex) or an edito
 cat .env 2>/dev/null | grep VITE_API_URL || echo "NOT_FOUND"
 ```
 
-**If `NOT_FOUND`:** Run `/vibes:connect` first.
+**If `NOT_FOUND`:** Provide Clerk keys. Connect deploys automatically on first app deploy.
 **STOP HERE** if Connect is not configured.
 
 ### 1.2 Detect Existing App
@@ -332,7 +332,7 @@ Before running assembly, verify the .env file exists:
 test -f .env && echo "OK" || echo "MISSING"
 ```
 
-**If MISSING:** Stop and run `/vibes:connect` first.
+**If MISSING:** Ensure Clerk keys are configured. Connect is auto-deployed with the app.
 
 ### 4.2 Update App for Tenant Context
 
@@ -737,7 +737,7 @@ The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk i
 
 ### Assembly fails with ".env file not found"
 - Fireproof Connect is not configured
-- Run `/vibes:connect` first to set up your sync backend
+- Connect is auto-deployed when you first deploy to Cloudflare
 - Then return to `/vibes:sell`
 
 ### PricingTable not showing on landing page

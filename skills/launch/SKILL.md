@@ -35,7 +35,7 @@ For architecture context, see `LAUNCH-REFERENCE.md` in this directory.
 
 **This is the very first question — ask before anything else.**
 **DO NOT check .env, credentials, or project state before asking this question.**
-**DO NOT invoke /vibes:connect or any other skill before asking this question.**
+**DO NOT invoke any other skill before asking this question.**
 **If Editor is chosen, skip ALL pre-flight checks — the editor handles everything.**
 
 Ask the user:
@@ -73,11 +73,11 @@ Run all five checks before collecting any input:
 
 | # | Check | Command | If True |
 |---|-------|---------|---------|
-| 1 | .env has Clerk keys + Connect URLs | `grep -qE '^VITE_CLERK_PUBLISHABLE_KEY=pk_' .env && grep -qE '^VITE_API_URL=' .env && grep -qE '^VITE_CLOUD_URL=' .env` | Set `CONNECT_READY`. Read .env for clerkPk. Skip T2, T3, infra spawn. |
+| 1 | .env has Clerk keys | `grep -qE '^VITE_CLERK_PUBLISHABLE_KEY=pk_' .env` | Set `CLERK_READY`. Read .env for clerkPk. Skip T2. Connect auto-deploys with app. |
 | 2 | .env has admin user ID | `grep CLERK_ADMIN_USER_ID .env` | Store value. Skip Phase 3. |
 | 3 | app.jsx exists | `test -f app.jsx` | **Ask [Reuse]**: "app.jsx exists. Reuse it or regenerate?" If reuse: skip T1. |
 | 4 | Wrangler authenticated | `npx wrangler whoami 2>&1` | If NOT authenticated: tell user to run `npx wrangler login` and wait. |
-| 5 | SSH key exists | `ls ~/.ssh/id_ed25519 ~/.ssh/id_rsa ~/.ssh/id_ecdsa 2>/dev/null` | If missing AND not CONNECT_READY: warn about Connect deploy. |
+| 5 | SSH key exists | `ls ~/.ssh/id_ed25519 ~/.ssh/id_rsa ~/.ssh/id_ecdsa 2>/dev/null` | Optional — not required for Cloudflare deploy. |
 
 ## Phase 0: Collect Inputs
 
@@ -127,7 +127,7 @@ Theme switching is handled by the live preview wrapper, not inside the app. The 
 
 1. Resolve plugin root: `printenv CLAUDE_PLUGIN_ROOT` → store as `pluginRoot`
 2. Create team: `TeamCreate("launch-{appName}", "Full SaaS pipeline for {appName}")`
-3. Create all tasks per the table in LAUNCH-REFERENCE.md. If `CONNECT_READY`: mark T2+T3 completed immediately.
+3. Create all tasks per the table in LAUNCH-REFERENCE.md. If `CLERK_READY`: mark T2 completed immediately.
 
 ### 1.2 Spawn Builder (T1)
 
@@ -138,7 +138,7 @@ Theme switching is handled by the live preview wrapper, not inside the app. The 
 
 ### 1.3 Clerk Credentials (T2) — simultaneous with builder
 
-**Skip entirely if CONNECT_READY.**
+**Skip entirely if CLERK_READY.**
 
 **Ask [Clerk app]**: "Do you have a Clerk app configured?"
 - "I have one ready" — Already has passkeys and email auth
@@ -169,15 +169,7 @@ PEMEOF
 
 Mark T2 completed.
 
-### 1.4 Spawn Infra (T3) — after T2 completes
-
-**Skip if CONNECT_READY.**
-
-1. Read `${CLAUDE_SKILL_DIR}/prompts/infra.md`
-2. Substitute: `{appName}`, `{pluginRoot}`, `{clerkPk}`, `{clerkSk}`
-3. Spawn: Task tool, `team_name="launch-{appName}"`, `name="infra"`, `subagent_type="general-purpose"`
-
-### 1.5 Sell Config (T4) — while infra deploys
+### 1.4 Sell Config (T4) — while builder generates
 
 **Sell config is collected here but applied later by invoking `/vibes:sell` (or its assembly script) as an atomic step.** Do NOT hand-implement SaaS logic — the sell skill handles tenant routing, auth gating, billing, and admin setup.
 
@@ -207,7 +199,7 @@ Store: `billingMode` ("off"/"required"), `appTitle`, `tagline`, `subtitle`, `fea
 
 ## Phase 2: Assembly & Deploy
 
-**Blocked by T1 + T3 + T4.** Check TaskList until all complete.
+**Blocked by T1 + T2 + T4.** Check TaskList until all complete.
 
 ### 2.1 Verify Inputs
 
@@ -313,7 +305,7 @@ Mark T7 completed. If broken, ask what's wrong and troubleshoot.
 
 ### 4.2 Shutdown
 
-Send `shutdown_request` to "builder" and "infra" (if spawned). Wait for responses. Clean up team.
+Send `shutdown_request` to "builder" (if spawned). Wait for response. Clean up team.
 
 ### 4.3 Summary
 
@@ -323,12 +315,11 @@ Send `shutdown_request` to "builder" and "infra" (if spawned). Wait for response
 **App**: {appTitle}
 **URL**: https://{domain}
 **Clerk**: {clerkPk}
-**Connect**: {studioUrl}
 **Billing**: {billingMode}
 
 ### What's deployed:
 - Cloudflare Worker with KV registry
-- Fireproof Connect studio for real-time sync
+- Fireproof Connect (auto-provisioned with app) for real-time sync
 - Clerk authentication with passkeys
 - Subdomain-based multi-tenancy
 
@@ -344,7 +335,6 @@ Send `shutdown_request` to "builder" and "infra" (if spawned). Wait for response
 | Failure | Recovery |
 |---------|----------|
 | Builder generates invalid JSX | Read app.jsx, fix TS syntax / wrong hooks, re-save |
-| Connect deploy fails | Infra reports via SendMessage. Present error + fix steps |
 | Assembly has placeholders | Check .env for missing values, re-run assembly |
 | Cloudflare deploy fails | Check `npx wrangler whoami`. Guide `npx wrangler login` if needed |
 | Wrangler secret put fails | Retry. If persistent, have user run manually |
