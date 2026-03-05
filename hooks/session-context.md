@@ -62,9 +62,7 @@ When user intent matches a row below, invoke it via the Skill tool
 | "build an app", "create a...", "make me a..." | `/vibes:vibes` |
 | "explore ideas", "give me variations", "riff on this" | `/vibes:riff` |
 | "monetize", "add billing", "make it SaaS", "multi-tenant" | `/vibes:sell` |
-| "deploy" / "put it online" (exe.dev) | `/vibes:exe` |
-| "deploy to cloudflare" / "workers" | `/vibes:cloudflare` |
-| "set up sync" / "Connect" / "cloud backend" | `/vibes:connect` |
+| "deploy" / "put it online" | `/vibes:cloudflare` |
 | design.html or mockup provided | `/vibes:design` |
 | "launch a SaaS" (full end-to-end pipeline) | `/vibes:launch` |
 | "test the plugin" / "integration test" | `/vibes:test` |
@@ -76,8 +74,8 @@ If Editor is chosen, start preview-server.js and STOP — the editor handles eve
 including credentials. Do NOT check .env or credentials before asking this question.
 
 .env checks only apply to Terminal mode. If the user chooses Terminal:
-.env with Clerk keys + Connect URLs must exist before generating apps.
-If missing, invoke `/vibes:connect` first.
+Clerk keys must exist before generating apps.
+Connect deploys automatically on first app deploy to Cloudflare.
 
 generate app.jsx → assemble into index.html → deploy → verify in browser
 
