@@ -39,6 +39,7 @@ export async function runClaude(prompt, opts = {}, onEvent) {
       outputFormat: 'stream-json',
       maxTurns: opts.maxTurns,
       model: opts.model,
+      tools: opts.tools,
     });
 
     console.log(`[Claude] Spawning (prompt: ${(prompt.length / 1024).toFixed(1)}KB)...`);

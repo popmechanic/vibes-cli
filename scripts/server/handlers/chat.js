@@ -167,7 +167,7 @@ RULES:
 - Never change Fireproof document types or query filters`;
 
   const maxTurns = (animationId || effects.length > 0 || reference) ? 12 : 8;
-  await runClaude(prompt, { maxTurns, model, cwd: ctx.projectRoot }, onEvent);
+  await runClaude(prompt, { maxTurns, model, cwd: ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent);
 
   sanitizeAppJsx(ctx.projectRoot);
 }

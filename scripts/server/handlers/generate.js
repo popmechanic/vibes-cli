@@ -229,7 +229,7 @@ DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}),
 
   const maxTurns = reference ? 8 : 5;
   console.log(`[Generate] Starting — theme: ${themeId} (${themeName}), prompt: ${(prompt.length / 1024).toFixed(1)}KB${reference ? `, ref: ${reference.name} (${reference.intent})` : ''}`);
-  await runClaude(prompt, { skipChat: true, maxTurns, model, cwd: ctx.projectRoot }, onEvent);
+  await runClaude(prompt, { skipChat: true, maxTurns, model, cwd: ctx.projectRoot, tools: 'Write' }, onEvent);
 
   sanitizeAppJsx(ctx.projectRoot);
 }
