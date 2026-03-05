@@ -241,4 +241,32 @@ describe('cleanEnv', () => {
     delete process.env.CLAUDECODE;
     delete process.env.CLAUDE_CODE_ENTRYPOINT;
   });
+
+  it('removes CMUX nesting vars when CMUX_SURFACE_ID is present', () => {
+    process.env.CMUX_SURFACE_ID = 'surface-1';
+    process.env.CMUX_PANEL_ID = 'panel-1';
+    process.env.CMUX_TAB_ID = 'tab-1';
+    process.env.CMUX_WORKSPACE_ID = 'ws-1';
+    process.env.CMUX_SOCKET_PATH = '/tmp/cmux.sock';
+    const env = cleanEnv();
+    expect(env).not.toHaveProperty('CMUX_SURFACE_ID');
+    expect(env).not.toHaveProperty('CMUX_PANEL_ID');
+    expect(env).not.toHaveProperty('CMUX_TAB_ID');
+    expect(env).not.toHaveProperty('CMUX_WORKSPACE_ID');
+    expect(env).not.toHaveProperty('CMUX_SOCKET_PATH');
+    // Cleanup
+    delete process.env.CMUX_SURFACE_ID;
+    delete process.env.CMUX_PANEL_ID;
+    delete process.env.CMUX_TAB_ID;
+    delete process.env.CMUX_WORKSPACE_ID;
+    delete process.env.CMUX_SOCKET_PATH;
+  });
+
+  it('does not touch CMUX vars when CMUX_SURFACE_ID is absent', () => {
+    delete process.env.CMUX_SURFACE_ID;
+    process.env.CMUX_PANEL_ID = 'panel-stale';
+    const env = cleanEnv();
+    expect(env).toHaveProperty('CMUX_PANEL_ID', 'panel-stale');
+    delete process.env.CMUX_PANEL_ID;
+  });
 });

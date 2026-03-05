@@ -86,5 +86,14 @@ export function cleanEnv() {
   const env = { ...process.env };
   delete env.CLAUDECODE;
   delete env.CLAUDE_CODE_ENTRYPOINT;
+  // cmux terminal sets CMUX_* vars that trigger nesting detection.
+  // These are terminal-state identifiers, not auth tokens — safe to remove.
+  if (env.CMUX_SURFACE_ID) {
+    delete env.CMUX_SURFACE_ID;
+    delete env.CMUX_PANEL_ID;
+    delete env.CMUX_TAB_ID;
+    delete env.CMUX_WORKSPACE_ID;
+    delete env.CMUX_SOCKET_PATH;
+  }
   return env;
 }
