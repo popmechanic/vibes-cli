@@ -45,15 +45,13 @@ Present Editor as the first/recommended option.
 
 - **If Editor**: Start the editor server and **END YOUR TURN. Do not ask any more questions. Do not continue to Phase 0 or any phase below.** The editor UI handles the entire workflow — setup, generation, preview, deploy.
 
-  Resolve the plugin root first, then launch:
+  Launch the editor server:
   ```bash
-  PLUGIN_ROOT=$(find ~/.claude/plugins/cache/vibes-cli -name "preview-server.js" -path "*/scripts/*" 2>/dev/null | head -1 | xargs dirname)
-  node "${PLUGIN_ROOT}/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
   ```
   If no prompt was given, omit `--prompt`:
   ```bash
-  PLUGIN_ROOT=$(find ~/.claude/plugins/cache/vibes-cli -name "preview-server.js" -path "*/scripts/*" 2>/dev/null | head -1 | xargs dirname)
-  node "${PLUGIN_ROOT}/preview-server.js" --mode=editor
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor
   ```
   Tell the user: "Open http://localhost:3333 — the editor handles everything from here."
   **Your job is done. Stop. Do not read further. Do not proceed to any phase below.**
@@ -133,7 +131,7 @@ Theme switching is handled by the live preview wrapper, not inside the app. The 
 
 ### 1.2 Spawn Builder (T1)
 
-1. Read `{pluginRoot}/skills/launch/prompts/builder.md`
+1. Read `${CLAUDE_SKILL_DIR}/prompts/builder.md`
 2. Substitute: `{appPrompt}`, `{appName}`, `{pluginRoot}`
 3. Set `{aiInstructions}`: if `openRouterKey` is set, add rule about `useAI` hook (see vibes SKILL.md "AI Features"). If null, leave empty.
 4. Spawn: Task tool, `team_name="launch-{appName}"`, `name="builder"`, `subagent_type="general-purpose"`
@@ -175,7 +173,7 @@ Mark T2 completed.
 
 **Skip if CONNECT_READY.**
 
-1. Read `{pluginRoot}/skills/launch/prompts/infra.md`
+1. Read `${CLAUDE_SKILL_DIR}/prompts/infra.md`
 2. Substitute: `{appName}`, `{pluginRoot}`, `{clerkPk}`, `{clerkSk}`
 3. Spawn: Task tool, `team_name="launch-{appName}"`, `name="infra"`, `subagent_type="general-purpose"`
 

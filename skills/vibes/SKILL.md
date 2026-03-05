@@ -54,15 +54,13 @@ Present Editor as the first/recommended option.
 
 - **If Editor**: Start the editor server and **END YOUR TURN. Do not ask any more questions. Do not continue to Pre-Flight Check or any step below.** The editor UI handles the entire workflow — setup, generation, preview, deploy.
 
-  Resolve the plugin root first, then launch:
+  Launch the editor server:
   ```bash
-  PLUGIN_ROOT=$(find ~/.claude/plugins/cache/vibes-cli -name "preview-server.js" -path "*/scripts/*" 2>/dev/null | head -1 | xargs dirname)
-  node "${PLUGIN_ROOT}/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
   ```
   If no prompt was given, omit `--prompt`:
   ```bash
-  PLUGIN_ROOT=$(find ~/.claude/plugins/cache/vibes-cli -name "preview-server.js" -path "*/scripts/*" 2>/dev/null | head -1 | xargs dirname)
-  node "${PLUGIN_ROOT}/preview-server.js" --mode=editor
+  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor
   ```
   Tell the user: "Open http://localhost:3333 — the editor handles everything from here."
   **Your job is done. Stop. Do not read further. Do not proceed to any step below.**
@@ -162,14 +160,14 @@ The token catalog defines all available CSS custom properties: `colors`, `radius
 
 **Read the theme catalog FIRST** (it's small — just descriptions, not full theme files):
 ```
-Read file: ${CLAUDE_PLUGIN_ROOT}/skills/vibes/themes/catalog.txt
+Read file: ${CLAUDE_SKILL_DIR}/themes/catalog.txt
 ```
 
 Pick **1 theme** based on the app's content type and purpose, using each theme's BEST FOR and NOT FOR lists. If the user explicitly requests a specific theme, always follow their choice.
 
 **ONLY THEN read the theme file you selected:**
 ```
-Read file: ${CLAUDE_PLUGIN_ROOT}/skills/vibes/themes/{selected-theme}.txt
+Read file: ${CLAUDE_SKILL_DIR}/themes/{selected-theme}.txt
 ```
 
 **Each theme file provides:**
@@ -763,8 +761,8 @@ The shipped default files contain detailed reference material. Read them when th
 | File uploads | "upload", "images", "photos", "attachments" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Working with Images" |
 | Auth / sync config | "Clerk", "Connect", "cloud sync", "login" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "ClerkFireproofProvider Config" |
 | Sync status display | "online/offline", "connection status" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Sync Status Display" |
-| Full Neobrute design details | detailed design system, spacing, typography | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/defaults/style-prompt.txt` |
-| Advanced visual effects | "interactive", "animated", "3D", "particles", "shader", "canvas" | `${CLAUDE_PLUGIN_ROOT}/skills/vibes/defaults/advanced-effects-prompt.txt` |
+| Full Neobrute design details | detailed design system, spacing, typography | `${CLAUDE_SKILL_DIR}/defaults/style-prompt.txt` |
+| Advanced visual effects | "interactive", "animated", "3D", "particles", "shader", "canvas" | `${CLAUDE_SKILL_DIR}/defaults/advanced-effects-prompt.txt` |
 
 ---
 
