@@ -33,11 +33,11 @@ describe('buildClaudeArgs', () => {
       expect(args).toContain('--no-session-persistence');
     });
 
-    it('includes --permission-mode bypassPermissions', () => {
+    it('includes --permission-mode dontAsk', () => {
       const args = buildClaudeArgs();
       const idx = args.indexOf('--permission-mode');
       expect(idx).toBeGreaterThan(-1);
-      expect(args[idx + 1]).toBe('bypassPermissions');
+      expect(args[idx + 1]).toBe('dontAsk');
     });
   });
 
@@ -144,25 +144,36 @@ describe('buildClaudeArgs', () => {
     });
   });
 
-  describe('bypassPermissions', () => {
-    it('omits --permission-mode when bypassPermissions is false', () => {
-      const args = buildClaudeArgs({ bypassPermissions: false });
-      expect(args).not.toContain('--permission-mode');
-      expect(args).not.toContain('bypassPermissions');
+  describe('permission mode', () => {
+    it('defaults to dontAsk when permissionMode is omitted', () => {
+      const args = buildClaudeArgs({});
+      const idx = args.indexOf('--permission-mode');
+      expect(idx).toBeGreaterThan(-1);
+      expect(args[idx + 1]).toBe('dontAsk');
     });
 
-    it('includes --permission-mode bypassPermissions when bypassPermissions is true', () => {
+    it('uses specified permissionMode', () => {
+      const args = buildClaudeArgs({ permissionMode: 'bypassPermissions' });
+      const idx = args.indexOf('--permission-mode');
+      expect(idx).toBeGreaterThan(-1);
+      expect(args[idx + 1]).toBe('bypassPermissions');
+    });
+
+    it('omits --permission-mode when permissionMode is false', () => {
+      const args = buildClaudeArgs({ permissionMode: false });
+      expect(args).not.toContain('--permission-mode');
+    });
+
+    it('backward compat: bypassPermissions true maps to bypassPermissions mode', () => {
       const args = buildClaudeArgs({ bypassPermissions: true });
       const idx = args.indexOf('--permission-mode');
       expect(idx).toBeGreaterThan(-1);
       expect(args[idx + 1]).toBe('bypassPermissions');
     });
 
-    it('includes --permission-mode bypassPermissions when bypassPermissions is omitted', () => {
-      const args = buildClaudeArgs({});
-      const idx = args.indexOf('--permission-mode');
-      expect(idx).toBeGreaterThan(-1);
-      expect(args[idx + 1]).toBe('bypassPermissions');
+    it('backward compat: bypassPermissions false omits --permission-mode', () => {
+      const args = buildClaudeArgs({ bypassPermissions: false });
+      expect(args).not.toContain('--permission-mode');
     });
   });
 });

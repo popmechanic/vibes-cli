@@ -25,7 +25,7 @@ export const TASK_PROFILES = {
  * Enforces:
  * - `--verbose` when outputFormat is `stream-json` (required by Claude CLI)
  * - `--no-session-persistence` by default (opt out with sessionPersistence: true)
- * - `--permission-mode bypassPermissions` by default (opt out with bypassPermissions: false)
+ * - `--permission-mode dontAsk` by default (override with permissionMode: 'bypassPermissions')
  * - `-p -` always present (stdin piping)
  *
  * @param {object} config
@@ -35,7 +35,8 @@ export const TASK_PROFILES = {
  * @param {string[]} [config.addDirs] - additional --add-dir paths
  * @param {string} [config.tools] - --allowedTools value (omit for unrestricted)
  * @param {boolean} [config.sessionPersistence=false] - set true to allow session persistence
- * @param {boolean} [config.bypassPermissions=true] - set false to use default permission mode
+ * @param {string|false} [config.permissionMode='dontAsk'] - permission mode string, or false to omit flag
+ * @param {boolean} [config.bypassPermissions] - deprecated: use permissionMode instead
  * @returns {string[]} CLI args array
  */
 export function buildClaudeArgs(config = {}) {
@@ -71,8 +72,17 @@ export function buildClaudeArgs(config = {}) {
     args.push('--no-session-persistence');
   }
 
-  if (config.bypassPermissions !== false) {
-    args.push('--permission-mode', 'bypassPermissions');
+  // Permission mode: default to dontAsk (auto-deny unallowed tools).
+  // Pass permissionMode: 'bypassPermissions' to skip all checks.
+  // Pass permissionMode: false to omit the flag entirely.
+  // Backward compat: bypassPermissions boolean still works.
+  const mode = config.permissionMode !== undefined
+    ? config.permissionMode
+    : (config.bypassPermissions === true ? 'bypassPermissions'
+       : config.bypassPermissions === false ? false
+       : 'dontAsk');
+  if (mode) {
+    args.push('--permission-mode', mode);
   }
 
   return args;
