@@ -24,6 +24,8 @@ import { createPublicKey } from "crypto";
 import { PLUGIN_ROOT } from "./lib/paths.js";
 import { loadEnvFile, extractClerkDomain } from "./lib/env-utils.js";
 import { validateName } from "./lib/deploy-utils.js";
+import { getApp, setApp, isFirstDeploy } from './lib/registry.js';
+import { deployConnect } from './lib/alchemy-deploy.js';
 const WORKER_DIR = resolve(PLUGIN_ROOT, "skills/cloudflare/worker");
 
 function run(cmd, options = {}) {
@@ -160,6 +162,60 @@ async function main() {
 
   console.log(`Deploying ${name} to Cloudflare Workers...`);
   console.log(`Plugin root: ${PLUGIN_ROOT}`);
+
+  // --- First-deploy detection ---
+  const firstDeploy = isFirstDeploy(name);
+
+  if (firstDeploy) {
+    console.log(`\nFirst deploy for "${name}" — provisioning paired Connect instance...`);
+
+    // Clerk key is required for Connect
+    if (!clerkKey) {
+      throw new Error(
+        'First deploy requires Clerk publishable key.\n' +
+        'Provide via --clerk-key flag or VITE_CLERK_PUBLISHABLE_KEY in .env'
+      );
+    }
+
+    const connectClerkSecret = envVars.CLERK_SECRET_KEY || null;
+    if (!connectClerkSecret) {
+      console.warn('No CLERK_SECRET_KEY in .env — Connect dashboard features may be limited.');
+    }
+
+    // Deploy Connect via alchemy
+    const connectResult = await deployConnect({
+      appName: name,
+      clerkPublishableKey: clerkKey,
+      clerkSecretKey: connectClerkSecret,
+      dryRun: args.includes('--dry-run')
+    });
+
+    // Write Connect metadata to registry
+    setApp(name, {
+      name,
+      clerk: {
+        publishableKey: clerkKey,
+        secretKey: connectClerkSecret || '',
+        domain: extractClerkDomain(clerkKey)
+      },
+      connect: {
+        ...connectResult,
+        deployedAt: new Date().toISOString()
+      }
+    });
+
+    // Log Connect URLs
+    console.log(`\nConnect URLs for ${name}:`);
+    console.log(`  API:   ${connectResult.apiUrl}`);
+    console.log(`  Cloud: ${connectResult.cloudUrl}`);
+
+  } else {
+    console.log(`\nUpdate deploy for "${name}" — using existing Connect instance.`);
+    const existing = getApp(name);
+    if (existing?.connect) {
+      console.log(`  Connect API: ${existing.connect.apiUrl}`);
+    }
+  }
 
   // Ensure public directory exists
   const publicDir = resolve(WORKER_DIR, "public");
@@ -362,6 +418,17 @@ async function main() {
   const urlMatch = deployOutput.match(/https:\/\/[^\s]+\.workers\.dev/);
   const deployedUrl = urlMatch ? urlMatch[0] : `https://${name}.workers.dev`;
   console.log(`\n✅ Deployed to ${deployedUrl}`);
+
+  // Update app metadata in registry
+  const appEntry = getApp(name) || { name };
+  setApp(name, {
+    ...appEntry,
+    app: {
+      workerName: name,
+      kvNamespaceId: kvId,
+      url: deployedUrl
+    }
+  });
 }
 
 main().catch((e) => {
