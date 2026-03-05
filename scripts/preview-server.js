@@ -24,15 +24,35 @@ import { setupWebSocket } from './server/ws-dispatch.js';
 import { wsAdapter } from './server/claude-bridge.js';
 import { killProcessOnPort, waitForPort } from './server/lifecycle.js';
 
+// --- Process-level safety nets ---
+process.on('uncaughtException', (err) => {
+  console.error('[Process] Uncaught exception:', err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Process] Unhandled rejection:', reason);
+});
+
 // --- Build context ---
 const ctx = loadConfig();
 
 // --- HTTP Server ---
-const server = createServer((req, res) => handleRequest(ctx, req, res));
+const server = createServer((req, res) => {
+  handleRequest(ctx, req, res).catch((err) => {
+    console.error('[HTTP] Unhandled error:', err);
+    if (!res.headersSent) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Internal server error' }));
+    }
+  });
+});
 
 // --- WebSocket Server ---
 const wss = new WebSocketServer({ server, maxPayload: 50 * 1024 * 1024 /* 50MB for image refs */ });
 setupWebSocket(wss, ctx, wsAdapter);
+wss.on('error', (err) => {
+  console.error('[WSS] Server error:', err);
+});
 
 // --- Start ---
 async function start() {
