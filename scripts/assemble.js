@@ -20,7 +20,7 @@ import { APP_PLACEHOLDER, validateAssembly, loadAndValidateTemplate } from './li
 import { stripForTemplate } from './lib/strip-code.js';
 
 
-function main() {
+async function main() {
   // Parse args
   const appPath = process.argv[2];
   const outputPath = process.argv[3] || 'index.html';
@@ -43,21 +43,36 @@ function main() {
   const template = loadAndValidateTemplate(templatePath, readFileSync);
   const appCode = readFileSync(resolvedAppPath, 'utf8').trim();
 
-  // Load env vars from .env if present (for Connect config)
+  // Load env vars — check .env first, registry as fallback
   const outputDir = dirname(resolvedOutputPath);
   const envVars = loadEnvFile(outputDir);
 
-  // Validate Connect credentials - fail fast if invalid
+  // If .env lacks Connect URLs, try global registry
+  if (!envVars.VITE_API_URL || !envVars.VITE_CLERK_PUBLISHABLE_KEY) {
+    const appName = process.argv[4] || null; // Optional: --app-name flag
+    if (appName) {
+      const { getApp } = await import('./lib/registry.js');
+      const app = getApp(appName);
+      if (app) {
+        envVars.VITE_CLERK_PUBLISHABLE_KEY = envVars.VITE_CLERK_PUBLISHABLE_KEY || app.clerk?.publishableKey;
+        envVars.VITE_API_URL = envVars.VITE_API_URL || app.connect?.apiUrl;
+        envVars.VITE_CLOUD_URL = envVars.VITE_CLOUD_URL || app.connect?.cloudUrl;
+        console.log(`Connect config: from registry (app: ${appName})`);
+      }
+    }
+  }
+
+  // Validate Connect credentials
   const hasValidConnect = validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY) &&
                           envVars.VITE_API_URL;
 
   if (!hasValidConnect) {
     throw new Error(
       'Valid Clerk credentials required.\n\n' +
-      'Expected in .env:\n' +
+      'Expected in .env or registry:\n' +
       '  VITE_CLERK_PUBLISHABLE_KEY=pk_test_... or pk_live_...\n' +
-      '  VITE_API_URL=http://localhost:8080/api/\n\n' +
-      'Run Connect setup before assembling apps.'
+      '  VITE_API_URL=https://...\n\n' +
+      'Deploy first to auto-configure Connect, or set up .env manually.'
     );
   }
 
@@ -102,9 +117,4 @@ function main() {
   console.log(`Created: ${resolvedOutputPath}`);
 }
 
-try {
-  main();
-} catch (err) {
-  console.error(err.message);
-  process.exit(1);
-}
+main().catch(e => { console.error(e.message); process.exit(1); });
