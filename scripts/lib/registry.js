@@ -112,6 +112,26 @@ export function isFirstDeploy(name) {
 }
 
 /**
+ * Validate a deployment name to prevent shell injection.
+ * Names must be lowercase alphanumeric with optional hyphens (not at start/end).
+ *
+ * @param {string} name - Name to validate
+ * @returns {string} The validated name
+ * @throws {Error} If name is invalid
+ */
+export function validateName(name) {
+  if (!name || typeof name !== 'string') {
+    throw new Error('Name is required and must be a non-empty string');
+  }
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(name)) {
+    throw new Error(
+      `Invalid name "${name}". Names must be lowercase alphanumeric with optional hyphens (not at start/end). Example: "my-app-123"`
+    );
+  }
+  return name;
+}
+
+/**
  * Transform an HTTPS cloud backend URL to fpcloud:// protocol URL.
  * Used for Cloudflare Workers-based Connect backends.
  *

@@ -23,8 +23,7 @@ import { resolve, join, basename, dirname } from "path";
 import { createPublicKey } from "crypto";
 import { PLUGIN_ROOT } from "./lib/paths.js";
 import { loadEnvFile, extractClerkDomain } from "./lib/env-utils.js";
-import { validateName } from "./lib/deploy-utils.js";
-import { getApp, setApp, isFirstDeploy } from './lib/registry.js';
+import { getApp, setApp, isFirstDeploy, validateName } from './lib/registry.js';
 import { deployConnect } from './lib/alchemy-deploy.js';
 const WORKER_DIR = resolve(PLUGIN_ROOT, "skills/cloudflare/worker");
 

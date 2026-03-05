@@ -211,6 +211,22 @@ describe('registry', () => {
     });
   });
 
+  describe('validateName', () => {
+    it('accepts valid names', () => {
+      expect(registry.validateName('my-app')).toBe('my-app');
+      expect(registry.validateName('a')).toBe('a');
+      expect(registry.validateName('app123')).toBe('app123');
+    });
+
+    it('rejects invalid names', () => {
+      expect(() => registry.validateName('')).toThrow();
+      expect(() => registry.validateName('-bad')).toThrow();
+      expect(() => registry.validateName('bad-')).toThrow();
+      expect(() => registry.validateName('Has Caps')).toThrow();
+      expect(() => registry.validateName(null)).toThrow();
+    });
+  });
+
   describe('deriveConnectUrls', () => {
     it('transforms HTTPS cloud backend URL to fpcloud:// protocol', () => {
       const urls = registry.deriveConnectUrls('https://fireproof-cloud-myapp.acct.workers.dev');
