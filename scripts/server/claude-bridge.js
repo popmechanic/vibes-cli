@@ -7,13 +7,16 @@
 
 import { spawn } from 'child_process';
 import { buildClaudeArgs, cleanEnv } from '../lib/claude-subprocess.js';
+import { createStreamParser } from '../lib/stream-parser.js';
 
 let activeClaude = null;
 
 /**
  * Event contract:
  *   { type: 'progress', progress, stage, elapsed }
+ *   { type: 'token', text }
  *   { type: 'tool_detail', name, input_summary, elapsed }
+ *   { type: 'tool_result', name, content, is_error, elapsed }
  *   { type: 'error', message }
  *   { type: 'complete', text, toolsUsed, elapsed, hasEdited }
  *   { type: 'cancelled' }
@@ -53,12 +56,12 @@ export async function runClaude(prompt, opts = {}, onEvent) {
     child.stdin.write(prompt);
     child.stdin.end();
 
-    let buffer = '';
     let stderr = '';
     let resultText = '';
     let toolsUsed = 0;
     let hasEdited = false;
     let hitRateLimit = false;
+    let errorSent = false;
     const startTime = Date.now();
 
     function getElapsed() {
@@ -88,61 +91,71 @@ export async function runClaude(prompt, opts = {}, onEvent) {
       onEvent({ type: 'progress', progress, stage, elapsed: getElapsed(), ...overrides });
     }
 
-    child.stdout.on('data', (data) => {
-      buffer += data.toString();
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
+    const parse = createStreamParser((event) => {
+      if (event.type === 'assistant' && event.message?.content) {
+        for (const block of event.message.content) {
+          if (block.type === 'tool_use') {
+            toolsUsed++;
+            const toolName = block.name || '';
+            if (toolName === 'Edit' || toolName === 'Write') hasEdited = true;
 
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const event = JSON.parse(line);
+            const input = block.input || {};
+            const inputSummary =
+              (toolName === 'Read' || toolName === 'Write' || toolName === 'Edit') ? (input.file_path || '') :
+              (toolName === 'Glob') ? (input.pattern || '') :
+              (toolName === 'Grep') ? (input.pattern || '') :
+              (toolName === 'Bash') ? (input.command || '').slice(0, 80) :
+              '';
 
-          if (event.type === 'assistant' && event.message?.content) {
-            for (const block of event.message.content) {
-              if (block.type === 'tool_use') {
-                toolsUsed++;
-                const toolName = block.name || '';
-                if (toolName === 'Edit' || toolName === 'Write') hasEdited = true;
+            const toolLabel = toolName === 'Read' ? 'Reading files...' :
+                              toolName === 'Glob' ? 'Searching files...' :
+                              toolName === 'Grep' ? 'Searching code...' :
+                              toolName === 'Edit' ? 'Editing app.jsx...' :
+                              toolName === 'Write' ? 'Writing app.jsx...' : null;
 
-                const input = block.input || {};
-                const inputSummary =
-                  (toolName === 'Read' || toolName === 'Write' || toolName === 'Edit') ? (input.file_path || '') :
-                  (toolName === 'Glob') ? (input.pattern || '') :
-                  (toolName === 'Grep') ? (input.pattern || '') :
-                  (toolName === 'Bash') ? (input.command || '').slice(0, 80) :
-                  '';
+            const elapsed = getElapsed();
+            sendProgress(toolLabel ? { stage: toolLabel } : {});
+            console.log(`[Claude] Tool: ${toolName}${inputSummary ? ` → ${inputSummary}` : ''} (${elapsed}s)`);
 
-                const toolLabel = toolName === 'Read' ? 'Reading files...' :
-                                  toolName === 'Glob' ? 'Searching files...' :
-                                  toolName === 'Grep' ? 'Searching code...' :
-                                  toolName === 'Edit' ? 'Editing app.jsx...' :
-                                  toolName === 'Write' ? 'Writing app.jsx...' : null;
-
-                const elapsed = getElapsed();
-                sendProgress(toolLabel ? { stage: toolLabel } : {});
-                console.log(`[Claude] Tool: ${toolName}${inputSummary ? ` → ${inputSummary}` : ''} (${elapsed}s)`);
-
-                onEvent({ type: 'tool_detail', name: toolName, input_summary: inputSummary, elapsed });
-              }
-              if (block.type === 'text' && block.text) {
-                resultText = block.text;
-              }
-            }
-          } else if (event.type === 'result') {
-            resultText = event.result || resultText || 'Done.';
-          } else {
-            if (event.type === 'rate_limit_event') {
-              hitRateLimit = true;
-              sendProgress({ stage: 'Rate limited, waiting...' });
-            }
-            console.log(`[Claude] Event: ${event.type} (${getElapsed()}s)`);
+            onEvent({ type: 'tool_detail', name: toolName, input_summary: inputSummary, elapsed });
           }
-        } catch {
-          // ignore parse errors on partial lines
+          if (block.type === 'text' && block.text) {
+            resultText = block.text;
+            onEvent({ type: 'token', text: block.text });
+          }
         }
+      } else if (event.type === 'stream_event' && event.event?.delta?.text) {
+        onEvent({ type: 'token', text: event.event.delta.text });
+      } else if (event.type === 'tool_result') {
+        const content = typeof event.content === 'string'
+          ? event.content.slice(0, 500)
+          : JSON.stringify(event.content || '').slice(0, 500);
+        onEvent({
+          type: 'tool_result',
+          name: event.tool_name || '',
+          content,
+          is_error: !!event.is_error,
+          elapsed: getElapsed(),
+        });
+      } else if (event.type === 'result') {
+        if (event.is_error) {
+          const errMsg = event.result || 'Claude flagged the run as failed';
+          console.error(`[Claude] Result is_error: ${errMsg}`);
+          onEvent({ type: 'error', message: errMsg });
+          errorSent = true;
+        } else {
+          resultText = event.result || resultText || 'Done.';
+        }
+      } else {
+        if (event.type === 'rate_limit_event') {
+          hitRateLimit = true;
+          sendProgress({ stage: 'Rate limited, waiting...' });
+        }
+        console.log(`[Claude] Event: ${event.type} (${getElapsed()}s)`);
       }
     });
+
+    child.stdout.on('data', parse);
 
     child.stderr.on('data', (data) => { stderr += data.toString(); });
 
@@ -186,7 +199,9 @@ export async function runClaude(prompt, opts = {}, onEvent) {
         console.log(`[Claude] stderr (${stderr.length} bytes, truncated):\n${stderr.slice(0, 1000)}`);
       }
 
-      onEvent({ type: 'complete', text: resultText || 'Done.', toolsUsed, elapsed: getElapsed(), hasEdited, skipChat: opts.skipChat });
+      if (!errorSent) {
+        onEvent({ type: 'complete', text: resultText || 'Done.', toolsUsed, elapsed: getElapsed(), hasEdited, skipChat: opts.skipChat });
+      }
       resolve(resultText);
     });
 
@@ -207,7 +222,7 @@ export async function runClaude(prompt, opts = {}, onEvent) {
 export function cancelClaude() {
   if (!activeClaude) return false;
   console.log('[Claude] Cancelled by user');
-  activeClaude.kill('SIGKILL');
+  activeClaude.kill('SIGTERM');
   activeClaude = null;
   return true;
 }
@@ -227,8 +242,12 @@ export function wsAdapter(ws) {
           ws.send(JSON.stringify({ type: 'chat', role: 'assistant', content: event.text }));
         }
         ws.send(JSON.stringify({ type: 'app_updated' }));
+      } else if (event.type === 'token') {
+        ws.send(JSON.stringify({ type: 'token', text: event.text }));
       } else if (event.type === 'tool_detail') {
         ws.send(JSON.stringify(event));
+      } else if (event.type === 'tool_result') {
+        ws.send(JSON.stringify({ type: 'tool_result', name: event.name, content: event.content, is_error: event.is_error }));
       } else if (event.type === 'cancelled') {
         ws.send(JSON.stringify({ type: 'cancelled' }));
       } else if (event.type === 'error') {
