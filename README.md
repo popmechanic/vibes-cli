@@ -12,14 +12,6 @@ Vibes is a vibe coding framework made for coding agents. It collapses applicatio
 
 Your data lives locally in the browser, encrypted and portable. It syncs across users automatically. Share your creations with a simple link and friends can jump in immediately.
 
-## Quick Start
-
-After installation, open Claude Code and enter /launch, choose the Editor option, then buckle up ;)
-
-![Vibes Editor](assets/GUI.png)
-
-That's it. Your agent generates a single HTML file with a working app.
-
 ## Installation
 
 > **Note:** Installation differs by platform. Claude Code has a built-in plugin system. Codex and OpenCode require manual setup.
@@ -40,6 +32,14 @@ Then install the plugin:
 
 Restart Claude Code after installation.
 
+## Quick Start
+
+After installation, open Claude Code and enter /launch, then choose the Editor option. Claude will then open a web GUI designed to help you produce secure, vibe coded apps. 
+
+![Vibes Editor](assets/GUI.png)
+
+It's still Claude Code under the hood, we just help you with a nice user interface. Use the GUI to turn your ideas into simple deployable multiplayer apps that don't require a server. (So you don't have to be a Linux genius to run a great app.)
+
 **Verify Installation:**
 ```
 /help
@@ -47,78 +47,6 @@ Restart Claude Code after installation.
 # /vibes:vibes - Generate React web apps
 # /vibes:riff - Generate app variations
 # /vibes:sell - Transform to multi-tenant SaaS
-```
-
-**Updating:**
-
-Claude Code's `/plugin update` checks the local marketplace clone but doesn't auto-pull from GitHub. If `update` reports "already up to date" but you know a new version exists, use the full update cycle:
-
-```
-/plugin marketplace remove vibes-cli
-/plugin uninstall vibes@vibes-cli
-/plugin marketplace add popmechanic/vibes-cli
-/plugin install vibes@vibes-cli
-```
-
-Then restart Claude Code.
-
-### Codex
-
-Tell Codex:
-
-```
-Fetch and follow instructions from https://raw.githubusercontent.com/popmechanic/vibes-cli/main/.codex/INSTALL.md
-```
-
-### OpenCode / Other Agents
-
-Install manually:
-
-```bash
-git clone https://github.com/popmechanic/vibes-cli.git ~/.vibes
-cd ~/.vibes/scripts && npm install
-```
-
-Then add to your agent's config:
-
-```markdown
-## Vibes
-
-<EXTREMELY_IMPORTANT>
-You have Vibes installed. Run `~/.vibes/.codex/vibes-codex bootstrap` and follow the instructions.
-</EXTREMELY_IMPORTANT>
-```
-
-**Updating:**
-```bash
-cd ~/.vibes && git pull
-```
-
-### Troubleshooting
-
-**Claude Code - stuck on old version:**
-
-Claude Code's `/plugin update` checks a local marketplace clone but doesn't auto-pull from GitHub. This is a general Claude Code limitation, not vibes-specific. To force an update:
-```
-/plugin marketplace remove vibes-cli
-/plugin uninstall vibes@vibes-cli
-/plugin marketplace add popmechanic/vibes-cli
-/plugin install vibes@vibes-cli
-```
-Then restart Claude Code.
-
-**First install shows SessionStart hook error:**
-
-This is normal. The plugin's SessionStart hook runs before the plugin is fully initialized. Restart Claude Code and it will work on the next session.
-
-**Permission denied running vibes-codex:**
-```bash
-chmod +x ~/.vibes/.codex/vibes-codex
-```
-
-**Scripts fail with "module not found":**
-```bash
-cd ~/.vibes/scripts && npm install
 ```
 
 ## Skills
@@ -189,33 +117,6 @@ admin.yourdomain.com    → Admin dashboard
 2. Run `/sell` to transform it
 3. Configure Clerk keys and pricing
 4. Deploy with `/exe`
-
-### `exe`
-
-Go live right now. Deploy creates a persistent VM at yourapp.exe.xyz with HTTPS, nginx, and Claude pre-installed.
-
-Your app stays online 24/7 even when you close your laptop. Zero downtime redeployments let you iterate live. Great for demos, pilots, or production.
-
-### `cloudflare`
-
-Deploy to Cloudflare Workers with a subdomain registry. Uses KV for storage and native Web Crypto for JWT verification.
-
-Includes the full registry server for multi-tenant apps: subdomain claiming, availability checking, Clerk webhook handling, and quota enforcement. Static assets (your app, bundles, images) are served alongside the worker.
-
-**Example prompts:**
-- "Deploy to Cloudflare"
-- "Put this on Cloudflare Workers"
-
-### `launch`
-
-The full SaaS pipeline in one command. Takes you from a prompt to a live, deployed multi-tenant SaaS app with Clerk authentication, subscription billing, and Cloudflare hosting.
-
-Uses **Agent Teams** to parallelize independent steps for maximum speed. A builder agent generates app code while you configure Clerk, and an infra agent deploys Connect in parallel. Typical time: ~20-25 minutes for a new app (vs ~40-60 min doing each step sequentially).
-
-**Example prompts:**
-- "Launch a SaaS app for wedding photo sharing"
-- "Build and deploy a team dashboard with billing"
-- "Full pipeline: task manager with subscriptions"
 
 ### `test`
 
