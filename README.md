@@ -14,7 +14,7 @@ Your data lives locally in the browser, encrypted and portable. It syncs across 
 
 ## Quick Start
 
-Install for your agent, then try: "Make me a todo vibe"
+After installation, open Claude Code and enter /launch, choose the Editor option, then buckle up ;)
 
 That's it. Your agent generates a single HTML file with a working app.
 
