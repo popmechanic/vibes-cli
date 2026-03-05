@@ -2,7 +2,7 @@
  * Generate handler — create a new app from scratch via Claude.
  */
 
-import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync, mkdirSync, copyFileSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { runClaude } from '../claude-bridge.js';
 import { sanitizeAppJsx } from '../post-process.js';
@@ -22,6 +22,19 @@ export async function handleGenerate(ctx, onEvent, userPrompt, themeId, model, r
   }
 
   console.log(`[Generate] ▸ START prompt="${userPrompt.slice(0, 60)}" themeId=${themeId || '(auto)'}`);
+
+  // Auto-archive existing app.jsx before generating a new one
+  const appJsxPath = join(ctx.projectRoot, 'app.jsx');
+  if (existsSync(appJsxPath)) {
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const archiveName = `auto-${ts}`;
+    const dest = join(ctx.appsDir, archiveName);
+    mkdirSync(dest, { recursive: true });
+    copyFileSync(appJsxPath, join(dest, 'app.jsx'));
+    unlinkSync(appJsxPath);
+    onEvent({ type: 'app_archived', name: archiveName });
+    console.log(`[Generate] Archived existing app.jsx → ${archiveName}`);
+  }
 
   const stylePath = join(ctx.projectRoot, 'skills/vibes/defaults/style-prompt.txt');
 
