@@ -2891,7 +2891,7 @@
     document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
     document.getElementById('phase' + phase.charAt(0).toUpperCase() + phase.slice(1)).classList.add('active');
 
-    // Reset apps panel state when entering generate phase
+    // Reset apps panel state and progress bar when entering generate phase
     if (phase === 'generate') {
       appsPanelVisible = false;
       const right = document.getElementById('generateRight');
@@ -2902,6 +2902,11 @@
         const left = pg.querySelector('.generate-left');
         if (left) { left.style.flexGrow = ''; left.style.flexBasis = ''; }
       }
+      // Clean up stale progress bar from previous generation
+      document.getElementById('generateProgress').classList.remove('active');
+      document.getElementById('generateActions').style.display = '';
+      document.getElementById('generateBtn').disabled = false;
+      document.getElementById('generateError').style.display = 'none';
     }
 
     const headerRight = document.getElementById('headerRight');
