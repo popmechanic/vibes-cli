@@ -23,13 +23,11 @@ When skills reference Claude Code tools, substitute your equivalent:
 | vibes | "build an app", "create a..." | Generate React apps with Fireproof |
 | riff | "explore ideas", "give me variations" | Generate 3-10 app variations in parallel |
 | sell | "monetize", "add billing", "make it SaaS" | Transform app into multi-tenant SaaS |
-| exe | "deploy", "put it online" | Deploy to exe.dev VM hosting |
-| connect | "set up Connect", "enable sync" | Deploy Fireproof Connect |
 | design-reference | design.html or mockup provided | Transform design to Vibes app |
-| cloudflare | "deploy to cloudflare", "cloudflare workers" | Deploy to Cloudflare Workers with KV registry |
+| cloudflare | "deploy", "put it online", "cloudflare workers" | Deploy to Cloudflare Workers (auto-configures Connect) |
 | test | "test the plugin", "integration test" | E2E test — assemble fixture, deploy, verify in browser |
 
-> **Note:** The `launch` skill (full SaaS pipeline with Agent Teams) is available in Claude Code only. For Codex/OpenCode, run `vibes`, `sell`, `connect`, and `cloudflare` skills sequentially.
+> **Note:** The `launch` skill (full SaaS pipeline with Agent Teams) is available in Claude Code only. For Codex/OpenCode, run `vibes`, `cloudflare` (includes Connect setup), and `sell` skills sequentially.
 
 **Skills are atomic.** Each skill is a self-contained automation. When planning work, invoke a skill as a single step — do not decompose it into internal sub-steps.
 

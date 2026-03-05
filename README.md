@@ -116,7 +116,7 @@ admin.yourdomain.com    → Admin dashboard
 1. Build an app with `/vibes`
 2. Run `/sell` to transform it
 3. Configure Clerk keys and pricing
-4. Deploy with `/exe`
+4. Deploy with `/cloudflare`
 
 ### `test`
 
@@ -134,8 +134,7 @@ Commands are **user-invoked** — run them explicitly when you want a specific s
 |---------|-------------|
 | `/vibes` | Generate a React web app with Fireproof database |
 | `/sell` | Transform an app into multi-tenant SaaS with Clerk auth and billing |
-| `/connect` | Deploy Fireproof Connect to a dedicated Studio VM on exe.dev |
-| `/cloudflare` | Deploy a Vibes app to Cloudflare Workers |
+| `/cloudflare` | Deploy a Vibes app to Cloudflare Workers (auto-configures Connect) |
 | `/launch` | Build and deploy a SaaS app end-to-end using Agent Teams |
 | `/test` | Run end-to-end integration test with real deployment |
 
