@@ -7,6 +7,7 @@ import { join } from 'path';
 import { spawn } from 'child_process';
 import { reloadThemes } from '../config.js';
 import { buildClaudeArgs, cleanEnv } from '../../lib/claude-subprocess.js';
+import { createStreamParser } from '../../lib/stream-parser.js';
 
 function slugify(text) {
   return text
@@ -72,7 +73,7 @@ Tasks:
 Use oklch() for ALL color values in the COLOR TOKENS section. Study the app carefully for palette, typography weight, spacing rhythm, and overall composition.`;
 
   return new Promise((resolve, reject) => {
-    const args = buildClaudeArgs({ outputFormat: 'stream-json', maxTurns: 10, timeoutMs: 240_000, tools: 'Edit,Read,Write', model });
+    const args = buildClaudeArgs({ outputFormat: 'stream-json', maxTurns: 10, timeoutMs: 240_000, tools: 'Edit,Read,Write', model, permissionMode: 'bypassPermissions' });
 
     console.log(`[SaveTheme] Spawning claude for theme "${themeId}"...`);
     const child = spawn('claude', args, {
@@ -84,34 +85,27 @@ Use oklch() for ALL color values in the COLOR TOKENS section. Study the app care
     child.stdin.write(extractionPrompt);
     child.stdin.end();
 
-    let buffer = '';
     let stderr = '';
     let resultText = '';
 
-    child.stdout.on('data', (data) => {
-      buffer += data.toString();
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const event = JSON.parse(line);
-          if (event.type === 'assistant' && event.message?.content) {
-            for (const block of event.message.content) {
-              if (block.type === 'text' && block.text) resultText = block.text;
-              if (block.type === 'tool_use') {
-                console.log(`[SaveTheme] Tool: ${block.name || ''}`);
-              }
-            }
-          } else if (event.type === 'result') {
-            resultText = event.result || resultText || 'Done.';
+    const parse = createStreamParser((event) => {
+      if (event.type === 'assistant' && event.message?.content) {
+        for (const block of event.message.content) {
+          if (block.type === 'text' && block.text) resultText = block.text;
+          if (block.type === 'tool_use') {
+            console.log(`[SaveTheme] Tool: ${block.name || ''}`);
           }
-        } catch {
-          // ignore partial line parse errors
+        }
+      } else if (event.type === 'result') {
+        if (event.is_error) {
+          console.error(`[SaveTheme] Result is_error: ${event.result}`);
+        } else {
+          resultText = event.result || resultText || 'Done.';
         }
       }
     });
+
+    child.stdout.on('data', parse);
     child.stderr.on('data', (d) => { stderr += d.toString(); });
 
     const EXTRACT_TIMEOUT = 240_000;
