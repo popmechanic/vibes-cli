@@ -8,3 +8,4 @@ assets/**/*.ico filter=lfs diff=lfs merge=lfs -text
 assets/*.mp3 filter=lfs diff=lfs merge=lfs -text
 assets/*.svg filter=lfs diff=lfs merge=lfs -text
 assets/**/*.svg filter=lfs diff=lfs merge=lfs -text
+*.png filter=lfs diff=lfs merge=lfs -text

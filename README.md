@@ -16,6 +16,8 @@ Your data lives locally in the browser, encrypted and portable. It syncs across 
 
 After installation, open Claude Code and enter /launch, choose the Editor option, then buckle up ;)
 
+![Vibes Editor](assets/GUI.png)
+
 That's it. Your agent generates a single HTML file with a working app.
 
 ## Installation
