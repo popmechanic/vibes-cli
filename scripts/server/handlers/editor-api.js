@@ -203,6 +203,59 @@ export async function checkStudio(ctx, req, res) {
   }
 }
 
+/**
+ * Validate Cloudflare Global API Key + email via the Cloudflare HTTP API.
+ * Calls GET /client/v4/accounts with X-Auth-Key/X-Auth-Email headers.
+ *
+ * @param {string} apiKey - Cloudflare Global API Key
+ * @param {string} email - Cloudflare account email
+ * @returns {Promise<{valid: boolean, accountId?: string, error?: string}>}
+ */
+export async function validateCloudflareCredentials(apiKey, email) {
+  try {
+    const res = await fetch('https://api.cloudflare.com/client/v4/accounts', {
+      headers: {
+        'X-Auth-Key': apiKey,
+        'X-Auth-Email': email,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await res.json();
+
+    if (!data.success || !res.ok) {
+      const errMsg = data.errors?.[0]?.message || 'Authentication failed';
+      return { valid: false, error: errMsg + '. Check your Global API Key and email.' };
+    }
+
+    const accountId = data.result?.[0]?.id || null;
+    if (!accountId) {
+      return { valid: false, error: 'No accounts found for this API key.' };
+    }
+
+    return { valid: true, accountId };
+  } catch (err) {
+    return { valid: false, error: 'Failed to reach Cloudflare API: ' + err.message };
+  }
+}
+
+export async function validateCloudflare(ctx, req, res) {
+  try {
+    const body = await parseJsonBody(req);
+    const { apiKey, email } = body;
+    if (!apiKey || !email) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ valid: false, error: 'API key and email are required.' }));
+    }
+    const result = await validateCloudflareCredentials(apiKey, email);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(result));
+  } catch (err) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ valid: false, error: err.message }));
+  }
+}
+
 export function listApps(ctx, req, res) {
   try {
     const apps = [];
