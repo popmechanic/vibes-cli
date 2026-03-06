@@ -3067,10 +3067,10 @@
 
     const headerRight = document.getElementById('headerRight');
     if (phase === 'generate') {
-      // Show apps button only if there are apps to show
       const appsGrid = document.getElementById('appGalleryGrid');
+      let buttons = '';
       if (appsGrid && appsGrid.innerHTML.trim()) {
-        headerRight.innerHTML = `
+        buttons += `
           <div class="navbar-button-wrapper">
             <button style="background:var(--vibes-yellow)" onclick="toggleAppsPanel()">
               <div class="navbar-button-icon">
@@ -3085,11 +3085,33 @@
               <div class="navbar-button-label" style="color:var(--vibes-near-black)">Apps</div>
             </button>
           </div>`;
-      } else {
-        headerRight.innerHTML = '';
       }
+      buttons += `
+        <div class="navbar-button-wrapper">
+          <button style="background:var(--vibes-menu-bg)" onclick="openSettings()">
+            <div class="navbar-button-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--vibes-near-black)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </div>
+            <div class="navbar-button-label" style="color:var(--vibes-near-black)">Settings</div>
+          </button>
+        </div>`;
+      headerRight.innerHTML = buttons;
     } else if (phase === 'edit') {
       headerRight.innerHTML = `
+        <div class="navbar-button-wrapper">
+          <button style="background:var(--vibes-menu-bg)" onclick="openSettings()">
+            <div class="navbar-button-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--vibes-near-black)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </div>
+            <div class="navbar-button-label" style="color:var(--vibes-near-black)">Settings</div>
+          </button>
+        </div>
         <div class="navbar-button-wrapper">
           <button style="background:#5398c9" onclick="openThemeModal()">
             <div class="navbar-button-icon">
@@ -3265,6 +3287,21 @@
   }
 
   // === Phase 1: Setup ===
+
+  // Helper: update welcome step icons without the auto-redirect in renderChecklist
+  function updateWelcomeIcons(status) {
+    const clerkIcon = document.getElementById('welcomeClerkIcon');
+    const cfIcon = document.getElementById('welcomeCfIcon');
+    if (clerkIcon) {
+      clerkIcon.style.background = status.clerk?.ok ? 'var(--vibes-green)' : '#999';
+      clerkIcon.innerHTML = status.clerk?.ok ? '&#10003;' : '1';
+    }
+    if (cfIcon) {
+      cfIcon.style.background = status.cloudflare?.ok ? 'var(--vibes-green)' : '#999';
+      cfIcon.innerHTML = status.cloudflare?.ok ? '&#10003;' : '2';
+    }
+  }
+
   function renderChecklist(status) {
     const items = [
       { key: 'clerk', label: 'Clerk keys', detail: status.clerk?.detail || '', required: true },
@@ -3276,17 +3313,7 @@
 
     const requiredOk = items.filter(i => i.required).every(i => status[i.key]?.ok);
 
-    // Update welcome step icons
-    const clerkIcon = document.getElementById('welcomeClerkIcon');
-    const cfIcon = document.getElementById('welcomeCfIcon');
-    if (clerkIcon) {
-      clerkIcon.style.background = status.clerk?.ok ? 'var(--vibes-green)' : '#999';
-      clerkIcon.innerHTML = status.clerk?.ok ? '&#10003;' : '1';
-    }
-    if (cfIcon) {
-      cfIcon.style.background = status.cloudflare?.ok ? 'var(--vibes-green)' : '#999';
-      cfIcon.innerHTML = status.cloudflare?.ok ? '&#10003;' : '2';
-    }
+    updateWelcomeIcons(status);
 
     const startBtn = document.getElementById('wizardStartBtn');
     if (startBtn && requiredOk) {
@@ -3294,6 +3321,27 @@
     }
   }
 
+  function openSettings() {
+    // Re-fetch status and show the wizard — do NOT call renderChecklist()
+    // because it auto-redirects to generate when all creds are present.
+    // prefillFromStatus() handles smart step-skipping without the redirect.
+    // updateWelcomeIcons() updates the step 1 icons (extracted from renderChecklist).
+    //
+    // ORDER MATTERS:
+    // 1. setPhase('setup') — switch DOM to wizard view FIRST so elements exist
+    // 2. setWizardStep(1) — reset to step 1 baseline (prefillFromStatus may skip forward)
+    // 3. updateWelcomeIcons — update step 1 icons (needs step 1 DOM)
+    // 4. prefillFromStatus — populate fields + smart-skip to correct step
+    fetch('/editor/status').then(r => r.json()).then(status => {
+      cloudflareReady = status.cloudflare?.ok || false;
+      setPhase('setup');
+      setWizardStep(1);
+      updateWelcomeIcons(status);
+      prefillFromStatus(status);
+    }).catch(() => {
+      setPhase('setup');
+    });
+  }
 
   function goToGenerate() {
     setPhase('generate');
