@@ -3379,13 +3379,33 @@
   }
 
   async function saveClerkAndAdvance() {
+    // If no new keys entered and existing validation is good, just advance
+    const keyInput = document.getElementById('wizardClerkKey');
+    const secretInput = document.getElementById('wizardClerkSecret');
+    if (!keyInput.value.trim() && !secretInput.value.trim() && wizardValidation.clerk === 'valid') {
+      setWizardStep(3);
+      return;
+    }
+
     const btn = document.getElementById('wizardClerkNext');
     const hint = document.getElementById('wizardClerkHint');
     hint.style.display = 'none';
     btn.disabled = true;
-    btn.textContent = 'Saving...';
+    btn.innerHTML = '<span class="wizard-checking"></span> Verifying...';
     wizardValidation.clerk = 'checking';
     try {
+      // Validate the publishable key against Clerk's API
+      const valRes = await fetch('/editor/credentials/validate-clerk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ publishableKey: wizardData.clerkKey }),
+      });
+      const valData = await valRes.json();
+      if (!valData.valid) {
+        throw new Error(valData.error || 'Clerk key validation failed');
+      }
+
+      // Save both keys
       const res = await fetch('/editor/credentials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3404,10 +3424,11 @@
     } catch (err) {
       wizardValidation.clerk = 'invalid';
       hint.textContent = err.message;
+      hint.style.color = 'var(--vibes-red)';
       hint.style.display = '';
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Next';
+      btn.innerHTML = 'Next';
       validateWizardClerkInputs(); // re-check to reset disabled state
     }
   }

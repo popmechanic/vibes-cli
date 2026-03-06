@@ -1,10 +1,31 @@
 // scripts/__tests__/integration/wizard-flow.test.js
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { Readable } from 'stream';
 import { mkdirSync, rmSync, statSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
 const TEST_DIR = join(tmpdir(), `vibes-wizard-flow-${process.pid}-${Date.now()}`);
+
+// Shared mock helpers
+function mockReq(body) {
+  const req = new Readable({ read() {} });
+  req.push(JSON.stringify(body));
+  req.push(null);
+  return req;
+}
+
+function mockRes() {
+  const res = {
+    statusCode: null,
+    headers: {},
+    body: '',
+    writeHead(code, h) { res.statusCode = code; res.headers = h; },
+    end(data) { res.body = data; },
+    get writableEnded() { return !!res.body; },
+  };
+  return res;
+}
 
 describe('wizard credential flow', () => {
   let registry;
@@ -124,5 +145,115 @@ describe('wizard credential flow', () => {
 
     expect(registry.isFirstDeploy('new-app')).toBe(true);
     expect(registry.isFirstDeploy('nonexistent')).toBe(true);
+  });
+});
+
+describe('validateClerkCredentials', () => {
+  let editorApi;
+  let originalFetch;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    mkdirSync(join(TEST_DIR, '.vibes'), { recursive: true });
+    process.env.VIBES_HOME = TEST_DIR;
+    originalFetch = global.fetch;
+    editorApi = await import('../../server/handlers/editor-api.js');
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    rmSync(TEST_DIR, { recursive: true, force: true });
+    delete process.env.VIBES_HOME;
+  });
+
+  // Helper: encode a domain into a pk_test_ key
+  function makePk(domain) {
+    return 'pk_test_' + Buffer.from(domain + '$').toString('base64');
+  }
+
+  it('returns valid:true when Clerk FAPI responds 200', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('example.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(true);
+    expect(global.fetch).toHaveBeenCalledOnce();
+    // Verify it hit the correct FAPI domain
+    const url = global.fetch.mock.calls[0][0];
+    expect(url).toBe('https://example.clerk.accounts.dev/v1/environment');
+  });
+
+  it('returns valid:false with helpful message on 401', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 401 });
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('bad.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('rejected by Clerk');
+  });
+
+  it('returns valid:false with helpful message on 403', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 403 });
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('paused.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('rejected by Clerk');
+  });
+
+  it('returns valid:false with status code for other HTTP errors', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500 });
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('error.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('status 500');
+  });
+
+  it('returns valid:false on DNS resolution failure (ENOTFOUND)', async () => {
+    const err = new Error('getaddrinfo ENOTFOUND nonexistent.clerk.accounts.dev');
+    err.cause = { code: 'ENOTFOUND' };
+    global.fetch = vi.fn().mockRejectedValue(err);
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('nonexistent.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('domain encoded in this key does not exist');
+  });
+
+  it('returns valid:false on timeout (AbortError)', async () => {
+    const err = new DOMException('The operation was aborted', 'AbortError');
+    global.fetch = vi.fn().mockRejectedValue(err);
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('slow.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('timed out');
+  });
+
+  it('returns valid:false when no publishable key provided', async () => {
+    const result = await editorApi.validateClerkCredentials({});
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('No publishable key');
+  });
+
+  it('returns valid:false when key cannot be decoded', async () => {
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: 'not_a_valid_key',
+    });
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('decode domain');
   });
 });

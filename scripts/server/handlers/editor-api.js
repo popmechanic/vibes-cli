@@ -4,7 +4,7 @@
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync } from 'fs';
 import { join } from 'path';
-import { loadEnvFile, validateClerkKey, validateClerkSecretKey, writeEnvFile } from '../../lib/env-utils.js';
+import { loadEnvFile, validateClerkKey, validateClerkSecretKey, extractClerkDomain, writeEnvFile } from '../../lib/env-utils.js';
 import { loadOpenRouterKey } from '../config.js';
 import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp } from '../../lib/registry.js';
 
@@ -238,6 +238,78 @@ export async function saveCredentials(ctx, req, res) {
     const statusCode = err.statusCode || 400;
     res.writeHead(statusCode, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ ok: false, errors: { _: err.message } }));
+  }
+}
+
+/**
+ * Validate Clerk credentials by probing the Frontend API.
+ * The publishable key encodes a domain (base64). We hit that domain's
+ * well-known endpoint to verify the key is real.
+ *
+ * @param {object} opts
+ * @param {string} opts.publishableKey - Clerk publishable key (pk_test_... or pk_live_...)
+ * @returns {Promise<{valid: boolean, error?: string}>}
+ */
+export async function validateClerkCredentials({ publishableKey } = {}) {
+  const CLERK_TIMEOUT_MS = 10_000;
+
+  if (!publishableKey) {
+    return { valid: false, error: 'No publishable key provided.' };
+  }
+
+  // Extract the FAPI domain from the key (uses static import from top of file)
+  const domain = extractClerkDomain(publishableKey);
+  if (!domain) {
+    return { valid: false, error: 'Could not decode domain from publishable key. Make sure you copied the full key.' };
+  }
+
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), CLERK_TIMEOUT_MS);
+    const res = await fetch(`https://${domain}/v1/environment`, {
+      headers: { 'Authorization': `Bearer ${publishableKey}` },
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+
+    if (res.ok) {
+      return { valid: true };
+    }
+
+    // 401/403 means the key format decoded but isn't valid
+    if (res.status === 401 || res.status === 403) {
+      return { valid: false, error: 'Key was rejected by Clerk. Make sure you copied the correct publishable key from the API Keys page.' };
+    }
+
+    return { valid: false, error: `Clerk API returned status ${res.status}. The key may be invalid or the application may be paused.` };
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      return { valid: false, error: 'Clerk API request timed out (10s). Check your network connection.' };
+    }
+    // DNS resolution failure means the domain encoded in the key doesn't exist
+    if (err.cause?.code === 'ENOTFOUND' || err.message?.includes('ENOTFOUND')) {
+      return { valid: false, error: 'The domain encoded in this key does not exist. Make sure you copied the correct publishable key.' };
+    }
+    return { valid: false, error: 'Failed to reach Clerk API: ' + err.message };
+  }
+}
+
+export async function validateClerk(ctx, req, res) {
+  try {
+    const body = await parseJsonBody(req);
+    const { publishableKey } = body;
+    if (!publishableKey) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ valid: false, error: 'Provide a publishable key.' }));
+    }
+    const result = await validateClerkCredentials({ publishableKey });
+    const statusCode = result.valid ? 200 : 400;
+    res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(result));
+  } catch (err) {
+    const statusCode = err.statusCode || 400;
+    res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ valid: false, error: err.message }));
   }
 }
 
