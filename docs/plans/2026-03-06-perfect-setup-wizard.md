@@ -4,13 +4,14 @@
 
 **Goal:** Make the editor's setup wizard foolproof for non-technical users — remove the ability to skip required setup, add detailed guidance for obtaining Clerk and Cloudflare keys, improve error messages, auto-skip completed steps, and give users confidence at the summary screen that everything works.
 
-**Architecture:** All changes are in two files: `skills/vibes/templates/editor.html` (the wizard UI — vanilla JS in a single-file SPA) and `scripts/server/handlers/editor-api.js` (server-side credential validation). The wizard stays 4 steps but each step gets richer guidance, better validation feedback, and smarter flow logic. Server-side gets a new Clerk key validation endpoint. Tests cover the server-side validation and the wizard flow state transitions.
+**Architecture:** Changes span three files: `skills/vibes/templates/editor.html` (the wizard UI — vanilla JS in a single-file SPA), `scripts/server/handlers/editor-api.js` (server-side credential validation), and `scripts/server/routes.js` (declarative route table). The wizard stays 4 steps but each step gets richer guidance, better validation feedback, and smarter flow logic. Server-side gets a new Clerk key validation endpoint. Tests cover the server-side validation and the wizard flow state transitions.
 
 **Tech Stack:** Vanilla JS (editor.html), Node.js HTTP server (editor-api.js), vitest for tests
 
 **Key files:**
 - `skills/vibes/templates/editor.html` — wizard UI (lines ~2378-2527 for HTML, ~2887-3597 for JS)
 - `scripts/server/handlers/editor-api.js` — server-side validation and credential storage
+- `scripts/server/routes.js` — declarative route table (lines ~91-111)
 - `scripts/__tests__/integration/wizard-flow.test.js` — existing integration tests
 
 ---
@@ -440,6 +441,7 @@ git commit -m "Improve validation error messages with swap detection and remedia
 
 **Files:**
 - Modify: `scripts/server/handlers/editor-api.js`
+- Modify: `scripts/server/routes.js` (route table registration)
 - Modify: `skills/vibes/templates/editor.html`
 - Test: `scripts/__tests__/integration/wizard-flow.test.js`
 
@@ -569,19 +571,14 @@ export async function validateClerk(ctx, req, res) {
 }
 ```
 
-**Step 4: Register the new route in the server**
+**Step 4: Register the new route in `scripts/server/routes.js`**
 
-Find where the Cloudflare validation route is registered. Search for `validate-cloudflare` in the server routing code:
-
-Run: `grep -rn 'validate-cloudflare' /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard/scripts/server/`
-
-The route registration will be in `scripts/server/editor-server.js` or similar. Add the new route alongside the existing one:
+The server uses a declarative `routeTable` object (not an if/else chain). Open `scripts/server/routes.js` and find the `routeTable` object (around line 91-111). Add the new route right after the existing `validate-cloudflare` entry:
 
 ```javascript
-// Add alongside the existing validate-cloudflare route:
-else if (url.pathname === '/editor/credentials/validate-clerk' && req.method === 'POST') {
-  return editorApi.validateClerk(ctx, req, res);
-}
+// In the routeTable object, add after the validate-cloudflare line:
+'POST /editor/credentials/validate-cloudflare': editorApi.validateCloudflare,
+'POST /editor/credentials/validate-clerk':      editorApi.validateClerk,    // <-- add this line
 ```
 
 **Step 5: Update `saveClerkAndAdvance()` to validate before saving**
@@ -646,15 +643,15 @@ Expected: All tests pass
 
 ```bash
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard
-git add scripts/server/handlers/editor-api.js skills/vibes/templates/editor.html scripts/__tests__/integration/wizard-flow.test.js
+git add scripts/server/handlers/editor-api.js scripts/server/routes.js skills/vibes/templates/editor.html scripts/__tests__/integration/wizard-flow.test.js
 git commit -m "Add server-side Clerk key validation via FAPI probe"
 ```
 
-**Important:** After adding the route handler, find the exact file where routes are registered by running:
+**Important:** The route was registered in Step 4 above in `scripts/server/routes.js`. Include that file in the git add:
+
 ```bash
-grep -rn 'validate-cloudflare' /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard/scripts/server/
+git add scripts/server/handlers/editor-api.js scripts/server/routes.js skills/vibes/templates/editor.html scripts/__tests__/integration/wizard-flow.test.js
 ```
-Then add the `validate-clerk` route in that same file, right next to the `validate-cloudflare` route. Include that file in the git add.
 
 ---
 
@@ -818,12 +815,13 @@ function prefillFromStatus(status) {
         emailInput.placeholder = status.maskedKeys.cloudflareEmail;
       }
     }
-    // Pre-populate OpenRouter if available
-    if (status.openrouter?.ok) {
-      const orInput = document.getElementById('wizardOpenRouterKey');
-      if (orInput && status.maskedKeys?.openRouterKey) {
-        orInput.placeholder = status.maskedKeys.openRouterKey;
-      }
+  }
+
+  // Pre-populate OpenRouter if available (independent of Clerk/Cloudflare status)
+  if (status.openrouter?.ok) {
+    const orInput = document.getElementById('wizardOpenRouterKey');
+    if (orInput && status.maskedKeys?.openRouterKey) {
+      orInput.placeholder = status.maskedKeys.openRouterKey;
     }
   }
 
@@ -1028,13 +1026,17 @@ For the edit phase, add the settings button before the deploy button in the `hea
 
 **Step 2: Add the `openSettings` function**
 
-Add this function near the other wizard functions:
+Add this function near the other wizard functions.
+
+**Caution:** Do NOT call `renderChecklist(status)` from `openSettings()`. `renderChecklist` contains `if (startBtn && requiredOk) { setTimeout(() => goToGenerate(), 800); }` which auto-redirects away from the wizard when both credentials are configured. That auto-redirect is correct on initial page load (skip the wizard entirely) but wrong when the user explicitly clicks Settings to re-enter. Only call `prefillFromStatus`, which handles step-skipping without the auto-redirect.
 
 ```javascript
 function openSettings() {
-  // Re-fetch status and show the wizard from step 1
+  // Re-fetch status and show the wizard — do NOT call renderChecklist()
+  // because it auto-redirects to generate when all creds are present.
+  // prefillFromStatus() handles smart step-skipping without the redirect.
   fetch('/editor/status').then(r => r.json()).then(status => {
-    renderChecklist(status);
+    cloudflareReady = status.cloudflare?.ok || false;
     prefillFromStatus(status);
     setPhase('setup');
   }).catch(() => {
