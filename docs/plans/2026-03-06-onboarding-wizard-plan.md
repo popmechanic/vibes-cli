@@ -10,11 +10,15 @@
 
 **Depends on:** `docs/plans/2026-03-05-connect-cloudflare-migration-plan.md` Tasks 1 (registry.js). This plan can begin immediately -- Task 1 here creates a minimal registry shim if the full registry.js doesn't exist yet.
 
+**Important note on line references:** This plan never references specific line numbers because tasks edit the same files sequentially, causing line shifts. Instead, all edit locations are identified by function names, HTML element IDs, or search patterns. Use your editor's search to find each target.
+
 ---
 
 ### Task 1: Create Registry Shim for Editor API
 
 The editor API needs to read/write `~/.vibes/deployments.json`. The full `lib/registry.js` is created by the backend migration plan (Task 1 there). This task creates a thin adapter so editor-api.js can use it, with a fallback shim if the full module doesn't exist yet.
+
+**Security:** The registry file stores a Cloudflare Global API Key, which grants full account access. The file MUST be written with `0o600` permissions (owner read/write only).
 
 **Files:**
 - Create: `scripts/server/registry-adapter.js`
@@ -25,7 +29,7 @@ The editor API needs to read/write `~/.vibes/deployments.json`. The full `lib/re
 ```javascript
 // scripts/__tests__/unit/registry-adapter.test.js
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
+import { mkdirSync, writeFileSync, rmSync, readFileSync, statSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -69,6 +73,15 @@ describe('registry-adapter', () => {
       const raw = JSON.parse(readFileSync(join(TEST_DIR, '.vibes', 'deployments.json'), 'utf8'));
       expect(raw.cloudflare.apiKey).toBe('key123');
       expect(raw.cloudflare.email).toBe('user@test.com');
+    });
+
+    it('writes registry file with 0o600 permissions', () => {
+      adapter.saveCloudflareCredentials({ apiKey: 'key123', email: 'user@test.com' });
+      const regPath = join(TEST_DIR, '.vibes', 'deployments.json');
+      const stat = statSync(regPath);
+      // 0o600 = 33152 on most systems; check owner-only bits
+      const mode = stat.mode & 0o777;
+      expect(mode).toBe(0o600);
     });
   });
 
@@ -157,9 +170,12 @@ Expected: FAIL -- module not found
  * Reads/writes ~/.vibes/deployments.json for credential storage.
  * Tries to import lib/registry.js (from backend migration plan);
  * falls back to inline implementation if not available yet.
+ *
+ * SECURITY: The registry file contains a Cloudflare Global API Key.
+ * All writes use 0o600 permissions (owner read/write only).
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, chmodSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 
@@ -190,7 +206,10 @@ function loadRegistry() {
 function saveRegistry(reg) {
   const dir = join(getVibesHome(), '.vibes');
   mkdirSync(dir, { recursive: true });
-  writeFileSync(getRegistryPath(), JSON.stringify(reg, null, 2));
+  const path = getRegistryPath();
+  writeFileSync(path, JSON.stringify(reg, null, 2), { mode: 0o600 });
+  // Also chmod in case the file already existed with broader permissions
+  try { chmodSync(path, 0o600); } catch { /* best effort */ }
 }
 
 /**
@@ -296,7 +315,8 @@ Expected: PASS
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/registry-adapter.js scripts/__tests__/unit/registry-adapter.test.js && git commit -m "Add registry adapter for editor API credential storage
 
 Reads/writes ~/.vibes/deployments.json for Clerk and Cloudflare
-credentials. Used by the onboarding wizard to persist setup state."
+credentials. File permissions set to 0o600 (owner-only) since it
+contains the Cloudflare Global API Key."
 ```
 
 ---
@@ -336,7 +356,7 @@ describe('validateCloudflareCredentials', () => {
 
   it('returns valid when wrangler succeeds with account info', async () => {
     execFile.mockImplementation((cmd, args, opts, cb) => {
-      cb(null, ' ⛅️ wrangler\n\n| Account Name   | Account ID                       |\n| My Account     | abc123def456                     |', '');
+      cb(null, ' wrangler\n\n| Account Name   | Account ID                       |\n| My Account     | abc123def456                     |', '');
     });
 
     const result = await validateCloudflareCredentials('testkey', 'user@test.com');
@@ -375,13 +395,13 @@ Expected: FAIL -- `validateCloudflareCredentials` is not exported
 
 **Step 3: Add `validateCloudflareCredentials` to editor-api.js**
 
-Add these imports at the top of `scripts/server/handlers/editor-api.js` (after line 8):
+Add this import at the top of `scripts/server/handlers/editor-api.js`, after the existing imports (search for `import { loadOpenRouterKey }`):
 
 ```javascript
 import { getSetupStatus, saveClerkCredentials, saveCloudflareCredentials, getClerkCredentials, getCloudflareCredentials } from '../registry-adapter.js';
 ```
 
-Add this function after the `runCommand` function (after line 37):
+Add this function after the `runCommand` function (search for the closing `}` of `function runCommand`):
 
 ```javascript
 /**
@@ -436,27 +456,26 @@ with CLOUDFLARE_API_KEY/CLOUDFLARE_EMAIL env vars to verify credentials."
 
 ### Task 3: Update `/editor/status` and `/editor/credentials` Endpoints
 
-Replace the current `.env`-based status check with registry-based checks. Replace the save-to-`.env` logic with save-to-registry logic. Add a new route for Cloudflare validation.
+Replace the current `.env`-based status check with registry-based checks. Replace the save-to-`.env` logic with save-to-registry logic. Add a new route for Cloudflare validation. Remove the Connect Studio check route.
 
 **Files:**
-- Modify: `scripts/server/handlers/editor-api.js` (functions `status`, `saveCredentials`)
-- Modify: `scripts/server/routes.js` (add new route)
+- Modify: `scripts/server/handlers/editor-api.js` (functions `checkEditorDeps`, `status`, `saveCredentials`, `checkStudio`)
+- Modify: `scripts/server/routes.js` (route table)
 
 **Step 1: Replace the `checkEditorDeps` function in editor-api.js**
 
-Replace the entire `checkEditorDeps` function (lines 39-81) and `status` function (lines 85-89) with:
+Search for `async function checkEditorDeps(ctx)` and replace the entire function body (everything through its closing `}` and the returned object) with:
 
 ```javascript
 async function checkEditorDeps(ctx) {
   // Check registry for credentials
   const registryStatus = getSetupStatus();
 
-  // Also check legacy .env as fallback
+  // Also check legacy .env as fallback for Clerk
   const env = loadEnvFile(ctx.projectRoot);
   const clerkKey = env.VITE_CLERK_PUBLISHABLE_KEY || '';
   const clerkOk = registryStatus.clerk.ok || validateClerkKey(clerkKey);
 
-  const cfCreds = getCloudflareCredentials();
   const cloudflareOk = registryStatus.cloudflare.ok;
 
   const orKey = loadOpenRouterKey(ctx.projectRoot);
@@ -479,17 +498,13 @@ async function checkEditorDeps(ctx) {
     },
   };
 }
-
-export async function status(ctx, req, res) {
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  const result = await checkEditorDeps(ctx);
-  return res.end(JSON.stringify(result));
-}
 ```
+
+Note: The returned object no longer includes `wrangler`, `ssh`, or `connect` keys. It now has a `cloudflare` key. This is an intentional schema change. All consumers are updated in subsequent tasks.
 
 **Step 2: Replace the `saveCredentials` function**
 
-Replace the entire `saveCredentials` function (lines 102-170) with:
+Search for `export async function saveCredentials(ctx, req, res)` and replace the entire function with:
 
 ```javascript
 export async function saveCredentials(ctx, req, res) {
@@ -573,7 +588,7 @@ export async function saveCredentials(ctx, req, res) {
 
 **Step 3: Add Cloudflare validation route handler**
 
-Add this new handler in `editor-api.js`:
+Add this new handler anywhere in `editor-api.js` (suggestion: after `saveCredentials`):
 
 ```javascript
 export async function validateCloudflare(ctx, req, res) {
@@ -594,18 +609,20 @@ export async function validateCloudflare(ctx, req, res) {
 }
 ```
 
-**Step 4: Add new route to routes.js**
+**Step 4: Delete the `checkStudio` function**
 
-In `scripts/server/routes.js`, add this line to the `routeTable` object (after line 101):
+Search for `export async function checkStudio(ctx, req, res)` and delete the entire function.
 
+**Step 5: Update routes.js**
+
+In `scripts/server/routes.js`, find the route table object (search for `const routeTable`).
+
+Add this new route:
 ```javascript
   'POST /editor/credentials/validate-cloudflare': editorApi.validateCloudflare,
 ```
 
-**Step 5: Remove the `checkStudio` route**
-
-In `scripts/server/routes.js`, remove this line (line 100):
-
+Remove this route:
 ```javascript
   'POST /editor/credentials/check-studio': editorApi.checkStudio,
 ```
@@ -620,24 +637,24 @@ Expected: PASS (or only pre-existing failures unrelated to this change)
 ```bash
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/handlers/editor-api.js scripts/server/routes.js && git commit -m "Update editor API to use registry for credential storage
 
-- /editor/status checks ~/.vibes/deployments.json instead of .env
+- /editor/status returns clerk + cloudflare + openrouter (drops wrangler/ssh/connect)
 - /editor/credentials saves to registry (with .env fallback for assembly)
 - New POST /editor/credentials/validate-cloudflare endpoint
-- Remove Connect Studio check-studio endpoint"
+- Remove Connect Studio check-studio endpoint and handler"
 ```
 
 ---
 
-### Task 4: Rewrite Wizard HTML -- Step 1 (Welcome) and Step 2 (Clerk)
+### Task 4: Rewrite Wizard HTML -- All 4 Steps
 
-Replace the SETUP phase HTML in editor.html. The new wizard has 4 steps instead of 5. This task handles the HTML structure and the first two steps.
+Replace the SETUP phase HTML in editor.html. The new wizard has 4 steps instead of 5. This task replaces the entire `phaseSetup` div.
 
 **Files:**
-- Modify: `skills/vibes/templates/editor.html` (lines 2293-2421 -- the entire `phaseSetup` div)
+- Modify: `skills/vibes/templates/editor.html` (the `phaseSetup` div)
 
 **Step 1: Replace the phaseSetup HTML**
 
-Find the block from `<!-- Phase 1: Setup -->` (line 2292) through the closing `</div>` of `phaseSetup` (line 2421). Replace it with:
+Search for `<!-- Phase 1: Setup -->` and find the containing `<div class="phase setup-phase" id="phaseSetup">`. Replace from that opening tag through its closing `</div>` (the one that ends the phaseSetup div, right before `<!-- Phase 2: Generate -->`) with:
 
 ```html
   <!-- Phase 1: Setup -->
@@ -748,7 +765,7 @@ Find the block from `<!-- Phase 1: Setup -->` (line 2292) through the closing `<
         <!-- Optional: OpenRouter -->
         <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid rgba(0,0,0,0.1);">
           <div style="font-size:0.75rem;font-weight:700;margin-bottom:0.25rem;">
-            OpenRouter API Key <span style="font-weight:400;color:#888;">(optional — enables AI themes)</span>
+            OpenRouter API Key <span style="font-weight:400;color:#888;">(optional -- enables AI themes)</span>
           </div>
           <div style="display:flex;gap:0.5rem;">
             <input class="wizard-input" id="wizardOpenRouterKey" type="password" placeholder="sk-or-..." oninput="validateOpenRouterKey()" style="flex:1;" />
@@ -784,29 +801,27 @@ Cloudflare replaces exe.dev/Connect as the deploy target."
 
 ---
 
-### Task 5: Rewrite Wizard JavaScript -- State and Navigation
+### Task 5: Rewrite Wizard JavaScript -- State, Navigation, and Validation
 
-Replace the wizard JS functions in editor.html. This task handles wizard state, navigation, validation functions, and the new save/verify flow.
+Replace the wizard JS functions in editor.html. This task handles wizard state, navigation, validation functions, the save/verify flow, AND all deploy button state management that depended on the old status schema.
 
 **Files:**
-- Modify: `skills/vibes/templates/editor.html` (JS section, lines ~2778-2784 for state, lines ~3157-3473 for wizard functions)
+- Modify: `skills/vibes/templates/editor.html` (JS section -- state variables, wizard functions, deploy functions, init block)
 
 **Step 1: Update wizard state variables**
 
-Find the state variables block (around line 2778-2787). Replace:
+Search for `let deployTargets = { cloudflare: false, exe: false };` and the surrounding state block. Replace these specific variables:
 
 ```javascript
-  let wizardStep = 1;
-  let wizardData = { clerkKey: '', clerkSecret: '', studioName: '', apiUrl: '', cloudUrl: '', openRouterKey: '' };
+  // DELETE these lines:
+  let deployTargets = { cloudflare: false, exe: false };
   let sshAvailable = false;
   let studioCheckTimer = null;
   let studioMode = 'existing';
-```
+  let wizardData = { clerkKey: '', clerkSecret: '', studioName: '', apiUrl: '', cloudUrl: '', openRouterKey: '' };
 
-With:
-
-```javascript
-  let wizardStep = 1;
+  // REPLACE with:
+  let cloudflareReady = false;
   let wizardData = {
     clerkKey: '',
     clerkSecret: '',
@@ -821,9 +836,13 @@ With:
   };
 ```
 
+Keep `let wizardStep = 1;` unchanged.
+
 **Step 2: Replace all wizard functions**
 
-Find and replace the block from `function renderChecklist(status)` (line 3157) through `function prefillFromStatus(status) { ... }` (ending around line 3473). Replace it all with:
+Search for `function renderChecklist(status)` -- this is the start of the wizard function block. Delete everything from that function through `function prefillFromStatus(status) { ... }` (inclusive). The block to delete ends just before the comment `// === Phase 2: Generate ===`.
+
+Replace the entire deleted block with:
 
 ```javascript
   function renderChecklist(status) {
@@ -987,6 +1006,7 @@ Find and replace the block from `function renderChecklist(status)` (line 3157) t
       if (data.valid) {
         wizardData.cfAccountId = data.accountId || '';
         wizardValidation.cloudflare = 'valid';
+        cloudflareReady = true;
 
         // Save Cloudflare credentials to registry
         await fetch('/editor/credentials', {
@@ -1106,19 +1126,114 @@ Find and replace the block from `function renderChecklist(status)` (line 3157) t
   }
 ```
 
-**Step 3: Update the initialization block**
+**Step 3: Replace `updateDeployButtons` function**
 
-Find the initialization block at the bottom of the script (around lines 5280-5314). Replace the status check logic:
+Search for `function updateDeployButtons()` and replace the entire function with:
 
 ```javascript
-  setPhase('generate');
-  connectWs();
+  function updateDeployButtons() {
+    const cfBtn = document.getElementById('deployCf');
+    if (cfBtn) {
+      cfBtn.disabled = !cloudflareReady;
+      const cfDetail = document.getElementById('deployCfDetail');
+      cfDetail.textContent = cloudflareReady ? 'Ready' : 'Run setup wizard first';
+      cfDetail.classList.toggle('ready', cloudflareReady);
+    }
+  }
+```
 
-  // App gallery only needs filesystem data -- load immediately
-  checkExistingApps();
+**Step 4: Replace `toggleDeployMenu` function**
 
+Search for `function toggleDeployMenu()` and replace the entire function with:
+
+```javascript
+  function toggleDeployMenu() {
+    const menu = document.getElementById('deployMenu');
+    const opening = !menu.classList.contains('open');
+    menu.classList.toggle('open');
+    if (opening) {
+      deployMenuOpenTime = Date.now();
+      // Position below the deploy button
+      const btn = document.querySelector('#deployDropdown button');
+      const rect = btn.getBoundingClientRect();
+      menu.style.top = (rect.bottom + 6) + 'px';
+      menu.style.right = (window.innerWidth - rect.right + 4) + 'px';
+      // Refresh deploy status from registry
+      fetch('/editor/status').then(r => r.json()).then(status => {
+        cloudflareReady = status.cloudflare?.ok || false;
+        updateDeployButtons();
+      }).catch(() => {});
+    }
+  }
+```
+
+**Step 5: Replace deploy menu HTML in `setPhase` function**
+
+Search for `function setPhase(phase)`. Inside this function, there is a block that builds the deploy dropdown HTML (search for `deploy-dropdown`). Find the HTML template string that creates the deploy menu buttons. Replace the entire deploy menu HTML (the template literal inside the `innerHTML` assignment that contains `deployCf` and `deployExe`) with a version that only has the Cloudflare button:
+
+Find the template literal that contains `id="deployExe"` and replace the entire `deployDropdown` innerHTML assignment block. The new HTML should be:
+
+```javascript
+        headerRight.innerHTML += `<div class="navbar-button-wrapper deploy-dropdown" id="deployDropdown">
+          <button style="background:var(--vibes-green)" onclick="toggleDeployMenu()">
+            <div class="navbar-button-icon">
+              <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="17.5" cy="17.5" r="17.5" fill="#231F20"/>
+                <path d="M17.5 9l7 7h-4.5v7h-5v-7H10.5l7-7z" fill="var(--vibes-cream)"/>
+                <rect x="11" y="25" width="13" height="2" rx="1" fill="var(--vibes-cream)"/>
+              </svg>
+            </div>
+            <div class="navbar-button-label">Deploy</div>
+          </button>
+          <div class="deploy-menu" id="deployMenu">
+            <div class="deploy-menu-header">
+              <label>App Name</label>
+              <input type="text" id="deployNameInput" placeholder="my-app"
+                onclick="event.stopPropagation()" />
+            </div>
+            <button class="deploy-option" id="deployCf" onclick="startDeploy('cloudflare')" disabled>
+              <span class="deploy-option-icon">&#9729;</span>
+              <div>
+                <div>Cloudflare Workers</div>
+                <div class="deploy-option-detail" id="deployCfDetail">Checking...</div>
+              </div>
+            </button>
+          </div>
+        </div>`;
+```
+
+Remove the `updateDeployButtons();` call that follows if it still references the old function (it should still work with the new one).
+
+**Step 6: Replace `startDeploy` function**
+
+Search for `function startDeploy(target)` and replace the entire function with:
+
+```javascript
+  function startDeploy(target) {
+    if (isThinking || !ws || ws.readyState !== WebSocket.OPEN) return;
+    const nameInput = document.getElementById('deployNameInput');
+    const name = (nameInput ? nameInput.value.trim() : '').replace(/[^a-z0-9-]/g, '');
+    if (!name) {
+      nameInput.style.borderColor = 'var(--vibes-red)';
+      nameInput.focus();
+      return;
+    }
+    nameInput.style.borderColor = 'var(--vibes-near-black)';
+    document.getElementById('deployMenu').classList.remove('open');
+    addMessage('user', 'Deploy "' + name + '" to Cloudflare Workers');
+    ws.send(JSON.stringify({ type: 'deploy', target: 'cloudflare', name }));
+  }
+```
+
+**Step 7: Update the initialization block**
+
+Search for the status fetch in the init block (find `fetch('/editor/status').then`). Replace the entire `.then` callback chain (from the `fetch` call through its `.catch`) with:
+
+```javascript
   // Check status -> decide setup wizard vs generate
   fetch('/editor/status').then(r => r.json()).then(status => {
+    cloudflareReady = status.cloudflare?.ok || false;
+
     if (status.clerk?.ok && status.cloudflare?.ok) {
       // Credentials present -- stay in generate phase
       fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
@@ -1134,52 +1249,186 @@ Find the initialization block at the bottom of the script (around lines 5280-531
   }).catch(err => {
     document.getElementById('generatePrompt').focus();
   });
-
-  populateThemeSelect();
-  fetch('/themes/has-key').then(r => r.json()).then(d => { hasOpenRouterKey = !!d.hasKey; }).catch(() => {});
 ```
 
-**Step 4: Remove dead code**
-
-Remove these functions that are no longer needed (search for each and delete):
-- `selectStudioMode`
-- `updateStudioNextButton`
-- `debouncedCheckStudio`
-- `checkStudio`
-- `validateAdvancedUrls`
-- `startStudioDeploy`
-- `wizardSave` (replaced by `wizardFinish`)
-
-Also remove the `deployTargets` state variable (line ~2779) and all references to it (search for `deployTargets`).
-
-Also remove `sshAvailable`, `studioCheckTimer`, `studioMode` state variables.
-
-**Step 5: Verify no JS errors**
+**Step 8: Verify no JS errors**
 
 Load editor.html in browser at localhost:3333, open dev console, confirm no errors on page load.
 
-**Step 6: Commit**
+**Step 9: Commit**
 
 ```bash
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add skills/vibes/templates/editor.html && git commit -m "Rewrite wizard JavaScript for new 4-step onboarding flow
 
 New state management with per-credential validation tracking.
 Clerk keys saved on step 2 advance. Cloudflare validated server-side
-before advancing to step 3. Connect Studio logic removed entirely."
+before advancing to step 3. All Connect Studio JS removed.
+Deploy buttons simplified to Cloudflare-only with cloudflareReady flag."
 ```
 
 ---
 
-### Task 6: Update CSS for the New Wizard
+### Task 6: Clean Up WebSocket Handlers -- Remove Studio Deploy
 
-Small CSS tweaks to support the new wizard layout. The existing `.wizard-*` styles mostly work, but we need to remove the 5th dot and add a validation spinner style.
+The `ws-dispatch.js` file still has a `deploy-studio` entry in its dispatch table, and `deploy.js` still exports `handleDeployStudio`. The editor.html WebSocket message handler still processes `studio-progress`, `studio-complete`, and `studio-error` messages. All of these reference removed Connect Studio functionality.
 
 **Files:**
-- Modify: `skills/vibes/templates/editor.html` (CSS section, around lines 271-460)
+- Modify: `scripts/server/ws-dispatch.js`
+- Modify: `scripts/server/handlers/deploy.js`
+- Modify: `skills/vibes/templates/editor.html` (WS message handlers)
+
+**Step 1: Remove `deploy-studio` from ws-dispatch.js**
+
+In `scripts/server/ws-dispatch.js`:
+
+1. Search for the import line `import { handleDeploy, handleDeployStudio } from './handlers/deploy.js';` and change it to:
+   ```javascript
+   import { handleDeploy } from './handlers/deploy.js';
+   ```
+
+2. Search for `'deploy-studio':` in the dispatch table and delete that entire line:
+   ```javascript
+   // DELETE this line:
+   'deploy-studio':  (msg) => handleDeployStudio(ctx, onEvent, msg.studioName, msg.clerkPublishableKey, msg.clerkSecretKey),
+   ```
+
+**Step 2: Remove `handleDeployStudio` from deploy.js**
+
+In `scripts/server/handlers/deploy.js`:
+
+1. Search for `export async function handleDeployStudio` and delete the entire function (from the `/**` comment above it through its final closing `}`).
+
+2. Also update `handleDeploy` to remove the exe.dev target. Search for the target validation at the top of `handleDeploy`:
+   ```javascript
+   if (!target || (target !== 'cloudflare' && target !== 'exe')) {
+   ```
+   Replace with:
+   ```javascript
+   if (!target || target !== 'cloudflare') {
+     onEvent({ type: 'error', message: 'Invalid deploy target. Use "cloudflare".' });
+   ```
+
+3. Search for the `deployScript` selection block that chooses between `deploy-cloudflare.js` and `deploy-exe.js`. Replace it with:
+   ```javascript
+   const deployScript = join(ctx.projectRoot, 'scripts/deploy-cloudflare.js');
+   const deployArgs = ['--name', appName, '--file', indexHtmlPath];
+   ```
+
+**Step 3: Remove studio WS message handlers from editor.html**
+
+In `skills/vibes/templates/editor.html`, search for `msg.type === 'studio-progress'`. Delete the three consecutive `else if` blocks for `studio-progress`, `studio-complete`, and `studio-error`. Specifically, delete from:
+```javascript
+      } else if (msg.type === 'studio-progress') {
+```
+through:
+```javascript
+        if (hint) { hint.textContent = msg.message; hint.style.color = 'var(--vibes-red)'; }
+      }
+```
+
+These blocks reference DOM elements (`studioDeployLog`, `studioDeployBtn`, `wizardNewStudioName`, `wizardDeployHint`) that no longer exist and functions (`updateStudioNextButton`) that were deleted.
+
+**Step 4: Run tests**
+
+Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && npx vitest run`
+Expected: PASS
+
+**Step 5: Commit**
+
+```bash
+cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/ws-dispatch.js scripts/server/handlers/deploy.js skills/vibes/templates/editor.html && git commit -m "Remove Connect Studio deploy from WebSocket handlers
+
+Delete deploy-studio dispatch entry, handleDeployStudio function,
+and studio-progress/complete/error WS message handlers in editor.
+Deploy handler now only supports Cloudflare target."
+```
+
+---
+
+### Task 7: Inject Registry Credentials into Deploy Subprocess
+
+The wizard validates and stores Cloudflare credentials in the registry, but `deploy-cloudflare.js` spawns `wrangler` via `process.env`. If the user authenticated via the wizard (Global API Key stored in registry) rather than via `wrangler login` (OAuth token in `~/.wrangler/`), wrangler won't find credentials.
+
+The cleanest fix is in `scripts/server/handlers/deploy.js`: when spawning the deploy subprocess, read Cloudflare credentials from the registry and inject them as `CLOUDFLARE_API_KEY` / `CLOUDFLARE_EMAIL` environment variables. This way `deploy-cloudflare.js` itself doesn't need modification -- wrangler natively respects these env vars.
+
+**Files:**
+- Modify: `scripts/server/handlers/deploy.js`
+
+**Step 1: Add registry import to deploy.js**
+
+At the top of `scripts/server/handlers/deploy.js`, after the existing imports, add:
+
+```javascript
+import { getCloudflareCredentials } from '../../server/registry-adapter.js';
+```
+
+Note: The relative path from `scripts/server/handlers/deploy.js` to `scripts/server/registry-adapter.js` is `../registry-adapter.js`. Adjust if needed based on the actual directory structure. The correct import is:
+
+```javascript
+import { getCloudflareCredentials } from '../registry-adapter.js';
+```
+
+**Step 2: Inject credentials into deploy subprocess environment**
+
+Search for the block in `handleDeploy` where the deploy child process is spawned. Find the line:
+```javascript
+    const child = spawn('node', [deployScript, ...deployArgs], {
+      cwd: ctx.projectRoot,
+      env: { ...process.env },
+```
+
+Replace the `env` property with:
+```javascript
+      env: (() => {
+        const env = { ...process.env };
+        // Inject Cloudflare credentials from registry if not already in env
+        if (!env.CLOUDFLARE_API_KEY || !env.CLOUDFLARE_EMAIL) {
+          const cfCreds = getCloudflareCredentials();
+          if (cfCreds.apiKey) env.CLOUDFLARE_API_KEY = cfCreds.apiKey;
+          if (cfCreds.email) env.CLOUDFLARE_EMAIL = cfCreds.email;
+        }
+        return env;
+      })(),
+```
+
+**Step 3: Also inject into the assembly subprocess**
+
+Search for the assembly spawn block earlier in `handleDeploy` (the one that runs `assemble.js`). Find:
+```javascript
+      env: { ...process.env },
+```
+in that block. This one does NOT need Cloudflare credentials (assembly doesn't call wrangler), but verify it's the right block by checking it spawns `assemble.js`. Leave it unchanged.
+
+**Step 4: Verify the deploy flow works**
+
+This can only be verified with real credentials, but verify no syntax errors by running:
+
+Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && node -e "import('./server/handlers/deploy.js').then(() => console.log('OK')).catch(e => console.error(e.message))"`
+Expected: "OK" (no import errors)
+
+**Step 5: Commit**
+
+```bash
+cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/handlers/deploy.js && git commit -m "Inject registry Cloudflare credentials into deploy subprocess
+
+When spawning wrangler via deploy-cloudflare.js, read
+CLOUDFLARE_API_KEY/CLOUDFLARE_EMAIL from the registry and
+inject into the subprocess environment. Ensures wizard-stored
+credentials reach wrangler without modifying deploy-cloudflare.js."
+```
+
+---
+
+### Task 8: Add CSS for Wizard Validation Spinner
+
+Small CSS additions to support the new wizard layout. The existing `.wizard-*` styles mostly work, but we need a validation spinner style.
+
+**Files:**
+- Modify: `skills/vibes/templates/editor.html` (CSS section)
 
 **Step 1: Add validation spinner CSS**
 
-After the existing `.wizard-radio` styles (around line 446), add:
+Search for `.wizard-radio.selected` in the CSS section. After the `.wizard-radio` style block, add:
 
 ```css
     .wizard-checking {
@@ -1194,80 +1443,27 @@ After the existing `.wizard-radio` styles (around line 446), add:
     @keyframes wizardSpin {
       to { transform: rotate(360deg); }
     }
-    .wizard-step-instructions {
-      background: rgba(0,154,206,0.06);
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
-      margin-bottom: 1rem;
-      font-size: 0.8125rem;
-      line-height: 1.5;
-    }
-    .wizard-step-instructions ol {
-      margin: 0.5rem 0 0 1.25rem;
-      padding: 0;
-    }
 ```
 
 **Step 2: Commit**
 
 ```bash
-cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add skills/vibes/templates/editor.html && git commit -m "Add CSS for wizard validation spinner and instruction blocks"
+cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add skills/vibes/templates/editor.html && git commit -m "Add CSS for wizard validation spinner"
 ```
 
 ---
 
-### Task 7: Update Deploy Button Logic
-
-The editor's deploy buttons currently check `deployTargets.cloudflare` and `deployTargets.exe`. Since exe.dev is removed and Cloudflare is now always the target, simplify the deploy logic.
-
-**Files:**
-- Modify: `skills/vibes/templates/editor.html` (search for `deployTargets` in the JS section)
-
-**Step 1: Find all references to `deployTargets`**
-
-Search for `deployTargets` in the file. There will be references in:
-1. State declaration
-2. `renderChecklist` function (already updated in Task 5)
-3. Deploy button rendering / onclick handlers
-4. Status response handling
-
-**Step 2: Replace deploy target logic**
-
-Find the deploy button area in the edit phase. Replace any `deployTargets.cloudflare` checks with `true` (Cloudflare is always available after setup). Remove any `deployTargets.exe` references and exe.dev deploy buttons.
-
-Specifically, search for any code like:
-```javascript
-if (deployTargets.cloudflare) { ... }
-if (deployTargets.exe) { ... }
-```
-And simplify to just show the Cloudflare deploy option.
-
-**Step 3: Test by loading the editor**
-
-Load editor in browser. After completing the wizard, the deploy button should work without checking `deployTargets`.
-
-**Step 4: Commit**
-
-```bash
-cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add skills/vibes/templates/editor.html && git commit -m "Simplify deploy buttons to Cloudflare-only
-
-Remove exe.dev deploy target logic. Cloudflare is always the
-deploy target after the onboarding wizard completes."
-```
-
----
-
-### Task 8: Update SessionStart Hook for Registry Detection
+### Task 9: Update SessionStart Hook for Registry Detection
 
 The session-start hook currently checks for `.env` with Clerk keys and Connect URLs. Update it to check the registry.
 
 **Files:**
-- Modify: `hooks/session-start.sh` (lines 14-49)
-- Modify: `hooks/session-context.md` (dispatch table)
+- Modify: `hooks/session-start.sh`
+- Modify: `hooks/session-context.md`
 
 **Step 1: Update session-start.sh project state detection**
 
-Replace lines 14-49 (the state detection block) with:
+Search for `# Detect project state and build dynamic hints` in `hooks/session-start.sh`. Replace everything from that comment through the `index.html` detection block (ending at the `fi` before the `# Escape for JSON` comment) with:
 
 ```bash
 # Detect project state and build dynamic hints
@@ -1323,7 +1519,7 @@ fi
 
 **Step 2: Update session-context.md dispatch table**
 
-In `hooks/session-context.md`, replace the dispatch table rows for exe and connect:
+In `hooks/session-context.md`, find the `## Skill Dispatch` table. Make these changes:
 
 Remove these rows:
 ```
@@ -1336,16 +1532,13 @@ Replace with:
 | "deploy" / "put it online" | `/vibes:cloudflare` |
 ```
 
-Also update the Workflow section. Replace:
-```
-.env with Clerk keys + Connect URLs must exist before generating apps.
-If missing, invoke `/vibes:connect` first.
-```
-With:
+Also update the `## Workflow` section. Search for the paragraph containing `.env with Clerk keys + Connect URLs must exist`. Replace it with:
 ```
 Clerk keys and Cloudflare credentials must exist before deploying.
 If missing, run the editor setup wizard. Connect deploys automatically on first app deploy.
 ```
+
+Also search for `If missing, invoke `/vibes:connect` first.` and delete that line if it still exists.
 
 **Step 3: Test the hook**
 
@@ -1363,7 +1556,7 @@ Remove /vibes:connect and /vibes:exe from dispatch table."
 
 ---
 
-### Task 9: Integration Test -- Full Wizard Flow
+### Task 10: Integration Test -- Full Wizard Flow
 
 Write an integration test that exercises the complete wizard flow: status check, Clerk save, Cloudflare validate, and final status.
 
@@ -1375,7 +1568,7 @@ Write an integration test that exercises the complete wizard flow: status check,
 ```javascript
 // scripts/__tests__/integration/wizard-flow.test.js
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdirSync, rmSync, readFileSync, writeFileSync, existsSync } from 'fs';
+import { mkdirSync, rmSync, readFileSync, writeFileSync, existsSync, statSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -1430,7 +1623,7 @@ describe('wizard flow integration', () => {
     expect(status.cloudflare.ok).toBe(true);
   });
 
-  it('registry file is created on first save', () => {
+  it('registry file is created on first save with secure permissions', () => {
     adapter.saveClerkCredentials({
       publishableKey: 'pk_test_abc',
       secretKey: 'sk_test_xyz',
@@ -1442,6 +1635,11 @@ describe('wizard flow integration', () => {
     const reg = JSON.parse(readFileSync(regPath, 'utf8'));
     expect(reg.version).toBe(1);
     expect(Object.keys(reg.apps).length).toBeGreaterThan(0);
+
+    // Verify 0o600 permissions
+    const stat = statSync(regPath);
+    const mode = stat.mode & 0o777;
+    expect(mode).toBe(0o600);
   });
 
   it('credentials survive registry reload', () => {
@@ -1454,7 +1652,6 @@ describe('wizard flow integration', () => {
       email: 'persist@test.com',
     });
 
-    // Re-import to force re-read from disk
     const status = adapter.getSetupStatus();
     expect(status.clerk.ok).toBe(true);
     expect(status.cloudflare.ok).toBe(true);
@@ -1479,12 +1676,13 @@ Expected: PASS
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/__tests__/integration/wizard-flow.test.js && git commit -m "Add integration test for wizard credential flow
 
 Tests complete wizard lifecycle: empty status -> save Clerk ->
-save Cloudflare -> verify status shows both OK."
+save Cloudflare -> verify status shows both OK. Validates 0o600
+file permissions on registry."
 ```
 
 ---
 
-### Task 10: Run Full Test Suite and Fix Regressions
+### Task 11: Run Full Test Suite and Fix Regressions
 
 **Step 1: Run all tests**
 
@@ -1493,9 +1691,10 @@ Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onbo
 **Step 2: Fix any failures**
 
 Common issues to watch for:
-- Tests that import from `editor-api.js` and expect the old `saveCredentials` payload format
+- Tests that import from `editor-api.js` and expect the old `saveCredentials` payload format (old keys: `VITE_CLERK_PUBLISHABLE_KEY`, new keys: `clerkPublishableKey`)
 - Tests that reference `deployTargets`, `sshAvailable`, or Connect Studio
-- Tests that check for `.env` status fields like `connect` or `ssh`
+- Tests that check for status response fields like `connect`, `ssh`, or `wrangler` (now replaced by `cloudflare`)
+- Tests that import `handleDeployStudio` from `deploy.js`
 
 Fix each failing test to match the new API contract.
 
@@ -1517,7 +1716,7 @@ cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding
 
 ---
 
-### Task 11: Verification Checklist
+### Task 12: Verification Checklist
 
 **Before claiming complete, verify all of these:**
 
@@ -1526,11 +1725,20 @@ cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding
 - [ ] `echo '{}' | bash hooks/session-start.sh` -- valid JSON output
 - [ ] No references to `studioMode` or `studioCheckTimer` in editor.html JS
 - [ ] No references to `wizardStep5` in editor.html HTML
-- [ ] No references to `deployTargets.exe` in editor.html JS
+- [ ] No references to `deployTargets` in editor.html JS (replaced by `cloudflareReady`)
 - [ ] No references to `checkStudio` route in routes.js
+- [ ] No references to `handleDeployStudio` in ws-dispatch.js or deploy.js
+- [ ] No `studio-progress`, `studio-complete`, or `studio-error` handlers in editor.html WS message block
+- [ ] No `deploy-studio` entry in ws-dispatch.js dispatch table
 - [ ] Wizard shows exactly 4 progress dots (not 5)
 - [ ] `/editor/status` returns `clerk` and `cloudflare` fields (not `connect`, `ssh`, `wrangler`)
 - [ ] `/editor/credentials` saves to `~/.vibes/deployments.json`
+- [ ] `~/.vibes/deployments.json` written with `0o600` permissions
 - [ ] `/editor/credentials/validate-cloudflare` endpoint exists
 - [ ] Clerk keys also written to `.env` for assembly backward compatibility
 - [ ] Session context dispatch table has no `/vibes:connect` or `/vibes:exe`
+- [ ] `deploy.js` `handleDeploy` injects `CLOUDFLARE_API_KEY`/`CLOUDFLARE_EMAIL` from registry into subprocess env
+- [ ] `deploy.js` `handleDeploy` only accepts `target === 'cloudflare'` (not `exe`)
+- [ ] Deploy menu in editor only shows Cloudflare option (no exe.dev button)
+- [ ] `updateDeployButtons` reads `cloudflareReady` (not `deployTargets.cloudflare`)
+- [ ] `toggleDeployMenu` reads `status.cloudflare?.ok` (not `status.wrangler?.ok`)
