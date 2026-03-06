@@ -174,10 +174,12 @@ The implementation:
 
 ```javascript
 const subdomain = window.location.hostname.split('.')[0];
-const { database } = useFireproofClerk(`app-${subdomain}`);
+const { database } = useFireproofOIDC(`app-${subdomain}`);
 ```
 
 Three lines. No backend. No database configuration. No tenant middleware.
+
+> **Note:** `useFireproofClerk` still works as a backward-compatible alias for `useFireproofOIDC`.
 
 ### What This Enables
 

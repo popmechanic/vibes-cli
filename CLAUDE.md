@@ -223,17 +223,13 @@ This plugin works with multiple coding agents, not just Claude Code.
 
 ## Package Versions
 
-The import map in `source-templates/base/template.html` is the authoritative source for current package versions (`esm.sh/stable/` URLs, `@necrodome/fireproof-clerk@0.0.7`, React 19.2.4).
+The import map in `source-templates/base/template.html` is the authoritative source for current package versions (`esm.sh/stable/` URLs, `oauth4webapi`, React 19.2.4). The OIDC bridge (`bundles/fireproof-oidc-bridge.js`) is loaded as a local bundle, not from esm.sh.
 
 ## Critical Rules
 
 ### 1. Use `?external=` for React Singleton
 
-When using `@necrodome/fireproof-clerk` via esm.sh, you MUST add `?external=react,react-dom` to ensure a single React instance:
-
-```json
-"@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom"
-```
+Any esm.sh package that depends on React MUST use `?external=react,react-dom` to ensure a single React instance. The OIDC bridge (`bundles/fireproof-oidc-bridge.js`) is a local bundle and does not need this parameter, but any future esm.sh dependency that uses React still requires it.
 
 **Why `?external=`:** This tells esm.sh to keep `react` and `react-dom` as bare specifiers instead of bundling them. The browser's import map then intercepts these bare specifiers, ensuring all code uses the same React instance.
 
@@ -472,12 +468,14 @@ vibes.diy uses import maps - a browser-native feature (since March 2023) that ma
 | Bare specifier | `import "react"` | ✅ Yes |
 | Absolute path | `import "/react@19.2.4"` | ❌ No |
 
-When esm.sh bundles `@fireproof/clerk`, internal React imports become absolute paths:
+When esm.sh bundles a React-dependent package, internal React imports become absolute paths:
 ```javascript
 import "/react@>=19.1.0?target=es2022";  // Resolved relative to esm.sh origin
 ```
 
-**Result**: Our import map provides React 19.2.4, but `@fireproof/clerk` loads React 19.2.6 → TWO React instances → context fails.
+**Result**: Our import map provides React 19.2.4, but the bundled package loads a different React version → TWO React instances → context fails.
+
+**Note:** The OIDC bridge (`bundles/fireproof-oidc-bridge.js`) is a local bundle that avoids this problem entirely. This section remains relevant for any future esm.sh packages that depend on React.
 
 ### The Solution: `?external=`
 
@@ -501,7 +499,7 @@ The `?external=` parameter tells esm.sh to keep specified dependencies as **bare
 See `source-templates/base/template.html` for the current authoritative import map. The key points:
 - The `/stable/` path uses pre-built, cached versions that avoid dependency resolution issues
 - `?external=react,react-dom` ensures import map controls React
-- Currently uses a local bundle workaround for `use-fireproof` and `@fireproof/clerk`
+- Uses a local OIDC bridge bundle (`bundles/fireproof-oidc-bridge.js`) for auth integration with `use-fireproof`
 
 ## Hooks (SessionStart)
 
