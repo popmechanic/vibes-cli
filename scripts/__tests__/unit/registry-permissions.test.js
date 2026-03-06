@@ -4,7 +4,7 @@ import { mkdirSync, rmSync, statSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
-const TEST_DIR = join(tmpdir(), `vibes-reg-perms-${Date.now()}`);
+const TEST_DIR = join(tmpdir(), `vibes-reg-perms-${process.pid}-${Date.now()}`);
 
 describe('registry file permissions', () => {
   let registry;

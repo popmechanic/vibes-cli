@@ -8,13 +8,25 @@ import { loadEnvFile, validateClerkKey, validateClerkSecretKey, writeEnvFile } f
 import { loadOpenRouterKey } from '../config.js';
 import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp } from '../../lib/registry.js';
 
+const MAX_BODY_SIZE = 1024 * 1024; // 1MB
+
 /**
  * Parse JSON body from an HTTP request.
+ * Rejects with 413 if body exceeds MAX_BODY_SIZE.
  */
 export function parseJsonBody(req) {
   return new Promise((resolve, reject) => {
     let body = '';
-    req.on('data', chunk => { body += chunk; });
+    let size = 0;
+    req.on('data', chunk => {
+      size += chunk.length;
+      if (size > MAX_BODY_SIZE) {
+        req.destroy();
+        reject(Object.assign(new Error('Request body too large'), { statusCode: 413 }));
+        return;
+      }
+      body += chunk;
+    });
     req.on('end', () => {
       try { resolve(JSON.parse(body)); }
       catch { reject(new Error('Invalid JSON')); }
@@ -47,10 +59,12 @@ async function checkEditorDeps(ctx) {
     }
   }
 
-  // Check Cloudflare from registry
+  // Check Cloudflare from registry — supports both API Token and Global API Key
   const cfConfig = getCloudflareConfig();
-  const cfOk = !!(cfConfig.apiKey && cfConfig.email);
-  const cfDetail = cfOk ? cfConfig.email : 'No Cloudflare credentials configured';
+  const cfOk = !!(cfConfig.apiToken || (cfConfig.apiKey && cfConfig.email));
+  const cfDetail = cfOk
+    ? (cfConfig.apiToken ? 'API Token configured' : cfConfig.email)
+    : 'No Cloudflare credentials configured';
 
   // OpenRouter from .env (unchanged -- per-project, not global)
   const orKey = loadOpenRouterKey(ctx.projectRoot);
@@ -103,10 +117,19 @@ export async function saveCredentials(ctx, req, res) {
       }
 
       if (!errors.clerkPublishableKey && !errors.clerkSecretKey && (pk || sk)) {
-        // Save to registry
+        // _default is a sentinel app entry used by the wizard for credential status
+        // checks. It stores Clerk keys in the registry so checkEditorDeps() can
+        // verify them without reading .env. Deploy reads from .env (written below).
+        // Merge with existing _default entry so partial saves don't clobber the
+        // other key (e.g., saving pk alone shouldn't erase sk).
+        const existing = getApp('_default');
+        const existingClerk = existing?.clerk || {};
         setApp('_default', {
           name: '_default',
-          clerk: { publishableKey: pk, secretKey: sk },
+          clerk: {
+            publishableKey: pk || existingClerk.publishableKey || '',
+            secretKey: sk || existingClerk.secretKey || '',
+          },
         });
 
         // Also write to .env for backward compatibility
@@ -118,24 +141,26 @@ export async function saveCredentials(ctx, req, res) {
       }
     }
 
-    // --- Cloudflare credentials ---
-    if (body.cloudflareApiKey || body.cloudflareEmail) {
+    // --- Cloudflare credentials (API Token or Global API Key + email) ---
+    if (body.cloudflareApiToken || body.cloudflareApiKey || body.cloudflareEmail) {
+      const apiToken = body.cloudflareApiToken || '';
       const apiKey = body.cloudflareApiKey || '';
       const email = body.cloudflareEmail || '';
 
       if (apiKey && apiKey.length < 20) {
         errors.cloudflareApiKey = 'Cloudflare Global API Key appears too short';
       }
-      if (email && (!email.includes('@') || !email.includes('.'))) {
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         errors.cloudflareEmail = 'Invalid email address';
       }
 
-      if (!errors.cloudflareApiKey && !errors.cloudflareEmail && (apiKey || email)) {
+      if (!errors.cloudflareApiKey && !errors.cloudflareEmail) {
         const cfUpdate = {};
+        if (apiToken) cfUpdate.apiToken = apiToken;
         if (apiKey) cfUpdate.apiKey = apiKey;
         if (email) cfUpdate.email = email;
         if (body.cloudflareAccountId) cfUpdate.accountId = body.cloudflareAccountId;
-        setCloudflareConfig(cfUpdate);
+        if (Object.keys(cfUpdate).length > 0) setCloudflareConfig(cfUpdate);
       }
     }
 
@@ -165,36 +190,74 @@ export async function saveCredentials(ctx, req, res) {
 }
 
 /**
- * Validate Cloudflare Global API Key + email via the Cloudflare HTTP API.
- * Calls GET /client/v4/accounts with X-Auth-Key/X-Auth-Email headers.
+ * Validate Cloudflare credentials via the Cloudflare HTTP API.
+ * Supports two auth modes:
+ *   - API Token (preferred, scoped): GET /client/v4/user/tokens/verify
+ *     with Authorization: Bearer <token>
+ *   - Global API Key (legacy): GET /client/v4/accounts
+ *     with X-Auth-Key/X-Auth-Email headers
  *
- * @param {string} apiKey - Cloudflare Global API Key
- * @param {string} email - Cloudflare account email
- * @returns {Promise<{valid: boolean, accountId?: string, error?: string}>}
+ * @param {object} opts
+ * @param {string} [opts.apiToken] - Cloudflare API Token (scoped)
+ * @param {string} [opts.apiKey] - Cloudflare Global API Key
+ * @param {string} [opts.email] - Cloudflare account email (required with apiKey)
+ * @returns {Promise<{valid: boolean, accountId?: string, authMode?: string, error?: string}>}
  */
-export async function validateCloudflareCredentials(apiKey, email) {
+export async function validateCloudflareCredentials({ apiToken, apiKey, email } = {}) {
   try {
-    const res = await fetch('https://api.cloudflare.com/client/v4/accounts', {
-      headers: {
-        'X-Auth-Key': apiKey,
-        'X-Auth-Email': email,
-        'Content-Type': 'application/json',
-      },
-    });
+    if (apiToken) {
+      // Scoped API Token — verify via token verify endpoint
+      const verifyRes = await fetch('https://api.cloudflare.com/client/v4/user/tokens/verify', {
+        headers: {
+          'Authorization': `Bearer ${apiToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const verifyData = await verifyRes.json();
+      if (!verifyData.success || !verifyRes.ok) {
+        const errMsg = verifyData.errors?.[0]?.message || 'Token verification failed';
+        return { valid: false, error: errMsg + '. Check your API Token.' };
+      }
 
-    const data = await res.json();
+      // Token is valid — fetch account ID via accounts endpoint
+      const acctRes = await fetch('https://api.cloudflare.com/client/v4/accounts', {
+        headers: {
+          'Authorization': `Bearer ${apiToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const acctData = await acctRes.json();
+      const accountId = acctData.result?.[0]?.id || null;
 
-    if (!data.success || !res.ok) {
-      const errMsg = data.errors?.[0]?.message || 'Authentication failed';
-      return { valid: false, error: errMsg + '. Check your Global API Key and email.' };
+      return { valid: true, accountId, authMode: 'api-token' };
     }
 
-    const accountId = data.result?.[0]?.id || null;
-    if (!accountId) {
-      return { valid: false, error: 'No accounts found for this API key.' };
+    if (apiKey && email) {
+      // Global API Key — verify via accounts endpoint with legacy headers
+      const res = await fetch('https://api.cloudflare.com/client/v4/accounts', {
+        headers: {
+          'X-Auth-Key': apiKey,
+          'X-Auth-Email': email,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await res.json();
+
+      if (!data.success || !res.ok) {
+        const errMsg = data.errors?.[0]?.message || 'Authentication failed';
+        return { valid: false, error: errMsg + '. Check your Global API Key and email.' };
+      }
+
+      const accountId = data.result?.[0]?.id || null;
+      if (!accountId) {
+        return { valid: false, error: 'No accounts found for this API key.' };
+      }
+
+      return { valid: true, accountId, authMode: 'global-api-key' };
     }
 
-    return { valid: true, accountId };
+    return { valid: false, error: 'Provide either an API Token or a Global API Key + email.' };
   } catch (err) {
     return { valid: false, error: 'Failed to reach Cloudflare API: ' + err.message };
   }
@@ -203,16 +266,18 @@ export async function validateCloudflareCredentials(apiKey, email) {
 export async function validateCloudflare(ctx, req, res) {
   try {
     const body = await parseJsonBody(req);
-    const { apiKey, email } = body;
-    if (!apiKey || !email) {
+    const { apiToken, apiKey, email } = body;
+    if (!apiToken && (!apiKey || !email)) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ valid: false, error: 'API key and email are required.' }));
+      return res.end(JSON.stringify({ valid: false, error: 'Provide an API Token, or a Global API Key + email.' }));
     }
-    const result = await validateCloudflareCredentials(apiKey, email);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
+    const result = await validateCloudflareCredentials({ apiToken, apiKey, email });
+    const statusCode = result.valid ? 200 : 400;
+    res.writeHead(statusCode, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify(result));
   } catch (err) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
+    const statusCode = err.statusCode || 400;
+    res.writeHead(statusCode, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ valid: false, error: err.message }));
   }
 }
@@ -245,9 +310,18 @@ export function listApps(ctx, req, res) {
   }
 }
 
+/**
+ * Sanitize an app name to prevent path traversal.
+ * Strips everything except alphanumeric chars and hyphens.
+ */
+function sanitizeAppName(name) {
+  if (!name) return '';
+  return name.replace(/[^a-zA-Z0-9-]/g, '').slice(0, 63);
+}
+
 export function loadApp(ctx, req, res, url) {
   const params = url.searchParams;
-  const name = params.get('name');
+  const name = sanitizeAppName(params.get('name'));
   if (!name) { res.writeHead(400); return res.end('Missing name'); }
   const src = join(ctx.appsDir, name, 'app.jsx');
   if (!existsSync(src)) { res.writeHead(404); return res.end('App not found'); }
@@ -271,7 +345,7 @@ export function saveApp(ctx, req, res, url) {
 
 export function getScreenshot(ctx, req, res, url) {
   const params = url.searchParams;
-  const name = params.get('name');
+  const name = sanitizeAppName(params.get('name'));
   if (!name) { res.writeHead(400); return res.end('Missing name'); }
   const imgPath = join(ctx.appsDir, name, 'screenshot.png');
   if (!existsSync(imgPath)) { res.writeHead(404); return res.end('No screenshot'); }
@@ -281,7 +355,7 @@ export function getScreenshot(ctx, req, res, url) {
 
 export function saveScreenshot(ctx, req, res, url) {
   const params = url.searchParams;
-  const name = params.get('name');
+  const name = sanitizeAppName(params.get('name'));
   if (!name) { res.writeHead(400); return res.end('Missing name'); }
   const dest = join(ctx.appsDir, name);
   if (!existsSync(dest)) { mkdirSync(dest, { recursive: true }); }

@@ -4,7 +4,7 @@ import { mkdirSync, rmSync, statSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
-const TEST_DIR = join(tmpdir(), `vibes-wizard-flow-${Date.now()}`);
+const TEST_DIR = join(tmpdir(), `vibes-wizard-flow-${process.pid}-${Date.now()}`);
 
 describe('wizard credential flow', () => {
   let registry;
