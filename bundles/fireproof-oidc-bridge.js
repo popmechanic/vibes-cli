@@ -23,7 +23,7 @@ import React from "react";
 import * as oauth from "oauth4webapi";
 
 // Re-export base Fireproof for user app code
-export { useFireproof, useLiveQuery, useDocument } from "@fireproof/core";
+export { useFireproof } from "@fireproof/core";
 import { useFireproof as _baseUseFireproof } from "@fireproof/core";
 
 // ─── OIDC Token Management ───────────────────────────────────────────────
@@ -111,13 +111,15 @@ async function discoverIssuer(authority) {
 
 async function startLogin(authority, clientId, redirectUri) {
   var as = await discoverIssuer(authority);
-  var client = { client_id: clientId, token_endpoint_auth_method: "none" };
+  var client = { client_id: clientId };
   var codeVerifier = oauth.generateRandomCodeVerifier();
   var codeChallenge = await oauth.calculatePKCECodeChallenge(codeVerifier);
+  var state = oauth.generateRandomState();
 
-  // Store verifier for callback
+  // Store verifier and state for callback
   try {
     sessionStorage.setItem(STORAGE_KEY_VERIFIER, codeVerifier);
+    sessionStorage.setItem("vibes_oidc_state", state);
   } catch (e) {}
 
   var authUrl = new URL(as.authorization_endpoint);
@@ -127,6 +129,7 @@ async function startLogin(authority, clientId, redirectUri) {
   authUrl.searchParams.set("scope", "openid profile email");
   authUrl.searchParams.set("code_challenge", codeChallenge);
   authUrl.searchParams.set("code_challenge_method", "S256");
+  authUrl.searchParams.set("state", state);
 
   window.location.href = authUrl.toString();
 }
@@ -137,8 +140,10 @@ async function handleCallback(authority, clientId, redirectUri) {
   if (!code) return null;
 
   var codeVerifier;
+  var expectedState;
   try {
     codeVerifier = sessionStorage.getItem(STORAGE_KEY_VERIFIER);
+    expectedState = sessionStorage.getItem("vibes_oidc_state");
   } catch (e) {}
   if (!codeVerifier) {
     console.error("[vibes-oidc] No code verifier found for callback");
@@ -147,22 +152,23 @@ async function handleCallback(authority, clientId, redirectUri) {
 
   try {
     var as = await discoverIssuer(authority);
-    var client = { client_id: clientId, token_endpoint_auth_method: "none" };
+    var client = { client_id: clientId };
+    var clientAuth = oauth.None();
 
+    // Validate the authorization response (required by oauth4webapi before token exchange)
     var currentUrl = new URL(window.location.href);
+    var callbackParams = oauth.validateAuthResponse(as, client, currentUrl, expectedState || oauth.skipStateCheck);
+
     var response = await oauth.authorizationCodeGrantRequest(
       as,
       client,
-      currentUrl,
+      clientAuth,
+      callbackParams,
       redirectUri,
       codeVerifier
     );
 
     var result = await oauth.processAuthorizationCodeResponse(as, client, response);
-    if (oauth.isOAuth2Error(result)) {
-      console.error("[vibes-oidc] Token exchange error:", result);
-      return null;
-    }
 
     var tokens = {
       accessToken: result.access_token,
@@ -173,9 +179,16 @@ async function handleCallback(authority, clientId, redirectUri) {
 
     storeTokens(tokens.accessToken, tokens.refreshToken, tokens.idToken, tokens.expiresIn);
 
-    // Clean up URL — remove code and state params
+    // Clean up session storage
+    try {
+      sessionStorage.removeItem(STORAGE_KEY_VERIFIER);
+      sessionStorage.removeItem("vibes_oidc_state");
+    } catch (e) {}
+
+    // Clean up URL — remove code, state, and iss params
     params.delete("code");
     params.delete("state");
+    params.delete("iss");
     var cleanUrl = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
     window.history.replaceState({}, "", cleanUrl);
 
@@ -192,15 +205,11 @@ async function refreshAccessToken(authority, clientId) {
 
   try {
     var as = await discoverIssuer(authority);
-    var client = { client_id: clientId, token_endpoint_auth_method: "none" };
+    var client = { client_id: clientId };
+    var clientAuth = oauth.None();
 
-    var response = await oauth.refreshTokenGrantRequest(as, client, stored.refreshToken);
+    var response = await oauth.refreshTokenGrantRequest(as, client, clientAuth, stored.refreshToken);
     var result = await oauth.processRefreshTokenResponse(as, client, response);
-    if (oauth.isOAuth2Error(result)) {
-      console.warn("[vibes-oidc] Token refresh failed:", result);
-      clearTokens();
-      return null;
-    }
 
     storeTokens(
       result.access_token,
@@ -610,6 +619,3 @@ export function useFireproofOIDC(name, opts) {
 
 // Backward-compat alias: templates may use useFireproofClerk
 export { useFireproofOIDC as useFireproofClerk };
-
-// Also export the hook under the standard name for import map consumers
-export { _baseUseFireproof as useFireproof };
