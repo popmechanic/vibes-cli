@@ -848,89 +848,82 @@ git commit -m "Enhance summary step with edit buttons and verification status"
 
 **Step 1: Extend the `/editor/status` endpoint to return masked key values**
 
-In `scripts/server/handlers/editor-api.js`, the `checkEditorDeps` function (around line 47-101) needs two changes: (1) hoist a `validatedPk` variable to track which publishable key was validated, and (2) build a `maskedKeys` object in the return value. Because inline-comment instructions are ambiguous, this step provides the complete before/after replacement for the function.
+In `scripts/server/handlers/editor-api.js`, the `checkEditorDeps` function (around line 47-101) needs a minimal diff: (1) hoist a `validatedPk` variable and (2) add a `maskedKeys` block before the return. The replacement below preserves the existing logic exactly — same variable names, same API calls, same property paths — and only adds lines marked `// <-- NEW`.
 
-Find `checkEditorDeps` (starts around line 47) and replace the **entire function body** with:
+**API reference (verified from source):**
+- `loadRegistry()` returns `{ apps: {}, cloudflare: {} }` — access apps via `reg.apps._default` (direct property, not `getApp`)
+- `getCloudflareConfig()` takes **zero** arguments
+- `loadEnvFile(dir)` takes a **directory** (not a file path) — it appends `.env` internally
+- `loadOpenRouterKey(projectRoot)` checks both project `.env` AND `~/.vibes/.env` — returns the key string or null
+- Registry stores Clerk keys under `app.clerk.publishableKey` and `app.clerk.secretKey` (nested objects)
+
+Find `checkEditorDeps` (starts at line 47) and replace the entire function:
 
 ```javascript
-// BEFORE — the entire checkEditorDeps function
-export async function checkEditorDeps(ctx) {
-  // ... existing body ...
+// BEFORE
+async function checkEditorDeps(ctx) {
+  // ... existing body (lines 47-101) ...
 }
 ```
 
 ```javascript
-// AFTER — complete replacement (read the existing function first to verify line numbers)
-export async function checkEditorDeps(ctx) {
-  const registry = loadRegistry();
-  const projectRoot = ctx.projectRoot || process.cwd();
-
+// AFTER — minimal diff from existing function. Lines marked NEW are the only additions.
+async function checkEditorDeps(ctx) {
+  // Check Clerk from registry — look for _default sentinel first, then most recent app
+  const reg = loadRegistry();
   let clerkOk = false;
   let clerkDetail = 'No Clerk keys configured';
-  let validatedPk = '';  // <-- NEW: hoisted to track which pk was validated
+  let validatedPk = '';  // <-- NEW: track which pk was validated for masking
 
-  // Source 1: _default sentinel in registry
-  const defaultApp = getApp(registry, '_default');
-  if (defaultApp?.clerkPublishableKey && defaultApp?.clerkSecretKey) {
-    const defaultPk = defaultApp.clerkPublishableKey;
-    if (validateClerkKey(defaultPk)) {
-      clerkOk = true;
-      clerkDetail = `${defaultPk.slice(0, 12)}...`;
-      validatedPk = defaultPk;  // <-- NEW
-    }
+  // Prefer _default (wizard sentinel entry)
+  const defaultApp = reg.apps._default;
+  const defaultPk = defaultApp?.clerk?.publishableKey || '';
+  if (defaultPk.startsWith('pk_test_') || defaultPk.startsWith('pk_live_')) {
+    clerkOk = true;
+    clerkDetail = `${defaultPk.slice(0, 12)}...`;
+    validatedPk = defaultPk;  // <-- NEW
   }
 
-  // Source 2: most recent real app in registry
+  // Fall back to most recent real app entry (filter by key, not name property)
   if (!clerkOk) {
-    const apps = registry.apps || {};
-    const realApps = Object.entries(apps)
-      .filter(([name]) => name !== '_default')
-      .sort((a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0));
-    for (const [, app] of realApps) {
-      const pk = app.clerkPublishableKey;
-      if (pk && validateClerkKey(pk) && app.clerkSecretKey) {
-        clerkOk = true;
+    const apps = Object.entries(reg.apps).filter(([key]) => key !== '_default').map(([, v]) => v);
+    if (apps.length > 0) {
+      apps.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+      const pk = apps[0].clerk?.publishableKey || '';
+      clerkOk = pk.startsWith('pk_test_') || pk.startsWith('pk_live_');
+      if (clerkOk) {
         clerkDetail = `${pk.slice(0, 12)}...`;
         validatedPk = pk;  // <-- NEW
-        break;
       }
     }
   }
 
-  // Source 3: .env file
+  // Also check .env for backward compat (deploy-cloudflare.js reads from .env)
   if (!clerkOk) {
-    const envPath = join(projectRoot, '.env');
-    const env = loadEnvFile(envPath);
-    const envKey = env.VITE_CLERK_PUBLISHABLE_KEY;
-    if (envKey && validateClerkKey(envKey) && env.CLERK_SECRET_KEY) {
+    const env = loadEnvFile(ctx.projectRoot);
+    const envKey = env.VITE_CLERK_PUBLISHABLE_KEY || '';
+    if (validateClerkKey(envKey)) {
       clerkOk = true;
-      clerkDetail = `${envKey.slice(0, 12)}...`;
+      clerkDetail = `${envKey.slice(0, 12)}... (from .env)`;
       validatedPk = envKey;  // <-- NEW
     }
   }
 
-  // Cloudflare
-  const cfConfig = getCloudflareConfig(registry);
-  let cfOk = false;
-  let cfDetail = 'No Cloudflare credentials configured';
-  if (cfConfig.apiToken) {
-    cfOk = true;
-    cfDetail = 'API Token configured';
-  } else if (cfConfig.email && cfConfig.apiKey) {
-    cfOk = true;
-    cfDetail = cfConfig.email;
-  }
+  // Check Cloudflare from registry — supports both API Token and Global API Key
+  const cfConfig = getCloudflareConfig();
+  const cfOk = !!(cfConfig.apiToken || (cfConfig.apiKey && cfConfig.email));
+  const cfDetail = cfOk
+    ? (cfConfig.apiToken ? 'API Token configured' : cfConfig.email)
+    : 'No Cloudflare credentials configured';
 
-  // OpenRouter
-  const envPath = join(projectRoot, '.env');
-  const env = loadEnvFile(envPath);
-  const orKey = env.OPENROUTER_API_KEY || '';
-  const openrouterOk = orKey.startsWith('sk-or-');
+  // OpenRouter from .env (unchanged -- per-project, not global)
+  const orKey = loadOpenRouterKey(ctx.projectRoot);
+  const openrouterOk = !!orKey;
 
-  // Build masked key previews for pre-population  <-- NEW BLOCK
+  // Build masked key previews for pre-population  // <-- NEW BLOCK START
   const maskedKeys = {};
-  if (clerkOk) {
-    if (validatedPk) maskedKeys.clerkPublishableKey = validatedPk.slice(0, 12) + '...' + validatedPk.slice(-4);
+  if (clerkOk && validatedPk) {
+    maskedKeys.clerkPublishableKey = validatedPk.slice(0, 12) + '...' + validatedPk.slice(-4);
     maskedKeys.clerkSecretKey = 'sk_****_configured';
   }
   if (cfOk) {
@@ -942,6 +935,7 @@ export async function checkEditorDeps(ctx) {
   if (openrouterOk) {
     maskedKeys.openRouterKey = 'sk-or-...' + orKey.slice(-6);
   }
+  // <-- NEW BLOCK END
 
   return {
     clerk: { ok: clerkOk, detail: clerkDetail },
@@ -955,7 +949,15 @@ export async function checkEditorDeps(ctx) {
 }
 ```
 
-**Critical:** The `// <-- NEW` comments mark exactly 5 additions versus the existing function. The rest of the logic is identical to the current implementation. Read the existing function before editing to verify variable names match — the above uses the same names observed in the current code (e.g., `defaultPk`, `pk`, `envKey`, `cfConfig`, `orKey`).
+**What changed vs. the existing function (6 additions only):**
+1. `let validatedPk = '';` — new variable declaration after `clerkDetail`
+2. `validatedPk = defaultPk;` — in the `_default` branch
+3. `validatedPk = pk;` — in the most-recent-app branch
+4. `validatedPk = envKey;` — in the `.env` branch
+5. The `maskedKeys` block (12 lines) — before the return statement
+6. `maskedKeys,` — added to the return object
+
+Everything else is character-for-character identical to the existing function at lines 47-101.
 
 **Step 2: Update `prefillFromStatus` to show masked values in inputs**
 
