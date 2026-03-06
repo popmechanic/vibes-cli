@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { execFile } from 'child_process';
-import { loadEnvFile, validateClerkKey, validateClerkSecretKey, validateConnectUrl, deriveConnectUrls, writeEnvFile } from '../../lib/env-utils.js';
+import { loadEnvFile, validateOIDCAuthority, validateOIDCClientId, validateConnectUrl, deriveConnectUrls, writeEnvFile } from '../../lib/env-utils.js';
 import { loadOpenRouterKey } from '../config.js';
 
 /**
@@ -39,8 +39,8 @@ function runCommand(cmd, args, timeoutMs = 5000) {
 async function checkEditorDeps(ctx) {
   const env = loadEnvFile(ctx.projectRoot);
 
-  const clerkKey = env.VITE_CLERK_PUBLISHABLE_KEY || '';
-  const clerkOk = validateClerkKey(clerkKey);
+  const oidcAuthority = env.VITE_OIDC_AUTHORITY || '';
+  const oidcOk = validateOIDCAuthority(oidcAuthority);
 
   const apiUrl = env.VITE_API_URL || '';
   const cloudUrl = env.VITE_CLOUD_URL || '';
@@ -57,9 +57,9 @@ async function checkEditorDeps(ctx) {
   const openrouterOk = !!orKey;
 
   return {
-    clerk: {
-      ok: clerkOk,
-      detail: clerkOk ? `${clerkKey.slice(0, 12)}...` : 'No valid Clerk key in .env',
+    oidc: {
+      ok: oidcOk,
+      detail: oidcOk ? oidcAuthority : 'No valid OIDC authority in .env',
     },
     connect: {
       ok: connectOk,
@@ -105,19 +105,19 @@ export async function saveCredentials(ctx, req, res) {
     const errors = {};
     const validatedVars = {};
 
-    if (body.VITE_CLERK_PUBLISHABLE_KEY) {
-      if (validateClerkKey(body.VITE_CLERK_PUBLISHABLE_KEY)) {
-        validatedVars.VITE_CLERK_PUBLISHABLE_KEY = body.VITE_CLERK_PUBLISHABLE_KEY;
+    if (body.VITE_OIDC_AUTHORITY) {
+      if (validateOIDCAuthority(body.VITE_OIDC_AUTHORITY)) {
+        validatedVars.VITE_OIDC_AUTHORITY = body.VITE_OIDC_AUTHORITY;
       } else {
-        errors.VITE_CLERK_PUBLISHABLE_KEY = 'Invalid Clerk publishable key (must start with pk_test_ or pk_live_)';
+        errors.VITE_OIDC_AUTHORITY = 'Invalid OIDC authority (must be an HTTPS URL)';
       }
     }
 
-    if (body.VITE_CLERK_SECRET_KEY) {
-      if (validateClerkSecretKey(body.VITE_CLERK_SECRET_KEY)) {
-        validatedVars.VITE_CLERK_SECRET_KEY = body.VITE_CLERK_SECRET_KEY;
+    if (body.VITE_OIDC_CLIENT_ID) {
+      if (validateOIDCClientId(body.VITE_OIDC_CLIENT_ID)) {
+        validatedVars.VITE_OIDC_CLIENT_ID = body.VITE_OIDC_CLIENT_ID;
       } else {
-        errors.VITE_CLERK_SECRET_KEY = 'Invalid Clerk secret key (must start with sk_test_ or sk_live_)';
+        errors.VITE_OIDC_CLIENT_ID = 'Invalid OIDC client ID (must be a non-empty string)';
       }
     }
 

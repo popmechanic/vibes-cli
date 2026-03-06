@@ -13,8 +13,8 @@
  * Usage:
  *   node scripts/deploy-connect.js \
  *     --studio <codename> \
- *     --clerk-publishable-key "pk_test_..." \
- *     --clerk-secret-key "sk_test_..."
+ *     --oidc-authority "https://pocket-id.example.com" \
+ *     --oidc-client-id "your-client-id"
  */
 
 import { existsSync, readFileSync, writeFileSync } from 'fs';
@@ -43,14 +43,14 @@ import {
 } from './lib/deploy-utils.js';
 
 import { generateSessionTokens, generateDeviceCAKeys } from './lib/crypto-utils.js';
-import { validateClerkKey, validateClerkSecretKey, extractClerkDomain } from './lib/env-utils.js';
+import { validateOIDCAuthority, validateOIDCClientId } from './lib/env-utils.js';
 
 // ============== Argument Parsing ==============
 
 const deployConnectSchema = [
   { name: 'studio', flag: '--studio', type: 'string', required: true, description: 'Studio VM name (becomes <codename>.exe.xyz)' },
-  { name: 'clerkPublishableKey', flag: '--clerk-publishable-key', type: 'string', required: true, description: 'Clerk publishable key (pk_test_... or pk_live_...)' },
-  { name: 'clerkSecretKey', flag: '--clerk-secret-key', type: 'string', required: true, description: 'Clerk secret key (sk_test_... or sk_live_...)' },
+  { name: 'oidcAuthority', flag: '--oidc-authority', type: 'string', required: true, description: 'OIDC authority URL (e.g. https://pocket-id.example.com)' },
+  { name: 'oidcClientId', flag: '--oidc-client-id', type: 'string', required: true, description: 'OIDC client ID from Pocket ID' },
   { name: 'dryRun', flag: '--dry-run', type: 'boolean', description: 'Show what would be done without executing' },
 ];
 
@@ -66,7 +66,7 @@ const deployConnectMeta = {
     'Prerequisites:',
     '  - SSH key in ~/.ssh/ (id_ed25519, id_rsa, or id_ecdsa)',
     '  - exe.dev account (run \'ssh exe.dev\' to create one)',
-    '  - Clerk account with API keys',
+    '  - Pocket ID instance with OIDC client configured',
     '',
     'What It Does:',
     '  1. Creates/connects to the Studio VM',
@@ -79,8 +79,8 @@ const deployConnectMeta = {
   examples: [
     'node scripts/deploy-connect.js \\',
     '  --studio marcus-studio \\',
-    '  --clerk-publishable-key "pk_test_abc123..." \\',
-    '  --clerk-secret-key "sk_test_xyz789..."',
+    '  --oidc-authority "https://pocket-id.example.com" \\',
+    '  --oidc-client-id "my-client-id"',
   ],
 };
 
@@ -100,19 +100,25 @@ function printHelp() {
 }
 
 /**
- * Derive JWT URL from Clerk publishable key
- * Format: pk_test_<base64> or pk_live_<base64>
- * The base64 portion decodes to the Clerk domain
+ * Discover JWKS URL from OIDC authority via OpenID Connect discovery
+ * Fetches {authority}/.well-known/openid-configuration and extracts jwks_uri
  */
-function deriveJwtUrl(publishableKey) {
-  const domain = extractClerkDomain(publishableKey);
-  if (!domain) {
+async function discoverJwksUrl(authority) {
+  const discoveryUrl = `${authority.replace(/\/+$/, '')}/.well-known/openid-configuration`;
+  const resp = await fetch(discoveryUrl);
+  if (!resp.ok) {
     throw new Error(
-      'Could not derive JWT URL from publishable key. ' +
-      'Please find your JWKS URL in Clerk Dashboard > API Keys.'
+      `OIDC discovery failed at ${discoveryUrl}: ${resp.status} ${resp.statusText}`
     );
   }
-  return `https://${domain}/.well-known/jwks.json`;
+  const config = await resp.json();
+  if (!config.jwks_uri) {
+    throw new Error(
+      'OIDC discovery response missing jwks_uri. ' +
+      'Ensure your Pocket ID instance is configured correctly.'
+    );
+  }
+  return config.jwks_uri;
 }
 
 /**
@@ -126,7 +132,8 @@ function writeConnectFile(config) {
 studio: ${config.studio}
 api_url: ${config.apiUrl}
 cloud_url: ${config.cloudUrl}
-clerk_publishable_key: ${config.clerkPublishableKey}
+oidc_authority: ${config.oidcAuthority}
+oidc_client_id: ${config.oidcClientId}
 `;
   writeFileSync(connectPath, content);
   console.log(`  Created: ${connectPath}`);
@@ -140,14 +147,14 @@ async function phase1PreFlight(args) {
   // SSH key + connection test (shared)
   await preFlightSSH({ dryRun: args.dryRun });
 
-  // Validate Clerk keys
-  if (!validateClerkKey(args.clerkPublishableKey)) {
-    throw new Error('Clerk publishable key must start with pk_test_ or pk_live_');
+  // Validate OIDC credentials
+  if (!validateOIDCAuthority(args.oidcAuthority)) {
+    throw new Error('OIDC authority must be an HTTPS URL (e.g. https://pocket-id.example.com)');
   }
-  if (!validateClerkSecretKey(args.clerkSecretKey)) {
-    throw new Error('Clerk secret key must start with sk_test_ or sk_live_');
+  if (!validateOIDCClientId(args.oidcClientId)) {
+    throw new Error('OIDC client ID must be a non-empty string');
   }
-  console.log('  ✓ Clerk keys validated');
+  console.log('  ✓ OIDC credentials validated');
 }
 
 async function phase2CreateVM(args) {
@@ -333,7 +340,7 @@ async function phase4bPatchNginx(args) {
     }
   } else {
     // No CORS at all — add to http block
-    // Using * for origin because Clerk JWT auth is enforced by the Fireproof backend.
+    // Using * for origin because OIDC JWT auth is enforced by the Fireproof backend.
     const corsCmd = `sudo sed -i '/http {/a\\    add_header Access-Control-Allow-Origin * always;\\n    add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;\\n    add_header Access-Control-Allow-Headers "Authorization, X-Requested-With, Content-Type, Accept, DNT, User-Agent, If-Modified-Since, Cache-Control, Range" always;\\n    add_header Access-Control-Expose-Headers * always;' ${nginxConf}`;
 
     const corsResult = await runCommand(client, corsCmd);
@@ -471,7 +478,7 @@ async function phase5GenerateCredentials(args) {
       sessionTokenSecret: '[GENERATED]',
       devicePrivKey: '[GENERATED]',
       deviceCert: '[GENERATED]',
-      jwtUrl: '[DERIVED]'
+      jwksUrl: '[DISCOVERED]'
     };
   }
 
@@ -486,12 +493,12 @@ async function phase5GenerateCredentials(args) {
     state: 'Production'
   });
 
-  console.log('  Deriving JWT URL...');
-  const jwtUrl = deriveJwtUrl(args.clerkPublishableKey);
+  console.log('  Discovering JWKS URL via OIDC...');
+  const jwksUrl = await discoverJwksUrl(args.oidcAuthority);
 
   console.log('  ✓ Credentials generated');
 
-  return { sessionTokenPublic, sessionTokenSecret, devicePrivKey, deviceCert, jwtUrl };
+  return { sessionTokenPublic, sessionTokenSecret, devicePrivKey, deviceCert, jwksUrl };
 }
 
 async function phase6WriteEnv(args, credentials) {
@@ -511,11 +518,10 @@ async function phase6WriteEnv(args, credentials) {
   let envContent = `# Fireproof Connect - Generated by deploy-connect.js
 # ${new Date().toISOString()}
 
-# Clerk Authentication
-CLERK_PUBLISHABLE_KEY=${args.clerkPublishableKey}
-VITE_CLERK_PUBLISHABLE_KEY=${args.clerkPublishableKey}
-CLERK_SECRET_KEY=${args.clerkSecretKey}
-CLERK_PUB_JWT_URL=${credentials.jwtUrl}
+# OIDC Authentication (Pocket ID)
+VITE_OIDC_AUTHORITY=${args.oidcAuthority}
+VITE_OIDC_CLIENT_ID=${args.oidcClientId}
+OIDC_JWKS_URL=${credentials.jwksUrl}
 
 # Session Tokens (for inter-service auth)
 CLOUD_SESSION_TOKEN_PUBLIC=${credentials.sessionTokenPublic}
@@ -670,7 +676,8 @@ async function phase9WriteConnect(args) {
     studio: args.studio,
     apiUrl: `https://${args.studio}.exe.xyz/api/`,
     cloudUrl: `fpcloud://${args.studio}.exe.xyz?protocol=wss`,
-    clerkPublishableKey: args.clerkPublishableKey
+    oidcAuthority: args.oidcAuthority,
+    oidcClientId: args.oidcClientId
   });
 
   console.log('  ✓ Configuration saved');
@@ -703,13 +710,13 @@ async function main() {
     process.exit(1);
   }
 
-  if (!args.clerkPublishableKey) {
-    console.error('Error: --clerk-publishable-key is required');
+  if (!args.oidcAuthority) {
+    console.error('Error: --oidc-authority is required');
     process.exit(1);
   }
 
-  if (!args.clerkSecretKey) {
-    console.error('Error: --clerk-secret-key is required');
+  if (!args.oidcClientId) {
+    console.error('Error: --oidc-client-id is required');
     process.exit(1);
   }
 
@@ -720,7 +727,8 @@ ${'━'.repeat(60)}
 `);
 
   console.log(`  Studio: ${args.studio}`);
-  console.log(`  Clerk Key: ${args.clerkPublishableKey.substring(0, 15)}...`);
+  console.log(`  OIDC Authority: ${args.oidcAuthority}`);
+  console.log(`  OIDC Client ID: ${args.oidcClientId}`);
   if (args.dryRun) console.log('  Dry Run: Yes');
 
   try {
@@ -757,7 +765,8 @@ ${'━'.repeat(60)}
     Cloud Sync: fpcloud://${vmHost}?protocol=wss
 
   Update your app's .env:
-    VITE_CLERK_PUBLISHABLE_KEY=${args.clerkPublishableKey}
+    VITE_OIDC_AUTHORITY=${args.oidcAuthority}
+    VITE_OIDC_CLIENT_ID=${args.oidcClientId}
     VITE_API_URL=https://${vmHost}/api/
     VITE_CLOUD_URL=fpcloud://${vmHost}?protocol=wss
 

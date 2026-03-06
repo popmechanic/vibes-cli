@@ -4,8 +4,8 @@
  *
  * Usage:
  *   node scripts/deploy-cloudflare.js --name myapp --file index.html [--ai-key <openrouter-key>]
- *     [--clerk-key <pk_test_...>] [--billing-mode <off|required>] [--admin-ids <user_id1,user_id2>]
- *     [--webhook-secret <whsec_...>] [--env-dir <dir>]
+ *     [--oidc-authority <https://pocket-id.example.com>] [--billing-mode <off|required>]
+ *     [--admin-ids <user_id1,user_id2>] [--env-dir <dir>]
  *     [--reserved <list>] [--preallocated <list>]
  *
  * Automatically copies:
@@ -13,7 +13,7 @@
  *   - bundles/fireproof-vibes-bridge.js to public/ (Vibes-specific wrapper)
  *   - assets/ to public/assets/ (images, icons)
  *
- * Clerk key and webhook secret auto-detected from .env if not provided via flags.
+ * OIDC authority auto-detected from .env if not provided via flags.
  * --env-dir defaults to the parent directory of --file.
  */
 
@@ -22,7 +22,7 @@ import { copyFileSync, mkdirSync, existsSync, readdirSync, statSync, readFileSyn
 import { resolve, join, basename, dirname } from "path";
 import { createPublicKey } from "crypto";
 import { PLUGIN_ROOT } from "./lib/paths.js";
-import { loadEnvFile, extractClerkDomain } from "./lib/env-utils.js";
+import { loadEnvFile } from "./lib/env-utils.js";
 import { validateName } from "./lib/deploy-utils.js";
 const WORKER_DIR = resolve(PLUGIN_ROOT, "skills/cloudflare/worker");
 
@@ -69,10 +69,22 @@ function copyDirRecursive(src, dest) {
 }
 
 /**
- * Fetch the Clerk JWKS and convert the first RSA key to PEM format.
+ * Fetch the OIDC JWKS via discovery and convert the first RSA signing key to PEM format.
+ * Uses OIDC discovery ({authority}/.well-known/openid-configuration) to find the jwks_uri.
  */
-async function fetchClerkPEM(clerkDomain) {
-  const jwksUrl = `https://${clerkDomain}/.well-known/jwks.json`;
+async function fetchOIDCPEM(authority) {
+  const discoveryUrl = `${authority.replace(/\/+$/, '')}/.well-known/openid-configuration`;
+  console.log(`  Fetching OIDC discovery from ${discoveryUrl}`);
+  const discoveryResp = await fetch(discoveryUrl);
+  if (!discoveryResp.ok) {
+    throw new Error(`OIDC discovery failed: ${discoveryResp.status} ${discoveryResp.statusText}`);
+  }
+  const oidcConfig = await discoveryResp.json();
+  const jwksUrl = oidcConfig.jwks_uri;
+  if (!jwksUrl) {
+    throw new Error("OIDC discovery response missing jwks_uri");
+  }
+
   console.log(`  Fetching JWKS from ${jwksUrl}`);
   const resp = await fetch(jwksUrl);
   if (!resp.ok) {
@@ -95,9 +107,9 @@ async function main() {
   const nameIdx = args.indexOf("--name");
   const fileIdx = args.indexOf("--file");
   const aiKeyIdx = args.indexOf("--ai-key");
-  const clerkKeyIdx = args.indexOf("--clerk-key");
+  const oidcAuthorityIdx = args.indexOf("--oidc-authority");
   const billingModeIdx = args.indexOf("--billing-mode");
-  const webhookSecretIdx = args.indexOf("--webhook-secret");
+  // --webhook-secret removed (Clerk-specific, not needed for OIDC)
   const adminIdsIdx = args.indexOf("--admin-ids");
   const envDirIdx = args.indexOf("--env-dir");
   const reservedIdx = args.indexOf("--reserved");
@@ -105,7 +117,7 @@ async function main() {
   const planQuotasIdx = args.indexOf("--plan-quotas");
 
   if (nameIdx === -1) {
-    throw new Error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html> [--ai-key <key>] [--clerk-key <pk_test_...>] [--billing-mode <off|required>] [--admin-ids <user_id1,user_id2>] [--webhook-secret <whsec_...>] [--env-dir <dir>] [--reserved <list>] [--preallocated <list>]");
+    throw new Error("Usage: deploy-cloudflare.js --name <app-name> --file <index.html> [--ai-key <key>] [--oidc-authority <url>] [--billing-mode <off|required>] [--admin-ids <user_id1,user_id2>] [--env-dir <dir>] [--reserved <list>] [--preallocated <list>]");
   }
 
   const name = validateName(args[nameIdx + 1]);
@@ -140,22 +152,13 @@ async function main() {
     : dirname(resolve(process.cwd(), file));
   const envVars = loadEnvFile(envDir);
 
-  // Clerk key: flag > .env auto-detect
-  let clerkKey = clerkKeyIdx !== -1 ? args[clerkKeyIdx + 1] : null;
-  if (!clerkKey && envVars.VITE_CLERK_PUBLISHABLE_KEY) {
-    clerkKey = envVars.VITE_CLERK_PUBLISHABLE_KEY;
-    console.log(`Clerk key: from ${envDir}/.env`);
-  } else if (clerkKey) {
-    console.log("Clerk key: from --clerk-key flag");
-  }
-
-  // Webhook secret: flag > .env auto-detect
-  let webhookSecret = webhookSecretIdx !== -1 ? args[webhookSecretIdx + 1] : null;
-  if (!webhookSecret && envVars.CLERK_WEBHOOK_SECRET) {
-    webhookSecret = envVars.CLERK_WEBHOOK_SECRET;
-    console.log(`Webhook secret: from ${envDir}/.env`);
-  } else if (webhookSecret) {
-    console.log("Webhook secret: from --webhook-secret flag");
+  // OIDC authority: flag > .env auto-detect
+  let oidcAuthority = oidcAuthorityIdx !== -1 ? args[oidcAuthorityIdx + 1] : null;
+  if (!oidcAuthority && envVars.VITE_OIDC_AUTHORITY) {
+    oidcAuthority = envVars.VITE_OIDC_AUTHORITY;
+    console.log(`OIDC authority: from ${envDir}/.env`);
+  } else if (oidcAuthority) {
+    console.log("OIDC authority: from --oidc-authority flag");
   }
 
   console.log(`Deploying ${name} to Cloudflare Workers...`);
@@ -291,61 +294,38 @@ async function main() {
     console.log("AI proxy enabled at /api/ai/chat");
   }
 
-  // Set Clerk secrets for JWT verification (sell apps with /claim endpoint)
-  if (clerkKey) {
-    const clerkDomain = extractClerkDomain(clerkKey);
-    if (!clerkDomain) {
-      throw new Error("Invalid Clerk publishable key format");
-    }
+  // Set OIDC secrets for JWT verification (sell apps with /claim endpoint)
+  if (oidcAuthority) {
+    console.log(`\nConfiguring OIDC JWT verification...`);
+    console.log(`  OIDC authority: ${oidcAuthority}`);
 
-    console.log(`\nConfiguring Clerk JWT verification...`);
-    console.log(`  Clerk domain: ${clerkDomain}`);
-
-    const pem = await fetchClerkPEM(clerkDomain);
+    const pem = await fetchOIDCPEM(oidcAuthority);
     console.log("  PEM key obtained");
 
-    // Set CLERK_PEM_PUBLIC_KEY secret
-    execSync(`npx wrangler secret put CLERK_PEM_PUBLIC_KEY --name ${name}`, {
+    // Set OIDC_PEM_PUBLIC_KEY secret
+    execSync(`npx wrangler secret put OIDC_PEM_PUBLIC_KEY --name ${name}`, {
       input: pem,
+      cwd: WORKER_DIR,
+      stdio: ['pipe', 'inherit', 'inherit'],
+    });
+
+    // Set OIDC_ISSUER secret (the authority URL for token validation)
+    execSync(`npx wrangler secret put OIDC_ISSUER --name ${name}`, {
+      input: oidcAuthority,
       cwd: WORKER_DIR,
       stdio: ['pipe', 'inherit', 'inherit'],
     });
 
     // Set PERMITTED_ORIGINS — allow the worker URL patterns
     // Worker URLs are https://{name}.{account}.workers.dev
-    const origins = `https://${name}.*.workers.dev,https://${clerkDomain}`;
+    const origins = `https://${name}.*.workers.dev`;
     execSync(`npx wrangler secret put PERMITTED_ORIGINS --name ${name}`, {
       input: origins,
       cwd: WORKER_DIR,
       stdio: ['pipe', 'inherit', 'inherit'],
     });
     console.log(`  Permitted origins: ${origins}`);
-    console.log("  Clerk auth enabled for /claim endpoint");
-  }
-
-  // Set CLERK_WEBHOOK_SECRET if provided
-  if (webhookSecret) {
-    console.log("\nSetting CLERK_WEBHOOK_SECRET secret...");
-    execSync(`npx wrangler secret put CLERK_WEBHOOK_SECRET --name ${name}`, {
-      input: webhookSecret,
-      cwd: WORKER_DIR,
-      stdio: ['pipe', 'inherit', 'inherit'],
-    });
-    console.log("  Webhook secret configured");
-  } else if (clerkKey) {
-    console.log("\n⚠️  No webhook secret provided. Subscription billing won't work without it.");
-  }
-
-  // Set CLERK_SECRET_KEY for JWT custom claims (optional optimization)
-  let clerkSecretKey = envVars.CLERK_SECRET_KEY || null;
-  if (clerkSecretKey) {
-    console.log("\nSetting CLERK_SECRET_KEY secret...");
-    execSync(`npx wrangler secret put CLERK_SECRET_KEY --name ${name}`, {
-      input: clerkSecretKey,
-      cwd: WORKER_DIR,
-      stdio: ['pipe', 'inherit', 'inherit'],
-    });
-    console.log("  Clerk secret key configured (JWT custom claims enabled)");
+    console.log("  OIDC auth enabled for /claim endpoint");
   }
 
   // Seed config keys in KV (use --namespace-id since --binding only works in dev)

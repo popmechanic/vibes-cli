@@ -28,7 +28,7 @@
  * @param {string} [options.decisions] - Key decisions made during development
  * @param {string} [options.nextSteps] - What to do next
  * @param {string} [options.vmName] - Name of the exe.dev VM
- * @param {boolean} [options.connectEnabled] - Whether Connect (Fireproof + Clerk) is enabled
+ * @param {boolean} [options.connectEnabled] - Whether Connect (Fireproof + OIDC) is enabled
  * @returns {string} HANDOFF.md content
  */
 export function generateHandoff(options = {}) {
@@ -152,7 +152,7 @@ ${nextSteps}
 - Framework: React (via Babel transpilation, no build step)
 - Database: Fireproof (local-first${connectEnabled ? ', syncs via Connect services' : ''})
 - Styling: Tailwind CSS via CDN
-- Runtime: Runs directly in browser${connectEnabled ? '\n- Auth: Clerk (via @fireproof/clerk)' : ''}
+- Runtime: Runs directly in browser${connectEnabled ? '\n- Auth: Pocket ID (OIDC)' : ''}
 
 **Architecture:**
 - Single \`index.html\` file with embedded JSX

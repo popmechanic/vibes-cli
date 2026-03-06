@@ -270,7 +270,7 @@ async function phase4FileUpload(args) {
   }
 }
 
-// Upload Vibes bridge module (Vibes-specific wrapper around @fireproof/clerk)
+// Upload Vibes bridge module (Vibes-specific wrapper around OIDC auth)
 async function phase4bBridgeUpload(args) {
   const bridgeFile = 'fireproof-vibes-bridge.js';
   const bridgePath = join(__dirname, '..', 'bundles', bridgeFile);
