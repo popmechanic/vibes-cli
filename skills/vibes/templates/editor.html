@@ -2416,7 +2416,6 @@
           Each service has a free tier. Setup takes about 5 minutes.
         </div>
         <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-secondary" onclick="skipSetup()">Skip for now</button>
           <button class="btn btn-primary" id="wizardStartBtn" onclick="setWizardStep(2)">Get started</button>
         </div>
       </div>
@@ -3254,9 +3253,6 @@
     }
   }
 
-  function skipSetup() {
-    goToGenerate();
-  }
 
   function goToGenerate() {
     setPhase('generate');
@@ -3587,12 +3583,18 @@
         wizardData.cfEmail = cfDetail;
       }
     }
-    if (status.clerk?.ok && !status.cloudflare?.ok) {
-      // Clerk already configured — skip to Cloudflare step
+    // Smart skip: jump to the first incomplete step
+    if (status.clerk?.ok && status.cloudflare?.ok) {
+      // Both configured — go straight to summary so user sees confirmation
+      setWizardStep(4);
+    } else if (status.clerk?.ok && !status.cloudflare?.ok) {
+      // Clerk done — skip to Cloudflare
       setWizardStep(3);
-    } else if (status.clerk?.ok && status.cloudflare?.ok) {
-      // Both configured — skip to verification (validation already set above)
+    } else if (!status.clerk?.ok && status.cloudflare?.ok) {
+      // Cloudflare done but Clerk missing — skip to Clerk
+      setWizardStep(2);
     }
+    // else: both missing — stay on step 1 (welcome)
   }
 
   // === Phase 2: Generate ===
