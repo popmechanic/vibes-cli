@@ -172,19 +172,23 @@ if (!envVars.VITE_API_URL || !envVars.VITE_CLERK_PUBLISHABLE_KEY) {
   }
 }
 
-// Validate Connect credentials - fail fast if invalid
-const hasValidConnect = validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY) &&
-                        envVars.VITE_API_URL;
+// Validate Clerk key — required for all apps
+const hasClerkKey = validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY);
 
-if (!hasValidConnect) {
+if (!hasClerkKey) {
   console.error(
-    'Valid Clerk credentials required.\n\n' +
-    'Expected in .env or registry:\n' +
-    '  VITE_CLERK_PUBLISHABLE_KEY=pk_test_... or pk_live_...\n' +
-    '  VITE_API_URL=https://...\n\n' +
-    'Deploy first to auto-configure Connect, or set up .env manually.'
+    'Valid Clerk publishable key required.\n\n' +
+    'Expected in .env:\n' +
+    '  VITE_CLERK_PUBLISHABLE_KEY=pk_test_... or pk_live_...\n\n' +
+    'Run the editor setup wizard to configure credentials.'
   );
   process.exit(1);
+}
+
+// Connect URLs are optional at assembly time — they'll be populated
+// by deploy-cloudflare.js on first deploy (alchemy + auto-reassembly).
+if (!envVars.VITE_API_URL) {
+  console.log('Note: No VITE_API_URL — Connect URLs will be set at deploy time');
 }
 
 // Configuration replacements

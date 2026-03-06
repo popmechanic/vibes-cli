@@ -5,6 +5,24 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
 import { join } from 'path';
 import { spawn } from 'child_process';
+import { getCloudflareConfig } from '../../lib/registry.js';
+
+/**
+ * Build a process.env copy with Cloudflare registry credentials injected.
+ * Used only by the deploy subprocess (not assembly).
+ */
+function getRegistryEnv() {
+  const env = { ...process.env };
+  const cf = getCloudflareConfig();
+  // Only inject the active auth method — API Token takes precedence
+  if (cf.apiToken) {
+    if (!env.CLOUDFLARE_API_TOKEN) env.CLOUDFLARE_API_TOKEN = cf.apiToken;
+  } else {
+    if (cf.apiKey && !env.CLOUDFLARE_API_KEY) env.CLOUDFLARE_API_KEY = cf.apiKey;
+    if (cf.email && !env.CLOUDFLARE_EMAIL) env.CLOUDFLARE_EMAIL = cf.email;
+  }
+  return env;
+}
 
 /**
  * Assemble and deploy an app to Cloudflare.
@@ -105,7 +123,7 @@ export async function handleDeploy(ctx, onEvent, target, name) {
   const deployResult = await new Promise((resolve) => {
     const child = spawn('node', [deployScript, ...deployArgs], {
       cwd: ctx.projectRoot,
-      env: { ...process.env },
+      env: getRegistryEnv(),
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 

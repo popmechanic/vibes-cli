@@ -97,7 +97,7 @@ const routeTable = {
   'GET /editor/apps':                     editorApi.listApps,
   'GET /editor/apps/screenshot':          editorApi.getScreenshot,
   'POST /editor/credentials':             editorApi.saveCredentials,
-  'POST /editor/credentials/check-studio': editorApi.checkStudio,
+  'POST /editor/credentials/validate-cloudflare': editorApi.validateCloudflare,
   'POST /editor/apps/load':              editorApi.loadApp,
   'POST /editor/apps/save':              editorApi.saveApp,
   'POST /editor/apps/screenshot':         editorApi.saveScreenshot,

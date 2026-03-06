@@ -383,24 +383,25 @@
     .wizard-link:hover { text-decoration: underline; }
     .wizard-link::after { content: ' →'; }
     .wizard-summary-table {
-      width: 100%;
-      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin: 1rem 0;
     }
     .wizard-summary-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
+      padding: 0.5rem 0.75rem;
+      background: rgba(0,0,0,0.03);
+      border-radius: 6px;
       font-size: 0.8125rem;
     }
-    .wizard-summary-row:last-child { border-bottom: none; }
     .wizard-summary-key {
       font-weight: 700;
-      color: var(--vibes-near-black);
     }
     .wizard-summary-value {
-      color: #555;
+      color: #666;
       font-family: monospace;
       font-size: 0.75rem;
       max-width: 60%;
@@ -443,6 +444,18 @@
     .wizard-radio:hover { border-color: var(--vibes-blue); }
     .wizard-radio.selected { border-color: var(--vibes-blue); background: rgba(0,154,206,0.05); }
     .wizard-radio.disabled { opacity: 0.5; cursor: not-allowed; }
+    .wizard-checking {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0,0,0,0.1);
+      border-top-color: var(--vibes-blue);
+      border-radius: 50%;
+      animation: wizardSpin 0.8s linear infinite;
+    }
+    @keyframes wizardSpin {
+      to { transform: rotate(360deg); }
+    }
     .wizard-radio input[type="radio"] { accent-color: var(--vibes-blue); }
     .wizard-section-title {
       font-size: 0.875rem;
@@ -2375,21 +2388,36 @@
         <div class="wizard-dot" data-step="3"></div>
         <div class="wizard-dot-line"></div>
         <div class="wizard-dot" data-step="4"></div>
-        <div class="wizard-dot-line"></div>
-        <div class="wizard-dot" data-step="5"></div>
       </div>
 
       <!-- Step 1: Welcome -->
       <div class="wizard-step active" id="wizardStep1">
         <div class="wizard-section-title">Welcome to Vibes</div>
         <div class="wizard-help">
-          Vibes needs two things to build and deploy your apps:<br>
-          <strong>Clerk</strong> (authentication) and a <strong>Connect Studio</strong> (database sync).
+          Let's get you set up! Vibes needs two services to build and deploy your apps:
         </div>
-        <div id="setupChecklist"></div>
+        <div style="margin: 1rem 0;">
+          <div class="setup-item">
+            <div class="setup-icon" id="welcomeClerkIcon" style="background:#999;color:white;">1</div>
+            <div>
+              <div class="setup-label">Clerk <span style="font-size:0.7rem;color:#888;">(authentication)</span></div>
+              <div class="setup-detail">Handles user sign-in for your apps</div>
+            </div>
+          </div>
+          <div class="setup-item">
+            <div class="setup-icon" id="welcomeCfIcon" style="background:#999;color:white;">2</div>
+            <div>
+              <div class="setup-label">Cloudflare <span style="font-size:0.7rem;color:#888;">(hosting &amp; sync)</span></div>
+              <div class="setup-detail">Deploys your apps and syncs data automatically</div>
+            </div>
+          </div>
+        </div>
+        <div class="wizard-help" style="font-size:0.75rem;color:#666;">
+          Each service has a free tier. Setup takes about 5 minutes.
+        </div>
         <div class="setup-actions" style="margin-top:1rem;">
           <button class="btn btn-secondary" onclick="skipSetup()">Skip for now</button>
-          <button class="btn btn-primary" id="wizardStartBtn" onclick="setWizardStep(2)">Set up credentials</button>
+          <button class="btn btn-primary" id="wizardStartBtn" onclick="setWizardStep(2)">Get started</button>
         </div>
       </div>
 
@@ -2397,96 +2425,102 @@
       <div class="wizard-step" id="wizardStep2">
         <div class="wizard-section-title">Clerk Authentication</div>
         <div class="wizard-help">
-          Clerk handles user sign-in for your apps.
-          <a class="wizard-link" href="https://dashboard.clerk.com" target="_blank">Open Clerk Dashboard</a>
+          Clerk handles user sign-in for your apps. Create a free account, then copy your keys.
+        </div>
+        <div style="background:rgba(0,154,206,0.06);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.8125rem;line-height:1.5;">
+          <strong>Quick steps:</strong>
+          <ol style="margin:0.5rem 0 0 1.25rem;padding:0;">
+            <li>Go to <a class="wizard-link" href="https://dashboard.clerk.com" target="_blank">dashboard.clerk.com</a></li>
+            <li>Create an application (any name)</li>
+            <li>Go to <strong>API Keys</strong> in the sidebar</li>
+            <li>Copy both keys below</li>
+          </ol>
         </div>
         <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Publishable Key</label>
-        <input class="wizard-input" id="wizardClerkKey" type="text" placeholder="pk_test_..." oninput="validateWizardClerkInputs()" />
-        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Secret Key</label>
-        <input class="wizard-input" id="wizardClerkSecret" type="password" placeholder="sk_test_..." oninput="validateWizardClerkInputs()" />
+        <input class="wizard-input" id="wizardClerkKey" type="text" placeholder="pk_test_..." oninput="validateWizardClerkInputs()" autocomplete="off" />
+        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;margin-top:0.5rem;">Secret Key</label>
+        <input class="wizard-input" id="wizardClerkSecret" type="password" placeholder="sk_test_..." oninput="validateWizardClerkInputs()" autocomplete="off" />
         <div class="wizard-help" id="wizardClerkHint" style="color:var(--vibes-red);display:none;"></div>
         <div class="setup-actions" style="margin-top:1rem;">
           <button class="btn btn-secondary" onclick="setWizardStep(1)">Back</button>
-          <button class="btn btn-primary" id="wizardClerkNext" onclick="setWizardStep(3)" disabled>Next</button>
+          <button class="btn btn-primary" id="wizardClerkNext" onclick="saveClerkAndAdvance()" disabled>Next</button>
         </div>
       </div>
 
-      <!-- Step 3: Connect Studio -->
+      <!-- Step 3: Cloudflare -->
       <div class="wizard-step" id="wizardStep3">
-        <div class="wizard-section-title">Connect Studio</div>
+        <div class="wizard-section-title">Cloudflare Deployment</div>
         <div class="wizard-help">
-          Connect Studio provides cloud sync for your Fireproof database.
-        </div>
-        <div class="wizard-radio-group" id="wizardStudioRadios">
-          <label class="wizard-radio selected" onclick="selectStudioMode('existing')">
-            <input type="radio" name="studioMode" value="existing" checked />
-            I have a Studio
-          </label>
-          <label class="wizard-radio" id="wizardDeployRadio" onclick="selectStudioMode('deploy')">
-            <input type="radio" name="studioMode" value="deploy" />
-            Deploy a new Studio
-          </label>
-          <label class="wizard-radio" onclick="selectStudioMode('advanced')">
-            <input type="radio" name="studioMode" value="advanced" />
-            Advanced: enter URLs manually
-          </label>
+          Cloudflare Workers hosts your apps and syncs data. Create a free account, then add your credentials below.
         </div>
 
-        <!-- Existing studio -->
-        <div id="studioExisting">
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Studio Name</label>
-          <input class="wizard-input" id="wizardStudioName" type="text" placeholder="my-studio" oninput="debouncedCheckStudio()" />
-          <div class="wizard-help" id="wizardStudioHint"></div>
+        <!-- Auth mode tabs -->
+        <div style="display:flex;gap:0;margin-bottom:1rem;border-bottom:2px solid rgba(0,0,0,0.1);">
+          <button id="cfTabToken" class="btn" onclick="setCfAuthMode('token')" style="border:none;border-bottom:2px solid var(--vibes-blue);margin-bottom:-2px;border-radius:0;padding:0.5rem 1rem;font-weight:700;font-size:0.8125rem;background:none;color:var(--vibes-blue);cursor:pointer;">API Token (recommended)</button>
+          <button id="cfTabGlobal" class="btn" onclick="setCfAuthMode('global')" style="border:none;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:0;padding:0.5rem 1rem;font-weight:700;font-size:0.8125rem;background:none;color:#888;cursor:pointer;">Global API Key</button>
         </div>
 
-        <!-- Deploy new studio -->
-        <div id="studioDeploy" style="display:none;">
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">New Studio Name</label>
-          <input class="wizard-input" id="wizardNewStudioName" type="text" placeholder="my-studio" />
-          <div class="wizard-terminal" id="studioDeployLog" style="display:none;"></div>
-          <button class="btn btn-primary" id="studioDeployBtn" onclick="startStudioDeploy()" style="margin-bottom:0.75rem;">Deploy Studio</button>
-          <div class="wizard-help" id="wizardDeployHint"></div>
+        <!-- API Token panel -->
+        <div id="cfPanelToken">
+          <div style="background:rgba(0,154,206,0.06);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.8125rem;line-height:1.5;">
+            <strong>Quick steps:</strong>
+            <ol style="margin:0.5rem 0 0 1.25rem;padding:0;">
+              <li>Go to <a class="wizard-link" href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare API Tokens</a></li>
+              <li>Click <strong>Create Token</strong> &rarr; use "Edit Cloudflare Workers" template</li>
+              <li>Copy the token below</li>
+            </ol>
+          </div>
+          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">API Token</label>
+          <input class="wizard-input" id="wizardCfApiToken" type="password" placeholder="Paste your API Token..." oninput="validateWizardCfInputs()" autocomplete="off" />
         </div>
 
-        <!-- Advanced: raw URLs -->
-        <div id="studioAdvanced" style="display:none;">
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">API URL</label>
-          <input class="wizard-input" id="wizardApiUrl" type="text" placeholder="https://my-studio.example.com/api/" oninput="validateAdvancedUrls()" />
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Cloud URL</label>
-          <input class="wizard-input" id="wizardCloudUrl" type="text" placeholder="fpcloud://my-studio.example.com?protocol=wss" oninput="validateAdvancedUrls()" />
+        <!-- Global API Key panel (hidden by default) -->
+        <div id="cfPanelGlobal" style="display:none;">
+          <div style="background:rgba(0,154,206,0.06);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.8125rem;line-height:1.5;">
+            <strong>Quick steps:</strong>
+            <ol style="margin:0.5rem 0 0 1.25rem;padding:0;">
+              <li>Go to <a class="wizard-link" href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare API Tokens</a></li>
+              <li>Scroll to <strong>Global API Key</strong> and click "View"</li>
+              <li>Copy the key and your account email below</li>
+            </ol>
+          </div>
+          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Account Email</label>
+          <input class="wizard-input" id="wizardCfEmail" type="email" placeholder="you@example.com" oninput="validateWizardCfInputs()" autocomplete="off" />
+          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;margin-top:0.5rem;">Global API Key</label>
+          <input class="wizard-input" id="wizardCfKey" type="password" placeholder="Paste your Global API Key..." oninput="validateWizardCfInputs()" autocomplete="off" />
         </div>
 
+        <div class="wizard-help" id="wizardCfHint" style="display:none;"></div>
         <div class="setup-actions" style="margin-top:1rem;">
           <button class="btn btn-secondary" onclick="setWizardStep(2)">Back</button>
-          <button class="btn btn-primary" id="wizardStudioNext" onclick="setWizardStep(4)" disabled>Next</button>
+          <!-- &amp; is correct here (HTML source); JS restores via textContent which handles & natively -->
+          <button class="btn btn-primary" id="wizardCfNext" onclick="validateAndAdvanceCf()" disabled>Verify &amp; Continue</button>
         </div>
       </div>
 
-      <!-- Step 4: OpenRouter API Key (optional) -->
+      <!-- Step 4: Verification & Save -->
       <div class="wizard-step" id="wizardStep4">
-        <div class="wizard-section-title">OpenRouter API Key</div>
-        <div class="wizard-help">
-          Enables AI theme generation and the <code>useAI</code> hook in your apps. This is optional.
-          <a class="wizard-link" href="https://openrouter.ai/keys" target="_blank">Get an API key</a>
-        </div>
-        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">API Key</label>
-        <input class="wizard-input" id="wizardOpenRouterKey" type="password" placeholder="sk-or-..." oninput="validateOpenRouterKey()" />
-        <div class="wizard-help" id="wizardOpenRouterHint" style="color:var(--vibes-red);display:none;"></div>
-        <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-secondary" onclick="setWizardStep(3)">Back</button>
-          <button class="btn btn-secondary" id="wizardOpenRouterSkip" onclick="setWizardStep(5)">Skip</button>
-          <button class="btn btn-primary" id="wizardOpenRouterNext" onclick="setWizardStep(5)" disabled>Next</button>
-        </div>
-      </div>
-
-      <!-- Step 5: Confirm & Save -->
-      <div class="wizard-step" id="wizardStep5">
-        <div class="wizard-section-title">Confirm &amp; Save</div>
-        <div class="wizard-help">These values will be written to your <code>.env</code> file:</div>
+        <div class="wizard-section-title">All Set!</div>
+        <div class="wizard-help">Your credentials have been verified and saved.</div>
         <div class="wizard-summary-table" id="wizardSummary"></div>
-        <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-secondary" onclick="setWizardStep(4)">Back</button>
-          <button class="btn btn-primary" id="wizardSaveBtn" onclick="wizardSave()">Save &amp; Continue</button>
+
+        <!-- Optional: OpenRouter -->
+        <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid rgba(0,0,0,0.1);">
+          <div style="font-size:0.75rem;font-weight:700;margin-bottom:0.25rem;">
+            OpenRouter API Key <span style="font-weight:400;color:#888;">(optional -- enables AI themes)</span>
+          </div>
+          <div style="display:flex;gap:0.5rem;">
+            <input class="wizard-input" id="wizardOpenRouterKey" type="password" placeholder="sk-or-..." oninput="validateOpenRouterKey()" style="flex:1;" />
+            <button class="btn btn-secondary" id="wizardOrSaveBtn" onclick="saveOpenRouterKey()" disabled style="white-space:nowrap;">Save Key</button>
+          </div>
+          <div class="wizard-help" id="wizardOpenRouterHint" style="display:none;"></div>
+          <div style="font-size:0.7rem;color:#888;margin-top:0.25rem;">
+            <a class="wizard-link" href="https://openrouter.ai/keys" target="_blank" style="font-size:0.7rem;">Get a key at openrouter.ai</a>
+          </div>
+        </div>
+
+        <div class="setup-actions" style="margin-top:1.5rem;">
+          <button class="btn btn-primary" id="wizardFinishBtn" onclick="wizardFinish()" style="width:100%;">Start Building</button>
         </div>
       </div>
     </div>
@@ -2496,7 +2530,7 @@
   <div class="phase generate-phase single-panel" id="phaseGenerate">
     <div class="generate-left">
       <div class="generate-card">
-        <div class="generate-title">What's the <u>vibe</u>? Try it.</div>
+        <div class="generate-title">What's the <u>vibe</u>?</div>
         <div class="generate-subtitle"></div>
 
         <!-- Prompt box -->
@@ -2848,14 +2882,25 @@
   let isThinking = false;
   let themes = [];
   let currentPhase = 'loading';
-  let deployTargets = { cloudflare: false };
+  let cloudflareReady = false;
+  let cfAuthMode = 'token'; // 'token' or 'global'
+  let wizardData = {
+    clerkKey: '',
+    clerkSecret: '',
+    cfApiToken: '',
+    cfEmail: '',
+    cfApiKey: '',
+    cfAccountId: '',
+    openRouterKey: '',
+  };
+  let wizardValidation = {
+    clerk: 'unchecked',       // unchecked | checking | valid | invalid
+    cloudflare: 'unchecked',  // unchecked | checking | valid | invalid
+  };
   let pendingThemeId = null;
   let currentThemeId = null;
   let currentAppName = null;
   let wizardStep = 1;
-  let wizardData = { clerkKey: '', clerkSecret: '', studioName: '', apiUrl: '', cloudUrl: '', openRouterKey: '' };
-  let studioCheckTimer = null;
-  let studioMode = 'existing';
 
   // === Vibes Audio Toggle ===
   let vibesAudio = null;
@@ -3145,30 +3190,6 @@
         if (msg.name) currentAppName = msg.name;
         addMessage('deploy-success', 'Deployed! ' + (msg.url || ''));
         captureScreenshot();
-      } else if (msg.type === 'studio-progress') {
-        const logEl = document.getElementById('studioDeployLog');
-        if (logEl) {
-          logEl.textContent += msg.line + '\n';
-          logEl.scrollTop = logEl.scrollHeight;
-        }
-      } else if (msg.type === 'studio-complete') {
-        const logEl = document.getElementById('studioDeployLog');
-        if (logEl) logEl.textContent += 'Deploy complete!\n';
-        const btn = document.getElementById('studioDeployBtn');
-        if (btn) { btn.textContent = 'Deployed!'; btn.disabled = true; }
-        wizardData.apiUrl = msg.apiUrl;
-        wizardData.cloudUrl = msg.cloudUrl;
-        wizardData.studioName = document.getElementById('wizardNewStudioName')?.value || '';
-        updateStudioNextButton();
-        const hint = document.getElementById('wizardDeployHint');
-        if (hint) { hint.textContent = 'Studio deployed successfully!'; hint.style.color = 'var(--vibes-green)'; }
-      } else if (msg.type === 'studio-error') {
-        const logEl = document.getElementById('studioDeployLog');
-        if (logEl) logEl.textContent += 'ERROR: ' + msg.message + '\n';
-        const btn = document.getElementById('studioDeployBtn');
-        if (btn) { btn.disabled = false; btn.textContent = 'Retry Deploy'; }
-        const hint = document.getElementById('wizardDeployHint');
-        if (hint) { hint.textContent = msg.message; hint.style.color = 'var(--vibes-red)'; }
       } else if (msg.type === 'theme_created') {
         setThinking(false);
         onThemeCreated(msg.themeId, msg.themeName);
@@ -3204,56 +3225,31 @@
   }
 
   // === Phase 1: Setup ===
-  async function checkSetup() {
-    try {
-      const res = await fetch('/editor/status');
-      const status = await res.json();
-      renderChecklist(status);
-    } catch (err) {
-      document.getElementById('setupChecklist').innerHTML = `
-        <div class="setup-item">
-          <div class="setup-icon fail">&#10007;</div>
-          <div>
-            <div class="setup-label">Failed to check dependencies</div>
-            <div class="setup-detail">${escapeHtml(err.message)}</div>
-          </div>
-        </div>`;
-      document.getElementById('setupActions').style.display = '';
-      document.getElementById('setupSkipBtn').style.display = '';
-    }
-  }
-
   function renderChecklist(status) {
     const items = [
       { key: 'clerk', label: 'Clerk keys', detail: status.clerk?.detail || '', required: true },
-      { key: 'connect', label: 'Connect Studio', detail: status.connect?.detail || '', required: true },
+      { key: 'cloudflare', label: 'Cloudflare', detail: status.cloudflare?.detail || '', required: true },
       { key: 'openrouter', label: 'OpenRouter API key', detail: status.openrouter?.detail || '', required: false },
-      { key: 'wrangler', label: 'Cloudflare (wrangler)', detail: status.wrangler?.detail || '', required: false },
     ];
 
-    deployTargets.cloudflare = status.wrangler?.ok || false;
+    cloudflareReady = status.cloudflare?.ok || false;
 
     const requiredOk = items.filter(i => i.required).every(i => status[i.key]?.ok);
-    const allOk = items.every(i => status[i.key]?.ok);
 
-    let html = '';
-    for (const item of items) {
-      const s = status[item.key] || {};
-      const iconClass = s.ok ? 'pass' : (item.required ? 'fail' : 'optional');
-      const iconChar = s.ok ? '&#10003;' : (item.required ? '&#10007;' : '&#8212;');
-      html += `<div class="setup-item">
-        <div class="setup-icon ${iconClass}">${iconChar}</div>
-        <div>
-          <div class="setup-label">${escapeHtml(item.label)}${!item.required ? ' <span style="font-size:0.7rem;color:#888;">(optional)</span>' : ''}</div>
-          ${item.detail ? `<div class="setup-detail">${escapeHtml(item.detail)}</div>` : ''}
-        </div>
-      </div>`;
+    // Update welcome step icons
+    const clerkIcon = document.getElementById('welcomeClerkIcon');
+    const cfIcon = document.getElementById('welcomeCfIcon');
+    if (clerkIcon) {
+      clerkIcon.style.background = status.clerk?.ok ? 'var(--vibes-green)' : '#999';
+      clerkIcon.innerHTML = status.clerk?.ok ? '&#10003;' : '1';
     }
-    document.getElementById('setupChecklist').innerHTML = html;
-    // In wizard mode, the Start button handles advancement
+    if (cfIcon) {
+      cfIcon.style.background = status.cloudflare?.ok ? 'var(--vibes-green)' : '#999';
+      cfIcon.innerHTML = status.cloudflare?.ok ? '&#10003;' : '2';
+    }
+
     const startBtn = document.getElementById('wizardStartBtn');
     if (startBtn && requiredOk) {
-      // All required present — auto-advance after brief flash
       setTimeout(() => goToGenerate(), 800);
     }
   }
@@ -3268,16 +3264,28 @@
 
   function setWizardStep(n) {
     wizardStep = n;
+    // Clear CF wizard data and input fields on re-entry to step 3 unless already validated
+    if (n === 3 && wizardValidation.cloudflare !== 'valid') {
+      wizardData.cfApiToken = '';
+      wizardData.cfApiKey = '';
+      wizardData.cfEmail = '';
+      wizardData.cfAccountId = '';
+      const tokenInput = document.getElementById('wizardCfApiToken');
+      const emailInput = document.getElementById('wizardCfEmail');
+      const keyInput = document.getElementById('wizardCfKey');
+      if (tokenInput) { tokenInput.value = ''; tokenInput.classList.remove('valid', 'invalid'); }
+      if (emailInput) { emailInput.value = ''; emailInput.classList.remove('valid', 'invalid'); }
+      if (keyInput) { keyInput.value = ''; keyInput.classList.remove('valid', 'invalid'); }
+    }
     document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
     const step = document.getElementById('wizardStep' + n);
     if (step) step.classList.add('active');
-    // Update progress dots
     document.querySelectorAll('.wizard-dot').forEach(dot => {
       const s = parseInt(dot.dataset.step);
       dot.classList.toggle('active', s === n);
       dot.classList.toggle('done', s < n);
     });
-    if (n === 5) renderWizardSummary();
+    if (n === 4) renderWizardSummary();
   }
 
   function validateWizardClerkInputs() {
@@ -3315,118 +3323,190 @@
     }
   }
 
-  function selectStudioMode(mode) {
-    studioMode = mode;
-    document.querySelectorAll('#wizardStudioRadios .wizard-radio').forEach(r => r.classList.remove('selected'));
-    const radio = document.querySelector(`#wizardStudioRadios input[value="${mode}"]`);
-    if (radio) {
-      radio.checked = true;
-      radio.closest('.wizard-radio').classList.add('selected');
-    }
-    document.getElementById('studioExisting').style.display = mode === 'existing' ? '' : 'none';
-    document.getElementById('studioDeploy').style.display = mode === 'deploy' ? '' : 'none';
-    document.getElementById('studioAdvanced').style.display = mode === 'advanced' ? '' : 'none';
-    // Reset next button state
-    updateStudioNextButton();
-  }
-
-  function updateStudioNextButton() {
-    const nextBtn = document.getElementById('wizardStudioNext');
-    if (studioMode === 'existing') {
-      nextBtn.disabled = !wizardData.apiUrl;
-    } else if (studioMode === 'deploy') {
-      nextBtn.disabled = !wizardData.apiUrl;
-    } else if (studioMode === 'advanced') {
-      const apiUrl = document.getElementById('wizardApiUrl').value.trim();
-      const cloudUrl = document.getElementById('wizardCloudUrl').value.trim();
-      nextBtn.disabled = !apiUrl.startsWith('https://') || !cloudUrl.startsWith('fpcloud://');
-    }
-  }
-
-  function debouncedCheckStudio() {
-    if (studioCheckTimer) clearTimeout(studioCheckTimer);
-    studioCheckTimer = setTimeout(checkStudio, 600);
-  }
-
-  async function checkStudio() {
-    const name = document.getElementById('wizardStudioName').value.trim();
-    const hint = document.getElementById('wizardStudioHint');
-    const input = document.getElementById('wizardStudioName');
-    if (!name) {
-      hint.textContent = '';
-      input.classList.remove('valid', 'invalid');
-      wizardData.apiUrl = '';
-      wizardData.cloudUrl = '';
-      wizardData.studioName = '';
-      updateStudioNextButton();
-      return;
-    }
-    hint.textContent = 'Checking...';
-    hint.style.color = '#666';
+  async function saveClerkAndAdvance() {
+    const btn = document.getElementById('wizardClerkNext');
+    const hint = document.getElementById('wizardClerkHint');
+    hint.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    wizardValidation.clerk = 'checking';
     try {
-      const res = await fetch('/editor/credentials/check-studio', {
+      const res = await fetch('/editor/credentials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studio: name }),
+        body: JSON.stringify({
+          clerkPublishableKey: wizardData.clerkKey,
+          clerkSecretKey: wizardData.clerkSecret,
+        }),
       });
       const data = await res.json();
-      if (data.reachable) {
-        hint.textContent = 'Studio reachable at ' + data.apiUrl;
-        hint.style.color = 'var(--vibes-green)';
-        input.classList.add('valid');
-        input.classList.remove('invalid');
-        wizardData.studioName = name;
-        wizardData.apiUrl = data.apiUrl;
-        wizardData.cloudUrl = data.cloudUrl;
-      } else {
-        hint.textContent = data.error || 'Studio not reachable';
-        hint.style.color = 'var(--vibes-red)';
-        input.classList.add('invalid');
-        input.classList.remove('valid');
-        wizardData.apiUrl = '';
-        wizardData.cloudUrl = '';
+      if (!res.ok) {
+        const errMsg = data.errors ? Object.values(data.errors).join('; ') : 'Failed to save';
+        throw new Error(errMsg);
       }
+      wizardValidation.clerk = 'valid';
+      setWizardStep(3);
     } catch (err) {
-      hint.textContent = 'Failed to check: ' + err.message;
-      hint.style.color = 'var(--vibes-red)';
-      input.classList.add('invalid');
-      input.classList.remove('valid');
+      wizardValidation.clerk = 'invalid';
+      hint.textContent = err.message;
+      hint.style.display = '';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Next';
+      validateWizardClerkInputs(); // re-check to reset disabled state
     }
-    updateStudioNextButton();
   }
 
-  function validateAdvancedUrls() {
-    const apiInput = document.getElementById('wizardApiUrl');
-    const cloudInput = document.getElementById('wizardCloudUrl');
-    const api = apiInput.value.trim();
-    const cloud = cloudInput.value.trim();
-
-    apiInput.classList.toggle('valid', api && api.startsWith('https://'));
-    apiInput.classList.toggle('invalid', api && !api.startsWith('https://'));
-    cloudInput.classList.toggle('valid', cloud && cloud.startsWith('fpcloud://'));
-    cloudInput.classList.toggle('invalid', cloud && !cloud.startsWith('fpcloud://'));
-
-    if (api.startsWith('https://') && cloud.startsWith('fpcloud://')) {
-      wizardData.apiUrl = api;
-      wizardData.cloudUrl = cloud;
+  function setCfAuthMode(mode) {
+    cfAuthMode = mode;
+    // Clear the other mode's stale data to prevent saving wrong credentials
+    if (mode === 'token') {
+      wizardData.cfApiKey = '';
+      wizardData.cfEmail = '';
     } else {
-      wizardData.apiUrl = '';
-      wizardData.cloudUrl = '';
+      wizardData.cfApiToken = '';
     }
-    updateStudioNextButton();
+    const tokenPanel = document.getElementById('cfPanelToken');
+    const globalPanel = document.getElementById('cfPanelGlobal');
+    const tokenTab = document.getElementById('cfTabToken');
+    const globalTab = document.getElementById('cfTabGlobal');
+    if (mode === 'token') {
+      tokenPanel.style.display = '';
+      globalPanel.style.display = 'none';
+      tokenTab.style.borderBottomColor = 'var(--vibes-blue)';
+      tokenTab.style.color = 'var(--vibes-blue)';
+      globalTab.style.borderBottomColor = 'transparent';
+      globalTab.style.color = '#888';
+    } else {
+      tokenPanel.style.display = 'none';
+      globalPanel.style.display = '';
+      globalTab.style.borderBottomColor = 'var(--vibes-blue)';
+      globalTab.style.color = 'var(--vibes-blue)';
+      tokenTab.style.borderBottomColor = 'transparent';
+      tokenTab.style.color = '#888';
+    }
+    validateWizardCfInputs();
+  }
+
+  function validateWizardCfInputs() {
+    const nextBtn = document.getElementById('wizardCfNext');
+
+    if (cfAuthMode === 'token') {
+      const tokenInput = document.getElementById('wizardCfApiToken');
+      const token = tokenInput.value.trim();
+      const tokenValid = token.length >= 40;
+      tokenInput.classList.toggle('valid', token && tokenValid);
+      tokenInput.classList.toggle('invalid', token && !tokenValid);
+      nextBtn.disabled = !tokenValid;
+      wizardData.cfApiToken = tokenValid ? token : '';
+    } else {
+      const emailInput = document.getElementById('wizardCfEmail');
+      const keyInput = document.getElementById('wizardCfKey');
+
+      const email = emailInput.value.trim();
+      const key = keyInput.value.trim();
+
+      const emailValid = email.includes('@') && email.includes('.');
+      const keyValid = key.length >= 20;
+
+      emailInput.classList.toggle('valid', email && emailValid);
+      emailInput.classList.toggle('invalid', email && !emailValid);
+      keyInput.classList.toggle('valid', key && keyValid);
+      keyInput.classList.toggle('invalid', key && !keyValid);
+
+      nextBtn.disabled = !(emailValid && keyValid);
+
+      if (emailValid && keyValid) {
+        wizardData.cfEmail = email;
+        wizardData.cfApiKey = key;
+      }
+    }
+  }
+
+  async function validateAndAdvanceCf() {
+    const btn = document.getElementById('wizardCfNext');
+    const hint = document.getElementById('wizardCfHint');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="wizard-checking"></span> Verifying...';
+    hint.style.display = 'none';
+    wizardValidation.cloudflare = 'checking';
+
+    try {
+      // Build validation payload based on auth mode
+      const valPayload = cfAuthMode === 'token'
+        ? { apiToken: wizardData.cfApiToken }
+        : { apiKey: wizardData.cfApiKey, email: wizardData.cfEmail };
+
+      // Validate credentials via server-side Cloudflare API call
+      const valRes = await fetch('/editor/credentials/validate-cloudflare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(valPayload),
+      });
+      const valData = await valRes.json();
+      if (!valData.valid) {
+        throw new Error(valData.error || 'Cloudflare validation failed');
+      }
+
+      wizardData.cfAccountId = valData.accountId || '';
+
+      // Build save payload based on auth mode
+      const savePayload = cfAuthMode === 'token'
+        ? { cloudflareApiToken: wizardData.cfApiToken, cloudflareAccountId: wizardData.cfAccountId }
+        : { cloudflareApiKey: wizardData.cfApiKey, cloudflareEmail: wizardData.cfEmail, cloudflareAccountId: wizardData.cfAccountId };
+
+      // Save to registry
+      const saveRes = await fetch('/editor/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(savePayload),
+      });
+      const saveData = await saveRes.json();
+      if (!saveRes.ok) {
+        const errMsg = saveData.errors ? Object.values(saveData.errors).join('; ') : 'Failed to save';
+        throw new Error(errMsg);
+      }
+
+      wizardValidation.cloudflare = 'valid';
+      cloudflareReady = true;
+      setWizardStep(4);
+    } catch (err) {
+      wizardValidation.cloudflare = 'invalid';
+      hint.textContent = err.message;
+      hint.style.color = 'var(--vibes-red)';
+      hint.style.display = '';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Verify &amp; Continue';
+      validateWizardCfInputs(); // re-check to reset disabled state
+    }
+  }
+
+  function renderWizardSummary() {
+    const table = document.getElementById('wizardSummary');
+    const rows = [
+      { key: 'Clerk', value: wizardData.clerkKey ? wizardData.clerkKey.slice(0, 12) + '...' : '', ok: wizardValidation.clerk === 'valid' },
+      { key: 'Cloudflare', value: wizardData.cfApiToken ? 'API Token' : (wizardData.cfEmail || ''), ok: wizardValidation.cloudflare === 'valid' },
+    ];
+    table.innerHTML = rows.map(r =>
+      `<div class="wizard-summary-row">
+        <span class="wizard-summary-key">${r.ok ? '&#10003; ' : ''}${r.key}</span>
+        <span class="wizard-summary-value">${escapeHtml(r.value)}</span>
+      </div>`
+    ).join('');
   }
 
   function validateOpenRouterKey() {
     const input = document.getElementById('wizardOpenRouterKey');
     const hint = document.getElementById('wizardOpenRouterHint');
-    const nextBtn = document.getElementById('wizardOpenRouterNext');
+    const saveBtn = document.getElementById('wizardOrSaveBtn');
 
     const key = input.value.trim();
 
     if (!key) {
       input.classList.remove('valid', 'invalid');
       hint.style.display = 'none';
-      nextBtn.disabled = true;
+      saveBtn.disabled = true;
       wizardData.openRouterKey = '';
       return;
     }
@@ -3437,104 +3517,81 @@
 
     if (!valid) {
       hint.textContent = 'OpenRouter keys start with sk-or-';
+      hint.style.color = 'var(--vibes-red)';
       hint.style.display = '';
+      wizardData.openRouterKey = '';
     } else {
       hint.style.display = 'none';
-    }
-
-    nextBtn.disabled = !valid;
-    if (valid) {
       wizardData.openRouterKey = key;
-    } else {
-      wizardData.openRouterKey = '';
     }
+
+    saveBtn.disabled = !valid;
   }
 
-  function startStudioDeploy() {
-    const name = document.getElementById('wizardNewStudioName').value.trim();
-    if (!name) return;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  async function saveOpenRouterKey() {
+    const input = document.getElementById('wizardOpenRouterKey');
+    const hint = document.getElementById('wizardOpenRouterHint');
+    const saveBtn = document.getElementById('wizardOrSaveBtn');
+    const key = input.value.trim();
+    if (!key.startsWith('sk-or-')) return;
 
-    const logEl = document.getElementById('studioDeployLog');
-    const btn = document.getElementById('studioDeployBtn');
-    const hint = document.getElementById('wizardDeployHint');
-    logEl.style.display = '';
-    logEl.textContent = 'Starting deploy...\n';
-    btn.disabled = true;
-    hint.textContent = '';
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
 
-    ws.send(JSON.stringify({
-      type: 'deploy-studio',
-      studioName: name,
-      clerkPublishableKey: wizardData.clerkKey,
-      clerkSecretKey: wizardData.clerkSecret,
-    }));
-  }
-
-  function renderWizardSummary() {
-    const table = document.getElementById('wizardSummary');
-    const vars = [
-      ['VITE_CLERK_PUBLISHABLE_KEY', wizardData.clerkKey],
-      ['VITE_CLERK_SECRET_KEY', wizardData.clerkSecret ? '••••' + wizardData.clerkSecret.slice(-8) : ''],
-      ['VITE_API_URL', wizardData.apiUrl],
-      ['VITE_CLOUD_URL', wizardData.cloudUrl],
-    ];
-    if (wizardData.openRouterKey) {
-      vars.push(['OPENROUTER_API_KEY', '••••' + wizardData.openRouterKey.slice(-8)]);
-    }
-    table.innerHTML = vars.map(([k, v]) =>
-      `<div class="wizard-summary-row">
-        <span class="wizard-summary-key">${k}</span>
-        <span class="wizard-summary-value" title="${escapeHtml(v)}">${escapeHtml(v)}</span>
-      </div>`
-    ).join('');
-  }
-
-  async function wizardSave() {
-    const btn = document.getElementById('wizardSaveBtn');
-    btn.disabled = true;
-    btn.textContent = 'Saving...';
     try {
-      const payload = {
-        VITE_CLERK_PUBLISHABLE_KEY: wizardData.clerkKey,
-        VITE_CLERK_SECRET_KEY: wizardData.clerkSecret,
-        VITE_API_URL: wizardData.apiUrl,
-        VITE_CLOUD_URL: wizardData.cloudUrl,
-      };
-      if (wizardData.openRouterKey) {
-        payload.OPENROUTER_API_KEY = wizardData.openRouterKey;
-      }
       const res = await fetch('/editor/credentials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ openRouterKey: key }),
       });
       const data = await res.json();
       if (!res.ok) {
-        const errMsg = data.errors
-          ? Object.values(data.errors).join('; ')
-          : 'Failed to save';
-        throw new Error(errMsg);
+        throw new Error(data.errors ? Object.values(data.errors).join('; ') : 'Failed to save');
       }
-      deployTargets.cloudflare = data.status?.wrangler?.ok || false;
-      goToGenerate();
+      hasOpenRouterKey = true;
+      wizardData.openRouterKey = key;
+      hint.textContent = 'Saved!';
+      hint.style.color = 'var(--vibes-green)';
+      hint.style.display = '';
+      saveBtn.textContent = 'Saved';
     } catch (err) {
-      btn.disabled = false;
-      btn.textContent = 'Save & Continue';
-      const table = document.getElementById('wizardSummary');
-      const errDiv = document.createElement('div');
-      errDiv.style.cssText = 'color:var(--vibes-red);font-size:0.8125rem;margin-top:0.5rem;';
-      errDiv.textContent = err.message;
-      table.after(errDiv);
+      hint.textContent = err.message;
+      hint.style.color = 'var(--vibes-red)';
+      hint.style.display = '';
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Key';
     }
+  }
+
+  function wizardFinish() {
+    goToGenerate();
   }
 
   function prefillFromStatus(status) {
     if (status.clerk?.ok) {
-      // Pre-fill is tricky since we only have masked key — just mark step as done
+      // Mark Clerk as valid and show the detail in the input as a placeholder hint
+      wizardValidation.clerk = 'valid';
+      const pkInput = document.getElementById('wizardClerkKey');
+      const skInput = document.getElementById('wizardClerkSecret');
+      if (pkInput) pkInput.placeholder = status.clerk.detail || 'pk_test_...';
+      if (skInput) skInput.placeholder = 'Already configured';
     }
-    if (status.connect?.ok && status.connect?.detail) {
-      // Could pre-fill but user already has credentials
+    if (status.cloudflare?.ok) {
+      // Populate CF summary data from status detail so renderWizardSummary shows it
+      wizardValidation.cloudflare = 'valid';
+      cloudflareReady = true;
+      const cfDetail = status.cloudflare.detail || 'Configured';
+      if (cfDetail === 'API Token configured') {
+        wizardData.cfApiToken = 'configured';
+      } else {
+        wizardData.cfEmail = cfDetail;
+      }
+    }
+    if (status.clerk?.ok && !status.cloudflare?.ok) {
+      // Clerk already configured — skip to Cloudflare step
+      setWizardStep(3);
+    } else if (status.clerk?.ok && status.cloudflare?.ok) {
+      // Both configured — skip to verification (validation already set above)
     }
   }
 
@@ -3992,10 +4049,10 @@
   function updateDeployButtons() {
     const cfBtn = document.getElementById('deployCf');
     if (cfBtn) {
-      cfBtn.disabled = !deployTargets.cloudflare;
+      cfBtn.disabled = !cloudflareReady;
       const cfDetail = document.getElementById('deployCfDetail');
-      cfDetail.textContent = deployTargets.cloudflare ? 'Ready' : 'wrangler not configured';
-      cfDetail.classList.toggle('ready', deployTargets.cloudflare);
+      cfDetail.textContent = cloudflareReady ? 'Ready' : 'Run setup wizard first';
+      cfDetail.classList.toggle('ready', cloudflareReady);
     }
   }
 
@@ -4005,17 +4062,14 @@
     menu.classList.toggle('open');
     if (opening) {
       deployMenuOpenTime = Date.now();
-      // Position below the deploy button
       const btn = document.querySelector('#deployDropdown button');
       const rect = btn.getBoundingClientRect();
       menu.style.top = (rect.bottom + 6) + 'px';
       menu.style.right = (window.innerWidth - rect.right + 4) + 'px';
-      // Refresh deploy status
       fetch('/editor/status').then(r => r.json()).then(status => {
-        deployTargets.cloudflare = status.wrangler?.ok || false;
+        cloudflareReady = status.cloudflare?.ok || false;
         updateDeployButtons();
       }).catch(() => {});
-      // Load previous deployments
       loadDeployHistory();
     }
   }
@@ -4097,7 +4151,7 @@
     nameInput.style.borderColor = 'var(--vibes-near-black)';
     document.getElementById('deployMenu').classList.remove('open');
     addMessage('user', 'Deploy "' + name + '" to Cloudflare Workers');
-    ws.send(JSON.stringify({ type: 'deploy', target, name }));
+    ws.send(JSON.stringify({ type: 'deploy', target: 'cloudflare', name }));
   }
 
   // Close deploy menu on outside click, Escape key, or scroll
@@ -5410,9 +5464,9 @@
 
   // Check status → decide setup wizard vs generate
   fetch('/editor/status').then(r => r.json()).then(status => {
-    deployTargets.cloudflare = status.wrangler?.ok || false;
+    cloudflareReady = status.cloudflare?.ok || false;
 
-    if (status.clerk?.ok && status.connect?.ok) {
+    if (status.clerk?.ok && status.cloudflare?.ok) {
       // Credentials present — check if app.jsx exists to resume edit phase
       fetch('/editor/app-exists').then(r => r.json()).then(data => {
         if (data.exists) {
@@ -5433,7 +5487,20 @@
       prefillFromStatus(status);
     }
   }).catch(err => {
-    document.getElementById('generatePrompt').focus();
+    // Server unreachable — show wizard with error instead of silently skipping
+    setPhase('setup');
+    const step1 = document.getElementById('wizardStep1');
+    if (step1) {
+      step1.innerHTML = `
+        <div class="wizard-section-title">Cannot reach editor server</div>
+        <div class="wizard-help" style="color:var(--vibes-red);">
+          The editor API is not responding. This usually means the server process
+          has stopped or hasn't finished starting.
+        </div>
+        <div class="setup-actions" style="margin-top:1rem;">
+          <button class="btn btn-primary" onclick="location.reload()">Retry</button>
+        </div>`;
+    }
   });
 
   populateThemeSelect();

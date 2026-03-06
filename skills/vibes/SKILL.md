@@ -56,11 +56,13 @@ Present Editor as the first/recommended option.
 
   Launch the editor server:
   ```bash
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
+  VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+  node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
   ```
   If no prompt was given, omit `--prompt`:
   ```bash
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor
+  VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+  node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor
   ```
   Tell the user: "Open http://localhost:3333 — the editor handles everything from here."
   **Your job is done. Stop. Do not read further. Do not proceed to any step below.**
@@ -305,10 +307,11 @@ Apps will show a configuration error if credentials are missing.
    - "Yes — open live preview" — Start the preview server for iterating on the design
    - "No — deploy now" — Skip preview, go straight to deploy
 
-   If yes: run `node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js"` and tell the user to open `http://localhost:3333`. They can chat to iterate on the design and switch themes. When satisfied, stop the server and continue.
+   If yes: set `VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"` then run `node "$VIBES_ROOT/scripts/preview-server.js"` and tell the user to open `http://localhost:3333`. They can chat to iterate on the design and switch themes. When satisfied, stop the server and continue.
 4. Run assembly:
    ```bash
-   node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble.js" app.jsx index.html
+   VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+   node "$VIBES_ROOT/scripts/assemble.js" app.jsx index.html
    ```
 5. Deploy the app so the user can see it. Clerk auth requires a public URL — the app cannot be viewed locally. Auto-invoke /vibes:cloudflare to deploy, then present the live URL.
 
@@ -663,7 +666,8 @@ error = {
 When deploying AI-enabled apps, include the OpenRouter key:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
   --name myapp \
   --file index.html \
   --ai-key "sk-or-v1-your-key"

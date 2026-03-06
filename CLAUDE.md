@@ -49,6 +49,18 @@ scripts/assemble.js (inserts JSX into template)
 index.html (ready to deploy)
 ```
 
+### Environment Variables in SKILL.md
+
+`CLAUDE_PLUGIN_ROOT` is set by the plugin runtime but may be missing in dev mode (`claude --plugin .`). `CLAUDE_SKILL_DIR` is text-substituted before the agent sees the markdown — always reliable.
+
+All SKILL.md bash blocks use a fallback pattern:
+```bash
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/some-script.js"
+```
+
+`CLAUDE_SKILL_DIR` is `<plugin-root>/skills/<name>/`, so `dirname dirname` gives the plugin root. Non-bash references (`Read file:`, catalog.txt paths) use `${CLAUDE_PLUGIN_ROOT}` directly since they're text-interpolated.
+
 ### Workflow Sequence
 
 All Vibes skills follow this dependency graph:
