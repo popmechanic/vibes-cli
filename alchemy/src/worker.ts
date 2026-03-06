@@ -46,8 +46,12 @@ export class PocketIdContainer extends Container {
     if (env.POCKET_ID_STATIC_API_KEY) {
       this.envVars.STATIC_API_KEY = env.POCKET_ID_STATIC_API_KEY;
     }
-    // Allow open signups for initial testing
+    // Bootstrap-friendly defaults: open signups, email login codes enabled.
+    // These env vars seed Pocket ID's SQLite config on first boot.
     this.envVars.ALLOW_USER_SIGNUPS = "open";
+    this.envVars.EMAIL_ONE_TIME_ACCESS_AS_ADMIN_ENABLED = "true";
+    this.envVars.EMAIL_ONE_TIME_ACCESS_AS_UNAUTHENTICATED_ENABLED = "true";
+    this.envVars.SESSION_DURATION = "480"; // 8 hours
   }
 
   override onStart() {
@@ -93,6 +97,107 @@ interface PocketIdClient {
 }
 
 let clientsEnsured = false;
+let appConfigEnsured = false;
+
+// ---------------------------------------------------------------------------
+// Application Configuration
+// ---------------------------------------------------------------------------
+// Pocket ID stores application config (signups, email login codes, etc.) in
+// SQLite. On container restart, these reset to restrictive defaults even when
+// env vars are set. This function updates the config via the admin API to
+// ensure the instance is bootstrap-friendly (open signups, email codes).
+// ---------------------------------------------------------------------------
+
+interface AppConfigItem {
+  key: string;
+  value: string;
+  type?: string;
+}
+
+async function ensureAppConfig(
+  container: ReturnType<typeof getContainer>,
+  apiKey: string,
+): Promise<void> {
+  if (appConfigEnsured) return;
+  appConfigEnsured = true; // Prevent re-entry
+
+  try {
+    // Read current config
+    const getRes = await container.fetch("http://internal/api/application-configuration", {
+      headers: { "X-API-Key": apiKey, Accept: "application/json" },
+    });
+
+    if (!getRes.ok) {
+      console.error("[pocket-id] Failed to read app config:", getRes.status);
+      appConfigEnsured = false;
+      return;
+    }
+
+    const currentConfig = (await getRes.json()) as AppConfigItem[];
+    const configMap = new Map(currentConfig.map((c) => [c.key, c.value]));
+
+    // Desired overrides (keys from Pocket ID's application-configuration API)
+    const desired: Record<string, string> = {
+      allowUserSignups: "open",
+      emailOneTimeAccessAsAdminEnabled: "true",
+      emailOneTimeAccessAsUnauthenticatedEnabled: "true",
+      requireUserEmail: "false",
+    };
+
+    // Check if any need updating
+    const needsUpdate = Object.entries(desired).some(
+      ([k, v]) => configMap.get(k) !== v,
+    );
+
+    if (!needsUpdate) {
+      console.log("[pocket-id] App config already correct");
+      return;
+    }
+
+    // Build complete config for PUT (it requires ALL fields)
+    // Start from current values, then apply our overrides
+    for (const [k, v] of Object.entries(desired)) {
+      configMap.set(k, v);
+    }
+
+    // Pocket ID v2 PUT expects ALL fields as strings with camelCase JSON keys.
+    // The GET returns key/value pairs — build a flat object from them.
+    const putBody: Record<string, string> = {};
+    for (const [k, v] of configMap) {
+      putBody[k] = v;
+    }
+
+    // Add required fields that GET may not return
+    if (!putBody.sessionDuration) putBody.sessionDuration = "480";
+    if (!putBody.emailsVerified) putBody.emailsVerified = "false";
+    if (!putBody.smtpTls) putBody.smtpTls = "none";
+    if (!putBody.emailLoginNotificationEnabled) putBody.emailLoginNotificationEnabled = "false";
+    if (!putBody.emailApiKeyExpirationEnabled) putBody.emailApiKeyExpirationEnabled = "false";
+
+    console.log("[pocket-id] Updating app config:", JSON.stringify(putBody));
+    const putRes = await container.fetch("http://internal/api/application-configuration", {
+      method: "PUT",
+      headers: {
+        "X-API-Key": apiKey,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(putBody),
+    });
+
+    if (putRes.ok) {
+      console.log("[pocket-id] App config updated successfully");
+    } else {
+      const errText = await putRes.text();
+      console.error("[pocket-id] Failed to update app config:", putRes.status, errText);
+      // Don't reset appConfigEnsured — the env vars should have seeded correct values
+      // on fresh boot. The API update is belt-and-suspenders.
+    }
+  } catch (err) {
+    console.error("[pocket-id] ensureAppConfig error:", err);
+    appConfigEnsured = false;
+  }
+}
 
 async function ensureOIDCClients(
   container: ReturnType<typeof getContainer>,
@@ -193,37 +298,54 @@ async function ensureOIDCClients(
 
 const app = new Hono<{ Bindings: Env }>();
 
-// Middleware: ensure OIDC clients exist on first request after container start.
-// Uses waitUntil so it doesn't block non-OIDC requests. For OIDC authorize
-// requests, we await to ensure the client exists before the request proceeds.
+// Middleware: ensure OIDC clients and app config exist on first request after
+// container start. Uses waitUntil so it doesn't block non-OIDC requests. For
+// OIDC authorize requests, we await to ensure the client exists first.
 app.use("*", async (c, next) => {
-  if (!clientsEnsured) {
-    const apiKey = c.env.POCKET_ID_STATIC_API_KEY;
-    const clientsJson = c.env.POCKET_ID_DEFAULT_CLIENTS;
+  const needsClients = !clientsEnsured;
+  const needsConfig = !appConfigEnsured;
 
-    if (apiKey && clientsJson) {
+  if (needsClients || needsConfig) {
+    const apiKey = c.env.POCKET_ID_STATIC_API_KEY;
+
+    if (apiKey) {
+      const container = getContainer(c.env.POCKET_ID);
+      const url = new URL(c.req.url);
+      const isOIDCPath = url.pathname.startsWith("/authorize") || url.pathname.startsWith("/api/oidc");
+
+      // Parse client configs
       let configs: OIDCClientConfig[] = [];
-      try {
-        configs = JSON.parse(clientsJson);
-      } catch {
-        console.error("[pocket-id] Invalid POCKET_ID_DEFAULT_CLIENTS JSON");
+      if (needsClients) {
+        const clientsJson = c.env.POCKET_ID_DEFAULT_CLIENTS;
+        if (clientsJson) {
+          try {
+            configs = JSON.parse(clientsJson);
+          } catch {
+            console.error("[pocket-id] Invalid POCKET_ID_DEFAULT_CLIENTS JSON");
+          }
+        }
       }
 
-      if (configs.length > 0) {
-        const container = getContainer(c.env.POCKET_ID);
-        const url = new URL(c.req.url);
+      // Build list of setup tasks
+      const tasks: Promise<void>[] = [];
+      if (needsConfig) tasks.push(ensureAppConfig(container, apiKey));
+      if (needsClients && configs.length > 0) tasks.push(ensureOIDCClients(container, apiKey, configs));
 
-        // For OIDC authorize requests, await to prevent "Record not found"
-        if (url.pathname.startsWith("/authorize") || url.pathname.startsWith("/api/oidc")) {
-          await ensureOIDCClients(container, apiKey, configs);
+      if (tasks.length > 0) {
+        const setupAll = Promise.all(tasks).then(() => undefined);
+
+        if (isOIDCPath) {
+          // Block OIDC requests until setup is complete
+          await setupAll;
         } else {
-          // For other requests, run in background
-          c.executionCtx.waitUntil(ensureOIDCClients(container, apiKey, configs));
+          // Run in background for non-OIDC requests
+          c.executionCtx.waitUntil(setupAll);
         }
       }
     } else {
-      // No config — skip future checks
+      // No API key — skip future checks
       clientsEnsured = true;
+      appConfigEnsured = true;
     }
   }
   return next();
@@ -259,17 +381,6 @@ app.get("/.well-known/oidc-clients", async (c) => {
 
 // Route all requests to the singleton Pocket ID instance.
 // getContainer returns a DurableObjectStub; its fetch() auto-starts the container.
-//
-// The container image has a SPA frontend that calls /api/webauthn/login/begin,
-// but the backend serves /api/webauthn/login/start (and /register/begin → /start).
-// Rewrite these paths so passkey auth works with the v2 backend.
-app.all("/api/webauthn/:action/begin", async (c) => {
-  const container = getContainer(c.env.POCKET_ID);
-  const url = new URL(c.req.url);
-  url.pathname = url.pathname.replace("/begin", "/start");
-  return container.fetch(new Request(url.toString(), c.req.raw));
-});
-
 app.all("*", async (c) => {
   const container = getContainer(c.env.POCKET_ID);
   return container.fetch(c.req.raw);
