@@ -151,6 +151,13 @@ export async function saveCredentials(ctx, req, res) {
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       errors.cloudflareEmail = 'Invalid email address';
     }
+    // Global API Key requires both apiKey and email together
+    if (!apiToken && apiKey && !email) {
+      errors.cloudflareEmail = 'Email is required with Global API Key';
+    }
+    if (!apiToken && email && !apiKey) {
+      errors.cloudflareApiKey = 'Global API Key is required with email';
+    }
 
     const hasOpenRouter = !!body.openRouterKey;
     if (hasOpenRouter && !body.openRouterKey.startsWith('sk-or-')) {

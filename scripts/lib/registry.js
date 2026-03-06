@@ -105,7 +105,16 @@ export function getCloudflareConfig() {
  */
 export function setCloudflareConfig(config) {
   const reg = loadRegistry();
-  reg.cloudflare = { ...reg.cloudflare, ...config };
+  // Merge non-null values, delete keys explicitly set to null
+  const merged = { ...reg.cloudflare };
+  for (const [key, value] of Object.entries(config)) {
+    if (value === null) {
+      delete merged[key];
+    } else {
+      merged[key] = value;
+    }
+  }
+  reg.cloudflare = merged;
   saveRegistry(reg);
 }
 

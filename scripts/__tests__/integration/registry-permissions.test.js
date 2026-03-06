@@ -1,4 +1,4 @@
-// scripts/__tests__/unit/registry-permissions.test.js
+// scripts/__tests__/integration/registry-permissions.test.js
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdirSync, rmSync, statSync } from 'fs';
 import { join } from 'path';
