@@ -257,3 +257,36 @@ describe('validateClerkCredentials', () => {
     expect(result.error).toContain('decode domain');
   });
 });
+
+describe('editor-api saveCredentials swap detection', () => {
+  let editorApi;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    mkdirSync(join(TEST_DIR, '.vibes'), { recursive: true });
+    process.env.VIBES_HOME = TEST_DIR;
+    editorApi = await import('../../server/handlers/editor-api.js');
+  });
+
+  afterEach(() => {
+    rmSync(TEST_DIR, { recursive: true, force: true });
+    delete process.env.VIBES_HOME;
+  });
+
+  it('returns descriptive error when pk and sk keys are swapped', async () => {
+    const req = mockReq({
+      clerkPublishableKey: 'sk_test_abc123',  // Swapped!
+      clerkSecretKey: 'pk_test_xyz789',       // Swapped!
+    });
+    const res = mockRes();
+    const ctx = { projectRoot: TEST_DIR };
+
+    await editorApi.saveCredentials(ctx, req, res);
+    const data = JSON.parse(res.body);
+
+    expect(res.statusCode).toBe(400);
+    expect(data.ok).toBe(false);
+    expect(data.errors.clerkPublishableKey).toContain('secret key');
+    expect(data.errors.clerkSecretKey).toContain('publishable key');
+  });
+});
