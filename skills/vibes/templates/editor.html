@@ -3669,36 +3669,51 @@
 
   function prefillFromStatus(status) {
     if (status.clerk?.ok) {
-      // Mark Clerk as valid and show the detail in the input as a placeholder hint
       wizardValidation.clerk = 'valid';
       const pkInput = document.getElementById('wizardClerkKey');
       const skInput = document.getElementById('wizardClerkSecret');
-      if (pkInput) pkInput.placeholder = status.clerk.detail || 'pk_test_...';
-      if (skInput) skInput.placeholder = 'Already configured';
+      if (pkInput && status.maskedKeys?.clerkPublishableKey) {
+        pkInput.placeholder = status.maskedKeys.clerkPublishableKey;
+      }
+      if (skInput) {
+        skInput.placeholder = status.maskedKeys?.clerkSecretKey || 'Already configured';
+      }
     }
     if (status.cloudflare?.ok) {
-      // Populate CF summary data from status detail so renderWizardSummary shows it
       wizardValidation.cloudflare = 'valid';
       cloudflareReady = true;
       const cfDetail = status.cloudflare.detail || 'Configured';
       if (cfDetail === 'API Token configured') {
         wizardData.cfApiToken = 'configured';
+        const tokenInput = document.getElementById('wizardCfApiToken');
+        if (tokenInput && status.maskedKeys?.cloudflareApiToken) {
+          tokenInput.placeholder = status.maskedKeys.cloudflareApiToken;
+        }
       } else {
         wizardData.cfEmail = cfDetail;
+        const emailInput = document.getElementById('wizardCfEmail');
+        if (emailInput && status.maskedKeys?.cloudflareEmail) {
+          emailInput.placeholder = status.maskedKeys.cloudflareEmail;
+        }
       }
     }
+
+    // Pre-populate OpenRouter if available (independent of Clerk/Cloudflare status)
+    if (status.openrouter?.ok) {
+      const orInput = document.getElementById('wizardOpenRouterKey');
+      if (orInput && status.maskedKeys?.openRouterKey) {
+        orInput.placeholder = status.maskedKeys.openRouterKey;
+      }
+    }
+
     // Smart skip: jump to the first incomplete step
     if (status.clerk?.ok && status.cloudflare?.ok) {
-      // Both configured — go straight to summary so user sees confirmation
       setWizardStep(4);
     } else if (status.clerk?.ok && !status.cloudflare?.ok) {
-      // Clerk done — skip to Cloudflare
       setWizardStep(3);
     } else if (!status.clerk?.ok && status.cloudflare?.ok) {
-      // Cloudflare done but Clerk missing — skip to Clerk
       setWizardStep(2);
     }
-    // else: both missing — stay on step 1 (welcome)
   }
 
   // === Phase 2: Generate ===

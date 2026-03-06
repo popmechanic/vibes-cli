@@ -49,6 +49,7 @@ async function checkEditorDeps(ctx) {
   const reg = loadRegistry();
   let clerkOk = false;
   let clerkDetail = 'No Clerk keys configured';
+  let validatedPk = '';
 
   // Prefer _default (wizard sentinel entry)
   const defaultApp = reg.apps._default;
@@ -56,6 +57,7 @@ async function checkEditorDeps(ctx) {
   if (defaultPk.startsWith('pk_test_') || defaultPk.startsWith('pk_live_')) {
     clerkOk = true;
     clerkDetail = `${defaultPk.slice(0, 12)}...`;
+    validatedPk = defaultPk;
   }
 
   // Fall back to most recent real app entry (filter by key, not name property)
@@ -65,7 +67,10 @@ async function checkEditorDeps(ctx) {
       apps.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
       const pk = apps[0].clerk?.publishableKey || '';
       clerkOk = pk.startsWith('pk_test_') || pk.startsWith('pk_live_');
-      if (clerkOk) clerkDetail = `${pk.slice(0, 12)}...`;
+      if (clerkOk) {
+        clerkDetail = `${pk.slice(0, 12)}...`;
+        validatedPk = pk;
+      }
     }
   }
 
@@ -76,6 +81,7 @@ async function checkEditorDeps(ctx) {
     if (validateClerkKey(envKey)) {
       clerkOk = true;
       clerkDetail = `${envKey.slice(0, 12)}... (from .env)`;
+      validatedPk = envKey;
     }
   }
 
@@ -90,6 +96,22 @@ async function checkEditorDeps(ctx) {
   const orKey = loadOpenRouterKey(ctx.projectRoot);
   const openrouterOk = !!orKey;
 
+  // Build masked key previews for pre-population
+  const maskedKeys = {};
+  if (clerkOk && validatedPk) {
+    maskedKeys.clerkPublishableKey = validatedPk.slice(0, 12) + '...' + validatedPk.slice(-4);
+    maskedKeys.clerkSecretKey = 'sk_****_configured';
+  }
+  if (cfOk) {
+    if (cfConfig.apiToken) {
+      maskedKeys.cloudflareApiToken = cfConfig.apiToken.slice(0, 6) + '...' + cfConfig.apiToken.slice(-4);
+    }
+    if (cfConfig.email) maskedKeys.cloudflareEmail = cfConfig.email;
+  }
+  if (openrouterOk) {
+    maskedKeys.openRouterKey = 'sk-or-...' + orKey.slice(-6);
+  }
+
   return {
     clerk: { ok: clerkOk, detail: clerkDetail },
     cloudflare: { ok: cfOk, detail: cfDetail },
@@ -97,6 +119,7 @@ async function checkEditorDeps(ctx) {
       ok: openrouterOk,
       detail: openrouterOk ? `sk-or-...${orKey.slice(-6)}` : 'No OPENROUTER_API_KEY in .env',
     },
+    maskedKeys,
   };
 }
 
