@@ -381,7 +381,7 @@ export function listApps(ctx, req, res) {
  */
 function sanitizeAppName(name) {
   if (!name) return '';
-  return name.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 63);
+  return name.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/^-+|-+$/g, '').slice(0, 63);
 }
 
 export function loadApp(ctx, req, res, url) {

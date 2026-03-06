@@ -3398,7 +3398,7 @@
       tokenInput.classList.toggle('valid', token && tokenValid);
       tokenInput.classList.toggle('invalid', token && !tokenValid);
       nextBtn.disabled = !tokenValid;
-      if (tokenValid) wizardData.cfApiToken = token;
+      wizardData.cfApiToken = tokenValid ? token : '';
     } else {
       const emailInput = document.getElementById('wizardCfEmail');
       const keyInput = document.getElementById('wizardCfKey');
@@ -3576,13 +3576,22 @@
       if (pkInput) pkInput.placeholder = status.clerk.detail || 'pk_test_...';
       if (skInput) skInput.placeholder = 'Already configured';
     }
+    if (status.cloudflare?.ok) {
+      // Populate CF summary data from status detail so renderWizardSummary shows it
+      wizardValidation.cloudflare = 'valid';
+      cloudflareReady = true;
+      const cfDetail = status.cloudflare.detail || 'Configured';
+      if (cfDetail === 'API Token configured') {
+        wizardData.cfApiToken = 'configured';
+      } else {
+        wizardData.cfEmail = cfDetail;
+      }
+    }
     if (status.clerk?.ok && !status.cloudflare?.ok) {
       // Clerk already configured — skip to Cloudflare step
       setWizardStep(3);
     } else if (status.clerk?.ok && status.cloudflare?.ok) {
-      // Both configured — skip to verification
-      wizardValidation.cloudflare = 'valid';
-      cloudflareReady = true;
+      // Both configured — skip to verification (validation already set above)
     }
   }
 

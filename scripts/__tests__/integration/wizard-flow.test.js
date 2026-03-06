@@ -77,20 +77,43 @@ describe('wizard credential flow', () => {
       clerk: { publishableKey: 'pk_test_first', secretKey: '' },
     });
 
-    // Save sk second — should merge, not overwrite pk
-    const existing = registry.getApp('_default');
-    const existingClerk = existing?.clerk || {};
+    // Save sk second — deep merge preserves pk automatically
     registry.setApp('_default', {
       name: '_default',
-      clerk: {
-        publishableKey: existingClerk.publishableKey || '',
-        secretKey: 'sk_test_second',
-      },
+      clerk: { secretKey: 'sk_test_second' },
     });
 
     const app = registry.getApp('_default');
     expect(app.clerk.publishableKey).toBe('pk_test_first');
     expect(app.clerk.secretKey).toBe('sk_test_second');
+  });
+
+  it('setApp deep-merges clerk, connect, and app nested objects', () => {
+    registry.setApp('deep-test', {
+      name: 'deep-test',
+      clerk: { publishableKey: 'pk_test_abc' },
+      connect: { apiUrl: 'https://api.example.com' },
+      app: { workerName: 'deep-test', kvNamespaceId: 'kv-123' },
+    });
+
+    // Update only some nested fields — others should be preserved
+    registry.setApp('deep-test', {
+      clerk: { secretKey: 'sk_test_xyz' },
+      connect: { cloudUrl: 'fpcloud://example.com' },
+      app: { url: 'https://deep-test.workers.dev' },
+    });
+
+    const result = registry.getApp('deep-test');
+    // clerk: pk preserved, sk added
+    expect(result.clerk.publishableKey).toBe('pk_test_abc');
+    expect(result.clerk.secretKey).toBe('sk_test_xyz');
+    // connect: apiUrl preserved, cloudUrl added
+    expect(result.connect.apiUrl).toBe('https://api.example.com');
+    expect(result.connect.cloudUrl).toBe('fpcloud://example.com');
+    // app: workerName + kvNamespaceId preserved, url added
+    expect(result.app.workerName).toBe('deep-test');
+    expect(result.app.kvNamespaceId).toBe('kv-123');
+    expect(result.app.url).toBe('https://deep-test.workers.dev');
   });
 
   it('isFirstDeploy returns true for apps without connect URLs', () => {

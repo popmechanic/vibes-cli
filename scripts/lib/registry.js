@@ -78,17 +78,31 @@ export function getApp(name) {
   return reg.apps[name] || null;
 }
 
+/** Keys whose values are objects that should be deep-merged (not replaced) by setApp. */
+const NESTED_KEYS = ['clerk', 'connect', 'app'];
+
 /**
  * Set (create or update) an app entry.
  * Adds updatedAt timestamp, and createdAt if not already present.
+ *
+ * Known nested keys (clerk, connect, app) are deep-merged with existing
+ * values so that partial updates don't clobber sibling fields.
+ * All other top-level keys are shallow-merged (last write wins).
  */
 export function setApp(name, entry) {
   const reg = loadRegistry();
   const existing = reg.apps[name] || {};
-  reg.apps[name] = { ...existing, ...entry, updatedAt: new Date().toISOString() };
-  if (!reg.apps[name].createdAt) {
-    reg.apps[name].createdAt = reg.apps[name].updatedAt;
+  const merged = { ...existing, ...entry, updatedAt: new Date().toISOString() };
+  // Deep-merge known nested objects
+  for (const key of NESTED_KEYS) {
+    if (entry[key] && typeof entry[key] === 'object' && existing[key] && typeof existing[key] === 'object') {
+      merged[key] = { ...existing[key], ...entry[key] };
+    }
   }
+  if (!merged.createdAt) {
+    merged.createdAt = merged.updatedAt;
+  }
+  reg.apps[name] = merged;
   saveRegistry(reg);
 }
 
