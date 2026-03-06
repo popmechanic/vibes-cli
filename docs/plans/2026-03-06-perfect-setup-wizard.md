@@ -54,61 +54,25 @@ function skipSetup() {
 }
 ```
 
-**Step 3: Fix `prefillFromStatus` to skip to the correct step**
+**Step 3: Fix `prefillFromStatus` step-skipping logic (bottom of function only)**
 
-The current code (around line 3570-3596) has this logic:
+In `prefillFromStatus` (around line 3570-3596), find the step-skipping block at the bottom of the function. Leave the top of the function (Clerk/Cloudflare state-setting blocks) unchanged — Task 7 will rewrite the full function.
+
+Find and replace only the step-skipping block at the bottom:
 
 ```javascript
-// BEFORE
-function prefillFromStatus(status) {
-  if (status.clerk?.ok) {
-    wizardValidation.clerk = 'valid';
-    const pkInput = document.getElementById('wizardClerkKey');
-    const skInput = document.getElementById('wizardClerkSecret');
-    if (pkInput) pkInput.placeholder = status.clerk.detail || 'pk_test_...';
-    if (skInput) skInput.placeholder = 'Already configured';
-  }
-  if (status.cloudflare?.ok) {
-    wizardValidation.cloudflare = 'valid';
-    cloudflareReady = true;
-    const cfDetail = status.cloudflare.detail || 'Configured';
-    if (cfDetail === 'API Token configured') {
-      wizardData.cfApiToken = 'configured';
-    } else {
-      wizardData.cfEmail = cfDetail;
-    }
-  }
+// BEFORE (bottom of prefillFromStatus, around line 3590-3596)
   if (status.clerk?.ok && !status.cloudflare?.ok) {
     setWizardStep(3);
   } else if (status.clerk?.ok && status.cloudflare?.ok) {
     // Both configured — skip to verification (validation already set above)
   }
-}
 ```
 
 Replace with:
 
 ```javascript
 // AFTER
-function prefillFromStatus(status) {
-  if (status.clerk?.ok) {
-    wizardValidation.clerk = 'valid';
-    const pkInput = document.getElementById('wizardClerkKey');
-    const skInput = document.getElementById('wizardClerkSecret');
-    if (pkInput) pkInput.placeholder = status.clerk.detail || 'pk_test_...';
-    if (skInput) skInput.placeholder = 'Already configured';
-  }
-  if (status.cloudflare?.ok) {
-    wizardValidation.cloudflare = 'valid';
-    cloudflareReady = true;
-    const cfDetail = status.cloudflare.detail || 'Configured';
-    if (cfDetail === 'API Token configured') {
-      wizardData.cfApiToken = 'configured';
-    } else {
-      wizardData.cfEmail = cfDetail;
-    }
-  }
-
   // Smart skip: jump to the first incomplete step
   if (status.clerk?.ok && status.cloudflare?.ok) {
     // Both configured — go straight to summary so user sees confirmation
@@ -121,8 +85,9 @@ function prefillFromStatus(status) {
     setWizardStep(2);
   }
   // else: both missing — stay on step 1 (welcome)
-}
 ```
+
+**Note:** Task 7 will later rewrite the entire `prefillFromStatus` function with masked values, OpenRouter pre-population, and this same step-skipping logic. This task establishes the correct step-skipping behavior early so it can be tested independently.
 
 **Step 4: Run tests to verify nothing breaks**
 
@@ -313,10 +278,10 @@ git commit -m "Add detailed Cloudflare guidance with account creation and permis
 
 **Step 1: Improve client-side Clerk validation hints**
 
-Find `validateWizardClerkInputs()` (around line 3291-3324). Replace the hint logic:
+Find `validateWizardClerkInputs()` (around line 3291-3324). Replace **only the hint if/else block** (do not rewrite the whole function — Task 7 will do the full rewrite with the already-validated early-return and these same hints combined):
 
 ```javascript
-// BEFORE (inside validateWizardClerkInputs)
+// BEFORE (the hint block inside validateWizardClerkInputs, around line 3308-3316)
 if (key && !keyValid) {
   hint.textContent = 'Publishable key must start with pk_test_ or pk_live_';
   hint.style.display = '';
@@ -331,7 +296,7 @@ if (key && !keyValid) {
 Replace with:
 
 ```javascript
-// AFTER
+// AFTER — swap detection hints (Task 7 will incorporate this into the full rewrite)
 if (key && !keyValid) {
   if (key.startsWith('sk_test_') || key.startsWith('sk_live_')) {
     hint.textContent = 'This looks like a secret key — it goes in the field below. The publishable key starts with pk_test_ or pk_live_.';
@@ -350,6 +315,8 @@ if (key && !keyValid) {
   hint.style.display = 'none';
 }
 ```
+
+**Note:** Task 7 will later rewrite the entire `validateWizardClerkInputs` function, incorporating these same hints plus an early-return for already-validated keys.
 
 **Step 2: Improve Cloudflare validation error display**
 
@@ -583,7 +550,7 @@ The server uses a declarative `routeTable` object (not an if/else chain). Open `
 
 **Step 5: Update `saveClerkAndAdvance()` to validate before saving**
 
-In `skills/vibes/templates/editor.html`, find `saveClerkAndAdvance()` (around line 3326-3358). Replace it:
+In `skills/vibes/templates/editor.html`, find `saveClerkAndAdvance()` (around line 3326-3358). Replace it. **Note:** Task 7 will later add an early-return for already-validated keys at the top of this function; this version is the base that Task 7 builds on.
 
 ```javascript
 async function saveClerkAndAdvance() {
@@ -594,7 +561,7 @@ async function saveClerkAndAdvance() {
   btn.innerHTML = '<span class="wizard-checking"></span> Verifying...';
   wizardValidation.clerk = 'checking';
   try {
-    // Step 1: Validate the publishable key against Clerk's API
+    // Validate the publishable key against Clerk's API
     const valRes = await fetch('/editor/credentials/validate-clerk', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -605,7 +572,7 @@ async function saveClerkAndAdvance() {
       throw new Error(valData.error || 'Clerk key validation failed');
     }
 
-    // Step 2: Save both keys
+    // Save both keys
     const res = await fetch('/editor/credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -725,6 +692,13 @@ git commit -m "Enhance summary step with edit buttons and verification status"
 
 **Problem:** `prefillFromStatus` sets validation state and placeholder text, but when a user navigates to a step that already has valid credentials (e.g., via the "Edit" button on the summary), the input fields are empty. The user might think their credentials are gone. We should show masked versions of existing values.
 
+**Supersession note:** This task writes the **final form** of three functions that earlier tasks partially modified:
+- `prefillFromStatus` — Task 1 patched the step-skipping block; this task rewrites the full function with masked values, OpenRouter pre-population, and the same step-skipping logic.
+- `validateWizardClerkInputs` — Task 4 patched the hint block; this task rewrites the full function with the already-validated early-return and the same swap-detection hints.
+- `saveClerkAndAdvance` — Task 5 rewrote it with FAPI validation; this task adds the already-validated early-return at the top and keeps the rest identical.
+
+Each earlier task's changes are **incorporated** into the final version here. When executing, treat this task's code as the canonical version.
+
 **Files:**
 - Modify: `skills/vibes/templates/editor.html`
 - Modify: `scripts/server/handlers/editor-api.js`
@@ -752,10 +726,11 @@ Replace with:
 ```javascript
 // AFTER
 // Build masked key previews for pre-population
+// NOTE: `defaultApp` is already declared as `const` earlier in this function (line 54),
+// so reuse it here — do NOT redeclare with `const`.
 const maskedKeys = {};
 if (clerkOk) {
-  // Find the actual pk value for masked display
-  const defaultApp = reg.apps._default;
+  // Reuse `defaultApp` from line 54 (already declared in this scope)
   const pk = defaultApp?.clerk?.publishableKey || '';
   if (pk) maskedKeys.clerkPublishableKey = pk.slice(0, 12) + '...' + pk.slice(-4);
   maskedKeys.clerkSecretKey = 'sk_****_configured';
@@ -1126,16 +1101,37 @@ git commit -m "Allow skipping Cloudflare step when credentials already validated
 
 ### Task 10: Add integration tests for new wizard behaviors
 
-**Problem:** The new behaviors (smart step-skipping, Clerk validation, swap detection) need test coverage.
+**Problem:** The new behaviors (swap detection, Clerk FAPI validation) need test coverage. In particular, `validateClerkCredentials` (Task 5) is the only new server-side logic with external network calls and multiple error branches, and it currently has zero tests.
 
 **Files:**
 - Modify: `scripts/__tests__/integration/wizard-flow.test.js`
 
-**Step 1: Add tests for the new server-side validation**
+**Step 1: Add tests for saveCredentials swap detection**
 
 Append these test cases to `scripts/__tests__/integration/wizard-flow.test.js`:
 
 ```javascript
+// Shared mock helpers — place at top of file or inside describe block
+function mockReq(body) {
+  const { Readable } = require('stream');
+  const req = new Readable({ read() {} });
+  req.push(JSON.stringify(body));
+  req.push(null);
+  return req;
+}
+
+function mockRes() {
+  const res = {
+    statusCode: null,
+    headers: {},
+    body: '',
+    writeHead(code, h) { res.statusCode = code; res.headers = h; },
+    end(data) { res.body = data; },
+    get writableEnded() { return !!res.body; },
+  };
+  return res;
+}
+
 describe('editor-api saveCredentials swap detection', () => {
   let editorApi;
 
@@ -1152,27 +1148,6 @@ describe('editor-api saveCredentials swap detection', () => {
   });
 
   it('returns descriptive error when pk and sk keys are swapped', async () => {
-    // Create a mock request with swapped keys
-    const { Readable } = await import('stream');
-
-    function mockReq(body) {
-      const req = new Readable({ read() {} });
-      req.push(JSON.stringify(body));
-      req.push(null);
-      return req;
-    }
-
-    function mockRes() {
-      const res = {
-        statusCode: null,
-        headers: {},
-        body: '',
-        writeHead(code, h) { res.statusCode = code; res.headers = h; },
-        end(data) { res.body = data; },
-      };
-      return res;
-    }
-
     const req = mockReq({
       clerkPublishableKey: 'sk_test_abc123',  // Swapped!
       clerkSecretKey: 'pk_test_xyz789',       // Swapped!
@@ -1191,22 +1166,146 @@ describe('editor-api saveCredentials swap detection', () => {
 });
 ```
 
-**Step 2: Run the new tests**
+**Step 2: Run swap detection tests**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard/scripts && npx vitest run __tests__/integration/wizard-flow.test.js`
-Expected: All tests pass including the new ones
+Expected: PASS
 
-**Step 3: Run full test suite**
+**Step 3: Add tests for `validateClerkCredentials` with mocked fetch**
+
+This is the only new server-side function with external network calls. Test all error branches by mocking `global.fetch`.
+
+Append to `scripts/__tests__/integration/wizard-flow.test.js`:
+
+```javascript
+describe('validateClerkCredentials', () => {
+  let editorApi;
+  let originalFetch;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    mkdirSync(join(TEST_DIR, '.vibes'), { recursive: true });
+    process.env.VIBES_HOME = TEST_DIR;
+    originalFetch = global.fetch;
+    editorApi = await import('../../server/handlers/editor-api.js');
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+    rmSync(TEST_DIR, { recursive: true, force: true });
+    delete process.env.VIBES_HOME;
+  });
+
+  // Helper: encode a domain into a pk_test_ key
+  function makePk(domain) {
+    return 'pk_test_' + Buffer.from(domain + '$').toString('base64');
+  }
+
+  it('returns valid:true when Clerk FAPI responds 200', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('example.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(true);
+    expect(global.fetch).toHaveBeenCalledOnce();
+    // Verify it hit the correct FAPI domain
+    const url = global.fetch.mock.calls[0][0];
+    expect(url).toBe('https://example.clerk.accounts.dev/v1/environment');
+  });
+
+  it('returns valid:false with helpful message on 401', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 401 });
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('bad.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('rejected by Clerk');
+  });
+
+  it('returns valid:false with helpful message on 403', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 403 });
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('paused.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('rejected by Clerk');
+  });
+
+  it('returns valid:false with status code for other HTTP errors', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500 });
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('error.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('status 500');
+  });
+
+  it('returns valid:false on DNS resolution failure (ENOTFOUND)', async () => {
+    const err = new Error('getaddrinfo ENOTFOUND nonexistent.clerk.accounts.dev');
+    err.cause = { code: 'ENOTFOUND' };
+    global.fetch = vi.fn().mockRejectedValue(err);
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('nonexistent.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('domain encoded in this key does not exist');
+  });
+
+  it('returns valid:false on timeout (AbortError)', async () => {
+    const err = new DOMException('The operation was aborted', 'AbortError');
+    global.fetch = vi.fn().mockRejectedValue(err);
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('slow.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('timed out');
+  });
+
+  it('returns valid:false when no publishable key provided', async () => {
+    const result = await editorApi.validateClerkCredentials({});
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('No publishable key');
+  });
+
+  it('returns valid:false when key cannot be decoded', async () => {
+    // extractClerkDomain returns null for non-pk_ keys
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: 'not_a_valid_key',
+    });
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('decode domain');
+  });
+});
+```
+
+**Step 4: Run all wizard flow tests**
+
+Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard/scripts && npx vitest run __tests__/integration/wizard-flow.test.js`
+Expected: All tests pass including the new `validateClerkCredentials` tests
+
+**Step 5: Run full test suite**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard/scripts && npm test`
 Expected: All tests pass
 
-**Step 4: Commit**
+**Step 6: Commit**
 
 ```bash
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard
 git add scripts/__tests__/integration/wizard-flow.test.js
-git commit -m "Add integration tests for swap detection and wizard flow behaviors"
+git commit -m "Add integration tests for swap detection and validateClerkCredentials"
 ```
 
 ---
