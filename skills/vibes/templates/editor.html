@@ -2394,26 +2394,26 @@
       <div class="wizard-step active" id="wizardStep1">
         <div class="wizard-section-title">Welcome to Vibes</div>
         <div class="wizard-help">
-          Let's get you set up! Vibes needs two services to build and deploy your apps:
+          Let's get you set up! Vibes uses two free services to build and deploy your apps. We'll walk you through creating accounts and getting the API keys you need.
         </div>
         <div style="margin: 1rem 0;">
           <div class="setup-item">
             <div class="setup-icon" id="welcomeClerkIcon" style="background:#999;color:white;">1</div>
             <div>
               <div class="setup-label">Clerk <span style="font-size:0.7rem;color:#888;">(authentication)</span></div>
-              <div class="setup-detail">Handles user sign-in for your apps</div>
+              <div class="setup-detail">Handles user sign-in for your apps &mdash; you'll need a publishable key and secret key</div>
             </div>
           </div>
           <div class="setup-item">
             <div class="setup-icon" id="welcomeCfIcon" style="background:#999;color:white;">2</div>
             <div>
               <div class="setup-label">Cloudflare <span style="font-size:0.7rem;color:#888;">(hosting &amp; sync)</span></div>
-              <div class="setup-detail">Deploys your apps and syncs data automatically</div>
+              <div class="setup-detail">Deploys your apps globally &mdash; you'll need an API token</div>
             </div>
           </div>
         </div>
         <div class="wizard-help" style="font-size:0.75rem;color:#666;">
-          Each service has a free tier. Setup takes about 5 minutes.
+          Both services have generous free tiers. Setup takes about 5 minutes. We'll verify each key as you go.
         </div>
         <div class="setup-actions" style="margin-top:1rem;">
           <button class="btn btn-primary" id="wizardStartBtn" onclick="setWizardStep(2)">Get started</button>
