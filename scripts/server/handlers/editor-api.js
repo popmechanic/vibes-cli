@@ -107,8 +107,12 @@ async function checkEditorDeps(ctx) {
       maskedKeys.cloudflareApiToken = cfConfig.apiToken.slice(0, 6) + '...' + cfConfig.apiToken.slice(-4);
     }
     if (cfConfig.email) {
-      const [local, domain] = cfConfig.email.split('@');
-      maskedKeys.cloudflareEmail = local.charAt(0) + '***@' + (domain || '');
+      if (!cfConfig.email.includes('@')) {
+        maskedKeys.cloudflareEmail = '***';
+      } else {
+        const [local, domain] = cfConfig.email.split('@');
+        maskedKeys.cloudflareEmail = local.charAt(0) + '***@' + (domain || '');
+      }
     }
   }
   if (openrouterOk) {
@@ -289,15 +293,20 @@ export async function validateClerkCredentials({ publishableKey } = {}) {
     return { valid: false, error: 'Could not decode domain from publishable key. Make sure you copied the full key.' };
   }
 
-  // SSRF guard: all Clerk FAPI domains end with .clerk.accounts.dev.
-  // Without this check, a crafted key could encode an internal IP or hostname.
-  if (!domain.endsWith('.clerk.accounts.dev')) {
-    return { valid: false, error: 'Invalid Clerk domain. Expected a *.clerk.accounts.dev domain.' };
+  // SSRF guard: reject IP addresses, ports, paths, and private/reserved hostnames.
+  // Clerk pk_live_ keys may encode custom domains (e.g. clerk.example.com),
+  // so we can't restrict to *.clerk.accounts.dev only.
+  const PRIVATE_PATTERNS = /^(localhost|127\.|10\.|169\.254\.|192\.168\.|0\.)/;
+  const PRIVATE_172 = /^172\.(1[6-9]|2\d|3[01])\./;
+  const IS_IP = /^\d+\.\d+\.\d+\.\d+$/;
+  if (IS_IP.test(domain) || domain.startsWith('[') || domain.includes(':') ||
+      domain.includes('/') || PRIVATE_PATTERNS.test(domain) || PRIVATE_172.test(domain)) {
+    return { valid: false, error: 'Invalid Clerk domain. The key encodes an IP address or reserved hostname.' };
   }
 
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), CLERK_TIMEOUT_MS);
   try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), CLERK_TIMEOUT_MS);
     const res = await fetch(`https://${domain}/v1/environment`, {
       headers: { 'Authorization': `Bearer ${publishableKey}` },
       signal: ctrl.signal,
@@ -315,6 +324,7 @@ export async function validateClerkCredentials({ publishableKey } = {}) {
 
     return { valid: false, error: `Clerk API returned status ${res.status}. The key may be invalid or the application may be paused.` };
   } catch (err) {
+    clearTimeout(timer);
     if (err.name === 'AbortError') {
       return { valid: false, error: 'Clerk API request timed out (10s). Check your network connection.' };
     }

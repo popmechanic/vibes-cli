@@ -257,7 +257,7 @@ describe('validateClerkCredentials', () => {
     expect(result.error).toContain('decode domain');
   });
 
-  it('rejects keys with non-Clerk domains (SSRF guard)', async () => {
+  it('rejects keys encoding IP addresses (SSRF guard)', async () => {
     global.fetch = vi.fn();
     // Craft a key that encodes an internal IP address
     const maliciousDomain = '169.254.169.254';
@@ -266,9 +266,32 @@ describe('validateClerkCredentials', () => {
       publishableKey: crafted,
     });
     expect(result.valid).toBe(false);
-    expect(result.error).toContain('*.clerk.accounts.dev');
+    expect(result.error).toContain('IP address or reserved hostname');
     // fetch should never have been called
     expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects keys encoding private hostnames (SSRF guard)', async () => {
+    global.fetch = vi.fn();
+    for (const host of ['localhost', '127.0.0.1', '10.0.0.1', '192.168.1.1']) {
+      const crafted = 'pk_test_' + Buffer.from(host + '$').toString('base64');
+      const result = await editorApi.validateClerkCredentials({ publishableKey: crafted });
+      expect(result.valid).toBe(false);
+      expect(global.fetch).not.toHaveBeenCalled();
+    }
+  });
+
+  it('allows keys with custom domains (pk_live_ with non-clerk.accounts.dev)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    const customDomain = 'clerk.example.com';
+    const crafted = 'pk_live_' + Buffer.from(customDomain + '$').toString('base64');
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: crafted,
+    });
+    expect(result.valid).toBe(true);
+    expect(global.fetch).toHaveBeenCalledOnce();
+    const url = global.fetch.mock.calls[0][0];
+    expect(url).toBe('https://clerk.example.com/v1/environment');
   });
 });
 

@@ -2459,6 +2459,7 @@
         <input class="wizard-input" id="wizardClerkKey" type="text" placeholder="pk_test_..." oninput="validateWizardClerkInputs()" autocomplete="off" />
         <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;margin-top:0.5rem;">Secret Key</label>
         <input class="wizard-input" id="wizardClerkSecret" type="password" placeholder="sk_test_..." oninput="validateWizardClerkInputs()" autocomplete="off" />
+        <div style="font-size:0.7rem;color:#888;margin-top:0.25rem;">The publishable key is verified now. The secret key will be validated during deployment.</div>
         <div class="wizard-help" id="wizardClerkHint" style="color:var(--vibes-red);display:none;"></div>
         <div class="setup-actions" style="margin-top:1rem;">
           <button class="btn btn-secondary" onclick="setWizardStep(1)">Back</button>
@@ -3320,6 +3321,14 @@
     // prefillFromStatus() handles smart step-skipping without the redirect.
     // updateWelcomeIcons() updates the step 1 icons (extracted from renderChecklist).
     //
+    // Reset stale wizardData so prefillFromStatus starts clean
+    wizardData.clerkKey = '';
+    wizardData.clerkSecret = '';
+    wizardData.cfApiToken = '';
+    wizardData.cfApiKey = '';
+    wizardData.cfEmail = '';
+    wizardData.cfAccountId = '';
+    //
     // ORDER MATTERS:
     // 1. setPhase('setup') — switch DOM to wizard view FIRST so elements exist
     // 2. setWizardStep(1) — reset to step 1 baseline (prefillFromStatus may skip forward)
@@ -3333,6 +3342,7 @@
       prefillFromStatus(status);
     }).catch(() => {
       setPhase('setup');
+      setWizardStep(1);
     });
   }
 
