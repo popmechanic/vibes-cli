@@ -2540,8 +2540,8 @@
 
       <!-- Step 4: Verification & Save -->
       <div class="wizard-step" id="wizardStep4">
-        <div class="wizard-section-title">All Set!</div>
-        <div class="wizard-help">Your credentials have been verified and saved.</div>
+        <div class="wizard-section-title" style="color:var(--vibes-green);">&#10003; Ready to Build!</div>
+        <div class="wizard-help">Your credentials have been verified and saved. You're all set to create and deploy apps.</div>
         <div class="wizard-summary-table" id="wizardSummary"></div>
 
         <!-- Optional: OpenRouter -->
@@ -3570,13 +3570,28 @@
   function renderWizardSummary() {
     const table = document.getElementById('wizardSummary');
     const rows = [
-      { key: 'Clerk', value: wizardData.clerkKey ? wizardData.clerkKey.slice(0, 12) + '...' : '', ok: wizardValidation.clerk === 'valid' },
-      { key: 'Cloudflare', value: wizardData.cfApiToken ? 'API Token' : (wizardData.cfEmail || ''), ok: wizardValidation.cloudflare === 'valid' },
+      {
+        key: 'Clerk',
+        value: wizardData.clerkKey ? wizardData.clerkKey.slice(0, 12) + '...' : 'Configured',
+        ok: wizardValidation.clerk === 'valid',
+        editStep: 2,
+      },
+      {
+        key: 'Cloudflare',
+        value: wizardData.cfApiToken
+          ? (wizardData.cfApiToken === 'configured' ? 'API Token configured' : 'API Token')
+          : (wizardData.cfEmail || 'Configured'),
+        ok: wizardValidation.cloudflare === 'valid',
+        editStep: 3,
+      },
     ];
     table.innerHTML = rows.map(r =>
       `<div class="wizard-summary-row">
-        <span class="wizard-summary-key">${r.ok ? '&#10003; ' : ''}${r.key}</span>
-        <span class="wizard-summary-value">${escapeHtml(r.value)}</span>
+        <span class="wizard-summary-key">${r.ok ? '<span style="color:var(--vibes-green);">&#10003;</span> ' : '<span style="color:var(--vibes-red);">&#10007;</span> '}${escapeHtml(r.key)}</span>
+        <span style="display:flex;align-items:center;gap:0.5rem;">
+          <span class="wizard-summary-value">${escapeHtml(r.value)}</span>
+          <button onclick="setWizardStep(${r.editStep})" style="background:none;border:none;color:var(--vibes-blue);cursor:pointer;font-size:0.75rem;font-weight:700;padding:0;">Edit</button>
+        </span>
       </div>`
     ).join('');
   }
