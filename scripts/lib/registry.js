@@ -67,7 +67,7 @@ export function saveRegistry(reg) {
   const path = getRegistryPath();
   writeFileSync(path, JSON.stringify(reg, null, 2), { mode: 0o600 });
   // Also chmod in case the file already existed with broader permissions
-  try { chmodSync(path, 0o600); } catch { /* best effort */ }
+  try { chmodSync(path, 0o600); } catch (e) { console.warn('chmod registry failed:', e.message); }
 }
 
 /**

@@ -3264,12 +3264,18 @@
 
   function setWizardStep(n) {
     wizardStep = n;
-    // Clear CF wizard data on re-entry to step 3 unless already validated
+    // Clear CF wizard data and input fields on re-entry to step 3 unless already validated
     if (n === 3 && wizardValidation.cloudflare !== 'valid') {
       wizardData.cfApiToken = '';
       wizardData.cfApiKey = '';
       wizardData.cfEmail = '';
       wizardData.cfAccountId = '';
+      const tokenInput = document.getElementById('wizardCfApiToken');
+      const emailInput = document.getElementById('wizardCfEmail');
+      const keyInput = document.getElementById('wizardCfKey');
+      if (tokenInput) { tokenInput.value = ''; tokenInput.classList.remove('valid', 'invalid'); }
+      if (emailInput) { emailInput.value = ''; emailInput.classList.remove('valid', 'invalid'); }
+      if (keyInput) { keyInput.value = ''; keyInput.classList.remove('valid', 'invalid'); }
     }
     document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
     const step = document.getElementById('wizardStep' + n);

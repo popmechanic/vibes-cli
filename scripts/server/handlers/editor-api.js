@@ -58,9 +58,9 @@ async function checkEditorDeps(ctx) {
     clerkDetail = `${defaultPk.slice(0, 12)}...`;
   }
 
-  // Fall back to most recent real app entry
+  // Fall back to most recent real app entry (filter by key, not name property)
   if (!clerkOk) {
-    const apps = Object.values(reg.apps).filter(a => a.name !== '_default');
+    const apps = Object.entries(reg.apps).filter(([key]) => key !== '_default').map(([, v]) => v);
     if (apps.length > 0) {
       apps.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
       const pk = apps[0].clerk?.publishableKey || '';
@@ -189,10 +189,14 @@ export async function saveCredentials(ctx, req, res) {
       });
 
       // Also write to .env for backward compatibility
-      // deploy-cloudflare.js reads Clerk keys from .env via loadEnvFile()
+      // deploy-cloudflare.js reads CLERK_SECRET_KEY from .env via loadEnvFile()
+      // VITE_CLERK_SECRET_KEY written for legacy compat (some older .env files use it)
       const envVars = {};
       if (pk) envVars.VITE_CLERK_PUBLISHABLE_KEY = pk;
-      if (sk) envVars.CLERK_SECRET_KEY = sk;
+      if (sk) {
+        envVars.CLERK_SECRET_KEY = sk;
+        envVars.VITE_CLERK_SECRET_KEY = sk;
+      }
       writeEnvFile(ctx.projectRoot, envVars);
     }
 
@@ -431,8 +435,10 @@ export function saveScreenshot(ctx, req, res, url) {
     if (size > MAX_SCREENSHOT_SIZE) {
       aborted = true;
       req.destroy();
-      res.writeHead(413, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Screenshot too large (max 5MB)' }));
+      if (!res.writableEnded) {
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Screenshot too large (max 5MB)' }));
+      }
       return;
     }
     chunks.push(c);

@@ -70,6 +70,29 @@ describe('wizard credential flow', () => {
     expect(cf.apiKey).toBe('key123');
   });
 
+  it('partial saves merge into _default without clobbering', () => {
+    // Save pk first
+    registry.setApp('_default', {
+      name: '_default',
+      clerk: { publishableKey: 'pk_test_first', secretKey: '' },
+    });
+
+    // Save sk second — should merge, not overwrite pk
+    const existing = registry.getApp('_default');
+    const existingClerk = existing?.clerk || {};
+    registry.setApp('_default', {
+      name: '_default',
+      clerk: {
+        publishableKey: existingClerk.publishableKey || '',
+        secretKey: 'sk_test_second',
+      },
+    });
+
+    const app = registry.getApp('_default');
+    expect(app.clerk.publishableKey).toBe('pk_test_first');
+    expect(app.clerk.secretKey).toBe('sk_test_second');
+  });
+
   it('isFirstDeploy returns true for apps without connect URLs', () => {
     registry.setApp('new-app', {
       name: 'new-app',
