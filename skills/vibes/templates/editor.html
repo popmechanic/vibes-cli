@@ -2375,21 +2375,37 @@
         <div class="wizard-dot" data-step="3"></div>
         <div class="wizard-dot-line"></div>
         <div class="wizard-dot" data-step="4"></div>
-        <div class="wizard-dot-line"></div>
-        <div class="wizard-dot" data-step="5"></div>
       </div>
 
       <!-- Step 1: Welcome -->
       <div class="wizard-step active" id="wizardStep1">
         <div class="wizard-section-title">Welcome to Vibes</div>
         <div class="wizard-help">
-          Vibes needs two things to build and deploy your apps:<br>
-          <strong>Clerk</strong> (authentication) and a <strong>Connect Studio</strong> (database sync).
+          Let's get you set up! Vibes needs two services to build and deploy your apps:
+        </div>
+        <div style="margin: 1rem 0;">
+          <div class="setup-item">
+            <div class="setup-icon" id="welcomeClerkIcon" style="background:#999;color:white;">1</div>
+            <div>
+              <div class="setup-label">Clerk <span style="font-size:0.7rem;color:#888;">(authentication)</span></div>
+              <div class="setup-detail">Handles user sign-in for your apps</div>
+            </div>
+          </div>
+          <div class="setup-item">
+            <div class="setup-icon" id="welcomeCfIcon" style="background:#999;color:white;">2</div>
+            <div>
+              <div class="setup-label">Cloudflare <span style="font-size:0.7rem;color:#888;">(hosting &amp; sync)</span></div>
+              <div class="setup-detail">Deploys your apps and syncs data automatically</div>
+            </div>
+          </div>
+        </div>
+        <div class="wizard-help" style="font-size:0.75rem;color:#666;">
+          Each service has a free tier. Setup takes about 5 minutes.
         </div>
         <div id="setupChecklist"></div>
         <div class="setup-actions" style="margin-top:1rem;">
           <button class="btn btn-secondary" onclick="skipSetup()">Skip for now</button>
-          <button class="btn btn-primary" id="wizardStartBtn" onclick="setWizardStep(2)">Set up credentials</button>
+          <button class="btn btn-primary" id="wizardStartBtn" onclick="setWizardStep(2)">Get started</button>
         </div>
       </div>
 
@@ -2397,96 +2413,76 @@
       <div class="wizard-step" id="wizardStep2">
         <div class="wizard-section-title">Clerk Authentication</div>
         <div class="wizard-help">
-          Clerk handles user sign-in for your apps.
-          <a class="wizard-link" href="https://dashboard.clerk.com" target="_blank">Open Clerk Dashboard</a>
+          Clerk handles user sign-in for your apps. Create a free account, then copy your keys.
+        </div>
+        <div style="background:rgba(0,154,206,0.06);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.8125rem;line-height:1.5;">
+          <strong>Quick steps:</strong>
+          <ol style="margin:0.5rem 0 0 1.25rem;padding:0;">
+            <li>Go to <a class="wizard-link" href="https://dashboard.clerk.com" target="_blank">dashboard.clerk.com</a></li>
+            <li>Create an application (any name)</li>
+            <li>Go to <strong>API Keys</strong> in the sidebar</li>
+            <li>Copy both keys below</li>
+          </ol>
         </div>
         <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Publishable Key</label>
-        <input class="wizard-input" id="wizardClerkKey" type="text" placeholder="pk_test_..." oninput="validateWizardClerkInputs()" />
-        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Secret Key</label>
-        <input class="wizard-input" id="wizardClerkSecret" type="password" placeholder="sk_test_..." oninput="validateWizardClerkInputs()" />
+        <input class="wizard-input" id="wizardClerkKey" type="text" placeholder="pk_test_..." oninput="validateWizardClerkInputs()" autocomplete="off" />
+        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;margin-top:0.5rem;">Secret Key</label>
+        <input class="wizard-input" id="wizardClerkSecret" type="password" placeholder="sk_test_..." oninput="validateWizardClerkInputs()" autocomplete="off" />
         <div class="wizard-help" id="wizardClerkHint" style="color:var(--vibes-red);display:none;"></div>
         <div class="setup-actions" style="margin-top:1rem;">
           <button class="btn btn-secondary" onclick="setWizardStep(1)">Back</button>
-          <button class="btn btn-primary" id="wizardClerkNext" onclick="setWizardStep(3)" disabled>Next</button>
+          <button class="btn btn-primary" id="wizardClerkNext" onclick="saveClerkAndAdvance()" disabled>Next</button>
         </div>
       </div>
 
-      <!-- Step 3: Connect Studio -->
+      <!-- Step 3: Cloudflare -->
       <div class="wizard-step" id="wizardStep3">
-        <div class="wizard-section-title">Connect Studio</div>
+        <div class="wizard-section-title">Cloudflare Deployment</div>
         <div class="wizard-help">
-          Connect Studio provides cloud sync for your Fireproof database.
+          Cloudflare Workers hosts your apps and syncs data. Create a free account, then paste your Global API Key.
         </div>
-        <div class="wizard-radio-group" id="wizardStudioRadios">
-          <label class="wizard-radio selected" onclick="selectStudioMode('existing')">
-            <input type="radio" name="studioMode" value="existing" checked />
-            I have a Studio
-          </label>
-          <label class="wizard-radio" id="wizardDeployRadio" onclick="selectStudioMode('deploy')">
-            <input type="radio" name="studioMode" value="deploy" />
-            Deploy a new Studio
-          </label>
-          <label class="wizard-radio" onclick="selectStudioMode('advanced')">
-            <input type="radio" name="studioMode" value="advanced" />
-            Advanced: enter URLs manually
-          </label>
+        <div style="background:rgba(0,154,206,0.06);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.8125rem;line-height:1.5;">
+          <strong>Quick steps:</strong>
+          <ol style="margin:0.5rem 0 0 1.25rem;padding:0;">
+            <li>Go to <a class="wizard-link" href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare API Tokens</a></li>
+            <li>Scroll to <strong>Global API Key</strong> and click "View"</li>
+            <li>Copy the key and your account email below</li>
+          </ol>
         </div>
-
-        <!-- Existing studio -->
-        <div id="studioExisting">
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Studio Name</label>
-          <input class="wizard-input" id="wizardStudioName" type="text" placeholder="my-studio" oninput="debouncedCheckStudio()" />
-          <div class="wizard-help" id="wizardStudioHint"></div>
-        </div>
-
-        <!-- Deploy new studio -->
-        <div id="studioDeploy" style="display:none;">
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">New Studio Name</label>
-          <input class="wizard-input" id="wizardNewStudioName" type="text" placeholder="my-studio" />
-          <div class="wizard-terminal" id="studioDeployLog" style="display:none;"></div>
-          <button class="btn btn-primary" id="studioDeployBtn" onclick="startStudioDeploy()" style="margin-bottom:0.75rem;">Deploy Studio</button>
-          <div class="wizard-help" id="wizardDeployHint"></div>
-        </div>
-
-        <!-- Advanced: raw URLs -->
-        <div id="studioAdvanced" style="display:none;">
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">API URL</label>
-          <input class="wizard-input" id="wizardApiUrl" type="text" placeholder="https://my-studio.example.com/api/" oninput="validateAdvancedUrls()" />
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Cloud URL</label>
-          <input class="wizard-input" id="wizardCloudUrl" type="text" placeholder="fpcloud://my-studio.example.com?protocol=wss" oninput="validateAdvancedUrls()" />
-        </div>
-
+        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Account Email</label>
+        <input class="wizard-input" id="wizardCfEmail" type="email" placeholder="you@example.com" oninput="validateWizardCfInputs()" autocomplete="off" />
+        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;margin-top:0.5rem;">Global API Key</label>
+        <input class="wizard-input" id="wizardCfKey" type="password" placeholder="Paste your Global API Key..." oninput="validateWizardCfInputs()" autocomplete="off" />
+        <div class="wizard-help" id="wizardCfHint" style="display:none;"></div>
         <div class="setup-actions" style="margin-top:1rem;">
           <button class="btn btn-secondary" onclick="setWizardStep(2)">Back</button>
-          <button class="btn btn-primary" id="wizardStudioNext" onclick="setWizardStep(4)" disabled>Next</button>
+          <button class="btn btn-primary" id="wizardCfNext" onclick="validateAndAdvanceCf()" disabled>Verify &amp; Continue</button>
         </div>
       </div>
 
-      <!-- Step 4: OpenRouter API Key (optional) -->
+      <!-- Step 4: Verification & Save -->
       <div class="wizard-step" id="wizardStep4">
-        <div class="wizard-section-title">OpenRouter API Key</div>
-        <div class="wizard-help">
-          Enables AI theme generation and the <code>useAI</code> hook in your apps. This is optional.
-          <a class="wizard-link" href="https://openrouter.ai/keys" target="_blank">Get an API key</a>
-        </div>
-        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">API Key</label>
-        <input class="wizard-input" id="wizardOpenRouterKey" type="password" placeholder="sk-or-..." oninput="validateOpenRouterKey()" />
-        <div class="wizard-help" id="wizardOpenRouterHint" style="color:var(--vibes-red);display:none;"></div>
-        <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-secondary" onclick="setWizardStep(3)">Back</button>
-          <button class="btn btn-secondary" id="wizardOpenRouterSkip" onclick="setWizardStep(5)">Skip</button>
-          <button class="btn btn-primary" id="wizardOpenRouterNext" onclick="setWizardStep(5)" disabled>Next</button>
-        </div>
-      </div>
-
-      <!-- Step 5: Confirm & Save -->
-      <div class="wizard-step" id="wizardStep5">
-        <div class="wizard-section-title">Confirm &amp; Save</div>
-        <div class="wizard-help">These values will be written to your <code>.env</code> file:</div>
+        <div class="wizard-section-title">All Set!</div>
+        <div class="wizard-help">Your credentials have been verified and saved.</div>
         <div class="wizard-summary-table" id="wizardSummary"></div>
-        <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-secondary" onclick="setWizardStep(4)">Back</button>
-          <button class="btn btn-primary" id="wizardSaveBtn" onclick="wizardSave()">Save &amp; Continue</button>
+
+        <!-- Optional: OpenRouter -->
+        <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid rgba(0,0,0,0.1);">
+          <div style="font-size:0.75rem;font-weight:700;margin-bottom:0.25rem;">
+            OpenRouter API Key <span style="font-weight:400;color:#888;">(optional -- enables AI themes)</span>
+          </div>
+          <div style="display:flex;gap:0.5rem;">
+            <input class="wizard-input" id="wizardOpenRouterKey" type="password" placeholder="sk-or-..." oninput="validateOpenRouterKey()" style="flex:1;" />
+            <button class="btn btn-secondary" id="wizardOrSaveBtn" onclick="saveOpenRouterKey()" disabled style="white-space:nowrap;">Save Key</button>
+          </div>
+          <div class="wizard-help" id="wizardOpenRouterHint" style="display:none;"></div>
+          <div style="font-size:0.7rem;color:#888;margin-top:0.25rem;">
+            <a class="wizard-link" href="https://openrouter.ai/keys" target="_blank" style="font-size:0.7rem;">Get a key at openrouter.ai</a>
+          </div>
+        </div>
+
+        <div class="setup-actions" style="margin-top:1.5rem;">
+          <button class="btn btn-primary" id="wizardFinishBtn" onclick="wizardFinish()" style="width:100%;">Start Building</button>
         </div>
       </div>
     </div>
