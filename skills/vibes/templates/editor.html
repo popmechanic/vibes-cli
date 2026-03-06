@@ -4013,7 +4013,7 @@
       // Refresh deploy status
       fetch('/editor/status').then(r => r.json()).then(status => {
         deployTargets.cloudflare = status.wrangler?.ok || false;
-            updateDeployButtons();
+        updateDeployButtons();
       }).catch(() => {});
       // Load previous deployments
       loadDeployHistory();
@@ -4026,15 +4026,44 @@
       const list = document.getElementById('deployHistoryList');
       if (!deployments.length) { section.style.display = 'none'; return; }
       section.style.display = 'block';
-      list.innerHTML = deployments.map(d => {
+      list.replaceChildren();
+      deployments.forEach(d => {
         const ago = timeAgo(d.updatedAt);
-        return '<div class="deploy-history-item" onclick="event.stopPropagation()">' +
-          '<a class="deploy-history-name" href="' + d.url + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="' + d.url + '">' + d.name + '</a>' +
-          '<span style="font-size:0.625rem;color:#999">' + ago + '</span>' +
-          '<button class="deploy-history-update" onclick="updateDeploy(\'' + d.name + '\')" title="Deploy current code to ' + d.name + '">Update</button>' +
-          '<a class="deploy-history-link" href="' + d.url + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="' + d.url + '">↗</a>' +
-          '</div>';
-      }).join('');
+        const row = document.createElement('div');
+        row.className = 'deploy-history-item';
+        row.addEventListener('click', e => e.stopPropagation());
+
+        const nameLink = document.createElement('a');
+        nameLink.className = 'deploy-history-name';
+        nameLink.href = d.url;
+        nameLink.target = '_blank';
+        nameLink.rel = 'noopener';
+        nameLink.title = d.url;
+        nameLink.textContent = d.name;
+        nameLink.addEventListener('click', e => e.stopPropagation());
+
+        const time = document.createElement('span');
+        time.style.cssText = 'font-size:0.625rem;color:#999';
+        time.textContent = ago;
+
+        const btn = document.createElement('button');
+        btn.className = 'deploy-history-update';
+        btn.title = 'Deploy current code to ' + d.name;
+        btn.textContent = 'Update';
+        btn.addEventListener('click', () => updateDeploy(d.name));
+
+        const arrow = document.createElement('a');
+        arrow.className = 'deploy-history-link';
+        arrow.href = d.url;
+        arrow.target = '_blank';
+        arrow.rel = 'noopener';
+        arrow.title = d.url;
+        arrow.textContent = '↗';
+        arrow.addEventListener('click', e => e.stopPropagation());
+
+        row.append(nameLink, time, btn, arrow);
+        list.appendChild(row);
+      });
     }).catch(() => {});
   }
 

@@ -43,24 +43,9 @@ async function main() {
   const template = loadAndValidateTemplate(templatePath, readFileSync);
   const appCode = readFileSync(resolvedAppPath, 'utf8').trim();
 
-  // Load env vars — check .env first, registry as fallback
+  // Load env vars from .env in the output directory
   const outputDir = dirname(resolvedOutputPath);
   const envVars = loadEnvFile(outputDir);
-
-  // If .env lacks Connect URLs, try global registry
-  if (!envVars.VITE_API_URL || !envVars.VITE_CLERK_PUBLISHABLE_KEY) {
-    const appName = process.argv[4] || null; // Optional: --app-name flag
-    if (appName) {
-      const { getApp } = await import('./lib/registry.js');
-      const app = getApp(appName);
-      if (app) {
-        envVars.VITE_CLERK_PUBLISHABLE_KEY = envVars.VITE_CLERK_PUBLISHABLE_KEY || app.clerk?.publishableKey;
-        envVars.VITE_API_URL = envVars.VITE_API_URL || app.connect?.apiUrl;
-        envVars.VITE_CLOUD_URL = envVars.VITE_CLOUD_URL || app.connect?.cloudUrl;
-        console.log(`Connect config: from registry (app: ${appName})`);
-      }
-    }
-  }
 
   // Validate Connect credentials
   const hasValidConnect = validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY) &&

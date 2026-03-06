@@ -37,14 +37,14 @@ export function useFireproofClerk(name, opts) {
       var ledgerMap = (typeof window !== 'undefined' && window.__VIBES_LEDGER_MAP__) || {};
       if (dbName && ledgerMap[dbName]) {
         req = Object.assign({}, req, { ledger: ledgerMap[dbName] });
-        console.debug('[vibes] Using cached ledger for', dbName);
+        if (window.__VIBES_DEBUG__) console.debug('[vibes] Using cached ledger for', dbName);
         return _origEnsure(req);
       }
 
       // Tier 2: Legacy global (sell template's /resolve sets this)
       if (typeof window !== 'undefined' && window.__VIBES_SHARED_LEDGER__) {
         req = Object.assign({}, req, { ledger: window.__VIBES_SHARED_LEDGER__ });
-        console.debug('[vibes] Routing to shared ledger:', window.__VIBES_SHARED_LEDGER__);
+        if (window.__VIBES_DEBUG__) console.debug('[vibes] Routing to shared ledger:', window.__VIBES_SHARED_LEDGER__);
         return _origEnsure(req);
       }
 
@@ -68,26 +68,23 @@ export function useFireproofClerk(name, opts) {
               window.__VIBES_LEDGER_MAP__[dbName || appHost] = matched.ledgerId;
             }
             req = Object.assign({}, req, { ledger: matched.ledgerId });
-            console.debug('[vibes] Discovered ledger:', matched.ledgerId, 'for', dbName);
+            if (window.__VIBES_DEBUG__) console.debug('[vibes] Discovered ledger:', matched.ledgerId, 'for', dbName);
           } else {
             // No match -- clear bundle's wrong ledger so Connect creates a new one
             req = Object.assign({}, req, { ledger: undefined });
-            console.debug('[vibes] No ledger match for', dbName, '-- creating new');
+            if (window.__VIBES_DEBUG__) console.debug('[vibes] No ledger match for', dbName, '-- creating new');
           }
         }
         // After _origEnsure resolves, discover the newly created ledger (polling retry)
         var _noMatchKey = matched ? null : (dbName || appHost);
         return _origEnsure(req).then(function (result) {
-          // Diagnostic: log ensureCloudToken result
           if (result && typeof result.isOk === 'function') {
-            if (result.isOk()) {
+            if (!result.isOk()) {
+              console.error('[vibes] ensureCloudToken FAILED:', JSON.stringify(result.Err()));
+            } else if (window.__VIBES_DEBUG__) {
               var ok = result.Ok();
               console.debug('[vibes] ensureCloudToken OK, ledger:', ok.ledger, 'tenant:', ok.tenant);
-            } else {
-              console.error('[vibes] ensureCloudToken FAILED:', JSON.stringify(result.Err()));
             }
-          } else {
-            console.debug('[vibes] ensureCloudToken returned:', typeof result, result);
           }
           if (_noMatchKey && typeof window !== 'undefined') {
             var _attempts = 0;
@@ -97,7 +94,7 @@ export function useFireproofClerk(name, opts) {
               // Early exit if gate or another path already populated the map
               var existingMap = window.__VIBES_LEDGER_MAP__;
               if (existingMap && existingMap[_noMatchKey]) {
-                console.debug('[vibes] Ledger already cached for', _noMatchKey);
+                if (window.__VIBES_DEBUG__) console.debug('[vibes] Ledger already cached for', _noMatchKey);
                 return;
               }
               dashApi.listLedgersByUser({}).then(function (rL2) {
@@ -109,7 +106,7 @@ export function useFireproofClerk(name, opts) {
                   if (created) {
                     if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
                     window.__VIBES_LEDGER_MAP__[_noMatchKey] = created.ledgerId;
-                    console.debug('[vibes] Cached new ledger:', created.ledgerId, 'for', _noMatchKey);
+                    if (window.__VIBES_DEBUG__) console.debug('[vibes] Cached new ledger:', created.ledgerId, 'for', _noMatchKey);
                   } else if (++_attempts < _maxAttempts) {
                     setTimeout(_discover, _delay);
                     _delay = Math.min(_delay * 2, 8000);
@@ -139,11 +136,6 @@ export function useFireproofClerk(name, opts) {
   var syncVal = result.syncStatus || "idle";
   var syncErr = result.lastSyncError ? String(result.lastSyncError) : null;
 
-  // Diagnostic: log sync status changes
-  React.useEffect(function () {
-    console.debug('[vibes] syncStatus:', syncVal, syncErr ? 'error: ' + syncErr : '');
-  }, [syncVal, syncErr]);
-
   // Auto-redeem invite from ?invite=<id> URL param
   React.useEffect(function () {
     if (!dashApi) return;
@@ -151,10 +143,10 @@ export function useFireproofClerk(name, opts) {
     var params = new URLSearchParams(window.location.search);
     var inviteId = params.get('invite');
     if (inviteId) {
-      console.debug('[vibes] Redeeming invite:', inviteId);
+      if (window.__VIBES_DEBUG__) console.debug('[vibes] Redeeming invite:', inviteId);
       dashApi.redeemInvite({ inviteId: inviteId }).then(function (rr) {
         if (rr.isOk()) {
-          console.debug('[vibes] Invite redeemed, reloading');
+          if (window.__VIBES_DEBUG__) console.debug('[vibes] Invite redeemed, reloading');
           // Clean up URL param and reload so token strategy picks up shared ledger
           params.delete('invite');
           var newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
@@ -195,7 +187,7 @@ export function useFireproofClerk(name, opts) {
               db.ledger.crdt.clock.noPayloadWatchers.forEach(function (fn) {
                 fn();
               });
-              console.debug(
+              if (window.__VIBES_DEBUG__) console.debug(
                 "[vibes] Kicked onTock after detecting",
                 res.rows.length,
                 "docs"
@@ -208,7 +200,7 @@ export function useFireproofClerk(name, opts) {
           }
         })
         .catch(function (err) {
-          console.debug('[vibes] allDocs poll error:', err && err.message);
+          if (window.__VIBES_DEBUG__) console.debug('[vibes] allDocs poll error:', err && err.message);
           if (!kicked) setTimeout(poll, 2000);
         });
     };
