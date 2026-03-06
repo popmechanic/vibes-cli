@@ -6,7 +6,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { writeFileSync, readFileSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { validateOpenRouterKey, validateClerkUserId, validateClerkKey, loadEnvFile, validateClerkSecretKey, validateConnectUrl, deriveConnectUrls, writeEnvFile } from '../../lib/env-utils.js';
+import { validateOpenRouterKey, loadEnvFile, validateConnectUrl, deriveConnectUrls, writeEnvFile } from '../../lib/env-utils.js';
 
 describe('validateOpenRouterKey', () => {
   it('accepts valid OpenRouter keys', () => {
@@ -25,41 +25,6 @@ describe('validateOpenRouterKey', () => {
     expect(validateOpenRouterKey(undefined)).toBe(false);
     expect(validateOpenRouterKey(123)).toBe(false);
     expect(validateOpenRouterKey('')).toBe(false);
-  });
-});
-
-describe('validateClerkUserId', () => {
-  it('accepts valid Clerk user IDs', () => {
-    expect(validateClerkUserId('user_2xYz3abc')).toBe(true);
-    expect(validateClerkUserId('user_37iciRLpkr53iFohcY')).toBe(true);
-  });
-
-  it('rejects IDs without user_ prefix', () => {
-    expect(validateClerkUserId('usr_abc123')).toBe(false);
-    expect(validateClerkUserId('pk_test_abc')).toBe(false);
-    expect(validateClerkUserId('abc123')).toBe(false);
-  });
-
-  it('rejects non-string values', () => {
-    expect(validateClerkUserId(null)).toBe(false);
-    expect(validateClerkUserId(undefined)).toBe(false);
-    expect(validateClerkUserId(123)).toBe(false);
-    expect(validateClerkUserId('')).toBe(false);
-  });
-});
-
-describe('validateClerkKey', () => {
-  it('accepts valid publishable keys', () => {
-    expect(validateClerkKey('pk_test_abc123')).toBe(true);
-    expect(validateClerkKey('pk_live_abc123')).toBe(true);
-  });
-
-  it('rejects invalid keys', () => {
-    expect(validateClerkKey('sk_test_abc')).toBeFalsy();
-    expect(validateClerkKey('pk_abc')).toBeFalsy();
-    expect(validateClerkKey(null)).toBeFalsy();
-    expect(validateClerkKey(undefined)).toBeFalsy();
-    expect(validateClerkKey('')).toBeFalsy();
   });
 });
 
@@ -135,20 +100,6 @@ describe('loadEnvFile', () => {
     expect(env.A).toBe('hello');
     expect(env.B).toBe('world');
     expect(env.C).toBe('quoted');
-  });
-});
-
-describe('validateClerkSecretKey', () => {
-  it('accepts valid secret keys', () => {
-    expect(validateClerkSecretKey('sk_test_abc123')).toBe(true);
-    expect(validateClerkSecretKey('sk_live_abc123')).toBe(true);
-  });
-  it('rejects invalid keys', () => {
-    expect(validateClerkSecretKey('pk_test_abc')).toBeFalsy();
-    expect(validateClerkSecretKey('sk_abc')).toBeFalsy();
-    expect(validateClerkSecretKey(null)).toBeFalsy();
-    expect(validateClerkSecretKey(undefined)).toBeFalsy();
-    expect(validateClerkSecretKey('')).toBeFalsy();
   });
 });
 
