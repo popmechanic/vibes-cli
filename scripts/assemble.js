@@ -15,7 +15,7 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { createBackup } from './lib/backup.js';
-import { loadEnvFile, validateClerkKey, populateConnectConfig } from './lib/env-utils.js';
+import { loadEnvFile, validateOIDCAuthority, populateConnectConfig } from './lib/env-utils.js';
 import { APP_PLACEHOLDER, validateAssembly, loadAndValidateTemplate } from './lib/assembly-utils.js';
 import { stripForTemplate } from './lib/strip-code.js';
 
@@ -47,21 +47,22 @@ function main() {
   const outputDir = dirname(resolvedOutputPath);
   const envVars = loadEnvFile(outputDir);
 
-  // Validate Connect credentials - fail fast if invalid
-  const hasValidConnect = validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY) &&
+  // Validate OIDC credentials - fail fast if invalid
+  const hasValidConnect = validateOIDCAuthority(envVars.VITE_OIDC_AUTHORITY) &&
                           envVars.VITE_API_URL;
 
   if (!hasValidConnect) {
     throw new Error(
-      'Valid Clerk credentials required.\n\n' +
+      'Valid OIDC credentials required.\n\n' +
       'Expected in .env:\n' +
-      '  VITE_CLERK_PUBLISHABLE_KEY=pk_test_... or pk_live_...\n' +
-      '  VITE_API_URL=http://localhost:8080/api/\n\n' +
+      '  VITE_OIDC_AUTHORITY=https://studio.exe.xyz/auth\n' +
+      '  VITE_OIDC_CLIENT_ID=<client-id>\n' +
+      '  VITE_API_URL=https://studio.exe.xyz/api/\n\n' +
       'Run Connect setup before assembling apps.'
     );
   }
 
-  console.log('Connect mode: Clerk auth + cloud sync enabled');
+  console.log('Connect mode: OIDC auth + cloud sync enabled');
 
   // Strip imports/exports/destructuring that conflict with the template.
   // Keep React destructuring — vibes template provides React as a global,

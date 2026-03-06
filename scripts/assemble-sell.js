@@ -12,7 +12,8 @@
  *   node scripts/assemble-sell.js <app.jsx> [output.html] [options]
  *
  * Options:
- *   --clerk-key <key>     Clerk publishable key (optional - uses .env if not provided)
+ *   --oidc-authority <url> OIDC authority URL (optional - uses .env if not provided)
+ *   --oidc-client-id <id> OIDC client ID (optional - uses .env if not provided)
  *   --app-name <name>     App name for database naming (e.g., "wedding-photos")
  *   --app-title <title>   Display title (e.g., "Wedding Photos")
  *   --domain <domain>     Root domain (e.g., "myapp.exe.xyz")
@@ -20,16 +21,15 @@
  *   --features <json>     JSON array of feature strings
  *   --tagline <text>      App tagline for landing page headline
  *   --subtitle <text>     Subheadline text below the tagline
- *   --admin-ids <json>    JSON array of Clerk user IDs with admin access
+ *   --admin-ids <json>    JSON array of admin user IDs
  *   --reserved <csv>      Comma-separated reserved subdomain names
  *
  * Example:
  *   node scripts/assemble-sell.js app.jsx index.html \
- *     --clerk-key pk_test_xxx \
  *     --app-name wedding-photos \
  *     --app-title "Wedding Photos" \
  *     --domain myapp.exe.xyz \
- *     --admin-ids '["user_xxx"]'
+ *     --admin-ids '["admin-user-uuid"]'
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
@@ -38,13 +38,14 @@ import { TEMPLATES } from './lib/paths.js';
 import { stripForTemplate, stripImports } from './lib/strip-code.js';
 import { createBackup } from './lib/backup.js';
 import { prompt } from './lib/prompt.js';
-import { loadEnvFile, validateClerkKey, populateConnectConfig } from './lib/env-utils.js';
+import { loadEnvFile, validateOIDCAuthority, populateConnectConfig } from './lib/env-utils.js';
 import { APP_PLACEHOLDER } from './lib/assembly-utils.js';
 import { parseArgs as parseCliArgs, formatHelp } from './lib/cli-utils.js';
 
 // Parse command line arguments
 const assembleSellSchema = [
-  { name: 'clerkKey', flag: '--clerk-key', type: 'string', description: 'Clerk publishable key (uses .env if not provided)' },
+  { name: 'oidcAuthority', flag: '--oidc-authority', type: 'string', description: 'OIDC authority URL (uses .env if not provided)' },
+  { name: 'oidcClientId', flag: '--oidc-client-id', type: 'string', description: 'OIDC client ID (uses .env if not provided)' },
   { name: 'appName', flag: '--app-name', type: 'string', description: 'App name for database naming (e.g., "wedding-photos")' },
   { name: 'appTitle', flag: '--app-title', type: 'string', description: 'Display title (e.g., "Wedding Photos")' },
   { name: 'domain', flag: '--domain', type: 'string', description: 'Root domain (e.g., "myapp.exe.xyz")' },
@@ -52,7 +53,7 @@ const assembleSellSchema = [
   { name: 'features', flag: '--features', type: 'string', description: 'JSON array of feature strings' },
   { name: 'tagline', flag: '--tagline', type: 'string', description: 'App tagline for landing page headline' },
   { name: 'subtitle', flag: '--subtitle', type: 'string', description: 'Subheadline text below the tagline' },
-  { name: 'adminIds', flag: '--admin-ids', type: 'string', description: 'JSON array of Clerk user IDs with admin access' },
+  { name: 'adminIds', flag: '--admin-ids', type: 'string', description: 'JSON array of admin user IDs' },
   { name: 'reserved', flag: '--reserved', type: 'string', description: 'Comma-separated reserved subdomain names' },
   { name: 'registryUrl', flag: '--registry-url', type: 'string', description: 'Cloudflare Worker URL for registry API' },
   { name: 'planQuotas', flag: '--plan-quotas', type: 'string', description: 'JSON map of plan slug to max subdomains (e.g., \'{"starter":1,"growth":3}\')' },
@@ -153,7 +154,7 @@ if (!domain) {
 }
 const appName = options.appName || 'my-app';
 
-// Load env vars from .env BEFORE replacements (so we can use as fallback for Clerk key)
+// Load env vars from .env BEFORE replacements (so we can use as fallback for OIDC config)
 const outputDir = dirname(resolve(outputPath || 'index.html'));
 const envVars = loadEnvFile(outputDir);
 
@@ -175,24 +176,25 @@ if (!existsSync(envPath)) {
   process.exit(1);
 }
 
-// Validate Connect credentials - fail fast if invalid
-const hasValidConnect = validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY) &&
+// Validate OIDC credentials - fail fast if invalid
+const hasValidConnect = validateOIDCAuthority(envVars.VITE_OIDC_AUTHORITY) &&
                         envVars.VITE_API_URL;
 
 if (!hasValidConnect) {
   console.error(`
 ╔════════════════════════════════════════════════════════════════╗
-║  ERROR: Invalid Clerk credentials in .env                      ║
+║  ERROR: Invalid OIDC credentials in .env                       ║
 ╠════════════════════════════════════════════════════════════════╣
 ║  The .env file exists but is missing required values.          ║
 ║                                                                 ║
 ║  Required in .env:                                              ║
-║    VITE_CLERK_PUBLISHABLE_KEY=pk_test_... or pk_live_...       ║
+║    VITE_OIDC_AUTHORITY=https://your-studio.exe.xyz/auth        ║
+║    VITE_OIDC_CLIENT_ID=<your-client-id>                        ║
 ║    VITE_API_URL=https://your-studio.exe.xyz/api                ║
 ║    VITE_CLOUD_URL=fpcloud://your-studio.exe.xyz?protocol=wss   ║
 ║                                                                 ║
 ║  Current values:                                                ║
-║    VITE_CLERK_PUBLISHABLE_KEY=${(envVars.VITE_CLERK_PUBLISHABLE_KEY || '(not set)').substring(0, 30).padEnd(30)}    ║
+║    VITE_OIDC_AUTHORITY=${(envVars.VITE_OIDC_AUTHORITY || '(not set)').substring(0, 30).padEnd(30)}    ║
 ║    VITE_API_URL=${(envVars.VITE_API_URL || '(not set)').substring(0, 40).padEnd(40)}    ║
 ║                                                                 ║
 ║  SOLUTION: Run /vibes:connect to configure your sync backend.  ║
@@ -202,9 +204,10 @@ if (!hasValidConnect) {
 }
 
 // Configuration replacements
-// Use --clerk-key if provided, otherwise fall back to .env value (validated above)
+// Use CLI flags if provided, otherwise fall back to .env values (validated above)
 const replacements = {
-  '__CLERK_PUBLISHABLE_KEY__': options.clerkKey || envVars.VITE_CLERK_PUBLISHABLE_KEY || 'pk_test_YOUR_KEY_HERE',
+  '__OIDC_AUTHORITY__': options.oidcAuthority || envVars.VITE_OIDC_AUTHORITY || '',
+  '__OIDC_CLIENT_ID__': options.oidcClientId || envVars.VITE_OIDC_CLIENT_ID || '',
   '__APP_NAME__': appName,
   '__APP_TITLE__': options.appTitle || appName,
   '__APP_DOMAIN__': domain,
@@ -256,14 +259,14 @@ for (const [placeholder, value] of Object.entries(replacements)) {
 
 // Populate Connect config placeholders from .env (envVars loaded earlier)
 // Must run before placeholder validation so Connect placeholders are replaced
-console.log('Connect mode: Clerk auth + cloud sync enabled');
+console.log('Connect mode: OIDC auth + cloud sync enabled');
 output = populateConnectConfig(output, envVars, true);
 
 // Known safe patterns that aren't config placeholders
 // __PURE__ is a tree-shaking comment used by bundlers
 // __esModule is used by transpilers for ES module compatibility
 // __VIBES_CONFIG__ is a runtime config object populated by the template
-// __CLERK_LOAD_ERROR__ is a runtime error variable
+// __VIBES_OIDC_TOKEN__ is the runtime OIDC access token
 // __VIBES_SYNC_STATUS__ is the runtime sync status bridge variable
 // __VIBES_SYNC_ERROR__ is the runtime sync error bridge variable
 // __VIBES_THEMES__ is the runtime theme registration array set by app.jsx
@@ -274,7 +277,7 @@ const SAFE_PLACEHOLDER_PATTERNS = [
   '__PURE__',
   '__esModule',
   '__VIBES_CONFIG__',
-  '__CLERK_LOAD_ERROR__',
+  '__VIBES_OIDC_TOKEN__',
   '__VIBES_SYNC_STATUS__',
   '__VIBES_SYNC_ERROR__',
   '__VIBES_THEMES__',
@@ -432,24 +435,15 @@ STEP 3: SET UP DNS (Required for custom domains)
 STEP 4: CONFIGURE BILLING (if --billing-mode required)
 ───────────────────────────────────────────────────────
 
-  1. Go to Clerk Dashboard → Billing → Get Started
-  2. Create subscription plans (pro, basic, monthly, yearly, starter, free)
-  3. Connect your Stripe account
-  4. Re-run assembly with --billing-mode required:
-
-     node assemble-sell.js app.jsx index.html \\
-       --billing-mode required \\
-       ... other options
-
-  See CLERK-SETUP.md for detailed billing configuration.
+  Billing integration with Stripe is planned for phase 2.
+  For now, use --billing-mode off (the default).
 
 WHAT WORKS
 ──────────
   ✓ Landing page with subdomain claim
-  ✓ Clerk authentication (passkeys)
+  ✓ Passkey authentication (via Pocket ID)
   ✓ Tenant app with database isolation
   ✓ Admin dashboard (config view only)
-  ✓ Subscription gating via Clerk Billing
 
 ══════════════════════════════════════════════════════════════════
 `);
@@ -461,33 +455,9 @@ if ((options.billingMode || 'off') === 'required') {
   BILLING MODE: REQUIRED
 ══════════════════════════════════════════════════════════════════
 
-  Your app requires paid subscriptions. Before users can access
-  tenant apps, they must subscribe through Clerk Billing.
-
-  CLERK DASHBOARD SETUP
-  ─────────────────────
-  1. Go to Clerk Dashboard → Billing → Get Started
-  2. Create at least one subscription plan
-  3. Connect your Stripe account (or use Stripe sandbox for testing)
-
-  TESTING WITH STRIPE SANDBOX
-  ───────────────────────────
-  Clerk dev instances auto-connect to Stripe sandbox — no Stripe
-  account needed for testing. Use these test card numbers:
-
-  ┌──────────────────────────┬─────────────────────────┐
-  │ Card Number              │ Result                  │
-  ├──────────────────────────┼─────────────────────────┤
-  │ 4242 4242 4242 4242      │ Success                 │
-  │ 4000 0000 0000 0002      │ Declined                │
-  │ 4000 0027 6000 3184      │ 3D Secure required      │
-  │ 4000 0000 0000 9995      │ Insufficient funds      │
-  └──────────────────────────┴─────────────────────────┘
-
-  Any future expiry date and any 3-digit CVC will work.
-
-  See CLERK-SETUP.md section "5.0 Development & Test Mode"
-  for a step-by-step first billing test walkthrough.
+  NOTE: Stripe billing integration is planned for phase 2.
+  For now, billing is stubbed — all users get access regardless
+  of subscription status.
 
 ══════════════════════════════════════════════════════════════════
 `);
