@@ -106,7 +106,10 @@ async function checkEditorDeps(ctx) {
     if (cfConfig.apiToken) {
       maskedKeys.cloudflareApiToken = cfConfig.apiToken.slice(0, 6) + '...' + cfConfig.apiToken.slice(-4);
     }
-    if (cfConfig.email) maskedKeys.cloudflareEmail = cfConfig.email;
+    if (cfConfig.email) {
+      const [local, domain] = cfConfig.email.split('@');
+      maskedKeys.cloudflareEmail = local.charAt(0) + '***@' + (domain || '');
+    }
   }
   if (openrouterOk) {
     maskedKeys.openRouterKey = 'sk-or-...' + orKey.slice(-6);
@@ -284,6 +287,12 @@ export async function validateClerkCredentials({ publishableKey } = {}) {
   const domain = extractClerkDomain(publishableKey);
   if (!domain) {
     return { valid: false, error: 'Could not decode domain from publishable key. Make sure you copied the full key.' };
+  }
+
+  // SSRF guard: all Clerk FAPI domains end with .clerk.accounts.dev.
+  // Without this check, a crafted key could encode an internal IP or hostname.
+  if (!domain.endsWith('.clerk.accounts.dev')) {
+    return { valid: false, error: 'Invalid Clerk domain. Expected a *.clerk.accounts.dev domain.' };
   }
 
   try {

@@ -256,6 +256,20 @@ describe('validateClerkCredentials', () => {
     expect(result.valid).toBe(false);
     expect(result.error).toContain('decode domain');
   });
+
+  it('rejects keys with non-Clerk domains (SSRF guard)', async () => {
+    global.fetch = vi.fn();
+    // Craft a key that encodes an internal IP address
+    const maliciousDomain = '169.254.169.254';
+    const crafted = 'pk_test_' + Buffer.from(maliciousDomain + '$').toString('base64');
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: crafted,
+    });
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('*.clerk.accounts.dev');
+    // fetch should never have been called
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
 });
 
 describe('editor-api saveCredentials swap detection', () => {

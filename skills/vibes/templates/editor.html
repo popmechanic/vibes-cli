@@ -3044,6 +3044,19 @@
   }
 
   // === Phase Navigation ===
+  const settingsButtonHtml = `
+        <div class="navbar-button-wrapper">
+          <button style="background:var(--vibes-menu-bg)" onclick="openSettings()">
+            <div class="navbar-button-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--vibes-near-black)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </div>
+            <div class="navbar-button-label" style="color:var(--vibes-near-black)">Settings</div>
+          </button>
+        </div>`;
+
   function setPhase(phase) {
     currentPhase = phase;
     document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
@@ -3088,32 +3101,10 @@
             </button>
           </div>`;
       }
-      buttons += `
-        <div class="navbar-button-wrapper">
-          <button style="background:var(--vibes-menu-bg)" onclick="openSettings()">
-            <div class="navbar-button-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--vibes-near-black)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-              </svg>
-            </div>
-            <div class="navbar-button-label" style="color:var(--vibes-near-black)">Settings</div>
-          </button>
-        </div>`;
+      buttons += settingsButtonHtml;
       headerRight.innerHTML = buttons;
     } else if (phase === 'edit') {
-      headerRight.innerHTML = `
-        <div class="navbar-button-wrapper">
-          <button style="background:var(--vibes-menu-bg)" onclick="openSettings()">
-            <div class="navbar-button-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--vibes-near-black)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-              </svg>
-            </div>
-            <div class="navbar-button-label" style="color:var(--vibes-near-black)">Settings</div>
-          </button>
-        </div>
+      headerRight.innerHTML = settingsButtonHtml + `
         <div class="navbar-button-wrapper">
           <button style="background:#5398c9" onclick="openThemeModal()">
             <div class="navbar-button-icon">
@@ -3408,6 +3399,7 @@
       } else {
         hint.textContent = 'Publishable key must start with pk_test_ or pk_live_. Find it in Clerk Dashboard > Configure > API Keys.';
       }
+      hint.style.color = 'var(--vibes-red)';
       hint.style.display = '';
     } else if (secret && !secretValid) {
       if (secret.startsWith('pk_test_') || secret.startsWith('pk_live_')) {
@@ -3415,6 +3407,7 @@
       } else {
         hint.textContent = 'Secret key must start with sk_test_ or sk_live_. In the Clerk Dashboard, click "Show" next to the secret key to reveal it.';
       }
+      hint.style.color = 'var(--vibes-red)';
       hint.style.display = '';
     } else {
       hint.style.display = 'none';
