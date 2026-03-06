@@ -7,7 +7,10 @@
  * Schema (v1):
  * {
  *   "version": 1,
- *   "cloudflare": { "accountId": "...", "workersSubdomain": "..." },
+ *   "cloudflare": {
+ *     "accountId": "...", "workersSubdomain": "...",
+ *     "apiKey": "...", "email": "..."
+ *   },
  *   "apps": {
  *     "my-app": {
  *       "name": "my-app",
@@ -21,7 +24,7 @@
  * }
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, chmodSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 
@@ -60,7 +63,10 @@ export function loadRegistry() {
 export function saveRegistry(reg) {
   const dir = join(getVibesHome(), '.vibes');
   mkdirSync(dir, { recursive: true });
-  writeFileSync(getRegistryPath(), JSON.stringify(reg, null, 2));
+  const path = getRegistryPath();
+  writeFileSync(path, JSON.stringify(reg, null, 2), { mode: 0o600 });
+  // Also chmod in case the file already existed with broader permissions
+  try { chmodSync(path, 0o600); } catch { /* best effort */ }
 }
 
 /**
