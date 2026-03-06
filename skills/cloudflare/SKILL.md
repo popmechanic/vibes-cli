@@ -150,6 +150,14 @@ console.log(pem);
 
 Note: The `--oidc-authority` flag on `deploy-cloudflare.js` handles this automatically.
 
+### OIDC Callback URL
+
+The deployed app's URL must be registered as an allowed callback/redirect URI in your Pocket ID OIDC client configuration. The OIDC bridge uses `window.location.origin + window.location.pathname` as the redirect URI.
+
+For Cloudflare Workers deployments, register `https://{app-name}.{account}.workers.dev/` in the OIDC client. If your Pocket ID instance supports wildcard patterns, `https://*.{account}.workers.dev/` covers all apps.
+
+Without this, auth will complete on Pocket ID but fail with "Invalid callback URL" when redirecting back.
+
 ### Deploy with --name Flag
 
 Always use the `--name` flag to deploy to your app's worker:

@@ -161,6 +161,8 @@ If "Yes": collect two credentials via Ask (user types actual values via Other):
 
 If "Not yet": Guide the user to set up a Pocket ID instance, then collect the credentials.
 
+**Callback URL registration**: Before deploying, the user must register the app's callback URL in their Pocket ID OIDC client configuration. The redirect URI is the app's deployed origin (e.g., `https://myapp.marcus-e.workers.dev/`). For Cloudflare Workers, recommend registering a wildcard pattern like `https://*.{account}.workers.dev/` so all future deploys work automatically. Without this, auth will fail with "Invalid callback URL" after passkey verification.
+
 Mark T2 completed.
 
 ### 1.4 Sell Config (T4) — while builder generates

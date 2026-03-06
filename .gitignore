@@ -59,3 +59,7 @@ designs/
 
 # Assembled app (build artifact from assemble.js)
 index.html
+
+.dev.vars*
+!.dev.vars.example
+!.env.example

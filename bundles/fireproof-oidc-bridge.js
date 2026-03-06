@@ -24,7 +24,7 @@ import * as oauth from "oauth4webapi";
 
 // Re-export base Fireproof for user app code
 export { useFireproof } from "@fireproof/core";
-import { useFireproof as _baseUseFireproof } from "@fireproof/core";
+import { useFireproof as _baseUseFireproof, toCloud as _toCloud } from "@fireproof/core";
 
 // ─── OIDC Token Management ───────────────────────────────────────────────
 
@@ -259,31 +259,23 @@ export function OIDCProvider(props) {
   var clientId = props.clientId;
   var config = props.config || {};
 
-  var _s = React.useState({ isLoading: true, isSignedIn: false, user: null, accessToken: null });
+  // Synchronous iframe detection — must resolve BEFORE first render so
+  // SignedIn/SignedOut never flash the wrong state in editor preview.
+  // Uses module-level _isPreviewMode (computed once at load time).
+  var _initialState = _isPreviewMode
+    ? { isLoading: false, isSignedIn: true, user: { firstName: "Preview", lastName: "User", email: "preview@localhost", id: "preview-user" }, accessToken: "preview-mode-token" }
+    : { isLoading: true, isSignedIn: false, user: null, accessToken: null };
+
+  var _s = React.useState(_initialState);
   var authState = _s[0];
   var setAuthState = _s[1];
 
   React.useEffect(function () {
+    // In preview/iframe mode, auth is already set synchronously — skip OIDC flow
+    if (_isPreviewMode) return;
+
     var cancelled = false;
     var redirectUri = window.location.origin + window.location.pathname;
-
-    // Detect iframe/preview mode — OIDC redirect auth cannot work inside iframes
-    // because providers set frame-ancestors CSP. Bypass auth with mock user so
-    // the app renders in the editor preview. Real auth works after deploy.
-    var inIframe = false;
-    try { inIframe = window.self !== window.top; } catch (e) { inIframe = true; }
-
-    if (inIframe) {
-      if (!cancelled) {
-        setAuthState({
-          isLoading: false,
-          isSignedIn: true,
-          user: { firstName: "Preview", lastName: "User", email: "preview@localhost", id: "preview-user" },
-          accessToken: "preview-mode-token"
-        });
-      }
-      return;
-    }
 
     async function init() {
       // Step 1: Check for callback code
@@ -351,50 +343,55 @@ export function OIDCProvider(props) {
     return function () { clearTimeout(timer); };
   }, [authState.isSignedIn, authority, clientId]);
 
-  // Build minimal dashApi-compatible interface
+  // Build dashApi-compatible interface matching upstream DashboardApiImpl protocol.
+  // All requests use PUT to a single /api endpoint, with auth in the body.
   var dashApi = React.useMemo(function () {
     if (!authState.accessToken || !config.apiUrl) return null;
     var apiUrl = config.apiUrl.replace(/\/$/, "");
-    var token = authState.accessToken;
+    // Use the ID token for dashApi calls — it contains user identity claims
+    // (email, name, etc.) needed by the dashboard's ClerkClaimSchema mapping.
+    // Fall back to access token if no ID token is available.
+    var idToken = sessionStorage.getItem(STORAGE_KEY_ID);
+    var token = idToken || authState.accessToken;
+    var auth = { type: "clerk", token: token };
+
+    function _dashRequest(body) {
+      return fetch(apiUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify(Object.assign({}, body, { auth: auth }))
+      }).then(function (r) {
+        if (!r.ok) return r.text().then(function (t) { throw new Error("HTTP " + r.status + ": " + t); });
+        return r.json();
+      });
+    }
+
+    function _wrapResult(promise) {
+      return promise.then(function (data) {
+        return { isOk: function () { return true; }, Ok: function () { return data; }, isErr: function () { return false; } };
+      }).catch(function (err) {
+        return { isOk: function () { return false; }, isErr: function () { return true; }, Err: function () { return err; } };
+      });
+    }
 
     return {
-      ensureCloudToken: function (req) {
-        return fetch(apiUrl + "/token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-          body: JSON.stringify(req)
-        }).then(function (r) { return r.json(); });
+      ensureUser: function (req) {
+        return _wrapResult(_dashRequest(Object.assign({ type: "reqEnsureUser" }, req)));
       },
-      listLedgersByUser: function () {
-        return fetch(apiUrl + "/ledgers", {
-          headers: { "Authorization": "Bearer " + token }
-        }).then(function (r) { return r.json(); }).then(function (data) {
-          return { isOk: function () { return true; }, Ok: function () { return data; }, isErr: function () { return false; } };
-        }).catch(function (err) {
-          return { isOk: function () { return false; }, isErr: function () { return true; }, Err: function () { return err; } };
-        });
+      ensureCloudToken: function (req) {
+        return _dashRequest(Object.assign({ type: "reqEnsureCloudToken" }, req));
+      },
+      listLedgersByUser: function (req) {
+        return _wrapResult(_dashRequest(Object.assign({ type: "reqListLedgersByUser" }, req)));
       },
       inviteUser: function (opts) {
-        return fetch(apiUrl + "/invite", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-          body: JSON.stringify(opts)
-        }).then(function (r) { return r.json(); }).then(function (data) {
-          return { isOk: function () { return true; }, Ok: function () { return data; }, isErr: function () { return false; } };
-        }).catch(function (err) {
-          return { isOk: function () { return false; }, isErr: function () { return true; }, Err: function () { return err; } };
-        });
+        return _wrapResult(_dashRequest(Object.assign({ type: "reqInviteUser" }, opts)));
       },
       redeemInvite: function (opts) {
-        return fetch(apiUrl + "/invite/redeem", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-          body: JSON.stringify(opts)
-        }).then(function (r) { return r.json(); }).then(function (data) {
-          return { isOk: function () { return true; }, Ok: function () { return data; }, isErr: function () { return false; } };
-        }).catch(function (err) {
-          return { isOk: function () { return false; }, isErr: function () { return true; }, Err: function () { return err; } };
-        });
+        return _wrapResult(_dashRequest(Object.assign({ type: "reqRedeemInvite" }, opts)));
+      },
+      findUser: function (opts) {
+        return _wrapResult(_dashRequest(Object.assign({ type: "reqFindUser" }, opts)));
       }
     };
   }, [authState.accessToken, config.apiUrl]);
@@ -537,79 +534,278 @@ var _currentDbName = null;
 var _isPreviewMode = false;
 try { _isPreviewMode = window.self !== window.top; } catch (e) { _isPreviewMode = true; }
 
+// ─── Cloud Sync Constants ───────────────────────────────────────────────
+var SYNC_POLL_INTERVAL_MS = 2000;
+var SYNC_STABLE_THRESHOLD = 3;
+var SYNC_POLL_MAX_MS = 20000;
+var MAX_RETRY_COUNT = 8;
+var BASE_RETRY_DELAY_MS = 2000;
+var MAX_RETRY_DELAY_MS = 30000;
+
+// ─── OIDCTokenStrategy ─────────────────────────────────────────────────
+// Implements Fireproof's TokenStrategie interface using OIDC-authenticated
+// dashboard API calls instead of Clerk.
+
+function _decodeJwtPayload(jwt) {
+  try {
+    var parts = jwt.split(".");
+    if (parts.length !== 3) return {};
+    return JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+  } catch (e) { return {}; }
+}
+
+function OIDCTokenStrategy(dashApi, apiUrl) {
+  this._dashApi = dashApi;
+  this._apiUrl = apiUrl;
+  this._lastExpiryMs = null;
+  this._resolvedLedgerId = null;
+}
+
+OIDCTokenStrategy.prototype.hash = function () { return this._apiUrl; };
+OIDCTokenStrategy.prototype.open = function () {};
+OIDCTokenStrategy.prototype.stop = function () {};
+OIDCTokenStrategy.prototype.tryToken = function () { return Promise.resolve(undefined); };
+
+OIDCTokenStrategy.prototype.getLastTokenExpiry = function () { return this._lastExpiryMs; };
+OIDCTokenStrategy.prototype.getLedgerId = function () { return this._resolvedLedgerId; };
+
+OIDCTokenStrategy.prototype.waitForToken = function (_sthis, _logger, _deviceId, opts) {
+  var self = this;
+  var appId = (opts && opts.context && typeof opts.context.get === "function"
+    ? opts.context.get("appId") : null)
+    || ("oidc-" + (typeof window !== "undefined" ? window.location.host : "app") + "-" + _deviceId);
+
+  // Ensure user exists in dashboard database first (required before any other API calls)
+  return self._dashApi.ensureUser({}).then(function (rUser) {
+    if (rUser.isErr()) {
+      console.error("[vibes-oidc] ensureUser failed:", rUser.Err());
+      return undefined;
+    }
+
+    // 3-tier ledger routing
+    var dbName = _currentDbName;
+    var ledgerParam;
+    var ledgerMap = (typeof window !== "undefined" && window.__VIBES_LEDGER_MAP__) || {};
+    if (dbName && ledgerMap[dbName]) {
+      ledgerParam = ledgerMap[dbName];
+    } else if (typeof window !== "undefined" && window.__VIBES_SHARED_LEDGER__) {
+      ledgerParam = window.__VIBES_SHARED_LEDGER__;
+    }
+
+    // If no cached ledger, try discovery
+    var discoveryPromise = ledgerParam
+      ? Promise.resolve(ledgerParam)
+      : self._dashApi.listLedgersByUser({}).then(function (rLedgers) {
+          if (rLedgers.isOk()) {
+            var ledgers = rLedgers.Ok().ledgers || [];
+            var appHost = typeof window !== "undefined" ? window.location.hostname : "";
+            var matched = ledgers.find(function (l) {
+              if (!l.name) return false;
+              if (dbName && l.name.includes(dbName)) return true;
+              if (appHost && l.name.includes(appHost)) return true;
+              return false;
+            });
+            if (matched) {
+              if (typeof window !== "undefined") {
+                if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
+                window.__VIBES_LEDGER_MAP__[dbName || appHost] = matched.ledgerId;
+              }
+              console.debug("[vibes] Discovered ledger:", matched.ledgerId);
+              return matched.ledgerId;
+            }
+          }
+          return undefined;
+        }).catch(function () { return undefined; });
+
+    return discoveryPromise.then(function (resolvedLedger) {
+      return self._dashApi.ensureCloudToken({ appId: appId, ledger: resolvedLedger });
+    });
+  }).then(function (res) {
+    if (!res || !res.cloudToken) {
+      if (res === undefined) return undefined; // ensureUser failed
+      console.error("[vibes-oidc] ensureCloudToken returned no token:", res);
+      return undefined;
+    }
+
+    // Parse claims from the cloud JWT
+    var claims = _decodeJwtPayload(res.cloudToken);
+
+    if (res.expiresDate) {
+      self._lastExpiryMs = new Date(res.expiresDate).getTime();
+    }
+    if (res.ledger) {
+      self._resolvedLedgerId = res.ledger;
+    }
+
+    console.debug("[vibes-oidc] Got cloud token, ledger:", res.ledger);
+    return { token: res.cloudToken, claims: claims };
+  }).catch(function (err) {
+    console.error("[vibes-oidc] waitForToken failed:", err);
+    return undefined;
+  });
+};
+
+// ─── useFireproofOIDC (with cloud sync) ──────────────────────────────────
+
 export function useFireproofOIDC(name, opts) {
   // In preview mode, prefix DB name so preview data stays isolated from production
   var effectiveName = _isPreviewMode ? "preview-" + (name || "app") : name;
 
   var ctx = React.useContext(OIDCContext);
   var dashApi = ctx && ctx.dashApi;
-
-  // Patch dashApi to route to correct per-database ledger (3-tier routing)
-  if (dashApi && !_patchedApis.has(dashApi)) {
-    _patchedApis.add(dashApi);
-    var _origEnsure = dashApi.ensureCloudToken.bind(dashApi);
-    dashApi.ensureCloudToken = function (req) {
-      var dbName = _currentDbName;
-
-      // Tier 1: Per-database ledger map
-      var ledgerMap = (typeof window !== "undefined" && window.__VIBES_LEDGER_MAP__) || {};
-      if (dbName && ledgerMap[dbName]) {
-        req = Object.assign({}, req, { ledger: ledgerMap[dbName] });
-        console.debug("[vibes] Using cached ledger for", dbName);
-        return _origEnsure(req);
-      }
-
-      // Tier 2: Legacy global
-      if (typeof window !== "undefined" && window.__VIBES_SHARED_LEDGER__) {
-        req = Object.assign({}, req, { ledger: window.__VIBES_SHARED_LEDGER__ });
-        console.debug("[vibes] Routing to shared ledger:", window.__VIBES_SHARED_LEDGER__);
-        return _origEnsure(req);
-      }
-
-      // Tier 3: Discovery via listLedgersByUser
-      return dashApi.listLedgersByUser({}).then(function (rLedgers) {
-        if (rLedgers.isOk()) {
-          var ledgers = rLedgers.Ok().ledgers || [];
-          var appHost = typeof window !== "undefined" ? window.location.hostname : "";
-
-          var matched = ledgers.find(function (l) {
-            if (!l.name) return false;
-            if (dbName && l.name.includes(dbName)) return true;
-            if (appHost && l.name.includes(appHost)) return true;
-            return false;
-          });
-
-          if (matched) {
-            if (typeof window !== "undefined") {
-              if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
-              window.__VIBES_LEDGER_MAP__[dbName || appHost] = matched.ledgerId;
-            }
-            req = Object.assign({}, req, { ledger: matched.ledgerId });
-            console.debug("[vibes] Discovered ledger:", matched.ledgerId, "for", dbName);
-          } else {
-            req = Object.assign({}, req, { ledger: undefined });
-            console.debug("[vibes] No ledger match for", dbName, "-- creating new");
-          }
-        }
-        return _origEnsure(req);
-      }).catch(function (err) {
-        console.warn("[vibes] Ledger discovery failed, falling back:", err && err.message);
-        return _origEnsure(req);
-      });
-    };
-  }
+  var config = (typeof window !== "undefined" && window.__VIBES_CONFIG__) || {};
 
   _currentDbName = effectiveName;
-  var result = _baseUseFireproof(effectiveName, opts);
+  var fpResult = _baseUseFireproof(effectiveName, opts);
+  var database = fpResult.database;
 
-  // Sync status bridge: use a simple state for tracking sync progress
-  var syncVal = "idle";
-  var syncErr = null;
+  // Cloud sync state
+  var _syncState = React.useState("idle");
+  var syncStatus = _syncState[0];
+  var setSyncStatus = _syncState[1];
+
+  var _errState = React.useState(null);
+  var lastSyncError = _errState[0];
+  var setLastSyncError = _errState[1];
+
+  var _attachState = React.useState("detached");
+  var attachStatus = _attachState[0];
+  var setAttachStatus = _attachState[1];
+
+  var attachedRef = React.useRef(null);
+  var strategyRef = React.useRef(null);
+  var retryCountRef = React.useRef(0);
+  var attachingRef = React.useRef(false);
+
+  // Auto-attach cloud when dashApi becomes available (user signs in)
+  React.useEffect(function () {
+    // Skip cloud attach in preview/iframe mode
+    if (_isPreviewMode) return;
+    if (!dashApi || !config.cloudBackendUrl || attachingRef.current) return;
+    if (attachStatus !== "detached") return;
+
+    attachingRef.current = true;
+    setSyncStatus("connecting");
+    setAttachStatus("attaching");
+
+    var strategy = new OIDCTokenStrategy(dashApi, config.tokenApiUri || "");
+    strategyRef.current = strategy;
+
+    var appId = "oidc-" + (typeof window !== "undefined" ? window.location.host : "app") + "-" + effectiveName;
+
+    try {
+      database.ledger.ctx.set("appId", appId);
+    } catch (e) {
+      console.debug("[vibes-oidc] Could not set appId on ledger ctx:", e);
+    }
+
+    var cloud = _toCloud({
+      strategy: strategy,
+      urls: { base: config.cloudBackendUrl }
+    });
+
+    database.attach(cloud).then(function (attached) {
+      attachedRef.current = attached;
+      retryCountRef.current = 0;
+      setAttachStatus("attached");
+      setSyncStatus("synced");
+      setLastSyncError(null);
+      console.debug("[vibes-oidc] Cloud attached, ledger:", strategy.getLedgerId());
+    }).catch(function (err) {
+      console.error("[vibes-oidc] Cloud attach failed:", err);
+      setAttachStatus("error");
+      setSyncStatus("error");
+      setLastSyncError(err instanceof Error ? err : new Error(String(err)));
+    }).finally(function () {
+      attachingRef.current = false;
+    });
+
+    return function () {
+      // Detach on cleanup
+      if (attachedRef.current && typeof attachedRef.current.detach === "function") {
+        attachedRef.current.detach().catch(function () {});
+        attachedRef.current = null;
+      }
+    };
+  }, [dashApi, config.cloudBackendUrl, effectiveName, attachStatus]);
+
+  // Error recovery with exponential backoff
+  React.useEffect(function () {
+    if (attachStatus !== "error" || !dashApi) return;
+    if (retryCountRef.current >= MAX_RETRY_COUNT) return;
+
+    var delay = Math.min(
+      BASE_RETRY_DELAY_MS * Math.pow(2, retryCountRef.current),
+      MAX_RETRY_DELAY_MS
+    );
+    retryCountRef.current += 1;
+    console.debug("[vibes-oidc] Retry " + retryCountRef.current + "/" + MAX_RETRY_COUNT + " in " + delay + "ms");
+
+    var timer = setTimeout(function () {
+      setAttachStatus("detached");
+      setSyncStatus("idle");
+    }, delay);
+    return function () { clearTimeout(timer); };
+  }, [attachStatus, dashApi]);
+
+  // Tab visibility: reset retry budget when user returns
+  React.useEffect(function () {
+    function handleVisibility() {
+      if (document.visibilityState !== "visible") return;
+      if (attachStatus === "error") {
+        retryCountRef.current = 0;
+        setAttachStatus("detached");
+        setSyncStatus("idle");
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+    return function () { document.removeEventListener("visibilitychange", handleVisibility); };
+  }, [attachStatus]);
+
+  // Sync polling: kick CRDT to process sync data after attach
+  // (Workaround: database.attach resolves on WebSocket connect, but historical
+  // data streams in asynchronously. allDocs() forces CRDT processing.)
+  React.useEffect(function () {
+    if (attachStatus !== "attached") return;
+    var stopped = false;
+    var lastCount = -1;
+    var stableRuns = 0;
+
+    function poll() {
+      if (stopped) return;
+      database.allDocs().then(function (res) {
+        if (stopped) return;
+        var count = res.rows.length;
+        if (count === lastCount) {
+          stableRuns++;
+          if (stableRuns >= SYNC_STABLE_THRESHOLD) {
+            console.debug("[vibes-oidc] Initial sync settled");
+            stopped = true;
+            return;
+          }
+        } else {
+          stableRuns = 0;
+        }
+        lastCount = count;
+        if (!stopped) setTimeout(poll, SYNC_POLL_INTERVAL_MS);
+      }).catch(function () {
+        if (!stopped) setTimeout(poll, SYNC_POLL_INTERVAL_MS);
+      });
+    }
+
+    var startTimer = setTimeout(poll, SYNC_POLL_INTERVAL_MS);
+    var maxTimer = setTimeout(function () { stopped = true; }, SYNC_POLL_MAX_MS);
+
+    return function () {
+      stopped = true;
+      clearTimeout(startTimer);
+      clearTimeout(maxTimer);
+    };
+  }, [attachStatus, database]);
 
   // Auto-redeem invite from ?invite=<id> URL param
   React.useEffect(function () {
     if (!dashApi) return;
-
     var params = new URLSearchParams(window.location.search);
     var inviteId = params.get("invite");
     if (inviteId) {
@@ -628,18 +824,22 @@ export function useFireproofOIDC(name, opts) {
     }
   }, [dashApi]);
 
-  // Sync status bridge
+  // Sync status bridge: forward to window global for SyncStatusDot
   React.useEffect(function () {
-    var changed = window.__VIBES_SYNC_STATUS__ !== syncVal;
-    var errChanged = window.__VIBES_SYNC_ERROR__ !== syncErr;
+    var changed = window.__VIBES_SYNC_STATUS__ !== syncStatus;
+    var errChanged = window.__VIBES_SYNC_ERROR__ !== (lastSyncError ? String(lastSyncError) : null);
     if (changed || errChanged) {
-      window.__VIBES_SYNC_STATUS__ = syncVal;
-      window.__VIBES_SYNC_ERROR__ = syncErr;
+      window.__VIBES_SYNC_STATUS__ = syncStatus;
+      window.__VIBES_SYNC_ERROR__ = lastSyncError ? String(lastSyncError) : null;
       window.dispatchEvent(new CustomEvent("vibes-sync-status-change"));
     }
-  }, [syncVal, syncErr]);
+  }, [syncStatus, lastSyncError]);
 
-  return result;
+  return Object.assign({}, fpResult, {
+    syncStatus: syncStatus,
+    isSyncing: attachStatus === "attached",
+    lastSyncError: lastSyncError
+  });
 }
 
 // Backward-compat alias: templates may use useFireproofClerk
