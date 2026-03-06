@@ -2,7 +2,7 @@
  * Global deployment registry for Vibes apps
  *
  * Manages ~/.vibes/deployments.json — tracks all app-connect pairings,
- * Cloudflare account info, and per-app Clerk credentials.
+ * Cloudflare account info, and per-app OIDC credentials.
  *
  * Schema (v1):
  * {
@@ -13,7 +13,7 @@
  *       "name": "my-app",
  *       "createdAt": "...",
  *       "updatedAt": "...",
- *       "clerk": { "publishableKey": "pk_test_...", "secretKey": "sk_test_..." },
+ *       "oidc": { "authority": "https://...", "clientId": "..." },
  *       "app": { "workerName": "my-app", "kvNamespaceId": "...", "url": "..." },
  *       "connect": { "stage": "my-app", "apiUrl": "...", "cloudUrl": "fpcloud://..." }
  *     }
@@ -156,9 +156,9 @@ export function migrateFromLegacy(envVars, connectData) {
   const entry = {
     name: appName,
     createdAt: new Date().toISOString(),
-    clerk: {
-      publishableKey: envVars.VITE_CLERK_PUBLISHABLE_KEY || connectData.clerk_publishable_key || '',
-      secretKey: envVars.CLERK_SECRET_KEY || ''
+    oidc: {
+      authority: envVars.VITE_OIDC_AUTHORITY || '',
+      clientId: envVars.VITE_OIDC_CLIENT_ID || ''
     },
     connect: {
       stage: appName,

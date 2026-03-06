@@ -83,8 +83,8 @@ function printHelp() {
 
 /**
  * Transform JSX to TSX for Vite compatibility
- * - Replaces use-fireproof imports with @fireproof/oidc (via backward-compat alias useFireproofClerk)
- * - Replaces useFireproof with useFireproofClerk
+ * - Replaces use-fireproof imports with @fireproof/oidc (via backward-compat alias useFireproofOIDC)
+ * - Replaces useFireproof with useFireproofOIDC
  * - Preserves the structure
  */
 function transformJsxToTsx(jsxCode, dbName) {
@@ -93,25 +93,25 @@ function transformJsxToTsx(jsxCode, dbName) {
   // First, replace use-fireproof imports with the OIDC package
   code = code.replace(
     /from\s+["']use-fireproof["']/g,
-    'from "@necrodome/fireproof-clerk"'
+    'from "@fireproof/oidc"'
   );
 
-  // Replace useFireproof with useFireproofClerk (backward-compat alias) if not already
-  code = code.replace(/\buseFireproof\b(?!Clerk)/g, 'useFireproofClerk');
+  // Replace useFireproof with useFireproofOIDC (backward-compat alias) if not already
+  code = code.replace(/\buseFireproof\b(?!Clerk)/g, 'useFireproofOIDC');
 
   // Replace any hardcoded database name with the provided one
-  // Look for patterns like useFireproofClerk("something")
+  // Look for patterns like useFireproofOIDC("something")
   // But only if a specific db name was provided (not default)
   if (dbName !== 'vibes-app') {
     code = code.replace(
-      /useFireproofClerk\s*\(\s*["']([^"']+)["']\s*\)/g,
-      `useFireproofClerk("${dbName}")`
+      /useFireproofOIDC\s*\(\s*["']([^"']+)["']\s*\)/g,
+      `useFireproofOIDC("${dbName}")`
     );
   }
 
-  // If no fireproof import exists, add it (useFireproofClerk is the backward-compat alias)
-  if (!code.includes('@necrodome/fireproof-clerk')) {
-    code = `import { useFireproofClerk, UserButton, useUser } from "@necrodome/fireproof-clerk";\n${code}`;
+  // If no fireproof import exists, add it (useFireproofOIDC is the backward-compat alias)
+  if (!code.includes('@fireproof/oidc')) {
+    code = `import { useFireproofOIDC, UserButton, useUser } from "@fireproof/oidc";\n${code}`;
   }
 
   return code;

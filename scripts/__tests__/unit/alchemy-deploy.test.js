@@ -106,8 +106,7 @@ describe('alchemy-deploy', () => {
   describe('buildAlchemyEnv', () => {
     it('generates required environment variables', () => {
       const env = alchemyDeploy.buildAlchemyEnv({
-        clerkPublishableKey: 'pk_test_abc',
-        clerkSecretKey: 'sk_test_xyz',
+        oidcAuthority: 'https://auth.example.com',
         sessionTokenPublic: 'token-pub',
         sessionTokenSecret: 'token-sec',
         deviceCaPrivKey: 'ca-priv',
@@ -115,7 +114,7 @@ describe('alchemy-deploy', () => {
         alchemyPassword: 'pass123'
       });
 
-      expect(env.CLERK_PUBLISHABLE_KEY).toBe('pk_test_abc');
+      expect(env.OIDC_AUTHORITY).toBe('https://auth.example.com');
       expect(env.CLOUD_SESSION_TOKEN_PUBLIC).toBe('token-pub');
       expect(env.CLOUD_SESSION_TOKEN_SECRET).toBe('token-sec');
       expect(env.ALCHEMY_PASSWORD).toBe('pass123');
@@ -123,8 +122,7 @@ describe('alchemy-deploy', () => {
 
     it('includes device CA keys', () => {
       const env = alchemyDeploy.buildAlchemyEnv({
-        clerkPublishableKey: 'pk_test_abc',
-        clerkSecretKey: 'sk_test_xyz',
+        oidcAuthority: 'https://auth.example.com',
         sessionTokenPublic: 'token-pub',
         sessionTokenSecret: 'token-sec',
         deviceCaPrivKey: 'ca-priv',
@@ -136,15 +134,9 @@ describe('alchemy-deploy', () => {
       expect(env.DEVICE_ID_CA_CERT).toBe('ca-cert');
     });
 
-    it('derives CLERK_PUB_JWT_URL from publishable key', () => {
-      // pk_test_ prefix + base64("example.clerk.accounts.dev$")
-      const domain = 'example.clerk.accounts.dev';
-      const b64 = Buffer.from(domain + '$').toString('base64');
-      const pk = `pk_test_${b64}`;
-
+    it('passes OIDC authority URL directly', () => {
       const env = alchemyDeploy.buildAlchemyEnv({
-        clerkPublishableKey: pk,
-        clerkSecretKey: 'sk_test_xyz',
+        oidcAuthority: 'https://pocket-id.example.com',
         sessionTokenPublic: 'tp',
         sessionTokenSecret: 'ts',
         deviceCaPrivKey: 'dp',
@@ -152,13 +144,12 @@ describe('alchemy-deploy', () => {
         alchemyPassword: 'pw'
       });
 
-      expect(env.CLERK_PUB_JWT_URL).toBe(`https://${domain}`);
+      expect(env.OIDC_AUTHORITY).toBe('https://pocket-id.example.com');
     });
 
     it('includes quota defaults', () => {
       const env = alchemyDeploy.buildAlchemyEnv({
-        clerkPublishableKey: 'pk_test_abc',
-        clerkSecretKey: 'sk_test_xyz',
+        oidcAuthority: 'https://auth.example.com',
         sessionTokenPublic: 'tp',
         sessionTokenSecret: 'ts',
         deviceCaPrivKey: 'dp',
@@ -182,7 +173,7 @@ Stage: my-app
 Cloud Backend: https://fireproof-cloud-my-app.acct123.workers.dev
 Dashboard: https://fireproof-dashboard-my-app.acct123.workers.dev
 
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_abc
+VITE_OIDC_AUTHORITY=https://auth.example.com
 VITE_API_URL=https://fireproof-dashboard-my-app.acct123.workers.dev
 VITE_CLOUD_URL=https://fireproof-cloud-my-app.acct123.workers.dev
 `;

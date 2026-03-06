@@ -6,7 +6,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { writeFileSync, readFileSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { validateOpenRouterKey, loadEnvFile, validateConnectUrl, deriveConnectUrls, writeEnvFile } from '../../lib/env-utils.js';
+import { validateOpenRouterKey, loadEnvFile, validateConnectUrl, deriveStudioUrls, writeEnvFile } from '../../lib/env-utils.js';
 
 describe('validateOpenRouterKey', () => {
   it('accepts valid OpenRouter keys', () => {
@@ -124,25 +124,25 @@ describe('validateConnectUrl', () => {
   });
 });
 
-describe('deriveConnectUrls', () => {
+describe('deriveStudioUrls', () => {
   it('derives URLs from simple studio name', () => {
-    const urls = deriveConnectUrls('my-studio');
+    const urls = deriveStudioUrls('my-studio');
     expect(urls.apiUrl).toBe('https://my-studio.exe.xyz/api/');
     expect(urls.cloudUrl).toBe('fpcloud://my-studio.exe.xyz?protocol=wss');
   });
   it('handles full hostnames (with dots)', () => {
-    const urls = deriveConnectUrls('custom.example.com');
+    const urls = deriveStudioUrls('custom.example.com');
     expect(urls.apiUrl).toBe('https://custom.example.com/api/');
     expect(urls.cloudUrl).toBe('fpcloud://custom.example.com?protocol=wss');
   });
   it('trims whitespace', () => {
-    const urls = deriveConnectUrls('  my-studio  ');
+    const urls = deriveStudioUrls('  my-studio  ');
     expect(urls.apiUrl).toBe('https://my-studio.exe.xyz/api/');
   });
   it('throws on empty input', () => {
-    expect(() => deriveConnectUrls('')).toThrow();
-    expect(() => deriveConnectUrls(null)).toThrow();
-    expect(() => deriveConnectUrls(undefined)).toThrow();
+    expect(() => deriveStudioUrls('')).toThrow();
+    expect(() => deriveStudioUrls(null)).toThrow();
+    expect(() => deriveStudioUrls(undefined)).toThrow();
   });
 });
 

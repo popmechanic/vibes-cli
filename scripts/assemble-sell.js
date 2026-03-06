@@ -388,21 +388,21 @@ STEP 1: DEPLOY TO CLOUDFLARE WORKERS
 
   node "\${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \\
     --name ${appName} --file index.html \\
-    --clerk-key pk_test_YOUR_KEY --webhook-secret whsec_YOUR_SECRET
+    --oidc-authority https://your-oidc-provider.example.com
 
 STEP 2: SET UP OIDC AUTHENTICATION (REQUIRED BEFORE TESTING)
 ─────────────────────────────────────────────────────────────
 
-  Your Connect Studio provides OIDC authentication via Pocket ID.
+  Your OIDC provider handles authentication (e.g., Pocket ID).
   Ensure your .env has:
 
-    VITE_OIDC_AUTHORITY=https://your-studio.exe.xyz/auth
+    VITE_OIDC_AUTHORITY=https://your-oidc-provider.example.com
     VITE_OIDC_CLIENT_ID=your-client-id
 
   Re-run assembly with OIDC credentials:
 
      node assemble-sell.js app.jsx index.html \\
-       --oidc-authority https://your-studio.exe.xyz/auth \\
+       --oidc-authority https://your-oidc-provider.example.com \\
        --app-name ${appName} \\
        --domain ${domain}
 

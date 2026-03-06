@@ -37,7 +37,7 @@ describe('deploy-cloudflare connect integration', () => {
     it('detects first deploy for app without connect config', () => {
       registry.setApp('partial-app', {
         name: 'partial-app',
-        clerk: { publishableKey: 'pk_test_abc' }
+        oidc: { authority: 'https://auth.example.com', clientId: 'test-id' }
       });
       expect(registry.isFirstDeploy('partial-app')).toBe(true);
     });
@@ -73,10 +73,9 @@ describe('deploy-cloudflare connect integration', () => {
 
       registry.setApp('my-app', {
         name: 'my-app',
-        clerk: {
-          publishableKey: 'pk_test_abc',
-          secretKey: 'sk_test_xyz',
-          domain: 'clerk.example.com'
+        oidc: {
+          authority: 'https://auth.example.com',
+          clientId: 'test-client-id'
         },
         connect: {
           ...connectResult,
@@ -89,7 +88,7 @@ describe('deploy-cloudflare connect integration', () => {
       expect(loaded.connect.cloudUrl).toBe(connectResult.cloudUrl);
       expect(loaded.connect.stage).toBe('my-app');
       expect(loaded.connect.deployedAt).toBeDefined();
-      expect(loaded.clerk.publishableKey).toBe('pk_test_abc');
+      expect(loaded.oidc.authority).toBe('https://auth.example.com');
     });
 
     it('stores app metadata after wrangler deploy', () => {

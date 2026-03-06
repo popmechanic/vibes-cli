@@ -89,11 +89,12 @@ export function validateConnectUrl(url, type) {
 }
 
 /**
- * Derive Connect URLs from a studio name
+ * Derive Connect URLs from a studio name (legacy exe.dev pattern).
+ * NOTE: registry.js has a different deriveConnectUrls for Cloudflare Workers URLs.
  * @param {string} studioName - Studio name or full hostname
  * @returns {{ apiUrl: string, cloudUrl: string }}
  */
-export function deriveConnectUrls(studioName) {
+export function deriveStudioUrls(studioName) {
   if (!studioName || typeof studioName !== 'string') {
     throw new Error('Studio name is required');
   }

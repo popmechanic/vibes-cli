@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { execFile } from 'child_process';
-import { loadEnvFile, validateOIDCAuthority, validateOIDCClientId, validateConnectUrl, deriveConnectUrls, writeEnvFile } from '../../lib/env-utils.js';
+import { loadEnvFile, validateOIDCAuthority, validateOIDCClientId, validateConnectUrl, deriveStudioUrls, writeEnvFile } from '../../lib/env-utils.js';
 import { loadOpenRouterKey } from '../config.js';
 import { loadRegistry } from '../../lib/registry.js';
 
@@ -51,9 +51,6 @@ async function checkEditorDeps(ctx) {
   if (!wranglerResult.ok) wranglerResult = await runCommand('wrangler', ['whoami']);
   const wranglerOk = wranglerResult.ok && !wranglerResult.output.includes('not authenticated');
 
-  const sshResult = await runCommand('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes', 'exe.dev', 'help'], 8000);
-  const sshOk = sshResult.output.length > 0;
-
   const orKey = loadOpenRouterKey(ctx.projectRoot);
   const openrouterOk = !!orKey;
 
@@ -73,10 +70,6 @@ async function checkEditorDeps(ctx) {
     wrangler: {
       ok: wranglerOk,
       detail: wranglerOk ? 'Authenticated' : 'Not configured or not authenticated',
-    },
-    ssh: {
-      ok: sshOk,
-      detail: sshOk ? 'Connected' : 'Cannot reach exe.dev',
     },
   };
 }
@@ -179,7 +172,7 @@ export async function checkStudio(ctx, req, res) {
       return res.end(JSON.stringify({ reachable: false, error: 'Studio name is required' }));
     }
 
-    const { apiUrl, cloudUrl } = deriveConnectUrls(studioName);
+    const { apiUrl, cloudUrl } = deriveStudioUrls(studioName);
 
     let reachable = false;
     let error;

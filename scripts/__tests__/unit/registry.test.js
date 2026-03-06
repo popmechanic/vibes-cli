@@ -249,22 +249,21 @@ describe('registry', () => {
   describe('migrateFromLegacy', () => {
     it('creates app entry from legacy env vars and connect data', () => {
       const envVars = {
-        VITE_CLERK_PUBLISHABLE_KEY: 'pk_test_legacy',
-        CLERK_SECRET_KEY: 'sk_test_legacy',
+        VITE_OIDC_AUTHORITY: 'https://auth.example.com',
+        VITE_OIDC_CLIENT_ID: 'test-client-id',
         VITE_API_URL: 'https://studio.exe.xyz/api/',
         VITE_CLOUD_URL: 'fpcloud://studio.exe.xyz?protocol=wss'
       };
       const connectData = {
         studio: 'my-legacy-app',
-        clerk_publishable_key: 'pk_test_legacy',
         api_url: 'https://studio.exe.xyz/api/',
         cloud_url: 'fpcloud://studio.exe.xyz?protocol=wss'
       };
 
       const entry = registry.migrateFromLegacy(envVars, connectData);
       expect(entry.name).toBe('my-legacy-app');
-      expect(entry.clerk.publishableKey).toBe('pk_test_legacy');
-      expect(entry.clerk.secretKey).toBe('sk_test_legacy');
+      expect(entry.oidc.authority).toBe('https://auth.example.com');
+      expect(entry.oidc.clientId).toBe('test-client-id');
       expect(entry.connect.apiUrl).toBe('https://studio.exe.xyz/api/');
       expect(entry.connect.cloudUrl).toBe('fpcloud://studio.exe.xyz?protocol=wss');
 
@@ -277,13 +276,12 @@ describe('registry', () => {
       const envVars = {};
       const connectData = {
         studio: 'fallback-app',
-        clerk_publishable_key: 'pk_test_fb',
         api_url: 'https://fb.exe.xyz/api/',
         cloud_url: 'fpcloud://fb.exe.xyz?protocol=wss'
       };
 
       const entry = registry.migrateFromLegacy(envVars, connectData);
-      expect(entry.clerk.publishableKey).toBe('pk_test_fb');
+      expect(entry.oidc.authority).toBe('');
       expect(entry.connect.apiUrl).toBe('https://fb.exe.xyz/api/');
     });
 
