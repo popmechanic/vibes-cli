@@ -2468,23 +2468,42 @@
       <div class="wizard-step" id="wizardStep3">
         <div class="wizard-section-title">Cloudflare Deployment</div>
         <div class="wizard-help">
-          Cloudflare Workers hosts your apps and syncs data. Create a free account, then add your credentials below.
+          Cloudflare Workers hosts your apps globally for free. You'll need a Cloudflare account and an API token.
         </div>
+
+        <!-- Expandable: "I don't have a Cloudflare account yet" -->
+        <details style="margin-bottom:1rem;">
+          <summary style="cursor:pointer;font-size:0.8125rem;font-weight:700;color:var(--vibes-blue);user-select:none;">
+            I don't have a Cloudflare account yet
+          </summary>
+          <div style="background:rgba(0,154,206,0.06);border-radius:0 0 8px 8px;padding:0.75rem 1rem;font-size:0.8125rem;line-height:1.6;">
+            <ol style="margin:0.25rem 0 0 1.25rem;padding:0;">
+              <li>Go to <a class="wizard-link" href="https://dash.cloudflare.com/sign-up" target="_blank">dash.cloudflare.com/sign-up</a> and create a free account</li>
+              <li>Verify your email address</li>
+              <li>You don't need to add a domain &mdash; Workers works without one</li>
+              <li>Once your account is created, continue below to create an API token</li>
+            </ol>
+          </div>
+        </details>
 
         <!-- Auth mode tabs -->
         <div style="display:flex;gap:0;margin-bottom:1rem;border-bottom:2px solid rgba(0,0,0,0.1);">
-          <button id="cfTabToken" class="btn" onclick="setCfAuthMode('token')" style="border:none;border-bottom:2px solid var(--vibes-blue);margin-bottom:-2px;border-radius:0;padding:0.5rem 1rem;font-weight:700;font-size:0.8125rem;background:none;color:var(--vibes-blue);cursor:pointer;">API Token (recommended)</button>
-          <button id="cfTabGlobal" class="btn" onclick="setCfAuthMode('global')" style="border:none;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:0;padding:0.5rem 1rem;font-weight:700;font-size:0.8125rem;background:none;color:#888;cursor:pointer;">Global API Key</button>
+          <button id="cfTabToken" class="btn" onclick="setCfAuthMode('token')" style="border:none;border-bottom:2px solid var(--vibes-blue);margin-bottom:-2px;border-radius:0;padding:0.5rem 1rem;font-weight:700;font-size:0.8125rem;background:none;color:var(--vibes-blue);cursor:pointer;box-shadow:none;">API Token (recommended)</button>
+          <button id="cfTabGlobal" class="btn" onclick="setCfAuthMode('global')" style="border:none;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:0;padding:0.5rem 1rem;font-weight:700;font-size:0.8125rem;background:none;color:#888;cursor:pointer;box-shadow:none;">Global API Key</button>
         </div>
 
         <!-- API Token panel -->
         <div id="cfPanelToken">
           <div style="background:rgba(0,154,206,0.06);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.8125rem;line-height:1.5;">
-            <strong>Quick steps:</strong>
+            <strong>Create an API Token:</strong>
             <ol style="margin:0.5rem 0 0 1.25rem;padding:0;">
               <li>Go to <a class="wizard-link" href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare API Tokens</a></li>
-              <li>Click <strong>Create Token</strong> &rarr; use "Edit Cloudflare Workers" template</li>
-              <li>Copy the token below</li>
+              <li>Click <strong>Create Token</strong></li>
+              <li>Find <strong>"Edit Cloudflare Workers"</strong> and click <strong>Use template</strong></li>
+              <li>Under <strong>Account Resources</strong>, select your account</li>
+              <li>Under <strong>Zone Resources</strong>, select <strong>All zones</strong> (or a specific zone)</li>
+              <li>Click <strong>Continue to summary</strong>, then <strong>Create Token</strong></li>
+              <li>Copy the token &mdash; <em>you won't be able to see it again</em></li>
             </ol>
           </div>
           <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">API Token</label>
@@ -2494,12 +2513,16 @@
         <!-- Global API Key panel (hidden by default) -->
         <div id="cfPanelGlobal" style="display:none;">
           <div style="background:rgba(0,154,206,0.06);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.8125rem;line-height:1.5;">
-            <strong>Quick steps:</strong>
+            <strong>Find your Global API Key:</strong>
             <ol style="margin:0.5rem 0 0 1.25rem;padding:0;">
               <li>Go to <a class="wizard-link" href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare API Tokens</a></li>
-              <li>Scroll to <strong>Global API Key</strong> and click "View"</li>
-              <li>Copy the key and your account email below</li>
+              <li>Scroll down to the <strong>API Keys</strong> section</li>
+              <li>Next to <strong>Global API Key</strong>, click <strong>View</strong></li>
+              <li>Complete the verification and copy the key</li>
             </ol>
+            <div style="margin-top:0.5rem;padding:0.5rem;background:rgba(218,41,28,0.06);border-radius:4px;font-size:0.75rem;color:#666;">
+              <strong>Note:</strong> Global API Key grants full account access. API Token (above) is recommended for better security.
+            </div>
           </div>
           <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Account Email</label>
           <input class="wizard-input" id="wizardCfEmail" type="email" placeholder="you@example.com" oninput="validateWizardCfInputs()" autocomplete="off" />
