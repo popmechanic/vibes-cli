@@ -383,24 +383,25 @@
     .wizard-link:hover { text-decoration: underline; }
     .wizard-link::after { content: ' →'; }
     .wizard-summary-table {
-      width: 100%;
-      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin: 1rem 0;
     }
     .wizard-summary-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
+      padding: 0.5rem 0.75rem;
+      background: rgba(0,0,0,0.03);
+      border-radius: 6px;
       font-size: 0.8125rem;
     }
-    .wizard-summary-row:last-child { border-bottom: none; }
     .wizard-summary-key {
       font-weight: 700;
-      color: var(--vibes-near-black);
     }
     .wizard-summary-value {
-      color: #555;
+      color: #666;
       font-family: monospace;
       font-size: 0.75rem;
       max-width: 60%;
@@ -443,6 +444,18 @@
     .wizard-radio:hover { border-color: var(--vibes-blue); }
     .wizard-radio.selected { border-color: var(--vibes-blue); background: rgba(0,154,206,0.05); }
     .wizard-radio.disabled { opacity: 0.5; cursor: not-allowed; }
+    .wizard-checking {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0,0,0,0.1);
+      border-top-color: var(--vibes-blue);
+      border-radius: 50%;
+      animation: wizardSpin 0.8s linear infinite;
+    }
+    @keyframes wizardSpin {
+      to { transform: rotate(360deg); }
+    }
     .wizard-radio input[type="radio"] { accent-color: var(--vibes-blue); }
     .wizard-section-title {
       font-size: 0.875rem;
