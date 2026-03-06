@@ -33,22 +33,6 @@ export function useFireproofClerk(name, opts) {
     dashApi.ensureCloudToken = function (req) {
       var dbName = _currentDbName;
 
-      // Tier 0: URL ?ledger= parameter (set by invite redemption flow)
-      // After invite redemption, the URL keeps ?ledger=<id> so the invited
-      // user routes to the correct shared ledger instead of creating a new one.
-      if (typeof window !== 'undefined') {
-        var _urlParams = new URLSearchParams(window.location.search);
-        var _urlLedger = _urlParams.get('ledger');
-        if (_urlLedger) {
-          // Cache it so subsequent calls don't re-parse
-          if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
-          if (dbName) window.__VIBES_LEDGER_MAP__[dbName] = _urlLedger;
-          req = Object.assign({}, req, { ledger: _urlLedger });
-          console.debug('[vibes] Using ledger from URL param:', _urlLedger);
-          return _origEnsure(req);
-        }
-      }
-
       // Tier 1: Per-database ledger map (populated by Tier 3 or sell /resolve)
       var ledgerMap = (typeof window !== 'undefined' && window.__VIBES_LEDGER_MAP__) || {};
       if (dbName && ledgerMap[dbName]) {
@@ -94,6 +78,17 @@ export function useFireproofClerk(name, opts) {
         // After _origEnsure resolves, discover the newly created ledger (polling retry)
         var _noMatchKey = matched ? null : (dbName || appHost);
         return _origEnsure(req).then(function (result) {
+          // Diagnostic: log ensureCloudToken result
+          if (result && typeof result.isOk === 'function') {
+            if (result.isOk()) {
+              var ok = result.Ok();
+              console.debug('[vibes] ensureCloudToken OK, ledger:', ok.ledger, 'tenant:', ok.tenant);
+            } else {
+              console.error('[vibes] ensureCloudToken FAILED:', JSON.stringify(result.Err()));
+            }
+          } else {
+            console.debug('[vibes] ensureCloudToken returned:', typeof result, result);
+          }
           if (_noMatchKey && typeof window !== 'undefined') {
             var _attempts = 0;
             var _maxAttempts = 5;
@@ -133,7 +128,7 @@ export function useFireproofClerk(name, opts) {
           return result;
         });
       }).catch(function (err) {
-        console.warn('[vibes] Ledger discovery failed, falling back:', err && err.message);
+        console.error('[vibes] Ledger discovery or ensureCloudToken rejected:', err && err.message, err && err.stack);
         return _origEnsure(req);
       });
     };
@@ -144,46 +139,32 @@ export function useFireproofClerk(name, opts) {
   var syncVal = result.syncStatus || "idle";
   var syncErr = result.lastSyncError ? String(result.lastSyncError) : null;
 
-  // Auto-redeem pending invites when ?ledger= or ?invite= is in URL.
-  // The dashboard finds invites by the user's email (not by inviteId),
-  // so we trigger redemption whenever a shared ledger URL is detected.
-  // sessionStorage guard prevents infinite reload loops.
+  // Diagnostic: log sync status changes
+  React.useEffect(function () {
+    console.debug('[vibes] syncStatus:', syncVal, syncErr ? 'error: ' + syncErr : '');
+  }, [syncVal, syncErr]);
+
+  // Auto-redeem invite from ?invite=<id> URL param
   React.useEffect(function () {
     if (!dashApi) return;
 
     var params = new URLSearchParams(window.location.search);
-    var ledgerParam = params.get('ledger');
-    var inviteParam = params.get('invite');
-
-    // Only attempt redemption if there's a ledger or invite hint in the URL
-    if (!ledgerParam && !inviteParam) return;
-
-    // Guard: don't retry redemption after we've already tried for this ledger
-    var redeemKey = '_vibes_redeemed_' + (ledgerParam || inviteParam || '');
-    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(redeemKey)) return;
-
-    console.debug('[vibes] Attempting invite redemption for ledger:', ledgerParam);
-    dashApi.redeemInvite({}).then(function (rr) {
-      if (rr.isOk()) {
-        var invites = rr.Ok().invites || [];
-        if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(redeemKey, '1');
-
-        if (invites.length > 0) {
-          console.debug('[vibes] Redeemed', invites.length, 'invite(s), reloading');
-          // Clean up ?invite= but keep ?ledger= for Tier 0 routing
-          if (inviteParam) params.delete('invite');
+    var inviteId = params.get('invite');
+    if (inviteId) {
+      console.debug('[vibes] Redeeming invite:', inviteId);
+      dashApi.redeemInvite({ inviteId: inviteId }).then(function (rr) {
+        if (rr.isOk()) {
+          console.debug('[vibes] Invite redeemed, reloading');
+          // Clean up URL param and reload so token strategy picks up shared ledger
+          params.delete('invite');
           var newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
           window.history.replaceState({}, '', newUrl);
           window.location.reload();
         } else {
-          console.debug('[vibes] No pending invites found for this user');
+          console.warn('[vibes] redeemInvite failed:', rr.Err());
         }
-      } else {
-        console.warn('[vibes] redeemInvite failed:', rr.Err());
-        // Still mark as attempted so we don't retry on every render
-        if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(redeemKey, '1');
-      }
-    });
+      });
+    }
   }, [dashApi]);
 
   // Sync status bridge: forward to window global + dispatch event for SyncStatusDot
