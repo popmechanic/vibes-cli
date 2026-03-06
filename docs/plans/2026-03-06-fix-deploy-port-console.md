@@ -4,7 +4,7 @@
 
 **Goal:** Fix three bugs in the vibes-skill plugin: (1) alchemy deploy crash on first deploy due to env var mismatch, (2) preview server ignoring `--port` flag and `PORT` env var, (3) console noise from 404s and empty Connect URLs in the editor.
 
-**Architecture:** Problem 1 is an env var name mismatch between `buildAlchemyEnv` and upstream `alchemy.run.ts` (which now expects `OIDC_AUTHORITY` instead of `CLERK_PUB_JWT_URL`). Problem 2 is a missing `PORT` env var fallback in `loadConfig()`. Problem 3 requires suppressing 404 responses and server-side warnings when no app is generated yet, and guarding the template's `ClerkFireproofProvider` config against empty Connect URLs.
+**Architecture:** Problem 1 is an env var name mismatch between `buildAlchemyEnv` and upstream `alchemy.run.ts` (which now expects `OIDC_AUTHORITY` instead of `CLERK_PUB_JWT_URL`). Problem 2 is a missing `PORT` env var fallback in `loadConfig()`. Problem 3 requires suppressing 404 responses and server-side warnings when no app is generated yet, and guarding both the vibes and sell templates' `ClerkFireproofProvider` config against empty Connect URLs.
 
 **Tech Stack:** Node.js, vitest
 
@@ -16,14 +16,16 @@
 
 **Files:**
 - Modify: `scripts/lib/alchemy-deploy.js:86-106`
-- Test: `scripts/__tests__/unit/alchemy-deploy.test.js` (existing test for `buildAlchemyEnv`)
+- Test: `scripts/__tests__/unit/alchemy-deploy.test.js` (two existing tests need updating)
 
-**Step 1: Update the unit test to expect `OIDC_AUTHORITY`**
+**Step 1: Update the unit tests to expect `OIDC_AUTHORITY`**
 
-In `scripts/__tests__/unit/alchemy-deploy.test.js`, find the `buildAlchemyEnv` test and update the assertion. The test currently checks for `CLERK_PUBLISHABLE_KEY` and `CLOUD_SESSION_TOKEN_PUBLIC`. Add an assertion for `OIDC_AUTHORITY` and verify `CLERK_PUB_JWT_URL` is no longer set.
+In `scripts/__tests__/unit/alchemy-deploy.test.js`, two tests reference `CLERK_PUB_JWT_URL`:
+
+1. The `'generates required environment variables'` test (line 107-122) — add an assertion for `OIDC_AUTHORITY` and verify `CLERK_PUB_JWT_URL` is no longer set:
 
 ```javascript
-// In the buildAlchemyEnv test:
+// In the 'generates required environment variables' test:
 it('generates required environment variables', () => {
   const env = alchemyDeploy.buildAlchemyEnv({
     clerkPublishableKey: 'pk_test_Y2xlcmsuZXhhbXBsZS5jb20k',
@@ -38,13 +40,38 @@ it('generates required environment variables', () => {
   expect(env.CLERK_PUBLISHABLE_KEY).toBe('pk_test_Y2xlcmsuZXhhbXBsZS5jb20k');
   expect(env.OIDC_AUTHORITY).toMatch(/^https:\/\//);
   expect(env.CLOUD_SESSION_TOKEN_PUBLIC).toBe('token-pub');
+  expect(env.CLOUD_SESSION_TOKEN_SECRET).toBe('token-sec');
   expect(env.ALCHEMY_PASSWORD).toBe('pass123');
   // CLERK_PUB_JWT_URL removed — upstream now uses OIDC_AUTHORITY
   expect(env.CLERK_PUB_JWT_URL).toBeUndefined();
 });
 ```
 
-**Step 2: Run the test to confirm it fails**
+2. The `'derives CLERK_PUB_JWT_URL from publishable key'` test (lines 139-156) — rename it to test `OIDC_AUTHORITY` instead:
+
+```javascript
+it('derives OIDC_AUTHORITY from publishable key', () => {
+  // pk_test_ prefix + base64("example.clerk.accounts.dev$")
+  const domain = 'example.clerk.accounts.dev';
+  const b64 = Buffer.from(domain + '$').toString('base64');
+  const pk = `pk_test_${b64}`;
+
+  const env = alchemyDeploy.buildAlchemyEnv({
+    clerkPublishableKey: pk,
+    clerkSecretKey: 'sk_test_xyz',
+    sessionTokenPublic: 'tp',
+    sessionTokenSecret: 'ts',
+    deviceCaPrivKey: 'dp',
+    deviceCaCert: 'dc',
+    alchemyPassword: 'pw'
+  });
+
+  expect(env.OIDC_AUTHORITY).toBe(`https://${domain}`);
+  expect(env.CLERK_PUB_JWT_URL).toBeUndefined();
+});
+```
+
+**Step 2: Run the tests to confirm they fail**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/fix-deploy-port-console/scripts && npx vitest run __tests__/unit/alchemy-deploy.test.js`
 Expected: FAIL — `OIDC_AUTHORITY` is undefined, `CLERK_PUB_JWT_URL` is still set.
@@ -64,7 +91,7 @@ to:
 
 Remove the `CLERK_PUB_JWT_URL` key entirely — it's no longer referenced by alchemy.run.ts.
 
-**Step 4: Run the test to confirm it passes**
+**Step 4: Run the tests to confirm they pass**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/fix-deploy-port-console/scripts && npx vitest run __tests__/unit/alchemy-deploy.test.js`
 Expected: PASS
@@ -193,16 +220,19 @@ are always missing — repeated warnings are just noise."
 
 ---
 
-### Task 4: Suppress client-side console noise for empty Connect URLs
+### Task 4: Suppress client-side console noise for empty Connect URLs in vibes and sell templates
 
 **Context:** When `populateConnectConfig()` replaces `__VITE_CLOUD_URL__` and `__VITE_API_URL__` with empty strings, the template passes `{ apiUrl: "", cloudUrl: "" }` to `ClerkFireproofProvider`. This causes Fireproof internals to attempt connections to empty/invalid URLs, generating "unsupported protocol" and "notfound" console errors in the browser.
 
-The fix belongs in the vibes delta template (`skills/vibes/template.delta.html`), which already has a guard for placeholder values (lines 19-29). We need to also guard against empty strings by not passing empty Connect config to the provider.
+Both the vibes and sell delta templates have this problem. Each passes config unconditionally to `ClerkFireproofProvider`.
 
 **Files:**
 - Modify: `skills/vibes/template.delta.html:62-68`
+- Modify: `skills/sell/template.delta.html:1788-1794`
+- Regenerate: `skills/vibes/templates/index.html` (via merge-templates.js)
+- Regenerate: `skills/sell/templates/unified.html` (via merge-templates.js)
 
-**Step 1: Guard `ClerkFireproofProvider` config against empty URLs**
+**Step 1: Guard `ClerkFireproofProvider` config in the vibes delta template**
 
 In `skills/vibes/template.delta.html`, the `ClerkFireproofProvider` receives config on lines 62-68:
 
@@ -230,44 +260,114 @@ Change the config prop to only include URLs when they're non-empty:
 
 When config is `undefined`, `ClerkFireproofProvider` skips sync entirely — no connection attempts, no console errors.
 
-**Step 2: Rebuild the merged template**
+**Step 2: Apply the same guard in the sell delta template**
+
+In `skills/sell/template.delta.html`, the `ClerkFireproofProvider` receives config on lines 1788-1794:
+
+```jsx
+<ClerkFireproofProvider
+  publishableKey={publishableKey}
+  config={{
+    apiUrl: vibesConfig.tokenApiUri,
+    cloudUrl: vibesConfig.cloudBackendUrl
+  }}
+>
+```
+
+Change to:
+
+```jsx
+<ClerkFireproofProvider
+  publishableKey={publishableKey}
+  config={vibesConfig.tokenApiUri && vibesConfig.cloudBackendUrl ? {
+    apiUrl: vibesConfig.tokenApiUri,
+    cloudUrl: vibesConfig.cloudBackendUrl
+  } : undefined}
+>
+```
+
+**Step 3: Rebuild both merged templates**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/fix-deploy-port-console && node scripts/merge-templates.js --force`
 
-Verify: `grep -A3 'ClerkFireproofProvider' skills/vibes/templates/index.html | head -8` should show the new conditional config.
+Verify vibes: `grep -A5 'ClerkFireproofProvider' skills/vibes/templates/index.html | head -8` should show the new conditional config.
 
-**Step 3: Run structural tests**
+Verify sell: `grep -A5 'ClerkFireproofProvider' skills/sell/templates/unified.html | head -8` should show the new conditional config with `vibesConfig`.
+
+**Step 4: Run structural tests**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/fix-deploy-port-console/scripts && npm run test:fixtures`
 Expected: PASS
 
-**Step 4: Commit**
+**Step 5: Commit**
 
 ```bash
-git add skills/vibes/template.delta.html skills/vibes/templates/index.html
+git add skills/vibes/template.delta.html skills/vibes/templates/index.html \
+       skills/sell/template.delta.html skills/sell/templates/unified.html
 git commit -m "Guard ClerkFireproofProvider against empty Connect URLs
 
-Pass config as undefined when URLs are empty strings, preventing
-Fireproof from attempting connections to invalid URLs pre-deploy."
+Pass config as undefined when URLs are empty strings in both vibes
+and sell templates, preventing Fireproof from attempting connections
+to invalid URLs pre-deploy."
 ```
 
 ---
 
-### Task 5: Suppress 404 noise for `/app.jsx` and `/app-frame` pre-generation
+### Task 5: Return 200 placeholder for `/app-frame` when no app exists
 
-**Context:** The editor fetches `/app.jsx` and `/app-frame` during phase transitions. When no app has been generated yet, the server returns 404 with text bodies like "app.jsx not found". These show up in the browser console as red 404 errors and in the server logs.
+**Context:** `serveAppFrame` in `scripts/server/routes.js` (lines 73-82) returns a 404 when `app.jsx` doesn't exist. This 404 shows as a red error in the browser console when the editor iframe loads `/app-frame` before any app has been generated. The `assembleAppFrame` function in `generate.js` already handles the missing-app case gracefully (returning a placeholder HTML page), but `serveAppFrame` short-circuits with a 404 before ever calling it.
 
-The fix is two-fold:
-1. In the route handlers (`routes.js`), return a graceful empty response instead of a 404 for `/app.jsx` and `/app-frame` when no app exists.
-2. In the editor.html client code, the existing `if (!res.ok) return;` guard on line 3945 already handles `/app.jsx` 404s silently for version history — this is fine.
+**Files:**
+- Modify: `scripts/server/routes.js:73-82`
 
-For `/app-frame`, the `assembleAppFrame` function already returns a basic HTML page when app.jsx is missing (line 264). The 404 comes from the `/app.jsx` route, not `/app-frame`. The editor's fetch of `/app.jsx` (line 3944) already checks `if (!res.ok) return;`. So the client-side noise is primarily from the iframe loading `/app-frame`, which shows the "app.jsx not found" page in the frame — not a console error.
+**Step 1: Change `serveAppFrame` to return a 200 with a placeholder page**
 
-Actually, re-reading the code: `serveAppJsx` returns a 404, and `serveAppFrame` calls `assembleAppFrame` which returns a 200 with an HTML error page when app.jsx is missing. The `/app.jsx` 404 shows in the browser Network tab but the existing `if (!res.ok) return;` suppresses it from the JS console. So the real noise is just server-side `console.warn` from step 3 above (already fixed) and the Fireproof protocol errors from step 4.
+In `scripts/server/routes.js`, replace lines 73-82:
 
-**Decision:** No additional changes needed for this task. Tasks 3 and 4 address the actual console noise. The `/app.jsx` 404 is correctly handled by the editor's existing `if (!res.ok) return;` guard.
+```javascript
+function serveAppFrame(ctx, req, res) {
+  const appPath = join(ctx.projectRoot, 'app.jsx');
+  if (!existsSync(appPath)) {
+    res.writeHead(404);
+    return res.end('app.jsx not found');
+  }
+  const assembled = assembleAppFrame(ctx);
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  return res.end(assembled);
+}
+```
 
-Skip this task.
+Replace with:
+
+```javascript
+function serveAppFrame(ctx, req, res) {
+  const appPath = join(ctx.projectRoot, 'app.jsx');
+  if (!existsSync(appPath)) {
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    return res.end(`<!DOCTYPE html>
+<html><head><style>
+  body { margin: 0; display: flex; align-items: center; justify-content: center;
+         height: 100vh; font-family: system-ui; color: #888; background: #1a1a1a; }
+</style></head>
+<body><p>Waiting for app to be generated...</p></body></html>`);
+  }
+  const assembled = assembleAppFrame(ctx);
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  return res.end(assembled);
+}
+```
+
+This returns a friendly placeholder with a 200 status instead of a 404, eliminating the red console error in the browser.
+
+**Step 2: Commit**
+
+```bash
+git add scripts/server/routes.js
+git commit -m "Return 200 placeholder for /app-frame when no app exists
+
+Show a 'waiting for app' message in the iframe instead of a 404,
+eliminating red console errors before the first app is generated."
+```
 
 ---
 
@@ -305,7 +405,11 @@ Before claiming complete, verify all of these:
 - [ ] `cd scripts && npm test` — all tests pass
 - [ ] `cd scripts && npm run test:fixtures` — structural tests pass
 - [ ] `buildAlchemyEnv` sets `OIDC_AUTHORITY` (not `CLERK_PUB_JWT_URL`)
+- [ ] The `'derives OIDC_AUTHORITY from publishable key'` test passes (was `'derives CLERK_PUB_JWT_URL...'`)
 - [ ] `loadConfig()` respects `PORT` env var when `--port` flag is absent
 - [ ] `assembleAppFrame` only warns about missing Connect URLs once per server session
-- [ ] `ClerkFireproofProvider` receives `undefined` config when Connect URLs are empty
-- [ ] Merged template (`skills/vibes/templates/index.html`) reflects the delta change
+- [ ] `ClerkFireproofProvider` in vibes delta receives `undefined` config when Connect URLs are empty
+- [ ] `ClerkFireproofProvider` in sell delta receives `undefined` config when Connect URLs are empty
+- [ ] Merged vibes template (`skills/vibes/templates/index.html`) reflects the delta change
+- [ ] Merged sell template (`skills/sell/templates/unified.html`) reflects the delta change
+- [ ] `/app-frame` returns 200 with placeholder HTML when no app.jsx exists (not 404)
