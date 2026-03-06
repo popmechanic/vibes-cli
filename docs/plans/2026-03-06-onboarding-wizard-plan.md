@@ -28,7 +28,7 @@ The editor API needs to read/write `~/.vibes/deployments.json`. The full `lib/re
 
 ```javascript
 // scripts/__tests__/unit/registry-adapter.test.js
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdirSync, writeFileSync, rmSync, readFileSync, statSync, existsSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
@@ -39,9 +39,10 @@ describe('registry-adapter', () => {
   let adapter;
 
   beforeEach(async () => {
+    vi.resetModules();
     mkdirSync(join(TEST_DIR, '.vibes'), { recursive: true });
     process.env.VIBES_HOME = TEST_DIR;
-    // Force fresh import
+    // Force fresh import (resetModules ensures no cached module)
     const mod = await import('../../server/registry-adapter.js');
     adapter = mod;
   });
@@ -335,6 +336,30 @@ export function saveClerkCredentials(creds) {
     }
     _saveRegistry(reg);
   }
+}
+
+/**
+ * Get Connect URLs for an app from the registry.
+ * These are populated by alchemy at deploy time.
+ * @param {string} [appName] - App name to look up; defaults to most recent app.
+ * @returns {{ apiUrl: string|null, cloudUrl: string|null }}
+ */
+export function getConnectUrls(appName) {
+  const reg = _loadRegistry();
+  let app;
+  if (appName && reg.apps[appName]) {
+    app = reg.apps[appName];
+  } else {
+    // Fall back to most recent app
+    const apps = Object.values(reg.apps);
+    apps.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+    app = apps[0];
+  }
+  if (!app || !app.connect) return { apiUrl: null, cloudUrl: null };
+  return {
+    apiUrl: app.connect.apiUrl || null,
+    cloudUrl: app.connect.cloudUrl || null,
+  };
 }
 
 /**
@@ -929,6 +954,13 @@ Cloudflare replaces exe.dev/Connect as the deploy target."
 
 Replace the wizard JS functions in editor.html. This task handles wizard state, navigation, validation functions, the save/verify flow, AND all deploy button state management that depended on the old status schema.
 
+**Scope of exe.dev/SSH cleanup:** Beyond the targeted blocks replaced in the steps below, there are ~15 scattered references to exe.dev/SSH throughout editor.html that must also be removed. After completing all steps, run the verification grep in Step 10 to catch any survivors. Common locations for stale references:
+- `renderChecklist` may contain exe.dev checklist items
+- Old `saveCredentials` success callback may set `deployTargets.exe`
+- Status fetch callbacks may read `status.ssh`
+- Any `sshAvailable` assignments or conditionals
+- Any `deployExe`, `deploy-exe`, or `exe.dev` string literals
+
 **Files:**
 - Modify: `skills/vibes/templates/editor.html` (JS section -- state variables, wizard functions, deploy functions, init block)
 
@@ -1392,6 +1424,34 @@ before advancing to step 3. All Connect Studio JS removed.
 Deploy buttons simplified to Cloudflare-only with cloudflareReady flag."
 ```
 
+**Step 10: Verify complete exe.dev/SSH removal**
+
+Run these greps against editor.html. ALL must return zero matches:
+
+```bash
+cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard
+grep -n 'deployTargets\.exe' skills/vibes/templates/editor.html
+grep -n 'status\.ssh' skills/vibes/templates/editor.html
+grep -n 'sshAvailable' skills/vibes/templates/editor.html
+grep -n 'deployExe\|deploy-exe\|deploy_exe' skills/vibes/templates/editor.html
+grep -n 'exe\.dev\|exe\.xyz' skills/vibes/templates/editor.html
+grep -n 'studioMode\|studioCheckTimer' skills/vibes/templates/editor.html
+```
+
+If any matches are found, delete or replace them:
+- `deployTargets.exe` references → delete the containing line/block (replaced by `cloudflareReady`)
+- `status.ssh` references → delete the containing conditional (SSH status no longer returned)
+- `sshAvailable` assignments/reads → delete entirely
+- `deployExe`/`deploy-exe` → delete the containing block (exe.dev deploy target removed)
+- `exe.dev`/`exe.xyz` string literals in help text or comments → rewrite to reference Cloudflare
+- `studioMode`/`studioCheckTimer` → delete entirely (Connect Studio state removed in Step 1)
+
+After cleanup, re-run the greps to confirm zero matches, then amend the commit:
+
+```bash
+cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add skills/vibes/templates/editor.html && git commit --amend --no-edit
+```
+
 ---
 
 ### Task 7: Clean Up WebSocket Handlers -- Remove Studio Deploy
@@ -1471,11 +1531,15 @@ Deploy handler now only supports Cloudflare target."
 
 ---
 
-### Task 8: Inject Registry Credentials into Deploy Subprocess
+### Task 8: Inject Registry Credentials and Re-assemble Before Deploy
 
-The wizard validates and stores Cloudflare credentials in the registry, but `deploy-cloudflare.js` spawns `wrangler` via `process.env`. If the user authenticated via the wizard (Global API Key stored in registry) rather than via `wrangler login` (OAuth token in `~/.wrangler/`), wrangler won't find credentials.
+Two gaps exist in the deploy flow:
 
-The cleanest fix is in `scripts/server/handlers/deploy.js`: when spawning the deploy subprocess, read Cloudflare credentials from the registry and inject them as `CLOUDFLARE_API_KEY` / `CLOUDFLARE_EMAIL` environment variables. This way `deploy-cloudflare.js` itself doesn't need modification -- wrangler natively respects these env vars.
+1. **Cloudflare credentials:** The wizard stores Cloudflare Global API Key in the registry, but `deploy-cloudflare.js` spawns `wrangler` via `process.env`. If the user authenticated via the wizard (rather than `wrangler login`), wrangler won't find credentials.
+
+2. **Connect URLs:** Task 4 relaxed the assembly gate so apps can build without Connect URLs. But after alchemy provisions Connect on the first deploy, the assembled `index.html` still has empty sync URLs. There is no re-assembly step. **Note:** The migration plan's `deploy-cloudflare.js` modifications handle the alchemy provisioning and URL population. However, for deployments triggered through the editor (which use `handleDeploy` in `deploy.js`), we need to inject any available Connect URLs from the registry into the assembly environment so subsequent deploys produce a fully-populated `index.html`.
+
+The fix: in `scripts/server/handlers/deploy.js`, read credentials from the registry and inject them into both the assembly and deploy subprocess environments.
 
 **Files:**
 - Modify: `scripts/server/handlers/deploy.js`
@@ -1485,49 +1549,67 @@ The cleanest fix is in `scripts/server/handlers/deploy.js`: when spawning the de
 At the top of `scripts/server/handlers/deploy.js`, after the existing imports, add:
 
 ```javascript
-import { getCloudflareCredentials } from '../../server/registry-adapter.js';
+import { getCloudflareCredentials, getConnectUrls, getClerkCredentials } from '../registry-adapter.js';
 ```
 
-Note: The relative path from `scripts/server/handlers/deploy.js` to `scripts/server/registry-adapter.js` is `../registry-adapter.js`. Adjust if needed based on the actual directory structure. The correct import is:
+(Relative path: `scripts/server/handlers/deploy.js` → `scripts/server/registry-adapter.js` = `../registry-adapter.js`)
+
+**Step 2: Create a helper that builds the enriched env**
+
+After the imports, add a helper function:
 
 ```javascript
-import { getCloudflareCredentials } from '../registry-adapter.js';
+/**
+ * Build subprocess environment with registry credentials injected.
+ * Assembly needs Clerk + Connect URLs; deploy needs Cloudflare creds.
+ */
+function buildDeployEnv(appName) {
+  const env = { ...process.env };
+
+  // Inject Cloudflare credentials from registry (for wrangler)
+  if (!env.CLOUDFLARE_API_KEY || !env.CLOUDFLARE_EMAIL) {
+    const cfCreds = getCloudflareCredentials();
+    if (cfCreds.apiKey) env.CLOUDFLARE_API_KEY = cfCreds.apiKey;
+    if (cfCreds.email) env.CLOUDFLARE_EMAIL = cfCreds.email;
+  }
+
+  // Inject Connect URLs from registry (for assembly)
+  // These are populated by alchemy after first deploy — may still be empty on first deploy
+  const connect = getConnectUrls(appName);
+  if (connect.apiUrl && !env.VITE_API_URL) {
+    env.VITE_API_URL = connect.apiUrl;
+  }
+  if (connect.cloudUrl && !env.VITE_CLOUD_URL) {
+    env.VITE_CLOUD_URL = connect.cloudUrl;
+  }
+
+  // Inject Clerk key from registry (in case .env doesn't have it)
+  const clerk = getClerkCredentials();
+  if (clerk.publishableKey && !env.VITE_CLERK_PUBLISHABLE_KEY) {
+    env.VITE_CLERK_PUBLISHABLE_KEY = clerk.publishableKey;
+  }
+
+  return env;
+}
 ```
 
-**Step 2: Inject credentials into deploy subprocess environment**
+**Step 3: Use enriched env for both assembly and deploy subprocesses**
 
-Search for the block in `handleDeploy` where the deploy child process is spawned. Find the line:
+Search for the block in `handleDeploy` where the assembly child process is spawned (the one that runs `assemble.js`). Replace its `env: { ...process.env },` with:
+
 ```javascript
-    const child = spawn('node', [deployScript, ...deployArgs], {
-      cwd: ctx.projectRoot,
-      env: { ...process.env },
+      env: buildDeployEnv(appName),
 ```
 
-Replace the `env` property with:
+Then find the deploy child process spawn (the one that runs `deploy-cloudflare.js`). Replace its `env: { ...process.env },` with:
+
 ```javascript
-      env: (() => {
-        const env = { ...process.env };
-        // Inject Cloudflare credentials from registry if not already in env
-        if (!env.CLOUDFLARE_API_KEY || !env.CLOUDFLARE_EMAIL) {
-          const cfCreds = getCloudflareCredentials();
-          if (cfCreds.apiKey) env.CLOUDFLARE_API_KEY = cfCreds.apiKey;
-          if (cfCreds.email) env.CLOUDFLARE_EMAIL = cfCreds.email;
-        }
-        return env;
-      })(),
+      env: buildDeployEnv(appName),
 ```
 
-**Step 3: Also inject into the assembly subprocess**
+Using the same helper for both ensures assembly gets Connect URLs (if available from a previous deploy) and the deploy process gets Cloudflare credentials.
 
-Search for the assembly spawn block earlier in `handleDeploy` (the one that runs `assemble.js`). Find:
-```javascript
-      env: { ...process.env },
-```
-in that block. This one does NOT need Cloudflare credentials (assembly doesn't call wrangler), but verify it's the right block by checking it spawns `assemble.js`. Leave it unchanged.
-
-**Step 4: Verify the deploy flow works**
-
-This can only be verified with real credentials, but verify no syntax errors by running:
+**Step 4: Verify no syntax errors**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && node -e "import('./server/handlers/deploy.js').then(() => console.log('OK')).catch(e => console.error(e.message))"`
 Expected: "OK" (no import errors)
@@ -1535,12 +1617,13 @@ Expected: "OK" (no import errors)
 **Step 5: Commit**
 
 ```bash
-cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/handlers/deploy.js && git commit -m "Inject registry Cloudflare credentials into deploy subprocess
+cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/handlers/deploy.js && git commit -m "Inject registry credentials into assembly and deploy subprocesses
 
-When spawning wrangler via deploy-cloudflare.js, read
-CLOUDFLARE_API_KEY/CLOUDFLARE_EMAIL from the registry and
-inject into the subprocess environment. Ensures wizard-stored
-credentials reach wrangler without modifying deploy-cloudflare.js."
+Build enriched env from registry for both assembly (Clerk key,
+Connect URLs) and deploy (Cloudflare API key/email). Connect URLs
+from previous deploys are injected into assembly so subsequent
+deploys produce fully-populated index.html. First deploy may still
+have empty Connect URLs — alchemy provisions them at deploy time."
 ```
 
 ---
@@ -1842,7 +1925,96 @@ cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding
 
 ---
 
-### Task 13: Verification Checklist
+### Task 13: Update CLAUDE.md Workflow Sequence
+
+CLAUDE.md contains the authoritative Workflow Sequence that agents follow. It still documents the old `CR → CO → G → A → D → V` flow with Connect as a mandatory step. Since CLAUDE.md instructions override default behavior, future agents will enforce the old flow unless this is updated.
+
+**Files:**
+- Modify: `CLAUDE.md`
+
+**Step 1: Update the Workflow Sequence diagram**
+
+Search for the Workflow Sequence section. Find the dependency graph:
+```
+CR (credentials) → CO (connect) → G (generate) → A (assemble) → D (deploy) → V (verify)
+```
+
+Replace it with:
+```
+CR (credentials) → G (generate) → A (assemble) → D (deploy + auto-connect) → V (verify)
+```
+
+**Step 2: Update the hard rules**
+
+Find and replace the hard rules block:
+```
+**Hard rules:**
+- Deploy is mandatory — Clerk auth requires a public URL. No local-only path.
+- Connect is always required — no value in local-only Fireproof.
+- Iterate loop always includes re-deploy: edit app.jsx → A → D → V.
+```
+
+Replace with:
+```
+**Hard rules:**
+- Deploy is mandatory — Clerk auth requires a public URL. No local-only path.
+- Connect auto-deploys on first app deploy (via alchemy). No manual Connect step.
+- Iterate loop always includes re-deploy: edit app.jsx → A → D → V.
+```
+
+**Step 3: Update the Node registry table**
+
+Remove the CO row entirely:
+```
+| CO | CONNECT | Clerk PK+SK | .env with API_URL+CLOUD_URL | CR | .env has VITE_API_URL |
+```
+
+Update the A (ASSEMBLE) row prereqs from `G + CO` to `G + CR`:
+```
+| A | ASSEMBLE | app.jsx + .env [+ sell config] | index.html | G + CR; SaaS: + S | -- |
+```
+
+Update the SaaS assembly prereq similarly: `G + CR + S → A`.
+
+**Step 4: Update the Hard dependencies block**
+
+Find:
+```
+CR → CO       Connect needs Clerk keys
+CO → G        Generate needs Connect configured
+G + CO → A    Assembly needs app.jsx + .env
+G + CO + S → A  SaaS assembly needs all three
+```
+
+Replace with:
+```
+CR → G        Generate needs Clerk key
+G + CR → A    Assembly needs app.jsx + Clerk key
+G + CR + S → A  SaaS assembly needs all three
+A → D         Deploy needs index.html (Connect auto-provisions on first deploy)
+```
+
+**Step 5: Update the Connect Studio Environment section**
+
+Search for `### Connect Studio Environment`. This section documents `VITE_API_URL` and `VITE_CLOUD_URL` for manual Studio setup. Add a note at the top:
+
+```
+> **Note:** With the new onboarding wizard, Connect auto-deploys via alchemy on first app deploy. The manual Studio configuration below is only needed for advanced/custom Connect setups.
+```
+
+**Step 6: Commit**
+
+```bash
+cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add CLAUDE.md && git commit -m "Update CLAUDE.md workflow sequence for auto-connect architecture
+
+Remove CO (connect) node from dependency graph. Connect now
+auto-deploys via alchemy on first app deploy. Assembly only
+requires Clerk key — Connect URLs populated at deploy time."
+```
+
+---
+
+### Task 14: Verification Checklist
 
 **Before claiming complete, verify all of these:**
 
@@ -1865,7 +2037,15 @@ cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding
 - [ ] Clerk keys also written to `.env` for assembly backward compatibility
 - [ ] Session context dispatch table has no `/vibes:connect` or `/vibes:exe`
 - [ ] `deploy.js` `handleDeploy` injects `CLOUDFLARE_API_KEY`/`CLOUDFLARE_EMAIL` from registry into subprocess env
+- [ ] `deploy.js` `handleDeploy` also injects `VITE_API_URL`/`VITE_CLOUD_URL`/`VITE_CLERK_PUBLISHABLE_KEY` from registry into assembly subprocess env
 - [ ] `deploy.js` `handleDeploy` only accepts `target === 'cloudflare'` (not `exe`)
 - [ ] Deploy menu in editor only shows Cloudflare option (no exe.dev button)
 - [ ] `updateDeployButtons` reads `cloudflareReady` (not `deployTargets.cloudflare`)
 - [ ] `toggleDeployMenu` reads `status.cloudflare?.ok` (not `status.wrangler?.ok`)
+- [ ] Zero matches for: `grep -n 'deployTargets\.exe\|status\.ssh\|sshAvailable\|deployExe\|deploy-exe\|exe\.dev\|exe\.xyz\|studioMode\|studioCheckTimer' skills/vibes/templates/editor.html`
+- [ ] CLAUDE.md Workflow Sequence diagram shows `CR → G → A → D(+auto-connect) → V` (no CO node)
+- [ ] CLAUDE.md hard rules say "Connect auto-deploys" (not "Connect is always required")
+- [ ] CLAUDE.md Node registry table has no CO row
+- [ ] CLAUDE.md Hard dependencies block has no `CR → CO` or `CO → G` lines
+- [ ] Registry adapter exports `getConnectUrls` function
+- [ ] Registry adapter unit tests use `vi.resetModules()` in `beforeEach`
