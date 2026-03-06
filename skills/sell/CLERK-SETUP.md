@@ -108,7 +108,8 @@ The registry server listens for Clerk subscription webhooks to release subdomain
 The webhook secret is passed to deploy-cloudflare.js via the `--webhook-secret` flag:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
   --name myapp \
   --file index.html \
   --clerk-key "pk_test_xxx" \
@@ -136,7 +137,8 @@ For all test cards: use any future expiry date (e.g., `12/34`) and any 3-digit C
 
 1. **Assemble with billing enabled:**
    ```bash
-   node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
+   VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+   node "$VIBES_ROOT/scripts/assemble-sell.js" app.jsx index.html \
      --billing-mode required \
      --clerk-key "pk_test_xxx" \
      ... (other options)

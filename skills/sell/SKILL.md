@@ -48,8 +48,9 @@ metadata:
 
 **Script location:**
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" ...
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" ...
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/assemble-sell.js" ...
+node "$VIBES_ROOT/scripts/deploy-cloudflare.js" ...
 ```
 
 **NEVER do these manually:**
@@ -395,7 +396,8 @@ If "Yes, include": pass `--admin-ids '["<user_id>"]'`. If "Enter different": col
 Run the assembly script with all collected values:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/assemble-sell.js" app.jsx index.html \
   --clerk-key "pk_test_xxx" \
   --app-name "wedding-photos" \
   --app-title "Wedding Photos" \
@@ -448,7 +450,8 @@ The template uses neutral colors by default. To match the user's brand:
 ### 5.1 Deploy to Cloudflare Workers
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
   --name wedding-photos \
   --file index.html \
   --clerk-key "pk_test_xxx" \
@@ -476,7 +479,8 @@ The app is immediately available at `{appName}.{subdomain}.workers.dev`. For a c
 ### 5.3 Optional: AI Features
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
   --name wedding-photos \
   --file index.html \
   --clerk-key "pk_test_xxx" \
@@ -560,7 +564,8 @@ Guide the user through admin setup:
 > 4. Re-run assembly with admin access:
 >
 > ```bash
-> node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
+> VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+> node "$VIBES_ROOT/scripts/assemble-sell.js" app.jsx index.html \
 >   --clerk-key "pk_test_xxx" \
 >   --app-name "{appName}" \
 >   --app-title "{appTitle}" \
@@ -571,7 +576,8 @@ Guide the user through admin setup:
 >
 > 5. Re-deploy:
 > ```bash
-> node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
+> VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+> node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
 >   --name {appName} \
 >   --file index.html \
 >   --clerk-key "pk_test_xxx" \
