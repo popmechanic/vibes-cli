@@ -29,7 +29,7 @@ Run an end-to-end integration test using a pre-built fixture. Assembles the app,
 
 ## Prerequisites
 
-- Clerk credentials in `test-vibes/.env`
+- OIDC credentials in `test-vibes/.env`
 - Cloudflare account with `wrangler` authenticated
 - Connect Studio deployed (via `/vibes:connect`)
 

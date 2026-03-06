@@ -121,7 +121,7 @@ export async function handleRequest(ctx, req, res) {
   if (handler) return handler(ctx, req, res, url);
 
   // Bundle files: import map references these at root paths
-  if (url.pathname === '/fireproof-vibes-bridge.js' || url.pathname === '/fireproof-clerk-bundle.js') {
+  if (url.pathname === '/fireproof-oidc-bridge.js' || url.pathname === '/fireproof-vibes-bridge.js') {
     const bundlePath = join(ctx.projectRoot, 'bundles', url.pathname.slice(1));
     if (existsSync(bundlePath)) {
       res.writeHead(200, { 'Content-Type': 'text/javascript' });

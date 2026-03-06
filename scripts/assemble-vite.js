@@ -11,13 +11,13 @@
  * Options:
  *   --api-url <url>    Token API URL (default: from .env or localhost)
  *   --cloud-url <url>  Cloud sync URL (default: from .env or localhost)
- *   --clerk-key <key>  Clerk publishable key
+ *   --oidc-authority <url>  OIDC authority URL
  *   --db-name <name>   Database name (default: vibes-app)
  *   --skip-build       Skip npm build step (for testing)
  *
  * Example:
  *   node scripts/assemble-vite.js app.jsx ./build \
- *     --clerk-key pk_test_xxx \
+ *     --oidc-authority https://vibes-connect.exe.xyz/auth \
  *     --api-url https://vibes-connect.exe.xyz/api \
  *     --cloud-url fpcloud://vibes-connect.exe.xyz/backend?protocol=wss
  */
@@ -45,7 +45,7 @@ const findPluginDir = async () => {
 const assembleViteSchema = [
   { name: 'apiUrl', flag: '--api-url', type: 'string', description: 'Token API URL (Fireproof dashboard)' },
   { name: 'cloudUrl', flag: '--cloud-url', type: 'string', description: 'Cloud sync URL (fpcloud:// protocol)' },
-  { name: 'clerkKey', flag: '--clerk-key', type: 'string', description: 'Clerk publishable key' },
+  { name: 'oidcAuthority', flag: '--oidc-authority', type: 'string', description: 'OIDC authority URL' },
   { name: 'dbName', flag: '--db-name', type: 'string', default: 'vibes-app', description: 'Database name (default: vibes-app)' },
   { name: 'skipBuild', flag: '--skip-build', type: 'boolean', description: 'Skip npm build step (for testing)' },
 ];
@@ -56,7 +56,7 @@ const assembleViteMeta = {
   usage: 'node scripts/assemble-vite.js <input.jsx> <output-dir> [options]',
   examples: [
     'node scripts/assemble-vite.js app.jsx ./build \\',
-    '  --clerk-key pk_test_xxx \\',
+    '  --oidc-authority https://vibes-connect.exe.xyz/auth \\',
     '  --api-url https://vibes-connect.exe.xyz/api \\',
     '  --cloud-url fpcloud://vibes-connect.exe.xyz/backend?protocol=wss',
   ],
@@ -83,24 +83,24 @@ function printHelp() {
 
 /**
  * Transform JSX to TSX for Vite compatibility
- * - Replaces use-fireproof imports with @necrodome/fireproof-clerk
+ * - Replaces use-fireproof imports with @fireproof/oidc (via backward-compat alias useFireproofClerk)
  * - Replaces useFireproof with useFireproofClerk
  * - Preserves the structure
  */
 function transformJsxToTsx(jsxCode, dbName) {
   let code = jsxCode;
 
-  // First, replace use-fireproof imports with fireproof-clerk
+  // First, replace use-fireproof imports with the OIDC package
   code = code.replace(
     /from\s+["']use-fireproof["']/g,
     'from "@necrodome/fireproof-clerk"'
   );
 
-  // Replace useFireproof with useFireproofClerk if not already
+  // Replace useFireproof with useFireproofClerk (backward-compat alias) if not already
   code = code.replace(/\buseFireproof\b(?!Clerk)/g, 'useFireproofClerk');
 
   // Replace any hardcoded database name with the provided one
-  // Look for patterns like useFireproofClerk("something") or useFireproof("something")
+  // Look for patterns like useFireproofClerk("something")
   // But only if a specific db name was provided (not default)
   if (dbName !== 'vibes-app') {
     code = code.replace(
@@ -109,7 +109,7 @@ function transformJsxToTsx(jsxCode, dbName) {
     );
   }
 
-  // If no fireproof-clerk import exists, add it
+  // If no fireproof import exists, add it (useFireproofClerk is the backward-compat alias)
   if (!code.includes('@necrodome/fireproof-clerk')) {
     code = `import { useFireproofClerk, UserButton, useUser } from "@necrodome/fireproof-clerk";\n${code}`;
   }
@@ -159,7 +159,7 @@ async function main() {
   console.log('\n=== Vite Assembly for Connect Apps ===\n');
   console.log(`  Input: ${args.input}`);
   console.log(`  Output: ${args.outputDir}`);
-  if (args.clerkKey) console.log(`  Clerk Key: ${args.clerkKey.substring(0, 15)}...`);
+  if (args.oidcAuthority) console.log(`  OIDC Authority: ${args.oidcAuthority}`);
   if (args.apiUrl) console.log(`  API URL: ${args.apiUrl}`);
   if (args.cloudUrl) console.log(`  Cloud URL: ${args.cloudUrl}`);
   console.log(`  DB Name: ${args.dbName}`);
@@ -213,7 +213,7 @@ async function main() {
     // Create .env file with configuration
     console.log('  Creating .env configuration...');
     const envContent = [
-      args.clerkKey ? `VITE_CLERK_PUBLISHABLE_KEY=${args.clerkKey}` : '# VITE_CLERK_PUBLISHABLE_KEY=pk_test_xxx',
+      args.oidcAuthority ? `VITE_OIDC_AUTHORITY=${args.oidcAuthority}` : '# VITE_OIDC_AUTHORITY=https://your-studio.exe.xyz/auth',
       args.apiUrl ? `VITE_API_URL=${args.apiUrl}` : '# VITE_API_URL=http://localhost:8080/api/',
       args.cloudUrl ? `VITE_CLOUD_URL=${args.cloudUrl}` : '# VITE_CLOUD_URL=fpcloud://localhost:8080?protocol=ws'
     ].join('\n') + '\n';

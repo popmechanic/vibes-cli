@@ -22,7 +22,7 @@ Build and deploy a complete SaaS application end-to-end. Uses Agent Teams for pa
 ## What It Does
 
 1. **Generate** the app (vibes)
-2. **Configure** Clerk authentication (credentials + connect)
+2. **Configure** OIDC authentication (credentials + connect)
 3. **Add billing** with subscription gating (sell)
 4. **Assemble** the final HTML
 5. **Deploy** to hosting

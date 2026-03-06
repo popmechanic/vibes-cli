@@ -924,9 +924,9 @@
           "multiformats/": "https://esm.sh/stable/multiformats@13.3.1/",
           "@ipld/dag-cbor": "https://esm.sh/stable/@ipld/dag-cbor@9.2.2?external=multiformats",
           "@ipld/dag-json": "https://esm.sh/stable/@ipld/dag-json@10.2.3?external=multiformats",
-          "@clerk/clerk-react": "https://esm.sh/stable/@clerk/clerk-react@5.59.2?external=react,react-dom",
-          "use-fireproof": "/fireproof-vibes-bridge.js",
-          "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom"
+          "oauth4webapi": "https://esm.sh/stable/oauth4webapi@3.3.0",
+          "@fireproof/core": "https://esm.sh/stable/use-fireproof@0.19.128?external=react,react-dom",
+          "use-fireproof": "/fireproof-oidc-bridge.js"
         }
       }
     </script>
@@ -935,7 +935,8 @@
       window.__VIBES_CONFIG__ = {
         tokenApiUri: "__VITE_API_URL__",
         cloudBackendUrl: "__VITE_CLOUD_URL__",
-        clerkPublishableKey: "__VITE_CLERK_PUBLISHABLE_KEY__"
+        oidcAuthority: "__VITE_OIDC_AUTHORITY__",
+        oidcClientId: "__VITE_OIDC_CLIENT_ID__"
       };
       // Default: single theme hides the Design button in VibesPanel.
       // Apps with multiple themes override this before menu loads.
@@ -2900,13 +2901,11 @@ if (typeof window !== 'undefined') {
           setError(null);
 
           try {
-            // Get auth token if Clerk is available (sell apps)
+            // Get auth token if OIDC session is available
             let authHeader = {};
-            if (typeof window !== 'undefined' && window.Clerk?.session) {
-              const token = await window.Clerk.session.getToken();
-              if (token) {
-                authHeader = { 'Authorization': 'Bearer ' + token };
-              }
+            const oidcToken = window.__VIBES_OIDC_TOKEN__;
+            if (oidcToken) {
+              authHeader = { 'Authorization': 'Bearer ' + oidcToken };
             }
 
             const response = await fetch('/api/ai/chat', {
@@ -2960,10 +2959,10 @@ if (typeof window !== 'undefined') {
             message: message,
             showCard: false,
             isError: true,
-            errorDetails: 'Run Connect setup to configure Clerk credentials.'
+            errorDetails: 'Run Connect setup to configure OIDC credentials.'
           },
             React.createElement('p', { style: { color: 'var(--comp-accent-red, #7f1d1d)', fontSize: '0.875rem' } },
-              'Check your .env file for missing credentials.'
+              'Check your .env file for missing OIDC credentials.'
             )
           );
         }
@@ -2973,7 +2972,7 @@ if (typeof window !== 'undefined') {
             React.createElement('div', { className: 'text-red-500 text-4xl mb-4' }, '⚠️'),
             React.createElement('h1', { className: 'text-xl font-bold text-red-700 mb-4' }, 'Configuration Error'),
             React.createElement('p', { className: 'text-gray-600 mb-4' }, message),
-            React.createElement('p', { className: 'text-sm text-gray-500' }, 'Run Connect setup to configure Clerk credentials.')
+            React.createElement('p', { className: 'text-sm text-gray-500' }, 'Run Connect setup to configure OIDC credentials.')
           )
         );
       }
@@ -3146,10 +3145,10 @@ if (typeof window !== 'undefined') {
       window.SyncStatusDot = SyncStatusDot;
 
       // === SharingBridge ===
-      // Must be rendered inside ClerkFireproofProvider > SignedIn.
+      // Must be rendered inside OIDCProvider > SignedIn.
       // Bridges vibes-share-request DOM events to the dashApi.
       function SharingBridge() {
-        var ctx = window.useClerkFireproofContext();
+        var ctx = window.useOIDCContext ? window.useOIDCContext() : {};
         var dashApi = ctx.dashApi;
         var dashApiRef = React.useRef(null);
         var ledgerCacheRef = React.useRef(null);
@@ -3251,7 +3250,7 @@ if (typeof window !== 'undefined') {
                 try {
                   var kvRegistryUrl = window.__VIBES_REGISTRY_URL__;
                   if (kvRegistryUrl && !kvRegistryUrl.startsWith('__')) {
-                    var token = await window.Clerk?.session?.getToken();
+                    var token = window.__VIBES_OIDC_TOKEN__;
                     if (token) {
                       var hostname = window.location.hostname;
                       var parts = hostname.split('.');
@@ -3268,7 +3267,7 @@ if (typeof window !== 'undefined') {
                         console.log('[vibes-sharing] KV invite written successfully for', email, 'on', kvSubdomain);
                       }
                     } else {
-                      console.warn('[vibes-sharing] KV invite skipped: no Clerk session token available');
+                      console.warn('[vibes-sharing] KV invite skipped: no OIDC token available');
                     }
                   }
                 } catch (kvErr) {
@@ -3304,7 +3303,7 @@ if (typeof window !== 'undefined') {
       function useVibesPanelEvents(logPrefix) {
         React.useEffect(() => {
           const handleLogout = () => {
-            if (window.Clerk) window.Clerk.signOut();
+            if (window.__vibes_oidc_signOut) window.__vibes_oidc_signOut();
           };
           const handleSyncDisable = () => {
             console.log('[' + logPrefix + '] Sync disabled');
@@ -3402,7 +3401,8 @@ if (typeof window !== 'undefined') {
 
       // === Configuration ===
       const CONFIG = {
-        clerkPublishableKey: "__CLERK_PUBLISHABLE_KEY__",
+        oidcAuthority: "__OIDC_AUTHORITY__",
+        oidcClientId: "__OIDC_CLIENT_ID__",
         appName: "__APP_NAME__",
         appTitle: "__APP_TITLE__",
         domain: "__APP_DOMAIN__",
@@ -3417,7 +3417,8 @@ if (typeof window !== 'undefined') {
       };
 
       // Convenience aliases
-      const CLERK_PUBLISHABLE_KEY = CONFIG.clerkPublishableKey;
+      const OIDC_AUTHORITY = CONFIG.oidcAuthority;
+      const OIDC_CLIENT_ID = CONFIG.oidcClientId;
       const APP_NAME = CONFIG.appName;
       const APP_DOMAIN = CONFIG.domain;
       const BILLING_MODE = CONFIG.billingMode;
@@ -3444,7 +3445,7 @@ if (typeof window !== 'undefined') {
       // Fall back to current origin when registry lives on same Worker
       window.__VIBES_REGISTRY_URL__ = REGISTRY_URL || window.location.origin;
 
-      // Also use window config for Clerk (same pattern as vibes)
+      // Also use window config for OIDC (same pattern as vibes)
       const vibesConfig = window.__VIBES_CONFIG__ || {};
 
       // === Registry API Helpers ===
@@ -3625,7 +3626,7 @@ if (typeof window !== 'undefined') {
 
       // __VIBES_APP_CODE__
 
-      // === Module-level gate cache (survives React remounts from ClerkProvider) ===
+      // === Module-level gate cache (survives React remounts from OIDCProvider) ===
       const _gateCache = {};  // keyed by "userId:subdomain", stores { phase, role, frozen }
 
       // Module-level subdomain check — starts before React renders, immune to remount
@@ -3639,12 +3640,12 @@ if (typeof window !== 'undefined') {
 
       // === Auth Gate (for signed-out users) ===
       function AuthGate({ onSignUp }) {
-        const { SignInButton, SignUpButton } = window.ClerkComponents || {};
+        const { SignInButton } = window.OIDCComponents || {};
         const appDisplayName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
         // Guard against undefined components
-        if (!SignInButton || !SignUpButton) {
-          return <LoadingError error="Clerk auth buttons not loaded. Please refresh." />;
+        if (!SignInButton) {
+          return <LoadingError error="Auth components not loaded. Please refresh." />;
         }
 
         return (
@@ -3653,16 +3654,11 @@ if (typeof window !== 'undefined') {
             message="Sign in to access your space."
             showCard={true}
           >
-            <SignInButton mode="modal">
+            <SignInButton>
               <VibesButton variant={RED} buttonType="form">
                 Sign In
               </VibesButton>
             </SignInButton>
-            <SignUpButton mode="modal">
-              <VibesButton variant={YELLOW} buttonType="form">
-                Create Account
-              </VibesButton>
-            </SignUpButton>
           </AuthScreen>
         );
       }
@@ -3677,7 +3673,7 @@ if (typeof window !== 'undefined') {
           setClaiming(true);
           setError(null);
           try {
-            const token = await window.Clerk?.session?.getToken();
+            const token = window.__VIBES_OIDC_TOKEN__;
             if (!token) throw new Error('Not authenticated');
             const result = await claimSubdomain(subdomain, token);
             if (result.success) {
@@ -3721,92 +3717,40 @@ if (typeof window !== 'undefined') {
         );
       }
 
-      // === Subscription Paywall (shown via Protect fallback when user needs to subscribe) ===
+      // === Subscription Paywall (stub — billing is phase 2) ===
       function SubscriptionPaywall({ subdomain }) {
-        const { PricingTable } = window.ClerkComponents || {};
         const displayDomain = subdomain
           ? `${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`
           : null;
 
-        if (PricingTable) {
-          return (
-            <div style={{
-              minHeight: '100vh',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: '2rem',
-              background: '#ECECEC',
-              fontFamily: "'Space Grotesk', 'Inter', sans-serif",
-            }}>
-              <h2 style={{
-                fontSize: 'clamp(1.5rem, 4vw, 2.5rem)',
-                fontWeight: 700,
-                letterSpacing: '-0.04em',
-                marginBottom: '0.5rem',
-                textAlign: 'center',
-              }}>{displayDomain ? `Subscribe to claim ${displayDomain}` : 'Subscribe to Continue'}</h2>
-              <p style={{
-                color: '#666',
-                marginBottom: '2rem',
-                textAlign: 'center',
-                fontSize: '1.1rem',
-              }}>{displayDomain ? 'Choose a plan to claim your subdomain.' : 'Choose a plan to get started.'}</p>
-              <div style={{ width: '100%', maxWidth: '600px' }}>
-                <PricingTable
-                  newSubscriptionRedirectUrl={window.location.href}
-                />
-              </div>
-            </div>
-          );
-        }
-
-        // Fallback when PricingTable is not available
         return (
           <AuthScreen
             title="Subscription Required"
-            message="A subscription is required to use this app."
+            message={displayDomain ? `A subscription is required to claim ${displayDomain}. Billing coming soon.` : 'A subscription is required to use this app. Billing coming soon.'}
             showCard={true}
           >
-            <a
-              href={`https://accounts.clerk.dev/user/billing`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ textDecoration: 'none' }}
-            >
-              <VibesButton variant={RED} buttonType="form">
-                Manage Subscription
-              </VibesButton>
-            </a>
+            <div style={{ textAlign: 'center', color: '#666', fontSize: '0.875rem' }}>
+              Billing integration is not yet configured.
+            </div>
           </AuthScreen>
         );
       }
 
-      // === Subscription Gate using explicit has() check ===
-      // Deny-by-default: non-admin users without a plan see SubscriptionPaywall
-      // COUPLING: Worker accepts any non-free plan slug via JWT pla claim.
-      // Client checks specifically for 'starter'. Create a plan named 'starter' in Clerk.
+      // === Subscription Gate (stub — billing is phase 2) ===
+      // When billing is integrated (phase 2), this will check subscription status.
+      // For now: admin bypass + no billing required = always pass through.
       function SubscriptionGate({ children, subdomain }) {
         const { user } = window.useUser();
-        const { has, isLoaded } = window.useAuth();
         const isAdmin = user?.id && ADMIN_USER_IDS.includes(user.id);
 
         // Admin bypass
         if (isAdmin) return children;
 
-        // No billing required — pass through
+        // No billing required — pass through (phase 1: always pass)
         if (BILLING_MODE !== 'required') return children;
 
-        // Wait for auth to fully load before making gate decisions
-        if (!isLoaded) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading...</div>;
-
-        // Multi-plan check — use configured plan slugs, fall back to 'starter'
-        const slugsToCheck = PLAN_SLUGS.length > 0 ? PLAN_SLUGS : ['starter'];
-        const hasPlan = has && slugsToCheck.some(slug => has({ plan: slug }) === true);
-        if (!hasPlan) return <SubscriptionPaywall subdomain={subdomain} />;
-
-        return children;
+        // Billing required but not yet integrated — show paywall stub
+        return <SubscriptionPaywall subdomain={subdomain} />;
       }
 
       // === Access Denied ===
@@ -3831,7 +3775,6 @@ if (typeof window !== 'undefined') {
       }
 
       // === Wrapper Components (use useUser hook instead of render props) ===
-      // Clerk's SignedIn doesn't support render props - must use hooks inside child components
 
       function ClaimPromptWrapper({ subdomain, onClaimSuccess }) {
         const { user } = window.useUser();
@@ -3844,10 +3787,9 @@ if (typeof window !== 'undefined') {
         );
       }
 
-      // === Unified Access Gate (JWT-primary resolution with module-level cache) ===
+      // === Unified Access Gate (registry-based resolution with module-level cache) ===
       function UnifiedAccessGate({ subdomain }) {
         const { user, isLoaded } = window.useUser();
-        const { has } = window.useAuth ? window.useAuth() : {};
 
         // Initialize from cache if available (survives remounts)
         const [state, setState] = useState(function() {
@@ -3864,7 +3806,7 @@ if (typeof window !== 'undefined') {
         });
 
         const resolvedForRef = useRef(null);
-        const [clerkTimedOut, setClerkTimedOut] = useState(false);
+        const [oidcTimedOut, setOidcTimedOut] = useState(false);
 
         // Write-through setState that caches to module level
         const setGateState = useCallback(function(newState) {
@@ -3877,18 +3819,18 @@ if (typeof window !== 'undefined') {
           setState(newState);
         }, [user?.id, subdomain]);
 
-        // Clerk initialization timeout
+        // OIDC initialization timeout
         useEffect(function() {
           if (isLoaded) return;
-          var timer = setTimeout(function() { setClerkTimedOut(true); }, 15000);
+          var timer = setTimeout(function() { setOidcTimedOut(true); }, 15000);
           return function() { clearTimeout(timer); };
         }, [isLoaded]);
 
         // Hook must be called unconditionally (Rules of Hooks)
         window.useVibesPanelEvents('Sell');
 
-        const fpCtx = typeof window.useClerkFireproofContext === 'function'
-          ? window.useClerkFireproofContext() : null;
+        const fpCtx = typeof window.useOIDCContext === 'function'
+          ? window.useOIDCContext() : null;
         const dashApiRef = useRef(null);
         dashApiRef.current = fpCtx?.dashApi || null;
 
@@ -3897,7 +3839,7 @@ if (typeof window !== 'undefined') {
           var userKey = (user?.id || '__anon__') + ':' + subdomain;
           if (resolvedForRef.current === userKey) return;
 
-          // Cache check BEFORE isLoaded — survives Clerk remounts
+          // Cache check BEFORE isLoaded — survives OIDC remounts
           var cached = _gateCache[userKey] || _gateCache[subdomain];
           if (cached && cached.phase === 'resolved') {
             resolvedForRef.current = userKey;
@@ -3961,76 +3903,8 @@ if (typeof window !== 'undefined') {
             return;
           }
 
-          // === Path 2: Signed in + JWT claims present ===
-          var vibesClaims = user.publicMetadata?.vibes_subdomains;
-          if (vibesClaims && vibesClaims[subdomain]) {
-            var claim = vibesClaims[subdomain];
-
-            if (claim.role === 'owner') {
-              var slugsToCheck = PLAN_SLUGS.length > 0 ? PLAN_SLUGS : ['starter'];
-              var isFrozen = has && BILLING_MODE === 'required' && !slugsToCheck.some(function(slug) { return has({ plan: slug }) === true; });
-
-              // If no cached ledger, fetch from /resolve before rendering
-              var gateDbName = APP_NAME + '-' + subdomain;
-              var cachedLedger = window.__VIBES_LEDGER_MAP__ && window.__VIBES_LEDGER_MAP__[gateDbName];
-              if (!cachedLedger) {
-                fetch(registryApiUrl('/resolve/' + subdomain + '?userId=' + user.id))
-                  .then(function(res) { return res.json(); })
-                  .then(function(data) {
-                    if (data.ledgerId) {
-                      if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
-                      window.__VIBES_LEDGER_MAP__[gateDbName] = data.ledgerId;
-                      window.__VIBES_SHARED_LEDGER__ = data.ledgerId;
-                      try { localStorage.setItem('vibes-shared-ledger-' + subdomain, data.ledgerId); } catch(e) {}
-                    }
-                    resolvedForRef.current = userKey;
-                    setGateState({ phase: 'resolved', role: 'owner', frozen: isFrozen, error: null });
-                  })
-                  .catch(function() {
-                    // Fallback: render anyway, Tier 3 handles owner's own ledger
-                    resolvedForRef.current = userKey;
-                    setGateState({ phase: 'resolved', role: 'owner', frozen: isFrozen, error: null });
-                  });
-                return;
-              }
-              // Has cached ledger — render immediately (fast path preserved)
-              resolvedForRef.current = userKey;
-              setGateState({ phase: 'resolved', role: 'owner', frozen: isFrozen, error: null });
-              return;
-            }
-
-            if (claim.role === 'collaborator') {
-              var isFrozen = claim.frozen === true;
-              var gateDbName = APP_NAME + '-' + subdomain;
-
-              // ALWAYS call /resolve for collaborators — URL/localStorage may be stale/poisoned
-              var email = user.primaryEmailAddress?.emailAddress;
-              var resolveUrl = registryApiUrl('/resolve/' + subdomain + '?userId=' + user.id);
-              if (email) resolveUrl += '&email=' + encodeURIComponent(email);
-              fetch(resolveUrl)
-                .then(function(res) { return res.json(); })
-                .then(function(data) {
-                  if (data.ledgerId) {
-                    if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
-                    window.__VIBES_LEDGER_MAP__[gateDbName] = data.ledgerId;  // overwrite stale cache
-                    window.__VIBES_SHARED_LEDGER__ = data.ledgerId;
-                    try { localStorage.setItem('vibes-shared-ledger-' + subdomain, data.ledgerId); } catch(e) {}
-                  }
-                  resolvedForRef.current = userKey;
-                  setGateState({ phase: 'resolved', role: 'collaborator', frozen: isFrozen, error: null });
-                })
-                .catch(function() {
-                  // Fallback: render with whatever cache exists
-                  resolvedForRef.current = userKey;
-                  setGateState({ phase: 'resolved', role: 'collaborator', frozen: isFrozen, error: null });
-                });
-              return;
-            }
-          }
-
-          // === Path 3: Signed in + no JWT claims ===
-          // Need to determine: is subdomain unclaimed (show ClaimPrompt) or claimed by someone else?
-          // For taken subdomains, also check if user is invited (via /resolve)
+          // === Path 2: Signed in — always resolve via registry ===
+          // (No JWT claims path — registry is sole source of truth)
 
           var doResolve = function(checkResult) {
             if (checkResult && checkResult.available) {
@@ -4040,30 +3914,21 @@ if (typeof window !== 'undefined') {
               return;
             }
 
-            // Subdomain is taken — need /resolve to check if user is invited
-            var email = user.primaryEmailAddress?.emailAddress;
+            // Subdomain is taken — need /resolve to check user's role
+            var email = user.email;
             var resolveUrl = registryApiUrl('/resolve/' + subdomain + '?userId=' + user.id);
             if (email) resolveUrl += '&email=' + encodeURIComponent(email);
             var resolveCtrl = new AbortController();
             var resolveTimeout = setTimeout(function() { resolveCtrl.abort(); }, 10000);
 
-            // Try to get auth token for /resolve
-            var tokenPromise = window.Clerk?.session?.getToken
-              ? Promise.race([
-                  window.Clerk.session.getToken(),
-                  new Promise(function(_, reject) { setTimeout(function() { reject(new Error('getToken timeout')); }, 5000); })
-                ])
-              : Promise.resolve(null);
+            // Use OIDC token for authenticated /resolve
+            var token = window.__VIBES_OIDC_TOKEN__;
+            var headers = {};
+            if (token) headers['Authorization'] = 'Bearer ' + token;
 
-            tokenPromise.then(function(token) {
-              var headers = {};
-              if (token) headers['Authorization'] = 'Bearer ' + token;
-              return fetch(resolveUrl, { headers: headers, signal: resolveCtrl.signal });
-            }).catch(function() {
-              return fetch(resolveUrl, { signal: resolveCtrl.signal });
-            }).then(function(res) {
-              return res.json();
-            }).then(function(data) {
+            fetch(resolveUrl, { headers: headers, signal: resolveCtrl.signal })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
               var role = data.role || 'none';
               var frozen = data.frozen || false;
 
@@ -4108,15 +3973,12 @@ if (typeof window !== 'undefined') {
           if (state.role !== 'invited') return;
           if (!user?.id) return;
 
-          var email = user.primaryEmailAddress?.emailAddress;
+          var email = user.email;
           if (!email) return;
 
           (async function() {
             try {
-              var token = await Promise.race([
-                window.Clerk?.session?.getToken(),
-                new Promise(function(_, reject) { setTimeout(function() { reject(new Error('getToken timeout')); }, 5000); })
-              ]);
+              var token = window.__VIBES_OIDC_TOKEN__;
               if (!token) return;
 
               var joinCtrl = new AbortController();
@@ -4219,7 +4081,7 @@ if (typeof window !== 'undefined') {
           })();
         }, [state.phase, state.role]);
 
-        // --- Render-time cache recovery (survives Clerk remounts) ---
+        // --- Render-time cache recovery (survives OIDC remounts) ---
         // React 18+: setState during render → discard current output, re-render immediately
         if (state.phase === 'init') {
           var directCached = _gateCache[subdomain];
@@ -4231,14 +4093,14 @@ if (typeof window !== 'undefined') {
         }
 
         // --- Render based on state ---
-        const { SignedIn, SignedOut } = window.ClerkComponents || {};
+        const { SignedIn, SignedOut } = window.OIDCComponents || {};
         if (!SignedIn || !SignedOut) {
-          return <LoadingError error="Clerk components not loaded. Please refresh the page." />;
+          return <LoadingError error="Auth components not loaded. Please refresh the page." />;
         }
 
         // Loading state
         if (state.phase === 'init') {
-          if (clerkTimedOut && !isLoaded) {
+          if (oidcTimedOut && !isLoaded) {
             return (
               <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
                 <p style={{ color: '#94a3b8' }}>Taking longer than expected...</p>
@@ -4329,39 +4191,16 @@ if (typeof window !== 'undefined') {
         );
       }
 
-      // === Resubscribe Paywall (shown when subdomain is frozen) ===
+      // === Resubscribe Paywall (shown when subdomain is frozen — stub, billing is phase 2) ===
       function ResubscribePaywall({ subdomain, role }) {
-        const { PricingTable } = window.ClerkComponents || {};
         const displayDomain = `${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`;
 
         if (role === 'owner') {
-          if (PricingTable) {
-            return (
-              <div style={{
-                minHeight: '100vh', display: 'flex', flexDirection: 'column',
-                justifyContent: 'center', alignItems: 'center', padding: '2rem',
-                background: '#ECECEC', fontFamily: "'Space Grotesk', 'Inter', sans-serif",
-              }}>
-                <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 700, letterSpacing: '-0.04em', marginBottom: '0.5rem', textAlign: 'center' }}>
-                  Your subscription has expired
-                </h2>
-                <p style={{ color: '#666', marginBottom: '0.5rem', textAlign: 'center', fontSize: '1.1rem' }}>
-                  Resubscribe to restore access to {displayDomain}.
-                </p>
-                <p style={{ color: '#10b981', marginBottom: '2rem', textAlign: 'center', fontSize: '0.95rem' }}>
-                  Your data is safe and will be restored instantly.
-                </p>
-                <div style={{ width: '100%', maxWidth: '600px' }}>
-                  <PricingTable newSubscriptionRedirectUrl={window.location.href} />
-                </div>
-              </div>
-            );
-          }
           return (
-            <AuthScreen title="Subscription Expired" message="Your subscription has expired. Resubscribe to restore access. Your data is safe." showCard={true}>
-              <a href="https://accounts.clerk.dev/user/billing" target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                <VibesButton variant={RED} buttonType="form">Manage Subscription</VibesButton>
-              </a>
+            <AuthScreen title="Subscription Expired" message={`Your subscription has expired. Resubscribe to restore access to ${displayDomain}. Your data is safe.`} showCard={true}>
+              <div style={{ textAlign: 'center', color: '#666', fontSize: '0.875rem' }}>
+                Billing integration coming soon.
+              </div>
             </AuthScreen>
           );
         }
@@ -4377,7 +4216,8 @@ if (typeof window !== 'undefined') {
       }
 
       // === Ledger Reporter (owner reports ledger ID to registry) ===
-      // Fix E: Only owners should report — collaborators get 403 from /set-ledger
+      // Only owners should report — collaborators get 403 from /set-ledger
+      // With OIDC, we rely on the gate's resolved role (cached in _gateCache)
       function LedgerReporter() {
         const { subdomain, dbName } = useTenant();
         const { user } = window.useUser();
@@ -4387,9 +4227,9 @@ if (typeof window !== 'undefined') {
           if (reportedRef.current) return;
           if (!user?.id) return;
 
-          // Only owners should report ledger IDs to the registry
-          var claims = user.publicMetadata?.vibes_subdomains;
-          if (!claims || !claims[subdomain] || claims[subdomain].role !== 'owner') {
+          // Check gate cache for owner role (registry is source of truth, no JWT claims)
+          var cached = _gateCache[user.id + ':' + subdomain] || _gateCache[subdomain];
+          if (!cached || cached.role !== 'owner') {
             console.debug('[vibes] LedgerReporter skipped — not owner of', subdomain);
             return;
           }
@@ -4405,7 +4245,7 @@ if (typeof window !== 'undefined') {
             // Fire and forget — report ledger ID to registry
             (async function() {
               try {
-                var token = await window.Clerk?.session?.getToken();
+                var token = window.__VIBES_OIDC_TOKEN__;
                 if (!token) return;
                 var res = await fetch(registryApiUrl('/set-ledger'), {
                   method: 'POST',
@@ -4438,7 +4278,7 @@ if (typeof window !== 'undefined') {
       // === Admin Dashboard Content (uses useUser hook) ===
       function AdminDashboardContent() {
         const { user } = window.useUser();
-        const { UserButton } = window.ClerkComponents;
+        const { UserButton } = window.OIDCComponents;
         const [registry, setRegistry] = useState(null);
         const [loading, setLoading] = useState(true);
         const [error, setError] = useState(null);
@@ -4517,8 +4357,8 @@ if (typeof window !== 'undefined') {
                       Billing
                     </h2>
                     <p style={{ color: 'var(--admin-text-muted)', fontSize: '0.875rem' }}>
-                      Subscription status is managed by Clerk Commerce. Users with an active plan
-                      can claim subdomains. Manage subscriptions in the Clerk Dashboard.
+                      Billing integration coming in phase 2 (Stripe). Users can currently
+                      claim subdomains without a subscription when billing mode is off.
                     </p>
                   </div>
 
@@ -4567,15 +4407,8 @@ if (typeof window !== 'undefined') {
                   </div>
 
                   {/* Links */}
-                  <div style={{ textAlign: 'center' }}>
-                    <a
-                      href="https://dashboard.clerk.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: 'var(--admin-text-muted)', fontSize: '0.875rem', textDecoration: 'underline' }}
-                    >
-                      Open Clerk Dashboard
-                    </a>
+                  <div style={{ textAlign: 'center', color: 'var(--admin-text-muted)', fontSize: '0.875rem' }}>
+                    Admin dashboard — Pocket ID OIDC
                   </div>
                 </>
               )}
@@ -4584,13 +4417,13 @@ if (typeof window !== 'undefined') {
         );
       }
 
-      // === Admin Dashboard (placeholder) ===
+      // === Admin Dashboard ===
       function AdminApp() {
-        const { SignedIn, SignedOut } = window.ClerkComponents || {};
+        const { SignedIn, SignedOut } = window.OIDCComponents || {};
 
-        // Guard against undefined Clerk components
+        // Guard against undefined OIDC components
         if (!SignedIn || !SignedOut) {
-          return <LoadingError error="Clerk components not loaded. Please refresh the page." />;
+          return <LoadingError error="Auth components not loaded. Please refresh the page." />;
         }
 
         return (
@@ -5154,78 +4987,66 @@ if (typeof window !== 'undefined') {
         return <SellLandingPage />;
       }
 
-      // === App Wrapper with Clerk ===
+      // === App Wrapper with OIDC ===
       function AppWrapper() {
-        // Check for configuration errors
-        const publishableKey = CLERK_PUBLISHABLE_KEY || vibesConfig.clerkPublishableKey;
-        if (!publishableKey || publishableKey.startsWith('__')) {
-          return <ConfigError message="Missing Clerk publishable key." />;
+        // Check for OIDC configuration
+        const authority = OIDC_AUTHORITY || vibesConfig.oidcAuthority;
+        const clientId = OIDC_CLIENT_ID || vibesConfig.oidcClientId;
+        if (!authority || authority.startsWith('__') || !clientId || clientId.startsWith('__')) {
+          return <ConfigError message="Missing OIDC configuration. Apps require authentication." />;
         }
 
-        if (!window.ClerkFireproofProvider) {
-          return <LoadingError error={window.__CLERK_LOAD_ERROR__ || 'Clerk components not available'} />;
+        if (!window.OIDCProvider) {
+          return <LoadingError error={window.__OIDC_LOAD_ERROR__ || 'OIDC components not available'} />;
         }
 
-        const { ClerkFireproofProvider } = window.ClerkComponents;
+        const { OIDCProvider } = window.OIDCComponents;
 
         return (
           <>
             <SyncStatusDot />
-            <ClerkFireproofProvider
-              publishableKey={publishableKey}
+            <OIDCProvider
+              authority={authority}
+              clientId={clientId}
               config={{
                 apiUrl: vibesConfig.tokenApiUri,
                 cloudUrl: vibesConfig.cloudBackendUrl
               }}
             >
               <AppRouter />
-            </ClerkFireproofProvider>
+            </OIDCProvider>
           </>
         );
       }
 
       // === Initialize App ===
       async function initApp() {
-        const t0 = performance.now();
         try {
-          const clerkModule = await import("@fireproof/clerk");
-          // SignUpButton is not exported by fireproof-clerk bundle, import from @clerk/clerk-react directly
-          const clerkReact = await import("@clerk/clerk-react");
-          const { SignUpButton } = clerkReact;
+          // Dynamic import of OIDC bridge (mapped via import map to fireproof-oidc-bridge.js)
+          const oidcModule = await import("use-fireproof");
 
-          window.ClerkFireproofProvider = clerkModule.ClerkFireproofProvider;
-          window.ClerkComponents = {
-            ClerkFireproofProvider: clerkModule.ClerkFireproofProvider,
-            SignedIn: clerkModule.SignedIn,
-            SignedOut: clerkModule.SignedOut,
-            SignInButton: clerkModule.SignInButton,
-            SignUpButton: SignUpButton,  // From @clerk/clerk-react
-            UserButton: clerkModule.UserButton
+          window.OIDCProvider = oidcModule.OIDCProvider;
+          window.OIDCComponents = {
+            OIDCProvider: oidcModule.OIDCProvider,
+            SignedIn: oidcModule.SignedIn,
+            SignedOut: oidcModule.SignedOut,
+            SignInButton: oidcModule.SignInButton,
+            UserButton: oidcModule.UserButton
           };
-          window.SignedIn = clerkModule.SignedIn;
-          window.SignedOut = clerkModule.SignedOut;
-          window.SignInButton = clerkModule.SignInButton;
-          window.SignUpButton = SignUpButton;  // From @clerk/clerk-react
-          window.UserButton = clerkModule.UserButton;
+          // Export for user's App code
+          window.SignedIn = oidcModule.SignedIn;
+          window.SignedOut = oidcModule.SignedOut;
+          window.SignInButton = oidcModule.SignInButton;
+          window.UserButton = oidcModule.UserButton;
+          window.useUser = oidcModule.useUser;
+          // Export OIDC context for SharingBridge and user code
+          window.useOIDCContext = oidcModule.useOIDCContext;
 
-          // Billing components (beta — gracefully handle missing exports)
-          if (clerkReact.PricingTable) window.ClerkComponents.PricingTable = clerkReact.PricingTable;
-          if (clerkReact.useAuth) window.useAuth = clerkReact.useAuth;
-          if (clerkReact.Protect) window.ClerkComponents.Protect = clerkReact.Protect;
-
-          // Export sharing APIs for user's App code and SharingBridge
-          window.useClerkFireproofContext = clerkModule.useClerkFireproofContext;
-          if (clerkModule.useSharing) window.useSharing = clerkModule.useSharing;
-
-          // Export useUser hook for wrapper components that need user info
-          window.useUser = clerkModule.useUser;
-          window.ClerkComponents.useUser = clerkModule.useUser;
-
-          // Export Fireproof hook for user's App code (bridge module provides sync + onTock wrapping)
-          window.useFireproofClerk = clerkModule.useFireproofClerk;
+          // Export Fireproof hook for user's App code (bridge provides ledger routing + invite)
+          window.useFireproofClerk = oidcModule.useFireproofClerk;
         } catch (err) {
-          console.error('Failed to load Clerk components:', err);
-          window.__CLERK_LOAD_ERROR__ = err.message || String(err);
+          console.error('Failed to load OIDC components:', err);
+          window.__OIDC_LOAD_ERROR__ = err.message || String(err);
         }
 
         const rootElement = document.getElementById("container");

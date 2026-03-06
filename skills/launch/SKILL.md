@@ -231,7 +231,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
   --admin-ids '{adminIds}'
 ```
 
-**Step B — Validate:** `grep -c '__VITE_\|__CLERK_\|__APP_' index.html` — must be 0.
+**Step B — Validate:** `grep -c '__VITE_\|__OIDC_\|__APP_' index.html` — must be 0.
 
 **Step C — Deploy:**
 ```bash

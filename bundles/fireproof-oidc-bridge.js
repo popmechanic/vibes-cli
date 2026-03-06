@@ -1,7 +1,7 @@
 /**
  * Vibes OIDC Bridge Module
  *
- * Replaces the Clerk-based bridge (fireproof-vibes-bridge.js).
+ * OIDC authentication bridge for Vibes apps (replaces the legacy Clerk-based bridge).
  * Implements standard OIDC authorization code flow with PKCE using oauth4webapi.
  *
  * Provides:
@@ -568,7 +568,7 @@ export function useFireproofOIDC(name, opts) {
   _currentDbName = name;
   var result = _baseUseFireproof(name, opts);
 
-  // Sync status bridge: use a simple state since we don't have @fireproof/clerk's syncStatus
+  // Sync status bridge: use a simple state for tracking sync progress
   var syncVal = "idle";
   var syncErr = null;
 

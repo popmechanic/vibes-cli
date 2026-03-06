@@ -25,7 +25,7 @@ SKILL.md provides common patterns (useDocument, useLiveQuery, database.put/del) 
 
 | Feature | Signal in prompt | fireproof.txt section |
 |---------|------------------|----------------------|
-| User authentication | "login", "auth", "accounts", "Clerk" | Quick Start, API Reference |
+| User authentication | "login", "auth", "accounts", "OIDC" | Quick Start, API Reference |
 | Sync status indicators | "connection status", "online/offline" | Sync Status Display |
 | User context/identity | "user name", "profile", "who is logged in" | User Context, useUser() |
 | Complete example | "full example", "show me how" | Complete Example |
@@ -60,7 +60,7 @@ Iterate loop: edit app.jsx → A → D → V (always includes re-deploy)
 ```
 
 **Hard rules:**
-- Deploy is mandatory — Clerk auth requires a public URL. No local-only path.
+- Deploy is mandatory — OIDC auth requires a public URL. No local-only path.
 - Connect is always required — no value in local-only Fireproof.
 - Iterate loop always includes re-deploy: edit app.jsx → A → D → V.
 
@@ -68,8 +68,8 @@ Iterate loop: edit app.jsx → A → D → V (always includes re-deploy)
 
 | ID | Node | Inputs | Outputs | Prereqs | Skip If |
 |----|------|--------|---------|---------|---------|
-| CR | CREDENTIALS | user input | Clerk PK+SK in .env | -- | .env has valid Clerk keys |
-| CO | CONNECT | Clerk PK+SK | .env with API_URL+CLOUD_URL | CR | .env has VITE_API_URL |
+| CR | CREDENTIALS | user input | OIDC authority+clientId in .env | -- | .env has valid OIDC credentials |
+| CO | CONNECT | OIDC credentials | .env with API_URL+CLOUD_URL | CR | .env has VITE_API_URL |
 | G | GENERATE | user prompt | app.jsx | -- | app.jsx exists (ask reuse) |
 | S | SELL | app context | sell config | CO | not SaaS path |
 | A | ASSEMBLE | app.jsx + .env [+ sell config] | index.html | G + CO; SaaS: + S | -- |
@@ -79,7 +79,7 @@ Iterate loop: edit app.jsx → A → D → V (always includes re-deploy)
 
 **Hard dependencies:**
 ```
-CR → CO       Connect needs Clerk keys
+CR → CO       Connect needs OIDC credentials
 CO → G        Generate needs Connect configured
 G + CO → A    Assembly needs app.jsx + .env
 G + CO + S → A  SaaS assembly needs all three
@@ -303,7 +303,6 @@ scripts/__tests__/
 ├── e2e/                            # Local server for manual testing
 │   └── local-server.js
 └── mocks/                          # Shared test doubles
-    └── clerk-webhooks.js
 ```
 
 ### E2E Testing with /etc/hosts
@@ -374,7 +373,7 @@ npm run test:e2e:server
 | `skills/cloudflare/worker/src/lib/registry-logic.ts` | Collaborator-aware subdomain registry logic |
 | `scripts/vitest.config.js` | Vitest test runner configuration |
 | `scripts/package.json` | Node.js deps |
-| `scripts/lib/env-utils.js` | Shared .env loading, Clerk key validation, Connect config |
+| `scripts/lib/env-utils.js` | Shared .env loading, OIDC credential validation, Connect config |
 | `scripts/lib/exe-ssh.js` | SSH automation for exe.dev |
 | `scripts/lib/paths.js` | Centralized path resolution for all plugin paths |
 | `scripts/lib/crypto-utils.js` | Session token and device CA key generation for Connect |
@@ -393,7 +392,7 @@ npm run test:e2e:server
 | `scripts/lib/parse-theme-catalog.js` | Parser for theme catalog.txt → JSON array |
 | `scripts/__tests__/fixtures/` | Pre-written JSX test fixtures |
 | `lib/resolve-paths.js` | Find plugin directory across install locations |
-| `bundles/fireproof-vibes-bridge.js` | ES module bridge -- wraps @fireproof/clerk with Vibes-specific logic (sync status, ledger routing, invite redemption) |
+| `bundles/fireproof-oidc-bridge.js` | ES module bridge -- wraps OIDC auth package with Vibes-specific logic (sync status, ledger routing, invite redemption) |
 | `assets/` | Favicon, branding images, auth card designs |
 | `docs/plans/` | Architecture decision records and planning docs |
 | `components/` | Local TypeScript components - source of truth for UI/UX |
@@ -403,7 +402,7 @@ npm run test:e2e:server
 | `docs/fireproof.txt` | Fireproof API reference documentation |
 | `build/vibes-menu.js` | Built components from local source (gitignored) |
 | `source-templates/base/template.html` | Base template with shared code (components, CSS, imports) |
-| `skills/vibes/template.delta.html` | Vibes-specific delta (Clerk auth wrapper) |
+| `skills/vibes/template.delta.html` | Vibes-specific delta (OIDC auth wrapper) |
 | `skills/vibes/templates/index.html` | Generated vibes template |
 | `skills/vibes/templates/preview.html` | Live preview wrapper (side-by-side chat + theme modal) |
 | `skills/vibes/SKILL.md` | Main vibes skill (has import map) |
@@ -442,8 +441,8 @@ npm run test:e2e:server
 - `dev-credentials.example.json` - Example credentials (in `skills/vibes/defaults/`)
 
 **`docs/fireproof.txt`** - Fireproof API reference:
-- Contains `@fireproof/clerk` docs for authenticated sync
-- Read when Connect is set up and apps need Clerk auth patterns
+- Contains OIDC bridge docs for authenticated sync
+- Read when Connect is set up and apps need OIDC auth patterns
 
 **Build scripts:**
 - `build-components.js` - Builds vibes-menu.js from local `components/` directory to `build/`
@@ -522,7 +521,7 @@ The plugin uses a `SessionStart` hook to inject framework awareness context into
 1. Claude Code fires `SessionStart` event
 2. `hooks.json` triggers `run-hook.cmd session-start.sh`
 3. `session-start.sh` reads `session-context.md` (static content)
-4. Script detects project state in `$PWD`: `.env` (Clerk keys? Connect URLs?), `app.jsx`, `index.html`
+4. Script detects project state in `$PWD`: `.env` (OIDC credentials? Connect URLs?), `app.jsx`, `index.html`
 5. Appends dynamic hints like "No .env found — run /vibes:connect first"
 6. Outputs JSON with `additionalContext` field → appears in system reminders
 
@@ -548,7 +547,8 @@ App VMs serve static HTML via nginx. A separate Studio VM runs Fireproof Connect
 
 Point apps at the Studio VM:
 ```bash
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
+VITE_OIDC_AUTHORITY=https://<studio>.exe.xyz/auth
+VITE_OIDC_CLIENT_ID=<generated-client-id>
 VITE_API_URL=https://<studio>.exe.xyz/api
 VITE_CLOUD_URL=fpcloud://<studio>.exe.xyz?protocol=wss
 ```
@@ -593,16 +593,16 @@ The sharing feature lets users invite others to collaborate on their Fireproof d
 
 ### DOM Event Bridge Pattern
 
-VibesPanel (inside HiddenMenuWrapper) dispatches DOM events. SharingBridge (rendered inside `ClerkFireproofProvider > SignedIn`) listens and calls `dashApi`:
+VibesPanel (inside HiddenMenuWrapper) dispatches DOM events. SharingBridge (rendered inside `OIDCProvider > SignedIn`) listens and calls `dashApi`:
 
 ```
 VibesPanel → dispatches 'vibes-share-request' {email, right}
-SharingBridge → calls dashApi.inviteUser() via useClerkFireproofContext()
+SharingBridge → calls dashApi.inviteUser() via useOIDCContext()
 SharingBridge → dispatches 'vibes-share-success' or 'vibes-share-error'
 VibesPanel → listens for result events, shows BrutalistCard feedback
 ```
 
-**Why a bridge?** `useVibesPanelEvents()` runs outside `ClerkFireproofProvider` (it's called at AppWrapper top level), so it can't access `dashApi`. SharingBridge solves this by living inside the provider tree.
+**Why a bridge?** `useVibesPanelEvents()` runs outside `OIDCProvider` (it's called at AppWrapper top level), so it can't access `dashApi`. SharingBridge solves this by living inside the provider tree.
 
 ### Ledger Discovery
 

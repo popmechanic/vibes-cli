@@ -76,7 +76,7 @@ If Editor is chosen, start preview-server.js and STOP — the editor handles eve
 including credentials. Do NOT check .env or credentials before asking this question.
 
 .env checks only apply to Terminal mode. If the user chooses Terminal:
-.env with Clerk keys + Connect URLs must exist before generating apps.
+.env with OIDC credentials + Connect URLs must exist before generating apps.
 If missing, invoke `/vibes:connect` first.
 
 generate app.jsx → assemble into index.html → deploy → verify in browser

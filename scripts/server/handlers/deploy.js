@@ -166,17 +166,17 @@ export async function handleDeploy(ctx, onEvent, target, name) {
 /**
  * Deploy a Connect Studio to exe.dev.
  */
-export async function handleDeployStudio(ctx, onEvent, studioName, clerkPublishableKey, clerkSecretKey) {
+export async function handleDeployStudio(ctx, onEvent, studioName, oidcAuthority, oidcClientId) {
   if (!studioName) {
     onEvent({ type: 'studio-error', message: 'Studio name is required' });
     return;
   }
-  if (!clerkPublishableKey) {
-    onEvent({ type: 'studio-error', message: 'Clerk publishable key is required' });
+  if (!oidcAuthority) {
+    onEvent({ type: 'studio-error', message: 'OIDC authority URL is required' });
     return;
   }
-  if (!clerkSecretKey) {
-    onEvent({ type: 'studio-error', message: 'Clerk secret key is required' });
+  if (!oidcClientId) {
+    onEvent({ type: 'studio-error', message: 'OIDC client ID is required' });
     return;
   }
 
@@ -186,8 +186,8 @@ export async function handleDeployStudio(ctx, onEvent, studioName, clerkPublisha
   const args = [
     deployScript,
     '--studio', studioName,
-    '--clerk-publishable-key', clerkPublishableKey,
-    '--clerk-secret-key', clerkSecretKey,
+    '--oidc-authority', oidcAuthority,
+    '--oidc-client-id', oidcClientId,
   ];
 
   console.log(`[Studio] Deploying Connect studio "${studioName}"...`);

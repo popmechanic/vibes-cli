@@ -11,7 +11,7 @@ describe('OIDC config placeholders', () => {
     expect(CONFIG_PLACEHOLDERS['__VITE_OIDC_CLIENT_ID__']).toBe('VITE_OIDC_CLIENT_ID');
   });
 
-  it('does NOT include Clerk publishable key placeholder', () => {
+  it('does NOT include legacy Clerk publishable key placeholder', () => {
     expect(CONFIG_PLACEHOLDERS['__VITE_CLERK_PUBLISHABLE_KEY__']).toBeUndefined();
   });
 

@@ -10,7 +10,7 @@
  *
  * Automatically copies:
  *   - index.html to public/
- *   - bundles/fireproof-vibes-bridge.js to public/ (Vibes-specific wrapper)
+ *   - bundles/fireproof-oidc-bridge.js to public/ (Vibes-specific wrapper)
  *   - assets/ to public/assets/ (images, icons)
  *
  * OIDC authority auto-detected from .env if not provided via flags.
@@ -177,11 +177,11 @@ async function main() {
   console.log(`\nCopying ${basename(srcFile)} to public/`);
   copyFileSync(srcFile, destFile);
 
-  // 2. Copy Vibes bridge to public/
-  const bridgePath = resolve(PLUGIN_ROOT, "bundles", "fireproof-vibes-bridge.js");
+  // 2. Copy OIDC bridge to public/
+  const bridgePath = resolve(PLUGIN_ROOT, "bundles", "fireproof-oidc-bridge.js");
   if (existsSync(bridgePath)) {
-    console.log(`\nCopying fireproof-vibes-bridge.js to public/`);
-    copyFileSync(bridgePath, join(publicDir, "fireproof-vibes-bridge.js"));
+    console.log(`\nCopying fireproof-oidc-bridge.js to public/`);
+    copyFileSync(bridgePath, join(publicDir, "fireproof-oidc-bridge.js"));
   }
 
   // 3. Copy assets/ to public/assets/ (images, favicons, etc.)

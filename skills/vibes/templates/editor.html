@@ -2312,7 +2312,7 @@
         <div class="wizard-section-title">Welcome to Vibes</div>
         <div class="wizard-help">
           Vibes needs two things to build and deploy your apps:<br>
-          <strong>Clerk</strong> (authentication) and a <strong>Connect Studio</strong> (database sync).
+          <strong>OIDC credentials</strong> (authentication via Pocket ID) and a <strong>Connect Studio</strong> (database sync).
         </div>
         <div id="setupChecklist"></div>
         <div class="setup-actions" style="margin-top:1rem;">
@@ -2321,21 +2321,21 @@
         </div>
       </div>
 
-      <!-- Step 2: Clerk Keys -->
+      <!-- Step 2: OIDC Credentials -->
       <div class="wizard-step" id="wizardStep2">
-        <div class="wizard-section-title">Clerk Authentication</div>
+        <div class="wizard-section-title">OIDC Authentication</div>
         <div class="wizard-help">
-          Clerk handles user sign-in for your apps.
-          <a class="wizard-link" href="https://dashboard.clerk.com" target="_blank">Open Clerk Dashboard</a>
+          Pocket ID handles user sign-in for your apps via OIDC.
+          Deploy a Connect Studio to get your OIDC credentials.
         </div>
-        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Publishable Key</label>
-        <input class="wizard-input" id="wizardClerkKey" type="text" placeholder="pk_test_..." oninput="validateWizardClerkInputs()" />
-        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Secret Key</label>
-        <input class="wizard-input" id="wizardClerkSecret" type="password" placeholder="sk_test_..." oninput="validateWizardClerkInputs()" />
-        <div class="wizard-help" id="wizardClerkHint" style="color:var(--vibes-red);display:none;"></div>
+        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">OIDC Authority URL</label>
+        <input class="wizard-input" id="wizardOidcAuthority" type="text" placeholder="https://studio.exe.xyz/auth" oninput="validateWizardOidcInputs()" />
+        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">OIDC Client ID</label>
+        <input class="wizard-input" id="wizardOidcClientId" type="text" placeholder="your-client-id" oninput="validateWizardOidcInputs()" />
+        <div class="wizard-help" id="wizardOidcHint" style="color:var(--vibes-red);display:none;"></div>
         <div class="setup-actions" style="margin-top:1rem;">
           <button class="btn btn-secondary" onclick="setWizardStep(1)">Back</button>
-          <button class="btn btn-primary" id="wizardClerkNext" onclick="setWizardStep(3)" disabled>Next</button>
+          <button class="btn btn-primary" id="wizardOidcNext" onclick="setWizardStep(3)" disabled>Next</button>
         </div>
       </div>
 
@@ -2781,7 +2781,7 @@
   let currentThemeId = null;
   let currentAppName = null;
   let wizardStep = 1;
-  let wizardData = { clerkKey: '', clerkSecret: '', studioName: '', apiUrl: '', cloudUrl: '', openRouterKey: '' };
+  let wizardData = { oidcAuthority: '', oidcClientId: '', studioName: '', apiUrl: '', cloudUrl: '', openRouterKey: '' };
   let sshAvailable = false;
   let studioCheckTimer = null;
   let studioMode = 'existing';
@@ -3156,7 +3156,7 @@
 
   function renderChecklist(status) {
     const items = [
-      { key: 'clerk', label: 'Clerk keys', detail: status.clerk?.detail || '', required: true },
+      { key: 'oidc', label: 'OIDC credentials', detail: status.oidc?.detail || '', required: true },
       { key: 'connect', label: 'Connect Studio', detail: status.connect?.detail || '', required: true },
       { key: 'openrouter', label: 'OpenRouter API key', detail: status.openrouter?.detail || '', required: false },
       { key: 'wrangler', label: 'Cloudflare (wrangler)', detail: status.wrangler?.detail || '', required: false },
@@ -3213,38 +3213,35 @@
     if (n === 5) renderWizardSummary();
   }
 
-  function validateWizardClerkInputs() {
-    const keyInput = document.getElementById('wizardClerkKey');
-    const secretInput = document.getElementById('wizardClerkSecret');
-    const hint = document.getElementById('wizardClerkHint');
-    const nextBtn = document.getElementById('wizardClerkNext');
+  function validateWizardOidcInputs() {
+    const authorityInput = document.getElementById('wizardOidcAuthority');
+    const clientIdInput = document.getElementById('wizardOidcClientId');
+    const hint = document.getElementById('wizardOidcHint');
+    const nextBtn = document.getElementById('wizardOidcNext');
 
-    const key = keyInput.value.trim();
-    const secret = secretInput.value.trim();
+    const authority = authorityInput.value.trim();
+    const clientId = clientIdInput.value.trim();
 
-    const keyValid = key.startsWith('pk_test_') || key.startsWith('pk_live_');
-    const secretValid = secret.startsWith('sk_test_') || secret.startsWith('sk_live_');
+    const authorityValid = authority.startsWith('https://');
+    const clientIdValid = clientId.length > 0;
 
-    keyInput.classList.toggle('valid', key && keyValid);
-    keyInput.classList.toggle('invalid', key && !keyValid);
-    secretInput.classList.toggle('valid', secret && secretValid);
-    secretInput.classList.toggle('invalid', secret && !secretValid);
+    authorityInput.classList.toggle('valid', authority && authorityValid);
+    authorityInput.classList.toggle('invalid', authority && !authorityValid);
+    clientIdInput.classList.toggle('valid', clientId && clientIdValid);
+    clientIdInput.classList.toggle('invalid', clientId && !clientIdValid);
 
-    if (key && !keyValid) {
-      hint.textContent = 'Publishable key must start with pk_test_ or pk_live_';
-      hint.style.display = '';
-    } else if (secret && !secretValid) {
-      hint.textContent = 'Secret key must start with sk_test_ or sk_live_';
+    if (authority && !authorityValid) {
+      hint.textContent = 'OIDC Authority must be an HTTPS URL (e.g. https://studio.exe.xyz/auth)';
       hint.style.display = '';
     } else {
       hint.style.display = 'none';
     }
 
-    const valid = keyValid && secretValid;
+    const valid = authorityValid && clientIdValid;
     nextBtn.disabled = !valid;
     if (valid) {
-      wizardData.clerkKey = key;
-      wizardData.clerkSecret = secret;
+      wizardData.oidcAuthority = authority;
+      wizardData.oidcClientId = clientId;
     }
   }
 
@@ -3399,16 +3396,16 @@
     ws.send(JSON.stringify({
       type: 'deploy-studio',
       studioName: name,
-      clerkPublishableKey: wizardData.clerkKey,
-      clerkSecretKey: wizardData.clerkSecret,
+      oidcAuthority: wizardData.oidcAuthority,
+      oidcClientId: wizardData.oidcClientId,
     }));
   }
 
   function renderWizardSummary() {
     const table = document.getElementById('wizardSummary');
     const vars = [
-      ['VITE_CLERK_PUBLISHABLE_KEY', wizardData.clerkKey],
-      ['VITE_CLERK_SECRET_KEY', wizardData.clerkSecret ? '••••' + wizardData.clerkSecret.slice(-8) : ''],
+      ['VITE_OIDC_AUTHORITY', wizardData.oidcAuthority],
+      ['VITE_OIDC_CLIENT_ID', wizardData.oidcClientId],
       ['VITE_API_URL', wizardData.apiUrl],
       ['VITE_CLOUD_URL', wizardData.cloudUrl],
     ];
@@ -3429,8 +3426,8 @@
     btn.textContent = 'Saving...';
     try {
       const payload = {
-        VITE_CLERK_PUBLISHABLE_KEY: wizardData.clerkKey,
-        VITE_CLERK_SECRET_KEY: wizardData.clerkSecret,
+        VITE_OIDC_AUTHORITY: wizardData.oidcAuthority,
+        VITE_OIDC_CLIENT_ID: wizardData.oidcClientId,
         VITE_API_URL: wizardData.apiUrl,
         VITE_CLOUD_URL: wizardData.cloudUrl,
       };
@@ -3464,8 +3461,8 @@
   }
 
   function prefillFromStatus(status) {
-    if (status.clerk?.ok) {
-      // Pre-fill is tricky since we only have masked key — just mark step as done
+    if (status.oidc?.ok) {
+      // Pre-fill is tricky since we only have status — just mark step as done
     }
     if (status.connect?.ok && status.connect?.detail) {
       // Could pre-fill but user already has credentials
@@ -5297,7 +5294,7 @@
       deployRadio.querySelector('input').disabled = true;
     }
 
-    if (status.clerk?.ok && status.connect?.ok) {
+    if (status.oidc?.ok && status.connect?.ok) {
       // Credentials present → stay in generate phase
       fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
         if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;

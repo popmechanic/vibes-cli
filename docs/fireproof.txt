@@ -478,26 +478,27 @@ export default function App() {
 }
 ```
 
-### ClerkFireproofProvider Config
+### OIDCProvider Config
 
-For Vibes apps with Clerk authentication and cloud sync, use the `ClerkFireproofProvider` wrapper:
+For Vibes apps with OIDC authentication (Pocket ID) and cloud sync, use the `OIDCProvider` wrapper:
 
 ```jsx
-import { ClerkFireproofProvider } from "@fireproof/clerk";
+import { OIDCProvider } from "@fireproof/clerk";
 
 const config = {
   apiUrl: import.meta.env.VITE_API_URL || "http://localhost:8080/api/",
   cloudUrl: import.meta.env.VITE_CLOUD_URL || "fpcloud://localhost:8080?protocol=ws",
 };
 
-<ClerkFireproofProvider publishableKey={CLERK_KEY} config={config}>
+<OIDCProvider authority={OIDC_AUTHORITY} clientId={OIDC_CLIENT_ID} config={config}>
   {/* app content — useFireproofClerk() works inside here */}
-</ClerkFireproofProvider>
+</OIDCProvider>
 ```
 
 | Variable | Purpose | Production Example |
 |----------|---------|-------------------|
-| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk auth | `pk_test_...` or `pk_live_...` |
+| `VITE_OIDC_AUTHORITY` | OIDC authority URL | `https://yourstudio.exe.xyz/auth` |
+| `VITE_OIDC_CLIENT_ID` | OIDC client ID | Generated during Connect setup |
 | `VITE_API_URL` | Token API endpoint | `https://yourstudio.exe.xyz/api` |
 | `VITE_CLOUD_URL` | Cloud sync (fpcloud protocol) | `fpcloud://yourstudio.exe.xyz/backend?protocol=wss` |
 

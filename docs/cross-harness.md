@@ -80,7 +80,7 @@ Canonical path resolution that finds the plugin directory across four install lo
 | CLI | Codex, OpenCode | `git clone` + config | `vibes-codex bootstrap` (manual trigger) |
 | Manual | Cursor, Gemini, others | `git clone` | Read `skills/` directory directly |
 
-**Native tier** uses a SessionStart hook (`hooks/session-start.sh`) that fires on startup, resume, clear, and compact events. It reads `hooks/session-context.md` for static skill-awareness context, then detects project state (`.env` presence, Clerk keys, `app.jsx`, `index.html`) and appends dynamic hints.
+**Native tier** uses a SessionStart hook (`hooks/session-start.sh`) that fires on startup, resume, clear, and compact events. It reads `hooks/session-context.md` for static skill-awareness context, then detects project state (`.env` presence, OIDC credentials, `app.jsx`, `index.html`) and appends dynamic hints.
 
 **CLI tier** relies on the agent's config to trigger `vibes-codex bootstrap` at session start. The bootstrap command outputs the same skill-awareness context plus a tool mapping table.
 

@@ -5,10 +5,10 @@ Architecture and timing details for the `/vibes:launch` pipeline. Read this if y
 ## Pipeline Overview
 
 ```
-prompt → vibes app → Clerk setup → Connect deploy → sell transform → Cloudflare deploy → browser test
+prompt → vibes app → OIDC setup → Connect deploy → sell transform → Cloudflare deploy → browser test
 ```
 
-Launch uses **Agent Teams** to parallelize independent steps. The key insight: app generation only needs the user's prompt, so it runs in parallel with Clerk setup (the longest manual step).
+Launch uses **Agent Teams** to parallelize independent steps. The key insight: app generation only needs the user's prompt, so it runs in parallel with OIDC setup (the longest manual step).
 
 ## Dependency Graph
 
@@ -19,7 +19,7 @@ Parallel lanes: T1 || T2→T3 || T4. All converge at T5 (assembly).
 | Task | Subject | BlockedBy | Owner |
 |------|---------|-----------|-------|
 | T1 | Generate app.jsx from prompt | -- | builder |
-| T2 | Collect Clerk credentials | -- | lead |
+| T2 | Collect OIDC credentials | -- | lead |
 | T3 | Deploy Connect studio | T2 | infra |
 | T4 | Collect sell config | -- | lead |
 | T5 | Run sell assembly | T1, T3, T4 | lead |
@@ -31,21 +31,21 @@ Parallel lanes: T1 || T2→T3 || T4. All converge at T5 (assembly).
 | Step | Agent | Blocked By | Duration |
 |------|-------|-----------|----------|
 | Generate app.jsx | builder | prompt only | ~2-3 min |
-| Clerk dashboard setup | lead (interactive) | nothing | ~5-20 min |
-| Deploy Connect | infra | Clerk pk + sk | ~5-10 min |
+| OIDC configuration | lead (interactive) | nothing | ~5-10 min |
+| Deploy Connect | infra | OIDC authority + client ID | ~5-10 min |
 | Sell config | lead (interactive) | nice-to-have | ~2 min |
 | Sell assembly | lead | app.jsx + .env + config | ~30 sec |
 | Cloudflare deploy (+ webhook secret) | lead | sell index.html + secrets | ~2 min |
 | Browser test | lead (interactive) | deployed URL | ~1 min |
 
-**Best case** (Clerk already configured): ~8-10 minutes
-**Typical case** (new Clerk app): ~20-25 minutes
+**Best case** (OIDC already configured): ~8-10 minutes
+**Typical case** (new OIDC setup): ~15-20 minutes
 
 ## Skip Modes
 
-- `.env` has Clerk keys + Connect URLs → skip T2 + T3 (don't spawn infra)
+- `.env` has OIDC credentials + Connect URLs → skip T2 + T3 (don't spawn infra)
 - `app.jsx` exists → skip T1 (ask reuse first)
-- `.env` has `CLERK_ADMIN_USER_ID` → skip Phase 3 (admin setup)
+- `.env` has `OIDC_ADMIN_USER_ID` → skip Phase 3 (admin setup)
 - All three present → skip T1-T4, jump to Phase 2
 
 ## Common Builder Mistakes

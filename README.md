@@ -97,7 +97,7 @@ Each variation is a genuinely different concept - not just styling changes. You'
 
 ### `sell`
 
-Ready to monetize? Sell transforms your app into a multi-tenant SaaS with Clerk authentication, subscription billing, and isolated databases per customer.
+Ready to monetize? Sell transforms your app into a multi-tenant SaaS with OIDC authentication (Pocket ID), subscription billing, and isolated databases per customer.
 
 Each user gets their own subdomain (alice.yourapp.com) with their own data. Includes a marketing landing page, admin dashboard, and subscription gating - everything you need to start charging.
 
@@ -115,12 +115,12 @@ admin.yourdomain.com    → Admin dashboard
 **Example flow:**
 1. Build an app with `/vibes`
 2. Run `/sell` to transform it
-3. Configure Clerk keys and pricing
+3. Configure OIDC credentials and pricing
 4. Deploy with `/exe`
 
 ### `test`
 
-End-to-end integration test for plugin developers. Assembles a pre-written fixture with real Clerk credentials, deploys a Connect studio and Cloudflare worker, and presents a live URL for browser verification.
+End-to-end integration test for plugin developers. Assembles a pre-written fixture with real OIDC credentials, deploys a Connect studio and Cloudflare worker, and presents a live URL for browser verification.
 
 Walks you through each step interactively: credentials, Connect setup, fixture selection, assembly, deploy, and verification.
 
@@ -133,7 +133,7 @@ Commands are **user-invoked** — run them explicitly when you want a specific s
 | Command | What it does |
 |---------|-------------|
 | `/vibes` | Generate a React web app with Fireproof database |
-| `/sell` | Transform an app into multi-tenant SaaS with Clerk auth and billing |
+| `/sell` | Transform an app into multi-tenant SaaS with OIDC auth and billing |
 | `/connect` | Deploy Fireproof Connect to a dedicated Studio VM on exe.dev |
 | `/cloudflare` | Deploy a Vibes app to Cloudflare Workers |
 | `/launch` | Build and deploy a SaaS app end-to-end using Agent Teams |

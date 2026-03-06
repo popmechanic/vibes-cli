@@ -298,12 +298,12 @@ export default function App() {
 
   it('strips additional template constants when provided', () => {
     const code = `import React from "react";
-const CLERK_KEY = "pk_test_123";
+const OIDC_AUTHORITY = "https://auth.example.com";
 const APP_NAME = "myapp";
 function App() {}`;
-    const result = stripForTemplate(code, ['CLERK_KEY', 'APP_NAME']);
+    const result = stripForTemplate(code, ['OIDC_AUTHORITY', 'APP_NAME']);
     expect(result).not.toContain('import');
-    expect(result).not.toContain('const CLERK_KEY');
+    expect(result).not.toContain('const OIDC_AUTHORITY');
     expect(result).not.toContain('const APP_NAME');
     expect(result).toContain('function App');
   });

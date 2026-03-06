@@ -1,12 +1,12 @@
 ---
 name: sell
-description: Transform an app into multi-tenant SaaS with Clerk auth and billing
+description: Transform an app into multi-tenant SaaS with OIDC auth and billing
 argument-hint: "[app.jsx]"
 ---
 
 # Sell: Multi-Tenant SaaS Transformation
 
-Transform a Vibes app into a full multi-tenant SaaS with Clerk authentication, subdomain-based tenancy, and subscription billing.
+Transform a Vibes app into a full multi-tenant SaaS with OIDC authentication (Pocket ID), subdomain-based tenancy, and subscription billing.
 
 ## Usage
 
@@ -23,7 +23,7 @@ Transform a Vibes app into a full multi-tenant SaaS with Clerk authentication, s
 
 - **Landing page** with signup/signin flows
 - **Subdomain routing** for tenant isolation
-- **Passkey authentication** via Clerk
+- **Passkey authentication** via Pocket ID (OIDC)
 - **Subscription gating** with quota enforcement
 - **Admin dashboard** for tenant management
 
@@ -40,13 +40,14 @@ admin.yourapp.com    → Admin dashboard
 
 Before using `/vibes:sell`:
 1. Have a working Vibes app (from `/vibes:vibes`)
-2. Set up a Clerk application with passkey support
+2. Deploy Connect with Pocket ID (provides OIDC credentials)
 3. Configure environment variables
 
 ## Environment Variables
 
 ```bash
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
+VITE_OIDC_AUTHORITY=https://studio.exe.xyz/auth
+VITE_OIDC_CLIENT_ID=<your-client-id>
 VITE_API_URL=https://studio.exe.xyz/api
 VITE_CLOUD_URL=fpcloud://studio.exe.xyz?protocol=wss
 ```

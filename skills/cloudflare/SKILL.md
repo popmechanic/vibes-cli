@@ -55,7 +55,7 @@ The `--oidc-authority` flag fetches the PEM public key from the OIDC discovery e
 
 This automatically:
 - Copies index.html to worker's public/
-- Copies bundles/*.js (fireproof-vibes-bridge.js + fireproof-clerk-bundle.js)
+- Copies bundles/*.js (fireproof-oidc-bridge.js)
 - Copies assets/ directory (images, icons)
 - Runs wrangler deploy
 

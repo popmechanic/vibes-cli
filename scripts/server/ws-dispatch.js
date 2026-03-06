@@ -42,7 +42,7 @@ export function setupWebSocket(wss, ctx, wsAdapter) {
       },
       generate_image:   (msg) => handleGenerateImage(ctx, onEvent, msg.prompt, msg.model),
       palette_theme:    (msg) => handlePaletteTheme(ctx, onEvent, msg.colors),
-      'deploy-studio':  (msg) => handleDeployStudio(ctx, onEvent, msg.studioName, msg.clerkPublishableKey, msg.clerkSecretKey),
+      'deploy-studio':  (msg) => handleDeployStudio(ctx, onEvent, msg.studioName, msg.oidcAuthority, msg.oidcClientId),
       delete_theme:     (msg) => {
         const themeId = String(msg.themeId || '').replace(/[^a-z0-9-]/gi, '').slice(0, 60);
         if (!themeId) { onEvent({ type: 'error', message: 'Theme ID is required' }); return; }

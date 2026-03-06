@@ -65,7 +65,7 @@ const assembleSellMeta = {
   usage: 'node scripts/assemble-sell.js <app.jsx> [output.html] [options]',
   examples: [
     'node scripts/assemble-sell.js app.jsx index.html \\',
-    '  --clerk-key pk_test_xxx \\',
+    '  --oidc-authority https://auth.example.com \\',
     '  --app-name wedding-photos \\',
     '  --app-title "Wedding Photos" \\',
     '  --domain myapp.exe.xyz \\',
@@ -316,7 +316,7 @@ if (templateErrors.length > 0) {
 }
 
 // Read and process app code - strip imports, exports, and template-provided constants
-const templateConstants = ['CLERK_PUBLISHABLE_KEY', 'APP_NAME', 'APP_DOMAIN', 'BILLING_MODE', 'FEATURES', 'APP_TAGLINE', 'ADMIN_USER_IDS'];
+const templateConstants = ['OIDC_AUTHORITY', 'OIDC_CLIENT_ID', 'APP_NAME', 'APP_DOMAIN', 'BILLING_MODE', 'FEATURES', 'APP_TAGLINE', 'ADMIN_USER_IDS'];
 let appCode = stripForTemplate(readFileSync(resolvedAppPath, 'utf8'), templateConstants);
 
 // Check if app uses hardcoded database name
@@ -391,27 +391,19 @@ STEP 1: DEPLOY TO exe.dev
 
   Your app will be live at: https://${appName}.exe.xyz
 
-STEP 2: SET UP CLERK (REQUIRED BEFORE TESTING)
-───────────────────────────────────────────────
+STEP 2: SET UP OIDC AUTHENTICATION (REQUIRED BEFORE TESTING)
+─────────────────────────────────────────────────────────────
 
-  See CLERK-SETUP.md for complete instructions. Critical settings:
+  Your Connect Studio provides OIDC authentication via Pocket ID.
+  Ensure your .env has:
 
-  Dashboard → User & Authentication → Email:
-    ✅ Sign-up with email: ON
-    ⚠️  Require email address: OFF (critical - signup fails otherwise!)
-    ✅ Verify at sign-up: ON
-    ✅ Email verification code: CHECKED
+    VITE_OIDC_AUTHORITY=https://your-studio.exe.xyz/auth
+    VITE_OIDC_CLIENT_ID=your-client-id
 
-  Dashboard → User & Authentication → Passkeys:
-    ✅ Sign-in with passkey: ON
-    ✅ Allow autofill: ON
-    ✅ Show passkey button: ON
-    ✅ Add passkey to account: ON
-
-  Get your Publishable Key and re-run assembly:
+  Re-run assembly with OIDC credentials:
 
      node assemble-sell.js app.jsx index.html \\
-       --clerk-key pk_live_YOUR_KEY \\
+       --oidc-authority https://your-studio.exe.xyz/auth \\
        --app-name ${appName} \\
        --domain ${domain}
 

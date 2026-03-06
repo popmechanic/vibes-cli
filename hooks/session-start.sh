@@ -15,25 +15,25 @@ context_content=$(cat "${SCRIPT_DIR}/session-context.md" 2>&1 || echo "Error rea
 state_hints=""
 
 if [ -f "${PWD}/.env" ]; then
-    has_clerk_keys=false
+    has_oidc_credentials=false
     has_connect_urls=false
 
-    if grep -q "VITE_CLERK_PUBLISHABLE_KEY=pk_" "${PWD}/.env" 2>/dev/null; then
-        has_clerk_keys=true
+    if grep -q "VITE_OIDC_AUTHORITY=" "${PWD}/.env" 2>/dev/null; then
+        has_oidc_credentials=true
     fi
     if grep -q "VITE_API_URL=" "${PWD}/.env" 2>/dev/null; then
         has_connect_urls=true
     fi
 
-    if [ "$has_clerk_keys" = true ] && [ "$has_connect_urls" = true ]; then
-        state_hints=$'\n\n## Project State\n.env found with Clerk keys and Connect URLs — ready to generate and deploy.'
-    elif [ "$has_clerk_keys" = true ]; then
-        state_hints=$'\n\n## Project State\n.env has Clerk keys but no Connect URLs — run /vibes:connect to set up sync.'
+    if [ "$has_oidc_credentials" = true ] && [ "$has_connect_urls" = true ]; then
+        state_hints=$'\n\n## Project State\n.env found with OIDC credentials and Connect URLs — ready to generate and deploy.'
+    elif [ "$has_oidc_credentials" = true ]; then
+        state_hints=$'\n\n## Project State\n.env has OIDC credentials but no Connect URLs — run /vibes:connect to set up sync.'
     else
-        state_hints=$'\n\n## Project State\n.env found but missing Clerk keys — run /vibes:connect to configure.'
+        state_hints=$'\n\n## Project State\n.env found but missing OIDC credentials — run /vibes:connect to configure.'
     fi
 else
-    state_hints=$'\n\n## Project State\nNo .env found — run /vibes:connect first to set up Clerk keys and sync.'
+    state_hints=$'\n\n## Project State\nNo .env found — run /vibes:connect first to set up OIDC credentials and sync.'
 fi
 
 if [ -f "${PWD}/app.jsx" ]; then
