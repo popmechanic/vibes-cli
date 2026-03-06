@@ -431,52 +431,154 @@ git commit -m "Improve validation error messages with swap detection and remedia
 - Modify: `skills/vibes/templates/editor.html`
 - Test: `scripts/__tests__/integration/wizard-flow.test.js`
 
-**Step 1: Write the failing test for Clerk validation**
+**Step 1: Write the failing tests for `validateClerkCredentials`**
+
+This is the new server-side function that probes Clerk's FAPI. Per TDD, write the tests first — they will fail until the implementation in Step 3.
 
 Add to `scripts/__tests__/integration/wizard-flow.test.js`:
 
 ```javascript
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { Readable } from 'stream';
 
 // ... existing imports and tests ...
 
-describe('Clerk key validation', () => {
-  it('validates Clerk publishable key by decoding the domain', async () => {
-    // pk_test_ keys encode a domain in base64: pk_test_<base64(domain + "$")>
-    // A valid key should decode to a .clerk.accounts.dev domain
-    const { extractClerkDomain } = await import('../../lib/env-utils.js');
+// Shared mock helpers — place after imports, before describe blocks
+function mockReq(body) {
+  const req = new Readable({ read() {} });
+  req.push(JSON.stringify(body));
+  req.push(null);
+  return req;
+}
 
-    // Valid key (encodes "example.clerk.accounts.dev$")
-    const domain = 'example.clerk.accounts.dev';
-    const encoded = Buffer.from(domain + '$').toString('base64');
-    const validKey = 'pk_test_' + encoded;
-    expect(extractClerkDomain(validKey)).toBe(domain);
+function mockRes() {
+  const res = {
+    statusCode: null,
+    headers: {},
+    body: '',
+    writeHead(code, h) { res.statusCode = code; res.headers = h; },
+    end(data) { res.body = data; },
+    get writableEnded() { return !!res.body; },
+  };
+  return res;
+}
 
-    // Invalid key (random garbage after prefix)
-    const badKey = 'pk_test_notbase64!!!';
-    const badDomain = extractClerkDomain(badKey);
-    // extractClerkDomain returns decoded string even for garbage — validation is format check
-    expect(typeof badDomain).toBe('string');
+describe('validateClerkCredentials', () => {
+  let editorApi;
+  let originalFetch;
+
+  beforeEach(async () => {
+    vi.resetModules();
+    mkdirSync(join(TEST_DIR, '.vibes'), { recursive: true });
+    process.env.VIBES_HOME = TEST_DIR;
+    originalFetch = global.fetch;
+    editorApi = await import('../../server/handlers/editor-api.js');
   });
 
-  it('detects swapped Clerk keys (pk in sk field, sk in pk field)', async () => {
-    const { validateClerkKey, validateClerkSecretKey } = await import('../../lib/env-utils.js');
+  afterEach(() => {
+    global.fetch = originalFetch;
+    rmSync(TEST_DIR, { recursive: true, force: true });
+    delete process.env.VIBES_HOME;
+  });
 
-    // Secret key in publishable field
-    expect(validateClerkKey('sk_test_abc123')).toBe(false);
-    expect(validateClerkSecretKey('sk_test_abc123')).toBe(true);
+  // Helper: encode a domain into a pk_test_ key
+  function makePk(domain) {
+    return 'pk_test_' + Buffer.from(domain + '$').toString('base64');
+  }
 
-    // Publishable key in secret field
-    expect(validateClerkSecretKey('pk_test_abc123')).toBe(false);
-    expect(validateClerkKey('pk_test_abc123')).toBe(true);
+  it('returns valid:true when Clerk FAPI responds 200', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('example.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(true);
+    expect(global.fetch).toHaveBeenCalledOnce();
+    // Verify it hit the correct FAPI domain
+    const url = global.fetch.mock.calls[0][0];
+    expect(url).toBe('https://example.clerk.accounts.dev/v1/environment');
+  });
+
+  it('returns valid:false with helpful message on 401', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 401 });
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('bad.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('rejected by Clerk');
+  });
+
+  it('returns valid:false with helpful message on 403', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 403 });
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('paused.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('rejected by Clerk');
+  });
+
+  it('returns valid:false with status code for other HTTP errors', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500 });
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('error.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('status 500');
+  });
+
+  it('returns valid:false on DNS resolution failure (ENOTFOUND)', async () => {
+    const err = new Error('getaddrinfo ENOTFOUND nonexistent.clerk.accounts.dev');
+    err.cause = { code: 'ENOTFOUND' };
+    global.fetch = vi.fn().mockRejectedValue(err);
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('nonexistent.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('domain encoded in this key does not exist');
+  });
+
+  it('returns valid:false on timeout (AbortError)', async () => {
+    const err = new DOMException('The operation was aborted', 'AbortError');
+    global.fetch = vi.fn().mockRejectedValue(err);
+
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: makePk('slow.clerk.accounts.dev'),
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('timed out');
+  });
+
+  it('returns valid:false when no publishable key provided', async () => {
+    const result = await editorApi.validateClerkCredentials({});
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('No publishable key');
+  });
+
+  it('returns valid:false when key cannot be decoded', async () => {
+    // extractClerkDomain returns null for non-pk_ keys
+    const result = await editorApi.validateClerkCredentials({
+      publishableKey: 'not_a_valid_key',
+    });
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('decode domain');
   });
 });
 ```
 
-**Step 2: Run test to verify it passes**
+**Step 2: Run test to verify it fails (TDD red phase)**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard/scripts && npx vitest run __tests__/integration/wizard-flow.test.js`
-Expected: PASS (these are testing existing utility functions)
+Expected: FAIL — `validateClerkCredentials` is not yet exported from `editor-api.js`
 
 **Step 3: Add a Clerk FAPI validation endpoint to `editor-api.js`**
 
@@ -645,23 +747,22 @@ async function saveClerkAndAdvance() {
 
 This is the **final form** of this function. No later task modifies it.
 
-**Step 6: Run tests**
+**Step 6: Run tests to verify they pass (TDD green phase)**
+
+Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard/scripts && npx vitest run __tests__/integration/wizard-flow.test.js`
+Expected: PASS — all 8 `validateClerkCredentials` tests should now pass
+
+**Step 7: Run full test suite**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard/scripts && npm test`
 Expected: All tests pass
 
-**Step 7: Commit**
+**Step 8: Commit**
 
 ```bash
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard
 git add scripts/server/handlers/editor-api.js scripts/server/routes.js skills/vibes/templates/editor.html scripts/__tests__/integration/wizard-flow.test.js
 git commit -m "Add server-side Clerk key validation via FAPI probe"
-```
-
-**Important:** The route was registered in Step 4 above in `scripts/server/routes.js`. Include that file in the git add:
-
-```bash
-git add scripts/server/handlers/editor-api.js scripts/server/routes.js skills/vibes/templates/editor.html scripts/__tests__/integration/wizard-flow.test.js
 ```
 
 ---
@@ -747,69 +848,114 @@ git commit -m "Enhance summary step with edit buttons and verification status"
 
 **Step 1: Extend the `/editor/status` endpoint to return masked key values**
 
-In `scripts/server/handlers/editor-api.js`, update `checkEditorDeps` to return masked key previews (around line 47-101). Add a `maskedKeys` field to the return value:
+In `scripts/server/handlers/editor-api.js`, the `checkEditorDeps` function (around line 47-101) needs two changes: (1) hoist a `validatedPk` variable to track which publishable key was validated, and (2) build a `maskedKeys` object in the return value. Because inline-comment instructions are ambiguous, this step provides the complete before/after replacement for the function.
 
-After the `return` statement at the end of `checkEditorDeps`, change it to also return masked values. Find the return block and replace:
+Find `checkEditorDeps` (starts around line 47) and replace the **entire function body** with:
 
 ```javascript
-// BEFORE (end of checkEditorDeps)
-return {
-  clerk: { ok: clerkOk, detail: clerkDetail },
-  cloudflare: { ok: cfOk, detail: cfDetail },
-  openrouter: {
-    ok: openrouterOk,
-    detail: openrouterOk ? `sk-or-...${orKey.slice(-6)}` : 'No OPENROUTER_API_KEY in .env',
-  },
-};
+// BEFORE — the entire checkEditorDeps function
+export async function checkEditorDeps(ctx) {
+  // ... existing body ...
+}
 ```
 
-Replace with:
-
 ```javascript
-// AFTER
-// Build masked key previews for pre-population.
-// `checkEditorDeps` resolves Clerk keys from three sources (in priority order):
-//   1. _default sentinel (line 54-59)
-//   2. Most recent real app (line 62-69)
-//   3. .env file (line 73-79)
-// We need to read from whichever source actually provided the valid key.
-// Track the validated pk through the existing logic by hoisting it.
+// AFTER — complete replacement (read the existing function first to verify line numbers)
+export async function checkEditorDeps(ctx) {
+  const registry = loadRegistry();
+  const projectRoot = ctx.projectRoot || process.cwd();
 
-// IMPORTANT: To make masking work, hoist the validated pk value.
-// Add `let validatedPk = '';` at the top of checkEditorDeps (after `let clerkOk = false;`),
-// and set `validatedPk = <the pk value>` in each of the three branches where clerkOk is set true.
-// Then use it here:
-const maskedKeys = {};
-if (clerkOk) {
-  if (validatedPk) maskedKeys.clerkPublishableKey = validatedPk.slice(0, 12) + '...' + validatedPk.slice(-4);
-  maskedKeys.clerkSecretKey = 'sk_****_configured';
-}
+  let clerkOk = false;
+  let clerkDetail = 'No Clerk keys configured';
+  let validatedPk = '';  // <-- NEW: hoisted to track which pk was validated
 
-// The three changes needed earlier in the function:
-// 1. After `let clerkDetail = 'No Clerk keys configured';` add: `let validatedPk = '';`
-// 2. In the _default branch (line 57-58), add: `validatedPk = defaultPk;`
-// 3. In the most-recent-app branch (line 68), add: `validatedPk = pk;`
-// 4. In the .env branch (line 77), add: `validatedPk = envKey;`
-if (cfOk) {
-  if (cfConfig.apiToken) {
-    maskedKeys.cloudflareApiToken = cfConfig.apiToken.slice(0, 6) + '...' + cfConfig.apiToken.slice(-4);
+  // Source 1: _default sentinel in registry
+  const defaultApp = getApp(registry, '_default');
+  if (defaultApp?.clerkPublishableKey && defaultApp?.clerkSecretKey) {
+    const defaultPk = defaultApp.clerkPublishableKey;
+    if (validateClerkKey(defaultPk)) {
+      clerkOk = true;
+      clerkDetail = `${defaultPk.slice(0, 12)}...`;
+      validatedPk = defaultPk;  // <-- NEW
+    }
   }
-  if (cfConfig.email) maskedKeys.cloudflareEmail = cfConfig.email;
-}
-if (openrouterOk) {
-  maskedKeys.openRouterKey = 'sk-or-...' + orKey.slice(-6);
-}
 
-return {
-  clerk: { ok: clerkOk, detail: clerkDetail },
-  cloudflare: { ok: cfOk, detail: cfDetail },
-  openrouter: {
-    ok: openrouterOk,
-    detail: openrouterOk ? `sk-or-...${orKey.slice(-6)}` : 'No OPENROUTER_API_KEY in .env',
-  },
-  maskedKeys,
-};
+  // Source 2: most recent real app in registry
+  if (!clerkOk) {
+    const apps = registry.apps || {};
+    const realApps = Object.entries(apps)
+      .filter(([name]) => name !== '_default')
+      .sort((a, b) => (b[1].updatedAt || 0) - (a[1].updatedAt || 0));
+    for (const [, app] of realApps) {
+      const pk = app.clerkPublishableKey;
+      if (pk && validateClerkKey(pk) && app.clerkSecretKey) {
+        clerkOk = true;
+        clerkDetail = `${pk.slice(0, 12)}...`;
+        validatedPk = pk;  // <-- NEW
+        break;
+      }
+    }
+  }
+
+  // Source 3: .env file
+  if (!clerkOk) {
+    const envPath = join(projectRoot, '.env');
+    const env = loadEnvFile(envPath);
+    const envKey = env.VITE_CLERK_PUBLISHABLE_KEY;
+    if (envKey && validateClerkKey(envKey) && env.CLERK_SECRET_KEY) {
+      clerkOk = true;
+      clerkDetail = `${envKey.slice(0, 12)}...`;
+      validatedPk = envKey;  // <-- NEW
+    }
+  }
+
+  // Cloudflare
+  const cfConfig = getCloudflareConfig(registry);
+  let cfOk = false;
+  let cfDetail = 'No Cloudflare credentials configured';
+  if (cfConfig.apiToken) {
+    cfOk = true;
+    cfDetail = 'API Token configured';
+  } else if (cfConfig.email && cfConfig.apiKey) {
+    cfOk = true;
+    cfDetail = cfConfig.email;
+  }
+
+  // OpenRouter
+  const envPath = join(projectRoot, '.env');
+  const env = loadEnvFile(envPath);
+  const orKey = env.OPENROUTER_API_KEY || '';
+  const openrouterOk = orKey.startsWith('sk-or-');
+
+  // Build masked key previews for pre-population  <-- NEW BLOCK
+  const maskedKeys = {};
+  if (clerkOk) {
+    if (validatedPk) maskedKeys.clerkPublishableKey = validatedPk.slice(0, 12) + '...' + validatedPk.slice(-4);
+    maskedKeys.clerkSecretKey = 'sk_****_configured';
+  }
+  if (cfOk) {
+    if (cfConfig.apiToken) {
+      maskedKeys.cloudflareApiToken = cfConfig.apiToken.slice(0, 6) + '...' + cfConfig.apiToken.slice(-4);
+    }
+    if (cfConfig.email) maskedKeys.cloudflareEmail = cfConfig.email;
+  }
+  if (openrouterOk) {
+    maskedKeys.openRouterKey = 'sk-or-...' + orKey.slice(-6);
+  }
+
+  return {
+    clerk: { ok: clerkOk, detail: clerkDetail },
+    cloudflare: { ok: cfOk, detail: cfDetail },
+    openrouter: {
+      ok: openrouterOk,
+      detail: openrouterOk ? `sk-or-...${orKey.slice(-6)}` : 'No OPENROUTER_API_KEY in .env',
+    },
+    maskedKeys,  // <-- NEW
+  };
+}
 ```
+
+**Critical:** The `// <-- NEW` comments mark exactly 5 additions versus the existing function. The rest of the logic is identical to the current implementation. Read the existing function before editing to verify variable names match — the above uses the same names observed in the current code (e.g., `defaultPk`, `pk`, `envKey`, `cfConfig`, `orKey`).
 
 **Step 2: Update `prefillFromStatus` to show masked values in inputs**
 
@@ -960,11 +1106,18 @@ function openSettings() {
   // because it auto-redirects to generate when all creds are present.
   // prefillFromStatus() handles smart step-skipping without the redirect.
   // updateWelcomeIcons() updates the step 1 icons (extracted from renderChecklist).
+  //
+  // ORDER MATTERS:
+  // 1. setPhase('setup') — switch DOM to wizard view FIRST so elements exist
+  // 2. setWizardStep(1) — reset to step 1 baseline (prefillFromStatus may skip forward)
+  // 3. updateWelcomeIcons — update step 1 icons (needs step 1 DOM)
+  // 4. prefillFromStatus — populate fields + smart-skip to correct step
   fetch('/editor/status').then(r => r.json()).then(status => {
     cloudflareReady = status.cloudflare?.ok || false;
+    setPhase('setup');
+    setWizardStep(1);
     updateWelcomeIcons(status);
     prefillFromStatus(status);
-    setPhase('setup');
   }).catch(() => {
     setPhase('setup');
   });
@@ -1033,16 +1186,30 @@ async function validateAndAdvanceCf() {
   // ... rest of existing validation logic unchanged ...
 ```
 
-**Step 3: Fix `setWizardStep` to not clear CF fields when already validated**
+**Step 3: Reset `wizardValidation.cloudflare` when switching auth modes**
+
+The existing `setCfAuthMode` function (around line 3360) clears `wizardData` for the inactive mode and calls `validateWizardCfInputs()`. But it does NOT reset `wizardValidation.cloudflare`. This causes a bug: if the user validates with API Token, then switches to Global API Key mode, `wizardValidation.cloudflare` is still `'valid'` from the previous mode — so the early-return in `validateWizardCfInputs` (added in Step 1) enables the Next button with empty fields for the wrong mode.
+
+Find `setCfAuthMode` and add `wizardValidation.cloudflare = 'unchecked';` at the top of the function body, before the mode-specific clearing:
+
+```javascript
+function setCfAuthMode(mode) {
+  cfAuthMode = mode;
+  wizardValidation.cloudflare = 'unchecked';  // <-- ADD THIS LINE
+  // ... rest of existing function (clears wizardData for inactive mode, calls validateWizardCfInputs) ...
+}
+```
+
+**Step 4: Verify `setWizardStep` behavior**
 
 The existing `setWizardStep` function (around line 3265-3288) clears CF data on re-entry to step 3. The guard `wizardValidation.cloudflare !== 'valid'` already handles this — verify it works correctly. No change needed here, but verify by reading the code.
 
-**Step 4: Run tests**
+**Step 5: Run tests**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard/scripts && npm test`
 Expected: All tests pass
 
-**Step 5: Commit**
+**Step 6: Commit**
 
 ```bash
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard
@@ -1052,43 +1219,20 @@ git commit -m "Allow skipping Cloudflare step when credentials already validated
 
 ---
 
-### Task 10: Add integration tests for new wizard behaviors
+### Task 10: Add integration tests for swap detection
 
-**Problem:** The new behaviors (swap detection, Clerk FAPI validation) need test coverage. In particular, `validateClerkCredentials` (Task 5) is the only new server-side logic with external network calls and multiple error branches, and it currently has zero tests.
+**Problem:** The swap detection behavior added in Task 4 (`saveCredentials` returning specific errors when pk/sk are swapped) needs test coverage. Note: `validateClerkCredentials` tests were already added in Task 5 (TDD — tests before implementation).
 
 **Files:**
 - Modify: `scripts/__tests__/integration/wizard-flow.test.js`
 
 **Step 1: Add tests for saveCredentials swap detection**
 
-Append these test cases to `scripts/__tests__/integration/wizard-flow.test.js`:
+Append these test cases to `scripts/__tests__/integration/wizard-flow.test.js`. The `mockReq`, `mockRes` helpers and the `Readable` import were already added in Task 5 — reuse them here.
 
 Note: `scripts/package.json` has `"type": "module"` — all test files use ESM imports, not `require()`.
 
 ```javascript
-// At the top of the file, add this import alongside the existing ones:
-import { Readable } from 'stream';
-
-// Shared mock helpers — place after imports, before describe blocks
-function mockReq(body) {
-  const req = new Readable({ read() {} });
-  req.push(JSON.stringify(body));
-  req.push(null);
-  return req;
-}
-
-function mockRes() {
-  const res = {
-    statusCode: null,
-    headers: {},
-    body: '',
-    writeHead(code, h) { res.statusCode = code; res.headers = h; },
-    end(data) { res.body = data; },
-    get writableEnded() { return !!res.body; },
-  };
-  return res;
-}
-
 describe('editor-api saveCredentials swap detection', () => {
   let editorApi;
 
@@ -1128,141 +1272,17 @@ describe('editor-api saveCredentials swap detection', () => {
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard/scripts && npx vitest run __tests__/integration/wizard-flow.test.js`
 Expected: PASS
 
-**Step 3: Add tests for `validateClerkCredentials` with mocked fetch**
-
-This is the only new server-side function with external network calls. Test all error branches by mocking `global.fetch`.
-
-Append to `scripts/__tests__/integration/wizard-flow.test.js`:
-
-```javascript
-describe('validateClerkCredentials', () => {
-  let editorApi;
-  let originalFetch;
-
-  beforeEach(async () => {
-    vi.resetModules();
-    mkdirSync(join(TEST_DIR, '.vibes'), { recursive: true });
-    process.env.VIBES_HOME = TEST_DIR;
-    originalFetch = global.fetch;
-    editorApi = await import('../../server/handlers/editor-api.js');
-  });
-
-  afterEach(() => {
-    global.fetch = originalFetch;
-    rmSync(TEST_DIR, { recursive: true, force: true });
-    delete process.env.VIBES_HOME;
-  });
-
-  // Helper: encode a domain into a pk_test_ key
-  function makePk(domain) {
-    return 'pk_test_' + Buffer.from(domain + '$').toString('base64');
-  }
-
-  it('returns valid:true when Clerk FAPI responds 200', async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
-
-    const result = await editorApi.validateClerkCredentials({
-      publishableKey: makePk('example.clerk.accounts.dev'),
-    });
-
-    expect(result.valid).toBe(true);
-    expect(global.fetch).toHaveBeenCalledOnce();
-    // Verify it hit the correct FAPI domain
-    const url = global.fetch.mock.calls[0][0];
-    expect(url).toBe('https://example.clerk.accounts.dev/v1/environment');
-  });
-
-  it('returns valid:false with helpful message on 401', async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 401 });
-
-    const result = await editorApi.validateClerkCredentials({
-      publishableKey: makePk('bad.clerk.accounts.dev'),
-    });
-
-    expect(result.valid).toBe(false);
-    expect(result.error).toContain('rejected by Clerk');
-  });
-
-  it('returns valid:false with helpful message on 403', async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 403 });
-
-    const result = await editorApi.validateClerkCredentials({
-      publishableKey: makePk('paused.clerk.accounts.dev'),
-    });
-
-    expect(result.valid).toBe(false);
-    expect(result.error).toContain('rejected by Clerk');
-  });
-
-  it('returns valid:false with status code for other HTTP errors', async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500 });
-
-    const result = await editorApi.validateClerkCredentials({
-      publishableKey: makePk('error.clerk.accounts.dev'),
-    });
-
-    expect(result.valid).toBe(false);
-    expect(result.error).toContain('status 500');
-  });
-
-  it('returns valid:false on DNS resolution failure (ENOTFOUND)', async () => {
-    const err = new Error('getaddrinfo ENOTFOUND nonexistent.clerk.accounts.dev');
-    err.cause = { code: 'ENOTFOUND' };
-    global.fetch = vi.fn().mockRejectedValue(err);
-
-    const result = await editorApi.validateClerkCredentials({
-      publishableKey: makePk('nonexistent.clerk.accounts.dev'),
-    });
-
-    expect(result.valid).toBe(false);
-    expect(result.error).toContain('domain encoded in this key does not exist');
-  });
-
-  it('returns valid:false on timeout (AbortError)', async () => {
-    const err = new DOMException('The operation was aborted', 'AbortError');
-    global.fetch = vi.fn().mockRejectedValue(err);
-
-    const result = await editorApi.validateClerkCredentials({
-      publishableKey: makePk('slow.clerk.accounts.dev'),
-    });
-
-    expect(result.valid).toBe(false);
-    expect(result.error).toContain('timed out');
-  });
-
-  it('returns valid:false when no publishable key provided', async () => {
-    const result = await editorApi.validateClerkCredentials({});
-    expect(result.valid).toBe(false);
-    expect(result.error).toContain('No publishable key');
-  });
-
-  it('returns valid:false when key cannot be decoded', async () => {
-    // extractClerkDomain returns null for non-pk_ keys
-    const result = await editorApi.validateClerkCredentials({
-      publishableKey: 'not_a_valid_key',
-    });
-    expect(result.valid).toBe(false);
-    expect(result.error).toContain('decode domain');
-  });
-});
-```
-
-**Step 4: Run all wizard flow tests**
-
-Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard/scripts && npx vitest run __tests__/integration/wizard-flow.test.js`
-Expected: All tests pass including the new `validateClerkCredentials` tests
-
-**Step 5: Run full test suite**
+**Step 3: Run full test suite**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard/scripts && npm test`
 Expected: All tests pass
 
-**Step 6: Commit**
+**Step 4: Commit**
 
 ```bash
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard
 git add scripts/__tests__/integration/wizard-flow.test.js
-git commit -m "Add integration tests for swap detection and validateClerkCredentials"
+git commit -m "Add integration tests for swap detection"
 ```
 
 ---
@@ -1329,7 +1349,9 @@ git commit -m "Update welcome step with clearer expectations about what users wi
 
 **Step 1: Add CSS for scrollable wizard content**
 
-Find the `.setup-card` CSS rule (around line 282-289). Update it:
+Find the `.setup-card` CSS rule (around line 282-289). Update it.
+
+**Width change:** The existing `width: 480px` is being changed to `max-width: 520px; width: 100%;` for two reasons: (1) the enriched guidance steps need slightly more horizontal space, and (2) `width: 100%` with `max-width` is more responsive than a fixed width — the card will shrink on narrow viewports instead of overflowing.
 
 ```css
 .setup-card {
@@ -1337,15 +1359,15 @@ Find the `.setup-card` CSS rule (around line 282-289). Update it:
   border: 3px solid var(--vibes-near-black);
   border-radius: 12px;
   padding: 2rem;
-  width: 520px;
-  max-width: 90vw;
+  max-width: 520px;
+  width: 100%;
   max-height: 85vh;
   overflow-y: auto;
   box-shadow: 8px 10px 0px 0px var(--vibes-blue), 8px 10px 0px 3px var(--vibes-near-black);
 }
 ```
 
-Note: the inline `style="width:520px;"` on the setup-card div (line 2379) should be removed since width is now in the CSS rule. Check and remove it.
+Note: the existing `max-width: 90vw` is replaced by the `width: 100%` + `max-width: 520px` pattern which achieves the same responsiveness more clearly. Also check for any inline `style="width:..."` on the setup-card div (around line 2379) and remove it since width is now controlled by the CSS rule.
 
 **Step 2: Run tests**
 
