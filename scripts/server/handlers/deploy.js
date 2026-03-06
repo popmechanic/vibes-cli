@@ -1,5 +1,5 @@
 /**
- * Deploy handlers — assemble + deploy to Cloudflare or exe.dev.
+ * Deploy handlers — assemble + deploy to Cloudflare.
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
@@ -7,11 +7,11 @@ import { join } from 'path';
 import { spawn } from 'child_process';
 
 /**
- * Assemble and deploy an app to Cloudflare or exe.dev.
+ * Assemble and deploy an app to Cloudflare.
  */
 export async function handleDeploy(ctx, onEvent, target, name) {
-  if (!target || (target !== 'cloudflare' && target !== 'exe')) {
-    onEvent({ type: 'error', message: 'Invalid deploy target. Use "cloudflare" or "exe".' });
+  if (!target || target !== 'cloudflare') {
+    onEvent({ type: 'error', message: 'Invalid deploy target. Use "cloudflare".' });
     return;
   }
 
@@ -99,13 +99,8 @@ export async function handleDeploy(ctx, onEvent, target, name) {
 
   onEvent({ type: 'progress', progress: 30, stage: 'Deploying...', elapsed: getElapsed() });
 
-  const deployScript = target === 'cloudflare'
-    ? join(ctx.projectRoot, 'scripts/deploy-cloudflare.js')
-    : join(ctx.projectRoot, 'scripts/deploy-exe.js');
-
-  const deployArgs = target === 'cloudflare'
-    ? ['--name', appName, '--file', indexHtmlPath]
-    : ['--name', appName, '--file', indexHtmlPath, '--skip-registry'];
+  const deployScript = join(ctx.projectRoot, 'scripts/deploy-cloudflare.js');
+  const deployArgs = ['--name', appName, '--file', indexHtmlPath];
 
   const deployResult = await new Promise((resolve) => {
     const child = spawn('node', [deployScript, ...deployArgs], {
@@ -137,14 +132,23 @@ export async function handleDeploy(ctx, onEvent, target, name) {
   });
 
   if (!deployResult.ok) {
-    onEvent({ type: 'error', message: `Deploy failed: ${deployResult.stderr.slice(0, 300)}` });
+    onEvent({ type: 'error', message: `Deploy failed: ${deployResult.stderr.slice(0, 600)}` });
     return;
   }
 
-  // Extract URL from deploy output
+  // Extract the APP URL from deploy output (not Connect infrastructure URLs).
+  // deploy-cloudflare.js prints "✅ Deployed to <url>" as its final URL line —
+  // match that specifically. Fall back to the last URL in stdout if the pattern
+  // isn't found (e.g. future output changes).
   let deployUrl = '';
-  const urlMatch = deployResult.stdout.match(/(https?:\/\/[^\s]+)/);
-  if (urlMatch) deployUrl = urlMatch[1];
+  const deployedToMatch = deployResult.stdout.match(/Deployed to\s+(https?:\/\/[^\s]+)/);
+  if (deployedToMatch) {
+    deployUrl = deployedToMatch[1];
+  } else {
+    // Fallback: grab the last URL in stdout (app URL is always printed last)
+    const allUrls = [...deployResult.stdout.matchAll(/(https?:\/\/[^\s]+)/g)];
+    if (allUrls.length) deployUrl = allUrls[allUrls.length - 1][1];
+  }
 
   // Save the deployed version to ~/.vibes/apps/
   try {
@@ -160,85 +164,5 @@ export async function handleDeploy(ctx, onEvent, target, name) {
   onEvent({ type: 'deploy_complete', url: deployUrl, name: appName });
   onEvent({ type: 'chat', role: 'assistant', content: deployUrl ? `Deployed to ${deployUrl}` : 'Deployment complete!' });
 
-  console.log(`[Deploy] ${target} deploy "${appName}" complete${deployUrl ? `: ${deployUrl}` : ''}`);
-}
-
-/**
- * Deploy a Connect Studio to exe.dev.
- */
-export async function handleDeployStudio(ctx, onEvent, studioName, clerkPublishableKey, clerkSecretKey) {
-  if (!studioName) {
-    onEvent({ type: 'studio-error', message: 'Studio name is required' });
-    return;
-  }
-  if (!clerkPublishableKey) {
-    onEvent({ type: 'studio-error', message: 'Clerk publishable key is required' });
-    return;
-  }
-  if (!clerkSecretKey) {
-    onEvent({ type: 'studio-error', message: 'Clerk secret key is required' });
-    return;
-  }
-
-  const { deriveConnectUrls, writeEnvFile } = await import('../../lib/env-utils.js');
-
-  const deployScript = join(ctx.projectRoot, 'scripts/deploy-connect.js');
-  const args = [
-    deployScript,
-    '--studio', studioName,
-    '--clerk-publishable-key', clerkPublishableKey,
-    '--clerk-secret-key', clerkSecretKey,
-  ];
-
-  console.log(`[Studio] Deploying Connect studio "${studioName}"...`);
-  onEvent({ type: 'studio-progress', line: `Deploying Connect studio "${studioName}"...` });
-
-  const result = await new Promise((resolve) => {
-    const child = spawn('node', args, {
-      cwd: ctx.projectRoot,
-      env: { ...process.env },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    let stdout = '';
-    let stderr = '';
-
-    child.stdout.on('data', (data) => {
-      const text = data.toString();
-      stdout += text;
-      for (const line of text.split('\n').filter(Boolean)) {
-        try { onEvent({ type: 'studio-progress', line }); } catch { /* ws may be closed */ }
-      }
-    });
-
-    child.stderr.on('data', (data) => {
-      const text = data.toString();
-      stderr += text;
-      for (const line of text.split('\n').filter(Boolean)) {
-        try { onEvent({ type: 'studio-progress', line }); } catch { /* ws may be closed */ }
-      }
-    });
-
-    child.on('close', (code) => {
-      resolve({ ok: code === 0, stdout, stderr });
-    });
-    child.on('error', (err) => {
-      resolve({ ok: false, stdout: '', stderr: err.message });
-    });
-  });
-
-  if (!result.ok) {
-    onEvent({ type: 'studio-error', message: `Studio deploy failed: ${result.stderr.slice(0, 300)}` });
-    console.error(`[Studio] Deploy failed: ${result.stderr.slice(0, 200)}`);
-    return;
-  }
-
-  const { apiUrl, cloudUrl } = deriveConnectUrls(studioName);
-  writeEnvFile(ctx.projectRoot, {
-    VITE_API_URL: apiUrl,
-    VITE_CLOUD_URL: cloudUrl,
-  });
-
-  onEvent({ type: 'studio-complete', apiUrl, cloudUrl });
-  console.log(`[Studio] Deploy complete: ${apiUrl}`);
+  console.log(`[Deploy] cloudflare deploy "${appName}" complete${deployUrl ? `: ${deployUrl}` : ''}`);
 }

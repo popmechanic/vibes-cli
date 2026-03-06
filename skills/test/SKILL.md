@@ -1,6 +1,6 @@
 ---
 name: test
-description: Self-contained test automation — invoke directly, do not decompose. End-to-end integration test that assembles a fixture, deploys Connect + Cloudflare, and presents a live URL for browser verification.
+description: Self-contained test automation — invoke directly, do not decompose. End-to-end integration test that assembles a fixture, deploys to Cloudflare (with auto-provisioned Connect), and presents a live URL for browser verification.
 license: MIT
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 metadata:
@@ -11,7 +11,7 @@ metadata:
 
 ## Integration Test Skill
 
-Orchestrates the full test pipeline: credentials → Connect studio → fixture assembly → Cloudflare deploy → live URL → unit tests.
+Orchestrates the full test pipeline: credentials → fixture assembly → Cloudflare deploy (with auto-provisioned Connect) → live URL → unit tests.
 
 **Working directory:** `test-vibes/` (gitignored, persists across runs)
 
@@ -65,50 +65,13 @@ VITE_CLERK_PUBLISHABLE_KEY=<key>
 VITE_CLERK_SECRET_KEY=<key>
 ```
 
-### Phase 2: Connect Studio
+### Phase 2: Connect (Auto-Provisioned)
 
-Check if `test-vibes/.connect` exists (marks a deployed studio).
+Connect is automatically provisioned on first Cloudflare deploy -- no manual setup needed.
+The `deploy-cloudflare.js` script handles R2 bucket, D1 databases, and cloud backend
+Worker provisioning via alchemy. Subsequent deploys skip Connect setup.
 
-```bash
-cat test-vibes/.connect 2>/dev/null
-```
-
-**If `.connect` exists:** Read the studio name and API/Cloud URLs. Confirm reuse:
-
-```
-AskUserQuestion:
-  Question: "Reuse existing Connect studio '<name>'?"
-  Header: "Connect"
-  Options:
-  - Label: "Yes, reuse"
-    Description: "Studio is already running"
-  - Label: "No, deploy fresh"
-    Description: "Deploy a new Connect studio"
-```
-
-**If `.connect` doesn't exist or user wants fresh deploy:**
-
-Run the deploy script. Read the Clerk keys from `test-vibes/.env` first:
-
-```bash
-node scripts/deploy-connect.js \
-  --studio vibes-test-studio \
-  --clerk-publishable-key "$VITE_CLERK_PUBLISHABLE_KEY" \
-  --clerk-secret-key "$VITE_CLERK_SECRET_KEY"
-```
-
-After deploy, save the studio info:
-
-```bash
-# Write connect marker
-echo "vibes-test-studio" > test-vibes/.connect
-```
-
-Update `test-vibes/.env` with the Connect URLs:
-```
-VITE_API_URL=https://vibes-test-studio.exe.xyz/api
-VITE_CLOUD_URL=fpcloud://vibes-test-studio.exe.xyz?protocol=wss
-```
+Proceed directly to fixture selection.
 
 ### Phase 3: Fixture Selection
 
@@ -470,9 +433,8 @@ Print a summary table:
 | Phase       | Status |
 |-------------|--------|
 | Credentials | ✓      |
-| Connect     | ✓ <studio-name>.exe.xyz |
 | Assembly    | ✓ <fixture>.jsx → index.html |
-| Cloudflare  | ✓ <url> |
+| Cloudflare  | ✓ <url> (Connect auto-provisioned) |
 | Browser     | ✓ User confirmed working |
 ```
 
@@ -505,36 +467,25 @@ Ask the user to describe the issue. Then work through these diagnostic steps. Sk
 | Console Error | Likely Cause | Check File |
 |---------------|-------------|------------|
 | `Cannot read properties of null (reading 'useContext')` | Duplicate React instances | `source-templates/base/template.html` import map |
-| `Failed to fetch` / CORS errors | Deploy script wrong URL or missing CORS headers | `scripts/deploy-connect.js`, `scripts/deploy-cloudflare.js` |
+| `Failed to fetch` / CORS errors | Deploy script wrong URL or missing CORS headers | `scripts/deploy-cloudflare.js` |
 | `Fireproof is not defined` | Missing import map entry | `source-templates/base/template.html` import map |
 | `Unexpected token '<'` | Babel script block malformed | `scripts/assemble.js` |
-| 404 on `/api/` routes | nginx config or Connect not running | `scripts/deploy-connect.js` |
+| 404 on `/api/` routes | Connect not provisioned or Worker misconfigured | `scripts/deploy-cloudflare.js` |
 
 **7.2 Network requests** — probe the deployed services:
 
 ```bash
-# Test Connect Studio API
-curl -v https://<studio>.exe.xyz/api/
-
 # Test Cloudflare Worker
 curl -v https://vibes-test.<account>.workers.dev/
 ```
 
-**7.3 Server-side** — SSH into the VM if network probes fail:
-
-```bash
-ssh <studio>.exe.xyz "docker ps"           # Check containers running
-ssh <studio>.exe.xyz "sudo nginx -t"       # Check nginx config
-ssh <studio>.exe.xyz "docker logs gateway"  # Check gateway logs
-```
-
-**7.4 Plugin source** — map symptoms to source files:
+**7.3 Plugin source** — map symptoms to source files:
 
 | Symptom Category | Files to Read |
 |-----------------|---------------|
 | Assembly/template | `scripts/assemble.js`, `source-templates/base/template.html`, relevant `template.delta.html` |
-| Deploy/hosting | `scripts/deploy-cloudflare.js`, `scripts/deploy-connect.js` |
-| Auth/Clerk | `source-templates/base/template.html` (Clerk script), `scripts/deploy-connect.js` (env vars) |
+| Deploy/hosting | `scripts/deploy-cloudflare.js` |
+| Auth/Clerk | `source-templates/base/template.html` (Clerk script), `scripts/deploy-cloudflare.js` (env vars) |
 | Import/module errors | `source-templates/base/template.html` (import map) |
 
 ### Phase 8: Root Cause Classification
@@ -543,7 +494,7 @@ Before touching any file, state the classification:
 
 | Category | Signal | Fix Target | Example |
 |----------|--------|-----------|---------|
-| **A: Plugin source bug** | Deploy script produces wrong output | `scripts/*.js` | `deploy-connect.js` writes wrong URL |
+| **A: Plugin source bug** | Deploy script produces wrong output | `scripts/*.js` | `deploy-cloudflare.js` writes wrong URL |
 | **B: Template bug** | HTML output is structurally wrong | `source-templates/base/template.html` or `template.delta.html` | Missing import map entry |
 | **C: Skill instruction bug** | Agent followed wrong steps | `skills/*/SKILL.md` | Wrong hook name in instructions |
 | **D: Fixture bug** | Only this fixture fails | `scripts/__tests__/fixtures/` | Bad JSX in test fixture |
@@ -576,7 +527,7 @@ If "Wrong diagnosis": ask what they think and re-diagnose.
 
 | Category | Restart From |
 |----------|-------------|
-| A: Plugin source | Phase that uses the fixed script (2, 4, or 5) |
+| A: Plugin source | Phase that uses the fixed script (4 or 5) |
 | B: Template | Phase 4 (re-assemble) |
 | C: Skill instruction | Note the fix — no re-run needed |
 | D: Fixture | Phase 4 (re-assemble) |
@@ -705,8 +656,8 @@ Triggered after Phase 11 completes or when user selects "End test session" from 
 Clean up test artifacts while preserving reusable credentials:
 
 ```bash
-# Clean test artifacts, preserve .env and .connect
-cd test-vibes && find . -maxdepth 1 ! -name '.' ! -name '.env' ! -name '.connect' -exec rm -rf {} +
+# Clean test artifacts, preserve .env
+cd test-vibes && find . -maxdepth 1 ! -name '.' ! -name '.env' -exec rm -rf {} +
 ```
 
 Print:
@@ -714,5 +665,5 @@ Print:
 ```
 Test session complete.
   Cleaned: test-vibes/ artifacts
-  Preserved: .env, .connect (reusable next session)
+  Preserved: .env (reusable next session)
 ```

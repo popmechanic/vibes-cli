@@ -2138,6 +2138,78 @@
       font-weight: 400;
     }
     .deploy-option-detail.ready { color: var(--vibes-green); }
+    .deploy-section-divider {
+      border: none;
+      border-top: 1.5px solid rgba(0,0,0,0.1);
+      margin: 0;
+    }
+    .deploy-section-label {
+      padding: 0.5rem 0.85rem 0.25rem;
+      font-size: 0.625rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #999;
+    }
+    .deploy-history {
+      max-height: 180px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+    .deploy-history-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.8125rem;
+      transition: background 0.15s;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font-family: inherit;
+      color: var(--vibes-near-black);
+      cursor: pointer;
+    }
+    .deploy-history-item:hover { background: rgba(0,154,206,0.08); }
+    .deploy-history-item:last-child { border-radius: 0 0 8px 8px; }
+    .deploy-history-item:not(:last-child) { border-bottom: 1px solid rgba(0,0,0,0.04); }
+    .deploy-history-name {
+      font-weight: 600;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--vibes-blue);
+      text-decoration: none;
+    }
+    .deploy-history-name:hover { text-decoration: underline; }
+    .deploy-history-update {
+      font-size: 0.625rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.2rem 0.45rem;
+      border: 1.5px solid var(--vibes-near-black);
+      border-radius: 4px;
+      background: var(--vibes-cream);
+      color: var(--vibes-near-black);
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      flex-shrink: 0;
+    }
+    .deploy-history-update:hover {
+      background: var(--vibes-green);
+      transform: translate(0.5px, 0.5px);
+    }
+    .deploy-history-link {
+      font-size: 0.625rem;
+      color: var(--vibes-blue);
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .deploy-history-link:hover { text-decoration: underline; }
 
     /* === CREATE THEME === */
     .modal-create-btn {
@@ -2379,9 +2451,9 @@
         <!-- Advanced: raw URLs -->
         <div id="studioAdvanced" style="display:none;">
           <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">API URL</label>
-          <input class="wizard-input" id="wizardApiUrl" type="text" placeholder="https://my-studio.exe.xyz/api/" oninput="validateAdvancedUrls()" />
+          <input class="wizard-input" id="wizardApiUrl" type="text" placeholder="https://my-studio.example.com/api/" oninput="validateAdvancedUrls()" />
           <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Cloud URL</label>
-          <input class="wizard-input" id="wizardCloudUrl" type="text" placeholder="fpcloud://my-studio.exe.xyz?protocol=wss" oninput="validateAdvancedUrls()" />
+          <input class="wizard-input" id="wizardCloudUrl" type="text" placeholder="fpcloud://my-studio.example.com?protocol=wss" oninput="validateAdvancedUrls()" />
         </div>
 
         <div class="setup-actions" style="margin-top:1rem;">
@@ -2776,13 +2848,12 @@
   let isThinking = false;
   let themes = [];
   let currentPhase = 'loading';
-  let deployTargets = { cloudflare: false, exe: false };
+  let deployTargets = { cloudflare: false };
   let pendingThemeId = null;
   let currentThemeId = null;
   let currentAppName = null;
   let wizardStep = 1;
   let wizardData = { clerkKey: '', clerkSecret: '', studioName: '', apiUrl: '', cloudUrl: '', openRouterKey: '' };
-  let sshAvailable = false;
   let studioCheckTimer = null;
   let studioMode = 'existing';
 
@@ -2986,13 +3057,11 @@
                 <div class="deploy-option-detail" id="deployCfDetail">Checking...</div>
               </div>
             </button>
-            <button class="deploy-option" id="deployExe" onclick="startDeploy('exe')" disabled>
-              <span class="deploy-option-icon">&#128421;</span>
-              <div>
-                <div>exe.dev VM</div>
-                <div class="deploy-option-detail" id="deployExeDetail">Checking...</div>
-              </div>
-            </button>
+            <div id="deployHistorySection" style="display:none">
+              <hr class="deploy-section-divider">
+              <div class="deploy-section-label">Previous Deployments</div>
+              <div class="deploy-history" id="deployHistoryList"></div>
+            </div>
           </div>
         </div>`;
       updateDeployButtons();
@@ -3160,11 +3229,9 @@
       { key: 'connect', label: 'Connect Studio', detail: status.connect?.detail || '', required: true },
       { key: 'openrouter', label: 'OpenRouter API key', detail: status.openrouter?.detail || '', required: false },
       { key: 'wrangler', label: 'Cloudflare (wrangler)', detail: status.wrangler?.detail || '', required: false },
-      { key: 'ssh', label: 'exe.dev SSH', detail: status.ssh?.detail || '', required: false },
     ];
 
     deployTargets.cloudflare = status.wrangler?.ok || false;
-    deployTargets.exe = status.ssh?.ok || false;
 
     const requiredOk = items.filter(i => i.required).every(i => status[i.key]?.ok);
     const allOk = items.every(i => status[i.key]?.ok);
@@ -3450,7 +3517,6 @@
         throw new Error(errMsg);
       }
       deployTargets.cloudflare = data.status?.wrangler?.ok || false;
-      deployTargets.exe = data.status?.ssh?.ok || false;
       goToGenerate();
     } catch (err) {
       btn.disabled = false;
@@ -3925,18 +3991,11 @@
 
   function updateDeployButtons() {
     const cfBtn = document.getElementById('deployCf');
-    const exeBtn = document.getElementById('deployExe');
     if (cfBtn) {
       cfBtn.disabled = !deployTargets.cloudflare;
       const cfDetail = document.getElementById('deployCfDetail');
       cfDetail.textContent = deployTargets.cloudflare ? 'Ready' : 'wrangler not configured';
       cfDetail.classList.toggle('ready', deployTargets.cloudflare);
-    }
-    if (exeBtn) {
-      exeBtn.disabled = !deployTargets.exe;
-      const exeDetail = document.getElementById('deployExeDetail');
-      exeDetail.textContent = deployTargets.exe ? 'Ready' : 'SSH not configured';
-      exeDetail.classList.toggle('ready', deployTargets.exe);
     }
   }
 
@@ -3954,10 +4013,76 @@
       // Refresh deploy status
       fetch('/editor/status').then(r => r.json()).then(status => {
         deployTargets.cloudflare = status.wrangler?.ok || false;
-        deployTargets.exe = status.ssh?.ok || false;
         updateDeployButtons();
       }).catch(() => {});
+      // Load previous deployments
+      loadDeployHistory();
     }
+  }
+
+  function loadDeployHistory() {
+    fetch('/editor/deployments').then(r => r.json()).then(deployments => {
+      const section = document.getElementById('deployHistorySection');
+      const list = document.getElementById('deployHistoryList');
+      if (!deployments.length) { section.style.display = 'none'; return; }
+      section.style.display = 'block';
+      list.replaceChildren();
+      deployments.forEach(d => {
+        const ago = timeAgo(d.updatedAt);
+        const row = document.createElement('div');
+        row.className = 'deploy-history-item';
+        row.addEventListener('click', e => e.stopPropagation());
+
+        const nameLink = document.createElement('a');
+        nameLink.className = 'deploy-history-name';
+        nameLink.href = d.url;
+        nameLink.target = '_blank';
+        nameLink.rel = 'noopener';
+        nameLink.title = d.url;
+        nameLink.textContent = d.name;
+        nameLink.addEventListener('click', e => e.stopPropagation());
+
+        const time = document.createElement('span');
+        time.style.cssText = 'font-size:0.625rem;color:#999';
+        time.textContent = ago;
+
+        const btn = document.createElement('button');
+        btn.className = 'deploy-history-update';
+        btn.title = 'Deploy current code to ' + d.name;
+        btn.textContent = 'Update';
+        btn.addEventListener('click', () => updateDeploy(d.name));
+
+        const arrow = document.createElement('a');
+        arrow.className = 'deploy-history-link';
+        arrow.href = d.url;
+        arrow.target = '_blank';
+        arrow.rel = 'noopener';
+        arrow.title = d.url;
+        arrow.textContent = '↗';
+        arrow.addEventListener('click', e => e.stopPropagation());
+
+        row.append(nameLink, time, btn, arrow);
+        list.appendChild(row);
+      });
+    }).catch(() => {});
+  }
+
+  function timeAgo(dateStr) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    const days = Math.floor(hrs / 24);
+    return days + 'd ago';
+  }
+
+  function updateDeploy(appName) {
+    if (isThinking || !ws || ws.readyState !== WebSocket.OPEN) return;
+    document.getElementById('deployMenu').classList.remove('open');
+    addMessage('user', 'Update "' + appName + '" on Cloudflare Workers');
+    ws.send(JSON.stringify({ type: 'deploy', target: 'cloudflare', name: appName }));
   }
 
   function startDeploy(target) {
@@ -3971,7 +4096,7 @@
     }
     nameInput.style.borderColor = 'var(--vibes-near-black)';
     document.getElementById('deployMenu').classList.remove('open');
-    addMessage('user', 'Deploy "' + name + '" to ' + (target === 'cloudflare' ? 'Cloudflare Workers' : 'exe.dev'));
+    addMessage('user', 'Deploy "' + name + '" to Cloudflare Workers');
     ws.send(JSON.stringify({ type: 'deploy', target, name }));
   }
 
@@ -5285,24 +5410,22 @@
 
   // Check status → decide setup wizard vs generate
   fetch('/editor/status').then(r => r.json()).then(status => {
-    sshAvailable = status.ssh?.ok || false;
     deployTargets.cloudflare = status.wrangler?.ok || false;
-    deployTargets.exe = status.ssh?.ok || false;
-
-    // Disable deploy radio if SSH not available
-    const deployRadio = document.getElementById('wizardDeployRadio');
-    if (deployRadio && !sshAvailable) {
-      deployRadio.classList.add('disabled');
-      deployRadio.title = 'SSH to exe.dev not available';
-      deployRadio.querySelector('input').disabled = true;
-    }
 
     if (status.clerk?.ok && status.connect?.ok) {
-      // Credentials present → stay in generate phase
-      fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
-        if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;
-      }).catch(() => {});
-      document.getElementById('generatePrompt').focus();
+      // Credentials present — check if app.jsx exists to resume edit phase
+      fetch('/editor/app-exists').then(r => r.json()).then(data => {
+        if (data.exists) {
+          setPhase('edit');
+        } else {
+          fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
+            if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;
+          }).catch(() => {});
+          document.getElementById('generatePrompt').focus();
+        }
+      }).catch(() => {
+        document.getElementById('generatePrompt').focus();
+      });
     } else {
       // Missing credentials → show wizard
       setPhase('setup');

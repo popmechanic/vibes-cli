@@ -23,7 +23,8 @@ import { resolve, join, basename, dirname } from "path";
 import { createPublicKey } from "crypto";
 import { PLUGIN_ROOT } from "./lib/paths.js";
 import { loadEnvFile, extractClerkDomain } from "./lib/env-utils.js";
-import { validateName } from "./lib/deploy-utils.js";
+import { getApp, setApp, isFirstDeploy, validateName } from './lib/registry.js';
+import { deployConnect } from './lib/alchemy-deploy.js';
 const WORKER_DIR = resolve(PLUGIN_ROOT, "skills/cloudflare/worker");
 
 function run(cmd, options = {}) {
@@ -160,6 +161,86 @@ async function main() {
 
   console.log(`Deploying ${name} to Cloudflare Workers...`);
   console.log(`Plugin root: ${PLUGIN_ROOT}`);
+
+  // --- First-deploy detection ---
+  const firstDeploy = isFirstDeploy(name);
+
+  if (firstDeploy) {
+    console.log(`\nFirst deploy for "${name}" — provisioning paired Connect instance...`);
+
+    // Clerk key is required for Connect
+    if (!clerkKey) {
+      throw new Error(
+        'First deploy requires Clerk publishable key.\n' +
+        'Provide via --clerk-key flag or VITE_CLERK_PUBLISHABLE_KEY in .env'
+      );
+    }
+
+    const connectClerkSecret = envVars.CLERK_SECRET_KEY || null;
+    if (!connectClerkSecret) {
+      console.warn('No CLERK_SECRET_KEY in .env — Connect dashboard features may be limited.');
+    }
+
+    // Deploy Connect via alchemy
+    const connectResult = await deployConnect({
+      appName: name,
+      clerkPublishableKey: clerkKey,
+      clerkSecretKey: connectClerkSecret,
+      dryRun: args.includes('--dry-run')
+    });
+
+    // Write Connect metadata to registry
+    setApp(name, {
+      name,
+      clerk: {
+        publishableKey: clerkKey,
+        secretKey: connectClerkSecret || '',
+        domain: extractClerkDomain(clerkKey)
+      },
+      connect: {
+        ...connectResult,
+        deployedAt: new Date().toISOString()
+      }
+    });
+
+    // Log Connect URLs (internal infrastructure — not user-facing)
+    console.log(`[connect] Provisioned API: ${connectResult.apiUrl}`);
+    console.log(`[connect] Provisioned Cloud: ${connectResult.cloudUrl}`);
+
+    // Write Connect URLs to .env so assembly can find them
+    const envPath = resolve(envDir, '.env');
+    let envContent = existsSync(envPath) ? readFileSync(envPath, 'utf8') : '';
+
+    // Append or update VITE_API_URL and VITE_CLOUD_URL
+    for (const [key, value] of [['VITE_API_URL', connectResult.apiUrl], ['VITE_CLOUD_URL', connectResult.cloudUrl]]) {
+      const regex = new RegExp(`^${key}=.*$`, 'm');
+      if (regex.test(envContent)) {
+        envContent = envContent.replace(regex, `${key}=${value}`);
+      } else {
+        envContent = envContent.trimEnd() + `\n${key}=${value}\n`;
+      }
+    }
+    writeFileSync(envPath, envContent);
+    console.log(`Updated ${envPath} with Connect URLs`);
+
+    // Auto-assemble if index.html doesn't exist yet
+    const srcFile = resolve(process.cwd(), file);
+    const appJsx = resolve(process.cwd(), 'app.jsx');
+    if (!existsSync(srcFile) && existsSync(appJsx)) {
+      console.log(`\nAuto-assembling ${file} from app.jsx...`);
+      execSync(`node "${resolve(PLUGIN_ROOT, 'scripts/assemble.js')}" app.jsx "${file}"`, {
+        stdio: 'inherit',
+        cwd: process.cwd()
+      });
+    }
+
+  } else {
+    console.log(`\nUpdate deploy for "${name}" — using existing Connect instance.`);
+    const existing = getApp(name);
+    if (existing?.connect) {
+      console.log(`[connect] Using existing API: ${existing.connect.apiUrl}`);
+    }
+  }
 
   // Ensure public directory exists
   const publicDir = resolve(WORKER_DIR, "public");
@@ -362,6 +443,17 @@ async function main() {
   const urlMatch = deployOutput.match(/https:\/\/[^\s]+\.workers\.dev/);
   const deployedUrl = urlMatch ? urlMatch[0] : `https://${name}.workers.dev`;
   console.log(`\n✅ Deployed to ${deployedUrl}`);
+
+  // Update app metadata in registry
+  const appEntry = getApp(name) || { name };
+  setApp(name, {
+    ...appEntry,
+    app: {
+      workerName: name,
+      kvNamespaceId: kvId,
+      url: deployedUrl
+    }
+  });
 }
 
 main().catch((e) => {

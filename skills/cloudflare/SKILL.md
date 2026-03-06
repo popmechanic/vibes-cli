@@ -44,6 +44,16 @@ npx wrangler secret put CLERK_PEM_PUBLIC_KEY
 npx wrangler secret put CLERK_WEBHOOK_SECRET
 ```
 
+### Automatic Connect Deployment
+
+On first deploy, the script automatically provisions a paired Fireproof Connect
+instance via alchemy. This includes: R2 bucket, D1 databases, cloud backend
+Worker (blob ops + WebSocket rooms), and dashboard Worker.
+
+Subsequent deploys skip Connect and only update the app Worker.
+
+App-Connect pairings are tracked in `~/.vibes/deployments.json`.
+
 ### Deploy Script
 
 For deploying with static assets (index.html, bundles, assets):

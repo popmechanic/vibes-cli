@@ -1,4 +1,4 @@
-// Admin Dashboard Components (exe.dev - Client-Side Only)
+// Admin Dashboard Components (Client-Side Only)
 // Injected into unified.html by assemble-sell.js
 // Uses CONFIG object and CSS variables for theming
 // NOTE: No backend API calls - uses Clerk metadata as source of truth
@@ -81,8 +81,8 @@ function AdminDashboard() {
             <div className="grid md:grid-cols-3 gap-6 mb-8">
               <div className="p-6 bg-[var(--admin-card-bg)] border-4 border-[var(--admin-border)] shadow-[6px_6px_0px_var(--admin-shadow)]">
                 <h3 className="text-sm font-bold text-[var(--admin-text-muted)] mb-2">DEPLOYMENT</h3>
-                <p className="text-2xl font-bold text-[var(--admin-text)]">exe.dev</p>
-                <p className="text-sm text-[var(--admin-text-muted)] mt-1">Client-side only</p>
+                <p className="text-2xl font-bold text-[var(--admin-text)]">Cloudflare</p>
+                <p className="text-sm text-[var(--admin-text-muted)] mt-1">Workers + KV</p>
               </div>
               <div className="p-6 bg-[var(--admin-card-bg)] border-4 border-[var(--admin-border)] shadow-[6px_6px_0px_#3b82f6]">
                 <h3 className="text-sm font-bold text-[var(--admin-text-muted)] mb-2">DOMAIN</h3>

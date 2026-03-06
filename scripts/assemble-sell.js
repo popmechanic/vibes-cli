@@ -157,22 +157,19 @@ const appName = options.appName || 'my-app';
 const outputDir = dirname(resolve(outputPath || 'index.html'));
 const envVars = loadEnvFile(outputDir);
 
-// Check if .env file exists at all
-const envPath = resolve(outputDir, '.env');
-if (!existsSync(envPath)) {
-  console.error(`
-╔════════════════════════════════════════════════════════════════╗
-║  ERROR: .env file not found                                    ║
-╠════════════════════════════════════════════════════════════════╣
-║  The sell skill requires Fireproof Connect to be configured.   ║
-║                                                                 ║
-║  SOLUTION: Run /vibes:connect first to set up your sync        ║
-║  backend, then return to /vibes:sell.                          ║
-║                                                                 ║
-║  Expected: ${envPath.length > 50 ? '...' + envPath.slice(-47) : envPath.padEnd(50)} ║
-╚════════════════════════════════════════════════════════════════╝
-`);
-  process.exit(1);
+// If .env lacks Connect URLs, try global registry
+if (!envVars.VITE_API_URL || !envVars.VITE_CLERK_PUBLISHABLE_KEY) {
+  const registryAppName = options.appName || null;
+  if (registryAppName) {
+    const { getApp } = await import('./lib/registry.js');
+    const app = getApp(registryAppName);
+    if (app) {
+      envVars.VITE_CLERK_PUBLISHABLE_KEY = envVars.VITE_CLERK_PUBLISHABLE_KEY || app.clerk?.publishableKey;
+      envVars.VITE_API_URL = envVars.VITE_API_URL || app.connect?.apiUrl;
+      envVars.VITE_CLOUD_URL = envVars.VITE_CLOUD_URL || app.connect?.cloudUrl;
+      console.log(`Connect config: from registry (app: ${registryAppName})`);
+    }
+  }
 }
 
 // Validate Connect credentials - fail fast if invalid
@@ -180,24 +177,13 @@ const hasValidConnect = validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY) &&
                         envVars.VITE_API_URL;
 
 if (!hasValidConnect) {
-  console.error(`
-╔════════════════════════════════════════════════════════════════╗
-║  ERROR: Invalid Clerk credentials in .env                      ║
-╠════════════════════════════════════════════════════════════════╣
-║  The .env file exists but is missing required values.          ║
-║                                                                 ║
-║  Required in .env:                                              ║
-║    VITE_CLERK_PUBLISHABLE_KEY=pk_test_... or pk_live_...       ║
-║    VITE_API_URL=https://your-studio.exe.xyz/api                ║
-║    VITE_CLOUD_URL=fpcloud://your-studio.exe.xyz?protocol=wss   ║
-║                                                                 ║
-║  Current values:                                                ║
-║    VITE_CLERK_PUBLISHABLE_KEY=${(envVars.VITE_CLERK_PUBLISHABLE_KEY || '(not set)').substring(0, 30).padEnd(30)}    ║
-║    VITE_API_URL=${(envVars.VITE_API_URL || '(not set)').substring(0, 40).padEnd(40)}    ║
-║                                                                 ║
-║  SOLUTION: Run /vibes:connect to configure your sync backend.  ║
-╚════════════════════════════════════════════════════════════════╝
-`);
+  console.error(
+    'Valid Clerk credentials required.\n\n' +
+    'Expected in .env or registry:\n' +
+    '  VITE_CLERK_PUBLISHABLE_KEY=pk_test_... or pk_live_...\n' +
+    '  VITE_API_URL=https://...\n\n' +
+    'Deploy first to auto-configure Connect, or set up .env manually.'
+  );
   process.exit(1);
 }
 
@@ -377,14 +363,14 @@ console.log(`
 
 This is a client-side only SaaS app. No backend server required.
 
-STEP 1: DEPLOY TO exe.dev
-─────────────────────────
+STEP 1: DEPLOY TO CLOUDFLARE WORKERS
+─────────────────────────────────────
 
-  Run /vibes:exe to deploy to exe.dev, or manually:
+  Run /vibes:cloudflare to deploy, or manually:
 
-  node "\${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name ${appName} --file index.html
-
-  Your app will be live at: https://${appName}.exe.xyz
+  node "\${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \\
+    --name ${appName} --file index.html \\
+    --clerk-key pk_test_YOUR_KEY --webhook-secret whsec_YOUR_SECRET
 
 STEP 2: SET UP CLERK (REQUIRED BEFORE TESTING)
 ───────────────────────────────────────────────
@@ -413,21 +399,15 @@ STEP 2: SET UP CLERK (REQUIRED BEFORE TESTING)
 STEP 3: SET UP DNS (Required for custom domains)
 ─────────────────────────────────────────────────
 
-  Configure your DNS provider with these records:
+  The app is immediately available at the Workers URL.
+  For a custom domain, configure in Cloudflare dashboard:
 
-  ┌────────┬──────┬─────────────────────────┐
-  │ Type   │ Name │ Value                   │
-  ├────────┼──────┼─────────────────────────┤
-  │ ALIAS  │ @    │ exe.xyz                 │
-  │ CNAME  │ *    │ ${appName}.exe.xyz      │
-  └────────┴──────┴─────────────────────────┘
+  Workers & Pages → your worker → Settings → Domains & Routes
 
-  This routes both apex (${domain}) and wildcards
-  (*.${domain}) through exe.dev's proxy, which
-  handles SSL termination automatically.
+  For wildcard subdomains (*.${domain}), add a wildcard route.
 
-  Note: If your DNS provider doesn't support ALIAS,
-  use ?subdomain= query parameters instead.
+  Note: Until a custom domain with wildcard SSL is configured,
+  use ?subdomain= query parameters for tenant routing.
 
 STEP 4: CONFIGURE BILLING (if --billing-mode required)
 ───────────────────────────────────────────────────────

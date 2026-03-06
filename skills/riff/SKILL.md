@@ -194,8 +194,8 @@ Options:
 - Label: "Turn winner into SaaS (/sell)"
   Description: "Ready to monetize the best one? Sell adds Clerk authentication with passkeys, subscription billing, and multi-tenant database isolation. Each customer gets their own subdomain with their own data."
 
-- Label: "Deploy a riff as demo (/exe)"
-  Description: "Want to share one quickly? Deploy puts any variation live at yourapp.exe.xyz within minutes. Great for getting feedback before committing to further development."
+- Label: "Deploy a riff as demo (/cloudflare)"
+  Description: "Want to share one quickly? Deploy puts any variation live on Cloudflare Workers within minutes. Great for getting feedback before committing to further development."
 
 - Label: "I'm done for now"
   Description: "Wrap up this session. All riffs are saved in riff-1/, riff-2/, etc. - browse them locally or come back later to continue."
@@ -205,5 +205,5 @@ Options:
 - "Develop #1" → Copy riff-1/app.jsx to ./app.jsx, confirm ready for vibes iteration
 - "Pick different" → Ask which riff number, then copy that one
 - "Turn into SaaS" → Copy riff-1/app.jsx, auto-invoke /vibes:sell skill
-- "Deploy demo" → Ask which riff, auto-invoke /vibes:exe skill with that riff's index.html
+- "Deploy demo" → Ask which riff, auto-invoke /vibes:cloudflare skill with that riff's index.html
 - "I'm done" → Confirm riffs saved, provide directory listing
