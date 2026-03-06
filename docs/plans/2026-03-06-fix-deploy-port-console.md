@@ -4,7 +4,7 @@
 
 **Goal:** Fix three bugs in the vibes-skill plugin: (1) alchemy deploy crash on first deploy due to env var mismatch, (2) preview server ignoring `--port` flag and `PORT` env var, (3) console noise from 404s and empty Connect URLs in the editor.
 
-**Architecture:** Problem 1 is an env var name mismatch between `buildAlchemyEnv` and upstream `alchemy.run.ts` (which now expects `OIDC_AUTHORITY` instead of `CLERK_PUB_JWT_URL`). Problem 2 is a missing `PORT` env var fallback in `loadConfig()`. Problem 3 requires suppressing 404 responses and server-side warnings when no app is generated yet, and guarding both the vibes and sell templates' `ClerkFireproofProvider` config against empty Connect URLs.
+**Architecture:** Problem 1 is an env var name mismatch between `buildAlchemyEnv` and upstream `alchemy.run.ts` (which now expects `OIDC_AUTHORITY` instead of `CLERK_PUB_JWT_URL`). Problem 2 is a missing `PORT` env var fallback in `loadConfig()`. Problem 3 requires suppressing 404 responses and server-side warnings when no app is generated yet, and guarding all three delta templates' (vibes, sell, riff) `ClerkFireproofProvider` config against empty Connect URLs.
 
 **Tech Stack:** Node.js, vitest
 
@@ -220,17 +220,19 @@ are always missing — repeated warnings are just noise."
 
 ---
 
-### Task 4: Suppress client-side console noise for empty Connect URLs in vibes and sell templates
+### Task 4: Suppress client-side console noise for empty Connect URLs in all delta templates
 
 **Context:** When `populateConnectConfig()` replaces `__VITE_CLOUD_URL__` and `__VITE_API_URL__` with empty strings, the template passes `{ apiUrl: "", cloudUrl: "" }` to `ClerkFireproofProvider`. This causes Fireproof internals to attempt connections to empty/invalid URLs, generating "unsupported protocol" and "notfound" console errors in the browser.
 
-Both the vibes and sell delta templates have this problem. Each passes config unconditionally to `ClerkFireproofProvider`.
+All three delta templates (vibes, sell, riff) have this problem. Each passes config unconditionally to `ClerkFireproofProvider`.
 
 **Files:**
 - Modify: `skills/vibes/template.delta.html:62-68`
 - Modify: `skills/sell/template.delta.html:1788-1794`
+- Modify: `skills/riff/template.delta.html:62-67`
 - Regenerate: `skills/vibes/templates/index.html` (via merge-templates.js)
 - Regenerate: `skills/sell/templates/unified.html` (via merge-templates.js)
+- Regenerate: `skills/riff/templates/index.html` (via merge-templates.js)
 
 **Step 1: Guard `ClerkFireproofProvider` config in the vibes delta template**
 
@@ -286,7 +288,33 @@ Change to:
 >
 ```
 
-**Step 3: Rebuild both merged templates**
+**Step 3: Apply the same guard in the riff delta template**
+
+In `skills/riff/template.delta.html`, the `ClerkFireproofProvider` receives config on lines 62-67:
+
+```jsx
+<ClerkFireproofProvider
+  publishableKey={config.clerkPublishableKey}
+  config={{
+    apiUrl: config.tokenApiUri,
+    cloudUrl: config.cloudBackendUrl
+  }}
+>
+```
+
+Change to:
+
+```jsx
+<ClerkFireproofProvider
+  publishableKey={config.clerkPublishableKey}
+  config={config.tokenApiUri && config.cloudBackendUrl ? {
+    apiUrl: config.tokenApiUri,
+    cloudUrl: config.cloudBackendUrl
+  } : undefined}
+>
+```
+
+**Step 4: Rebuild all merged templates**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/fix-deploy-port-console && node scripts/merge-templates.js --force`
 
@@ -294,33 +322,75 @@ Verify vibes: `grep -A5 'ClerkFireproofProvider' skills/vibes/templates/index.ht
 
 Verify sell: `grep -A5 'ClerkFireproofProvider' skills/sell/templates/unified.html | head -8` should show the new conditional config with `vibesConfig`.
 
-**Step 4: Run structural tests**
+Verify riff: `grep -A5 'ClerkFireproofProvider' skills/riff/templates/index.html | head -8` should show the new conditional config.
+
+**Step 5: Run structural tests**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/fix-deploy-port-console/scripts && npm run test:fixtures`
 Expected: PASS
 
-**Step 5: Commit**
+**Step 6: Commit**
 
 ```bash
 git add skills/vibes/template.delta.html skills/vibes/templates/index.html \
-       skills/sell/template.delta.html skills/sell/templates/unified.html
+       skills/sell/template.delta.html skills/sell/templates/unified.html \
+       skills/riff/template.delta.html skills/riff/templates/index.html
 git commit -m "Guard ClerkFireproofProvider against empty Connect URLs
 
-Pass config as undefined when URLs are empty strings in both vibes
-and sell templates, preventing Fireproof from attempting connections
+Pass config as undefined when URLs are empty strings in vibes, sell,
+and riff templates, preventing Fireproof from attempting connections
 to invalid URLs pre-deploy."
 ```
 
 ---
 
-### Task 5: Return 200 placeholder for `/app-frame` when no app exists
+### Task 5: Return 200 placeholders for `/app.jsx` and `/app-frame` when no app exists
 
-**Context:** `serveAppFrame` in `scripts/server/routes.js` (lines 73-82) returns a 404 when `app.jsx` doesn't exist. This 404 shows as a red error in the browser console when the editor iframe loads `/app-frame` before any app has been generated. The `assembleAppFrame` function in `generate.js` already handles the missing-app case gracefully (returning a placeholder HTML page), but `serveAppFrame` short-circuits with a 404 before ever calling it.
+**Context:** Two route handlers in `scripts/server/routes.js` return 404 when `app.jsx` doesn't exist:
+
+1. `serveAppJsx` (lines 46-54) returns 404 with `'app.jsx not found'`. The editor fetches `/app.jsx` for version history (line 3944 of editor.html). While the JS `if (!res.ok) return;` guard suppresses the error from application logic, the browser still logs a red 404 network error in the console.
+
+2. `serveAppFrame` (lines 73-82) returns 404 with `'app.jsx not found'`. The editor iframe loads `/app-frame` — this 404 shows as a red console error. The `assembleAppFrame` function in `generate.js` already handles the missing-app case gracefully, but `serveAppFrame` short-circuits with a 404 before ever calling it.
+
+Both should return 200 with appropriate placeholder content when no app has been generated yet.
 
 **Files:**
-- Modify: `scripts/server/routes.js:73-82`
+- Modify: `scripts/server/routes.js:46-54` (`serveAppJsx`)
+- Modify: `scripts/server/routes.js:73-82` (`serveAppFrame`)
 
-**Step 1: Change `serveAppFrame` to return a 200 with a placeholder page**
+**Step 1: Change `serveAppJsx` to return a 200 with empty content**
+
+In `scripts/server/routes.js`, replace lines 46-54:
+
+```javascript
+function serveAppJsx(ctx, req, res) {
+  const appPath = join(ctx.projectRoot, 'app.jsx');
+  if (!existsSync(appPath)) {
+    res.writeHead(404);
+    return res.end('app.jsx not found');
+  }
+  res.writeHead(200, { 'Content-Type': 'text/javascript' });
+  return res.end(readFileSync(appPath, 'utf-8'));
+}
+```
+
+Replace with:
+
+```javascript
+function serveAppJsx(ctx, req, res) {
+  const appPath = join(ctx.projectRoot, 'app.jsx');
+  if (!existsSync(appPath)) {
+    res.writeHead(200, { 'Content-Type': 'text/javascript' });
+    return res.end('// app.jsx not yet generated\n');
+  }
+  res.writeHead(200, { 'Content-Type': 'text/javascript' });
+  return res.end(readFileSync(appPath, 'utf-8'));
+}
+```
+
+This returns a valid JS comment with a 200 status. The editor's version history code (`if (!res.ok) return;`) still works because `res.ok` is true for 200 — but the content is a harmless comment that won't push a version entry (the caller checks for meaningful content changes).
+
+**Step 2: Change `serveAppFrame` to return a 200 with a placeholder page**
 
 In `scripts/server/routes.js`, replace lines 73-82:
 
@@ -359,14 +429,15 @@ function serveAppFrame(ctx, req, res) {
 
 This returns a friendly placeholder with a 200 status instead of a 404, eliminating the red console error in the browser.
 
-**Step 2: Commit**
+**Step 3: Commit**
 
 ```bash
 git add scripts/server/routes.js
-git commit -m "Return 200 placeholder for /app-frame when no app exists
+git commit -m "Return 200 placeholders for /app.jsx and /app-frame pre-generation
 
-Show a 'waiting for app' message in the iframe instead of a 404,
-eliminating red console errors before the first app is generated."
+Serve a JS comment for /app.jsx and a waiting-message HTML page for
+/app-frame instead of 404s, eliminating red console errors before
+the first app is generated."
 ```
 
 ---
@@ -410,6 +481,9 @@ Before claiming complete, verify all of these:
 - [ ] `assembleAppFrame` only warns about missing Connect URLs once per server session
 - [ ] `ClerkFireproofProvider` in vibes delta receives `undefined` config when Connect URLs are empty
 - [ ] `ClerkFireproofProvider` in sell delta receives `undefined` config when Connect URLs are empty
+- [ ] `ClerkFireproofProvider` in riff delta receives `undefined` config when Connect URLs are empty
 - [ ] Merged vibes template (`skills/vibes/templates/index.html`) reflects the delta change
 - [ ] Merged sell template (`skills/sell/templates/unified.html`) reflects the delta change
+- [ ] Merged riff template (`skills/riff/templates/index.html`) reflects the delta change
+- [ ] `/app.jsx` returns 200 with JS comment when no app.jsx exists (not 404)
 - [ ] `/app-frame` returns 200 with placeholder HTML when no app.jsx exists (not 404)
