@@ -2,51 +2,63 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Replace the editor's 5-step SETUP wizard (Clerk + Connect Studio + OpenRouter + Confirm) with a streamlined 4-step wizard (Welcome + Clerk + Cloudflare + Verification) that stores credentials in `~/.vibes/deployments.json` instead of `.env`, and validates Cloudflare credentials server-side via the Cloudflare HTTP API.
+**Goal:** Replace the editor's 5-step SETUP wizard (Clerk + Connect Studio + OpenRouter + Confirm) with a streamlined 4-step wizard (Welcome + Clerk + Cloudflare + Verification) that stores credentials in `~/.vibes/deployments.json` via `lib/registry.js`, validates Cloudflare credentials server-side via the Cloudflare HTTP API, and relies on `deploy-cloudflare.js`'s existing first-deploy flow (alchemy + auto-reassembly) for Connect provisioning.
 
-**Architecture:** The editor.html SETUP phase gets a new 4-step wizard UI. Server-side, `editor-api.js` gains registry-backed credential storage (via `lib/registry.js` from the backend migration plan) and a new Cloudflare validation endpoint that calls the Cloudflare HTTP API directly (`GET /client/v4/accounts` with `X-Auth-Key`/`X-Auth-Email` headers). The `/editor/status` endpoint checks the registry instead of `.env`. Connect Studio steps are removed entirely -- Connect auto-deploys via alchemy on first app deploy (handled by the separate backend migration plan).
-
-**Schema coordination with migration plan:** The migration plan's `lib/registry.js` stores `{ accountId, workersSubdomain }` under the `cloudflare` config object. This plan adds `apiKey` and `email` to the same object (for Global API Key auth). The migration plan's `setCloudflareConfig` uses spread merge (`{ ...reg.cloudflare, ...config }`), so adding fields is non-breaking. **When implementing the migration plan's `lib/registry.js`, include `apiKey` and `email` in the `cloudflare` config schema.**
+**Architecture:** The editor.html SETUP phase gets a new 4-step wizard UI. Server-side, `editor-api.js` uses `lib/registry.js` directly (already imported) for credential storage. A new Cloudflare validation endpoint calls `GET /client/v4/accounts` with `X-Auth-Key`/`X-Auth-Email` headers. The `/editor/status` endpoint checks the registry instead of `.env`. Connect Studio steps are removed entirely -- `deploy-cloudflare.js` already handles first-deploy Connect provisioning via alchemy, writes Connect URLs to `.env`, and auto-reassembles.
 
 **Tech Stack:** Vanilla JS (editor.html is a single-file SPA), Node.js HTTP server (editor-api.js), vitest for server tests
 
-**Depends on:** `docs/plans/2026-03-05-connect-cloudflare-migration-plan.md` Task 1 (registry.js). This plan can begin immediately -- Task 1 here creates a thin adapter that delegates to `lib/registry.js` when available, falling back to an inline implementation until the migration plan is executed. **Schema note:** The migration plan's `cloudflare` config stores `{ accountId, workersSubdomain }`. This plan adds `apiKey` and `email` to the same object. Both plans use spread merge (`{ ...reg.cloudflare, ...config }`) so the fields coexist. When implementing the migration plan, include `apiKey` and `email` in the schema.
+**Registry API** (`scripts/lib/registry.js` -- already exists on main):
+
+| Function | Purpose |
+|----------|---------|
+| `loadRegistry()` | Load `~/.vibes/deployments.json`, returns empty registry if missing |
+| `saveRegistry(reg)` | Write registry to disk (currently no `0o600` -- this plan adds it) |
+| `getApp(name)` | Get app entry by name |
+| `setApp(name, entry)` | Create/update app entry (adds timestamps) |
+| `getCloudflareConfig()` | Get `reg.cloudflare` object (`{ accountId, workersSubdomain }`) |
+| `setCloudflareConfig(config)` | Merge into `reg.cloudflare` (spread merge) |
+| `isFirstDeploy(name)` | True if app has no `connect.apiUrl` |
+| `validateName(name)` | Validate app name format |
+| `deriveConnectUrls(url)` | Transform HTTPS URL to `{ apiUrl, cloudUrl }` |
+
+**Schema note:** The current `cloudflare` config stores `{ accountId, workersSubdomain }`. This plan adds `apiKey` and `email` fields via `setCloudflareConfig()` (spread merge, non-breaking). These fields are used by the wizard for Cloudflare Global API Key auth and by the deploy handler to inject env vars for wrangler.
+
+**Deploy flow note:** `deploy-cloudflare.js` reads Clerk keys from `.env` via `loadEnvFile()`, NOT from `process.env`. The wizard MUST write Clerk keys to `.env` (which it does for backward compatibility). For Cloudflare auth, wrangler natively reads `CLOUDFLARE_API_KEY`/`CLOUDFLARE_EMAIL` from the process environment, so the deploy handler injects these from the registry. On first deploy, `deploy-cloudflare.js` already: (1) calls `deployConnect()` via alchemy, (2) writes Connect URLs to `.env`, (3) auto-reassembles `index.html` if `app.jsx` exists. This means **no re-assembly logic is needed in the editor's deploy handler**.
+
+**Already done on main (do NOT duplicate):** WebSocket cleanup (ws-dispatch.js has no deploy-studio), SessionStart hook update (session-start.sh checks registry), CLAUDE.md workflow sequence update (no CO node, auto-connect language).
 
 **Important note on line references:** This plan never references specific line numbers because tasks edit the same files sequentially, causing line shifts. Instead, all edit locations are identified by function names, HTML element IDs, or search patterns. Use your editor's search to find each target.
 
 ---
 
-### Task 1: Create Registry Adapter for Editor API
+### Task 1: Add `0o600` Permissions to `lib/registry.js` and Extend Schema
 
-The editor API needs to read/write `~/.vibes/deployments.json`. The full `lib/registry.js` is created by the backend migration plan (Task 1 there). This task creates a **true adapter** that tries to import `../lib/registry.js` first and delegates to it. If that module doesn't exist yet (migration plan not implemented), it falls back to an inline implementation with the **same function signatures and schema** so the two are interchangeable. Once the migration plan is implemented, the inline fallback becomes dead code and should be removed.
-
-**Security:** The registry file stores a Cloudflare Global API Key, which grants full account access. The file MUST be written with `0o600` permissions (owner read/write only).
+The registry file will now store a Cloudflare Global API Key, which grants full account access. The file MUST be written with `0o600` permissions (owner read/write only). Also add `apiKey` and `email` to the Cloudflare config schema documentation.
 
 **Files:**
-- Create: `scripts/server/registry-adapter.js`
-- Test: `scripts/__tests__/unit/registry-adapter.test.js`
+- Modify: `scripts/lib/registry.js`
+- Test: `scripts/__tests__/unit/registry-permissions.test.js`
 
-**Step 1: Write failing test for registry adapter**
+**Step 1: Write test for file permissions**
 
 ```javascript
-// scripts/__tests__/unit/registry-adapter.test.js
+// scripts/__tests__/unit/registry-permissions.test.js
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdirSync, writeFileSync, rmSync, readFileSync, statSync, existsSync } from 'fs';
+import { mkdirSync, rmSync, statSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
-const TEST_DIR = join(tmpdir(), `vibes-reg-adapter-${Date.now()}`);
+const TEST_DIR = join(tmpdir(), `vibes-reg-perms-${Date.now()}`);
 
-describe('registry-adapter', () => {
-  let adapter;
+describe('registry file permissions', () => {
+  let registry;
 
   beforeEach(async () => {
     vi.resetModules();
     mkdirSync(join(TEST_DIR, '.vibes'), { recursive: true });
     process.env.VIBES_HOME = TEST_DIR;
-    // Force fresh import (resetModules ensures no cached module)
-    const mod = await import('../../server/registry-adapter.js');
-    adapter = mod;
+    registry = await import('../../lib/registry.js');
   });
 
   afterEach(() => {
@@ -54,362 +66,108 @@ describe('registry-adapter', () => {
     delete process.env.VIBES_HOME;
   });
 
-  describe('getCloudflareCredentials', () => {
-    it('returns null fields when registry has no cloudflare config', () => {
-      const creds = adapter.getCloudflareCredentials();
-      expect(creds.apiKey).toBeFalsy();
-      expect(creds.email).toBeFalsy();
-    });
-
-    it('returns stored credentials', () => {
-      const reg = { version: 1, cloudflare: { apiKey: 'abc123', email: 'test@example.com' }, apps: {} };
-      writeFileSync(join(TEST_DIR, '.vibes', 'deployments.json'), JSON.stringify(reg));
-      const creds = adapter.getCloudflareCredentials();
-      expect(creds.apiKey).toBe('abc123');
-      expect(creds.email).toBe('test@example.com');
-    });
+  it('writes registry file with 0o600 permissions', () => {
+    registry.saveRegistry({ version: 1, cloudflare: {}, apps: {} });
+    const regPath = join(TEST_DIR, '.vibes', 'deployments.json');
+    const stat = statSync(regPath);
+    const mode = stat.mode & 0o777;
+    expect(mode).toBe(0o600);
   });
 
-  describe('saveCloudflareCredentials', () => {
-    it('writes credentials to registry', () => {
-      adapter.saveCloudflareCredentials({ apiKey: 'key123', email: 'user@test.com' });
-      const raw = JSON.parse(readFileSync(join(TEST_DIR, '.vibes', 'deployments.json'), 'utf8'));
-      expect(raw.cloudflare.apiKey).toBe('key123');
-      expect(raw.cloudflare.email).toBe('user@test.com');
-    });
-
-    it('writes registry file with 0o600 permissions', () => {
-      adapter.saveCloudflareCredentials({ apiKey: 'key123', email: 'user@test.com' });
-      const regPath = join(TEST_DIR, '.vibes', 'deployments.json');
-      const stat = statSync(regPath);
-      // 0o600 = 33152 on most systems; check owner-only bits
-      const mode = stat.mode & 0o777;
-      expect(mode).toBe(0o600);
-    });
+  it('preserves 0o600 when updating existing registry', () => {
+    registry.saveRegistry({ version: 1, cloudflare: {}, apps: {} });
+    registry.setCloudflareConfig({ apiKey: 'test', email: 'test@test.com' });
+    const regPath = join(TEST_DIR, '.vibes', 'deployments.json');
+    const stat = statSync(regPath);
+    const mode = stat.mode & 0o777;
+    expect(mode).toBe(0o600);
   });
 
-  describe('getClerkCredentials', () => {
-    it('returns null when no apps exist', () => {
-      const creds = adapter.getClerkCredentials();
-      expect(creds.publishableKey).toBeFalsy();
-    });
-
-    it('returns most recent app clerk credentials', () => {
-      const reg = {
-        version: 1,
-        cloudflare: {},
-        apps: {
-          'my-app': {
-            name: 'my-app',
-            updatedAt: '2026-03-06T10:00:00Z',
-            clerk: { publishableKey: 'pk_test_abc', secretKey: 'sk_test_xyz' }
-          }
-        }
-      };
-      writeFileSync(join(TEST_DIR, '.vibes', 'deployments.json'), JSON.stringify(reg));
-      const creds = adapter.getClerkCredentials();
-      expect(creds.publishableKey).toBe('pk_test_abc');
-      expect(creds.secretKey).toBe('sk_test_xyz');
-    });
+  it('stores apiKey and email in cloudflare config', () => {
+    registry.setCloudflareConfig({ apiKey: 'key123', email: 'user@test.com' });
+    const config = registry.getCloudflareConfig();
+    expect(config.apiKey).toBe('key123');
+    expect(config.email).toBe('user@test.com');
   });
 
-  describe('saveClerkCredentials', () => {
-    it('stores clerk credentials under a default app entry', () => {
-      adapter.saveClerkCredentials({ publishableKey: 'pk_test_new', secretKey: 'sk_test_new' });
-      const raw = JSON.parse(readFileSync(join(TEST_DIR, '.vibes', 'deployments.json'), 'utf8'));
-      // Should be stored under some app entry
-      const apps = Object.values(raw.apps);
-      expect(apps.length).toBeGreaterThan(0);
-      expect(apps[0].clerk.publishableKey).toBe('pk_test_new');
-    });
-  });
-
-  describe('getSetupStatus', () => {
-    it('reports both missing when registry is empty', () => {
-      const status = adapter.getSetupStatus();
-      expect(status.clerk.ok).toBe(false);
-      expect(status.cloudflare.ok).toBe(false);
-    });
-
-    it('reports clerk ok when credentials exist', () => {
-      const reg = {
-        version: 1,
-        cloudflare: {},
-        apps: {
-          'test': { name: 'test', clerk: { publishableKey: 'pk_test_abc', secretKey: 'sk_test_xyz' } }
-        }
-      };
-      writeFileSync(join(TEST_DIR, '.vibes', 'deployments.json'), JSON.stringify(reg));
-      const status = adapter.getSetupStatus();
-      expect(status.clerk.ok).toBe(true);
-    });
-
-    it('reports cloudflare ok when credentials exist', () => {
-      const reg = {
-        version: 1,
-        cloudflare: { apiKey: 'abc', email: 'test@test.com' },
-        apps: {}
-      };
-      writeFileSync(join(TEST_DIR, '.vibes', 'deployments.json'), JSON.stringify(reg));
-      const status = adapter.getSetupStatus();
-      expect(status.cloudflare.ok).toBe(true);
-    });
+  it('preserves existing cloudflare fields when adding new ones', () => {
+    registry.setCloudflareConfig({ accountId: 'acct-123' });
+    registry.setCloudflareConfig({ apiKey: 'key123', email: 'user@test.com' });
+    const config = registry.getCloudflareConfig();
+    expect(config.accountId).toBe('acct-123');
+    expect(config.apiKey).toBe('key123');
+    expect(config.email).toBe('user@test.com');
   });
 });
 ```
 
 **Step 2: Run test to verify it fails**
 
-Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && npx vitest run __tests__/unit/registry-adapter.test.js`
-Expected: FAIL -- module not found
+Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && npx vitest run __tests__/unit/registry-permissions.test.js`
+Expected: FAIL -- permissions test fails (currently writes with default 0o644)
 
-**Step 3: Implement registry adapter**
+**Step 3: Add `0o600` to `saveRegistry` and update schema docs**
 
-The adapter tries to import `../lib/registry.js` (the migration plan's module) and delegates
-to its `loadRegistry`, `saveRegistry`, `getCloudflareConfig`, `setCloudflareConfig`, `getApp`,
-and `setApp` functions. If the import fails (module doesn't exist yet), it falls back to an
-inline implementation that uses the **exact same schema and function signatures** so the two
-are interchangeable. The inline fallback is clearly marked for removal once the migration plan
-lands.
+In `scripts/lib/registry.js`:
 
-```javascript
-// scripts/server/registry-adapter.js
-/**
- * Registry adapter for the editor API.
- *
- * Delegates to ../lib/registry.js (from the backend migration plan) when
- * available. Falls back to an inline implementation with identical schema
- * and function signatures if that module doesn't exist yet.
- *
- * TODO: Once the migration plan (2026-03-05-connect-cloudflare-migration-plan.md)
- * Task 1 is implemented, remove the inline fallback block below and rely
- * entirely on ../lib/registry.js.
- *
- * SECURITY: The registry file contains a Cloudflare Global API Key.
- * All writes use 0o600 permissions (owner read/write only).
- */
+1. Add `chmodSync` to the import. Change:
+   ```javascript
+   import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+   ```
+   to:
+   ```javascript
+   import { readFileSync, writeFileSync, existsSync, mkdirSync, chmodSync } from 'fs';
+   ```
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, chmodSync } from 'fs';
-import { join } from 'path';
-import { homedir } from 'os';
+2. In `saveRegistry()`, add `{ mode: 0o600 }` to the `writeFileSync` call and a `chmodSync` fallback. Replace the entire function:
+   ```javascript
+   export function saveRegistry(reg) {
+     const dir = join(getVibesHome(), '.vibes');
+     mkdirSync(dir, { recursive: true });
+     const path = getRegistryPath();
+     writeFileSync(path, JSON.stringify(reg, null, 2), { mode: 0o600 });
+     // Also chmod in case the file already existed with broader permissions
+     try { chmodSync(path, 0o600); } catch { /* best effort */ }
+   }
+   ```
 
-// --- Try to delegate to lib/registry.js ---
-let _registry = null;
-try {
-  _registry = await import('../lib/registry.js');
-} catch {
-  // lib/registry.js doesn't exist yet — use inline fallback below
-}
-
-// ============================================================
-// INLINE FALLBACK — same schema/signatures as lib/registry.js
-// Remove this entire block once lib/registry.js exists.
-// ============================================================
-
-function getVibesHome() {
-  return process.env.VIBES_HOME || homedir();
-}
-
-function getRegistryPath() {
-  return join(getVibesHome(), '.vibes', 'deployments.json');
-}
-
-function emptyRegistry() {
-  return { version: 1, cloudflare: {}, apps: {} };
-}
-
-// Matches lib/registry.js: loadRegistry()
-function _loadRegistry() {
-  if (_registry) return _registry.loadRegistry();
-  const path = getRegistryPath();
-  if (!existsSync(path)) return emptyRegistry();
-  try {
-    const data = JSON.parse(readFileSync(path, 'utf8'));
-    if (!data.version || !data.apps) return emptyRegistry();
-    return data;
-  } catch {
-    return emptyRegistry();
-  }
-}
-
-// Matches lib/registry.js: saveRegistry(reg)
-function _saveRegistry(reg) {
-  if (_registry) {
-    _registry.saveRegistry(reg);
-  } else {
-    const dir = join(getVibesHome(), '.vibes');
-    mkdirSync(dir, { recursive: true });
-    const path = getRegistryPath();
-    writeFileSync(path, JSON.stringify(reg, null, 2), { mode: 0o600 });
-    // Also chmod in case the file already existed with broader permissions
-    try { chmodSync(path, 0o600); } catch { /* best effort */ }
-  }
-  // Ensure 0o600 regardless of which backend wrote the file
-  try {
-    const path = _registry ? join(getVibesHome(), '.vibes', 'deployments.json') : getRegistryPath();
-    chmodSync(path, 0o600);
-  } catch { /* best effort */ }
-}
-
-// ============================================================
-// Public API — editor-specific convenience functions that wrap
-// the registry primitives. These are NOT in lib/registry.js;
-// they live here because they serve the editor wizard only.
-// ============================================================
-
-/**
- * Get Cloudflare API credentials from registry.
- * Delegates to lib/registry.js getCloudflareConfig() when available.
- * @returns {{ apiKey: string|null, email: string|null, accountId: string|null }}
- */
-export function getCloudflareCredentials() {
-  if (_registry) {
-    const cf = _registry.getCloudflareConfig();
-    return { apiKey: cf.apiKey || null, email: cf.email || null, accountId: cf.accountId || null };
-  }
-  const reg = _loadRegistry();
-  const cf = reg.cloudflare || {};
-  return {
-    apiKey: cf.apiKey || null,
-    email: cf.email || null,
-    accountId: cf.accountId || null,
-  };
-}
-
-/**
- * Save Cloudflare API credentials to registry.
- * Delegates to lib/registry.js setCloudflareConfig() when available.
- * @param {{ apiKey: string, email: string, accountId?: string }} creds
- */
-export function saveCloudflareCredentials(creds) {
-  if (_registry) {
-    _registry.setCloudflareConfig(creds);
-  } else {
-    const reg = _loadRegistry();
-    reg.cloudflare = { ...reg.cloudflare, ...creds };
-    _saveRegistry(reg);
-  }
-}
-
-/**
- * Get Clerk credentials from the most recently updated app in registry.
- * @returns {{ publishableKey: string|null, secretKey: string|null, appName: string|null }}
- */
-export function getClerkCredentials() {
-  const reg = _loadRegistry();
-  const apps = Object.values(reg.apps);
-  if (apps.length === 0) {
-    return { publishableKey: null, secretKey: null, appName: null };
-  }
-  // Sort by updatedAt descending, pick most recent
-  apps.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
-  const latest = apps[0];
-  const clerk = latest.clerk || {};
-  return {
-    publishableKey: clerk.publishableKey || null,
-    secretKey: clerk.secretKey || null,
-    appName: latest.name || null,
-  };
-}
-
-/**
- * Save Clerk credentials. If no app name provided, uses '_default'.
- * Delegates to lib/registry.js setApp() when available.
- * @param {{ publishableKey: string, secretKey: string, appName?: string }} creds
- */
-export function saveClerkCredentials(creds) {
-  const appName = creds.appName || '_default';
-  if (_registry) {
-    const existing = _registry.getApp(appName) || { name: appName };
-    _registry.setApp(appName, {
-      ...existing,
-      clerk: { publishableKey: creds.publishableKey, secretKey: creds.secretKey },
-    });
-  } else {
-    const reg = _loadRegistry();
-    const existing = reg.apps[appName] || { name: appName };
-    reg.apps[appName] = {
-      ...existing,
-      clerk: { publishableKey: creds.publishableKey, secretKey: creds.secretKey },
-      updatedAt: new Date().toISOString(),
-    };
-    if (!reg.apps[appName].createdAt) {
-      reg.apps[appName].createdAt = new Date().toISOString();
-    }
-    _saveRegistry(reg);
-  }
-}
-
-/**
- * Get Connect URLs for an app from the registry.
- * These are populated by alchemy at deploy time.
- * @param {string} [appName] - App name to look up; defaults to most recent app.
- * @returns {{ apiUrl: string|null, cloudUrl: string|null }}
- */
-export function getConnectUrls(appName) {
-  const reg = _loadRegistry();
-  let app;
-  if (appName && reg.apps[appName]) {
-    app = reg.apps[appName];
-  } else {
-    // Fall back to most recent app
-    const apps = Object.values(reg.apps);
-    apps.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
-    app = apps[0];
-  }
-  if (!app || !app.connect) return { apiUrl: null, cloudUrl: null };
-  return {
-    apiUrl: app.connect.apiUrl || null,
-    cloudUrl: app.connect.cloudUrl || null,
-  };
-}
-
-/**
- * Get overall setup status for the wizard.
- * @returns {{ clerk: { ok: boolean, detail: string }, cloudflare: { ok: boolean, detail: string } }}
- */
-export function getSetupStatus() {
-  const clerk = getClerkCredentials();
-  const cf = getCloudflareCredentials();
-
-  const clerkOk = !!(clerk.publishableKey &&
-    (clerk.publishableKey.startsWith('pk_test_') || clerk.publishableKey.startsWith('pk_live_')));
-  const cfOk = !!(cf.apiKey && cf.email);
-
-  return {
-    clerk: {
-      ok: clerkOk,
-      detail: clerkOk ? `${clerk.publishableKey.slice(0, 12)}...` : 'No Clerk keys in registry',
-    },
-    cloudflare: {
-      ok: cfOk,
-      detail: cfOk ? `${cf.email}` : 'No Cloudflare credentials in registry',
-    },
-  };
-}
-```
+3. Update the schema JSDoc comment at the top of the file. Change:
+   ```
+    *   "cloudflare": { "accountId": "...", "workersSubdomain": "..." },
+   ```
+   to:
+   ```
+    *   "cloudflare": {
+    *     "accountId": "...", "workersSubdomain": "...",
+    *     "apiKey": "...", "email": "..."
+    *   },
+   ```
 
 **Step 4: Run test to verify it passes**
 
-Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && npx vitest run __tests__/unit/registry-adapter.test.js`
+Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && npx vitest run __tests__/unit/registry-permissions.test.js`
 Expected: PASS
 
-**Step 5: Commit**
+**Step 5: Run full test suite to check for regressions**
+
+Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && npx vitest run`
+Expected: PASS
+
+**Step 6: Commit**
 
 ```bash
-cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/registry-adapter.js scripts/__tests__/unit/registry-adapter.test.js && git commit -m "Add registry adapter for editor API credential storage
+cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/lib/registry.js scripts/__tests__/unit/registry-permissions.test.js && git commit -m "Add 0o600 permissions to registry and extend cloudflare schema
 
-Thin adapter that delegates to lib/registry.js when available,
-with inline fallback using identical schema/signatures. File
-permissions set to 0o600 (owner-only) since it contains the
-Cloudflare Global API Key."
+Registry now stores Cloudflare Global API Key (full account access),
+so file must be owner-readable only. Also documents apiKey/email
+fields in cloudflare config (used by wizard, non-breaking via spread)."
 ```
 
 ---
 
 ### Task 2: Add Cloudflare Validation Endpoint to Editor API
 
-This task adds a `POST /editor/credentials/validate-cloudflare` endpoint that validates Cloudflare Global API Key + email by calling the Cloudflare HTTP API directly (`GET /client/v4/accounts` with `X-Auth-Key`/`X-Auth-Email` headers). This is more reliable than shelling out to `wrangler whoami`, which may not authenticate with Global API Key env vars in modern wrangler versions. Uses Node's built-in `fetch()` (available in Node 18+).
+Add a `POST /editor/credentials/validate-cloudflare` endpoint that validates Cloudflare Global API Key + email by calling the Cloudflare HTTP API directly (`GET /client/v4/accounts` with `X-Auth-Key`/`X-Auth-Email` headers). Uses Node's built-in `fetch()` (Node 18+). Does NOT shell out to `wrangler whoami` (modern wrangler may not authenticate with Global API Key env vars).
 
 **Files:**
 - Modify: `scripts/server/handlers/editor-api.js`
@@ -429,7 +187,6 @@ describe('validateCloudflareCredentials', () => {
   beforeEach(async () => {
     vi.resetModules();
     originalFetch = globalThis.fetch;
-    // Import the function under test
     const mod = await import('../../server/handlers/editor-api.js');
     validateCloudflareCredentials = mod.validateCloudflareCredentials;
   });
@@ -501,19 +258,12 @@ Expected: FAIL -- `validateCloudflareCredentials` is not exported
 
 **Step 3: Add `validateCloudflareCredentials` to editor-api.js**
 
-Add this import at the top of `scripts/server/handlers/editor-api.js`, after the existing imports (search for `import { loadOpenRouterKey }`):
-
-```javascript
-import { getSetupStatus, saveClerkCredentials, saveCloudflareCredentials, getClerkCredentials, getCloudflareCredentials } from '../registry-adapter.js';
-```
-
-Add this function after the `runCommand` function (search for the closing `}` of `function runCommand`):
+In `scripts/server/handlers/editor-api.js`, add this function after the `runCommand` function:
 
 ```javascript
 /**
  * Validate Cloudflare Global API Key + email via the Cloudflare HTTP API.
  * Calls GET /client/v4/accounts with X-Auth-Key/X-Auth-Email headers.
- * More reliable than wrangler whoami, which may not support Global API Key env vars.
  *
  * @param {string} apiKey - Cloudflare Global API Key
  * @param {string} email - Cloudflare account email
@@ -536,7 +286,6 @@ export async function validateCloudflareCredentials(apiKey, email) {
       return { valid: false, error: errMsg + '. Check your Global API Key and email.' };
     }
 
-    // Extract account ID from the first account in the response
     const accountId = data.result?.[0]?.id || null;
     if (!accountId) {
       return { valid: false, error: 'No accounts found for this API key.' };
@@ -549,15 +298,45 @@ export async function validateCloudflareCredentials(apiKey, email) {
 }
 ```
 
-**Step 4: Run test to verify it passes**
+**Step 4: Add the route handler for validation**
+
+Also in `editor-api.js`, add this route handler after `validateCloudflareCredentials`:
+
+```javascript
+export async function validateCloudflare(ctx, req, res) {
+  try {
+    const body = await parseJsonBody(req);
+    const { apiKey, email } = body;
+    if (!apiKey || !email) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ valid: false, error: 'API key and email are required.' }));
+    }
+    const result = await validateCloudflareCredentials(apiKey, email);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(result));
+  } catch (err) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ valid: false, error: err.message }));
+  }
+}
+```
+
+**Step 5: Add route to routes.js**
+
+In `scripts/server/routes.js`, add to the route table (after the `check-studio` line which will be removed in Task 3):
+```javascript
+  'POST /editor/credentials/validate-cloudflare': editorApi.validateCloudflare,
+```
+
+**Step 6: Run test to verify it passes**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && npx vitest run __tests__/unit/editor-api-cloudflare.test.js`
 Expected: PASS
 
-**Step 5: Commit**
+**Step 7: Commit**
 
 ```bash
-cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/handlers/editor-api.js scripts/__tests__/unit/editor-api-cloudflare.test.js && git commit -m "Add Cloudflare credential validation via HTTP API
+cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/handlers/editor-api.js scripts/server/routes.js scripts/__tests__/unit/editor-api-cloudflare.test.js && git commit -m "Add Cloudflare credential validation via HTTP API
 
 New validateCloudflareCredentials() calls GET /client/v4/accounts
 with X-Auth-Key/X-Auth-Email headers. More reliable than wrangler
@@ -568,55 +347,76 @@ whoami which may not support Global API Key env vars."
 
 ### Task 3: Update `/editor/status` and `/editor/credentials` Endpoints
 
-Replace the current `.env`-based status check with registry-based checks. Replace the save-to-`.env` logic with save-to-registry logic. Add a new route for Cloudflare validation. Remove the Connect Studio check route.
+Replace the current `.env`-based status check with registry-based checks. Replace the save-to-`.env` logic with save-to-registry logic. The save handler also writes Clerk keys to `.env` for backward compatibility (required by `deploy-cloudflare.js` which reads via `loadEnvFile()`). Remove the Connect Studio check route.
 
 **Files:**
-- Modify: `scripts/server/handlers/editor-api.js` (functions `checkEditorDeps`, `status`, `saveCredentials`, `checkStudio`)
-- Modify: `scripts/server/routes.js` (route table)
+- Modify: `scripts/server/handlers/editor-api.js` (functions `checkEditorDeps`, `saveCredentials`, remove `checkStudio`)
+- Modify: `scripts/server/routes.js` (remove check-studio route)
 
-**Step 1: Replace the `checkEditorDeps` function in editor-api.js**
+**Step 1: Update imports in editor-api.js**
 
-Search for `async function checkEditorDeps(ctx)` and replace the entire function body (everything through its closing `}` and the returned object) with:
+The file currently has:
+```javascript
+import { loadRegistry } from '../../lib/registry.js';
+```
+
+Expand this to include the functions we need:
+```javascript
+import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp } from '../../lib/registry.js';
+```
+
+**Step 2: Replace `checkEditorDeps` function**
+
+Search for `async function checkEditorDeps(ctx)` and replace the entire function (through its closing `}` -- it ends just before `// --- Route handlers ---`) with:
 
 ```javascript
 async function checkEditorDeps(ctx) {
-  // Check registry for credentials
-  const registryStatus = getSetupStatus();
+  // Check Clerk from registry (most recent app entry)
+  const reg = loadRegistry();
+  const apps = Object.values(reg.apps);
+  let clerkOk = false;
+  let clerkDetail = 'No Clerk keys configured';
+  if (apps.length > 0) {
+    apps.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+    const latest = apps[0];
+    const pk = latest.clerk?.publishableKey || '';
+    clerkOk = pk.startsWith('pk_test_') || pk.startsWith('pk_live_');
+    if (clerkOk) clerkDetail = `${pk.slice(0, 12)}...`;
+  }
 
-  // Also check legacy .env as fallback for Clerk
-  const env = loadEnvFile(ctx.projectRoot);
-  const clerkKey = env.VITE_CLERK_PUBLISHABLE_KEY || '';
-  const clerkOk = registryStatus.clerk.ok || validateClerkKey(clerkKey);
+  // Also check .env for backward compat (deploy-cloudflare.js reads from .env)
+  if (!clerkOk) {
+    const env = loadEnvFile(ctx.projectRoot);
+    const envKey = env.VITE_CLERK_PUBLISHABLE_KEY || '';
+    if (validateClerkKey(envKey)) {
+      clerkOk = true;
+      clerkDetail = `${envKey.slice(0, 12)}... (from .env)`;
+    }
+  }
 
-  const cloudflareOk = registryStatus.cloudflare.ok;
+  // Check Cloudflare from registry
+  const cfConfig = getCloudflareConfig();
+  const cfOk = !!(cfConfig.apiKey && cfConfig.email);
+  const cfDetail = cfOk ? cfConfig.email : 'No Cloudflare credentials configured';
 
+  // OpenRouter from .env (unchanged -- per-project, not global)
   const orKey = loadOpenRouterKey(ctx.projectRoot);
   const openrouterOk = !!orKey;
 
   return {
-    clerk: {
-      ok: clerkOk,
-      detail: registryStatus.clerk.ok
-        ? registryStatus.clerk.detail
-        : (clerkOk ? `${clerkKey.slice(0, 12)}... (legacy .env)` : 'No Clerk keys found'),
-    },
-    cloudflare: {
-      ok: cloudflareOk,
-      detail: registryStatus.cloudflare.detail,
-    },
+    clerk: { ok: clerkOk, detail: clerkDetail },
+    cloudflare: { ok: cfOk, detail: cfDetail },
     openrouter: {
       ok: openrouterOk,
-      detail: openrouterOk ? `sk-or-...${orKey.slice(-6)}` : 'No OPENROUTER_API_KEY',
+      detail: openrouterOk ? `sk-or-...${orKey.slice(-6)}` : 'No OPENROUTER_API_KEY in .env',
     },
   };
 }
 ```
 
-Note: The returned object no longer includes `wrangler`, `ssh`, or `connect` keys. It now has a `cloudflare` key. This is an intentional schema change. All consumers are updated in subsequent tasks.
+**Step 3: Replace `saveCredentials` function**
 
-**Step 2: Replace the `saveCredentials` function**
-
-Search for `export async function saveCredentials(ctx, req, res)` and replace the entire function with:
+Search for `export async function saveCredentials` and replace the entire function with:
 
 ```javascript
 export async function saveCredentials(ctx, req, res) {
@@ -624,28 +424,62 @@ export async function saveCredentials(ctx, req, res) {
     const body = await parseJsonBody(req);
     const errors = {};
 
-    // Validate Clerk keys
-    if (body.clerkPublishableKey) {
-      if (!validateClerkKey(body.clerkPublishableKey)) {
+    // --- Clerk credentials ---
+    if (body.clerkPublishableKey || body.clerkSecretKey) {
+      const pk = body.clerkPublishableKey || '';
+      const sk = body.clerkSecretKey || '';
+
+      if (pk && !validateClerkKey(pk)) {
         errors.clerkPublishableKey = 'Invalid Clerk publishable key (must start with pk_test_ or pk_live_)';
       }
-    }
-    if (body.clerkSecretKey) {
-      if (!validateClerkSecretKey(body.clerkSecretKey)) {
+      if (sk && !validateClerkSecretKey(sk)) {
         errors.clerkSecretKey = 'Invalid Clerk secret key (must start with sk_test_ or sk_live_)';
       }
-    }
 
-    // Validate Cloudflare credentials
-    if (body.cloudflareApiKey) {
-      if (!body.cloudflareEmail) {
-        errors.cloudflareEmail = 'Cloudflare email is required with API key';
+      if (!errors.clerkPublishableKey && !errors.clerkSecretKey && (pk || sk)) {
+        // Save to registry
+        setApp('_default', {
+          name: '_default',
+          clerk: { publishableKey: pk, secretKey: sk },
+        });
+
+        // Also write to .env for backward compatibility
+        // deploy-cloudflare.js reads Clerk keys from .env via loadEnvFile()
+        const envVars = {};
+        if (pk) envVars.VITE_CLERK_PUBLISHABLE_KEY = pk;
+        if (sk) envVars.CLERK_SECRET_KEY = sk;
+        writeEnvFile(ctx.projectRoot, envVars);
       }
     }
 
-    // Validate OpenRouter key
+    // --- Cloudflare credentials ---
+    if (body.cloudflareApiKey || body.cloudflareEmail) {
+      const apiKey = body.cloudflareApiKey || '';
+      const email = body.cloudflareEmail || '';
+
+      if (apiKey && apiKey.length < 20) {
+        errors.cloudflareApiKey = 'Cloudflare Global API Key appears too short';
+      }
+      if (email && (!email.includes('@') || !email.includes('.'))) {
+        errors.cloudflareEmail = 'Invalid email address';
+      }
+
+      if (!errors.cloudflareApiKey && !errors.cloudflareEmail && (apiKey || email)) {
+        const cfUpdate = {};
+        if (apiKey) cfUpdate.apiKey = apiKey;
+        if (email) cfUpdate.email = email;
+        if (body.cloudflareAccountId) cfUpdate.accountId = body.cloudflareAccountId;
+        setCloudflareConfig(cfUpdate);
+      }
+    }
+
+    // --- OpenRouter key (per-project, saved to .env not registry) ---
     if (body.openRouterKey) {
-      if (!body.openRouterKey.startsWith('sk-or-')) {
+      if (body.openRouterKey.startsWith('sk-or-')) {
+        writeEnvFile(ctx.projectRoot, { OPENROUTER_API_KEY: body.openRouterKey });
+        ctx.openRouterKey = body.openRouterKey;
+        console.log('OpenRouter API key updated from wizard');
+      } else {
         errors.openRouterKey = 'Invalid OpenRouter key (must start with sk-or-)';
       }
     }
@@ -653,39 +487,6 @@ export async function saveCredentials(ctx, req, res) {
     if (Object.keys(errors).length > 0) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({ ok: false, errors }));
-    }
-
-    // Save to registry
-    if (body.clerkPublishableKey && body.clerkSecretKey) {
-      saveClerkCredentials({
-        publishableKey: body.clerkPublishableKey,
-        secretKey: body.clerkSecretKey,
-      });
-    }
-
-    if (body.cloudflareApiKey && body.cloudflareEmail) {
-      saveCloudflareCredentials({
-        apiKey: body.cloudflareApiKey,
-        email: body.cloudflareEmail,
-        accountId: body.cloudflareAccountId || null,
-      });
-    }
-
-    // Also write Clerk keys to .env for assembly compatibility
-    const envVars = {};
-    if (body.clerkPublishableKey) {
-      envVars.VITE_CLERK_PUBLISHABLE_KEY = body.clerkPublishableKey;
-    }
-    if (body.clerkSecretKey) {
-      envVars.VITE_CLERK_SECRET_KEY = body.clerkSecretKey;
-    }
-    if (body.openRouterKey) {
-      envVars.OPENROUTER_API_KEY = body.openRouterKey;
-      ctx.openRouterKey = body.openRouterKey;
-      console.log('OpenRouter API key updated from wizard');
-    }
-    if (Object.keys(envVars).length > 0) {
-      writeEnvFile(ctx.projectRoot, envVars);
     }
 
     const statusResult = await checkEditorDeps(ctx);
@@ -698,82 +499,64 @@ export async function saveCredentials(ctx, req, res) {
 }
 ```
 
-**Step 3: Add Cloudflare validation route handler**
+**Step 4: Delete `checkStudio` function**
 
-Add this new handler anywhere in `editor-api.js` (suggestion: after `saveCredentials`):
+Search for `export async function checkStudio` and delete the entire function (from `export async function checkStudio` through its final closing `}`).
 
-```javascript
-export async function validateCloudflare(ctx, req, res) {
-  try {
-    const body = await parseJsonBody(req);
-    if (!body.apiKey || !body.email) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ valid: false, error: 'API key and email are required' }));
-    }
+**Step 5: Remove check-studio route from routes.js**
 
-    const result = await validateCloudflareCredentials(body.apiKey, body.email);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify(result));
-  } catch (err) {
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ valid: false, error: err.message }));
-  }
-}
-```
-
-**Step 4: Delete the `checkStudio` function**
-
-Search for `export async function checkStudio(ctx, req, res)` and delete the entire function.
-
-**Step 5: Update routes.js**
-
-In `scripts/server/routes.js`, find the route table object (search for `const routeTable`).
-
-Add this new route:
-```javascript
-  'POST /editor/credentials/validate-cloudflare': editorApi.validateCloudflare,
-```
-
-Remove this route:
+In `scripts/server/routes.js`, delete this line from the route table:
 ```javascript
   'POST /editor/credentials/check-studio': editorApi.checkStudio,
 ```
 
-**Step 6: Run existing tests to check for regressions**
+**Step 6: Clean up unused imports in editor-api.js**
 
-Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && npx vitest run`
-Expected: PASS (or only pre-existing failures unrelated to this change)
+After removing `checkStudio`, the `deriveConnectUrls` import from `env-utils.js` and `execFile` from `child_process` are no longer needed by any remaining function in this file. Check if any other function uses them -- if not, remove them from the import statements:
 
-**Step 7: Commit**
+- `deriveConnectUrls` -- only used by `checkStudio` (deleted). Remove from import.
+- `validateConnectUrl` -- only used by old `saveCredentials` VITE_API_URL/VITE_CLOUD_URL handling (deleted). Remove from import.
+- `execFile` from `child_process` -- used by `runCommand()`. Keep it ONLY if `runCommand` is still used by another function. Check: `runCommand` was called by the old `checkEditorDeps` for `wrangler whoami` and SSH checks. The new `checkEditorDeps` doesn't call it. If no other function calls `runCommand`, delete both `runCommand` and the `execFile` import.
+
+**Step 7: Verify no import errors**
+
+Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && node -e "import('./server/handlers/editor-api.js').then(() => console.log('OK')).catch(e => console.error(e.message))"`
+Expected: "OK"
+
+**Step 8: Commit**
 
 ```bash
-cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/handlers/editor-api.js scripts/server/routes.js && git commit -m "Update editor API to use registry for credential storage
+cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/handlers/editor-api.js scripts/server/routes.js && git commit -m "Update editor status/credentials to use registry
 
-- /editor/status returns clerk + cloudflare + openrouter (drops wrangler/ssh/connect)
-- /editor/credentials saves to registry (with .env fallback for assembly)
-- New POST /editor/credentials/validate-cloudflare endpoint
-- Remove Connect Studio check-studio endpoint and handler"
+checkEditorDeps reads Clerk from registry (fallback to .env).
+Cloudflare status from registry apiKey/email fields.
+saveCredentials writes to registry AND .env (backward compat for
+deploy-cloudflare.js which reads via loadEnvFile).
+Remove checkStudio endpoint, route, and unused imports."
 ```
 
 ---
 
 ### Task 4: Relax Assembly Connect URL Gate
 
-`assemble.js` currently hard-gates on `VITE_API_URL` and `VITE_CLOUD_URL` in `.env`. With the new architecture, Connect URLs are not available until the first deploy (alchemy provisions them at deploy time). Assembly runs BEFORE deploy, so this gate blocks the entire flow.
-
-This task relaxes the gate so assembly succeeds with just a Clerk publishable key. The Connect config placeholders (`__VITE_API_URL__`, `__VITE_CLOUD_URL__`) will be left as empty strings in the assembled HTML; `deploy-cloudflare.js` (from the migration plan) will re-assemble with real URLs after alchemy provisions Connect.
+`assemble.js` currently hard-gates on both a Clerk key AND `VITE_API_URL` in `.env`. With the new architecture, Connect URLs are not available until `deploy-cloudflare.js` provisions them via alchemy on first deploy. The first-deploy flow already writes Connect URLs to `.env` and auto-reassembles. But the editor's `handleDeploy` calls `assemble.js` BEFORE `deploy-cloudflare.js`, so assembly must succeed without Connect URLs.
 
 **Files:**
 - Modify: `scripts/assemble.js`
 - Modify: `scripts/assemble-sell.js` (same gate pattern)
-- Test: `scripts/__tests__/unit/assemble-validation.test.js` (existing tests)
 
 **Step 1: Modify the Connect validation block in assemble.js**
 
-Search for `// Validate Connect credentials - fail fast if invalid` in `scripts/assemble.js`. Replace the validation block (from that comment through the `console.log('Connect mode:` line) with:
+Search for `// Validate Connect credentials` in `scripts/assemble.js`. The current code is:
+```javascript
+  const hasValidConnect = validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY) &&
+                          envVars.VITE_API_URL;
+```
+
+Replace the validation block (from that comment through the `console.log('Connect mode:` line) with:
 
 ```javascript
-  // Validate Clerk key - required for all apps
+  // Validate Clerk key — required for all apps
   const hasClerkKey = validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY);
 
   if (!hasClerkKey) {
@@ -786,7 +569,7 @@ Search for `// Validate Connect credentials - fail fast if invalid` in `scripts/
   }
 
   // Connect URLs are optional at assembly time — they'll be populated
-  // at deploy time when alchemy provisions the Connect instance.
+  // by deploy-cloudflare.js on first deploy (alchemy + auto-reassembly).
   // If present, they'll be substituted; if absent, placeholders become empty strings.
   if (envVars.VITE_API_URL) {
     console.log('Connect mode: Clerk auth + cloud sync enabled');
@@ -803,7 +586,7 @@ Search for the equivalent Connect validation block in `scripts/assemble-sell.js`
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && npx vitest run __tests__/unit/assemble-validation.test.js`
 
-Some tests may expect the old error message. Update any test that asserts the exact error text to match the new message. Tests that validate placeholder substitution should still pass since `populateConnectConfig` handles empty values gracefully (it replaces placeholders with empty strings).
+Some tests may expect the old error message. Update any test that asserts the exact error text to match the new message.
 
 **Step 4: Run structural fixture tests**
 
@@ -816,8 +599,9 @@ Expected: PASS
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/assemble.js scripts/assemble-sell.js && git commit -m "Relax assembly to not require Connect URLs
 
 Assembly now only requires a Clerk publishable key. Connect URLs
-(VITE_API_URL, VITE_CLOUD_URL) are optional at assembly time and
-will be populated at deploy time when alchemy provisions Connect."
+(VITE_API_URL, VITE_CLOUD_URL) are optional at assembly time.
+deploy-cloudflare.js handles first-deploy provisioning via alchemy,
+writes URLs to .env, and auto-reassembles."
 ```
 
 ---
@@ -962,18 +746,13 @@ Search for `<!-- Phase 1: Setup -->` and find the containing `<div class="phase 
   </div>
 ```
 
-**Step 2: Verify the HTML renders correctly**
-
-Run the preview server manually and check localhost:3333 in a browser. The wizard should show 4 dots and the Welcome step.
-
-**Step 3: Commit**
+**Step 2: Commit**
 
 ```bash
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add skills/vibes/templates/editor.html && git commit -m "Replace wizard HTML with new 4-step onboarding flow
 
 Steps: Welcome -> Clerk -> Cloudflare -> Verification
-Removes Connect Studio and separate OpenRouter steps.
-Cloudflare replaces exe.dev/Connect as the deploy target."
+Removes Connect Studio and separate OpenRouter steps."
 ```
 
 ---
@@ -982,11 +761,10 @@ Cloudflare replaces exe.dev/Connect as the deploy target."
 
 Replace the wizard JS functions in editor.html. This task handles wizard state, navigation, validation functions, the save/verify flow, AND all deploy button state management that depended on the old status schema.
 
-**Scope of exe.dev/SSH cleanup:** Beyond the targeted blocks replaced in the steps below, there are ~15 scattered references to exe.dev/SSH throughout editor.html that must also be removed. After completing all steps, run the verification grep in Step 10 to catch any survivors. Common locations for stale references:
+**Scope of exe.dev/SSH/Studio cleanup:** Beyond the targeted blocks replaced in the steps below, there are ~15 scattered references throughout editor.html. After completing all steps, run the verification grep in Step 10 to catch any survivors. Common locations for stale references:
 - `renderChecklist` may contain exe.dev checklist items
-- Old `saveCredentials` success callback may set `deployTargets.exe`
-- Status fetch callbacks may read `status.ssh`
-- Any `sshAvailable` assignments or conditionals
+- Old `saveCredentials` success callback may set `deployTargets`
+- Status fetch callbacks may read `status.ssh` or `status.wrangler`
 - Any `deployExe`, `deploy-exe`, or `exe.dev` string literals
 
 **Files:**
@@ -994,20 +772,16 @@ Replace the wizard JS functions in editor.html. This task handles wizard state, 
 
 **Step 1: Update wizard state variables**
 
-Search for `let deployTargets` in the JS section. Delete these **4 specific variable declarations** (each is a `let` statement on its own line). Search for each one individually to avoid accidentally deleting unrelated variables:
+Search for `let deployTargets` in the JS section. Delete these **4 specific variable declarations** (each is a `let` statement on its own line). Search for each one individually:
 
-1. `let deployTargets = { cloudflare: false, exe: false };` -- delete this line
-2. `let sshAvailable = false;` -- delete this line
-3. `let studioCheckTimer = null;` -- delete this line
-4. `let studioMode = 'existing';` -- delete this line
-
-Also find and delete the OLD `wizardData` declaration:
-
-5. `let wizardData = { clerkKey: '', clerkSecret: '', studioName: '', apiUrl: '', cloudUrl: '', openRouterKey: '' };` -- delete this line
+1. `let deployTargets = { cloudflare: false };` -- delete this line
+2. `let studioCheckTimer = null;` -- delete this line
+3. `let studioMode = 'existing';` -- delete this line
+4. The OLD `wizardData` declaration: `let wizardData = { clerkKey: '', clerkSecret: '', studioName: '', apiUrl: '', cloudUrl: '', openRouterKey: '' };` -- delete this line
 
 **Keep ALL other variables unchanged**, including: `wizardStep`, `currentPhase`, `isThinking`, `ws`, `hasOpenRouterKey`, `deployMenuOpenTime`, and any others not listed above.
 
-In place of the 5 deleted lines, add these new declarations (insert them where the old `deployTargets` was):
+In place of the deleted lines, add these new declarations (insert them where `deployTargets` was):
 
 ```javascript
   let cloudflareReady = false;
@@ -1027,293 +801,18 @@ In place of the 5 deleted lines, add these new declarations (insert them where t
 
 **Step 2: Replace all wizard functions**
 
-First, search for `async function checkSetup()` -- this function precedes the wizard block and references DOM elements (`setupActions`, `setupSkipBtn`) that no longer exist in the new wizard HTML. Delete the entire `checkSetup` function (from `async function checkSetup() {` through its closing `}`).
+First, search for `async function checkSetup()` -- this function references DOM elements (`setupActions`, `setupSkipBtn`) that no longer exist. Delete the entire `checkSetup` function.
 
-Then, search for `function renderChecklist(status)` -- this is the start of the main wizard function block. Delete everything from that function through `function prefillFromStatus(status) { ... }` (inclusive). The block to delete ends just before the comment `// === Phase 2: Generate ===`.
+Then, search for `function renderChecklist(status)` -- this is the start of the main wizard function block. Delete everything from that function through the end of `function prefillFromStatus(status) { ... }` (inclusive). The block to delete ends just before the comment `// === Phase 2: Generate ===`.
 
-Replace the entire deleted block with:
+Replace the entire deleted block with the new wizard functions. (These are the same functions from the previous plan revision -- `renderChecklist`, `skipSetup`, `goToGenerate`, `setWizardStep`, `validateWizardClerkInputs`, `saveClerkAndAdvance`, `validateWizardCfInputs`, `validateAndAdvanceCf`, `renderWizardSummary`, `validateOpenRouterKey`, `saveOpenRouterKey`, `wizardFinish`, `prefillFromStatus`.) The full replacement code is identical to what was specified in previous plan rounds -- see Task 5's HTML for the DOM elements these functions reference.
 
-```javascript
-  function renderChecklist(status) {
-    // Update welcome screen icons based on status
-    const clerkIcon = document.getElementById('welcomeClerkIcon');
-    const cfIcon = document.getElementById('welcomeCfIcon');
-    if (clerkIcon) {
-      if (status.clerk?.ok) {
-        clerkIcon.className = 'setup-icon pass';
-        clerkIcon.innerHTML = '&#10003;';
-      }
-    }
-    if (cfIcon) {
-      if (status.cloudflare?.ok) {
-        cfIcon.className = 'setup-icon pass';
-        cfIcon.innerHTML = '&#10003;';
-      }
-    }
-
-    // Auto-advance if all credentials present
-    if (status.clerk?.ok && status.cloudflare?.ok) {
-      setTimeout(() => goToGenerate(), 800);
-    }
-  }
-
-  function skipSetup() {
-    goToGenerate();
-  }
-
-  function goToGenerate() {
-    setPhase('generate');
-    fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
-      if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;
-    }).catch(() => {});
-    document.getElementById('generatePrompt').focus();
-  }
-
-  function setWizardStep(n) {
-    wizardStep = n;
-    document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
-    const step = document.getElementById('wizardStep' + n);
-    if (step) step.classList.add('active');
-    // Update progress dots
-    document.querySelectorAll('.wizard-dot').forEach(dot => {
-      const s = parseInt(dot.dataset.step);
-      dot.classList.toggle('active', s === n);
-      dot.classList.toggle('done', s < n);
-    });
-    if (n === 4) renderWizardSummary();
-  }
-
-  function validateWizardClerkInputs() {
-    const keyInput = document.getElementById('wizardClerkKey');
-    const secretInput = document.getElementById('wizardClerkSecret');
-    const hint = document.getElementById('wizardClerkHint');
-    const nextBtn = document.getElementById('wizardClerkNext');
-
-    const key = keyInput.value.trim();
-    const secret = secretInput.value.trim();
-
-    const keyValid = key.startsWith('pk_test_') || key.startsWith('pk_live_');
-    const secretValid = secret.startsWith('sk_test_') || secret.startsWith('sk_live_');
-
-    keyInput.classList.toggle('valid', key && keyValid);
-    keyInput.classList.toggle('invalid', key && !keyValid);
-    secretInput.classList.toggle('valid', secret && secretValid);
-    secretInput.classList.toggle('invalid', secret && !secretValid);
-
-    if (key && !keyValid) {
-      hint.textContent = 'Publishable key must start with pk_test_ or pk_live_';
-      hint.style.display = '';
-    } else if (secret && !secretValid) {
-      hint.textContent = 'Secret key must start with sk_test_ or sk_live_';
-      hint.style.display = '';
-    } else {
-      hint.style.display = 'none';
-    }
-
-    const valid = keyValid && secretValid;
-    nextBtn.disabled = !valid;
-    if (valid) {
-      wizardData.clerkKey = key;
-      wizardData.clerkSecret = secret;
-      wizardValidation.clerk = 'valid';
-    } else {
-      wizardValidation.clerk = (key || secret) ? 'invalid' : 'unchecked';
-    }
-  }
-
-  async function saveClerkAndAdvance() {
-    const btn = document.getElementById('wizardClerkNext');
-    btn.disabled = true;
-    btn.textContent = 'Saving...';
-    try {
-      const res = await fetch('/editor/credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clerkPublishableKey: wizardData.clerkKey,
-          clerkSecretKey: wizardData.clerkSecret,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.errors ? Object.values(data.errors).join('; ') : 'Failed to save');
-      }
-      wizardValidation.clerk = 'valid';
-      setWizardStep(3);
-    } catch (err) {
-      const hint = document.getElementById('wizardClerkHint');
-      hint.textContent = err.message;
-      hint.style.display = '';
-      hint.style.color = 'var(--vibes-red)';
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Next';
-    }
-  }
-
-  function validateWizardCfInputs() {
-    const emailInput = document.getElementById('wizardCfEmail');
-    const keyInput = document.getElementById('wizardCfKey');
-    const nextBtn = document.getElementById('wizardCfNext');
-
-    const email = emailInput.value.trim();
-    const key = keyInput.value.trim();
-
-    const emailValid = email.includes('@') && email.includes('.');
-    const keyValid = key.length >= 20;  // Global API keys are 37+ chars
-
-    emailInput.classList.toggle('valid', email && emailValid);
-    emailInput.classList.toggle('invalid', email && !emailValid);
-    keyInput.classList.toggle('valid', key && keyValid);
-    keyInput.classList.toggle('invalid', key && !keyValid);
-
-    wizardData.cfEmail = email;
-    wizardData.cfApiKey = key;
-
-    nextBtn.disabled = !(emailValid && keyValid);
-  }
-
-  async function validateAndAdvanceCf() {
-    const btn = document.getElementById('wizardCfNext');
-    const hint = document.getElementById('wizardCfHint');
-    btn.disabled = true;
-    btn.textContent = 'Verifying...';
-    hint.style.display = 'none';
-    wizardValidation.cloudflare = 'checking';
-
-    try {
-      const res = await fetch('/editor/credentials/validate-cloudflare', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          apiKey: wizardData.cfApiKey,
-          email: wizardData.cfEmail,
-        }),
-      });
-      const data = await res.json();
-
-      if (data.valid) {
-        wizardData.cfAccountId = data.accountId || '';
-        wizardValidation.cloudflare = 'valid';
-        cloudflareReady = true;
-
-        // Save Cloudflare credentials to registry
-        await fetch('/editor/credentials', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            cloudflareApiKey: wizardData.cfApiKey,
-            cloudflareEmail: wizardData.cfEmail,
-            cloudflareAccountId: wizardData.cfAccountId,
-          }),
-        });
-
-        setWizardStep(4);
-      } else {
-        wizardValidation.cloudflare = 'invalid';
-        hint.textContent = data.error || 'Cloudflare credentials could not be verified.';
-        hint.style.color = 'var(--vibes-red)';
-        hint.style.display = '';
-      }
-    } catch (err) {
-      wizardValidation.cloudflare = 'invalid';
-      hint.textContent = 'Failed to verify: ' + err.message;
-      hint.style.color = 'var(--vibes-red)';
-      hint.style.display = '';
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Verify & Continue';
-    }
-  }
-
-  function renderWizardSummary() {
-    const table = document.getElementById('wizardSummary');
-    const rows = [
-      ['Clerk', wizardData.clerkKey ? wizardData.clerkKey.slice(0, 15) + '...' : 'Not set', wizardValidation.clerk === 'valid'],
-      ['Cloudflare', wizardData.cfEmail || 'Not set', wizardValidation.cloudflare === 'valid'],
-    ];
-    table.innerHTML = rows.map(([label, value, ok]) =>
-      `<div class="wizard-summary-row">
-        <span class="wizard-summary-key">${label}</span>
-        <span class="wizard-summary-value">
-          <span style="color:${ok ? 'var(--vibes-green)' : 'var(--vibes-red)'}; margin-right:0.5rem;">${ok ? '&#10003;' : '&#10007;'}</span>
-          ${escapeHtml(value)}
-        </span>
-      </div>`
-    ).join('');
-  }
-
-  function validateOpenRouterKey() {
-    const input = document.getElementById('wizardOpenRouterKey');
-    const hint = document.getElementById('wizardOpenRouterHint');
-    const saveBtn = document.getElementById('wizardOrSaveBtn');
-
-    const key = input.value.trim();
-
-    if (!key) {
-      input.classList.remove('valid', 'invalid');
-      hint.style.display = 'none';
-      saveBtn.disabled = true;
-      wizardData.openRouterKey = '';
-      return;
-    }
-
-    const valid = key.startsWith('sk-or-');
-    input.classList.toggle('valid', valid);
-    input.classList.toggle('invalid', !valid);
-
-    if (!valid) {
-      hint.textContent = 'OpenRouter keys start with sk-or-';
-      hint.style.color = 'var(--vibes-red)';
-      hint.style.display = '';
-    } else {
-      hint.style.display = 'none';
-    }
-
-    saveBtn.disabled = !valid;
-    wizardData.openRouterKey = valid ? key : '';
-  }
-
-  async function saveOpenRouterKey() {
-    const btn = document.getElementById('wizardOrSaveBtn');
-    const hint = document.getElementById('wizardOpenRouterHint');
-    btn.disabled = true;
-    btn.textContent = 'Saving...';
-    try {
-      const res = await fetch('/editor/credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ openRouterKey: wizardData.openRouterKey }),
-      });
-      if (!res.ok) throw new Error('Failed to save');
-      hint.textContent = 'Saved!';
-      hint.style.color = 'var(--vibes-green)';
-      hint.style.display = '';
-      hasOpenRouterKey = true;
-    } catch (err) {
-      hint.textContent = err.message;
-      hint.style.color = 'var(--vibes-red)';
-      hint.style.display = '';
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Save Key';
-    }
-  }
-
-  function wizardFinish() {
-    goToGenerate();
-  }
-
-  function prefillFromStatus(status) {
-    // If clerk keys exist in registry, skip to step 3
-    if (status.clerk?.ok && !status.cloudflare?.ok) {
-      wizardValidation.clerk = 'valid';
-      setWizardStep(3);
-      return;
-    }
-    // If both exist, auto-advance (handled by renderChecklist)
-  }
-```
+Key implementation notes for the replacement functions:
+- `saveClerkAndAdvance()` POSTs to `/editor/credentials` with `{ clerkPublishableKey, clerkSecretKey }` (new field names, not `VITE_CLERK_PUBLISHABLE_KEY`)
+- `validateAndAdvanceCf()` POSTs to `/editor/credentials/validate-cloudflare` with `{ apiKey, email }`, then on success POSTs to `/editor/credentials` with `{ cloudflareApiKey, cloudflareEmail, cloudflareAccountId }`
+- `saveOpenRouterKey()` POSTs to `/editor/credentials` with `{ openRouterKey }` and sets `hasOpenRouterKey = true` on success
+- `renderChecklist(status)` checks `status.clerk?.ok` and `status.cloudflare?.ok` (not `status.wrangler` or `status.ssh`)
+- `prefillFromStatus(status)` skips to step 3 if Clerk is OK but Cloudflare is not
 
 **Step 3: Replace `updateDeployButtons` function**
 
@@ -1342,12 +841,10 @@ Search for `function toggleDeployMenu()` and replace the entire function with:
     menu.classList.toggle('open');
     if (opening) {
       deployMenuOpenTime = Date.now();
-      // Position below the deploy button
       const btn = document.querySelector('#deployDropdown button');
       const rect = btn.getBoundingClientRect();
       menu.style.top = (rect.bottom + 6) + 'px';
       menu.style.right = (window.innerWidth - rect.right + 4) + 'px';
-      // Refresh deploy status from registry
       fetch('/editor/status').then(r => r.json()).then(status => {
         cloudflareReady = status.cloudflare?.ok || false;
         updateDeployButtons();
@@ -1358,91 +855,22 @@ Search for `function toggleDeployMenu()` and replace the entire function with:
 
 **Step 5: Replace deploy menu HTML in `setPhase` function**
 
-Search for `function setPhase(phase)`. Inside this function, there is a block that builds the deploy dropdown HTML (search for `deploy-dropdown`). Find the HTML template string that creates the deploy menu buttons. Replace the entire deploy menu HTML (the template literal inside the `innerHTML` assignment that contains `deployCf` and `deployExe`) with a version that only has the Cloudflare button:
-
-Find the template literal that contains `id="deployExe"` and replace the entire `deployDropdown` innerHTML assignment block. The new HTML should be:
-
-```javascript
-        headerRight.innerHTML += `<div class="navbar-button-wrapper deploy-dropdown" id="deployDropdown">
-          <button style="background:var(--vibes-green)" onclick="toggleDeployMenu()">
-            <div class="navbar-button-icon">
-              <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="17.5" cy="17.5" r="17.5" fill="#231F20"/>
-                <path d="M17.5 9l7 7h-4.5v7h-5v-7H10.5l7-7z" fill="var(--vibes-cream)"/>
-                <rect x="11" y="25" width="13" height="2" rx="1" fill="var(--vibes-cream)"/>
-              </svg>
-            </div>
-            <div class="navbar-button-label">Deploy</div>
-          </button>
-          <div class="deploy-menu" id="deployMenu">
-            <div class="deploy-menu-header">
-              <label>App Name</label>
-              <input type="text" id="deployNameInput" placeholder="my-app"
-                onclick="event.stopPropagation()" />
-            </div>
-            <button class="deploy-option" id="deployCf" onclick="startDeploy('cloudflare')" disabled>
-              <span class="deploy-option-icon">&#9729;</span>
-              <div>
-                <div>Cloudflare Workers</div>
-                <div class="deploy-option-detail" id="deployCfDetail">Checking...</div>
-              </div>
-            </button>
-          </div>
-        </div>`;
-```
-
-Remove the `updateDeployButtons();` call that follows if it still references the old function (it should still work with the new one).
+Search for `function setPhase(phase)`. Inside this function, find the template literal that contains `id="deployCf"` and `deployDropdown`. Replace the entire deploy menu HTML to remove the exe.dev button -- keep only the Cloudflare button. The deploy menu should contain a single `<button class="deploy-option" id="deployCf">` for Cloudflare Workers.
 
 **Step 6: Replace `startDeploy` function**
 
-Search for `function startDeploy(target)` and replace the entire function with:
-
-```javascript
-  function startDeploy(target) {
-    if (isThinking || !ws || ws.readyState !== WebSocket.OPEN) return;
-    const nameInput = document.getElementById('deployNameInput');
-    const name = (nameInput ? nameInput.value.trim() : '').replace(/[^a-z0-9-]/g, '');
-    if (!name) {
-      nameInput.style.borderColor = 'var(--vibes-red)';
-      nameInput.focus();
-      return;
-    }
-    nameInput.style.borderColor = 'var(--vibes-near-black)';
-    document.getElementById('deployMenu').classList.remove('open');
-    addMessage('user', 'Deploy "' + name + '" to Cloudflare Workers');
-    ws.send(JSON.stringify({ type: 'deploy', target: 'cloudflare', name }));
-  }
-```
+Search for `function startDeploy(target)` and replace the entire function. The new version should only support `target: 'cloudflare'` and send `ws.send(JSON.stringify({ type: 'deploy', target: 'cloudflare', name }))`.
 
 **Step 7: Update the initialization block**
 
-Search for the status fetch in the init block (find `fetch('/editor/status').then`). Replace the entire `.then` callback chain (from the `fetch` call through its `.catch`) with:
+Search for the status fetch in the init block (find `fetch('/editor/status').then` near the bottom of the file). Replace the `.then` callback to:
+- Set `cloudflareReady = status.cloudflare?.ok || false`
+- Check `status.clerk?.ok && status.cloudflare?.ok` to decide between generate phase and wizard
+- Remove all references to `status.wrangler`, `status.ssh`, `deployTargets`
 
-```javascript
-  // Check status -> decide setup wizard vs generate
-  fetch('/editor/status').then(r => r.json()).then(status => {
-    cloudflareReady = status.cloudflare?.ok || false;
+**Step 8: Remove studio WS message handlers**
 
-    if (status.clerk?.ok && status.cloudflare?.ok) {
-      // Credentials present -- stay in generate phase
-      fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
-        if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;
-      }).catch(() => {});
-      document.getElementById('generatePrompt').focus();
-    } else {
-      // Missing credentials -- show wizard
-      setPhase('setup');
-      renderChecklist(status);
-      prefillFromStatus(status);
-    }
-  }).catch(err => {
-    document.getElementById('generatePrompt').focus();
-  });
-```
-
-**Step 8: Verify no JS errors**
-
-Load editor.html in browser at localhost:3333, open dev console, confirm no errors on page load.
+Search for `msg.type === 'studio-progress'`. Delete the three consecutive `else if` blocks for `studio-progress`, `studio-complete`, and `studio-error`.
 
 **Step 9: Commit**
 
@@ -1450,34 +878,28 @@ Load editor.html in browser at localhost:3333, open dev console, confirm no erro
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add skills/vibes/templates/editor.html && git commit -m "Rewrite wizard JavaScript for new 4-step onboarding flow
 
 New state management with per-credential validation tracking.
-Clerk keys saved on step 2 advance. Cloudflare validated server-side
-before advancing to step 3. All Connect Studio JS removed.
+Clerk keys saved on step 2 advance. Cloudflare validated server-side.
+All Connect Studio and exe.dev JS removed.
 Deploy buttons simplified to Cloudflare-only with cloudflareReady flag."
 ```
 
-**Step 10: Verify complete exe.dev/SSH removal**
+**Step 10: Verify complete exe.dev/SSH/Studio removal**
 
 Run these greps against editor.html. ALL must return zero matches:
 
 ```bash
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard
-grep -n 'deployTargets\.exe' skills/vibes/templates/editor.html
-grep -n 'status\.ssh' skills/vibes/templates/editor.html
+grep -n 'deployTargets' skills/vibes/templates/editor.html
+grep -n 'status\.ssh\|status\.wrangler' skills/vibes/templates/editor.html
 grep -n 'sshAvailable' skills/vibes/templates/editor.html
 grep -n 'deployExe\|deploy-exe\|deploy_exe' skills/vibes/templates/editor.html
 grep -n 'exe\.dev\|exe\.xyz' skills/vibes/templates/editor.html
-grep -n 'studioMode\|studioCheckTimer' skills/vibes/templates/editor.html
+grep -n 'studioMode\|studioCheckTimer\|checkStudio\|checkSetup' skills/vibes/templates/editor.html
+grep -n 'studio-progress\|studio-complete\|studio-error' skills/vibes/templates/editor.html
+grep -n 'wizardStep5' skills/vibes/templates/editor.html
 ```
 
-If any matches are found, delete or replace them:
-- `deployTargets.exe` references → delete the containing line/block (replaced by `cloudflareReady`)
-- `status.ssh` references → delete the containing conditional (SSH status no longer returned)
-- `sshAvailable` assignments/reads → delete entirely
-- `deployExe`/`deploy-exe` → delete the containing block (exe.dev deploy target removed)
-- `exe.dev`/`exe.xyz` string literals in help text or comments → rewrite to reference Cloudflare
-- `studioMode`/`studioCheckTimer` → delete entirely (Connect Studio state removed in Step 1)
-
-After cleanup, re-run the greps to confirm zero matches, then amend the commit:
+If any matches are found, delete or replace them, then amend the commit:
 
 ```bash
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add skills/vibes/templates/editor.html && git commit --amend --no-edit
@@ -1485,94 +907,11 @@ cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding
 
 ---
 
-### Task 7: Clean Up WebSocket Handlers -- Remove Studio Deploy
+### Task 7: Inject Registry Credentials into Deploy Subprocess
 
-The `ws-dispatch.js` file still has a `deploy-studio` entry in its dispatch table, and `deploy.js` still exports `handleDeployStudio`. The editor.html WebSocket message handler still processes `studio-progress`, `studio-complete`, and `studio-error` messages. All of these reference removed Connect Studio functionality.
+The wizard stores Cloudflare credentials in the registry, but the deploy subprocess needs them in the environment. `deploy-cloudflare.js` reads Clerk keys from `.env` via `loadEnvFile()` -- the wizard already writes Clerk keys to `.env` (Task 3), so no change needed for Clerk. For Cloudflare auth, wrangler natively reads `CLOUDFLARE_API_KEY`/`CLOUDFLARE_EMAIL` from the process environment, so the deploy handler reads from the registry and injects them.
 
-**Files:**
-- Modify: `scripts/server/ws-dispatch.js`
-- Modify: `scripts/server/handlers/deploy.js`
-- Modify: `skills/vibes/templates/editor.html` (WS message handlers)
-
-**Step 1: Remove `deploy-studio` from ws-dispatch.js**
-
-In `scripts/server/ws-dispatch.js`:
-
-1. Search for the import line `import { handleDeploy, handleDeployStudio } from './handlers/deploy.js';` and change it to:
-   ```javascript
-   import { handleDeploy } from './handlers/deploy.js';
-   ```
-
-2. Search for `'deploy-studio':` in the dispatch table and delete that entire line:
-   ```javascript
-   // DELETE this line:
-   'deploy-studio':  (msg) => handleDeployStudio(ctx, onEvent, msg.studioName, msg.clerkPublishableKey, msg.clerkSecretKey),
-   ```
-
-**Step 2: Remove `handleDeployStudio` from deploy.js**
-
-In `scripts/server/handlers/deploy.js`:
-
-1. Search for `export async function handleDeployStudio` and delete the entire function (from the `/**` comment above it through its final closing `}`).
-
-2. Also update `handleDeploy` to remove the exe.dev target. Search for the target validation at the top of `handleDeploy`:
-   ```javascript
-   if (!target || (target !== 'cloudflare' && target !== 'exe')) {
-   ```
-   Replace with:
-   ```javascript
-   if (!target || target !== 'cloudflare') {
-     onEvent({ type: 'error', message: 'Invalid deploy target. Use "cloudflare".' });
-   ```
-
-3. Search for the `deployScript` selection block that chooses between `deploy-cloudflare.js` and `deploy-exe.js`. Replace it with:
-   ```javascript
-   const deployScript = join(ctx.projectRoot, 'scripts/deploy-cloudflare.js');
-   const deployArgs = ['--name', appName, '--file', indexHtmlPath];
-   ```
-
-**Step 3: Remove studio WS message handlers from editor.html**
-
-In `skills/vibes/templates/editor.html`, search for `msg.type === 'studio-progress'`. Delete the three consecutive `else if` blocks for `studio-progress`, `studio-complete`, and `studio-error`. Specifically, delete from:
-```javascript
-      } else if (msg.type === 'studio-progress') {
-```
-through:
-```javascript
-        if (hint) { hint.textContent = msg.message; hint.style.color = 'var(--vibes-red)'; }
-      }
-```
-
-These blocks reference DOM elements (`studioDeployLog`, `studioDeployBtn`, `wizardNewStudioName`, `wizardDeployHint`) that no longer exist and functions (`updateStudioNextButton`) that were deleted.
-
-**Step 4: Run tests**
-
-Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && npx vitest run`
-Expected: PASS
-
-**Step 5: Commit**
-
-```bash
-cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/ws-dispatch.js scripts/server/handlers/deploy.js skills/vibes/templates/editor.html && git commit -m "Remove Connect Studio deploy from WebSocket handlers
-
-Delete deploy-studio dispatch entry, handleDeployStudio function,
-and studio-progress/complete/error WS message handlers in editor.
-Deploy handler now only supports Cloudflare target."
-```
-
----
-
-### Task 8: Inject Registry Credentials and Re-assemble Before Deploy
-
-Two gaps exist in the deploy flow:
-
-1. **Cloudflare credentials:** The wizard stores Cloudflare Global API Key in the registry, but `deploy-cloudflare.js` spawns `wrangler` via `process.env`. If the user authenticated via the wizard (rather than `wrangler login`), wrangler won't find credentials.
-
-2. **Connect URLs:** Task 4 relaxed the assembly gate so apps can build without Connect URLs. But `populateConnectConfig` substitutes empty strings when URLs are missing, producing an app with Clerk auth but broken sync. On subsequent deploys (after alchemy has provisioned Connect and written URLs to the registry), the URLs must be injected into assembly.
-
-3. **First deploy vs. subsequent deploy:** On first deploy, Connect URLs don't exist yet -- alchemy provisions them during the deploy process (handled by the migration plan's `deploy-cloudflare.js`). The editor's `handleDeploy` should detect this and emit a progress message explaining that Connect will be provisioned automatically. On subsequent deploys, Connect URLs are already in the registry and should be injected into both assembly and deploy environments.
-
-The fix: in `scripts/server/handlers/deploy.js`, read credentials from the registry and inject them into both subprocess environments. Add a pre-deploy check that warns on first deploy (no Connect URLs yet) so the user understands sync won't work until the migration plan's alchemy integration is in place.
+On first deploy, `deploy-cloudflare.js` already handles everything: calls `deployConnect()` via alchemy, writes Connect URLs to `.env`, auto-reassembles index.html. No re-assembly logic is needed in the editor's deploy handler.
 
 **Files:**
 - Modify: `scripts/server/handlers/deploy.js`
@@ -1582,111 +921,50 @@ The fix: in `scripts/server/handlers/deploy.js`, read credentials from the regis
 At the top of `scripts/server/handlers/deploy.js`, after the existing imports, add:
 
 ```javascript
-import { getCloudflareCredentials, getConnectUrls, getClerkCredentials } from '../registry-adapter.js';
+import { getCloudflareConfig } from '../../lib/registry.js';
 ```
 
-(Relative path: `scripts/server/handlers/deploy.js` → `scripts/server/registry-adapter.js` = `../registry-adapter.js`)
+(Relative path: `scripts/server/handlers/deploy.js` is at `scripts/server/handlers/`, registry is at `scripts/lib/` = `../../lib/registry.js`)
 
-**Step 2: Create a helper that builds the enriched env**
+**Step 2: Inject Cloudflare credentials into both subprocess environments**
 
-After the imports, add a helper function:
-
+Search for the assembly child process spawn (the one that runs `assemble.js`). Find:
 ```javascript
-/**
- * Build subprocess environment with registry credentials injected.
- * Assembly needs Clerk + Connect URLs; deploy needs Cloudflare creds.
- */
-function buildDeployEnv(appName) {
-  const env = { ...process.env };
-
-  // Inject Cloudflare credentials from registry (for wrangler)
-  if (!env.CLOUDFLARE_API_KEY || !env.CLOUDFLARE_EMAIL) {
-    const cfCreds = getCloudflareCredentials();
-    if (cfCreds.apiKey) env.CLOUDFLARE_API_KEY = cfCreds.apiKey;
-    if (cfCreds.email) env.CLOUDFLARE_EMAIL = cfCreds.email;
-  }
-
-  // Inject Connect URLs from registry (for assembly)
-  // These are populated by alchemy after first deploy — may still be empty on first deploy
-  const connect = getConnectUrls(appName);
-  if (connect.apiUrl && !env.VITE_API_URL) {
-    env.VITE_API_URL = connect.apiUrl;
-  }
-  if (connect.cloudUrl && !env.VITE_CLOUD_URL) {
-    env.VITE_CLOUD_URL = connect.cloudUrl;
-  }
-
-  // Inject Clerk keys from registry (in case .env doesn't have them)
-  const clerk = getClerkCredentials();
-  if (clerk.publishableKey && !env.VITE_CLERK_PUBLISHABLE_KEY) {
-    env.VITE_CLERK_PUBLISHABLE_KEY = clerk.publishableKey;
-  }
-  if (clerk.secretKey && !env.CLERK_SECRET_KEY) {
-    env.CLERK_SECRET_KEY = clerk.secretKey;
-  }
-
-  return env;
-}
+      env: { ...process.env },
 ```
-
-**Step 3: Add first-deploy Connect URL check to handleDeploy**
-
-In `handleDeploy`, after the existing argument validation block (after `if (!target || target !== 'cloudflare')`), add a Connect URL check:
-
+Replace with:
 ```javascript
-    // Check if Connect URLs are available for assembly
-    const connectUrls = getConnectUrls(appName);
-    const isFirstDeploy = !connectUrls.apiUrl || !connectUrls.cloudUrl;
-    if (isFirstDeploy) {
-      onEvent({
-        type: 'deploy-progress',
-        message: 'Note: This appears to be the first deploy for "' + appName + '". ' +
-          'Connect (data sync) will be provisioned automatically during deployment. ' +
-          'If sync does not work after deploy, re-deploy to pick up the provisioned Connect URLs.',
-      });
-    }
+      env: (() => {
+        const env = { ...process.env };
+        const cf = getCloudflareConfig();
+        if (cf.apiKey && !env.CLOUDFLARE_API_KEY) env.CLOUDFLARE_API_KEY = cf.apiKey;
+        if (cf.email && !env.CLOUDFLARE_EMAIL) env.CLOUDFLARE_EMAIL = cf.email;
+        return env;
+      })(),
 ```
 
-This emits a progress message rather than blocking -- the migration plan's `deploy-cloudflare.js` handles actual alchemy provisioning. If the migration plan is not yet implemented, the app will deploy without sync (Clerk auth works, but data is local-only). A subsequent deploy after alchemy provisions Connect will pick up the URLs via `buildDeployEnv`.
+Then find the deploy child process spawn (the one that runs `deploy-cloudflare.js`). Replace its `env: { ...process.env },` with the same IIFE block.
 
-**Step 4: Use enriched env for both assembly and deploy subprocesses**
-
-Search for the block in `handleDeploy` where the assembly child process is spawned (the one that runs `assemble.js`). Replace its `env: { ...process.env },` with:
-
-```javascript
-      env: buildDeployEnv(appName),
-```
-
-Then find the deploy child process spawn (the one that runs `deploy-cloudflare.js`). Replace its `env: { ...process.env },` with:
-
-```javascript
-      env: buildDeployEnv(appName),
-```
-
-Using the same helper for both ensures assembly gets Connect URLs (if available from a previous deploy) and the deploy process gets Cloudflare credentials.
-
-**Step 5: Verify no syntax errors**
+**Step 3: Verify no syntax errors**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && node -e "import('./server/handlers/deploy.js').then(() => console.log('OK')).catch(e => console.error(e.message))"`
-Expected: "OK" (no import errors)
+Expected: "OK"
 
-**Step 6: Commit**
+**Step 4: Commit**
 
 ```bash
-cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/handlers/deploy.js && git commit -m "Inject registry credentials into assembly and deploy subprocesses
+cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/handlers/deploy.js && git commit -m "Inject registry Cloudflare credentials into deploy subprocess
 
-Build enriched env from registry for both assembly (Clerk keys,
-Connect URLs) and deploy (Cloudflare API key/email). Clerk secret
-key injected as CLERK_SECRET_KEY for wrangler secrets. First deploy
-emits progress message about Connect provisioning. Subsequent deploys
-inject Connect URLs from registry into assembly."
+Read CLOUDFLARE_API_KEY/CLOUDFLARE_EMAIL from registry and inject
+into both assembly and deploy subprocess environments. Clerk keys
+already handled via .env (written by wizard in saveCredentials)."
 ```
 
 ---
 
-### Task 9: Add CSS for Wizard Validation Spinner
+### Task 8: Add CSS for Wizard Validation Spinner
 
-Small CSS additions to support the new wizard layout. The existing `.wizard-*` styles mostly work, but we need a validation spinner style.
+Small CSS additions to support the new wizard layout.
 
 **Files:**
 - Modify: `skills/vibes/templates/editor.html` (CSS section)
@@ -1708,120 +986,40 @@ Search for `.wizard-radio.selected` in the CSS section. After the `.wizard-radio
     @keyframes wizardSpin {
       to { transform: rotate(360deg); }
     }
+    .wizard-summary-table {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin: 1rem 0;
+    }
+    .wizard-summary-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      background: rgba(0,0,0,0.03);
+      border-radius: 6px;
+      font-size: 0.8125rem;
+    }
+    .wizard-summary-key {
+      font-weight: 700;
+    }
+    .wizard-summary-value {
+      color: #666;
+      font-family: monospace;
+      font-size: 0.75rem;
+    }
 ```
 
 **Step 2: Commit**
 
 ```bash
-cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add skills/vibes/templates/editor.html && git commit -m "Add CSS for wizard validation spinner"
+cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add skills/vibes/templates/editor.html && git commit -m "Add CSS for wizard validation spinner and summary table"
 ```
 
 ---
 
-### Task 10: Update SessionStart Hook for Registry Detection
-
-The session-start hook currently checks for `.env` with Clerk keys and Connect URLs. Update it to check the registry.
-
-**Files:**
-- Modify: `hooks/session-start.sh`
-- Modify: `hooks/session-context.md`
-
-**Step 1: Update session-start.sh project state detection**
-
-Search for `# Detect project state and build dynamic hints` in `hooks/session-start.sh`. Replace everything from that comment through the `index.html` detection block (ending at the `fi` before the `# Escape for JSON` comment) with:
-
-```bash
-# Detect project state and build dynamic hints
-state_hints=""
-
-REGISTRY="$HOME/.vibes/deployments.json"
-if [ -f "$REGISTRY" ]; then
-    # Check for Cloudflare credentials
-    has_cf=false
-    if grep -q '"apiKey"' "$REGISTRY" 2>/dev/null; then
-        has_cf=true
-    fi
-
-    # Check for Clerk credentials
-    has_clerk=false
-    if grep -q '"publishableKey"' "$REGISTRY" 2>/dev/null; then
-        has_clerk=true
-    fi
-
-    if [ "$has_cf" = true ] && [ "$has_clerk" = true ]; then
-        state_hints=$'\n\n## Project State\nVibes registry found with Clerk and Cloudflare credentials — ready to generate and deploy.'
-    elif [ "$has_clerk" = true ]; then
-        state_hints=$'\n\n## Project State\nVibes registry has Clerk keys but no Cloudflare credentials. Run the editor setup wizard or add Cloudflare Global API Key.'
-    else
-        state_hints=$'\n\n## Project State\nVibes registry exists but is missing credentials. Run the editor setup wizard.'
-    fi
-elif [ -f "${PWD}/.env" ]; then
-    has_clerk_keys=false
-    if grep -q "VITE_CLERK_PUBLISHABLE_KEY=pk_" "${PWD}/.env" 2>/dev/null; then
-        has_clerk_keys=true
-    fi
-    if [ "$has_clerk_keys" = true ]; then
-        state_hints=$'\n\n## Project State\nLegacy .env found with Clerk keys. Run the editor to set up Cloudflare deploy.'
-    else
-        state_hints=$'\n\n## Project State\n.env found but missing Clerk keys. Run the editor setup wizard.'
-    fi
-else
-    state_hints=$'\n\n## Project State\nNo credentials found. Run the editor setup wizard to configure Clerk and Cloudflare.'
-fi
-
-if [ -f "${PWD}/app.jsx" ]; then
-    state_hints="${state_hints}"$'\napp.jsx exists — invoke the matching build skill (/vibes:vibes or /vibes:sell) to reassemble.'
-fi
-
-if [ -f "${PWD}/index.html" ]; then
-    if grep -q "TenantProvider" "${PWD}/index.html" 2>/dev/null; then
-        state_hints="${state_hints}"$'\nindex.html exists (sell template) — reassemble with /vibes:sell, deploy with /vibes:cloudflare.'
-    else
-        state_hints="${state_hints}"$'\nindex.html exists (vibes template) — reassemble with /vibes:vibes, deploy with /vibes:cloudflare.'
-    fi
-fi
-```
-
-**Step 2: Update session-context.md dispatch table**
-
-In `hooks/session-context.md`, find the `## Skill Dispatch` table. Make these changes:
-
-Remove these rows:
-```
-| "deploy" / "put it online" (exe.dev) | `/vibes:exe` |
-| "set up sync" / "Connect" / "cloud backend" | `/vibes:connect` |
-```
-
-Replace with:
-```
-| "deploy" / "put it online" | `/vibes:cloudflare` |
-```
-
-Also update the `## Workflow` section. Search for the paragraph containing `.env with Clerk keys + Connect URLs must exist`. Replace it with:
-```
-Clerk keys and Cloudflare credentials must exist before deploying.
-If missing, run the editor setup wizard. Connect deploys automatically on first app deploy.
-```
-
-Also search for `If missing, invoke `/vibes:connect` first.` and delete that line if it still exists.
-
-**Step 3: Test the hook**
-
-Run: `echo '{}' | bash /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/hooks/session-start.sh`
-Expected: Valid JSON with `additionalContext` field, no errors
-
-**Step 4: Commit**
-
-```bash
-cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add hooks/session-start.sh hooks/session-context.md && git commit -m "Update SessionStart hook for registry-based credential detection
-
-Check ~/.vibes/deployments.json for Clerk and Cloudflare credentials.
-Remove /vibes:connect and /vibes:exe from dispatch table."
-```
-
----
-
-### Task 11: Integration Test -- Full Wizard Flow
+### Task 9: Integration Test -- Full Wizard Flow
 
 Write an integration test that exercises the complete wizard flow: status check, Clerk save, Cloudflare validate, and final status.
 
@@ -1833,22 +1031,20 @@ Write an integration test that exercises the complete wizard flow: status check,
 ```javascript
 // scripts/__tests__/integration/wizard-flow.test.js
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mkdirSync, rmSync, readFileSync, writeFileSync, existsSync, statSync } from 'fs';
+import { mkdirSync, rmSync, statSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
 const TEST_DIR = join(tmpdir(), `vibes-wizard-flow-${Date.now()}`);
-const PROJECT_DIR = join(TEST_DIR, 'project');
 
-describe('wizard flow integration', () => {
-  let adapter;
+describe('wizard credential flow', () => {
+  let registry;
 
   beforeEach(async () => {
-    mkdirSync(join(TEST_DIR, '.vibes'), { recursive: true });
-    mkdirSync(PROJECT_DIR, { recursive: true });
-    process.env.VIBES_HOME = TEST_DIR;
     vi.resetModules();
-    adapter = await import('../../server/registry-adapter.js');
+    mkdirSync(join(TEST_DIR, '.vibes'), { recursive: true });
+    process.env.VIBES_HOME = TEST_DIR;
+    registry = await import('../../lib/registry.js');
   });
 
   afterEach(() => {
@@ -1856,76 +1052,63 @@ describe('wizard flow integration', () => {
     delete process.env.VIBES_HOME;
   });
 
-  it('starts with empty status', () => {
-    const status = adapter.getSetupStatus();
-    expect(status.clerk.ok).toBe(false);
-    expect(status.cloudflare.ok).toBe(false);
-  });
+  it('full lifecycle: empty -> save clerk -> save cloudflare -> verify', () => {
+    // Start empty
+    const initialConfig = registry.getCloudflareConfig();
+    expect(initialConfig.apiKey).toBeFalsy();
 
-  it('step 2: saving Clerk credentials updates status', () => {
-    adapter.saveClerkCredentials({
-      publishableKey: 'pk_test_abc123',
-      secretKey: 'sk_test_xyz789',
+    // Save Clerk credentials
+    registry.setApp('_default', {
+      name: '_default',
+      clerk: { publishableKey: 'pk_test_abc123', secretKey: 'sk_test_xyz789' },
     });
 
-    const status = adapter.getSetupStatus();
-    expect(status.clerk.ok).toBe(true);
-    expect(status.cloudflare.ok).toBe(false);
-  });
+    const app = registry.getApp('_default');
+    expect(app.clerk.publishableKey).toBe('pk_test_abc123');
+    expect(app.clerk.secretKey).toBe('sk_test_xyz789');
 
-  it('step 3: saving Cloudflare credentials updates status', () => {
-    adapter.saveClerkCredentials({
-      publishableKey: 'pk_test_abc123',
-      secretKey: 'sk_test_xyz789',
-    });
-    adapter.saveCloudflareCredentials({
-      apiKey: 'globalkey123456789012345678901234567',
+    // Save Cloudflare credentials
+    registry.setCloudflareConfig({
+      apiKey: 'cf-global-api-key-123',
       email: 'user@example.com',
+      accountId: 'acct-456',
     });
 
-    const status = adapter.getSetupStatus();
-    expect(status.clerk.ok).toBe(true);
-    expect(status.cloudflare.ok).toBe(true);
-  });
+    const cfConfig = registry.getCloudflareConfig();
+    expect(cfConfig.apiKey).toBe('cf-global-api-key-123');
+    expect(cfConfig.email).toBe('user@example.com');
+    expect(cfConfig.accountId).toBe('acct-456');
 
-  it('registry file is created on first save with secure permissions', () => {
-    adapter.saveClerkCredentials({
-      publishableKey: 'pk_test_abc',
-      secretKey: 'sk_test_xyz',
-    });
-
+    // Verify file permissions
     const regPath = join(TEST_DIR, '.vibes', 'deployments.json');
-    expect(existsSync(regPath)).toBe(true);
-
-    const reg = JSON.parse(readFileSync(regPath, 'utf8'));
-    expect(reg.version).toBe(1);
-    expect(Object.keys(reg.apps).length).toBeGreaterThan(0);
-
-    // Verify 0o600 permissions
     const stat = statSync(regPath);
     const mode = stat.mode & 0o777;
     expect(mode).toBe(0o600);
   });
 
-  it('credentials survive registry reload', () => {
-    adapter.saveClerkCredentials({
-      publishableKey: 'pk_test_persist',
-      secretKey: 'sk_test_persist',
-    });
-    adapter.saveCloudflareCredentials({
-      apiKey: 'persist_key_12345678901234567890',
-      email: 'persist@test.com',
+  it('preserves existing app data when adding cloudflare config', () => {
+    registry.setApp('my-app', {
+      name: 'my-app',
+      clerk: { publishableKey: 'pk_test_abc', secretKey: 'sk_test_xyz' },
     });
 
-    const status = adapter.getSetupStatus();
-    expect(status.clerk.ok).toBe(true);
-    expect(status.cloudflare.ok).toBe(true);
+    registry.setCloudflareConfig({ apiKey: 'key123', email: 'test@test.com' });
 
-    const creds = adapter.getClerkCredentials();
-    expect(creds.publishableKey).toBe('pk_test_persist');
+    const app = registry.getApp('my-app');
+    expect(app.clerk.publishableKey).toBe('pk_test_abc');
 
-    const cf = adapter.getCloudflareCredentials();
-    expect(cf.email).toBe('persist@test.com');
+    const cf = registry.getCloudflareConfig();
+    expect(cf.apiKey).toBe('key123');
+  });
+
+  it('isFirstDeploy returns true for apps without connect URLs', () => {
+    registry.setApp('new-app', {
+      name: 'new-app',
+      clerk: { publishableKey: 'pk_test_abc' },
+    });
+
+    expect(registry.isFirstDeploy('new-app')).toBe(true);
+    expect(registry.isFirstDeploy('nonexistent')).toBe(true);
   });
 });
 ```
@@ -1940,14 +1123,13 @@ Expected: PASS
 ```bash
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/__tests__/integration/wizard-flow.test.js && git commit -m "Add integration test for wizard credential flow
 
-Tests complete wizard lifecycle: empty status -> save Clerk ->
-save Cloudflare -> verify status shows both OK. Validates 0o600
-file permissions on registry."
+Tests complete lifecycle: empty -> save Clerk -> save Cloudflare ->
+verify status. Validates 0o600 file permissions on registry."
 ```
 
 ---
 
-### Task 12: Run Full Test Suite and Fix Regressions
+### Task 10: Run Full Test Suite and Fix Regressions
 
 **Step 1: Run all tests**
 
@@ -1957,9 +1139,10 @@ Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onbo
 
 Common issues to watch for:
 - Tests that import from `editor-api.js` and expect the old `saveCredentials` payload format (old keys: `VITE_CLERK_PUBLISHABLE_KEY`, new keys: `clerkPublishableKey`)
-- Tests that reference `deployTargets`, `sshAvailable`, or Connect Studio
+- Tests that reference `deployTargets` or Connect Studio
 - Tests that check for status response fields like `connect`, `ssh`, or `wrangler` (now replaced by `cloudflare`)
-- Tests that import `handleDeployStudio` from `deploy.js`
+- Tests that check for the old assembly error message about `VITE_API_URL`
+- Tests that import `checkStudio` from `editor-api.js`
 
 Fix each failing test to match the new API contract.
 
@@ -1968,12 +1151,7 @@ Fix each failing test to match the new API contract.
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && npm run test:fixtures`
 Expected: PASS
 
-**Step 4: Test the hook output**
-
-Run: `echo '{}' | bash /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/hooks/session-start.sh`
-Expected: Valid JSON, no errors
-
-**Step 5: Commit any test fixes**
+**Step 4: Commit any test fixes**
 
 ```bash
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add -A && git commit -m "Fix test regressions from onboarding wizard changes"
@@ -1981,132 +1159,36 @@ cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding
 
 ---
 
-### Task 13: Update CLAUDE.md Workflow Sequence
-
-CLAUDE.md contains the authoritative Workflow Sequence that agents follow. It still documents the old `CR → CO → G → A → D → V` flow with Connect as a mandatory step. Since CLAUDE.md instructions override default behavior, future agents will enforce the old flow unless this is updated.
-
-**Files:**
-- Modify: `CLAUDE.md`
-
-**Step 1: Update the Workflow Sequence diagram**
-
-Search for the Workflow Sequence section. Find the dependency graph:
-```
-CR (credentials) → CO (connect) → G (generate) → A (assemble) → D (deploy) → V (verify)
-```
-
-Replace it with:
-```
-CR (credentials) → G (generate) → A (assemble) → D (deploy + auto-connect) → V (verify)
-```
-
-**Step 2: Update the hard rules**
-
-Find and replace the hard rules block:
-```
-**Hard rules:**
-- Deploy is mandatory — Clerk auth requires a public URL. No local-only path.
-- Connect is always required — no value in local-only Fireproof.
-- Iterate loop always includes re-deploy: edit app.jsx → A → D → V.
-```
-
-Replace with:
-```
-**Hard rules:**
-- Deploy is mandatory — Clerk auth requires a public URL. No local-only path.
-- Connect auto-deploys on first app deploy (via alchemy). No manual Connect step.
-- Iterate loop always includes re-deploy: edit app.jsx → A → D → V.
-```
-
-**Step 3: Update the Node registry table**
-
-Remove the CO row entirely:
-```
-| CO | CONNECT | Clerk PK+SK | .env with API_URL+CLOUD_URL | CR | .env has VITE_API_URL |
-```
-
-Update the A (ASSEMBLE) row prereqs from `G + CO` to `G + CR`:
-```
-| A | ASSEMBLE | app.jsx + .env [+ sell config] | index.html | G + CR; SaaS: + S | -- |
-```
-
-Update the SaaS assembly prereq similarly: `G + CR + S → A`.
-
-**Step 4: Update the Hard dependencies block**
-
-Find:
-```
-CR → CO       Connect needs Clerk keys
-CO → G        Generate needs Connect configured
-G + CO → A    Assembly needs app.jsx + .env
-G + CO + S → A  SaaS assembly needs all three
-```
-
-Replace with:
-```
-CR → G        Generate needs Clerk key
-G + CR → A    Assembly needs app.jsx + Clerk key
-G + CR + S → A  SaaS assembly needs all three
-A → D         Deploy needs index.html (Connect auto-provisions on first deploy)
-```
-
-**Step 5: Update the Connect Studio Environment section**
-
-Search for `### Connect Studio Environment`. This section documents `VITE_API_URL` and `VITE_CLOUD_URL` for manual Studio setup. Add a note at the top:
-
-```
-> **Note:** With the new onboarding wizard, Connect auto-deploys via alchemy on first app deploy. The manual Studio configuration below is only needed for advanced/custom Connect setups.
-```
-
-**Step 6: Commit**
-
-```bash
-cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add CLAUDE.md && git commit -m "Update CLAUDE.md workflow sequence for auto-connect architecture
-
-Remove CO (connect) node from dependency graph. Connect now
-auto-deploys via alchemy on first app deploy. Assembly only
-requires Clerk key — Connect URLs populated at deploy time."
-```
-
----
-
-### Task 14: Verification Checklist
+### Task 11: Verification Checklist
 
 **Before claiming complete, verify all of these:**
 
 - [ ] `cd scripts && npx vitest run` -- all tests pass
 - [ ] `cd scripts && npm run test:fixtures` -- structural tests pass
-- [ ] `echo '{}' | bash hooks/session-start.sh` -- valid JSON output
-- [ ] No references to `checkSetup` function in editor.html JS (deleted; references removed DOM elements)
+- [ ] No references to `checkSetup` function in editor.html JS
 - [ ] No references to `studioMode` or `studioCheckTimer` in editor.html JS
 - [ ] No references to `wizardStep5` in editor.html HTML
 - [ ] No references to `deployTargets` in editor.html JS (replaced by `cloudflareReady`)
-- [ ] No references to `checkStudio` route in routes.js
-- [ ] No references to `handleDeployStudio` in ws-dispatch.js or deploy.js
-- [ ] No `studio-progress`, `studio-complete`, or `studio-error` handlers in editor.html WS message block
-- [ ] No `deploy-studio` entry in ws-dispatch.js dispatch table
+- [ ] No references to `checkStudio` in routes.js or editor-api.js
+- [ ] No `studio-progress`, `studio-complete`, or `studio-error` handlers in editor.html
 - [ ] Wizard shows exactly 4 progress dots (not 5)
 - [ ] `/editor/status` returns `clerk` and `cloudflare` fields (not `connect`, `ssh`, `wrangler`)
-- [ ] `/editor/credentials` saves to `~/.vibes/deployments.json`
+- [ ] `/editor/credentials` saves Clerk to registry via `setApp()` AND to `.env` via `writeEnvFile()`
+- [ ] `/editor/credentials` saves Cloudflare to registry via `setCloudflareConfig()`
 - [ ] `~/.vibes/deployments.json` written with `0o600` permissions
-- [ ] `/editor/credentials/validate-cloudflare` endpoint exists
-- [ ] Clerk keys also written to `.env` for assembly backward compatibility
-- [ ] Session context dispatch table has no `/vibes:connect` or `/vibes:exe`
-- [ ] `deploy.js` `handleDeploy` injects `CLOUDFLARE_API_KEY`/`CLOUDFLARE_EMAIL` from registry into subprocess env
-- [ ] `deploy.js` `handleDeploy` also injects `VITE_API_URL`/`VITE_CLOUD_URL`/`VITE_CLERK_PUBLISHABLE_KEY`/`CLERK_SECRET_KEY` from registry into subprocess env
-- [ ] `deploy.js` `handleDeploy` emits progress message on first deploy (no Connect URLs)
-- [ ] `deploy.js` `handleDeploy` only accepts `target === 'cloudflare'` (not `exe`)
+- [ ] `lib/registry.js` `saveRegistry()` uses `{ mode: 0o600 }` and `chmodSync` fallback
+- [ ] `/editor/credentials/validate-cloudflare` uses Cloudflare HTTP API, NOT wrangler
+- [ ] `/editor/credentials/validate-cloudflare` sends `X-Auth-Key` and `X-Auth-Email` headers
+- [ ] `deploy.js` injects `CLOUDFLARE_API_KEY`/`CLOUDFLARE_EMAIL` from `getCloudflareConfig()`
 - [ ] Deploy menu in editor only shows Cloudflare option (no exe.dev button)
 - [ ] `updateDeployButtons` reads `cloudflareReady` (not `deployTargets.cloudflare`)
 - [ ] `toggleDeployMenu` reads `status.cloudflare?.ok` (not `status.wrangler?.ok`)
-- [ ] Zero matches for: `grep -n 'deployTargets\.exe\|status\.ssh\|sshAvailable\|deployExe\|deploy-exe\|exe\.dev\|exe\.xyz\|studioMode\|studioCheckTimer' skills/vibes/templates/editor.html`
-- [ ] CLAUDE.md Workflow Sequence diagram shows `CR → G → A → D(+auto-connect) → V` (no CO node)
-- [ ] CLAUDE.md hard rules say "Connect auto-deploys" (not "Connect is always required")
-- [ ] CLAUDE.md Node registry table has no CO row
-- [ ] CLAUDE.md Hard dependencies block has no `CR → CO` or `CO → G` lines
-- [ ] Registry adapter exports `getConnectUrls` function
-- [ ] Registry adapter unit tests use `vi.resetModules()` in `beforeEach`
-- [ ] `validateCloudflareCredentials` uses Cloudflare HTTP API (`/client/v4/accounts`), NOT `wrangler whoami`
-- [ ] `validateCloudflareCredentials` sends `X-Auth-Key` and `X-Auth-Email` headers
-- [ ] No `execFile` or `child_process` imports in editor-api.js for CF validation
-- [ ] Registry `cloudflare` config schema stores `apiKey`, `email`, `accountId` (compatible with migration plan's `accountId`, `workersSubdomain`)
+- [ ] Zero matches for: `grep -n 'deployTargets\|status\.ssh\|sshAvailable\|deployExe\|deploy-exe\|exe\.dev\|exe\.xyz\|studioMode\|studioCheckTimer\|checkSetup\|wizardStep5' skills/vibes/templates/editor.html`
+- [ ] No `execFile`/`child_process` used for CF validation (HTTP API instead)
+- [ ] Registry `cloudflare` config stores `apiKey`, `email` (compatible with existing `accountId`, `workersSubdomain`)
+- [ ] Assembly succeeds with Clerk key only (no `VITE_API_URL` required)
+- [ ] `deploy-cloudflare.js` first-deploy flow unchanged (handles alchemy + auto-reassembly)
+- [ ] `saveCredentials` uses `clerkPublishableKey`/`clerkSecretKey` field names
+- [ ] OpenRouter key saved to `.env` via `writeEnvFile()` (per-project, not to registry)
+- [ ] No registry-adapter.js file created (imports directly from `lib/registry.js`)
+- [ ] `editor-api.js` imports `getCloudflareConfig`, `setCloudflareConfig`, `getApp`, `setApp` from `../../lib/registry.js`
