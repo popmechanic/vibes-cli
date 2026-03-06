@@ -3334,6 +3334,15 @@
     const key = keyInput.value.trim();
     const secret = secretInput.value.trim();
 
+    // If keys are already validated and user hasn't typed anything new, allow advancing
+    if (!key && !secret && wizardValidation.clerk === 'valid') {
+      keyInput.classList.remove('valid', 'invalid');
+      secretInput.classList.remove('valid', 'invalid');
+      hint.style.display = 'none';
+      nextBtn.disabled = false;
+      return;
+    }
+
     const keyValid = key.startsWith('pk_test_') || key.startsWith('pk_live_');
     const secretValid = secret.startsWith('sk_test_') || secret.startsWith('sk_live_');
 
@@ -3342,11 +3351,20 @@
     secretInput.classList.toggle('valid', secret && secretValid);
     secretInput.classList.toggle('invalid', secret && !secretValid);
 
+    // Swap detection hints
     if (key && !keyValid) {
-      hint.textContent = 'Publishable key must start with pk_test_ or pk_live_';
+      if (key.startsWith('sk_test_') || key.startsWith('sk_live_')) {
+        hint.textContent = 'This looks like a secret key — it goes in the field below. The publishable key starts with pk_test_ or pk_live_.';
+      } else {
+        hint.textContent = 'Publishable key must start with pk_test_ or pk_live_. Find it in Clerk Dashboard > Configure > API Keys.';
+      }
       hint.style.display = '';
     } else if (secret && !secretValid) {
-      hint.textContent = 'Secret key must start with sk_test_ or sk_live_';
+      if (secret.startsWith('pk_test_') || secret.startsWith('pk_live_')) {
+        hint.textContent = 'This looks like a publishable key — it goes in the field above. The secret key starts with sk_test_ or sk_live_.';
+      } else {
+        hint.textContent = 'Secret key must start with sk_test_ or sk_live_. In the Clerk Dashboard, click "Show" next to the secret key to reveal it.';
+      }
       hint.style.display = '';
     } else {
       hint.style.display = 'none';
@@ -3509,7 +3527,16 @@
       setWizardStep(4);
     } catch (err) {
       wizardValidation.cloudflare = 'invalid';
-      hint.textContent = err.message;
+      let msg = err.message;
+      // Add remediation hints for common errors
+      if (msg.includes('Token verification failed') || msg.includes('Authentication failed')) {
+        msg += ' Double-check that you copied the full token with no extra spaces.';
+      } else if (msg.includes('timed out')) {
+        msg += ' Try again — this is usually a temporary network issue.';
+      } else if (msg.includes('no accounts accessible') || msg.includes('No accounts found')) {
+        msg += ' The token might not have the right permissions. Try creating a new token with the "Edit Cloudflare Workers" template.';
+      }
+      hint.textContent = msg;
       hint.style.color = 'var(--vibes-red)';
       hint.style.display = '';
     } finally {

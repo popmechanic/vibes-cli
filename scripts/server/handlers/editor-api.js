@@ -131,10 +131,18 @@ export async function saveCredentials(ctx, req, res) {
     const hasClerk = !!(pk || sk);
 
     if (pk && !validateClerkKey(pk)) {
-      errors.clerkPublishableKey = 'Invalid Clerk publishable key (must start with pk_test_ or pk_live_)';
+      if (validateClerkSecretKey(pk)) {
+        errors.clerkPublishableKey = 'This looks like a secret key. The publishable key starts with pk_test_ or pk_live_.';
+      } else {
+        errors.clerkPublishableKey = 'Publishable key must start with pk_test_ or pk_live_. Copy it from Clerk Dashboard > Configure > API Keys.';
+      }
     }
     if (sk && !validateClerkSecretKey(sk)) {
-      errors.clerkSecretKey = 'Invalid Clerk secret key (must start with sk_test_ or sk_live_)';
+      if (validateClerkKey(sk)) {
+        errors.clerkSecretKey = 'This looks like a publishable key. The secret key starts with sk_test_ or sk_live_.';
+      } else {
+        errors.clerkSecretKey = 'Secret key must start with sk_test_ or sk_live_. Click "Show" next to the secret key in the Clerk Dashboard.';
+      }
     }
 
     const apiToken = body.cloudflareApiToken || '';
