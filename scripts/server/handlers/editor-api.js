@@ -4,10 +4,9 @@
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync } from 'fs';
 import { join } from 'path';
-import { execFile } from 'child_process';
-import { loadEnvFile, validateClerkKey, validateClerkSecretKey, validateConnectUrl, deriveConnectUrls, writeEnvFile } from '../../lib/env-utils.js';
+import { loadEnvFile, validateClerkKey, validateClerkSecretKey, writeEnvFile } from '../../lib/env-utils.js';
 import { loadOpenRouterKey } from '../config.js';
-import { loadRegistry } from '../../lib/registry.js';
+import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp } from '../../lib/registry.js';
 
 /**
  * Parse JSON body from an HTTP request.
@@ -24,59 +23,45 @@ export function parseJsonBody(req) {
   });
 }
 
-function runCommand(cmd, args, timeoutMs = 5000) {
-  return new Promise((resolve) => {
-    try {
-      execFile(cmd, args, { timeout: timeoutMs, env: { ...process.env } }, (err, stdout, stderr) => {
-        const output = ((stdout || '') + (stderr || '')).trim();
-        resolve({ ok: !err, output });
-      });
-    } catch {
-      resolve({ ok: false, output: '' });
-    }
-  });
-}
-
 async function checkEditorDeps(ctx) {
-  const env = loadEnvFile(ctx.projectRoot);
+  // Check Clerk from registry (most recent app entry)
+  const reg = loadRegistry();
+  const apps = Object.values(reg.apps);
+  let clerkOk = false;
+  let clerkDetail = 'No Clerk keys configured';
+  if (apps.length > 0) {
+    apps.sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+    const latest = apps[0];
+    const pk = latest.clerk?.publishableKey || '';
+    clerkOk = pk.startsWith('pk_test_') || pk.startsWith('pk_live_');
+    if (clerkOk) clerkDetail = `${pk.slice(0, 12)}...`;
+  }
 
-  const clerkKey = env.VITE_CLERK_PUBLISHABLE_KEY || '';
-  const clerkOk = validateClerkKey(clerkKey);
+  // Also check .env for backward compat (deploy-cloudflare.js reads from .env)
+  if (!clerkOk) {
+    const env = loadEnvFile(ctx.projectRoot);
+    const envKey = env.VITE_CLERK_PUBLISHABLE_KEY || '';
+    if (validateClerkKey(envKey)) {
+      clerkOk = true;
+      clerkDetail = `${envKey.slice(0, 12)}... (from .env)`;
+    }
+  }
 
-  const apiUrl = env.VITE_API_URL || '';
-  const cloudUrl = env.VITE_CLOUD_URL || '';
-  const connectOk = !!(apiUrl && cloudUrl);
+  // Check Cloudflare from registry
+  const cfConfig = getCloudflareConfig();
+  const cfOk = !!(cfConfig.apiKey && cfConfig.email);
+  const cfDetail = cfOk ? cfConfig.email : 'No Cloudflare credentials configured';
 
-  let wranglerResult = await runCommand('npx', ['wrangler', 'whoami'], 15000);
-  if (!wranglerResult.ok) wranglerResult = await runCommand('wrangler', ['whoami']);
-  const wranglerOk = wranglerResult.ok && !wranglerResult.output.includes('not authenticated');
-
-  const sshResult = await runCommand('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes', 'exe.dev', 'help'], 8000);
-  const sshOk = sshResult.output.length > 0;
-
+  // OpenRouter from .env (unchanged -- per-project, not global)
   const orKey = loadOpenRouterKey(ctx.projectRoot);
   const openrouterOk = !!orKey;
 
   return {
-    clerk: {
-      ok: clerkOk,
-      detail: clerkOk ? `${clerkKey.slice(0, 12)}...` : 'No valid Clerk key in .env',
-    },
-    connect: {
-      ok: connectOk,
-      detail: connectOk ? apiUrl : 'No VITE_API_URL / VITE_CLOUD_URL in .env',
-    },
+    clerk: { ok: clerkOk, detail: clerkDetail },
+    cloudflare: { ok: cfOk, detail: cfDetail },
     openrouter: {
       ok: openrouterOk,
       detail: openrouterOk ? `sk-or-...${orKey.slice(-6)}` : 'No OPENROUTER_API_KEY in .env',
-    },
-    wrangler: {
-      ok: wranglerOk,
-      detail: wranglerOk ? 'Authenticated' : 'Not configured or not authenticated',
-    },
-    ssh: {
-      ok: sshOk,
-      detail: sshOk ? 'Connected' : 'Cannot reach exe.dev',
     },
   };
 }
@@ -104,45 +89,64 @@ export async function saveCredentials(ctx, req, res) {
   try {
     const body = await parseJsonBody(req);
     const errors = {};
-    const validatedVars = {};
 
-    if (body.VITE_CLERK_PUBLISHABLE_KEY) {
-      if (validateClerkKey(body.VITE_CLERK_PUBLISHABLE_KEY)) {
-        validatedVars.VITE_CLERK_PUBLISHABLE_KEY = body.VITE_CLERK_PUBLISHABLE_KEY;
-      } else {
-        errors.VITE_CLERK_PUBLISHABLE_KEY = 'Invalid Clerk publishable key (must start with pk_test_ or pk_live_)';
+    // --- Clerk credentials ---
+    if (body.clerkPublishableKey || body.clerkSecretKey) {
+      const pk = body.clerkPublishableKey || '';
+      const sk = body.clerkSecretKey || '';
+
+      if (pk && !validateClerkKey(pk)) {
+        errors.clerkPublishableKey = 'Invalid Clerk publishable key (must start with pk_test_ or pk_live_)';
+      }
+      if (sk && !validateClerkSecretKey(sk)) {
+        errors.clerkSecretKey = 'Invalid Clerk secret key (must start with sk_test_ or sk_live_)';
+      }
+
+      if (!errors.clerkPublishableKey && !errors.clerkSecretKey && (pk || sk)) {
+        // Save to registry
+        setApp('_default', {
+          name: '_default',
+          clerk: { publishableKey: pk, secretKey: sk },
+        });
+
+        // Also write to .env for backward compatibility
+        // deploy-cloudflare.js reads Clerk keys from .env via loadEnvFile()
+        const envVars = {};
+        if (pk) envVars.VITE_CLERK_PUBLISHABLE_KEY = pk;
+        if (sk) envVars.CLERK_SECRET_KEY = sk;
+        writeEnvFile(ctx.projectRoot, envVars);
       }
     }
 
-    if (body.VITE_CLERK_SECRET_KEY) {
-      if (validateClerkSecretKey(body.VITE_CLERK_SECRET_KEY)) {
-        validatedVars.VITE_CLERK_SECRET_KEY = body.VITE_CLERK_SECRET_KEY;
-      } else {
-        errors.VITE_CLERK_SECRET_KEY = 'Invalid Clerk secret key (must start with sk_test_ or sk_live_)';
+    // --- Cloudflare credentials ---
+    if (body.cloudflareApiKey || body.cloudflareEmail) {
+      const apiKey = body.cloudflareApiKey || '';
+      const email = body.cloudflareEmail || '';
+
+      if (apiKey && apiKey.length < 20) {
+        errors.cloudflareApiKey = 'Cloudflare Global API Key appears too short';
+      }
+      if (email && (!email.includes('@') || !email.includes('.'))) {
+        errors.cloudflareEmail = 'Invalid email address';
+      }
+
+      if (!errors.cloudflareApiKey && !errors.cloudflareEmail && (apiKey || email)) {
+        const cfUpdate = {};
+        if (apiKey) cfUpdate.apiKey = apiKey;
+        if (email) cfUpdate.email = email;
+        if (body.cloudflareAccountId) cfUpdate.accountId = body.cloudflareAccountId;
+        setCloudflareConfig(cfUpdate);
       }
     }
 
-    if (body.VITE_API_URL) {
-      if (validateConnectUrl(body.VITE_API_URL, 'api')) {
-        validatedVars.VITE_API_URL = body.VITE_API_URL;
+    // --- OpenRouter key (per-project, saved to .env not registry) ---
+    if (body.openRouterKey) {
+      if (body.openRouterKey.startsWith('sk-or-')) {
+        writeEnvFile(ctx.projectRoot, { OPENROUTER_API_KEY: body.openRouterKey });
+        ctx.openRouterKey = body.openRouterKey;
+        console.log('OpenRouter API key updated from wizard');
       } else {
-        errors.VITE_API_URL = 'Invalid API URL (must start with https://)';
-      }
-    }
-
-    if (body.VITE_CLOUD_URL) {
-      if (validateConnectUrl(body.VITE_CLOUD_URL, 'cloud')) {
-        validatedVars.VITE_CLOUD_URL = body.VITE_CLOUD_URL;
-      } else {
-        errors.VITE_CLOUD_URL = 'Invalid Cloud URL (must start with fpcloud://)';
-      }
-    }
-
-    if (body.OPENROUTER_API_KEY) {
-      if (body.OPENROUTER_API_KEY.startsWith('sk-or-')) {
-        validatedVars.OPENROUTER_API_KEY = body.OPENROUTER_API_KEY;
-      } else {
-        errors.OPENROUTER_API_KEY = 'Invalid OpenRouter key (must start with sk-or-)';
+        errors.openRouterKey = 'Invalid OpenRouter key (must start with sk-or-)';
       }
     }
 
@@ -151,55 +155,12 @@ export async function saveCredentials(ctx, req, res) {
       return res.end(JSON.stringify({ ok: false, errors }));
     }
 
-    if (Object.keys(validatedVars).length > 0) {
-      writeEnvFile(ctx.projectRoot, validatedVars);
-    }
-
-    // Update in-memory OpenRouter key if saved
-    if (validatedVars.OPENROUTER_API_KEY) {
-      ctx.openRouterKey = validatedVars.OPENROUTER_API_KEY;
-      console.log('OpenRouter API key updated from wizard');
-    }
-
     const statusResult = await checkEditorDeps(ctx);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ ok: true, status: statusResult }));
   } catch (err) {
     res.writeHead(400, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ ok: false, errors: { _: err.message } }));
-  }
-}
-
-export async function checkStudio(ctx, req, res) {
-  try {
-    const body = await parseJsonBody(req);
-    const studioName = body.studio;
-    if (!studioName || typeof studioName !== 'string') {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ reachable: false, error: 'Studio name is required' }));
-    }
-
-    const { apiUrl, cloudUrl } = deriveConnectUrls(studioName);
-
-    let reachable = false;
-    let error;
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      const resp = await fetch(apiUrl, { signal: controller.signal });
-      clearTimeout(timeout);
-      reachable = true;  // Any HTTP response means studio is up (dashboard returns 503 for GET)
-    } catch (fetchErr) {
-      error = fetchErr.name === 'AbortError' ? 'Connection timed out' : fetchErr.message;
-    }
-
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    const result = { reachable, apiUrl, cloudUrl };
-    if (error) result.error = error;
-    return res.end(JSON.stringify(result));
-  } catch (err) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ reachable: false, error: err.message }));
   }
 }
 
