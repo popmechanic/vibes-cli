@@ -99,14 +99,14 @@ Detect whether you're running in a terminal (Claude Code CLI, Codex) or an edito
 
 **Before starting, verify these prerequisites. STOP if any check fails.**
 
-### 1.1 Check for Fireproof Connect
+### 1.1 Check for Clerk Credentials
 
 ```bash
-cat .env 2>/dev/null | grep VITE_API_URL || echo "NOT_FOUND"
+grep -q "VITE_CLERK_PUBLISHABLE_KEY=pk_" .env 2>/dev/null && echo "FOUND" || echo "NOT_FOUND"
 ```
 
-**If `NOT_FOUND`:** Provide Clerk keys. Connect deploys automatically on first app deploy.
-**STOP HERE** if Connect is not configured.
+**If `NOT_FOUND`:** Clerk credentials are required. Ask the user for their Clerk Publishable Key.
+Connect is auto-provisioned on first deploy -- no manual setup needed.
 
 ### 1.2 Detect Existing App
 
@@ -417,8 +417,7 @@ grep -o '__VITE_[A-Z_]*__' index.html | sort -u || echo "NO_PLACEHOLDERS"
 
 **If any placeholders found:** The .env file is missing required values. Check:
 - `VITE_CLERK_PUBLISHABLE_KEY` - must be set
-- `VITE_API_URL` - must be set
-- `VITE_CLOUD_URL` - optional but recommended
+- `VITE_API_URL` / `VITE_CLOUD_URL` - auto-provisioned on first deploy; if missing, deploy with `/vibes:cloudflare` first
 
 Fix the .env file and re-run assembly.
 

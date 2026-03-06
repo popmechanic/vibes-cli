@@ -132,14 +132,23 @@ export async function handleDeploy(ctx, onEvent, target, name) {
   });
 
   if (!deployResult.ok) {
-    onEvent({ type: 'error', message: `Deploy failed: ${deployResult.stderr.slice(0, 300)}` });
+    onEvent({ type: 'error', message: `Deploy failed: ${deployResult.stderr.slice(0, 600)}` });
     return;
   }
 
-  // Extract URL from deploy output
+  // Extract the APP URL from deploy output (not Connect infrastructure URLs).
+  // deploy-cloudflare.js prints "✅ Deployed to <url>" as its final URL line —
+  // match that specifically. Fall back to the last URL in stdout if the pattern
+  // isn't found (e.g. future output changes).
   let deployUrl = '';
-  const urlMatch = deployResult.stdout.match(/(https?:\/\/[^\s]+)/);
-  if (urlMatch) deployUrl = urlMatch[1];
+  const deployedToMatch = deployResult.stdout.match(/Deployed to\s+(https?:\/\/[^\s]+)/);
+  if (deployedToMatch) {
+    deployUrl = deployedToMatch[1];
+  } else {
+    // Fallback: grab the last URL in stdout (app URL is always printed last)
+    const allUrls = [...deployResult.stdout.matchAll(/(https?:\/\/[^\s]+)/g)];
+    if (allUrls.length) deployUrl = allUrls[allUrls.length - 1][1];
+  }
 
   // Save the deployed version to ~/.vibes/apps/
   try {

@@ -31,10 +31,8 @@ Run an end-to-end integration test using a pre-built fixture. Assembles the app,
 
 - Clerk credentials in `test-vibes/.env`
 - Cloudflare account with `wrangler` authenticated
-- Connect Studio deployed (via `/vibes:connect`)
 
 ## Related
 
 - `/vibes:vibes` - Generate new apps
 - `/vibes:cloudflare` - Deploy manually
-- `/vibes:connect` - Deploy the sync backend

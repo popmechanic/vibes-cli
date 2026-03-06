@@ -33,9 +33,13 @@ export function ensureSparseCheckout(cacheDir) {
   const repoDir = cacheDir || getCacheDir();
 
   if (existsSync(join(repoDir, '.git'))) {
-    // Already cloned — pull latest
+    // Already cloned — pull latest (non-fatal: local patches may diverge)
     console.log('Updating upstream fireproof repo...');
-    execSync('git pull --ff-only', { cwd: repoDir, stdio: 'pipe' });
+    try {
+      execSync('git pull --ff-only', { cwd: repoDir, stdio: 'pipe' });
+    } catch {
+      console.warn('git pull --ff-only failed (local patches may exist) — continuing with current checkout.');
+    }
     return repoDir;
   }
 
@@ -172,22 +176,23 @@ export async function deployConnect({
   // Merge with current process env (for Cloudflare credentials)
   const env = { ...process.env, ...alchemyEnv };
 
-  // Alchemy uses its own credential store (~/.alchemy/) which is set up via `alchemy configure`.
-  // Only fall back to wrangler's OAuth token if alchemy is NOT configured AND no explicit token is set.
-  const alchemyConfigured = existsSync(join(homedir(), '.alchemy', 'credentials', 'default', 'cloudflare.json'));
-  if (!env.CLOUDFLARE_API_TOKEN && !env.CLOUDFLARE_API_KEY && !alchemyConfigured) {
-    try {
-      const wranglerConfig = readFileSync(join(homedir(), '.wrangler', 'config', 'default.toml'), 'utf8');
-      const tokenMatch = wranglerConfig.match(/oauth_token\s*=\s*"([^"]+)"/);
-      if (tokenMatch) {
-        env.CLOUDFLARE_API_TOKEN = tokenMatch[1];
-        console.log('Cloudflare auth: using wrangler OAuth token (alchemy not configured)');
-      }
-    } catch {
-      // No wrangler config — alchemy will try its own auth
+  // Auth priority: CLOUDFLARE_API_TOKEN env > ~/.vibes/cloudflare-api-token file > alchemy OAuth credentials
+  // OAuth tokens cannot create AccountApiTokens (Cloudflare platform limitation),
+  // so a real API token is required for first deploys that provision R2.
+  const vibesTokenPath = join(homedir(), '.vibes', 'cloudflare-api-token');
+  if (!env.CLOUDFLARE_API_TOKEN && !env.CLOUDFLARE_API_KEY) {
+    if (existsSync(vibesTokenPath)) {
+      env.CLOUDFLARE_API_TOKEN = readFileSync(vibesTokenPath, 'utf8').trim();
+      console.log('Cloudflare auth: using ~/.vibes/cloudflare-api-token');
+    } else {
+      console.warn(
+        'No Cloudflare API token found. OAuth cannot create R2 sub-tokens.\n' +
+        'Create a token at https://dash.cloudflare.com/profile/api-tokens\n' +
+        'with Workers Scripts Edit, R2 Storage Edit, D1 Edit, KV Storage Edit,\n' +
+        'API Tokens Edit, and Account Settings Read permissions.\n' +
+        'Save it to ~/.vibes/cloudflare-api-token'
+      );
     }
-  } else if (alchemyConfigured) {
-    console.log('Cloudflare auth: using alchemy credentials');
   }
 
   if (dryRun) {
@@ -217,7 +222,11 @@ export async function deployConnect({
     `npx alchemy deploy alchemy/alchemy.run.ts --stage ${appName}`,
     { cwd: repoDir, env, encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'] }
   );
-  process.stdout.write(stdout);
+  // Alchemy output contains Connect infrastructure URLs — log with debug prefix
+  // so they don't appear as user-facing URLs in the deploy pipeline.
+  for (const line of stdout.split('\n')) {
+    if (line.trim()) console.log(`[connect] ${line}`);
+  }
 
   // Parse output
   const { cloudBackendUrl, dashboardUrl } = parseAlchemyOutput(stdout);

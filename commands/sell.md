@@ -47,12 +47,11 @@ Before using `/vibes:sell`:
 
 ```bash
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
-VITE_API_URL=https://studio.exe.xyz/api
-VITE_CLOUD_URL=fpcloud://studio.exe.xyz?protocol=wss
 ```
+
+Connect is auto-provisioned on first deploy -- no manual setup needed.
 
 ## Related
 
 - `/vibes:vibes` - Generate the initial app
-- `/vibes:connect` - Deploy the sync backend
-- `/vibes:exe` - Deploy the SaaS to exe.dev
+- `/vibes:cloudflare` - Deploy the SaaS to Cloudflare Workers

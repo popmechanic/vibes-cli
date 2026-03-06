@@ -203,7 +203,7 @@ Store: `billingMode` ("off"/"required"), `appTitle`, `tagline`, `subtitle`, `fea
 
 ### 2.1 Verify Inputs
 
-Confirm: `app.jsx` exists with valid JSX. `.env` has `VITE_CLERK_PUBLISHABLE_KEY`, `VITE_API_URL`, `VITE_CLOUD_URL`. All sell config values collected.
+Confirm: `app.jsx` exists with valid JSX. `.env` has `VITE_CLERK_PUBLISHABLE_KEY`. Connect URLs are auto-provisioned on deploy. All sell config values collected.
 
 Scan app.jsx for builder mistakes (see LAUNCH-REFERENCE.md "Common Builder Mistakes"). Fix any found before proceeding.
 

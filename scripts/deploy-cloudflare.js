@@ -203,10 +203,9 @@ async function main() {
       }
     });
 
-    // Log Connect URLs
-    console.log(`\nConnect URLs for ${name}:`);
-    console.log(`  API:   ${connectResult.apiUrl}`);
-    console.log(`  Cloud: ${connectResult.cloudUrl}`);
+    // Log Connect URLs (internal infrastructure — not user-facing)
+    console.log(`[connect] Provisioned API: ${connectResult.apiUrl}`);
+    console.log(`[connect] Provisioned Cloud: ${connectResult.cloudUrl}`);
 
     // Write Connect URLs to .env so assembly can find them
     const envPath = resolve(envDir, '.env');
@@ -239,7 +238,7 @@ async function main() {
     console.log(`\nUpdate deploy for "${name}" — using existing Connect instance.`);
     const existing = getApp(name);
     if (existing?.connect) {
-      console.log(`  Connect API: ${existing.connect.apiUrl}`);
+      console.log(`[connect] Using existing API: ${existing.connect.apiUrl}`);
     }
   }
 

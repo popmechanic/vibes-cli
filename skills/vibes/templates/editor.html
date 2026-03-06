@@ -5269,11 +5269,19 @@
     deployTargets.cloudflare = status.wrangler?.ok || false;
 
     if (status.clerk?.ok && status.connect?.ok) {
-      // Credentials present → stay in generate phase
-      fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
-        if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;
-      }).catch(() => {});
-      document.getElementById('generatePrompt').focus();
+      // Credentials present — check if app.jsx exists to resume edit phase
+      fetch('/editor/app-exists').then(r => r.json()).then(data => {
+        if (data.exists) {
+          setPhase('edit');
+        } else {
+          fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
+            if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;
+          }).catch(() => {});
+          document.getElementById('generatePrompt').focus();
+        }
+      }).catch(() => {
+        document.getElementById('generatePrompt').focus();
+      });
     } else {
       // Missing credentials → show wizard
       setPhase('setup');
