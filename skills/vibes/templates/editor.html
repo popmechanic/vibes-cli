@@ -2138,6 +2138,78 @@
       font-weight: 400;
     }
     .deploy-option-detail.ready { color: var(--vibes-green); }
+    .deploy-section-divider {
+      border: none;
+      border-top: 1.5px solid rgba(0,0,0,0.1);
+      margin: 0;
+    }
+    .deploy-section-label {
+      padding: 0.5rem 0.85rem 0.25rem;
+      font-size: 0.625rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #999;
+    }
+    .deploy-history {
+      max-height: 180px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+    .deploy-history-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.8125rem;
+      transition: background 0.15s;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font-family: inherit;
+      color: var(--vibes-near-black);
+      cursor: pointer;
+    }
+    .deploy-history-item:hover { background: rgba(0,154,206,0.08); }
+    .deploy-history-item:last-child { border-radius: 0 0 8px 8px; }
+    .deploy-history-item:not(:last-child) { border-bottom: 1px solid rgba(0,0,0,0.04); }
+    .deploy-history-name {
+      font-weight: 600;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--vibes-blue);
+      text-decoration: none;
+    }
+    .deploy-history-name:hover { text-decoration: underline; }
+    .deploy-history-update {
+      font-size: 0.625rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.2rem 0.45rem;
+      border: 1.5px solid var(--vibes-near-black);
+      border-radius: 4px;
+      background: var(--vibes-cream);
+      color: var(--vibes-near-black);
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      flex-shrink: 0;
+    }
+    .deploy-history-update:hover {
+      background: var(--vibes-green);
+      transform: translate(0.5px, 0.5px);
+    }
+    .deploy-history-link {
+      font-size: 0.625rem;
+      color: var(--vibes-blue);
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+    .deploy-history-link:hover { text-decoration: underline; }
 
     /* === CREATE THEME === */
     .modal-create-btn {
@@ -2985,6 +3057,11 @@
                 <div class="deploy-option-detail" id="deployCfDetail">Checking...</div>
               </div>
             </button>
+            <div id="deployHistorySection" style="display:none">
+              <hr class="deploy-section-divider">
+              <div class="deploy-section-label">Previous Deployments</div>
+              <div class="deploy-history" id="deployHistoryList"></div>
+            </div>
           </div>
         </div>`;
       updateDeployButtons();
@@ -3938,7 +4015,45 @@
         deployTargets.cloudflare = status.wrangler?.ok || false;
             updateDeployButtons();
       }).catch(() => {});
+      // Load previous deployments
+      loadDeployHistory();
     }
+  }
+
+  function loadDeployHistory() {
+    fetch('/editor/deployments').then(r => r.json()).then(deployments => {
+      const section = document.getElementById('deployHistorySection');
+      const list = document.getElementById('deployHistoryList');
+      if (!deployments.length) { section.style.display = 'none'; return; }
+      section.style.display = 'block';
+      list.innerHTML = deployments.map(d => {
+        const ago = timeAgo(d.updatedAt);
+        return '<div class="deploy-history-item" onclick="event.stopPropagation()">' +
+          '<a class="deploy-history-name" href="' + d.url + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="' + d.url + '">' + d.name + '</a>' +
+          '<span style="font-size:0.625rem;color:#999">' + ago + '</span>' +
+          '<button class="deploy-history-update" onclick="updateDeploy(\'' + d.name + '\')" title="Deploy current code to ' + d.name + '">Update</button>' +
+          '<a class="deploy-history-link" href="' + d.url + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="' + d.url + '">↗</a>' +
+          '</div>';
+      }).join('');
+    }).catch(() => {});
+  }
+
+  function timeAgo(dateStr) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    const days = Math.floor(hrs / 24);
+    return days + 'd ago';
+  }
+
+  function updateDeploy(appName) {
+    if (isThinking || !ws || ws.readyState !== WebSocket.OPEN) return;
+    document.getElementById('deployMenu').classList.remove('open');
+    addMessage('user', 'Update "' + appName + '" on Cloudflare Workers');
+    ws.send(JSON.stringify({ type: 'deploy', target: 'cloudflare', name: appName }));
   }
 
   function startDeploy(target) {
