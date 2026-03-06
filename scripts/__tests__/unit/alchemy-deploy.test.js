@@ -106,7 +106,7 @@ describe('alchemy-deploy', () => {
   describe('buildAlchemyEnv', () => {
     it('generates required environment variables', () => {
       const env = alchemyDeploy.buildAlchemyEnv({
-        clerkPublishableKey: 'pk_test_abc',
+        clerkPublishableKey: 'pk_test_Y2xlcmsuZXhhbXBsZS5jb20k',
         clerkSecretKey: 'sk_test_xyz',
         sessionTokenPublic: 'token-pub',
         sessionTokenSecret: 'token-sec',
@@ -115,10 +115,13 @@ describe('alchemy-deploy', () => {
         alchemyPassword: 'pass123'
       });
 
-      expect(env.CLERK_PUBLISHABLE_KEY).toBe('pk_test_abc');
+      expect(env.CLERK_PUBLISHABLE_KEY).toBe('pk_test_Y2xlcmsuZXhhbXBsZS5jb20k');
+      expect(env.OIDC_AUTHORITY).toMatch(/^https:\/\//);
       expect(env.CLOUD_SESSION_TOKEN_PUBLIC).toBe('token-pub');
       expect(env.CLOUD_SESSION_TOKEN_SECRET).toBe('token-sec');
       expect(env.ALCHEMY_PASSWORD).toBe('pass123');
+      // CLERK_PUB_JWT_URL removed — upstream now uses OIDC_AUTHORITY
+      expect(env.CLERK_PUB_JWT_URL).toBeUndefined();
     });
 
     it('includes device CA keys', () => {
@@ -136,7 +139,7 @@ describe('alchemy-deploy', () => {
       expect(env.DEVICE_ID_CA_CERT).toBe('ca-cert');
     });
 
-    it('derives CLERK_PUB_JWT_URL from publishable key', () => {
+    it('derives OIDC_AUTHORITY from publishable key', () => {
       // pk_test_ prefix + base64("example.clerk.accounts.dev$")
       const domain = 'example.clerk.accounts.dev';
       const b64 = Buffer.from(domain + '$').toString('base64');
@@ -152,7 +155,8 @@ describe('alchemy-deploy', () => {
         alchemyPassword: 'pw'
       });
 
-      expect(env.CLERK_PUB_JWT_URL).toBe(`https://${domain}`);
+      expect(env.OIDC_AUTHORITY).toBe(`https://${domain}`);
+      expect(env.CLERK_PUB_JWT_URL).toBeUndefined();
     });
 
     it('includes quota defaults', () => {

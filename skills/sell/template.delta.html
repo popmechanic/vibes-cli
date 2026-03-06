@@ -1787,10 +1787,10 @@
             <SyncStatusDot />
             <ClerkFireproofProvider
               publishableKey={publishableKey}
-              config={{
+              config={vibesConfig.tokenApiUri && vibesConfig.cloudBackendUrl ? {
                 apiUrl: vibesConfig.tokenApiUri,
                 cloudUrl: vibesConfig.cloudBackendUrl
-              }}
+              } : undefined}
             >
               <AppRouter />
             </ClerkFireproofProvider>

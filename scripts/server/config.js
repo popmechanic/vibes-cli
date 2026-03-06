@@ -17,7 +17,12 @@ import { parseAnimationCatalog } from '../lib/parse-animation-catalog.js';
 export function loadConfig() {
   const __dirname = dirname(fileURLToPath(import.meta.url));
   const projectRoot = join(__dirname, '../..');
-  const port = parseInt(process.argv.find((_, i, a) => a[i - 1] === '--port') || '3333', 10);
+  const port = parseInt(
+    process.argv.find((_, i, a) => a[i - 1] === '--port') ||
+    process.env.PORT ||
+    '3333',
+    10
+  );
   const mode = (process.argv.find(a => a.startsWith('--mode=')) || '--mode=preview').split('=')[1];
   const initialPrompt = process.argv.find((_, i, a) => a[i - 1] === '--prompt') || '';
 

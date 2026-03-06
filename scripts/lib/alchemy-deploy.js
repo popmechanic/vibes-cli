@@ -90,7 +90,7 @@ export function buildAlchemyEnv({
 
   return {
     CLERK_PUBLISHABLE_KEY: clerkPublishableKey,
-    CLERK_PUB_JWT_URL: `https://${clerkDomain}`,
+    OIDC_AUTHORITY: `https://${clerkDomain}`,
     CLOUD_SESSION_TOKEN_PUBLIC: sessionTokenPublic,
     CLOUD_SESSION_TOKEN_SECRET: sessionTokenSecret,
     DEVICE_ID_CA_PRIV_KEY: deviceCaPrivKey,

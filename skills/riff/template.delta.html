@@ -61,10 +61,10 @@
             <SyncStatusDot />
             <ClerkFireproofProvider
               publishableKey={config.clerkPublishableKey}
-              config={{
+              config={config.tokenApiUri && config.cloudBackendUrl ? {
                 apiUrl: config.tokenApiUri,
                 cloudUrl: config.cloudBackendUrl
-              }}
+              } : undefined}
             >
               <SignedOut>
                 <AuthGate />

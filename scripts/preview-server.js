@@ -63,19 +63,13 @@ async function start() {
 
   server.listen(ctx.port, () => {
     const modeLabel = ctx.mode === 'editor' ? 'Editor' : 'Preview';
-    console.log(`
-┌─────────────────────────────────────────────────┐
-│  Vibes ${modeLabel.padEnd(7)} Server                       │
-├─────────────────────────────────────────────────┤
-│                                                 │
-│  Open:     http://localhost:${ctx.port}                │
-│  Mode:     ${modeLabel.padEnd(37)}│
-│  Themes:   ${String(ctx.themes.length).padEnd(3)} loaded                       │
-│  Anims:    ${String(ctx.animations.length).padEnd(3)} loaded                       │
-│                                                 │
-│  Press Ctrl+C to stop                           │
-└─────────────────────────────────────────────────┘
-    `);
+    const url = `http://localhost:${ctx.port}`;
+    console.log(`\nVibes ${modeLabel} Server`);
+    console.log(`  Open:   ${url}`);
+    console.log(`  Mode:   ${modeLabel}`);
+    console.log(`  Themes: ${ctx.themes.length} loaded`);
+    console.log(`  Anims:  ${ctx.animations.length} loaded`);
+    console.log(`  Press Ctrl+C to stop\n`);
   });
 
   server.on('error', (err) => {
