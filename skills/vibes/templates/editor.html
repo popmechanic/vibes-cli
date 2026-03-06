@@ -2844,14 +2844,23 @@
   let isThinking = false;
   let themes = [];
   let currentPhase = 'loading';
-  let deployTargets = { cloudflare: false };
+  let cloudflareReady = false;
+  let wizardData = {
+    clerkKey: '',
+    clerkSecret: '',
+    cfEmail: '',
+    cfApiKey: '',
+    cfAccountId: '',
+    openRouterKey: '',
+  };
+  let wizardValidation = {
+    clerk: 'unchecked',       // unchecked | checking | valid | invalid
+    cloudflare: 'unchecked',  // unchecked | checking | valid | invalid
+  };
   let pendingThemeId = null;
   let currentThemeId = null;
   let currentAppName = null;
   let wizardStep = 1;
-  let wizardData = { clerkKey: '', clerkSecret: '', studioName: '', apiUrl: '', cloudUrl: '', openRouterKey: '' };
-  let studioCheckTimer = null;
-  let studioMode = 'existing';
 
   // === Vibes Audio Toggle ===
   let vibesAudio = null;
@@ -3141,30 +3150,6 @@
         if (msg.name) currentAppName = msg.name;
         addMessage('deploy-success', 'Deployed! ' + (msg.url || ''));
         captureScreenshot();
-      } else if (msg.type === 'studio-progress') {
-        const logEl = document.getElementById('studioDeployLog');
-        if (logEl) {
-          logEl.textContent += msg.line + '\n';
-          logEl.scrollTop = logEl.scrollHeight;
-        }
-      } else if (msg.type === 'studio-complete') {
-        const logEl = document.getElementById('studioDeployLog');
-        if (logEl) logEl.textContent += 'Deploy complete!\n';
-        const btn = document.getElementById('studioDeployBtn');
-        if (btn) { btn.textContent = 'Deployed!'; btn.disabled = true; }
-        wizardData.apiUrl = msg.apiUrl;
-        wizardData.cloudUrl = msg.cloudUrl;
-        wizardData.studioName = document.getElementById('wizardNewStudioName')?.value || '';
-        updateStudioNextButton();
-        const hint = document.getElementById('wizardDeployHint');
-        if (hint) { hint.textContent = 'Studio deployed successfully!'; hint.style.color = 'var(--vibes-green)'; }
-      } else if (msg.type === 'studio-error') {
-        const logEl = document.getElementById('studioDeployLog');
-        if (logEl) logEl.textContent += 'ERROR: ' + msg.message + '\n';
-        const btn = document.getElementById('studioDeployBtn');
-        if (btn) { btn.disabled = false; btn.textContent = 'Retry Deploy'; }
-        const hint = document.getElementById('wizardDeployHint');
-        if (hint) { hint.textContent = msg.message; hint.style.color = 'var(--vibes-red)'; }
       } else if (msg.type === 'theme_created') {
         setThinking(false);
         onThemeCreated(msg.themeId, msg.themeName);
@@ -3200,56 +3185,31 @@
   }
 
   // === Phase 1: Setup ===
-  async function checkSetup() {
-    try {
-      const res = await fetch('/editor/status');
-      const status = await res.json();
-      renderChecklist(status);
-    } catch (err) {
-      document.getElementById('setupChecklist').innerHTML = `
-        <div class="setup-item">
-          <div class="setup-icon fail">&#10007;</div>
-          <div>
-            <div class="setup-label">Failed to check dependencies</div>
-            <div class="setup-detail">${escapeHtml(err.message)}</div>
-          </div>
-        </div>`;
-      document.getElementById('setupActions').style.display = '';
-      document.getElementById('setupSkipBtn').style.display = '';
-    }
-  }
-
   function renderChecklist(status) {
     const items = [
       { key: 'clerk', label: 'Clerk keys', detail: status.clerk?.detail || '', required: true },
-      { key: 'connect', label: 'Connect Studio', detail: status.connect?.detail || '', required: true },
+      { key: 'cloudflare', label: 'Cloudflare', detail: status.cloudflare?.detail || '', required: true },
       { key: 'openrouter', label: 'OpenRouter API key', detail: status.openrouter?.detail || '', required: false },
-      { key: 'wrangler', label: 'Cloudflare (wrangler)', detail: status.wrangler?.detail || '', required: false },
     ];
 
-    deployTargets.cloudflare = status.wrangler?.ok || false;
+    cloudflareReady = status.cloudflare?.ok || false;
 
     const requiredOk = items.filter(i => i.required).every(i => status[i.key]?.ok);
-    const allOk = items.every(i => status[i.key]?.ok);
 
-    let html = '';
-    for (const item of items) {
-      const s = status[item.key] || {};
-      const iconClass = s.ok ? 'pass' : (item.required ? 'fail' : 'optional');
-      const iconChar = s.ok ? '&#10003;' : (item.required ? '&#10007;' : '&#8212;');
-      html += `<div class="setup-item">
-        <div class="setup-icon ${iconClass}">${iconChar}</div>
-        <div>
-          <div class="setup-label">${escapeHtml(item.label)}${!item.required ? ' <span style="font-size:0.7rem;color:#888;">(optional)</span>' : ''}</div>
-          ${item.detail ? `<div class="setup-detail">${escapeHtml(item.detail)}</div>` : ''}
-        </div>
-      </div>`;
+    // Update welcome step icons
+    const clerkIcon = document.getElementById('welcomeClerkIcon');
+    const cfIcon = document.getElementById('welcomeCfIcon');
+    if (clerkIcon) {
+      clerkIcon.style.background = status.clerk?.ok ? 'var(--vibes-green)' : '#999';
+      clerkIcon.innerHTML = status.clerk?.ok ? '&#10003;' : '1';
     }
-    document.getElementById('setupChecklist').innerHTML = html;
-    // In wizard mode, the Start button handles advancement
+    if (cfIcon) {
+      cfIcon.style.background = status.cloudflare?.ok ? 'var(--vibes-green)' : '#999';
+      cfIcon.innerHTML = status.cloudflare?.ok ? '&#10003;' : '2';
+    }
+
     const startBtn = document.getElementById('wizardStartBtn');
     if (startBtn && requiredOk) {
-      // All required present — auto-advance after brief flash
       setTimeout(() => goToGenerate(), 800);
     }
   }
@@ -3267,13 +3227,12 @@
     document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
     const step = document.getElementById('wizardStep' + n);
     if (step) step.classList.add('active');
-    // Update progress dots
     document.querySelectorAll('.wizard-dot').forEach(dot => {
       const s = parseInt(dot.dataset.step);
       dot.classList.toggle('active', s === n);
       dot.classList.toggle('done', s < n);
     });
-    if (n === 5) renderWizardSummary();
+    if (n === 4) renderWizardSummary();
   }
 
   function validateWizardClerkInputs() {
@@ -3311,119 +3270,140 @@
     }
   }
 
-  function selectStudioMode(mode) {
-    studioMode = mode;
-    document.querySelectorAll('#wizardStudioRadios .wizard-radio').forEach(r => r.classList.remove('selected'));
-    const radio = document.querySelector(`#wizardStudioRadios input[value="${mode}"]`);
-    if (radio) {
-      radio.checked = true;
-      radio.closest('.wizard-radio').classList.add('selected');
-    }
-    document.getElementById('studioExisting').style.display = mode === 'existing' ? '' : 'none';
-    document.getElementById('studioDeploy').style.display = mode === 'deploy' ? '' : 'none';
-    document.getElementById('studioAdvanced').style.display = mode === 'advanced' ? '' : 'none';
-    // Reset next button state
-    updateStudioNextButton();
-  }
-
-  function updateStudioNextButton() {
-    const nextBtn = document.getElementById('wizardStudioNext');
-    if (studioMode === 'existing') {
-      nextBtn.disabled = !wizardData.apiUrl;
-    } else if (studioMode === 'deploy') {
-      nextBtn.disabled = !wizardData.apiUrl;
-    } else if (studioMode === 'advanced') {
-      const apiUrl = document.getElementById('wizardApiUrl').value.trim();
-      const cloudUrl = document.getElementById('wizardCloudUrl').value.trim();
-      nextBtn.disabled = !apiUrl.startsWith('https://') || !cloudUrl.startsWith('fpcloud://');
-    }
-  }
-
-  function debouncedCheckStudio() {
-    if (studioCheckTimer) clearTimeout(studioCheckTimer);
-    studioCheckTimer = setTimeout(checkStudio, 600);
-  }
-
-  async function checkStudio() {
-    const name = document.getElementById('wizardStudioName').value.trim();
-    const hint = document.getElementById('wizardStudioHint');
-    const input = document.getElementById('wizardStudioName');
-    if (!name) {
-      hint.textContent = '';
-      input.classList.remove('valid', 'invalid');
-      wizardData.apiUrl = '';
-      wizardData.cloudUrl = '';
-      wizardData.studioName = '';
-      updateStudioNextButton();
-      return;
-    }
-    hint.textContent = 'Checking...';
-    hint.style.color = '#666';
+  async function saveClerkAndAdvance() {
+    const btn = document.getElementById('wizardClerkNext');
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    wizardValidation.clerk = 'checking';
     try {
-      const res = await fetch('/editor/credentials/check-studio', {
+      const res = await fetch('/editor/credentials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studio: name }),
+        body: JSON.stringify({
+          clerkPublishableKey: wizardData.clerkKey,
+          clerkSecretKey: wizardData.clerkSecret,
+        }),
       });
       const data = await res.json();
-      if (data.reachable) {
-        hint.textContent = 'Studio reachable at ' + data.apiUrl;
-        hint.style.color = 'var(--vibes-green)';
-        input.classList.add('valid');
-        input.classList.remove('invalid');
-        wizardData.studioName = name;
-        wizardData.apiUrl = data.apiUrl;
-        wizardData.cloudUrl = data.cloudUrl;
-      } else {
-        hint.textContent = data.error || 'Studio not reachable';
-        hint.style.color = 'var(--vibes-red)';
-        input.classList.add('invalid');
-        input.classList.remove('valid');
-        wizardData.apiUrl = '';
-        wizardData.cloudUrl = '';
+      if (!res.ok) {
+        const errMsg = data.errors ? Object.values(data.errors).join('; ') : 'Failed to save';
+        throw new Error(errMsg);
       }
+      wizardValidation.clerk = 'valid';
+      setWizardStep(3);
     } catch (err) {
-      hint.textContent = 'Failed to check: ' + err.message;
-      hint.style.color = 'var(--vibes-red)';
-      input.classList.add('invalid');
-      input.classList.remove('valid');
+      wizardValidation.clerk = 'invalid';
+      const hint = document.getElementById('wizardClerkHint');
+      hint.textContent = err.message;
+      hint.style.display = '';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Next';
     }
-    updateStudioNextButton();
   }
 
-  function validateAdvancedUrls() {
-    const apiInput = document.getElementById('wizardApiUrl');
-    const cloudInput = document.getElementById('wizardCloudUrl');
-    const api = apiInput.value.trim();
-    const cloud = cloudInput.value.trim();
+  function validateWizardCfInputs() {
+    const emailInput = document.getElementById('wizardCfEmail');
+    const keyInput = document.getElementById('wizardCfKey');
+    const nextBtn = document.getElementById('wizardCfNext');
 
-    apiInput.classList.toggle('valid', api && api.startsWith('https://'));
-    apiInput.classList.toggle('invalid', api && !api.startsWith('https://'));
-    cloudInput.classList.toggle('valid', cloud && cloud.startsWith('fpcloud://'));
-    cloudInput.classList.toggle('invalid', cloud && !cloud.startsWith('fpcloud://'));
+    const email = emailInput.value.trim();
+    const key = keyInput.value.trim();
 
-    if (api.startsWith('https://') && cloud.startsWith('fpcloud://')) {
-      wizardData.apiUrl = api;
-      wizardData.cloudUrl = cloud;
-    } else {
-      wizardData.apiUrl = '';
-      wizardData.cloudUrl = '';
+    const emailValid = email.includes('@') && email.includes('.');
+    const keyValid = key.length >= 20;
+
+    emailInput.classList.toggle('valid', email && emailValid);
+    emailInput.classList.toggle('invalid', email && !emailValid);
+    keyInput.classList.toggle('valid', key && keyValid);
+    keyInput.classList.toggle('invalid', key && !keyValid);
+
+    nextBtn.disabled = !(emailValid && keyValid);
+
+    if (emailValid && keyValid) {
+      wizardData.cfEmail = email;
+      wizardData.cfApiKey = key;
     }
-    updateStudioNextButton();
+  }
+
+  async function validateAndAdvanceCf() {
+    const btn = document.getElementById('wizardCfNext');
+    const hint = document.getElementById('wizardCfHint');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="wizard-checking"></span> Verifying...';
+    hint.style.display = 'none';
+    wizardValidation.cloudflare = 'checking';
+
+    try {
+      // Validate credentials via server-side Cloudflare API call
+      const valRes = await fetch('/editor/credentials/validate-cloudflare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey: wizardData.cfApiKey, email: wizardData.cfEmail }),
+      });
+      const valData = await valRes.json();
+      if (!valData.valid) {
+        throw new Error(valData.error || 'Cloudflare validation failed');
+      }
+
+      wizardData.cfAccountId = valData.accountId || '';
+
+      // Save to registry
+      const saveRes = await fetch('/editor/credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cloudflareApiKey: wizardData.cfApiKey,
+          cloudflareEmail: wizardData.cfEmail,
+          cloudflareAccountId: wizardData.cfAccountId,
+        }),
+      });
+      const saveData = await saveRes.json();
+      if (!saveRes.ok) {
+        const errMsg = saveData.errors ? Object.values(saveData.errors).join('; ') : 'Failed to save';
+        throw new Error(errMsg);
+      }
+
+      wizardValidation.cloudflare = 'valid';
+      cloudflareReady = true;
+      setWizardStep(4);
+    } catch (err) {
+      wizardValidation.cloudflare = 'invalid';
+      hint.textContent = err.message;
+      hint.style.color = 'var(--vibes-red)';
+      hint.style.display = '';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Verify &amp; Continue';
+      validateWizardCfInputs(); // re-check to reset disabled state
+    }
+  }
+
+  function renderWizardSummary() {
+    const table = document.getElementById('wizardSummary');
+    const rows = [
+      { key: 'Clerk', value: wizardData.clerkKey ? wizardData.clerkKey.slice(0, 12) + '...' : '', ok: wizardValidation.clerk === 'valid' },
+      { key: 'Cloudflare', value: wizardData.cfEmail || '', ok: wizardValidation.cloudflare === 'valid' },
+    ];
+    table.innerHTML = rows.map(r =>
+      `<div class="wizard-summary-row">
+        <span class="wizard-summary-key">${r.ok ? '&#10003; ' : ''}${r.key}</span>
+        <span class="wizard-summary-value">${escapeHtml(r.value)}</span>
+      </div>`
+    ).join('');
   }
 
   function validateOpenRouterKey() {
     const input = document.getElementById('wizardOpenRouterKey');
     const hint = document.getElementById('wizardOpenRouterHint');
-    const nextBtn = document.getElementById('wizardOpenRouterNext');
+    const saveBtn = document.getElementById('wizardOrSaveBtn');
 
     const key = input.value.trim();
 
     if (!key) {
       input.classList.remove('valid', 'invalid');
       hint.style.display = 'none';
-      nextBtn.disabled = true;
-      wizardData.openRouterKey = '';
+      saveBtn.disabled = true;
       return;
     }
 
@@ -3433,104 +3413,64 @@
 
     if (!valid) {
       hint.textContent = 'OpenRouter keys start with sk-or-';
+      hint.style.color = 'var(--vibes-red)';
       hint.style.display = '';
     } else {
       hint.style.display = 'none';
     }
 
-    nextBtn.disabled = !valid;
-    if (valid) {
-      wizardData.openRouterKey = key;
-    } else {
-      wizardData.openRouterKey = '';
-    }
+    saveBtn.disabled = !valid;
   }
 
-  function startStudioDeploy() {
-    const name = document.getElementById('wizardNewStudioName').value.trim();
-    if (!name) return;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  async function saveOpenRouterKey() {
+    const input = document.getElementById('wizardOpenRouterKey');
+    const hint = document.getElementById('wizardOpenRouterHint');
+    const saveBtn = document.getElementById('wizardOrSaveBtn');
+    const key = input.value.trim();
+    if (!key.startsWith('sk-or-')) return;
 
-    const logEl = document.getElementById('studioDeployLog');
-    const btn = document.getElementById('studioDeployBtn');
-    const hint = document.getElementById('wizardDeployHint');
-    logEl.style.display = '';
-    logEl.textContent = 'Starting deploy...\n';
-    btn.disabled = true;
-    hint.textContent = '';
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
 
-    ws.send(JSON.stringify({
-      type: 'deploy-studio',
-      studioName: name,
-      clerkPublishableKey: wizardData.clerkKey,
-      clerkSecretKey: wizardData.clerkSecret,
-    }));
-  }
-
-  function renderWizardSummary() {
-    const table = document.getElementById('wizardSummary');
-    const vars = [
-      ['VITE_CLERK_PUBLISHABLE_KEY', wizardData.clerkKey],
-      ['VITE_CLERK_SECRET_KEY', wizardData.clerkSecret ? '••••' + wizardData.clerkSecret.slice(-8) : ''],
-      ['VITE_API_URL', wizardData.apiUrl],
-      ['VITE_CLOUD_URL', wizardData.cloudUrl],
-    ];
-    if (wizardData.openRouterKey) {
-      vars.push(['OPENROUTER_API_KEY', '••••' + wizardData.openRouterKey.slice(-8)]);
-    }
-    table.innerHTML = vars.map(([k, v]) =>
-      `<div class="wizard-summary-row">
-        <span class="wizard-summary-key">${k}</span>
-        <span class="wizard-summary-value" title="${escapeHtml(v)}">${escapeHtml(v)}</span>
-      </div>`
-    ).join('');
-  }
-
-  async function wizardSave() {
-    const btn = document.getElementById('wizardSaveBtn');
-    btn.disabled = true;
-    btn.textContent = 'Saving...';
     try {
-      const payload = {
-        VITE_CLERK_PUBLISHABLE_KEY: wizardData.clerkKey,
-        VITE_CLERK_SECRET_KEY: wizardData.clerkSecret,
-        VITE_API_URL: wizardData.apiUrl,
-        VITE_CLOUD_URL: wizardData.cloudUrl,
-      };
-      if (wizardData.openRouterKey) {
-        payload.OPENROUTER_API_KEY = wizardData.openRouterKey;
-      }
       const res = await fetch('/editor/credentials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ openRouterKey: key }),
       });
       const data = await res.json();
       if (!res.ok) {
-        const errMsg = data.errors
-          ? Object.values(data.errors).join('; ')
-          : 'Failed to save';
-        throw new Error(errMsg);
+        throw new Error(data.errors ? Object.values(data.errors).join('; ') : 'Failed to save');
       }
-      deployTargets.cloudflare = data.status?.wrangler?.ok || false;
-      goToGenerate();
+      hasOpenRouterKey = true;
+      wizardData.openRouterKey = key;
+      hint.textContent = 'Saved!';
+      hint.style.color = 'var(--vibes-green)';
+      hint.style.display = '';
+      saveBtn.textContent = 'Saved';
     } catch (err) {
-      btn.disabled = false;
-      btn.textContent = 'Save & Continue';
-      const table = document.getElementById('wizardSummary');
-      const errDiv = document.createElement('div');
-      errDiv.style.cssText = 'color:var(--vibes-red);font-size:0.8125rem;margin-top:0.5rem;';
-      errDiv.textContent = err.message;
-      table.after(errDiv);
+      hint.textContent = err.message;
+      hint.style.color = 'var(--vibes-red)';
+      hint.style.display = '';
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Key';
     }
   }
 
+  function wizardFinish() {
+    goToGenerate();
+  }
+
   function prefillFromStatus(status) {
-    if (status.clerk?.ok) {
-      // Pre-fill is tricky since we only have masked key — just mark step as done
-    }
-    if (status.connect?.ok && status.connect?.detail) {
-      // Could pre-fill but user already has credentials
+    if (status.clerk?.ok && !status.cloudflare?.ok) {
+      // Clerk already configured — skip to Cloudflare step
+      wizardValidation.clerk = 'valid';
+      setWizardStep(3);
+    } else if (status.clerk?.ok && status.cloudflare?.ok) {
+      // Both configured — skip to verification
+      wizardValidation.clerk = 'valid';
+      wizardValidation.cloudflare = 'valid';
+      cloudflareReady = true;
     }
   }
 
@@ -3988,10 +3928,10 @@
   function updateDeployButtons() {
     const cfBtn = document.getElementById('deployCf');
     if (cfBtn) {
-      cfBtn.disabled = !deployTargets.cloudflare;
+      cfBtn.disabled = !cloudflareReady;
       const cfDetail = document.getElementById('deployCfDetail');
-      cfDetail.textContent = deployTargets.cloudflare ? 'Ready' : 'wrangler not configured';
-      cfDetail.classList.toggle('ready', deployTargets.cloudflare);
+      cfDetail.textContent = cloudflareReady ? 'Ready' : 'Run setup wizard first';
+      cfDetail.classList.toggle('ready', cloudflareReady);
     }
   }
 
@@ -4001,17 +3941,14 @@
     menu.classList.toggle('open');
     if (opening) {
       deployMenuOpenTime = Date.now();
-      // Position below the deploy button
       const btn = document.querySelector('#deployDropdown button');
       const rect = btn.getBoundingClientRect();
       menu.style.top = (rect.bottom + 6) + 'px';
       menu.style.right = (window.innerWidth - rect.right + 4) + 'px';
-      // Refresh deploy status
       fetch('/editor/status').then(r => r.json()).then(status => {
-        deployTargets.cloudflare = status.wrangler?.ok || false;
+        cloudflareReady = status.cloudflare?.ok || false;
         updateDeployButtons();
       }).catch(() => {});
-      // Load previous deployments
       loadDeployHistory();
     }
   }
@@ -4093,7 +4030,7 @@
     nameInput.style.borderColor = 'var(--vibes-near-black)';
     document.getElementById('deployMenu').classList.remove('open');
     addMessage('user', 'Deploy "' + name + '" to Cloudflare Workers');
-    ws.send(JSON.stringify({ type: 'deploy', target, name }));
+    ws.send(JSON.stringify({ type: 'deploy', target: 'cloudflare', name }));
   }
 
   // Close deploy menu on outside click, Escape key, or scroll
@@ -5406,9 +5343,9 @@
 
   // Check status → decide setup wizard vs generate
   fetch('/editor/status').then(r => r.json()).then(status => {
-    deployTargets.cloudflare = status.wrangler?.ok || false;
+    cloudflareReady = status.cloudflare?.ok || false;
 
-    if (status.clerk?.ok && status.connect?.ok) {
+    if (status.clerk?.ok && status.cloudflare?.ok) {
       // Credentials present — check if app.jsx exists to resume edit phase
       fetch('/editor/app-exists').then(r => r.json()).then(data => {
         if (data.exists) {
