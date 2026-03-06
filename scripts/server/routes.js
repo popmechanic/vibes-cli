@@ -77,7 +77,7 @@ function serveAppFrame(ctx, req, res) {
     return res.end(`<!DOCTYPE html>
 <html><head><style>
   body { margin: 0; display: flex; align-items: center; justify-content: center;
-         height: 100vh; font-family: system-ui; color: #888; background: #1a1a1a; }
+         height: 100vh; font-family: system-ui; color: #888; }
 </style></head>
 <body><p>Waiting for app to be generated...</p></body></html>`);
   }

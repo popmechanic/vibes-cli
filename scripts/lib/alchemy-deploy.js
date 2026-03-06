@@ -83,7 +83,7 @@ export function buildAlchemyEnv({
   deviceCaCert,
   alchemyPassword
 }) {
-  // Derive CLERK_PUB_JWT_URL from publishable key
+  // Derive OIDC_AUTHORITY from publishable key
   // pk_test_<base64(domain$)> or pk_live_<base64(domain$)>
   const base64Part = clerkPublishableKey.replace(/^pk_(test|live)_/, '');
   const clerkDomain = Buffer.from(base64Part, 'base64').toString('utf8').replace(/\$+$/, '');

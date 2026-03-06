@@ -116,7 +116,7 @@ describe('alchemy-deploy', () => {
       });
 
       expect(env.CLERK_PUBLISHABLE_KEY).toBe('pk_test_Y2xlcmsuZXhhbXBsZS5jb20k');
-      expect(env.OIDC_AUTHORITY).toMatch(/^https:\/\//);
+      expect(env.OIDC_AUTHORITY).toBe('https://clerk.example.com');
       expect(env.CLOUD_SESSION_TOKEN_PUBLIC).toBe('token-pub');
       expect(env.CLOUD_SESSION_TOKEN_SECRET).toBe('token-sec');
       expect(env.ALCHEMY_PASSWORD).toBe('pass123');
