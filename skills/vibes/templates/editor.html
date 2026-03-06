@@ -3330,6 +3330,11 @@
     wizardData.cfAccountId = '';
     wizardValidation.clerk = 'unchecked';
     wizardValidation.cloudflare = 'unchecked';
+    // Clear all wizard input fields to prevent desync between wizardData and DOM
+    ['wizardClerkKey', 'wizardClerkSecret', 'wizardCfApiToken', 'wizardCfEmail', 'wizardCfKey', 'wizardOpenRouterKey'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.value = ''; el.classList.remove('valid', 'invalid'); }
+    });
     //
     // ORDER MATTERS:
     // 1. setPhase('setup') — switch DOM to wizard view FIRST so elements exist
