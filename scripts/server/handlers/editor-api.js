@@ -7,6 +7,7 @@ import { join } from 'path';
 import { execFile } from 'child_process';
 import { loadEnvFile, validateOIDCAuthority, validateOIDCClientId, validateConnectUrl, deriveConnectUrls, writeEnvFile } from '../../lib/env-utils.js';
 import { loadOpenRouterKey } from '../config.js';
+import { loadRegistry } from '../../lib/registry.js';
 
 /**
  * Parse JSON body from an HTTP request.
@@ -277,6 +278,25 @@ export function saveScreenshot(ctx, req, res, url) {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true }));
   });
+}
+
+export function listDeployments(ctx, req, res) {
+  try {
+    const reg = loadRegistry();
+    const deployments = Object.values(reg.apps || {})
+      .filter(app => app.app && app.app.url)
+      .map(app => ({
+        name: app.name,
+        url: app.app.url,
+        updatedAt: app.updatedAt || app.createdAt,
+      }))
+      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify(deployments));
+  } catch (err) {
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ error: err.message }));
+  }
 }
 
 export function writeApp(ctx, req, res) {

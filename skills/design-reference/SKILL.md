@@ -293,8 +293,8 @@ Options:
 - Label: "Test locally"
   Description: "Open index.html in browser to verify it matches the design exactly"
 
-- Label: "Deploy to exe.dev (/exe)"
-  Description: "Push the app live at yourapp.exe.xyz"
+- Label: "Deploy to Cloudflare (/cloudflare)"
+  Description: "Push the app live to Cloudflare Workers"
 
 - Label: "Make adjustments"
   Description: "Fine-tune specific elements while preserving the design"

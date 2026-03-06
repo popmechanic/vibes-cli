@@ -20,7 +20,7 @@ import { APP_PLACEHOLDER, validateAssembly, loadAndValidateTemplate } from './li
 import { stripForTemplate } from './lib/strip-code.js';
 
 
-function main() {
+async function main() {
   // Parse args
   const appPath = process.argv[2];
   const outputPath = process.argv[3] || 'index.html';
@@ -43,7 +43,7 @@ function main() {
   const template = loadAndValidateTemplate(templatePath, readFileSync);
   const appCode = readFileSync(resolvedAppPath, 'utf8').trim();
 
-  // Load env vars from .env if present (for Connect config)
+  // Load env vars from .env in the output directory
   const outputDir = dirname(resolvedOutputPath);
   const envVars = loadEnvFile(outputDir);
 
@@ -54,11 +54,11 @@ function main() {
   if (!hasValidConnect) {
     throw new Error(
       'Valid OIDC credentials required.\n\n' +
-      'Expected in .env:\n' +
-      '  VITE_OIDC_AUTHORITY=https://studio.exe.xyz/auth\n' +
+      'Expected in .env or registry:\n' +
+      '  VITE_OIDC_AUTHORITY=https://...\n' +
       '  VITE_OIDC_CLIENT_ID=<client-id>\n' +
-      '  VITE_API_URL=https://studio.exe.xyz/api/\n\n' +
-      'Run Connect setup before assembling apps.'
+      '  VITE_API_URL=https://...\n\n' +
+      'Deploy first to auto-configure Connect, or set up .env manually.'
     );
   }
 
@@ -103,9 +103,4 @@ function main() {
   console.log(`Created: ${resolvedOutputPath}`);
 }
 
-try {
-  main();
-} catch (err) {
-  console.error(err.message);
-  process.exit(1);
-}
+main().catch(e => { console.error(e.message); process.exit(1); });

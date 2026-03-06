@@ -63,6 +63,8 @@ export async function runClaude(prompt, opts = {}, onEvent) {
     let hitRateLimit = false;
     let errorSent = false;
     const startTime = Date.now();
+    let lastStdoutTime = Date.now();
+    let killedByTimeout = false;
 
     function getElapsed() {
       return Math.round((Date.now() - startTime) / 1000);
@@ -155,13 +157,33 @@ export async function runClaude(prompt, opts = {}, onEvent) {
       }
     });
 
-    child.stdout.on('data', parse);
+    child.stdout.on('data', (chunk) => {
+      lastStdoutTime = Date.now();
+      parse(chunk);
+    });
 
     child.stderr.on('data', (data) => { stderr += data.toString(); });
 
+    const SILENCE_SOFT = 45_000;   // gentle hint
+    const SILENCE_WARN = 90_000;   // explicit warning
+    const SILENCE_HARD = 300_000;  // safety net kill
+
     const progressInterval = setInterval(() => {
       if (!activeClaude) return;
-      sendProgress();
+      const silentFor = Date.now() - lastStdoutTime;
+      if (silentFor >= SILENCE_HARD) {
+        console.error(`[Claude] No stdout for ${silentFor / 1000}s — killing subprocess`);
+        killedByTimeout = true;
+        child.kill('SIGTERM');
+        setTimeout(() => { if (activeClaude === child) child.kill('SIGKILL'); }, 5000);
+        return;
+      }
+      const silenceOverride = silentFor >= SILENCE_WARN
+        ? { stage: `No activity for ${Math.round(silentFor / 1000)}s — click Cancel to retry` }
+        : silentFor >= SILENCE_SOFT
+        ? { stage: 'Waiting for response...' }
+        : {};
+      sendProgress(silenceOverride);
     }, 1000);
 
     child.on('close', (code) => {
@@ -176,7 +198,10 @@ export async function runClaude(prompt, opts = {}, onEvent) {
 
         if (code === null) {
           const elapsed = getElapsed();
-          onEvent({ type: 'error', message: `Claude process was interrupted after ${elapsed}s. Try again.` });
+          const msg = killedByTimeout
+            ? `Claude stopped responding after ${elapsed}s. Your last edits were saved — try sending the message again.`
+            : `Claude process was interrupted after ${elapsed}s. Try again.`;
+          onEvent({ type: 'error', message: msg });
           resolve(null);
           return;
         }

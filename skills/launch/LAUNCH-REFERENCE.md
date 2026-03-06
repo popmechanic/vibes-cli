@@ -5,14 +5,14 @@ Architecture and timing details for the `/vibes:launch` pipeline. Read this if y
 ## Pipeline Overview
 
 ```
-prompt → vibes app → OIDC setup → Connect deploy → sell transform → Cloudflare deploy → browser test
+prompt → vibes app → OIDC setup → sell transform → Cloudflare deploy (auto-provisions Connect) → browser test
 ```
 
 Launch uses **Agent Teams** to parallelize independent steps. The key insight: app generation only needs the user's prompt, so it runs in parallel with OIDC setup (the longest manual step).
 
 ## Dependency Graph
 
-Parallel lanes: T1 || T2→T3 || T4. All converge at T5 (assembly).
+Parallel lanes: T1 || T2 || T4. All converge at T5 (assembly).
 
 ## Task Table
 
@@ -20,9 +20,8 @@ Parallel lanes: T1 || T2→T3 || T4. All converge at T5 (assembly).
 |------|---------|-----------|-------|
 | T1 | Generate app.jsx from prompt | -- | builder |
 | T2 | Collect OIDC credentials | -- | lead |
-| T3 | Deploy Connect studio | T2 | infra |
 | T4 | Collect sell config | -- | lead |
-| T5 | Run sell assembly | T1, T3, T4 | lead |
+| T5 | Run sell assembly | T1, T2, T4 | lead |
 | T6 | Deploy to Cloudflare (includes webhook secret) | T5 | lead |
 | T7 | Browser verification | T6 | lead |
 
@@ -32,7 +31,6 @@ Parallel lanes: T1 || T2→T3 || T4. All converge at T5 (assembly).
 |------|-------|-----------|----------|
 | Generate app.jsx | builder | prompt only | ~2-3 min |
 | OIDC configuration | lead (interactive) | nothing | ~5-10 min |
-| Deploy Connect | infra | OIDC authority + client ID | ~5-10 min |
 | Sell config | lead (interactive) | nice-to-have | ~2 min |
 | Sell assembly | lead | app.jsx + .env + config | ~30 sec |
 | Cloudflare deploy (+ webhook secret) | lead | sell index.html + secrets | ~2 min |
@@ -43,7 +41,7 @@ Parallel lanes: T1 || T2→T3 || T4. All converge at T5 (assembly).
 
 ## Skip Modes
 
-- `.env` has OIDC credentials + Connect URLs → skip T2 + T3 (don't spawn infra)
+- `.env` has OIDC credentials → skip T2 (Connect auto-deploys with app)
 - `app.jsx` exists → skip T1 (ask reuse first)
 - `.env` has `OIDC_ADMIN_USER_ID` → skip Phase 3 (admin setup)
 - All three present → skip T1-T4, jump to Phase 2

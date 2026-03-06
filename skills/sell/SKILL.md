@@ -48,8 +48,9 @@ metadata:
 
 **Script location:**
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" ...
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" ...
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/assemble-sell.js" ...
+node "$VIBES_ROOT/scripts/deploy-cloudflare.js" ...
 ```
 
 **NEVER do these manually:**
@@ -99,14 +100,14 @@ Detect whether you're running in a terminal (Claude Code CLI, Codex) or an edito
 
 **Before starting, verify these prerequisites. STOP if any check fails.**
 
-### 1.1 Check for Fireproof Connect
+### 1.1 Check for OIDC Credentials
 
 ```bash
-cat .env 2>/dev/null | grep VITE_API_URL || echo "NOT_FOUND"
+grep -q "VITE_OIDC_AUTHORITY=" .env 2>/dev/null && grep -q "VITE_OIDC_CLIENT_ID=" .env 2>/dev/null && echo "FOUND" || echo "NOT_FOUND"
 ```
 
-**If `NOT_FOUND`:** Run `/vibes:connect` first.
-**STOP HERE** if Connect is not configured.
+**If `NOT_FOUND`:** OIDC credentials are required. Ask the user for their OIDC Authority URL and Client ID.
+Connect is auto-provisioned on first deploy -- no manual setup needed.
 
 ### 1.2 Detect Existing App
 
@@ -145,17 +146,17 @@ After both checks pass, confirm:
 
 ### 2.1 Pocket ID Setup
 
-Before collecting credentials, the user must have a Pocket ID instance configured (provided by the Connect Studio). Present these instructions:
+Before collecting credentials, the user must have a Pocket ID instance configured for authentication. Present these instructions:
 
 > **OIDC Setup Required**
 >
 > Before we continue, you need OIDC authentication configured via Pocket ID:
 >
-> 1. **Verify your Connect Studio** is running — it includes Pocket ID for authentication
-> 2. **Check your .env** has `VITE_OIDC_AUTHORITY` pointing to your Studio's auth endpoint (e.g., `https://studio.exe.xyz/auth`)
-> 3. **Verify OIDC Client ID** — your Connect Studio provides this automatically
+> 1. **Verify your Pocket ID instance** is running and accessible
+> 2. **Check your .env** has `VITE_OIDC_AUTHORITY` pointing to your Pocket ID auth endpoint
+> 3. **Verify OIDC Client ID** — from your Pocket ID configuration
 >
-> If you haven't deployed Connect yet, run `/vibes:connect` first.
+> Connect is auto-provisioned on first deploy -- no manual setup needed.
 >
 > **When you're ready, I'll collect your OIDC credentials.**
 
@@ -317,7 +318,7 @@ Before running assembly, verify the .env file exists:
 test -f .env && echo "OK" || echo "MISSING"
 ```
 
-**If MISSING:** Stop and run `/vibes:connect` first.
+**If MISSING:** Ensure OIDC credentials are configured. Connect is auto-deployed with the app.
 
 ### 4.2 Update App for Tenant Context
 
@@ -380,7 +381,8 @@ If "Yes, include": pass `--admin-ids '["<user_id>"]'`. If "Enter different": col
 Run the assembly script with all collected values:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/assemble-sell.js" app.jsx index.html \
   --oidc-authority "https://studio.exe.xyz/auth" \
   --oidc-client-id "vibes-app-client" \
   --app-name "wedding-photos" \
@@ -404,8 +406,7 @@ grep -o '__VITE_[A-Z_]*__' index.html | sort -u || echo "NO_PLACEHOLDERS"
 **If any placeholders found:** The .env file is missing required values. Check:
 - `VITE_OIDC_AUTHORITY` - must be set
 - `VITE_OIDC_CLIENT_ID` - must be set
-- `VITE_API_URL` - must be set
-- `VITE_CLOUD_URL` - optional but recommended
+- `VITE_API_URL` / `VITE_CLOUD_URL` - auto-provisioned on first deploy; if missing, deploy with `/vibes:cloudflare` first
 
 Fix the .env file and re-run assembly.
 
@@ -429,14 +430,15 @@ The template uses neutral colors by default. To match the user's brand:
 
 ## Step 5: Deployment
 
-**Deploy Target: Cloudflare Workers.** SaaS apps always deploy to Cloudflare Workers (not exe.dev). The KV registry and subdomain routing require the CF Worker runtime.
+**Deploy Target: Cloudflare Workers.** SaaS apps always deploy to Cloudflare Workers. The KV registry and subdomain routing require the CF Worker runtime.
 
 **Registry server credentials are REQUIRED for SaaS apps.**
 
 ### 5.1 Deploy to Cloudflare Workers
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
   --name wedding-photos \
   --file index.html \
   --oidc-authority "https://studio.exe.xyz/auth"
@@ -462,7 +464,8 @@ The app is immediately available at `{appName}.{subdomain}.workers.dev`. For a c
 ### 5.3 Optional: AI Features
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
   --name wedding-photos \
   --file index.html \
   --oidc-authority "https://studio.exe.xyz/auth" \
@@ -538,7 +541,8 @@ Guide the user through admin setup:
 > 4. Re-run assembly with admin access:
 >
 > ```bash
-> node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
+> VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+> node "$VIBES_ROOT/scripts/assemble-sell.js" app.jsx index.html \
 >   --oidc-authority "https://studio.exe.xyz/auth" \
 >   --oidc-client-id "vibes-app-client" \
 >   --app-name "{appName}" \
@@ -550,7 +554,8 @@ Guide the user through admin setup:
 >
 > 5. Re-deploy:
 > ```bash
-> node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
+> VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+> node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
 >   --name {appName} \
 >   --file index.html \
 >   --oidc-authority "https://studio.exe.xyz/auth"
@@ -714,7 +719,7 @@ The unified template uses React 19 with `@necrodome/fireproof-clerk` (OIDC-compa
 
 ### Assembly fails with ".env file not found"
 - Fireproof Connect is not configured
-- Run `/vibes:connect` first to set up your sync backend
+- Connect is auto-deployed when you first deploy to Cloudflare
 - Then return to `/vibes:sell`
 
 ### PricingTable not showing on landing page

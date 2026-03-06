@@ -33,11 +33,10 @@ Agent Teams run independent steps in parallel (e.g., app generation and credenti
 ## Requirements
 
 - Claude Code with Agent Teams support
-- For other agents, run the pipeline sequentially: `/vibes:vibes` then `/vibes:sell` then `/vibes:connect` then `/vibes:cloudflare`
+- For other agents, run the pipeline sequentially: `/vibes:vibes` then `/vibes:sell` then `/vibes:cloudflare`
 
 ## Related
 
 - `/vibes:vibes` - Generate just the app
 - `/vibes:sell` - Transform an existing app into SaaS
-- `/vibes:connect` - Deploy the sync backend
 - `/vibes:cloudflare` - Deploy to Cloudflare Workers

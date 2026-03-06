@@ -1,0 +1,23 @@
+name = "pocket-id"
+main = "src/worker.ts"
+compatibility_date = "2025-02-04"
+compatibility_flags = ["nodejs_compat"]
+
+[[containers]]
+class_name = "PocketIdContainer"
+image = "registry.cloudflare.com/e33948793047032de7f5e18ec342a7d1/pocket-id:v2"
+max_instances = 1
+instance_type = "basic"
+
+[[durable_objects.bindings]]
+name = "POCKET_ID"
+class_name = "PocketIdContainer"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PocketIdContainer"]
+
+[vars]
+POCKET_ID_APP_URL = "https://pocket-id.marcus-e.workers.dev"
+POCKET_ID_ENCRYPTION_KEY = "yjfKnxrgD0WHj5OfVpMO9LTp9txwogqztQVQ7XkCdY8="
+POCKET_ID_STATIC_API_KEY = "536c92459e65ce61911813d5cf1871bcebc93253b64b318dd1b9e0157aefcb34"

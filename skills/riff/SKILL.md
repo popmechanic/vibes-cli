@@ -64,8 +64,9 @@ mkdir -p riff-1 riff-2 riff-3 ...
 
 Generate riffs in parallel based on user's count:
 ```bash
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
 # For each N from 1 to ${count}:
-node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "${prompt}" N riff-N/app.jsx "${visual}" &
+node "$VIBES_ROOT/scripts/generate-riff.js" "${prompt}" N riff-N/app.jsx "${visual}" &
 
 # Then wait for all
 wait
@@ -74,9 +75,10 @@ echo "All ${count} riffs generated!"
 
 Example for count=3:
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "productivity apps" 1 riff-1/app.jsx "warm sunset oranges and soft creams" &
-node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "productivity apps" 2 riff-2/app.jsx "warm sunset oranges and soft creams" &
-node "${CLAUDE_PLUGIN_ROOT}/scripts/generate-riff.js" "productivity apps" 3 riff-3/app.jsx "warm sunset oranges and soft creams" &
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/generate-riff.js" "productivity apps" 1 riff-1/app.jsx "warm sunset oranges and soft creams" &
+node "$VIBES_ROOT/scripts/generate-riff.js" "productivity apps" 2 riff-2/app.jsx "warm sunset oranges and soft creams" &
+node "$VIBES_ROOT/scripts/generate-riff.js" "productivity apps" 3 riff-3/app.jsx "warm sunset oranges and soft creams" &
 wait
 ```
 
@@ -91,7 +93,8 @@ wait
 Convert each app.jsx to a complete index.html:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-all.js" riff-1 riff-2 riff-3 ...
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/assemble-all.js" riff-1 riff-2 riff-3 ...
 ```
 
 ### Step 5: Evaluate & Rank
@@ -173,7 +176,7 @@ Open index.html for gallery, or browse riff-1/, riff-2/, etc.
 
 ## Plugin Directory
 
-The plugin root is available via `${CLAUDE_PLUGIN_ROOT}` which Claude Code resolves at runtime.
+Scripts resolve the plugin root via `VIBES_ROOT`, which tries `${CLAUDE_PLUGIN_ROOT}` first (set by Claude Code) and falls back to deriving the path from `${CLAUDE_SKILL_DIR}` (two directories up). Set it at the top of each bash block: `VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"`
 
 ---
 
@@ -194,8 +197,8 @@ Options:
 - Label: "Turn winner into SaaS (/sell)"
   Description: "Ready to monetize the best one? Sell adds authentication via Pocket ID with passkeys, subscription billing, and multi-tenant database isolation. Each customer gets their own subdomain with their own data."
 
-- Label: "Deploy a riff as demo (/exe)"
-  Description: "Want to share one quickly? Deploy puts any variation live at yourapp.exe.xyz within minutes. Great for getting feedback before committing to further development."
+- Label: "Deploy a riff as demo (/cloudflare)"
+  Description: "Want to share one quickly? Deploy puts any variation live on Cloudflare Workers within minutes. Great for getting feedback before committing to further development."
 
 - Label: "I'm done for now"
   Description: "Wrap up this session. All riffs are saved in riff-1/, riff-2/, etc. - browse them locally or come back later to continue."
@@ -205,5 +208,5 @@ Options:
 - "Develop #1" → Copy riff-1/app.jsx to ./app.jsx, confirm ready for vibes iteration
 - "Pick different" → Ask which riff number, then copy that one
 - "Turn into SaaS" → Copy riff-1/app.jsx, auto-invoke /vibes:sell skill
-- "Deploy demo" → Ask which riff, auto-invoke /vibes:exe skill with that riff's index.html
+- "Deploy demo" → Ask which riff, auto-invoke /vibes:cloudflare skill with that riff's index.html
 - "I'm done" → Confirm riffs saved, provide directory listing

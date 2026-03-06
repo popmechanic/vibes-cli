@@ -24,7 +24,7 @@ metadata:
 ## Quick Navigation
 
 - [Terminal or Editor](#step-0-terminal-or-editor-ui) - Choose how to build (ask first!)
-- [Pre-Flight Check](#pre-flight-check-connect-status) - Validate Connect setup before coding
+- [Pre-Flight Check](#pre-flight-check) - Validate credentials before coding
 - [Core Rules](#core-rules) - Essential guidelines for app generation
 - [Generation Process](#generation-process) - Design reasoning and code output
 - [Assembly Workflow](#assembly-workflow) - Build the final app
@@ -44,7 +44,7 @@ Generate React web applications using Fireproof for local-first data persistence
 
 **This is the very first question — ask before anything else.**
 **DO NOT check .env, credentials, or project state before asking this question.**
-**DO NOT invoke /vibes:connect or any other skill before asking this question.**
+**DO NOT invoke any other skill before asking this question.**
 **If Editor is chosen, skip ALL pre-flight checks — the editor handles everything.**
 
 Ask the user:
@@ -56,11 +56,13 @@ Present Editor as the first/recommended option.
 
   Launch the editor server:
   ```bash
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
+  VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+  node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
   ```
   If no prompt was given, omit `--prompt`:
   ```bash
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor
+  VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+  node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor
   ```
   Tell the user: "Open http://localhost:3333 — the editor handles everything from here."
   **Your job is done. Stop. Do not read further. Do not proceed to any step below.**
@@ -76,28 +78,25 @@ Present Editor as the first/recommended option.
 
 ---
 
-## Pre-Flight Check: Connect Status
+## Pre-Flight Check
 
 **MANDATORY: Complete these steps BEFORE generating any app code.**
 
-Run this command first to validate all required credentials:
+- OIDC credentials must be available (in .env or provided during deploy)
+- Connect deploys automatically on first app deploy — no manual setup needed
+
+Run this command to check for existing credentials:
 ```bash
 if test -f "./.env" && \
    grep -qE "^VITE_OIDC_AUTHORITY=" ./.env 2>/dev/null && \
-   grep -qE "^VITE_OIDC_CLIENT_ID=" ./.env 2>/dev/null && \
-   grep -qE "^VITE_API_URL=" ./.env 2>/dev/null && \
-   grep -qE "^VITE_CLOUD_URL=" ./.env 2>/dev/null; then
-  echo "CONNECT_READY"
+   grep -qE "^VITE_OIDC_CLIENT_ID=" ./.env 2>/dev/null; then
+  echo "CREDENTIALS_READY"
 else
-  echo "CONNECT_NOT_READY"
+  echo "CREDENTIALS_NOT_READY"
 fi
 ```
 
-**If output is "CONNECT_NOT_READY"**, Connect setup is required:
-
-> Connect with OIDC authentication (via Pocket ID) is required for Vibes apps.
-
-Invoke `/vibes:connect` to deploy Connect, then return here when complete.
+**If output is "CREDENTIALS_NOT_READY"**, OIDC credentials are needed. Ask the user for their OIDC Authority URL and Client ID before proceeding.
 
 **Platform Name vs User Intent**: "Vibes" is the name of this app platform (Vibes DIY). When users say "vibe" or "vibes" in their prompt, interpret it as:
 - Their project/brand name ("my vibes tracker")
@@ -309,10 +308,11 @@ Apps will show a configuration error if credentials are missing.
    - "Yes — open live preview" — Start the preview server for iterating on the design
    - "No — deploy now" — Skip preview, go straight to deploy
 
-   If yes: run `node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js"` and tell the user to open `http://localhost:3333`. They can chat to iterate on the design and switch themes. When satisfied, stop the server and continue.
+   If yes: set `VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"` then run `node "$VIBES_ROOT/scripts/preview-server.js"` and tell the user to open `http://localhost:3333`. They can chat to iterate on the design and switch themes. When satisfied, stop the server and continue.
 4. Run assembly:
    ```bash
-   node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble.js" app.jsx index.html
+   VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+   node "$VIBES_ROOT/scripts/assemble.js" app.jsx index.html
    ```
 5. Deploy the app so the user can see it. OIDC auth requires a public URL — the app cannot be viewed locally. Auto-invoke /vibes:cloudflare to deploy, then present the live URL.
 
@@ -667,7 +667,8 @@ error = {
 When deploying AI-enabled apps, include the OpenRouter key:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
   --name myapp \
   --file index.html \
   --ai-key "sk-or-v1-your-key"
@@ -811,4 +812,4 @@ Options:
 - "I'm done" → Confirm files saved, wish them well
 
 **Do NOT proceed to code generation until:**
-Connect setup is complete with valid OIDC credentials in .env (pre-flight check returns CONNECT_READY).
+OIDC credentials are available (pre-flight check returns CREDENTIALS_READY).

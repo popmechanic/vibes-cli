@@ -40,20 +40,18 @@ admin.yourapp.com    → Admin dashboard
 
 Before using `/vibes:sell`:
 1. Have a working Vibes app (from `/vibes:vibes`)
-2. Deploy Connect with Pocket ID (provides OIDC credentials)
-3. Configure environment variables
+2. OIDC credentials (auto-provisioned on first Cloudflare deploy)
 
 ## Environment Variables
 
 ```bash
-VITE_OIDC_AUTHORITY=https://studio.exe.xyz/auth
-VITE_OIDC_CLIENT_ID=<your-client-id>
-VITE_API_URL=https://studio.exe.xyz/api
-VITE_CLOUD_URL=fpcloud://studio.exe.xyz?protocol=wss
+VITE_OIDC_AUTHORITY=https://<auto-provisioned>/auth
+VITE_OIDC_CLIENT_ID=<auto-provisioned>
 ```
+
+Connect is auto-provisioned on first deploy -- no manual setup needed.
 
 ## Related
 
 - `/vibes:vibes` - Generate the initial app
-- `/vibes:connect` - Deploy the sync backend
-- `/vibes:exe` - Deploy the SaaS to exe.dev
+- `/vibes:cloudflare` - Deploy the SaaS to Cloudflare Workers

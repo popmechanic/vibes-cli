@@ -481,7 +481,9 @@
                 console.debug('[vibes-sharing] inviteUser response:', inviteData);
 
                 // Extract invite ticket ID for auto-redemption
-                var inviteId = inviteData.inviteId || (inviteData.ticket && inviteData.ticket.id) || '';
+                // inviteUser returns { type: "resInviteUser", invite: InviteTicket }
+                // InviteTicket has .inviteId field
+                var inviteId = (inviteData.invite && inviteData.invite.inviteId) || inviteData.inviteId || (inviteData.ticket && inviteData.ticket.id) || '';
 
                 // Construct invite URL pointing to this subdomain, including ledger ID for sync
                 var ledgerId = matchedLedger.ledgerId;

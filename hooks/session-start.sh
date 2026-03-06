@@ -14,26 +14,22 @@ context_content=$(cat "${SCRIPT_DIR}/session-context.md" 2>&1 || echo "Error rea
 # Detect project state and build dynamic hints
 state_hints=""
 
-if [ -f "${PWD}/.env" ]; then
+REGISTRY="$HOME/.vibes/deployments.json"
+if [ -f "$REGISTRY" ]; then
+    app_count=$(grep -c '"name"' "$REGISTRY" 2>/dev/null || echo "0")
+    state_hints=$'\n\n## Project State\nVibes registry found with '"$app_count"' app(s). Deploy with /vibes:cloudflare.'
+elif [ -f "${PWD}/.env" ]; then
     has_oidc_credentials=false
-    has_connect_urls=false
-
     if grep -q "VITE_OIDC_AUTHORITY=" "${PWD}/.env" 2>/dev/null; then
         has_oidc_credentials=true
     fi
-    if grep -q "VITE_API_URL=" "${PWD}/.env" 2>/dev/null; then
-        has_connect_urls=true
-    fi
-
-    if [ "$has_oidc_credentials" = true ] && [ "$has_connect_urls" = true ]; then
-        state_hints=$'\n\n## Project State\n.env found with OIDC credentials and Connect URLs — ready to generate and deploy.'
-    elif [ "$has_oidc_credentials" = true ]; then
-        state_hints=$'\n\n## Project State\n.env has OIDC credentials but no Connect URLs — run /vibes:connect to set up sync.'
+    if [ "$has_oidc_credentials" = true ]; then
+        state_hints=$'\n\n## Project State\n.env found with OIDC credentials. Deploy with /vibes:cloudflare to auto-configure Connect.'
     else
-        state_hints=$'\n\n## Project State\n.env found but missing OIDC credentials — run /vibes:connect to configure.'
+        state_hints=$'\n\n## Project State\n.env found but missing OIDC credentials. Provide VITE_OIDC_AUTHORITY before deploying.'
     fi
 else
-    state_hints=$'\n\n## Project State\nNo .env found — run /vibes:connect first to set up OIDC credentials and sync.'
+    state_hints=$'\n\n## Project State\nNo registry or .env found. OIDC credentials will be configured on first app deploy.'
 fi
 
 if [ -f "${PWD}/app.jsx" ]; then
@@ -42,9 +38,9 @@ fi
 
 if [ -f "${PWD}/index.html" ]; then
     if grep -q "TenantProvider" "${PWD}/index.html" 2>/dev/null; then
-        state_hints="${state_hints}"$'\nindex.html exists (sell template) — reassemble with /vibes:sell, deploy with /vibes:cloudflare or /vibes:exe.'
+        state_hints="${state_hints}"$'\nindex.html exists (sell template) — reassemble with /vibes:sell, deploy with /vibes:cloudflare.'
     else
-        state_hints="${state_hints}"$'\nindex.html exists (vibes template) — reassemble with /vibes:vibes, deploy with /vibes:cloudflare or /vibes:exe.'
+        state_hints="${state_hints}"$'\nindex.html exists (vibes template) — reassemble with /vibes:vibes, deploy with /vibes:cloudflare.'
     fi
 fi
 

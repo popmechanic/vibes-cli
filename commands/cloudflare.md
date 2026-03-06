@@ -34,6 +34,5 @@ Deploy a Vibes app to Cloudflare Workers with KV storage and JWT verification.
 
 ## Related
 
-- `/vibes:exe` - Deploy to exe.dev instead
-- `/vibes:connect` - Deploy the sync backend
 - `/vibes:vibes` - Generate the app to deploy
+- `/vibes:sell` - Transform app into multi-tenant SaaS

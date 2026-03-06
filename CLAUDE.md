@@ -49,19 +49,31 @@ scripts/assemble.js (inserts JSX into template)
 index.html (ready to deploy)
 ```
 
+### Environment Variables in SKILL.md
+
+`CLAUDE_PLUGIN_ROOT` is set by the plugin runtime but may be missing in dev mode (`claude --plugin .`). `CLAUDE_SKILL_DIR` is text-substituted before the agent sees the markdown — always reliable.
+
+All SKILL.md bash blocks use a fallback pattern:
+```bash
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/some-script.js"
+```
+
+`CLAUDE_SKILL_DIR` is `<plugin-root>/skills/<name>/`, so `dirname dirname` gives the plugin root. Non-bash references (`Read file:`, catalog.txt paths) use `${CLAUDE_PLUGIN_ROOT}` directly since they're text-interpolated.
+
 ### Workflow Sequence
 
 All Vibes skills follow this dependency graph:
 
 ```
-CR (credentials) → CO (connect) → G (generate) → A (assemble) → D (deploy) → V (verify)
+CR (credentials) → G (generate) → A (assemble) → D (deploy + auto-connect) → V (verify)
 SaaS path adds: S (sell config) before A, AD (admin setup) after D.
 Iterate loop: edit app.jsx → A → D → V (always includes re-deploy)
 ```
 
 **Hard rules:**
 - Deploy is mandatory — OIDC auth requires a public URL. No local-only path.
-- Connect is always required — no value in local-only Fireproof.
+- Connect is provisioned automatically during deploy via alchemy.
 - Iterate loop always includes re-deploy: edit app.jsx → A → D → V.
 
 **Node registry:**
@@ -69,21 +81,19 @@ Iterate loop: edit app.jsx → A → D → V (always includes re-deploy)
 | ID | Node | Inputs | Outputs | Prereqs | Skip If |
 |----|------|--------|---------|---------|---------|
 | CR | CREDENTIALS | user input | OIDC authority+clientId in .env | -- | .env has valid OIDC credentials |
-| CO | CONNECT | OIDC credentials | .env with API_URL+CLOUD_URL | CR | .env has VITE_API_URL |
 | G | GENERATE | user prompt | app.jsx | -- | app.jsx exists (ask reuse) |
-| S | SELL | app context | sell config | CO | not SaaS path |
-| A | ASSEMBLE | app.jsx + .env [+ sell config] | index.html | G + CO; SaaS: + S | -- |
-| D | DEPLOY | index.html | live URL | A | -- |
+| S | SELL | app context | sell config | CR | not SaaS path |
+| A | ASSEMBLE | app.jsx + .env [+ sell config] | index.html | G + CR; SaaS: + S | -- |
+| D | DEPLOY | index.html | live URL (auto-provisions Connect) | A | -- |
 | AD | ADMIN_SETUP | deployed URL + user signup | admin ID, re-assembled+re-deployed | D | admin ID cached; or not SaaS |
 | V | VERIFY | live URL | user confirmation | D (or AD if SaaS) | -- |
 
 **Hard dependencies:**
 ```
-CR → CO       Connect needs OIDC credentials
-CO → G        Generate needs Connect configured
-G + CO → A    Assembly needs app.jsx + .env
-G + CO + S → A  SaaS assembly needs all three
-A → D         Deploy needs index.html
+CR → G        Generate needs OIDC credentials
+G + CR → A    Assembly needs app.jsx + .env
+G + CR + S → A  SaaS assembly needs all three
+A → D         Deploy needs index.html (Connect auto-provisioned)
 D → AD        Admin setup needs deployed app for signup
 D|AD → V      Verify needs live URL
 ```
@@ -345,7 +355,7 @@ npm run test:e2e:server
 
 **Structural tests** (`npm run test:fixtures`) validate assembly output without credentials — no placeholders, import map present, Babel script block intact. Fast enough to run after every template edit.
 
-**Full E2E** (`/vibes:test`) orchestrates real credentials, Connect studio, Cloudflare deploy, and presents a live URL for browser verification. Use after structural tests pass.
+**Full E2E** (`/vibes:test`) orchestrates real credentials, Cloudflare deploy, and presents a live URL for browser verification. Use after structural tests pass.
 
 ## File Reference
 
@@ -362,15 +372,12 @@ npm run test:e2e:server
 | `scripts/generate-riff.js` | Parallel riff generator - spawns claude -p for variations |
 | `scripts/generate-handoff.js` | Generate HANDOFF.md context document for remote Claude |
 | `scripts/preview-server.js` | Live preview server - HTTP + WebSocket bridge to Claude Code |
-| `scripts/deploy-exe.js` | App deployment to exe.dev (static files, AI proxy) |
-| `scripts/deploy-connect.js` | Connect Studio deployment to exe.dev (Docker-based sync) |
 | `scripts/deploy-cloudflare.js` | Cloudflare deployment script |
 | `skills/cloudflare/worker/src/lib/kv-storage.ts` | Per-subdomain key model with collaborator support |
 | `skills/cloudflare/worker/src/lib/registry-logic.ts` | Collaborator-aware subdomain registry logic |
 | `scripts/vitest.config.js` | Vitest test runner configuration |
 | `scripts/package.json` | Node.js deps |
-| `scripts/lib/env-utils.js` | Shared .env loading, OIDC credential validation, Connect config |
-| `scripts/lib/exe-ssh.js` | SSH automation for exe.dev |
+| `scripts/lib/env-utils.js` | Shared .env loading, OIDC credential validation |
 | `scripts/lib/paths.js` | Centralized path resolution for all plugin paths |
 | `scripts/lib/crypto-utils.js` | Session token and device CA key generation for Connect |
 | `scripts/lib/ensure-deps.js` | Auto-install npm dependencies on first run |
@@ -380,7 +387,6 @@ npm run test:e2e:server
 | `scripts/lib/resolve-workers-url.js` | Resolve full Cloudflare Workers URL for an app |
 | `scripts/lib/jwt-validation.js` | JWT validation utilities (azp matching, timing) |
 | `scripts/lib/auth-flows.js` | Auth flow state machines (signup, signin, gate) |
-| `scripts/deployables/ai-proxy.js` | AI proxy server for OpenRouter (deployed to exe.dev VMs) |
 | `scripts/lib/template-merge.js` | Pure functions for merging base + delta templates |
 | `scripts/lib/design-tokens.js` | Single source of truth for all design tokens (TOKEN_CATALOG + VIBES_THEME_CSS) |
 | `scripts/lib/component-catalog.js` | Bare HTML component templates (shadcn-style, unstyled) — LLM styles them with tokens |
@@ -416,8 +422,8 @@ npm run test:e2e:server
 | `skills/launch/LAUNCH-REFERENCE.md` | Launch architecture reference (dependency graph, timing, skip modes) |
 | `skills/launch/prompts/builder.md` | Builder agent prompt template with {placeholder} markers |
 | `skills/launch/prompts/infra.md` | Infra agent prompt template with {placeholder} markers |
-| `skills/exe/SKILL.md` | exe.dev app deployment skill |
-| `skills/connect/SKILL.md` | Connect Studio deployment skill |
+| `scripts/lib/registry.js` | Global deployment registry (~/.vibes/deployments.json) |
+| `scripts/lib/alchemy-deploy.js` | Connect provisioning via alchemy sparse checkout |
 | `skills/cloudflare/SKILL.md` | Cloudflare Workers deployment skill |
 | `skills/cloudflare/worker/` | Cloudflare Worker source (Hono, KV, Web Crypto JWT) |
 | `skills/test/SKILL.md` | E2E integration test skill |
@@ -519,8 +525,8 @@ The plugin uses a `SessionStart` hook to inject framework awareness context into
 1. Claude Code fires `SessionStart` event
 2. `hooks.json` triggers `run-hook.cmd session-start.sh`
 3. `session-start.sh` reads `session-context.md` (static content)
-4. Script detects project state in `$PWD`: `.env` (OIDC credentials? Connect URLs?), `app.jsx`, `index.html`
-5. Appends dynamic hints like "No .env found — run /vibes:connect first"
+4. Script detects project state in `$PWD`: `.env` (OIDC credentials?), `app.jsx`, `index.html`
+5. Appends dynamic hints like "No .env found — run /vibes:cloudflare first"
 6. Outputs JSON with `additionalContext` field → appears in system reminders
 
 ### Editing Injected Context
@@ -531,59 +537,16 @@ The plugin uses a `SessionStart` hook to inject framework awareness context into
 
 ## Skills Are Atomic
 
-**Each skill is a self-contained automation.** When planning work, a skill invocation is always ONE plan step (e.g., "Invoke /vibes:connect"), never decomposed into its internal sub-steps. Skill selection and descriptions are driven by YAML frontmatter in each SKILL.md file.
+**Each skill is a self-contained automation.** When planning work, a skill invocation is always ONE plan step (e.g., "Invoke /vibes:cloudflare"), never decomposed into its internal sub-steps. Skill selection and descriptions are driven by YAML frontmatter in each SKILL.md file.
 
 The frontmatter description must signal atomicity (e.g., "Self-contained deploy automation — invoke directly, do not decompose") so the agent treats the skill as a single unit even in plan mode. Without this, agents read the SKILL.md during planning and extract internal steps as separate plan tasks.
 
 **Corollary: always invoke the skill before running its commands.** Even when re-assembling or re-deploying an existing app, invoke the skill (e.g., `/vibes:sell`) to load its SKILL.md first, then follow its workflow — including validation gates and explicit flags. Running a skill's internal commands without loading the skill risks skipping placeholder checks, credential flags, and registry verification steps.
 
-## exe.dev Deployment
+## Cloudflare Deployment
 
-App VMs serve static HTML via nginx. A separate Studio VM runs Fireproof Connect (Docker-based sync). See `skills/exe/SKILL.md` and `skills/connect/SKILL.md` for full deployment guides.
-
-### Connect Studio Environment
-
-Point apps at the Studio VM:
-```bash
-VITE_OIDC_AUTHORITY=https://<studio>.exe.xyz/auth
-VITE_OIDC_CLIENT_ID=<generated-client-id>
-VITE_API_URL=https://<studio>.exe.xyz/api
-VITE_CLOUD_URL=fpcloud://<studio>.exe.xyz?protocol=wss
-```
-
-### DNS Configuration for Custom Domains
-
-| Type | Name | Value |
-|------|------|-------|
-| ALIAS | @ | exe.xyz |
-| CNAME | * | yourapp.exe.xyz |
-
-- Use ALIAS (not A record) for apex → `exe.xyz`; CNAME for wildcard → `yourapp.exe.xyz`
-- exe.dev's proxy handles SSL termination for both
-- Fallback: `?subdomain=` query parameter if DNS provider lacks ALIAS support
-
-### Manual File Transfer to exe.dev VMs
-
-**Key distinction:**
-- `ssh exe.dev` = orchestrator CLI (create VMs, share ports, manage account)
-- `ssh <app>.exe.xyz` = actual VM (file operations, server access)
-
-**Reliable transfer pattern (two-stage):**
-```bash
-# Upload: SCP to server /tmp/ → sudo move to /var/www/html/
-scp index.html myapp.exe.xyz:/tmp/
-ssh myapp.exe.xyz "sudo cp /tmp/index.html /var/www/html/"
-
-# Download: Direct SCP works
-scp myapp.exe.xyz:/var/www/html/index.html ./downloaded.html
-```
-
-**Common mistakes:**
-| Mistake | Error | Fix |
-|---------|-------|-----|
-| `ssh exe.dev cat /var/www/...` | "No VMs found" | Use `ssh <app>.exe.xyz` |
-| `scp file vm:/var/www/html/` | Permission denied | Use temp + sudo pattern |
-| Forgetting sudo for /var/www | Permission denied | Always `sudo cp` for www-data dirs |
+All apps deploy to Cloudflare Workers. Connect deploys automatically on first
+app deploy via alchemy. App-Connect pairings tracked in `~/.vibes/deployments.json`.
 
 ## Sharing / Invite Architecture
 
@@ -624,16 +587,6 @@ const { inviteUser, listInvites, deleteInvite, findUser, ready } = useSharing();
 ```
 
 The hook is conditionally exported via `window.useSharing` in the delta template's `initApp()`.
-
-## Known Issues
-
-### Sell Skill Deploy Issues (Future Improvements)
-
-The `/vibes:sell` deploy has several issues that need fixing in `scripts/deploy-exe.js`:
-
-1. **Port mismatch**: nginx is configured on port 80, but exe.dev requires ports 3000-9999. Fix: configure nginx to listen on port 8000 and run `ssh exe.dev share port <name> 8000`.
-
-2. **Admin dashboard is placeholder**: The sell template (`skills/sell/templates/unified.html`) has a stub admin that just says "Admin dashboard coming soon...". Need to build a real admin dashboard that fetches `/registry.json` and displays claims/users/stats.
 
 ## Plugin Versioning
 

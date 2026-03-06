@@ -35,7 +35,7 @@ For architecture context, see `LAUNCH-REFERENCE.md` in this directory.
 
 **This is the very first question — ask before anything else.**
 **DO NOT check .env, credentials, or project state before asking this question.**
-**DO NOT invoke /vibes:connect or any other skill before asking this question.**
+**DO NOT invoke any other skill before asking this question.**
 **If Editor is chosen, skip ALL pre-flight checks — the editor handles everything.**
 
 Ask the user:
@@ -47,11 +47,13 @@ Present Editor as the first/recommended option.
 
   Launch the editor server:
   ```bash
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
+  VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+  node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
   ```
   If no prompt was given, omit `--prompt`:
   ```bash
-  node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js" --mode=editor
+  VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+  node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor
   ```
   Tell the user: "Open http://localhost:3333 — the editor handles everything from here."
   **Your job is done. Stop. Do not read further. Do not proceed to any phase below.**
@@ -73,11 +75,11 @@ Run all five checks before collecting any input:
 
 | # | Check | Command | If True |
 |---|-------|---------|---------|
-| 1 | .env has OIDC config + Connect URLs | `grep -qE '^VITE_OIDC_AUTHORITY=' .env && grep -qE '^VITE_OIDC_CLIENT_ID=' .env && grep -qE '^VITE_API_URL=' .env && grep -qE '^VITE_CLOUD_URL=' .env` | Set `CONNECT_READY`. Read .env for oidcAuthority/clientId. Skip T2, T3, infra spawn. |
+| 1 | .env has OIDC credentials | `grep -qE '^VITE_OIDC_AUTHORITY=' .env && grep -qE '^VITE_OIDC_CLIENT_ID=' .env` | Set `OIDC_READY`. Read .env for oidcAuthority/clientId. Skip T2. Connect auto-deploys with app. |
 | 2 | .env has admin user ID | `grep OIDC_ADMIN_USER_ID .env` | Store value. Skip Phase 3. |
 | 3 | app.jsx exists | `test -f app.jsx` | **Ask [Reuse]**: "app.jsx exists. Reuse it or regenerate?" If reuse: skip T1. |
 | 4 | Wrangler authenticated | `npx wrangler whoami 2>&1` | If NOT authenticated: tell user to run `npx wrangler login` and wait. |
-| 5 | SSH key exists | `ls ~/.ssh/id_ed25519 ~/.ssh/id_rsa ~/.ssh/id_ecdsa 2>/dev/null` | If missing AND not CONNECT_READY: warn about Connect deploy. |
+| 5 | SSH key exists | `ls ~/.ssh/id_ed25519 ~/.ssh/id_rsa ~/.ssh/id_ecdsa 2>/dev/null` | Optional — not required for Cloudflare deploy. |
 
 ## Phase 0: Collect Inputs
 
@@ -125,9 +127,12 @@ Theme switching is handled by the live preview wrapper, not inside the app. The 
 
 ### 1.1 Setup
 
-1. Resolve plugin root: `printenv CLAUDE_PLUGIN_ROOT` → store as `pluginRoot`
+1. Resolve plugin root — use this in all bash blocks:
+   ```bash
+   VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+   ```
 2. Create team: `TeamCreate("launch-{appName}", "Full SaaS pipeline for {appName}")`
-3. Create all tasks per the table in LAUNCH-REFERENCE.md. If `CONNECT_READY`: mark T2+T3 completed immediately.
+3. Create all tasks per the table in LAUNCH-REFERENCE.md. If `OIDC_READY`: mark T2 completed immediately.
 
 ### 1.2 Spawn Builder (T1)
 
@@ -138,35 +143,27 @@ Theme switching is handled by the live preview wrapper, not inside the app. The 
 
 ### 1.3 OIDC Credentials (T2) — simultaneous with builder
 
-**Skip entirely if CONNECT_READY.**
+**Skip entirely if OIDC_READY.**
 
-OIDC credentials come from the Connect Studio's Pocket ID instance. If Connect has not been deployed yet, the infra agent (T3) will set it up.
+OIDC credentials are needed for authentication via Pocket ID. Connect is auto-provisioned on first deploy -- no manual setup needed.
 
-**Ask [OIDC config]**: "Do you have your OIDC credentials from Connect Studio?"
+**Ask [OIDC config]**: "Do you have your OIDC credentials?"
 - "Yes, I have them" — I have the authority URL and client ID
-- "Not yet" — Connect needs to be deployed first (infra agent will handle this)
+- "Not yet" — I need to set up a Pocket ID instance first
 
 If "Yes": collect two credentials via Ask (user types actual values via Other):
 
-**Ask [OIDC Authority]**: "Paste your OIDC Authority URL (e.g., https://studio.exe.xyz/auth)"
-- "Paste URL" — From your Connect Studio .env.
+**Ask [OIDC Authority]**: "Paste your OIDC Authority URL (e.g., https://auth.example.com)"
+- "Paste URL" — From your Pocket ID configuration.
 
 **Ask [OIDC Client ID]**: "Paste your OIDC Client ID"
-- "Paste ID" — From your Connect Studio's Pocket ID configuration.
+- "Paste ID" — From your Pocket ID configuration.
 
-If "Not yet": Mark T2 as blocked on T3 (infra). The infra agent will provide credentials after Connect + Pocket ID deployment.
+If "Not yet": Guide the user to set up a Pocket ID instance, then collect the credentials.
 
 Mark T2 completed.
 
-### 1.4 Spawn Infra (T3) — after T2 completes
-
-**Skip if CONNECT_READY.**
-
-1. Read `${CLAUDE_SKILL_DIR}/prompts/infra.md`
-2. Substitute: `{appName}`, `{pluginRoot}`, `{oidcAuthority}`, `{oidcClientId}`
-3. Spawn: Task tool, `team_name="launch-{appName}"`, `name="infra"`, `subagent_type="general-purpose"`
-
-### 1.5 Sell Config (T4) — while infra deploys
+### 1.4 Sell Config (T4) — while builder generates
 
 **Sell config is collected here but applied later by invoking `/vibes:sell` (or its assembly script) as an atomic step.** Do NOT hand-implement SaaS logic — the sell skill handles tenant routing, auth gating, billing, and admin setup.
 
@@ -196,11 +193,11 @@ Store: `billingMode` ("off"/"required"), `appTitle`, `tagline`, `subtitle`, `fea
 
 ## Phase 2: Assembly & Deploy
 
-**Blocked by T1 + T3 + T4.** Check TaskList until all complete.
+**Blocked by T1 + T2 + T4.** Check TaskList until all complete.
 
 ### 2.1 Verify Inputs
 
-Confirm: `app.jsx` exists with valid JSX. `.env` has `VITE_OIDC_AUTHORITY`, `VITE_OIDC_CLIENT_ID`, `VITE_API_URL`, `VITE_CLOUD_URL`. All sell config values collected.
+Confirm: `app.jsx` exists with valid JSX. `.env` has `VITE_OIDC_AUTHORITY` and `VITE_OIDC_CLIENT_ID`. Connect URLs are auto-provisioned on deploy. All sell config values collected.
 
 Scan app.jsx for builder mistakes (see LAUNCH-REFERENCE.md "Common Builder Mistakes"). Fix any found before proceeding.
 
@@ -210,7 +207,7 @@ Scan app.jsx for builder mistakes (see LAUNCH-REFERENCE.md "Common Builder Mista
 - "Yes — open live preview" — Start the preview server and iterate on the design
 - "No — deploy now" — Skip preview, go straight to deploy
 
-If yes: run `node "${CLAUDE_PLUGIN_ROOT}/scripts/preview-server.js"` and tell the user to open `http://localhost:3333`. They can chat to iterate on the design and switch themes. When satisfied, stop the server and continue to 2.2.
+If yes: run `node "$VIBES_ROOT/scripts/preview-server.js"` and tell the user to open `http://localhost:3333`. They can chat to iterate on the design and switch themes. When satisfied, stop the server and continue to 2.2.
 
 ### 2.2 Deploy Cycle
 
@@ -218,7 +215,8 @@ This sequence runs twice: first here (with `--admin-ids '[]'`), then in Phase 3 
 
 **Step A — Assemble:**
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/assemble-sell.js" app.jsx index.html \
   --oidc-authority "{oidcAuthority}" \
   --oidc-client-id "{oidcClientId}" \
   --app-name "{appName}" \
@@ -235,7 +233,8 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
 
 **Step C — Deploy:**
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
   --name "{appName}" \
   --file index.html \
   --oidc-authority "{oidcAuthority}" \
@@ -302,7 +301,7 @@ Mark T7 completed. If broken, ask what's wrong and troubleshoot.
 
 ### 4.2 Shutdown
 
-Send `shutdown_request` to "builder" and "infra" (if spawned). Wait for responses. Clean up team.
+Send `shutdown_request` to "builder" (if spawned). Wait for response. Clean up team.
 
 ### 4.3 Summary
 
@@ -312,12 +311,11 @@ Send `shutdown_request` to "builder" and "infra" (if spawned). Wait for response
 **App**: {appTitle}
 **URL**: https://{domain}
 **OIDC Authority**: {oidcAuthority}
-**Connect**: {studioUrl}
 **Billing**: {billingMode}
 
 ### What's deployed:
 - Cloudflare Worker with KV registry
-- Fireproof Connect studio for real-time sync
+- Fireproof Connect (auto-provisioned with app) for real-time sync
 - OIDC authentication via Pocket ID (with passkeys)
 - Subdomain-based multi-tenancy
 
@@ -333,7 +331,6 @@ Send `shutdown_request` to "builder" and "infra" (if spawned). Wait for response
 | Failure | Recovery |
 |---------|----------|
 | Builder generates invalid JSX | Read app.jsx, fix TS syntax / wrong hooks, re-save |
-| Connect deploy fails | Infra reports via SendMessage. Present error + fix steps |
 | Assembly has placeholders | Check .env for missing values, re-run assembly |
 | Cloudflare deploy fails | Check `npx wrangler whoami`. Guide `npx wrangler login` if needed |
 | Wrangler secret put fails | Retry. If persistent, have user run manually |

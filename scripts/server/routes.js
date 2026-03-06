@@ -102,6 +102,7 @@ const routeTable = {
   'POST /editor/apps/save':              editorApi.saveApp,
   'POST /editor/apps/screenshot':         editorApi.saveScreenshot,
   'POST /editor/apps/write':             editorApi.writeApp,
+  'GET /editor/deployments':             editorApi.listDeployments,
 };
 
 /**
