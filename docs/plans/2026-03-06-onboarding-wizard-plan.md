@@ -8,15 +8,15 @@
 
 **Tech Stack:** Vanilla JS (editor.html is a single-file SPA), Node.js HTTP server (editor-api.js), vitest for server tests
 
-**Depends on:** `docs/plans/2026-03-05-connect-cloudflare-migration-plan.md` Tasks 1 (registry.js). This plan can begin immediately -- Task 1 here creates a minimal registry shim if the full registry.js doesn't exist yet.
+**Depends on:** `docs/plans/2026-03-05-connect-cloudflare-migration-plan.md` Tasks 1 (registry.js). This plan can begin immediately -- Task 1 here creates a thin adapter that delegates to `lib/registry.js` when available, falling back to an inline implementation until the migration plan is executed.
 
 **Important note on line references:** This plan never references specific line numbers because tasks edit the same files sequentially, causing line shifts. Instead, all edit locations are identified by function names, HTML element IDs, or search patterns. Use your editor's search to find each target.
 
 ---
 
-### Task 1: Create Registry Shim for Editor API
+### Task 1: Create Registry Adapter for Editor API
 
-The editor API needs to read/write `~/.vibes/deployments.json`. The full `lib/registry.js` is created by the backend migration plan (Task 1 there). This task creates a thin adapter so editor-api.js can use it, with a fallback shim if the full module doesn't exist yet.
+The editor API needs to read/write `~/.vibes/deployments.json`. The full `lib/registry.js` is created by the backend migration plan (Task 1 there). This task creates a **true adapter** that tries to import `../lib/registry.js` first and delegates to it. If that module doesn't exist yet (migration plan not implemented), it falls back to an inline implementation with the **same function signatures and schema** so the two are interchangeable. Once the migration plan is implemented, the inline fallback becomes dead code and should be removed.
 
 **Security:** The registry file stores a Cloudflare Global API Key, which grants full account access. The file MUST be written with `0o600` permissions (owner read/write only).
 
@@ -162,14 +162,25 @@ Expected: FAIL -- module not found
 
 **Step 3: Implement registry adapter**
 
+The adapter tries to import `../lib/registry.js` (the migration plan's module) and delegates
+to its `loadRegistry`, `saveRegistry`, `getCloudflareConfig`, `setCloudflareConfig`, `getApp`,
+and `setApp` functions. If the import fails (module doesn't exist yet), it falls back to an
+inline implementation that uses the **exact same schema and function signatures** so the two
+are interchangeable. The inline fallback is clearly marked for removal once the migration plan
+lands.
+
 ```javascript
 // scripts/server/registry-adapter.js
 /**
  * Registry adapter for the editor API.
  *
- * Reads/writes ~/.vibes/deployments.json for credential storage.
- * Tries to import lib/registry.js (from backend migration plan);
- * falls back to inline implementation if not available yet.
+ * Delegates to ../lib/registry.js (from the backend migration plan) when
+ * available. Falls back to an inline implementation with identical schema
+ * and function signatures if that module doesn't exist yet.
+ *
+ * TODO: Once the migration plan (2026-03-05-connect-cloudflare-migration-plan.md)
+ * Task 1 is implemented, remove the inline fallback block below and rely
+ * entirely on ../lib/registry.js.
  *
  * SECURITY: The registry file contains a Cloudflare Global API Key.
  * All writes use 0o600 permissions (owner read/write only).
@@ -178,6 +189,19 @@ Expected: FAIL -- module not found
 import { readFileSync, writeFileSync, existsSync, mkdirSync, chmodSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
+
+// --- Try to delegate to lib/registry.js ---
+let _registry = null;
+try {
+  _registry = await import('../lib/registry.js');
+} catch {
+  // lib/registry.js doesn't exist yet — use inline fallback below
+}
+
+// ============================================================
+// INLINE FALLBACK — same schema/signatures as lib/registry.js
+// Remove this entire block once lib/registry.js exists.
+// ============================================================
 
 function getVibesHome() {
   return process.env.VIBES_HOME || homedir();
@@ -191,7 +215,9 @@ function emptyRegistry() {
   return { version: 1, cloudflare: {}, apps: {} };
 }
 
-function loadRegistry() {
+// Matches lib/registry.js: loadRegistry()
+function _loadRegistry() {
+  if (_registry) return _registry.loadRegistry();
   const path = getRegistryPath();
   if (!existsSync(path)) return emptyRegistry();
   try {
@@ -203,21 +229,42 @@ function loadRegistry() {
   }
 }
 
-function saveRegistry(reg) {
-  const dir = join(getVibesHome(), '.vibes');
-  mkdirSync(dir, { recursive: true });
-  const path = getRegistryPath();
-  writeFileSync(path, JSON.stringify(reg, null, 2), { mode: 0o600 });
-  // Also chmod in case the file already existed with broader permissions
-  try { chmodSync(path, 0o600); } catch { /* best effort */ }
+// Matches lib/registry.js: saveRegistry(reg)
+function _saveRegistry(reg) {
+  if (_registry) {
+    _registry.saveRegistry(reg);
+  } else {
+    const dir = join(getVibesHome(), '.vibes');
+    mkdirSync(dir, { recursive: true });
+    const path = getRegistryPath();
+    writeFileSync(path, JSON.stringify(reg, null, 2), { mode: 0o600 });
+    // Also chmod in case the file already existed with broader permissions
+    try { chmodSync(path, 0o600); } catch { /* best effort */ }
+  }
+  // Ensure 0o600 regardless of which backend wrote the file
+  try {
+    const path = _registry ? join(getVibesHome(), '.vibes', 'deployments.json') : getRegistryPath();
+    chmodSync(path, 0o600);
+  } catch { /* best effort */ }
 }
+
+// ============================================================
+// Public API — editor-specific convenience functions that wrap
+// the registry primitives. These are NOT in lib/registry.js;
+// they live here because they serve the editor wizard only.
+// ============================================================
 
 /**
  * Get Cloudflare API credentials from registry.
+ * Delegates to lib/registry.js getCloudflareConfig() when available.
  * @returns {{ apiKey: string|null, email: string|null, accountId: string|null }}
  */
 export function getCloudflareCredentials() {
-  const reg = loadRegistry();
+  if (_registry) {
+    const cf = _registry.getCloudflareConfig();
+    return { apiKey: cf.apiKey || null, email: cf.email || null, accountId: cf.accountId || null };
+  }
+  const reg = _loadRegistry();
   const cf = reg.cloudflare || {};
   return {
     apiKey: cf.apiKey || null,
@@ -228,12 +275,17 @@ export function getCloudflareCredentials() {
 
 /**
  * Save Cloudflare API credentials to registry.
+ * Delegates to lib/registry.js setCloudflareConfig() when available.
  * @param {{ apiKey: string, email: string, accountId?: string }} creds
  */
 export function saveCloudflareCredentials(creds) {
-  const reg = loadRegistry();
-  reg.cloudflare = { ...reg.cloudflare, ...creds };
-  saveRegistry(reg);
+  if (_registry) {
+    _registry.setCloudflareConfig(creds);
+  } else {
+    const reg = _loadRegistry();
+    reg.cloudflare = { ...reg.cloudflare, ...creds };
+    _saveRegistry(reg);
+  }
 }
 
 /**
@@ -241,7 +293,7 @@ export function saveCloudflareCredentials(creds) {
  * @returns {{ publishableKey: string|null, secretKey: string|null, appName: string|null }}
  */
 export function getClerkCredentials() {
-  const reg = loadRegistry();
+  const reg = _loadRegistry();
   const apps = Object.values(reg.apps);
   if (apps.length === 0) {
     return { publishableKey: null, secretKey: null, appName: null };
@@ -259,24 +311,30 @@ export function getClerkCredentials() {
 
 /**
  * Save Clerk credentials. If no app name provided, uses '_default'.
+ * Delegates to lib/registry.js setApp() when available.
  * @param {{ publishableKey: string, secretKey: string, appName?: string }} creds
  */
 export function saveClerkCredentials(creds) {
-  const reg = loadRegistry();
   const appName = creds.appName || '_default';
-  const existing = reg.apps[appName] || { name: appName };
-  reg.apps[appName] = {
-    ...existing,
-    clerk: {
-      publishableKey: creds.publishableKey,
-      secretKey: creds.secretKey,
-    },
-    updatedAt: new Date().toISOString(),
-  };
-  if (!reg.apps[appName].createdAt) {
-    reg.apps[appName].createdAt = new Date().toISOString();
+  if (_registry) {
+    const existing = _registry.getApp(appName) || { name: appName };
+    _registry.setApp(appName, {
+      ...existing,
+      clerk: { publishableKey: creds.publishableKey, secretKey: creds.secretKey },
+    });
+  } else {
+    const reg = _loadRegistry();
+    const existing = reg.apps[appName] || { name: appName };
+    reg.apps[appName] = {
+      ...existing,
+      clerk: { publishableKey: creds.publishableKey, secretKey: creds.secretKey },
+      updatedAt: new Date().toISOString(),
+    };
+    if (!reg.apps[appName].createdAt) {
+      reg.apps[appName].createdAt = new Date().toISOString();
+    }
+    _saveRegistry(reg);
   }
-  saveRegistry(reg);
 }
 
 /**
@@ -314,9 +372,10 @@ Expected: PASS
 ```bash
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/registry-adapter.js scripts/__tests__/unit/registry-adapter.test.js && git commit -m "Add registry adapter for editor API credential storage
 
-Reads/writes ~/.vibes/deployments.json for Clerk and Cloudflare
-credentials. File permissions set to 0o600 (owner-only) since it
-contains the Cloudflare Global API Key."
+Thin adapter that delegates to lib/registry.js when available,
+with inline fallback using identical schema/signatures. File
+permissions set to 0o600 (owner-only) since it contains the
+Cloudflare Global API Key."
 ```
 
 ---
@@ -645,7 +704,72 @@ cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding
 
 ---
 
-### Task 4: Rewrite Wizard HTML -- All 4 Steps
+### Task 4: Relax Assembly Connect URL Gate
+
+`assemble.js` currently hard-gates on `VITE_API_URL` and `VITE_CLOUD_URL` in `.env`. With the new architecture, Connect URLs are not available until the first deploy (alchemy provisions them at deploy time). Assembly runs BEFORE deploy, so this gate blocks the entire flow.
+
+This task relaxes the gate so assembly succeeds with just a Clerk publishable key. The Connect config placeholders (`__VITE_API_URL__`, `__VITE_CLOUD_URL__`) will be left as empty strings in the assembled HTML; `deploy-cloudflare.js` (from the migration plan) will re-assemble with real URLs after alchemy provisions Connect.
+
+**Files:**
+- Modify: `scripts/assemble.js`
+- Modify: `scripts/assemble-sell.js` (same gate pattern)
+- Test: `scripts/__tests__/unit/assemble-validation.test.js` (existing tests)
+
+**Step 1: Modify the Connect validation block in assemble.js**
+
+Search for `// Validate Connect credentials - fail fast if invalid` in `scripts/assemble.js`. Replace the validation block (from that comment through the `console.log('Connect mode:` line) with:
+
+```javascript
+  // Validate Clerk key - required for all apps
+  const hasClerkKey = validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY);
+
+  if (!hasClerkKey) {
+    throw new Error(
+      'Valid Clerk publishable key required.\n\n' +
+      'Expected in .env:\n' +
+      '  VITE_CLERK_PUBLISHABLE_KEY=pk_test_... or pk_live_...\n\n' +
+      'Run the editor setup wizard to configure credentials.'
+    );
+  }
+
+  // Connect URLs are optional at assembly time — they'll be populated
+  // at deploy time when alchemy provisions the Connect instance.
+  // If present, they'll be substituted; if absent, placeholders become empty strings.
+  if (envVars.VITE_API_URL) {
+    console.log('Connect mode: Clerk auth + cloud sync enabled');
+  } else {
+    console.log('Connect mode: Clerk auth enabled (Connect URLs will be set at deploy time)');
+  }
+```
+
+**Step 2: Apply same change to assemble-sell.js**
+
+Search for the equivalent Connect validation block in `scripts/assemble-sell.js` (search for `hasValidConnect` or `Validate Connect credentials`). Apply the same relaxation -- require Clerk key, but make Connect URLs optional.
+
+**Step 3: Run existing assembly tests**
+
+Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && npx vitest run __tests__/unit/assemble-validation.test.js`
+
+Some tests may expect the old error message. Update any test that asserts the exact error text to match the new message. Tests that validate placeholder substitution should still pass since `populateConnectConfig` handles empty values gracefully (it replaces placeholders with empty strings).
+
+**Step 4: Run structural fixture tests**
+
+Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && npm run test:fixtures`
+Expected: PASS
+
+**Step 5: Commit**
+
+```bash
+cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/assemble.js scripts/assemble-sell.js && git commit -m "Relax assembly to not require Connect URLs
+
+Assembly now only requires a Clerk publishable key. Connect URLs
+(VITE_API_URL, VITE_CLOUD_URL) are optional at assembly time and
+will be populated at deploy time when alchemy provisions Connect."
+```
+
+---
+
+### Task 5: Rewrite Wizard HTML -- All 4 Steps
 
 Replace the SETUP phase HTML in editor.html. The new wizard has 4 steps instead of 5. This task replaces the entire `phaseSetup` div.
 
@@ -801,7 +925,7 @@ Cloudflare replaces exe.dev/Connect as the deploy target."
 
 ---
 
-### Task 5: Rewrite Wizard JavaScript -- State, Navigation, and Validation
+### Task 6: Rewrite Wizard JavaScript -- State, Navigation, and Validation
 
 Replace the wizard JS functions in editor.html. This task handles wizard state, navigation, validation functions, the save/verify flow, AND all deploy button state management that depended on the old status schema.
 
@@ -840,7 +964,9 @@ Keep `let wizardStep = 1;` unchanged.
 
 **Step 2: Replace all wizard functions**
 
-Search for `function renderChecklist(status)` -- this is the start of the wizard function block. Delete everything from that function through `function prefillFromStatus(status) { ... }` (inclusive). The block to delete ends just before the comment `// === Phase 2: Generate ===`.
+First, search for `async function checkSetup()` -- this function precedes the wizard block and references DOM elements (`setupActions`, `setupSkipBtn`) that no longer exist in the new wizard HTML. Delete the entire `checkSetup` function (from `async function checkSetup() {` through its closing `}`).
+
+Then, search for `function renderChecklist(status)` -- this is the start of the main wizard function block. Delete everything from that function through `function prefillFromStatus(status) { ... }` (inclusive). The block to delete ends just before the comment `// === Phase 2: Generate ===`.
 
 Replace the entire deleted block with:
 
@@ -1268,7 +1394,7 @@ Deploy buttons simplified to Cloudflare-only with cloudflareReady flag."
 
 ---
 
-### Task 6: Clean Up WebSocket Handlers -- Remove Studio Deploy
+### Task 7: Clean Up WebSocket Handlers -- Remove Studio Deploy
 
 The `ws-dispatch.js` file still has a `deploy-studio` entry in its dispatch table, and `deploy.js` still exports `handleDeployStudio`. The editor.html WebSocket message handler still processes `studio-progress`, `studio-complete`, and `studio-error` messages. All of these reference removed Connect Studio functionality.
 
@@ -1345,7 +1471,7 @@ Deploy handler now only supports Cloudflare target."
 
 ---
 
-### Task 7: Inject Registry Credentials into Deploy Subprocess
+### Task 8: Inject Registry Credentials into Deploy Subprocess
 
 The wizard validates and stores Cloudflare credentials in the registry, but `deploy-cloudflare.js` spawns `wrangler` via `process.env`. If the user authenticated via the wizard (Global API Key stored in registry) rather than via `wrangler login` (OAuth token in `~/.wrangler/`), wrangler won't find credentials.
 
@@ -1419,7 +1545,7 @@ credentials reach wrangler without modifying deploy-cloudflare.js."
 
 ---
 
-### Task 8: Add CSS for Wizard Validation Spinner
+### Task 9: Add CSS for Wizard Validation Spinner
 
 Small CSS additions to support the new wizard layout. The existing `.wizard-*` styles mostly work, but we need a validation spinner style.
 
@@ -1453,7 +1579,7 @@ cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding
 
 ---
 
-### Task 9: Update SessionStart Hook for Registry Detection
+### Task 10: Update SessionStart Hook for Registry Detection
 
 The session-start hook currently checks for `.env` with Clerk keys and Connect URLs. Update it to check the registry.
 
@@ -1556,7 +1682,7 @@ Remove /vibes:connect and /vibes:exe from dispatch table."
 
 ---
 
-### Task 10: Integration Test -- Full Wizard Flow
+### Task 11: Integration Test -- Full Wizard Flow
 
 Write an integration test that exercises the complete wizard flow: status check, Clerk save, Cloudflare validate, and final status.
 
@@ -1682,7 +1808,7 @@ file permissions on registry."
 
 ---
 
-### Task 11: Run Full Test Suite and Fix Regressions
+### Task 12: Run Full Test Suite and Fix Regressions
 
 **Step 1: Run all tests**
 
@@ -1716,13 +1842,14 @@ cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding
 
 ---
 
-### Task 12: Verification Checklist
+### Task 13: Verification Checklist
 
 **Before claiming complete, verify all of these:**
 
 - [ ] `cd scripts && npx vitest run` -- all tests pass
 - [ ] `cd scripts && npm run test:fixtures` -- structural tests pass
 - [ ] `echo '{}' | bash hooks/session-start.sh` -- valid JSON output
+- [ ] No references to `checkSetup` function in editor.html JS (deleted; references removed DOM elements)
 - [ ] No references to `studioMode` or `studioCheckTimer` in editor.html JS
 - [ ] No references to `wizardStep5` in editor.html HTML
 - [ ] No references to `deployTargets` in editor.html JS (replaced by `cloudflareReady`)
