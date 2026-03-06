@@ -3321,13 +3321,15 @@
     // prefillFromStatus() handles smart step-skipping without the redirect.
     // updateWelcomeIcons() updates the step 1 icons (extracted from renderChecklist).
     //
-    // Reset stale wizardData so prefillFromStatus starts clean
+    // Reset stale wizardData and validation state so prefillFromStatus starts clean
     wizardData.clerkKey = '';
     wizardData.clerkSecret = '';
     wizardData.cfApiToken = '';
     wizardData.cfApiKey = '';
     wizardData.cfEmail = '';
     wizardData.cfAccountId = '';
+    wizardValidation.clerk = 'unchecked';
+    wizardValidation.cloudflare = 'unchecked';
     //
     // ORDER MATTERS:
     // 1. setPhase('setup') — switch DOM to wizard view FIRST so elements exist

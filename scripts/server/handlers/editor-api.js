@@ -50,6 +50,7 @@ async function checkEditorDeps(ctx) {
   let clerkOk = false;
   let clerkDetail = 'No Clerk keys configured';
   let validatedPk = '';
+  let validatedSk = '';
 
   // Prefer _default (wizard sentinel entry)
   const defaultApp = reg.apps._default;
@@ -58,6 +59,8 @@ async function checkEditorDeps(ctx) {
     clerkOk = true;
     clerkDetail = `${defaultPk.slice(0, 12)}...`;
     validatedPk = defaultPk;
+    const sk = defaultApp?.clerk?.secretKey || '';
+    if (sk.startsWith('sk_test_') || sk.startsWith('sk_live_')) validatedSk = sk;
   }
 
   // Fall back to most recent real app entry (filter by key, not name property)
@@ -70,6 +73,8 @@ async function checkEditorDeps(ctx) {
       if (clerkOk) {
         clerkDetail = `${pk.slice(0, 12)}...`;
         validatedPk = pk;
+        const sk = apps[0].clerk?.secretKey || '';
+        if (sk.startsWith('sk_test_') || sk.startsWith('sk_live_')) validatedSk = sk;
       }
     }
   }
@@ -82,6 +87,8 @@ async function checkEditorDeps(ctx) {
       clerkOk = true;
       clerkDetail = `${envKey.slice(0, 12)}... (from .env)`;
       validatedPk = envKey;
+      const envSk = env.CLERK_SECRET_KEY || '';
+      if (envSk.startsWith('sk_test_') || envSk.startsWith('sk_live_')) validatedSk = envSk;
     }
   }
 
@@ -100,7 +107,9 @@ async function checkEditorDeps(ctx) {
   const maskedKeys = {};
   if (clerkOk && validatedPk) {
     maskedKeys.clerkPublishableKey = validatedPk.slice(0, 12) + '...' + validatedPk.slice(-4);
-    maskedKeys.clerkSecretKey = 'sk_****_configured';
+    if (validatedSk) {
+      maskedKeys.clerkSecretKey = validatedSk.slice(0, 12) + '...' + validatedSk.slice(-4);
+    }
   }
   if (cfOk) {
     if (cfConfig.apiToken) {
