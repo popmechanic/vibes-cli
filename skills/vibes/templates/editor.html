@@ -2424,17 +2424,35 @@
       <div class="wizard-step" id="wizardStep2">
         <div class="wizard-section-title">Clerk Authentication</div>
         <div class="wizard-help">
-          Clerk handles user sign-in for your apps. Create a free account, then copy your keys.
+          Clerk handles user sign-in for your apps. You'll need a free Clerk account with an application set up.
         </div>
+
+        <!-- Expandable: "I don't have a Clerk account yet" -->
+        <details style="margin-bottom:1rem;">
+          <summary style="cursor:pointer;font-size:0.8125rem;font-weight:700;color:var(--vibes-blue);user-select:none;">
+            I don't have a Clerk account yet
+          </summary>
+          <div style="background:rgba(0,154,206,0.06);border-radius:0 0 8px 8px;padding:0.75rem 1rem;font-size:0.8125rem;line-height:1.6;">
+            <ol style="margin:0.25rem 0 0 1.25rem;padding:0;">
+              <li>Go to <a class="wizard-link" href="https://clerk.com/sign-up" target="_blank">clerk.com/sign-up</a> and create a free account</li>
+              <li>When prompted, create a new application &mdash; name it anything (e.g. "My Vibes Apps")</li>
+              <li>For sign-in options, keep the defaults (Email + Google is fine)</li>
+              <li>Once created, you'll land on the dashboard &mdash; continue below to find your keys</li>
+            </ol>
+          </div>
+        </details>
+
         <div style="background:rgba(0,154,206,0.06);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.8125rem;line-height:1.5;">
-          <strong>Quick steps:</strong>
+          <strong>Finding your API keys:</strong>
           <ol style="margin:0.5rem 0 0 1.25rem;padding:0;">
-            <li>Go to <a class="wizard-link" href="https://dashboard.clerk.com" target="_blank">dashboard.clerk.com</a></li>
-            <li>Create an application (any name)</li>
-            <li>Go to <strong>API Keys</strong> in the sidebar</li>
-            <li>Copy both keys below</li>
+            <li>Open <a class="wizard-link" href="https://dashboard.clerk.com" target="_blank">dashboard.clerk.com</a></li>
+            <li>Select your application (or create one if you haven't)</li>
+            <li>Click <strong>Configure</strong> in the left sidebar, then <strong>API Keys</strong></li>
+            <li>Copy the <strong>Publishable key</strong> (starts with <code style="background:rgba(0,0,0,0.06);padding:0.1rem 0.3rem;border-radius:3px;font-size:0.75rem;">pk_test_</code>)</li>
+            <li>Click <strong>Show</strong> next to <strong>Secret key</strong> and copy it (starts with <code style="background:rgba(0,0,0,0.06);padding:0.1rem 0.3rem;border-radius:3px;font-size:0.75rem;">sk_test_</code>)</li>
           </ol>
         </div>
+
         <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Publishable Key</label>
         <input class="wizard-input" id="wizardClerkKey" type="text" placeholder="pk_test_..." oninput="validateWizardClerkInputs()" autocomplete="off" />
         <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;margin-top:0.5rem;">Secret Key</label>
