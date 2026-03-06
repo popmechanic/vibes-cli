@@ -3483,6 +3483,7 @@
 
   function setCfAuthMode(mode) {
     cfAuthMode = mode;
+    wizardValidation.cloudflare = 'unchecked';
     // Clear the other mode's stale data to prevent saving wrong credentials
     if (mode === 'token') {
       wizardData.cfApiKey = '';
@@ -3514,6 +3515,18 @@
 
   function validateWizardCfInputs() {
     const nextBtn = document.getElementById('wizardCfNext');
+
+    // If already validated and no new input, allow advancing
+    if (wizardValidation.cloudflare === 'valid') {
+      if (cfAuthMode === 'token') {
+        const tokenInput = document.getElementById('wizardCfApiToken');
+        if (!tokenInput.value.trim()) { nextBtn.disabled = false; return; }
+      } else {
+        const emailInput = document.getElementById('wizardCfEmail');
+        const keyInput = document.getElementById('wizardCfKey');
+        if (!emailInput.value.trim() && !keyInput.value.trim()) { nextBtn.disabled = false; return; }
+      }
+    }
 
     if (cfAuthMode === 'token') {
       const tokenInput = document.getElementById('wizardCfApiToken');
@@ -3548,6 +3561,17 @@
   }
 
   async function validateAndAdvanceCf() {
+    // If no new input and already validated, just advance
+    if (wizardValidation.cloudflare === 'valid') {
+      const hasNewInput = cfAuthMode === 'token'
+        ? document.getElementById('wizardCfApiToken').value.trim()
+        : (document.getElementById('wizardCfEmail').value.trim() || document.getElementById('wizardCfKey').value.trim());
+      if (!hasNewInput) {
+        setWizardStep(4);
+        return;
+      }
+    }
+
     const btn = document.getElementById('wizardCfNext');
     const hint = document.getElementById('wizardCfHint');
     btn.disabled = true;
