@@ -267,6 +267,24 @@ export function OIDCProvider(props) {
     var cancelled = false;
     var redirectUri = window.location.origin + window.location.pathname;
 
+    // Detect iframe/preview mode — OIDC redirect auth cannot work inside iframes
+    // because providers set frame-ancestors CSP. Bypass auth with mock user so
+    // the app renders in the editor preview. Real auth works after deploy.
+    var inIframe = false;
+    try { inIframe = window.self !== window.top; } catch (e) { inIframe = true; }
+
+    if (inIframe) {
+      if (!cancelled) {
+        setAuthState({
+          isLoading: false,
+          isSignedIn: true,
+          user: { firstName: "Preview", lastName: "User", email: "preview@localhost", id: "preview-user" },
+          accessToken: "preview-mode-token"
+        });
+      }
+      return;
+    }
+
     async function init() {
       // Step 1: Check for callback code
       var params = new URLSearchParams(window.location.search);
@@ -515,7 +533,14 @@ window.useOIDCContext = useOIDCContext;
 var _patchedApis = typeof WeakSet !== "undefined" ? new WeakSet() : { has: function () { return false; }, add: function () {} };
 var _currentDbName = null;
 
+// Detect iframe/preview mode once at module level
+var _isPreviewMode = false;
+try { _isPreviewMode = window.self !== window.top; } catch (e) { _isPreviewMode = true; }
+
 export function useFireproofOIDC(name, opts) {
+  // In preview mode, prefix DB name so preview data stays isolated from production
+  var effectiveName = _isPreviewMode ? "preview-" + (name || "app") : name;
+
   var ctx = React.useContext(OIDCContext);
   var dashApi = ctx && ctx.dashApi;
 
@@ -574,8 +599,8 @@ export function useFireproofOIDC(name, opts) {
     };
   }
 
-  _currentDbName = name;
-  var result = _baseUseFireproof(name, opts);
+  _currentDbName = effectiveName;
+  var result = _baseUseFireproof(effectiveName, opts);
 
   // Sync status bridge: use a simple state for tracking sync progress
   var syncVal = "idle";

@@ -55,7 +55,7 @@ export async function handleDeploy(ctx, onEvent, target, name) {
   });
 
   if (!assembleResult.ok) {
-    onEvent({ type: 'error', message: `Assembly failed: ${assembleResult.stderr.slice(0, 300)}` });
+    onEvent({ type: 'error', message: `Assembly failed: ${assembleResult.stderr.slice(0, 2000)}` });
     return;
   }
 
@@ -132,7 +132,7 @@ export async function handleDeploy(ctx, onEvent, target, name) {
   });
 
   if (!deployResult.ok) {
-    onEvent({ type: 'error', message: `Deploy failed: ${deployResult.stderr.slice(0, 600)}` });
+    onEvent({ type: 'error', message: `Deploy failed: ${deployResult.stderr.slice(0, 2000)}` });
     return;
   }
 

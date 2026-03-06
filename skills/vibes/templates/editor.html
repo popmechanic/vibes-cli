@@ -4018,9 +4018,13 @@
   }
 
   function loadDeployHistory() {
-    fetch('/editor/deployments').then(r => r.json()).then(deployments => {
+    fetch('/editor/deployments').then(r => r.json()).then(allDeployments => {
       const section = document.getElementById('deployHistorySection');
       const list = document.getElementById('deployHistoryList');
+      // Filter to only show deployments for the current app
+      const deployments = currentAppName
+        ? allDeployments.filter(d => d.name === currentAppName)
+        : allDeployments;
       if (!deployments.length) { section.style.display = 'none'; return; }
       section.style.display = 'block';
       list.replaceChildren();
