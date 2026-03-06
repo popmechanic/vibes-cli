@@ -126,7 +126,7 @@ describe('alchemy-deploy', () => {
 
     it('includes device CA keys', () => {
       const env = alchemyDeploy.buildAlchemyEnv({
-        clerkPublishableKey: 'pk_test_abc',
+        clerkPublishableKey: 'pk_test_Y2xlcmsuZXhhbXBsZS5jb20k',
         clerkSecretKey: 'sk_test_xyz',
         sessionTokenPublic: 'token-pub',
         sessionTokenSecret: 'token-sec',
@@ -161,7 +161,7 @@ describe('alchemy-deploy', () => {
 
     it('includes quota defaults', () => {
       const env = alchemyDeploy.buildAlchemyEnv({
-        clerkPublishableKey: 'pk_test_abc',
+        clerkPublishableKey: 'pk_test_Y2xlcmsuZXhhbXBsZS5jb20k',
         clerkSecretKey: 'sk_test_xyz',
         sessionTokenPublic: 'tp',
         sessionTokenSecret: 'ts',
