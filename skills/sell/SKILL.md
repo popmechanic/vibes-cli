@@ -1,6 +1,6 @@
 ---
 name: sell
-description: Self-contained SaaS automation — invoke directly, do not decompose. Transforms a Vibes app into a multi-tenant SaaS with subdomain-based tenancy. Adds Clerk authentication, subscription gating, and generates a unified app with landing page, tenant routing, and admin dashboard.
+description: Self-contained SaaS automation — invoke directly, do not decompose. Transforms a Vibes app into a multi-tenant SaaS with subdomain-based tenancy. Adds OIDC authentication (via Pocket ID), subscription gating, and generates a unified app with landing page, tenant routing, and admin dashboard.
 license: MIT
 allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 metadata:
@@ -25,7 +25,7 @@ metadata:
 
 - [Critical Rules](#-critical-rules---read-first-) - Read this first
 - [Step 1: Pre-Flight Checks](#step-1-pre-flight-checks) - Verify prerequisites
-- [Step 2: Clerk Configuration](#step-2-clerk-configuration-required) - Set up authentication (REQUIRED)
+- [Step 2: OIDC Configuration](#step-2-oidc-configuration-required) - Set up authentication (REQUIRED)
 - [Step 3: App Configuration](#step-3-app-configuration) - Collect app settings
 - [Step 4: Assembly](#step-4-assembly) - Build the unified app
 - [Step 5: Deployment](#step-5-deployment) - Deploy to Cloudflare Workers
@@ -55,11 +55,11 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" ...
 **NEVER do these manually:**
 - ❌ Write HTML/JSX for landing page, tenant app, or admin dashboard
 - ❌ Generate routing logic or authentication code
-- ❌ Deploy without `--clerk-key`
+- ❌ Deploy without `--oidc-authority`
 
 **ALWAYS do these:**
 - ✅ Complete pre-flight checks before starting
-- ✅ Collect ALL Clerk credentials BEFORE app configuration
+- ✅ Collect ALL OIDC credentials BEFORE app configuration
 - ✅ Run `assemble-sell.js` to generate the unified app
 - ✅ Deploy with ALL required flags
 
@@ -67,12 +67,12 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" ...
 
 # Sell - Transform Vibes to SaaS
 
-This skill uses `assemble-sell.js` to inject the user's app into a pre-built template. The template contains security checks, proper Clerk integration, and Fireproof patterns.
+This skill uses `assemble-sell.js` to inject the user's app into a pre-built template. The template contains security checks, proper OIDC integration, and Fireproof patterns.
 
 Convert your Vibes app into a multi-tenant SaaS product with:
 - Subdomain-based tenancy (alice.yourdomain.com)
-- Clerk authentication with passkeys
-- Subscription gating via Clerk Billing
+- OIDC authentication via Pocket ID (with passkeys)
+- Subscription gating (Stripe billing is phase 2)
 - Per-tenant Fireproof database isolation
 - Marketing landing page
 - Admin dashboard
@@ -135,33 +135,33 @@ After both checks pass, confirm:
 > - ✓ Fireproof Connect configured (.env found)
 > - ✓ App found (app.jsx)
 >
-> Now let's configure Clerk authentication. This is required for multi-tenant SaaS."
+> Now let's configure OIDC authentication (via Pocket ID). This is required for multi-tenant SaaS."
 
 ---
 
-## Step 2: Clerk Configuration (REQUIRED)
+## Step 2: OIDC Configuration (REQUIRED)
 
 **These credentials are REQUIRED. Do not proceed without them.**
 
-### 2.1 Clerk Dashboard Setup Instructions
+### 2.1 Pocket ID Setup
 
-Before collecting credentials, the user must set up Clerk. Present these instructions:
+Before collecting credentials, the user must have a Pocket ID instance configured (provided by the Connect Studio). Present these instructions:
 
-> **Clerk Setup Required**
+> **OIDC Setup Required**
 >
-> Before we continue, you need to configure Clerk authentication:
+> Before we continue, you need OIDC authentication configured via Pocket ID:
 >
-> 1. **Create a Clerk Application** at [clerk.com](https://clerk.com) — choose "Email + Passkey" authentication
-> 2. **Configure Email Settings** — enable email signup with verification, and **set "Require email address" to OFF** (signup fails otherwise)
-> 3. **Configure Passkey Settings** — enable sign-in with passkey, autofill, passkey button, and add-passkey-to-account
+> 1. **Verify your Connect Studio** is running — it includes Pocket ID for authentication
+> 2. **Check your .env** has `VITE_OIDC_AUTHORITY` pointing to your Studio's auth endpoint (e.g., `https://studio.exe.xyz/auth`)
+> 3. **Verify OIDC Client ID** — your Connect Studio provides this automatically
 >
-> See [CLERK-SETUP.md](./CLERK-SETUP.md) for the complete settings tables and step-by-step instructions.
+> If you haven't deployed Connect yet, run `/vibes:connect` first.
 >
-> **When you're ready, I'll collect your Clerk credentials.**
+> **When you're ready, I'll collect your OIDC credentials.**
 
-### 2.2 Collect App Name (Needed for Webhook URL)
+### 2.2 Collect App Name (Needed for Deploy URL)
 
-The webhook endpoint URL requires the app name. Collect it now so we can give the user the exact URL.
+Collect the app name for deployment.
 
 Use AskUserQuestion:
 ```
@@ -174,7 +174,7 @@ multiSelect: false
 
 Store as `appName` (URL-safe slug: lowercase, hyphens, no special chars).
 
-Now resolve the Cloudflare Workers URL so the webhook step has the real domain:
+Now resolve the Cloudflare Workers URL:
 
 ```bash
 node "{pluginRoot}/scripts/lib/resolve-workers-url.js" --name "{appName}"
@@ -199,55 +199,39 @@ Then construct: `{appName}.{subdomain}.workers.dev` and store as `domain`.
 
 The user can configure a custom domain later (see Step 5.2).
 
-### 2.3 Create Webhook
-
-Use AskUserQuestion:
-```
-Question: "Create a webhook in Clerk: Go to Webhooks > Add Endpoint. Set the URL to: https://{domain}/webhook — Subscribe to these events: user.created, user.deleted, subscription.deleted"
-Header: "Webhook"
-Options:
-- Label: "Webhook created"
-  Description: "I've added the endpoint and subscribed to the events"
-- Label: "I need help"
-  Description: "I'm having trouble finding the webhooks page"
-multiSelect: false
-```
-
-If "I need help": walk them through navigating Clerk dashboard > Configure > Webhooks > Add Endpoint, making sure to repeat the URL `https://{domain}/webhook`.
-
-### 2.4 Collect Clerk Credentials
+### 2.3 Collect OIDC Credentials
 
 Use AskUserQuestion with these 2 questions:
 
 ```
-Question 1: "What's your Clerk Publishable Key?"
-Header: "Clerk Key"
+Question 1: "What's your OIDC Authority URL?"
+Header: "OIDC Authority"
 Options: User enters via "Other"
-Description: "From Clerk Dashboard → API Keys. Starts with pk_test_ or pk_live_"
+Description: "From your Connect Studio .env. Looks like https://studio.exe.xyz/auth"
 
-Question 2: "What's your Clerk Webhook Secret?"
-Header: "Webhook"
+Question 2: "What's your OIDC Client ID?"
+Header: "OIDC Client"
 Options: User enters via "Other"
-Description: "From the webhook you just created — click the endpoint, copy the Signing Secret. Starts with whsec_"
+Description: "From your Connect Studio's Pocket ID configuration"
 ```
 
-### 2.5 Validation Gate
+### 2.4 Validation Gate
 
 **Before proceeding, validate ALL credentials:**
 
 | Credential | Valid Format | If Invalid |
 |------------|--------------|------------|
-| Publishable Key | Starts with `pk_test_` or `pk_live_` | Stop, ask for correct key |
-| Webhook Secret | Starts with `whsec_` | Stop, guide to webhook creation |
+| OIDC Authority | Valid HTTPS URL | Stop, ask for correct URL |
+| OIDC Client ID | Non-empty string | Stop, guide to Pocket ID config |
 
 **If ANY validation fails:** Stop and help user get the correct credential. Do not proceed to Step 3.
 
-### 2.6 Clerk Configuration Complete
+### 2.5 OIDC Configuration Complete
 
 Confirm to the user:
-> "Clerk credentials validated and saved:
-> - ✓ Publishable Key: pk_test_... (saved for assembly and deployment)
-> - ✓ Webhook Secret: whsec_... (saved for deployment)
+> "OIDC credentials validated and saved:
+> - ✓ Authority URL: https://studio.exe.xyz/auth (saved for assembly and deployment)
+> - ✓ Client ID: (saved for assembly and deployment)
 >
 > Now let's configure your app settings."
 
@@ -267,7 +251,7 @@ Use the AskUserQuestion tool with these 2 questions:
 Question 1: "Do you want to require paid subscriptions?"
 Header: "Billing"
 Options: ["No - free access for all", "Yes - subscription required"]
-Description: "Billing is configured in Clerk Dashboard → Billing"
+Description: "Billing via Stripe is planned for phase 2. Choose 'No' for now unless you have a custom Stripe integration."
 
 Question 2: "Display title for your app?"
 Header: "Title"
@@ -311,7 +295,8 @@ Description: "Comma-separated list (e.g., 'Photo sharing, Guest uploads, Live ga
 | App Name | `--app-name` | `wedding-photos` |
 | Domain | `--domain` | `myapp.marcus-e.workers.dev` |
 | Billing | `--billing-mode` | `off` or `required` |
-| Clerk Publishable Key | `--clerk-key` | `pk_test_xxx` |
+| OIDC Authority | `--oidc-authority` | `https://studio.exe.xyz/auth` |
+| OIDC Client ID | `--oidc-client-id` | `vibes-app-client` |
 | Title | `--app-title` | `Wedding Photos` |
 | Tagline | `--tagline` | `SHARE YOUR DAY.<br>MAKE IT SPECIAL.` |
 | Subtitle | `--subtitle` | `The easiest way to share wedding photos with guests.` |
@@ -370,7 +355,7 @@ Do NOT destructure from React (e.g., `const { useState } = React;`) or import Re
 Before running assembly, check the project `.env` for a cached admin user ID:
 
 ```bash
-grep CLERK_ADMIN_USER_ID .env 2>/dev/null
+grep OIDC_ADMIN_USER_ID .env 2>/dev/null
 ```
 
 **If found**, offer to include it (mask the middle, e.g., `user_37ici...ohcY`):
@@ -396,7 +381,8 @@ Run the assembly script with all collected values:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
-  --clerk-key "pk_test_xxx" \
+  --oidc-authority "https://studio.exe.xyz/auth" \
+  --oidc-client-id "vibes-app-client" \
   --app-name "wedding-photos" \
   --app-title "Wedding Photos" \
   --domain "{domain}" \
@@ -416,7 +402,8 @@ grep -o '__VITE_[A-Z_]*__' index.html | sort -u || echo "NO_PLACEHOLDERS"
 ```
 
 **If any placeholders found:** The .env file is missing required values. Check:
-- `VITE_CLERK_PUBLISHABLE_KEY` - must be set
+- `VITE_OIDC_AUTHORITY` - must be set
+- `VITE_OIDC_CLIENT_ID` - must be set
 - `VITE_API_URL` - must be set
 - `VITE_CLOUD_URL` - optional but recommended
 
@@ -452,17 +439,15 @@ The template uses neutral colors by default. To match the user's brand:
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
   --name wedding-photos \
   --file index.html \
-  --clerk-key "pk_test_xxx" \
-  --webhook-secret "whsec_xxx"
+  --oidc-authority "https://studio.exe.xyz/auth"
 ```
 
 **Required Flags for SaaS:**
 | Flag | Source | Purpose |
 |------|--------|---------|
-| `--clerk-key` | Clerk publishable key (pk_test_/pk_live_) | deploy-cloudflare.js auto-fetches PEM from JWKS endpoint |
-| `--webhook-secret` | Clerk webhook signing secret | deploy-cloudflare.js sets it as a Wrangler secret |
+| `--oidc-authority` | OIDC authority URL (Pocket ID endpoint) | deploy-cloudflare.js fetches OIDC discovery for JWT verification |
 
-**Without `--clerk-key`, the Worker won't be able to verify JWTs for subdomain claiming.**
+**Without `--oidc-authority`, the Worker won't be able to verify JWTs for subdomain claiming.**
 
 ### 5.2 DNS Configuration (For Custom Domains)
 
@@ -480,7 +465,7 @@ The app is immediately available at `{appName}.{subdomain}.workers.dev`. For a c
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
   --name wedding-photos \
   --file index.html \
-  --clerk-key "pk_test_xxx" \
+  --oidc-authority "https://studio.exe.xyz/auth" \
   --ai-key "sk-or-v1-your-provisioning-key"
 ```
 
@@ -497,7 +482,7 @@ curl -s https://{domain}/registry.json | head -c 100
 **If you see HTML instead of JSON:**
 - The Worker may not have deployed correctly
 - Check `npx wrangler tail --name {appName}` for errors
-- Verify `--clerk-key` was provided during deploy
+- Verify `--oidc-authority` was provided during deploy
 
 ---
 
@@ -517,37 +502,29 @@ Open in browser: `https://{domain}?subdomain=test`
 
 Should show the tenant app (may require sign-in).
 
-### 6.3 Clerk Dashboard Checklist
+### 6.3 Auth Verification Checklist
 
 Present this checklist to the user:
 
-> **Clerk Dashboard Settings Checklist**
+> **Authentication Settings Checklist**
 >
-> Verify these settings in your Clerk Dashboard:
+> Verify these settings for your deployment:
 >
-> **Domains** (Dashboard → Domains):
-> - [ ] Add your deployment domain (e.g., `{domain}`)
-> - [ ] If using custom domain, add that too
+> **OIDC Configuration**:
+> - [ ] `VITE_OIDC_AUTHORITY` points to your Pocket ID instance
+> - [ ] `VITE_OIDC_CLIENT_ID` is correctly set
+> - [ ] Your deployment domain is registered as an allowed redirect URI in Pocket ID
 >
-> **Webhook** (Dashboard → Configure → Webhooks):
-> - [ ] Endpoint URL matches your deployment: `https://{domain}/webhook`
-> - [ ] Events selected: `user.created`, `user.deleted`, `subscription.deleted`
->
-> **If using billing** (Dashboard → Billing):
-> - [ ] Stripe connected
-> - [ ] Plans created with matching names: `pro`, `basic`, `monthly`, `yearly`, `starter`, or `free`
+> **If using custom domain**:
+> - [ ] Add the custom domain as an allowed origin in Pocket ID
 
 ### 6.4 Billing Verification (if `--billing-mode required`)
 
-If billing mode is "required", verify the billing flow works:
+Note: Stripe billing integration is planned for phase 2. For now, billing mode "required" gates access but Stripe checkout is not yet wired up. Verify the paywall UI appears correctly:
 
-1. **Check landing page pricing**: Open `https://{domain}` and confirm the PricingTable is visible
-2. **Test paywall**: Open `https://{domain}?subdomain=test`, sign in, and confirm non-subscribed users see the SubscriptionPaywall
-3. **Test checkout**: Click a plan in the paywall, use test card `4242 4242 4242 4242` with any future expiry and any CVC
-4. **Verify access**: After subscribing, confirm the user can access the tenant app
-5. **Check webhook**: Cancel the subscription in Clerk Dashboard, then verify the subdomain is released in `/registry.json`
-
-If any step fails, check the Troubleshooting section for billing-specific issues.
+1. **Check landing page**: Open `https://{domain}` and confirm the landing page is visible
+2. **Test auth gate**: Open `https://{domain}?subdomain=test`, and confirm unauthenticated users see the auth screen
+3. **Verify access**: After signing in, confirm the user can access the tenant app
 
 ### 6.5 Admin Setup (After First Signup)
 
@@ -556,13 +533,14 @@ Guide the user through admin setup:
 > **Set Up Admin Access**
 >
 > 1. Visit your app and sign up: `https://{domain}`
-> 2. Complete the signup flow (email → verify → passkey)
-> 3. Go to Clerk Dashboard → Users → click your user → copy User ID
+> 2. Complete the signup flow (email or passkey via Pocket ID)
+> 3. Find your User ID from the Pocket ID admin panel or application logs
 > 4. Re-run assembly with admin access:
 >
 > ```bash
 > node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
->   --clerk-key "pk_test_xxx" \
+>   --oidc-authority "https://studio.exe.xyz/auth" \
+>   --oidc-client-id "vibes-app-client" \
 >   --app-name "{appName}" \
 >   --app-title "{appTitle}" \
 >   --domain "{domain}" \
@@ -575,15 +553,14 @@ Guide the user through admin setup:
 > node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
 >   --name {appName} \
 >   --file index.html \
->   --clerk-key "pk_test_xxx" \
->   --webhook-secret "whsec_xxx"
+>   --oidc-authority "https://studio.exe.xyz/auth"
 > ```
 
 After collecting the user ID, save it to the project `.env`:
 ```bash
-grep -q CLERK_ADMIN_USER_ID .env 2>/dev/null && \
-  sed -i '' 's/^CLERK_ADMIN_USER_ID=.*/CLERK_ADMIN_USER_ID=<new>/' .env || \
-  echo "CLERK_ADMIN_USER_ID=<new>" >> .env
+grep -q OIDC_ADMIN_USER_ID .env 2>/dev/null && \
+  sed -i '' 's/^OIDC_ADMIN_USER_ID=.*/OIDC_ADMIN_USER_ID=<new>/' .env || \
+  echo "OIDC_ADMIN_USER_ID=<new>" >> .env
 ```
 
 ---
@@ -648,7 +625,7 @@ function TenantProvider({ children, subdomain }) {
 Wraps tenant content and enforces billing mode:
 
 - **`off`**: Everyone gets free access after signing in
-- **`required`**: Users must subscribe via Clerk Billing before accessing tenant content
+- **`required`**: Users must subscribe before accessing tenant content (Stripe integration planned for phase 2)
 
 Admins always bypass the subscription check.
 
@@ -656,11 +633,11 @@ Admins always bypass the subscription check.
 
 ### SubscriptionPaywall
 
-Shown to authenticated users who do not have an active subscription (when `billingMode === "required"`). Displays a pricing table via Clerk's `<PricingTable />` component so users can subscribe without leaving the app.
+Shown to authenticated users who do not have an active subscription (when `billingMode === "required"`). Stripe billing integration is planned for phase 2. Currently displays a placeholder paywall.
 
 ### UpgradePrompt
 
-Optional component shown inside the tenant app when a user's plan has limited features. Use this for soft upsell messaging (e.g., "Upgrade to Pro for unlimited exports"). Not shown when `billingMode === "off"`.
+Optional component shown inside the tenant app when a user's plan has limited features. Use this for soft upsell messaging (e.g., "Upgrade to Pro for unlimited exports"). Not shown when `billingMode === "off"`. Full Stripe integration is planned for phase 2.
 
 ---
 
@@ -686,7 +663,7 @@ https://{domain}?subdomain=admin → Admin dashboard
 
 ## Import Map
 
-The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk integration:
+The unified template uses React 19 with `@necrodome/fireproof-clerk` (OIDC-compatible, backward-compat package name):
 
 ```json
 {
@@ -712,19 +689,20 @@ The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk i
 
 ### "Cannot read properties of null (reading 'useEffect')"
 - React version mismatch between packages
-- Ensure fireproof-clerk imports have `?external=react,react-dom`
+- Ensure Fireproof OIDC imports have `?external=react,react-dom`
 
 ### "Subscription Required" loop
 - Check that admin user ID is correct and in the `ADMIN_USER_IDS` array
-- Verify Clerk Billing is set up with matching plan names
+- Stripe billing integration is phase 2 — set `--billing-mode off` if not needed
 
-### Clerk not loading / Passkey fails / "Verification incomplete" error
-- See [CLERK-SETUP.md Troubleshooting](./CLERK-SETUP.md#troubleshooting) for detailed Clerk auth fixes
-- Most common fix: set "Require email address" to **OFF** in Clerk Dashboard → Email settings
+### Auth not loading / Passkey fails
+- Verify `VITE_OIDC_AUTHORITY` points to a reachable Pocket ID instance
+- Verify `VITE_OIDC_CLIENT_ID` is correctly configured
+- Check that your deployment domain is registered as an allowed redirect URI in Pocket ID
 
 ### Admin shows "Access Denied"
 - User ID not in --admin-ids array
-- Check Clerk Dashboard → Users → click user → copy User ID
+- Check Pocket ID admin panel for the correct user ID
 - Re-run assembly with correct --admin-ids
 
 ### Database not isolated
@@ -732,8 +710,7 @@ The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk i
 - Check `useFireproofClerk(dbName)` uses the tenant database name
 
 ### Registry returns HTML instead of JSON
-- Deploy was run without `--clerk-key` — re-deploy with it
-- See also [CLERK-SETUP.md Troubleshooting](./CLERK-SETUP.md#troubleshooting) for registry fetch errors
+- Deploy was run without `--oidc-authority` — re-deploy with it
 
 ### Assembly fails with ".env file not found"
 - Fireproof Connect is not configured
@@ -742,24 +719,11 @@ The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk i
 
 ### PricingTable not showing on landing page
 - Verify `--billing-mode required` was passed during assembly
-- Check browser console for Clerk Billing errors
-- Ensure at least one plan exists in Clerk Dashboard > Billing > Plans
+- Stripe billing integration is phase 2 — pricing table may show a placeholder
 
-### Paywall shows but checkout fails
-- In dev mode, Clerk auto-connects to Stripe sandbox — no Stripe account needed
-- Use test card `4242 4242 4242 4242` with any future expiry date and any 3-digit CVC
-- If using production keys, ensure Stripe is connected in Clerk Dashboard > Billing > Stripe
-
-### User subscribed but still sees paywall
-- Clerk subscription webhooks may be delayed — wait 10-15 seconds and refresh
-- Verify webhook endpoint URL matches: `https://{domain}/webhook`
-- Subscription status is checked via JWT claims, not webhooks — verify Clerk Billing plan exists
-- Check Worker logs: `npx wrangler tail --name {appName}`
-
-### Subscription canceled but subdomain not released
-- Verify webhook events include `subscription.deleted`
-- Check webhook secret is set: `npx wrangler secret list --name {appName}`
-- View Worker logs for webhook processing errors: `npx wrangler tail --name {appName}`
+### User authenticated but still sees paywall
+- If billing mode is "required", subscription checks may not be fully wired up yet (phase 2)
+- Set `--billing-mode off` for immediate access after authentication
 
 ---
 

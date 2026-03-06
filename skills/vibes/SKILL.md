@@ -83,7 +83,8 @@ Present Editor as the first/recommended option.
 Run this command first to validate all required credentials:
 ```bash
 if test -f "./.env" && \
-   grep -qE "^VITE_CLERK_PUBLISHABLE_KEY=pk_(test|live)_" ./.env 2>/dev/null && \
+   grep -qE "^VITE_OIDC_AUTHORITY=" ./.env 2>/dev/null && \
+   grep -qE "^VITE_OIDC_CLIENT_ID=" ./.env 2>/dev/null && \
    grep -qE "^VITE_API_URL=" ./.env 2>/dev/null && \
    grep -qE "^VITE_CLOUD_URL=" ./.env 2>/dev/null; then
   echo "CONNECT_READY"
@@ -94,7 +95,7 @@ fi
 
 **If output is "CONNECT_NOT_READY"**, Connect setup is required:
 
-> Connect with Clerk authentication is required for Vibes apps.
+> Connect with OIDC authentication (via Pocket ID) is required for Vibes apps.
 
 Invoke `/vibes:connect` to deploy Connect, then return here when complete.
 
@@ -105,14 +106,14 @@ Invoke `/vibes:connect` to deploy Connect, then return here when complete.
 
 Do not default to ambient mood generators, floating orbs, or meditation apps unless explicitly requested.
 
-**Import Map Note**: The import map points `use-fireproof` to `/fireproof-vibes-bridge.js`, a bridge module that wraps the raw Fireproof bundle with sync status forwarding and an onTock kick effect. Your code uses `import { useFireproofClerk } from "use-fireproof"` and the browser resolves this through the bridge → `./fireproof-clerk-bundle.js`. This is intentional—the bridge ensures `useLiveQuery` subscribers see synced data and that `SyncStatusDot` gets live sync status via a window global.
+**Import Map Note**: The import map points `use-fireproof` to `/fireproof-oidc-bridge.js`, a bridge module that wraps the raw Fireproof bundle with sync status forwarding and an onTock kick effect. Your code uses `import { useFireproofClerk } from "use-fireproof"` (backward-compat alias) and the browser resolves this through the bridge. This is intentional—the bridge ensures `useLiveQuery` subscribers see synced data and that `SyncStatusDot` gets live sync status via a window global.
 
 ## Core Rules
 
 - **Use JSX** - Standard React syntax with Babel transpilation
 - **Single HTML file** - App code assembled into template
 - **Fireproof for data** - Use `useFireproofClerk` for database + sync
-- **Auto-detect Connect** - Template handles Clerk auth when Connect is configured
+- **Auto-detect Connect** - Template handles OIDC auth (via Pocket ID) when Connect is configured
 - **Tailwind for styling** - Mobile-first, responsive design
 
 ## Generation Process
@@ -187,7 +188,7 @@ Generate one layout using the selected theme's design principles. Do NOT add `us
 - "Yes" → Generate `theme.html` (see below), open in browser, iterate until the user is happy, then proceed to Step 2
 - "No" → Skip directly to Step 2
 
-**If the user says yes**, generate a standalone `theme.html` — a self-contained static page that demonstrates the visual design without React, Fireproof, or Clerk:
+**If the user says yes**, generate a standalone `theme.html` — a self-contained static page that demonstrates the visual design without React, Fireproof, or auth:
 
 - **Single HTML file** with inline `<style>` and `<script>`. No external dependencies except Google Fonts via `@import`.
 - **CSS custom properties** using `--comp-*` token overrides from the selected theme.
@@ -280,7 +281,7 @@ export default function App() {
 
 **⚠️ CRITICAL: Fireproof Hook Pattern**
 
-The `@necrodome/fireproof-clerk` package exports ONLY `useFireproofClerk`. Always use this pattern:
+The Fireproof OIDC package exports `useFireproofClerk` (backward-compat alias). Always use this pattern:
 
 ```jsx
 // ✅ CORRECT - This is the ONLY pattern that works
@@ -296,7 +297,7 @@ const { attach } = useFireproof("db", { attach: toCloud() });  // WRONG - old pa
 
 **Sync Status**: `syncStatus` provides the current sync state. Values: `"idle"`, `"connecting"`, `"synced"`, `"reconnecting"`, `"error"`. Display it for user feedback.
 
-**Connect Configuration**: Generated apps require Clerk authentication and cloud sync.
+**Connect Configuration**: Generated apps require OIDC authentication (via Pocket ID) and cloud sync.
 The `assemble.js` script populates `window.__VIBES_CONFIG__` from your `.env` file.
 Apps will show a configuration error if credentials are missing.
 
@@ -313,7 +314,7 @@ Apps will show a configuration error if credentials are missing.
    ```bash
    node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble.js" app.jsx index.html
    ```
-5. Deploy the app so the user can see it. Clerk auth requires a public URL — the app cannot be viewed locally. Auto-invoke /vibes:cloudflare to deploy, then present the live URL.
+5. Deploy the app so the user can see it. OIDC auth requires a public URL — the app cannot be viewed locally. Auto-invoke /vibes:cloudflare to deploy, then present the live URL.
 
 ---
 
@@ -407,7 +408,7 @@ import { useFireproofClerk } from "use-fireproof";
 const { database, useLiveQuery, useDocument, syncStatus } = useFireproofClerk("my-app-db");
 ```
 
-**Note**: When Connect is configured (via .env), the template wraps your App in `ClerkFireproofProvider`, enabling authenticated cloud sync automatically. Your code just uses `useFireproofClerk`.
+**Note**: When Connect is configured (via .env), the template wraps your App in `OIDCProvider`, enabling authenticated cloud sync automatically. Your code just uses `useFireproofClerk`.
 
 ### Choosing Your Pattern
 
@@ -689,7 +690,7 @@ async function handleInvite(email) {
 }
 ```
 
-The hook is available on `window.useSharing` after Clerk loads. Check `ready` before calling methods.
+The hook is available on `window.useSharing` after the OIDC provider loads. Check `ready` before calling methods.
 
 ---
 
@@ -741,9 +742,9 @@ The hook is available on `window.useSharing` after Clerk loads. Check `ready` be
   // GOOD — explicit fields only
   await database.put({ _id: doc._id, type: doc.type, todo: doc.todo, completed: true });
   ```
-- **DON'T** wrap your app in `VibeContextProvider` - that's a vibes.diy platform-only component. Standalone apps use `useFireproofClerk()` directly.
+- **DON'T** wrap your app in `VibeContextProvider` or `OIDCProvider` yourself - those are provided by the template. Standalone apps use `useFireproofClerk()` directly inside the template's `OIDCProvider`.
 - **DON'T** panic if you see "Cannot read properties of null (reading 'useContext')" - the template already handles the React singleton via `?external=react,react-dom` in the import map. Check that the import map wasn't accidentally modified.
-- **NOTE:** Apps use `/fireproof-vibes-bridge.js` — this bridge module wraps the local Fireproof bundle with sync status forwarding + onTock kick. The bundle itself (`/fireproof-clerk-bundle.js`) is a temporary workaround that fixes a CID bug and includes sync improvements. Apps work correctly with it.
+- **NOTE:** Apps use `/fireproof-oidc-bridge.js` — this bridge module wraps the local Fireproof bundle with sync status forwarding + onTock kick. Apps work correctly with it.
 - **DON'T** hand-write `app.jsx` and assemble it manually — always generate through
   `/vibes:vibes`, even for test or diagnostic apps. The skill generates code that's
   compatible with the template by construction. Hand-written code may include imports
@@ -759,7 +760,7 @@ The shipped default files contain detailed reference material. Read them when th
 |------|------------------|-----------|
 | Design tokens & theming | colors, theme, tokens, brand colors, styling | `${CLAUDE_PLUGIN_ROOT}/build/design-tokens.txt` |
 | File uploads | "upload", "images", "photos", "attachments" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Working with Images" |
-| Auth / sync config | "Clerk", "Connect", "cloud sync", "login" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "ClerkFireproofProvider Config" |
+| Auth / sync config | "OIDC", "Pocket ID", "Connect", "cloud sync", "login" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "OIDCProvider Config" |
 | Sync status display | "online/offline", "connection status" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Sync Status Display" |
 | Full Neobrute design details | detailed design system, spacing, typography | `${CLAUDE_SKILL_DIR}/defaults/style-prompt.txt` |
 | Advanced visual effects | "interactive", "animated", "3D", "particles", "shader", "canvas" | `${CLAUDE_SKILL_DIR}/defaults/advanced-effects-prompt.txt` |
@@ -792,7 +793,7 @@ Options:
   Description: "Not sure if this is the best approach? Riff generates 3-10 completely different interpretations of your idea in parallel. You'll get ranked variations with business model analysis to help you pick the winner."
 
 - Label: "Make it a SaaS (/sell)"
-  Description: "Ready to monetize? Sell transforms your app into a multi-tenant SaaS with Clerk authentication, subscription billing, and isolated databases per customer. Each user gets their own subdomain."
+  Description: "Ready to monetize? Sell transforms your app into a multi-tenant SaaS with OIDC authentication (via Pocket ID), subscription billing, and isolated databases per customer. Each user gets their own subdomain."
 
 - Label: "Deploy to Cloudflare (/cloudflare)"
   Description: "Go live on the edge. Deploy to Cloudflare Workers with a subdomain registry, KV storage, and global CDN. Fast, scalable, and always on."
@@ -810,4 +811,4 @@ Options:
 - "I'm done" → Confirm files saved, wish them well
 
 **Do NOT proceed to code generation until:**
-Connect setup is complete with valid Clerk credentials in .env (pre-flight check returns CONNECT_READY).
+Connect setup is complete with valid OIDC credentials in .env (pre-flight check returns CONNECT_READY).

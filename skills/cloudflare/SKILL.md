@@ -40,8 +40,7 @@ Before deploying, set the required secrets:
 
 ```bash
 cd skills/cloudflare/worker
-npx wrangler secret put CLERK_PEM_PUBLIC_KEY
-npx wrangler secret put CLERK_WEBHOOK_SECRET
+npx wrangler secret put OIDC_PEM_PUBLIC_KEY
 ```
 
 ### Deploy Script
@@ -49,10 +48,10 @@ npx wrangler secret put CLERK_WEBHOOK_SECRET
 For deploying with static assets (index.html, bundles, assets):
 
 ```bash
-node scripts/deploy-cloudflare.js --name myapp --file index.html --clerk-key "pk_test_xxx"
+node scripts/deploy-cloudflare.js --name myapp --file index.html --oidc-authority "https://studio.exe.xyz/auth"
 ```
 
-The `--clerk-key` flag auto-fetches the PEM public key from Clerk's JWKS endpoint and sets it as `CLERK_PEM_PUBLIC_KEY`. Without it, the Worker can't verify JWTs for authenticated endpoints like `/claim`.
+The `--oidc-authority` flag fetches the PEM public key from the OIDC discovery endpoint and sets it as `OIDC_PEM_PUBLIC_KEY`. Without it, the Worker can't verify JWTs for authenticated endpoints like `/claim`.
 
 This automatically:
 - Copies index.html to worker's public/
@@ -67,7 +66,6 @@ This automatically:
 | `/registry.json` | GET | Public registry read |
 | `/check/:subdomain` | GET | Check subdomain availability |
 | `/claim` | POST | Claim a subdomain (auth required) |
-| `/webhook` | POST | Clerk subscription webhooks |
 | `/api/ai/chat` | POST | AI proxy to OpenRouter (requires OPENROUTER_API_KEY) |
 
 ### KV Storage
@@ -113,35 +111,34 @@ After setup:
 
 | Secret | Source | Purpose |
 |--------|--------|---------|
-| `CLERK_PEM_PUBLIC_KEY` | Clerk JWKS endpoint | JWT signature verification |
+| `OIDC_PEM_PUBLIC_KEY` | OIDC discovery endpoint (Pocket ID) | JWT signature verification |
 | `PERMITTED_ORIGINS` | Your domains | JWT azp claim validation |
-| `CLERK_WEBHOOK_SECRET` | Clerk dashboard | Webhook signature verification |
 | `OPENROUTER_API_KEY` | OpenRouter dashboard | AI proxy for `useAI()` hook (optional) |
 
 **Setting secrets:**
 ```bash
 cd skills/cloudflare/worker
-npx wrangler secret put CLERK_PEM_PUBLIC_KEY
+npx wrangler secret put OIDC_PEM_PUBLIC_KEY
 # Paste the PEM key (-----BEGIN PUBLIC KEY----- ... -----END PUBLIC KEY-----)
-
-npx wrangler secret put CLERK_WEBHOOK_SECRET
-# Paste the webhook signing secret from Clerk dashboard
 
 npx wrangler secret put PERMITTED_ORIGINS
 # Enter: https://yourdomain.com,https://*.yourdomain.com
 ```
 
-**Getting CLERK_PEM_PUBLIC_KEY:**
+**Getting OIDC_PEM_PUBLIC_KEY:**
 
-1. Find your Clerk Frontend API URL in Clerk dashboard (e.g., `clerk.yourdomain.com`)
-2. Fetch JWKS: `curl https://clerk.yourdomain.com/.well-known/jwks.json`
-3. Convert JWK to PEM using Node.js:
+1. Find your Pocket ID OIDC authority URL (e.g., `https://studio.exe.xyz/auth`)
+2. Fetch OIDC discovery: `curl https://studio.exe.xyz/auth/.well-known/openid-configuration`
+3. Get the JWKS URI from the response and fetch: `curl <jwks_uri>`
+4. Convert JWK to PEM using Node.js:
 ```javascript
 const crypto = require('crypto');
 const jwk = { /* paste the key from jwks.json */ };
 const pem = crypto.createPublicKey({ key: jwk, format: 'jwk' }).export({ type: 'spki', format: 'pem' });
 console.log(pem);
 ```
+
+Note: The `--oidc-authority` flag on `deploy-cloudflare.js` handles this automatically.
 
 ### Deploy with --name Flag
 
@@ -161,7 +158,7 @@ Apps using the `useAI()` hook call `/api/ai/chat` on the same origin. The worker
 **Deploy with AI enabled:**
 
 ```bash
-node scripts/deploy-cloudflare.js --name myapp --file index.html --clerk-key "pk_test_xxx" --ai-key "sk-or-v1-your-key"
+node scripts/deploy-cloudflare.js --name myapp --file index.html --oidc-authority "https://studio.exe.xyz/auth" --ai-key "sk-or-v1-your-key"
 ```
 
 The `--ai-key` flag sets the `OPENROUTER_API_KEY` secret on the worker after deployment. Without it, `/api/ai/chat` returns `{"error": "AI not configured"}`.
@@ -179,7 +176,7 @@ npx wrangler secret put OPENROUTER_API_KEY --name myapp
 |---------|-------|-----|
 | `wrangler: command not found` | Wrangler not installed | `npm install -g wrangler` or use `npx wrangler` |
 | KV namespace errors | Namespace doesn't exist or wrong ID | Run `npx wrangler kv namespace list` to verify |
-| JWT verification fails (401) | Missing or wrong PEM key | Check `CLERK_PEM_PUBLIC_KEY` is set: `npx wrangler secret list --name <app>` |
+| JWT verification fails (401) | Missing or wrong PEM key | Check `OIDC_PEM_PUBLIC_KEY` is set: `npx wrangler secret list --name <app>` |
 | JWT azp mismatch (403) | Origins not configured | Set `PERMITTED_ORIGINS` to include your domain |
 | 404 on subdomain URL | Workers.dev doesn't support nested subdomains | Set up a custom domain (see Custom Domain Setup above) |
 | `/api/ai/chat` returns "AI not configured" | Missing OpenRouter key | Set `OPENROUTER_API_KEY` secret or redeploy with `--ai-key` |
@@ -198,7 +195,7 @@ AskUserQuestion:
       description: "Configure DNS for subdomain routing (required for multi-tenant)"
     - label: "Enable AI features"
       description: "Add OpenRouter API key for the useAI() hook"
-    - label: "Add billing & auth"
-      description: "Transform into SaaS with /vibes:sell, then redeploy"
+    - label: "Add auth & SaaS features"
+      description: "Transform into SaaS with /vibes:sell (OIDC auth via Pocket ID), then redeploy"
     - label: "Open in browser"
       description: "Visit the deployed URL to verify everything works"

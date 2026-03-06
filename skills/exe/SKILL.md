@@ -40,13 +40,13 @@ Options: ["No", "Yes - I have an OpenRouter key"]
 
 Question 4: "Is this a SaaS app with subdomain claiming?"
 Header: "Registry"
-Options: ["No - simple static deploy", "Yes - need Clerk keys for registry"]
+Options: ["No - simple static deploy", "Yes - need OIDC config for registry"]
 ```
 
 #### After Receiving Answers
 
 1. If AI enabled, ask for the OpenRouter API key
-2. If Registry enabled, ask for Clerk PEM public key and webhook secret
+2. If Registry enabled, ask for OIDC authority URL and client ID
 3. **Proceed immediately to deploy** - no more questions
 
 ### Quick Deploy
@@ -92,20 +92,19 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.htm
 
 ### Registry Server
 
-For SaaS apps using subdomain claiming (from `/vibes:sell`), deploy with Clerk credentials:
+For SaaS apps using subdomain claiming (from `/vibes:sell`), deploy with OIDC credentials:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-exe.js" --name myapp --file index.html \
-  --clerk-key "`cat clerk-public-key.pem`" \
-  --clerk-webhook-secret "whsec_xxx" \
+  --oidc-authority "https://studio.exe.xyz/auth" \
   --reserved "admin,api,billing"
 ```
 
 This sets up a **subdomain registry server**:
 1. Installs Bun runtime to `/usr/local/bin/bun`
-2. Creates `/var/www/registry-server.ts` with Clerk JWT verification
+2. Creates `/var/www/registry-server.ts` with OIDC JWT verification
 3. Configures systemd service (port 3002)
-4. Adds nginx proxy for `/registry.json`, `/check/*`, `/claim`, `/webhook`
+4. Adds nginx proxy for `/registry.json`, `/check/*`, `/claim`
 
 #### Registry Endpoints
 
@@ -114,38 +113,21 @@ This sets up a **subdomain registry server**:
 | `/registry.json` | GET | None | Public read of all claims |
 | `/check/{subdomain}` | GET | None | Check availability |
 | `/claim` | POST | Bearer JWT | Claim subdomain for user |
-| `/webhook` | POST | Svix sig | Clerk subscription events |
 
-#### Getting the Clerk Public Key
+#### OIDC JWT Verification
 
-The registry server needs Clerk's PEM public key to verify JWTs for the `/claim` endpoint.
-
-**Option 1: From Clerk Dashboard**
-1. Go to Clerk Dashboard → API Keys
-2. Scroll to "PEM Public Key" or click "Show JWT Public Key"
-3. Copy the full key (starts with `-----BEGIN PUBLIC KEY-----`)
-
-**Option 2: From JWKS endpoint**
-```bash
-# Get your Clerk frontend API domain from dashboard
-curl https://YOUR_CLERK_DOMAIN/.well-known/jwks.json
-```
-Then convert the JWK to PEM format using an online tool or `jose` CLI.
+The registry server uses OIDC discovery to verify JWTs for the `/claim` endpoint. It fetches the JWKS from your Pocket ID instance's `/.well-known/openid-configuration` endpoint automatically.
 
 **Passing to deploy script:**
 ```bash
-# From a file
-node deploy-exe.js --clerk-key "`cat clerk-public-key.pem`" ...
-
-# Inline (escape newlines)
-node deploy-exe.js --clerk-key "-----BEGIN PUBLIC KEY-----\nMIIB...\n-----END PUBLIC KEY-----" ...
+node deploy-exe.js --oidc-authority "https://studio.exe.xyz/auth" ...
 ```
 
 **Manual configuration on server:**
 ```bash
 ssh myapp.exe.dev
 sudo nano /etc/registry.env
-# Add: CLERK_PEM_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----"
+# Add: OIDC_AUTHORITY="https://studio.exe.xyz/auth"
 sudo systemctl restart vibes-registry
 ```
 
@@ -216,8 +198,7 @@ const { database } = useFireproof(dbName);
 | `--ai-key <key>` | OpenRouter API key for AI features |
 | `--multi-tenant` | Enable subdomain-based multi-tenancy |
 | `--tenant-limit <$>` | Credit limit per tenant in dollars (default: 5) |
-| `--clerk-key <pem>` | Clerk PEM public key for JWT verification |
-| `--clerk-webhook-secret <secret>` | Clerk webhook signing secret |
+| `--oidc-authority <url>` | OIDC authority URL (Pocket ID endpoint) for JWT verification |
 | `--reserved <list>` | Comma-separated reserved subdomain names |
 | `--preallocated <list>` | Pre-claimed subdomains (format: `sub:user_id`) |
 | `--dry-run` | Show commands without executing |
@@ -252,7 +233,7 @@ exe.dev VM (exeuntu image)
 ├── (with --ai-key)
 │   ├── /opt/vibes/proxy.js  ← AI proxy service (port 3001)
 │   └── vibes-proxy.service  ← systemd unit
-└── (with --clerk-key)
+└── (with --oidc-authority)
     ├── /var/www/registry-server.ts  ← Registry service (port 3002)
     ├── /var/www/html/registry.json  ← Subdomain claims data
     └── vibes-registry.service       ← systemd unit

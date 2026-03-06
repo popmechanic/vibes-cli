@@ -277,7 +277,7 @@ node "/path/to/vibes-skill/scripts/assemble.js" app.jsx index.html
 
 The assembly script:
 - Inserts your JSX into the Vibes template
-- Handles Clerk authentication wrapper
+- Handles OIDC authentication wrapper (via Pocket ID)
 - Sets up import maps for React and Fireproof
 - Configures Connect if `.env` is present
 

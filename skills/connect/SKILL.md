@@ -17,9 +17,9 @@ Deploy Fireproof Connect to exe.dev as your personal sync backend. Your Studio V
 
 1. **SSH key** in `~/.ssh/` (id_ed25519, id_rsa, or id_ecdsa)
 2. **exe.dev account** - run `ssh exe.dev` once to create your account
-3. **Clerk credentials** from [clerk.com](https://clerk.com):
-   - Publishable Key (pk_test_... or pk_live_...)
-   - Secret Key (sk_test_... or sk_live_...)
+3. **OIDC configuration** — Pocket ID is deployed alongside Connect on the Studio VM. You will configure:
+   - OIDC Authority URL (e.g., `https://studio.exe.xyz/auth`)
+   - OIDC Client ID (generated during setup)
 
 ### Gather Config
 
@@ -47,48 +47,33 @@ Question 1: "What codename for your Studio? (becomes <codename>.exe.xyz)"
 Header: "Studio"
 Options: Suggest "${username}-studio" + user enters via "Other"
 
-Question 2: "Do you have your Clerk keys ready?"
-Header: "Clerk"
-Options: ["Yes, I have them", "No, I need to get them first"]
+Question 2: "Pocket ID will be set up automatically on your Studio VM. Ready to proceed?"
+Header: "Auth"
+Options: ["Yes, let's go", "Tell me more about Pocket ID"]
 ```
 
-If user needs Clerk keys, provide these instructions:
-1. Go to [clerk.com](https://clerk.com) and sign in
-2. Select your application (or create one)
-3. Go to API Keys in the sidebar
-4. Copy both the Publishable Key and Secret Key
-
-**After receiving the codename**, ask for the keys:
-
-```
-Question: "Paste your Clerk Publishable Key (starts with pk_test_ or pk_live_)"
-Header: "Publishable"
-Options: [User enters via "Other"]
-
-Question: "Paste your Clerk Secret Key (starts with sk_test_ or sk_live_)"
-Header: "Secret"
-Options: [User enters via "Other"]
-```
+If user wants to learn more: Pocket ID is a lightweight OIDC provider that runs alongside Connect on your Studio VM. It handles authentication for all your Vibes apps — no external auth service needed.
 
 ### Deploy Command
 
 ```bash
 cd "${CLAUDE_PLUGIN_ROOT}/scripts" && [ -d node_modules ] || npm install
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-connect.js" \
-  --studio <codename> \
-  --clerk-publishable-key "pk_test_..." \
-  --clerk-secret-key "sk_test_..."
+  --studio <codename>
 ```
+
+The deploy script automatically sets up Pocket ID alongside Connect. After deployment, OIDC credentials are output and saved to your local `.env`.
 
 ### What It Does
 
 1. **SSH to `<studio>.exe.xyz`** - Creates VM if needed
 2. **Clone fireproof repo** - `selem/docker-for-all` branch to `/opt/fireproof`
-3. **Generate security tokens** - Session tokens and device CA keys
-4. **Create `.env`** - All credentials for Docker services
-5. **Run `./docker/start.sh`** - Starts the full Fireproof stack
-6. **Wait for services** - Confirms port 8080 is responding
-7. **Write local `.connect`** - Saves studio info for future reference
+3. **Deploy Pocket ID** - Sets up OIDC provider alongside Connect
+4. **Generate security tokens** - Session tokens and device CA keys
+5. **Create `.env`** - All credentials for Docker services (including OIDC config)
+6. **Run `./docker/start.sh`** - Starts the full Fireproof stack + Pocket ID
+7. **Wait for services** - Confirms port 8080 is responding
+8. **Write local `.env`** - Saves studio info and OIDC credentials for future reference
 
 ### Architecture
 
@@ -112,6 +97,7 @@ After deployment, your Studio exposes:
 
 | Endpoint | URL | Purpose |
 |----------|-----|---------|
+| OIDC Authority | `https://<studio>.exe.xyz/auth` | Pocket ID OIDC provider |
 | Token API | `https://<studio>.exe.xyz/api` | Token issuance for auth |
 | Cloud Sync | `fpcloud://<studio>.exe.xyz?protocol=wss` | Real-time sync |
 
@@ -123,7 +109,8 @@ The deploy script creates a `.connect` file in your project:
 studio: <codename>
 api_url: https://<codename>.exe.xyz/api
 cloud_url: fpcloud://<codename>.exe.xyz?protocol=wss
-clerk_publishable_key: pk_test_...
+oidc_authority: https://<codename>.exe.xyz/auth
+oidc_client_id: <generated-client-id>
 ```
 
 This file is gitignored and used to auto-configure app deployments.
@@ -133,7 +120,8 @@ This file is gitignored and used to auto-configure app deployments.
 After deploying Connect, update your app's `.env`:
 
 ```bash
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
+VITE_OIDC_AUTHORITY=https://<studio>.exe.xyz/auth
+VITE_OIDC_CLIENT_ID=<generated-client-id>
 VITE_API_URL=https://<studio>.exe.xyz/api
 VITE_CLOUD_URL=fpcloud://<studio>.exe.xyz?protocol=wss
 ```
@@ -160,8 +148,6 @@ ssh <studio>.exe.xyz "cd /opt/fireproof && sudo docker compose restart"
 | Option | Description |
 |--------|-------------|
 | `--studio <name>` | Studio VM name (required) |
-| `--clerk-publishable-key <key>` | Clerk publishable key (required) |
-| `--clerk-secret-key <key>` | Clerk secret key (required) |
 | `--dry-run` | Show what would be done without executing |
 
 ---

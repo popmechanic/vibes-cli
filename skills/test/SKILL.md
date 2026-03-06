@@ -17,52 +17,52 @@ Orchestrates the full test pipeline: credentials → Connect studio → fixture 
 
 ### Phase 1: Credentials
 
-Check if `test-vibes/.env` exists and has Clerk keys.
+Check if `test-vibes/.env` exists and has OIDC credentials.
 
 ```bash
 # From the plugin root
 cat test-vibes/.env 2>/dev/null
 ```
 
-**If the file exists and contains `VITE_CLERK_PUBLISHABLE_KEY`:**
+**If the file exists and contains `VITE_OIDC_AUTHORITY`:**
 
 ```
 AskUserQuestion:
-  Question: "Reuse existing test credentials? (publishable key: pk_test_...)"
+  Question: "Reuse existing test credentials? (OIDC authority: https://...)"
   Header: "Credentials"
   Options:
   - Label: "Yes, reuse"
-    Description: "Use the Clerk keys already in test-vibes/.env"
-  - Label: "No, enter new keys"
-    Description: "I want to use different Clerk credentials"
+    Description: "Use the OIDC credentials already in test-vibes/.env"
+  - Label: "No, enter new credentials"
+    Description: "I want to use different OIDC credentials"
 ```
 
-**If the file doesn't exist or keys are missing, or user wants new keys:**
+**If the file doesn't exist or credentials are missing, or user wants new ones:**
 
 ```
 AskUserQuestion:
-  Question: "Paste your Clerk Publishable Key (starts with pk_test_ or pk_live_)"
-  Header: "Clerk PK"
+  Question: "Paste your OIDC Authority URL (e.g., https://studio.exe.xyz/auth)"
+  Header: "OIDC Authority"
   Options:
-  - Label: "I need to get keys first"
-    Description: "I'll go to clerk.com and come back"
+  - Label: "I need to set up Connect first"
+    Description: "I'll deploy Connect with Pocket ID and come back"
 ```
 
-If they need keys, tell them:
-> Go to [clerk.com](https://clerk.com) → your application → API Keys → copy Publishable Key and Secret Key.
+If they need to set up Connect, tell them:
+> Run `/vibes:connect` to deploy a Connect Studio with Pocket ID. The OIDC authority URL will be provided after deployment.
 
-Then ask for the secret key:
+Then ask for the client ID:
 
 ```
 AskUserQuestion:
-  Question: "Paste your Clerk Secret Key (starts with sk_test_ or sk_live_)"
-  Header: "Clerk SK"
+  Question: "Paste your OIDC Client ID"
+  Header: "OIDC Client ID"
 ```
 
 Write `test-vibes/.env`:
 ```
-VITE_CLERK_PUBLISHABLE_KEY=<key>
-VITE_CLERK_SECRET_KEY=<key>
+VITE_OIDC_AUTHORITY=<authority-url>
+VITE_OIDC_CLIENT_ID=<client-id>
 ```
 
 ### Phase 2: Connect Studio
@@ -88,13 +88,11 @@ AskUserQuestion:
 
 **If `.connect` doesn't exist or user wants fresh deploy:**
 
-Run the deploy script. Read the Clerk keys from `test-vibes/.env` first:
+Run the deploy script:
 
 ```bash
 node scripts/deploy-connect.js \
-  --studio vibes-test-studio \
-  --clerk-publishable-key "$VITE_CLERK_PUBLISHABLE_KEY" \
-  --clerk-secret-key "$VITE_CLERK_SECRET_KEY"
+  --studio vibes-test-studio
 ```
 
 After deploy, save the studio info:
@@ -130,7 +128,7 @@ AskUserQuestion:
 **For sell-ready fixture:** Check `test-vibes/.env` for a cached admin user ID from a previous run:
 
 ```bash
-grep CLERK_ADMIN_USER_ID test-vibes/.env 2>/dev/null
+grep OIDC_ADMIN_USER_ID test-vibes/.env 2>/dev/null
 ```
 
 **If found**, offer to reuse it (mask the middle of the value in the prompt, e.g., `user_37ici...ohcY`):
@@ -165,32 +163,12 @@ AskUserQuestion:
   - Label: "Free (billing off)"
     Description: "Claims work without payment — tests auth + tenant routing only"
   - Label: "Billing required"
-    Description: "Claims require active Clerk subscription — tests full paywall flow"
+    Description: "Claims require subscription — tests auth gate flow (Stripe billing is phase 2)"
 ```
 
 **If "Free":** Store `BILLING_MODE=off` in `test-vibes/.env`. Skip webhook setup. Proceed to Phase 4.
 
-**If "Billing required":** Store `BILLING_MODE=required` in `test-vibes/.env`. Then guide webhook setup:
-
-```
-AskUserQuestion:
-  Question: "Set up the Clerk webhook for billing:\n\n1. Go to clerk.com → your app → Webhooks → Add Endpoint\n2. URL: https://vibes-test.<account>.workers.dev/webhook\n3. Subscribe to: subscription.deleted\n4. Copy the Signing Secret (starts with whsec_)\n\nPaste the webhook signing secret:"
-  Header: "Webhook"
-  Options:
-  - Label: "I need help"
-    Description: "Walk me through the Clerk webhook setup"
-```
-
-If "I need help": walk them through each step in the Clerk dashboard, then re-ask the question.
-
-Validate the secret starts with `whsec_`. If not, ask again with a note that it should start with `whsec_`.
-
-Store as `CLERK_WEBHOOK_SECRET` in `test-vibes/.env`:
-```bash
-grep -q CLERK_WEBHOOK_SECRET test-vibes/.env 2>/dev/null && \
-  sed -i '' 's/^CLERK_WEBHOOK_SECRET=.*/CLERK_WEBHOOK_SECRET=<secret>/' test-vibes/.env || \
-  echo "CLERK_WEBHOOK_SECRET=<secret>" >> test-vibes/.env
-```
+**If "Billing required":** Store `BILLING_MODE=required` in `test-vibes/.env`. Note that Stripe billing integration is phase 2, so the paywall will be a placeholder.
 
 Proceed to Phase 4.
 
@@ -210,7 +188,7 @@ set -a && source test-vibes/.env && set +a
 ```bash
 node scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html \
   --domain vibes-test.<account>.workers.dev \
-  --admin-ids '["<admin-user-id>"]'  # read CLERK_ADMIN_USER_ID from test-vibes/.env
+  --admin-ids '["<admin-user-id>"]'  # read OIDC_ADMIN_USER_ID from test-vibes/.env
 ```
 If admin was skipped, omit `--admin-ids`. The `--domain` flag is always required.
 
@@ -305,14 +283,13 @@ Run the deploy:
 node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html
 ```
 
-**For sell-ready fixture:** Pass `--env-dir` to auto-detect Clerk key, and pass billing mode and webhook secret from `test-vibes/.env`:
+**For sell-ready fixture:** Pass `--env-dir` to auto-detect OIDC config, and pass billing mode from `test-vibes/.env`:
 ```bash
 node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html \
   --env-dir test-vibes \
-  --billing-mode $BILLING_MODE \
-  --webhook-secret $CLERK_WEBHOOK_SECRET  # only if billing required
+  --billing-mode $BILLING_MODE
 ```
-Read `BILLING_MODE` and `CLERK_WEBHOOK_SECRET` from `test-vibes/.env`. The `--env-dir` flag auto-detects `VITE_CLERK_PUBLISHABLE_KEY` from `.env` (fetches JWKS, converts to PEM, sets `CLERK_PEM_PUBLIC_KEY` and `PERMITTED_ORIGINS` as Worker secrets). `--billing-mode` patches the `[vars]` in `wrangler.toml` before deploy. `--webhook-secret` sets `CLERK_WEBHOOK_SECRET` as a Worker secret.
+Read `BILLING_MODE` from `test-vibes/.env`. The `--env-dir` flag auto-detects `VITE_OIDC_AUTHORITY` from `.env` (fetches OIDC discovery, gets PEM key, sets `OIDC_PEM_PUBLIC_KEY` and `PERMITTED_ORIGINS` as Worker secrets). `--billing-mode` patches the `[vars]` in `wrangler.toml` before deploy.
 
 **For ai-proxy with key:**
 ```bash
@@ -331,7 +308,7 @@ After deploy, guide the user through post-deploy admin setup:
 Your app is deployed! To configure admin access, first create an account:
   Sign up here: https://vibes-test.<account>.workers.dev?subdomain=test
 
-After signing up, we'll grab your User ID from Clerk Dashboard.
+After signing up, we'll grab your User ID from Pocket ID.
 ```
 
 2. Ask if they've signed up:
@@ -349,24 +326,23 @@ AskUserQuestion:
 
 If "Skip admin setup": proceed to Phase 6 without admin configured.
 
-3. Guide to Clerk Dashboard:
+3. Guide to finding User ID:
 
 ```
 Now grab your User ID:
-  1. Go to clerk.com → your application → Users
-  2. Click on your user
-  3. Copy the User ID (starts with user_)
+  1. Check the Pocket ID admin panel or your app's user profile
+  2. Find and copy your User ID (starts with user_)
 ```
 
 4. Collect the User ID:
 
 ```
 AskUserQuestion:
-  Question: "Paste your Clerk User ID (starts with user_)"
+  Question: "Paste your User ID (starts with user_)"
   Header: "Admin ID"
   Options:
   - Label: "I need help finding it"
-    Description: "Show me where to find the User ID in Clerk Dashboard"
+    Description: "Show me where to find the User ID in Pocket ID"
   - Label: "Skip admin setup"
     Description: "Continue without admin access"
 ```
@@ -376,9 +352,9 @@ Validate the input starts with `user_`. If not, ask again.
 5. Save to `test-vibes/.env`:
 
 ```bash
-grep -q CLERK_ADMIN_USER_ID test-vibes/.env 2>/dev/null && \
-  sed -i '' 's/^CLERK_ADMIN_USER_ID=.*/CLERK_ADMIN_USER_ID=<userId>/' test-vibes/.env || \
-  echo "CLERK_ADMIN_USER_ID=<userId>" >> test-vibes/.env
+grep -q OIDC_ADMIN_USER_ID test-vibes/.env 2>/dev/null && \
+  sed -i '' 's/^OIDC_ADMIN_USER_ID=.*/OIDC_ADMIN_USER_ID=<userId>/' test-vibes/.env || \
+  echo "OIDC_ADMIN_USER_ID=<userId>" >> test-vibes/.env
 ```
 
 6. Re-assemble with admin configured:
@@ -396,8 +372,7 @@ node scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html \
 ```bash
 node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html \
   --env-dir test-vibes \
-  --billing-mode $BILLING_MODE \
-  --webhook-secret $CLERK_WEBHOOK_SECRET  # only if billing required
+  --billing-mode $BILLING_MODE
 ```
 
 8. Confirm:
@@ -433,7 +408,7 @@ Deployed! Open these URLs:
 What to verify:
 - Landing page shows pricing/marketing content
 - Claim a subdomain — should succeed (tests /claim + JWT auth)
-- Tenant URL shows auth gate (Clerk sign-in)
+- Tenant URL shows auth gate (OIDC sign-in via Pocket ID)
 - Admin URL shows admin dashboard (if admin was configured in Phase 3 or 5.5)
 - Admin URL shows "Admin Access Required" (if admin setup was skipped)
 ```
@@ -534,7 +509,7 @@ ssh <studio>.exe.xyz "docker logs gateway"  # Check gateway logs
 |-----------------|---------------|
 | Assembly/template | `scripts/assemble.js`, `source-templates/base/template.html`, relevant `template.delta.html` |
 | Deploy/hosting | `scripts/deploy-cloudflare.js`, `scripts/deploy-connect.js` |
-| Auth/Clerk | `source-templates/base/template.html` (Clerk script), `scripts/deploy-connect.js` (env vars) |
+| Auth/OIDC | `source-templates/base/template.html` (OIDC provider), `scripts/deploy-connect.js` (env vars) |
 | Import/module errors | `source-templates/base/template.html` (import map) |
 
 ### Phase 8: Root Cause Classification

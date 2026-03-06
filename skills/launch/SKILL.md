@@ -73,8 +73,8 @@ Run all five checks before collecting any input:
 
 | # | Check | Command | If True |
 |---|-------|---------|---------|
-| 1 | .env has Clerk keys + Connect URLs | `grep -qE '^VITE_CLERK_PUBLISHABLE_KEY=pk_' .env && grep -qE '^VITE_API_URL=' .env && grep -qE '^VITE_CLOUD_URL=' .env` | Set `CONNECT_READY`. Read .env for clerkPk. Skip T2, T3, infra spawn. |
-| 2 | .env has admin user ID | `grep CLERK_ADMIN_USER_ID .env` | Store value. Skip Phase 3. |
+| 1 | .env has OIDC config + Connect URLs | `grep -qE '^VITE_OIDC_AUTHORITY=' .env && grep -qE '^VITE_OIDC_CLIENT_ID=' .env && grep -qE '^VITE_API_URL=' .env && grep -qE '^VITE_CLOUD_URL=' .env` | Set `CONNECT_READY`. Read .env for oidcAuthority/clientId. Skip T2, T3, infra spawn. |
+| 2 | .env has admin user ID | `grep OIDC_ADMIN_USER_ID .env` | Store value. Skip Phase 3. |
 | 3 | app.jsx exists | `test -f app.jsx` | **Ask [Reuse]**: "app.jsx exists. Reuse it or regenerate?" If reuse: skip T1. |
 | 4 | Wrangler authenticated | `npx wrangler whoami 2>&1` | If NOT authenticated: tell user to run `npx wrangler login` and wait. |
 | 5 | SSH key exists | `ls ~/.ssh/id_ed25519 ~/.ssh/id_rsa ~/.ssh/id_ecdsa 2>/dev/null` | If missing AND not CONNECT_READY: warn about Connect deploy. |
@@ -136,36 +136,25 @@ Theme switching is handled by the live preview wrapper, not inside the app. The 
 3. Set `{aiInstructions}`: if `openRouterKey` is set, add rule about `useAI` hook (see vibes SKILL.md "AI Features"). If null, leave empty.
 4. Spawn: Task tool, `team_name="launch-{appName}"`, `name="builder"`, `subagent_type="general-purpose"`
 
-### 1.3 Clerk Credentials (T2) — simultaneous with builder
+### 1.3 OIDC Credentials (T2) — simultaneous with builder
 
 **Skip entirely if CONNECT_READY.**
 
-**Ask [Clerk app]**: "Do you have a Clerk app configured?"
-- "I have one ready" — Already has passkeys and email auth
-- "I need to create one" — Walk me through setup
+OIDC credentials come from the Connect Studio's Pocket ID instance. If Connect has not been deployed yet, the infra agent (T3) will set it up.
 
-If creating new: guide through clerk.com/dashboard — create app, enable Email + Passkey, configure email settings (require OFF, verify ON, link ON, code ON). Then set up JWT template and webhook:
+**Ask [OIDC config]**: "Do you have your OIDC credentials from Connect Studio?"
+- "Yes, I have them" — I have the authority URL and client ID
+- "Not yet" — Connect needs to be deployed first (infra agent will handle this)
 
-**Ask [Clerk config]**: "Complete these two setup steps in Clerk Dashboard:\n\n1. **JWT Template**: JWT Templates → New Template → name it `with-email`, paste this JSON as the custom claims (the `|| ''` fallbacks are required — Fireproof Studio rejects null names):\n```json\n{\n  \"params\": {\n    \"email\": \"{{user.primary_email_address}}\",\n    \"email_verified\": \"{{user.email_verified}}\",\n    \"external_id\": \"{{user.external_id}}\",\n    \"first\": \"{{user.first_name || ''}}\",\n    \"last\": \"{{user.last_name || ''}}\",\n    \"name\": \"{{user.full_name || ''}}\",\n    \"image_url\": \"{{user.image_url}}\",\n    \"public_meta\": \"{{user.public_metadata}}\"\n  },\n  \"role\": \"authenticated\",\n  \"userId\": \"{{user.id}}\"\n}\n```\n2. **Webhook**: Webhooks → Add Endpoint → URL `https://{domain}/webhook` → subscribe to `subscription.deleted`\n\nHave you completed both?"
-- "Yes, both done" — JWT template 'with-email' with email/name claims + webhook endpoint created
-- "I need help" — Walk me through it step by step
+If "Yes": collect two credentials via Ask (user types actual values via Other):
 
-Collect four credentials via Ask (user types actual values via Other):
+**Ask [OIDC Authority]**: "Paste your OIDC Authority URL (e.g., https://studio.exe.xyz/auth)"
+- "Paste URL" — From your Connect Studio .env.
 
-**Ask [Clerk PK]**: "Paste your Clerk Publishable Key (starts with pk_test_ or pk_live_)"
-- "Paste key" — From Clerk dashboard > API Keys. Validate prefix.
+**Ask [OIDC Client ID]**: "Paste your OIDC Client ID"
+- "Paste ID" — From your Connect Studio's Pocket ID configuration.
 
-Repeat pattern for:
-- **[Clerk SK]**: Secret Key — starts with `sk_test_` or `sk_live_`
-- **[PEM Key]**: JWKS PEM Public Key — from API Keys > Advanced > Public Key. Starts with `-----BEGIN PUBLIC KEY-----`
-- **[Webhook Secret]**: From Webhooks > endpoint > Signing Secret. Starts with `whsec_`
-
-Save PEM to file:
-```bash
-cat > clerk-jwks-key.pem << 'PEMEOF'
-{pemKey}
-PEMEOF
-```
+If "Not yet": Mark T2 as blocked on T3 (infra). The infra agent will provide credentials after Connect + Pocket ID deployment.
 
 Mark T2 completed.
 
@@ -174,7 +163,7 @@ Mark T2 completed.
 **Skip if CONNECT_READY.**
 
 1. Read `${CLAUDE_SKILL_DIR}/prompts/infra.md`
-2. Substitute: `{appName}`, `{pluginRoot}`, `{clerkPk}`, `{clerkSk}`
+2. Substitute: `{appName}`, `{pluginRoot}`, `{oidcAuthority}`, `{oidcClientId}`
 3. Spawn: Task tool, `team_name="launch-{appName}"`, `name="infra"`, `subagent_type="general-purpose"`
 
 ### 1.5 Sell Config (T4) — while infra deploys
@@ -183,7 +172,7 @@ Mark T2 completed.
 
 Choose billing mode based on monetization intent:
 - **"off" (free)** — all authenticated users get full access. Good for MVPs and internal tools.
-- **"required" (subscription)** — users must subscribe. Requires Clerk Billing (Dev instances auto-connect to Stripe sandbox).
+- **"required" (subscription)** — users must subscribe. Stripe billing integration is phase 2.
 
 **Always ask the user** — do not assume a default.
 
@@ -191,7 +180,7 @@ Choose billing mode based on monetization intent:
 - Billing: "Free (no billing)" or "Subscription required"
 - Title: "Derive from app name" or "Let me specify"
 
-**If billing is "Subscription required"**: Note that Clerk Billing must be configured in the Clerk Dashboard after deploy (plans, Stripe connection). Dev instances auto-connect to Stripe sandbox for testing.
+**If billing is "Subscription required"**: Note that Stripe billing integration is phase 2. For now, billing mode gates access but Stripe checkout is not yet wired up.
 
 **Ask [Tagline]**: "Describe your app's tagline (short punchy phrase)"
 - "Generate one" — Create from app description
@@ -211,7 +200,7 @@ Store: `billingMode` ("off"/"required"), `appTitle`, `tagline`, `subtitle`, `fea
 
 ### 2.1 Verify Inputs
 
-Confirm: `app.jsx` exists with valid JSX. `.env` has `VITE_CLERK_PUBLISHABLE_KEY`, `VITE_API_URL`, `VITE_CLOUD_URL`. All sell config values collected.
+Confirm: `app.jsx` exists with valid JSX. `.env` has `VITE_OIDC_AUTHORITY`, `VITE_OIDC_CLIENT_ID`, `VITE_API_URL`, `VITE_CLOUD_URL`. All sell config values collected.
 
 Scan app.jsx for builder mistakes (see LAUNCH-REFERENCE.md "Common Builder Mistakes"). Fix any found before proceeding.
 
@@ -230,7 +219,8 @@ This sequence runs twice: first here (with `--admin-ids '[]'`), then in Phase 3 
 **Step A — Assemble:**
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
-  --clerk-key "{clerkPk}" \
+  --oidc-authority "{oidcAuthority}" \
+  --oidc-client-id "{oidcClientId}" \
   --app-name "{appName}" \
   --app-title "{appTitle}" \
   --domain "{domain}" \
@@ -248,12 +238,11 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/assemble-sell.js" app.jsx index.html \
 node "${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \
   --name "{appName}" \
   --file index.html \
-  --clerk-key "{clerkPk}" \
+  --oidc-authority "{oidcAuthority}" \
   --billing-mode "{billingMode}" \
-  --webhook-secret "{webhookSecret}" \
   {aiKeyFlag}
 ```
-Where `{aiKeyFlag}` = `--ai-key "{openRouterKey}"` if set, omitted if null. The `--billing-mode` flag controls whether the client enforces JWT-based plan checks. The `--webhook-secret` flag sets the Clerk webhook signing secret as a Wrangler secret.
+Where `{aiKeyFlag}` = `--ai-key "{openRouterKey}"` if set, omitted if null. The `--billing-mode` flag controls whether the client enforces JWT-based plan checks.
 
 Run the cycle now with `{adminIds}` = `'[]'` (or `'["{existingAdminId}"]'` if found in pre-flight). Mark T5, T6 completed.
 
@@ -261,7 +250,7 @@ Run the cycle now with `{adminIds}` = `'[]'` (or `'["{existingAdminId}"]'` if fo
 
 ## Phase 3: Admin Setup
 
-**Skip if `CLERK_ADMIN_USER_ID` was found in pre-flight.**
+**Skip if `OIDC_ADMIN_USER_ID` was found in pre-flight.**
 
 ### 3.1 Guide Signup
 
@@ -280,14 +269,14 @@ If skip: proceed to Phase 4.
 
 ### 3.2 Collect Admin ID
 
-Tell user: Go to clerk.com/dashboard > your app > Users > click your user > copy User ID (starts with `user_`).
+Tell user: Find your User ID from the Pocket ID admin panel or your app's user profile (starts with `user_`).
 
-**Ask [User ID]**: "Paste your Clerk User ID (starts with user_)"
-- "I need help finding it" — Clerk Dashboard > Users > click name > ID at top
+**Ask [User ID]**: "Paste your User ID (starts with user_)"
+- "I need help finding it" — Check Pocket ID admin panel > Users > click name > ID at top
 
 Validate starts with `user_`. Save to `.env`:
 ```bash
-echo "CLERK_ADMIN_USER_ID={userId}" >> .env
+echo "OIDC_ADMIN_USER_ID={userId}" >> .env
 ```
 
 ### 3.3 Re-run Deploy Cycle
@@ -306,8 +295,8 @@ Tell user: Admin dashboard now works at `https://{domain}?subdomain=admin`
 - "All working" — Everything loads correctly
 - "Something's broken" — Need to troubleshoot
 
-**If `billingMode === "required"`**: Also ask the user to verify billing:
-> "Check billing flow: Sign in at `https://{domain}?subdomain=test` — you should see a paywall with pricing. Use test card `4242 4242 4242 4242` (any future expiry, any CVC) to complete a test subscription. After subscribing, the tenant app should load."
+**If `billingMode === "required"`**: Also ask the user to verify the auth gate:
+> "Check auth flow: Visit `https://{domain}?subdomain=test` — you should see the auth gate. Sign in via Pocket ID. Note: Stripe billing integration is phase 2, so the paywall UI may be a placeholder."
 
 Mark T7 completed. If broken, ask what's wrong and troubleshoot.
 
@@ -322,19 +311,19 @@ Send `shutdown_request` to "builder" and "infra" (if spawned). Wait for response
 
 **App**: {appTitle}
 **URL**: https://{domain}
-**Clerk**: {clerkPk}
+**OIDC Authority**: {oidcAuthority}
 **Connect**: {studioUrl}
 **Billing**: {billingMode}
 
 ### What's deployed:
 - Cloudflare Worker with KV registry
 - Fireproof Connect studio for real-time sync
-- Clerk authentication with passkeys
+- OIDC authentication via Pocket ID (with passkeys)
 - Subdomain-based multi-tenancy
 
 ### Next steps:
 - Configure a custom domain (see CLAUDE.md DNS section)
-- Set up Clerk billing plans if using subscription mode
+- Stripe billing integration is phase 2
 ```
 
 ---
