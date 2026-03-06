@@ -273,11 +273,13 @@ output = populateConnectConfig(output, envVars, true);
 // __VIBES_SHARED_LEDGER__ is the runtime shared ledger ID bridge variable (invite URL → bundle)
 // __VIBES_LEDGER_MAP__ is the runtime per-database ledger map for multi-tenant isolation
 // __VIBES_APP_CODE__ and __ADMIN_CODE__ are injection placeholders consumed below
+// __OIDC_LOAD_ERROR__ is a runtime error variable set by initApp() on OIDC load failure
 const SAFE_PLACEHOLDER_PATTERNS = [
   '__PURE__',
   '__esModule',
   '__VIBES_CONFIG__',
   '__VIBES_OIDC_TOKEN__',
+  '__OIDC_LOAD_ERROR__',
   '__VIBES_SYNC_STATUS__',
   '__VIBES_SYNC_ERROR__',
   '__VIBES_THEMES__',
