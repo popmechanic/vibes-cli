@@ -10,6 +10,11 @@ import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp 
 
 const MAX_BODY_SIZE = 1024 * 1024; // 1MB
 
+// SSRF guard patterns — module-level for reuse and testability
+const PRIVATE_PATTERNS = /^(localhost|127\.|10\.|169\.254\.|192\.168\.|0\.)/;
+const PRIVATE_172 = /^172\.(1[6-9]|2\d|3[01])\./;
+const IS_IP = /^\d+\.\d+\.\d+\.\d+$/;
+
 /**
  * Parse JSON body from an HTTP request.
  * Rejects with 413 if body exceeds MAX_BODY_SIZE.
@@ -104,16 +109,22 @@ async function checkEditorDeps(ctx) {
   const openrouterOk = !!orKey;
 
   // Build masked key previews for pre-population
+  // maskKey: show prefix + '...' + suffix, but omit suffix if key is too short
+  const maskKey = (value, prefixLen, suffixLen = 4) =>
+    value.length <= prefixLen + suffixLen
+      ? value.slice(0, prefixLen) + '...'
+      : value.slice(0, prefixLen) + '...' + value.slice(-suffixLen);
+
   const maskedKeys = {};
   if (clerkOk && validatedPk) {
-    maskedKeys.clerkPublishableKey = validatedPk.slice(0, 12) + '...' + validatedPk.slice(-4);
+    maskedKeys.clerkPublishableKey = maskKey(validatedPk, 12);
     if (validatedSk) {
-      maskedKeys.clerkSecretKey = validatedSk.slice(0, 12) + '...' + validatedSk.slice(-4);
+      maskedKeys.clerkSecretKey = maskKey(validatedSk, 12);
     }
   }
   if (cfOk) {
     if (cfConfig.apiToken) {
-      maskedKeys.cloudflareApiToken = cfConfig.apiToken.slice(0, 6) + '...' + cfConfig.apiToken.slice(-4);
+      maskedKeys.cloudflareApiToken = maskKey(cfConfig.apiToken, 6);
     }
     if (cfConfig.email) {
       if (!cfConfig.email.includes('@')) {
@@ -302,21 +313,30 @@ export async function validateClerkCredentials({ publishableKey } = {}) {
     return { valid: false, error: 'Could not decode domain from publishable key. Make sure you copied the full key.' };
   }
 
-  // SSRF guard: reject IP addresses, ports, paths, and private/reserved hostnames.
-  // Clerk pk_live_ keys may encode custom domains (e.g. clerk.example.com),
-  // so we can't restrict to *.clerk.accounts.dev only.
-  const PRIVATE_PATTERNS = /^(localhost|127\.|10\.|169\.254\.|192\.168\.|0\.)/;
-  const PRIVATE_172 = /^172\.(1[6-9]|2\d|3[01])\./;
-  const IS_IP = /^\d+\.\d+\.\d+\.\d+$/;
-  if (IS_IP.test(domain) || domain.startsWith('[') || domain.includes(':') ||
-      domain.includes('/') || PRIVATE_PATTERNS.test(domain) || PRIVATE_172.test(domain)) {
+  // SSRF guard: parse the domain through URL constructor to canonicalize,
+  // then validate the resolved hostname. This handles all bypass vectors:
+  // userinfo (@), Unicode dots, hex/octal IPs, etc.
+  if (domain.includes('@')) {
+    return { valid: false, error: 'Invalid Clerk domain. The key encodes a userinfo bypass.' };
+  }
+
+  let fapiUrl;
+  try {
+    fapiUrl = new URL('https://' + domain + '/v1/environment');
+  } catch {
+    return { valid: false, error: 'Invalid Clerk domain. The key encodes a malformed URL.' };
+  }
+
+  const hostname = fapiUrl.hostname;
+  if (IS_IP.test(hostname) || hostname.startsWith('[') ||
+      PRIVATE_PATTERNS.test(hostname) || PRIVATE_172.test(hostname)) {
     return { valid: false, error: 'Invalid Clerk domain. The key encodes an IP address or reserved hostname.' };
   }
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), CLERK_TIMEOUT_MS);
   try {
-    const res = await fetch(`https://${domain}/v1/environment`, {
+    const res = await fetch(fapiUrl.href, {
       headers: { 'Authorization': `Bearer ${publishableKey}` },
       signal: ctrl.signal,
     });

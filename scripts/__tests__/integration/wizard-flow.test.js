@@ -281,6 +281,34 @@ describe('validateClerkCredentials', () => {
     }
   });
 
+  it('rejects keys with @ userinfo bypass (SSRF guard)', async () => {
+    global.fetch = vi.fn();
+    // attacker@evil.com@169.254.169.254 — URL parser treats first part as userinfo
+    const crafted = 'pk_test_' + Buffer.from('attacker@evil.com@169.254.169.254$').toString('base64');
+    const result = await editorApi.validateClerkCredentials({ publishableKey: crafted });
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain('userinfo bypass');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects keys with Unicode dot bypass (SSRF guard)', async () => {
+    global.fetch = vi.fn();
+    // Unicode fullwidth dot U+FF0E — URL parser normalizes to regular dot
+    const crafted = 'pk_test_' + Buffer.from('127\uff0e0\uff0e0\uff0e1$').toString('base64');
+    const result = await editorApi.validateClerkCredentials({ publishableKey: crafted });
+    expect(result.valid).toBe(false);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects keys with hex IP bypass (SSRF guard)', async () => {
+    global.fetch = vi.fn();
+    // 0x7f000001 = 127.0.0.1 in hex notation
+    const crafted = 'pk_test_' + Buffer.from('0x7f000001$').toString('base64');
+    const result = await editorApi.validateClerkCredentials({ publishableKey: crafted });
+    expect(result.valid).toBe(false);
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   it('allows keys with custom domains (pk_live_ with non-clerk.accounts.dev)', async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 });
     const customDomain = 'clerk.example.com';
