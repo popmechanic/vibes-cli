@@ -2,13 +2,15 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Replace the editor's 5-step SETUP wizard (Clerk + Connect Studio + OpenRouter + Confirm) with a streamlined 4-step wizard (Welcome + Clerk + Cloudflare + Verification) that stores credentials in `~/.vibes/deployments.json` instead of `.env`, and validates Cloudflare credentials server-side via wrangler.
+**Goal:** Replace the editor's 5-step SETUP wizard (Clerk + Connect Studio + OpenRouter + Confirm) with a streamlined 4-step wizard (Welcome + Clerk + Cloudflare + Verification) that stores credentials in `~/.vibes/deployments.json` instead of `.env`, and validates Cloudflare credentials server-side via the Cloudflare HTTP API.
 
-**Architecture:** The editor.html SETUP phase gets a new 4-step wizard UI. Server-side, `editor-api.js` gains registry-backed credential storage (via `lib/registry.js` from the backend migration plan) and a new Cloudflare validation endpoint that shells out to `wrangler whoami` with `CLOUDFLARE_API_KEY`/`CLOUDFLARE_EMAIL` env vars. The `/editor/status` endpoint checks the registry instead of `.env`. Connect Studio steps are removed entirely -- Connect auto-deploys via alchemy on first app deploy (handled by the separate backend migration plan).
+**Architecture:** The editor.html SETUP phase gets a new 4-step wizard UI. Server-side, `editor-api.js` gains registry-backed credential storage (via `lib/registry.js` from the backend migration plan) and a new Cloudflare validation endpoint that calls the Cloudflare HTTP API directly (`GET /client/v4/accounts` with `X-Auth-Key`/`X-Auth-Email` headers). The `/editor/status` endpoint checks the registry instead of `.env`. Connect Studio steps are removed entirely -- Connect auto-deploys via alchemy on first app deploy (handled by the separate backend migration plan).
+
+**Schema coordination with migration plan:** The migration plan's `lib/registry.js` stores `{ accountId, workersSubdomain }` under the `cloudflare` config object. This plan adds `apiKey` and `email` to the same object (for Global API Key auth). The migration plan's `setCloudflareConfig` uses spread merge (`{ ...reg.cloudflare, ...config }`), so adding fields is non-breaking. **When implementing the migration plan's `lib/registry.js`, include `apiKey` and `email` in the `cloudflare` config schema.**
 
 **Tech Stack:** Vanilla JS (editor.html is a single-file SPA), Node.js HTTP server (editor-api.js), vitest for server tests
 
-**Depends on:** `docs/plans/2026-03-05-connect-cloudflare-migration-plan.md` Tasks 1 (registry.js). This plan can begin immediately -- Task 1 here creates a thin adapter that delegates to `lib/registry.js` when available, falling back to an inline implementation until the migration plan is executed.
+**Depends on:** `docs/plans/2026-03-05-connect-cloudflare-migration-plan.md` Task 1 (registry.js). This plan can begin immediately -- Task 1 here creates a thin adapter that delegates to `lib/registry.js` when available, falling back to an inline implementation until the migration plan is executed. **Schema note:** The migration plan's `cloudflare` config stores `{ accountId, workersSubdomain }`. This plan adds `apiKey` and `email` to the same object. Both plans use spread merge (`{ ...reg.cloudflare, ...config }`) so the fields coexist. When implementing the migration plan, include `apiKey` and `email` in the schema.
 
 **Important note on line references:** This plan never references specific line numbers because tasks edit the same files sequentially, causing line shifts. Instead, all edit locations are identified by function names, HTML element IDs, or search patterns. Use your editor's search to find each target.
 
@@ -407,7 +409,7 @@ Cloudflare Global API Key."
 
 ### Task 2: Add Cloudflare Validation Endpoint to Editor API
 
-This task adds a `POST /editor/credentials/validate-cloudflare` endpoint that validates Cloudflare Global API Key + email by running `wrangler whoami` with those credentials injected as environment variables. Also updates `/editor/status` to use the registry adapter.
+This task adds a `POST /editor/credentials/validate-cloudflare` endpoint that validates Cloudflare Global API Key + email by calling the Cloudflare HTTP API directly (`GET /client/v4/accounts` with `X-Auth-Key`/`X-Auth-Email` headers). This is more reliable than shelling out to `wrangler whoami`, which may not authenticate with Global API Key env vars in modern wrangler versions. Uses Node's built-in `fetch()` (available in Node 18+).
 
 **Files:**
 - Modify: `scripts/server/handlers/editor-api.js`
@@ -418,39 +420,45 @@ This task adds a `POST /editor/credentials/validate-cloudflare` endpoint that va
 
 ```javascript
 // scripts/__tests__/unit/editor-api-cloudflare.test.js
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// Mock child_process before importing
-vi.mock('child_process', () => ({
-  execFile: vi.fn(),
-}));
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 describe('validateCloudflareCredentials', () => {
   let validateCloudflareCredentials;
-  let execFile;
+  let originalFetch;
 
   beforeEach(async () => {
     vi.resetModules();
-    const cp = await import('child_process');
-    execFile = cp.execFile;
+    originalFetch = globalThis.fetch;
     // Import the function under test
     const mod = await import('../../server/handlers/editor-api.js');
     validateCloudflareCredentials = mod.validateCloudflareCredentials;
   });
 
-  it('returns valid when wrangler succeeds with account info', async () => {
-    execFile.mockImplementation((cmd, args, opts, cb) => {
-      cb(null, ' wrangler\n\n| Account Name   | Account ID                       |\n| My Account     | abc123def456                     |', '');
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('returns valid with account ID when API responds with success', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({
+        success: true,
+        result: [{ id: 'abc123def456789012345678abcdef00', name: 'My Account' }],
+      }),
     });
 
     const result = await validateCloudflareCredentials('testkey', 'user@test.com');
     expect(result.valid).toBe(true);
-    expect(result.accountId).toBeTruthy();
+    expect(result.accountId).toBe('abc123def456789012345678abcdef00');
   });
 
-  it('returns invalid when wrangler fails', async () => {
-    execFile.mockImplementation((cmd, args, opts, cb) => {
-      cb(new Error('Authentication failed'), '', 'not authenticated');
+  it('returns invalid when API responds with auth error', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: () => Promise.resolve({
+        success: false,
+        errors: [{ code: 9103, message: 'Unknown X-Auth-Key or X-Auth-Email' }],
+      }),
     });
 
     const result = await validateCloudflareCredentials('badkey', 'bad@test.com');
@@ -458,16 +466,30 @@ describe('validateCloudflareCredentials', () => {
     expect(result.error).toBeTruthy();
   });
 
-  it('passes CLOUDFLARE_API_KEY and CLOUDFLARE_EMAIL as env vars', async () => {
-    execFile.mockImplementation((cmd, args, opts, cb) => {
-      // Verify env vars are passed
-      expect(opts.env.CLOUDFLARE_API_KEY).toBe('mykey');
-      expect(opts.env.CLOUDFLARE_EMAIL).toBe('me@test.com');
-      cb(null, 'Account ID: abc123', '');
+  it('sends correct auth headers', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ success: true, result: [{ id: 'abc123' }] }),
     });
 
     await validateCloudflareCredentials('mykey', 'me@test.com');
-    expect(execFile).toHaveBeenCalled();
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      'https://api.cloudflare.com/client/v4/accounts',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'X-Auth-Key': 'mykey',
+          'X-Auth-Email': 'me@test.com',
+        }),
+      }),
+    );
+  });
+
+  it('returns invalid when fetch throws (network error)', async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
+
+    const result = await validateCloudflareCredentials('key', 'email@test.com');
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/network|failed/i);
   });
 });
 ```
@@ -489,36 +511,41 @@ Add this function after the `runCommand` function (search for the closing `}` of
 
 ```javascript
 /**
- * Validate Cloudflare Global API Key + email by running wrangler whoami.
+ * Validate Cloudflare Global API Key + email via the Cloudflare HTTP API.
+ * Calls GET /client/v4/accounts with X-Auth-Key/X-Auth-Email headers.
+ * More reliable than wrangler whoami, which may not support Global API Key env vars.
+ *
  * @param {string} apiKey - Cloudflare Global API Key
  * @param {string} email - Cloudflare account email
  * @returns {Promise<{valid: boolean, accountId?: string, error?: string}>}
  */
-export function validateCloudflareCredentials(apiKey, email) {
-  return new Promise((resolve) => {
-    const env = {
-      ...process.env,
-      CLOUDFLARE_API_KEY: apiKey,
-      CLOUDFLARE_EMAIL: email,
-    };
-    try {
-      execFile('npx', ['wrangler', 'whoami'], { timeout: 15000, env }, (err, stdout, stderr) => {
-        const output = ((stdout || '') + (stderr || '')).trim();
-        if (err || output.includes('not authenticated') || output.includes('could not authenticate')) {
-          resolve({ valid: false, error: 'Authentication failed. Check your Global API Key and email.' });
-          return;
-        }
-        // Try to extract account ID from wrangler output table
-        const idMatch = output.match(/([a-f0-9]{32})/);
-        resolve({
-          valid: true,
-          accountId: idMatch ? idMatch[1] : null,
-        });
-      });
-    } catch {
-      resolve({ valid: false, error: 'Failed to run wrangler' });
+export async function validateCloudflareCredentials(apiKey, email) {
+  try {
+    const res = await fetch('https://api.cloudflare.com/client/v4/accounts', {
+      headers: {
+        'X-Auth-Key': apiKey,
+        'X-Auth-Email': email,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await res.json();
+
+    if (!data.success || !res.ok) {
+      const errMsg = data.errors?.[0]?.message || 'Authentication failed';
+      return { valid: false, error: errMsg + '. Check your Global API Key and email.' };
     }
-  });
+
+    // Extract account ID from the first account in the response
+    const accountId = data.result?.[0]?.id || null;
+    if (!accountId) {
+      return { valid: false, error: 'No accounts found for this API key.' };
+    }
+
+    return { valid: true, accountId };
+  } catch (err) {
+    return { valid: false, error: 'Failed to reach Cloudflare API: ' + err.message };
+  }
 }
 ```
 
@@ -530,10 +557,11 @@ Expected: PASS
 **Step 5: Commit**
 
 ```bash
-cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/handlers/editor-api.js scripts/__tests__/unit/editor-api-cloudflare.test.js && git commit -m "Add Cloudflare credential validation via wrangler whoami
+cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/handlers/editor-api.js scripts/__tests__/unit/editor-api-cloudflare.test.js && git commit -m "Add Cloudflare credential validation via HTTP API
 
-New validateCloudflareCredentials() function shells out to wrangler
-with CLOUDFLARE_API_KEY/CLOUDFLARE_EMAIL env vars to verify credentials."
+New validateCloudflareCredentials() calls GET /client/v4/accounts
+with X-Auth-Key/X-Auth-Email headers. More reliable than wrangler
+whoami which may not support Global API Key env vars."
 ```
 
 ---
@@ -966,17 +994,22 @@ Replace the wizard JS functions in editor.html. This task handles wizard state, 
 
 **Step 1: Update wizard state variables**
 
-Search for `let deployTargets = { cloudflare: false, exe: false };` and the surrounding state block. Replace these specific variables:
+Search for `let deployTargets` in the JS section. Delete these **4 specific variable declarations** (each is a `let` statement on its own line). Search for each one individually to avoid accidentally deleting unrelated variables:
+
+1. `let deployTargets = { cloudflare: false, exe: false };` -- delete this line
+2. `let sshAvailable = false;` -- delete this line
+3. `let studioCheckTimer = null;` -- delete this line
+4. `let studioMode = 'existing';` -- delete this line
+
+Also find and delete the OLD `wizardData` declaration:
+
+5. `let wizardData = { clerkKey: '', clerkSecret: '', studioName: '', apiUrl: '', cloudUrl: '', openRouterKey: '' };` -- delete this line
+
+**Keep ALL other variables unchanged**, including: `wizardStep`, `currentPhase`, `isThinking`, `ws`, `hasOpenRouterKey`, `deployMenuOpenTime`, and any others not listed above.
+
+In place of the 5 deleted lines, add these new declarations (insert them where the old `deployTargets` was):
 
 ```javascript
-  // DELETE these lines:
-  let deployTargets = { cloudflare: false, exe: false };
-  let sshAvailable = false;
-  let studioCheckTimer = null;
-  let studioMode = 'existing';
-  let wizardData = { clerkKey: '', clerkSecret: '', studioName: '', apiUrl: '', cloudUrl: '', openRouterKey: '' };
-
-  // REPLACE with:
   let cloudflareReady = false;
   let wizardData = {
     clerkKey: '',
@@ -991,8 +1024,6 @@ Search for `let deployTargets = { cloudflare: false, exe: false };` and the surr
     cloudflare: 'unchecked',  // unchecked | checking | valid | invalid
   };
 ```
-
-Keep `let wizardStep = 1;` unchanged.
 
 **Step 2: Replace all wizard functions**
 
@@ -1537,9 +1568,11 @@ Two gaps exist in the deploy flow:
 
 1. **Cloudflare credentials:** The wizard stores Cloudflare Global API Key in the registry, but `deploy-cloudflare.js` spawns `wrangler` via `process.env`. If the user authenticated via the wizard (rather than `wrangler login`), wrangler won't find credentials.
 
-2. **Connect URLs:** Task 4 relaxed the assembly gate so apps can build without Connect URLs. But after alchemy provisions Connect on the first deploy, the assembled `index.html` still has empty sync URLs. There is no re-assembly step. **Note:** The migration plan's `deploy-cloudflare.js` modifications handle the alchemy provisioning and URL population. However, for deployments triggered through the editor (which use `handleDeploy` in `deploy.js`), we need to inject any available Connect URLs from the registry into the assembly environment so subsequent deploys produce a fully-populated `index.html`.
+2. **Connect URLs:** Task 4 relaxed the assembly gate so apps can build without Connect URLs. But `populateConnectConfig` substitutes empty strings when URLs are missing, producing an app with Clerk auth but broken sync. On subsequent deploys (after alchemy has provisioned Connect and written URLs to the registry), the URLs must be injected into assembly.
 
-The fix: in `scripts/server/handlers/deploy.js`, read credentials from the registry and inject them into both the assembly and deploy subprocess environments.
+3. **First deploy vs. subsequent deploy:** On first deploy, Connect URLs don't exist yet -- alchemy provisions them during the deploy process (handled by the migration plan's `deploy-cloudflare.js`). The editor's `handleDeploy` should detect this and emit a progress message explaining that Connect will be provisioned automatically. On subsequent deploys, Connect URLs are already in the registry and should be injected into both assembly and deploy environments.
+
+The fix: in `scripts/server/handlers/deploy.js`, read credentials from the registry and inject them into both subprocess environments. Add a pre-deploy check that warns on first deploy (no Connect URLs yet) so the user understands sync won't work until the migration plan's alchemy integration is in place.
 
 **Files:**
 - Modify: `scripts/server/handlers/deploy.js`
@@ -1583,17 +1616,40 @@ function buildDeployEnv(appName) {
     env.VITE_CLOUD_URL = connect.cloudUrl;
   }
 
-  // Inject Clerk key from registry (in case .env doesn't have it)
+  // Inject Clerk keys from registry (in case .env doesn't have them)
   const clerk = getClerkCredentials();
   if (clerk.publishableKey && !env.VITE_CLERK_PUBLISHABLE_KEY) {
     env.VITE_CLERK_PUBLISHABLE_KEY = clerk.publishableKey;
+  }
+  if (clerk.secretKey && !env.CLERK_SECRET_KEY) {
+    env.CLERK_SECRET_KEY = clerk.secretKey;
   }
 
   return env;
 }
 ```
 
-**Step 3: Use enriched env for both assembly and deploy subprocesses**
+**Step 3: Add first-deploy Connect URL check to handleDeploy**
+
+In `handleDeploy`, after the existing argument validation block (after `if (!target || target !== 'cloudflare')`), add a Connect URL check:
+
+```javascript
+    // Check if Connect URLs are available for assembly
+    const connectUrls = getConnectUrls(appName);
+    const isFirstDeploy = !connectUrls.apiUrl || !connectUrls.cloudUrl;
+    if (isFirstDeploy) {
+      onEvent({
+        type: 'deploy-progress',
+        message: 'Note: This appears to be the first deploy for "' + appName + '". ' +
+          'Connect (data sync) will be provisioned automatically during deployment. ' +
+          'If sync does not work after deploy, re-deploy to pick up the provisioned Connect URLs.',
+      });
+    }
+```
+
+This emits a progress message rather than blocking -- the migration plan's `deploy-cloudflare.js` handles actual alchemy provisioning. If the migration plan is not yet implemented, the app will deploy without sync (Clerk auth works, but data is local-only). A subsequent deploy after alchemy provisions Connect will pick up the URLs via `buildDeployEnv`.
+
+**Step 4: Use enriched env for both assembly and deploy subprocesses**
 
 Search for the block in `handleDeploy` where the assembly child process is spawned (the one that runs `assemble.js`). Replace its `env: { ...process.env },` with:
 
@@ -1609,21 +1665,21 @@ Then find the deploy child process spawn (the one that runs `deploy-cloudflare.j
 
 Using the same helper for both ensures assembly gets Connect URLs (if available from a previous deploy) and the deploy process gets Cloudflare credentials.
 
-**Step 4: Verify no syntax errors**
+**Step 5: Verify no syntax errors**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard/scripts && node -e "import('./server/handlers/deploy.js').then(() => console.log('OK')).catch(e => console.error(e.message))"`
 Expected: "OK" (no import errors)
 
-**Step 5: Commit**
+**Step 6: Commit**
 
 ```bash
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.claude/worktrees/onboarding-wizard && git add scripts/server/handlers/deploy.js && git commit -m "Inject registry credentials into assembly and deploy subprocesses
 
-Build enriched env from registry for both assembly (Clerk key,
-Connect URLs) and deploy (Cloudflare API key/email). Connect URLs
-from previous deploys are injected into assembly so subsequent
-deploys produce fully-populated index.html. First deploy may still
-have empty Connect URLs — alchemy provisions them at deploy time."
+Build enriched env from registry for both assembly (Clerk keys,
+Connect URLs) and deploy (Cloudflare API key/email). Clerk secret
+key injected as CLERK_SECRET_KEY for wrangler secrets. First deploy
+emits progress message about Connect provisioning. Subsequent deploys
+inject Connect URLs from registry into assembly."
 ```
 
 ---
@@ -2037,7 +2093,8 @@ requires Clerk key — Connect URLs populated at deploy time."
 - [ ] Clerk keys also written to `.env` for assembly backward compatibility
 - [ ] Session context dispatch table has no `/vibes:connect` or `/vibes:exe`
 - [ ] `deploy.js` `handleDeploy` injects `CLOUDFLARE_API_KEY`/`CLOUDFLARE_EMAIL` from registry into subprocess env
-- [ ] `deploy.js` `handleDeploy` also injects `VITE_API_URL`/`VITE_CLOUD_URL`/`VITE_CLERK_PUBLISHABLE_KEY` from registry into assembly subprocess env
+- [ ] `deploy.js` `handleDeploy` also injects `VITE_API_URL`/`VITE_CLOUD_URL`/`VITE_CLERK_PUBLISHABLE_KEY`/`CLERK_SECRET_KEY` from registry into subprocess env
+- [ ] `deploy.js` `handleDeploy` emits progress message on first deploy (no Connect URLs)
 - [ ] `deploy.js` `handleDeploy` only accepts `target === 'cloudflare'` (not `exe`)
 - [ ] Deploy menu in editor only shows Cloudflare option (no exe.dev button)
 - [ ] `updateDeployButtons` reads `cloudflareReady` (not `deployTargets.cloudflare`)
@@ -2049,3 +2106,7 @@ requires Clerk key — Connect URLs populated at deploy time."
 - [ ] CLAUDE.md Hard dependencies block has no `CR → CO` or `CO → G` lines
 - [ ] Registry adapter exports `getConnectUrls` function
 - [ ] Registry adapter unit tests use `vi.resetModules()` in `beforeEach`
+- [ ] `validateCloudflareCredentials` uses Cloudflare HTTP API (`/client/v4/accounts`), NOT `wrangler whoami`
+- [ ] `validateCloudflareCredentials` sends `X-Auth-Key` and `X-Auth-Email` headers
+- [ ] No `execFile` or `child_process` imports in editor-api.js for CF validation
+- [ ] Registry `cloudflare` config schema stores `apiKey`, `email`, `accountId` (compatible with migration plan's `accountId`, `workersSubdomain`)
