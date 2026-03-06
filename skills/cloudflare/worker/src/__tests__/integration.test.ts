@@ -29,8 +29,8 @@ let mockKV: ReturnType<typeof createMockKV>;
 
 const makeMockEnv = () => ({
   REGISTRY_KV: mockKV,
-  CLERK_PEM_PUBLIC_KEY: "test-key",
-  CLERK_WEBHOOK_SECRET: "whsec_test",
+  OIDC_PEM_PUBLIC_KEY: "test-key",
+  OIDC_ISSUER: "",
   PERMITTED_ORIGINS: "",
   RESERVED_SUBDOMAINS: "admin,api,www",
 });
@@ -244,25 +244,7 @@ describe("Registry Worker Integration", () => {
   });
 
   describe("POST /webhook", () => {
-    it("returns 401 for invalid signature", async () => {
-      const res = await app.request(
-        "/webhook",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "svix-id": "test",
-            "svix-timestamp": "1234567890",
-            "svix-signature": "invalid",
-          },
-          body: JSON.stringify({ type: "test" }),
-        },
-        makeMockEnv()
-      );
-      expect(res.status).toBe(401);
-    });
-
-    it("returns 401 for missing webhook headers", async () => {
+    it("returns 501 (stub for future Stripe integration)", async () => {
       const res = await app.request(
         "/webhook",
         {
@@ -272,7 +254,7 @@ describe("Registry Worker Integration", () => {
         },
         makeMockEnv()
       );
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(501);
     });
   });
 

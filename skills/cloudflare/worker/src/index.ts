@@ -1,15 +1,12 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { Webhook } from "svix";
 import type { Env } from "./types";
 import { RegistryKV } from "./lib/kv-storage";
-import { verifyClerkJWT, verifyClerkJWTDebug } from "./lib/crypto-jwt";
+import { verifyOIDCJWT, verifyOIDCJWTDebug } from "./lib/crypto-jwt";
 import { parsePermittedOrigins } from "./lib/jwt-validation";
 import {
   isSubdomainAvailable,
   createSubdomainRecord,
-  freezeSubdomain,
-  unfreezeSubdomain,
   addCollaborator,
   activateCollaborator,
   hasAccess,
@@ -104,7 +101,7 @@ app.post("/claim", async (c) => {
   const authHeader = c.req.header("Authorization");
   const permittedOrigins = parsePermittedOrigins(c.env.PERMITTED_ORIGINS);
 
-  const authResult = await verifyClerkJWTDebug(authHeader, c.env.CLERK_PEM_PUBLIC_KEY, permittedOrigins);
+  const authResult = await verifyOIDCJWTDebug(authHeader, c.env.OIDC_PEM_PUBLIC_KEY, permittedOrigins, c.env.OIDC_ISSUER);
   if ('error' in authResult) {
     return c.json({
       error: "Unauthorized",
@@ -146,7 +143,7 @@ app.post("/claim", async (c) => {
   const adminIds = parseAdminIds(c.env.ADMIN_USER_IDS);
   const isAdmin = adminIds.includes(auth.userId);
 
-  // Subscription gate — check JWT pla claim (set by Clerk Commerce)
+  // Subscription gate — check JWT pla claim (may come from Stripe in phase 2)
   if (!isAdmin) {
     const planSlug = auth.plan?.split(':')[1];
     const hasActiveSubscription = !!planSlug && planSlug !== 'free';
@@ -214,12 +211,6 @@ app.post("/claim", async (c) => {
     quota: userRecord?.quota ?? 3,
   });
 
-  if (c.env.CLERK_SECRET_KEY) {
-    c.executionCtx.waitUntil(
-      updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, auth.userId, normalized, 'owner', false)
-    );
-  }
-
   return c.json({ success: true, subdomain: normalized }, 201);
 });
 
@@ -228,7 +219,7 @@ app.post("/invite", async (c) => {
   const authHeader = c.req.header("Authorization");
   const permittedOrigins = parsePermittedOrigins(c.env.PERMITTED_ORIGINS);
 
-  const authResult = await verifyClerkJWTDebug(authHeader, c.env.CLERK_PEM_PUBLIC_KEY, permittedOrigins);
+  const authResult = await verifyOIDCJWTDebug(authHeader, c.env.OIDC_PEM_PUBLIC_KEY, permittedOrigins, c.env.OIDC_ISSUER);
   if ('error' in authResult) {
     return c.json({ error: "Unauthorized", failReason: authResult.error }, 401);
   }
@@ -268,7 +259,7 @@ app.post("/join", async (c) => {
   const authHeader = c.req.header("Authorization");
   const permittedOrigins = parsePermittedOrigins(c.env.PERMITTED_ORIGINS);
 
-  const authResult = await verifyClerkJWTDebug(authHeader, c.env.CLERK_PEM_PUBLIC_KEY, permittedOrigins);
+  const authResult = await verifyOIDCJWTDebug(authHeader, c.env.OIDC_PEM_PUBLIC_KEY, permittedOrigins, c.env.OIDC_ISSUER);
   if ('error' in authResult) {
     return c.json({ error: "Unauthorized", failReason: authResult.error }, 401);
   }
@@ -318,12 +309,6 @@ app.post("/join", async (c) => {
     quota: userRecord?.quota ?? 3,
   });
 
-  if (c.env.CLERK_SECRET_KEY) {
-    c.executionCtx.waitUntil(
-      updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, auth.userId, normalized, 'collaborator', record.status === 'frozen')
-    );
-  }
-
   return c.json({ success: true, subdomain: normalized, role: "collaborator" }, 200);
 });
 
@@ -332,7 +317,7 @@ app.post("/set-ledger", async (c) => {
   const authHeader = c.req.header("Authorization");
   const permittedOrigins = parsePermittedOrigins(c.env.PERMITTED_ORIGINS);
 
-  const authResult = await verifyClerkJWTDebug(authHeader, c.env.CLERK_PEM_PUBLIC_KEY, permittedOrigins);
+  const authResult = await verifyOIDCJWTDebug(authHeader, c.env.OIDC_PEM_PUBLIC_KEY, permittedOrigins, c.env.OIDC_ISSUER);
   if ('error' in authResult) {
     return c.json({ error: "Unauthorized", failReason: authResult.error }, 401);
   }
@@ -368,88 +353,12 @@ app.post("/set-ledger", async (c) => {
   return c.json({ success: true, subdomain: normalized }, 200);
 });
 
-// POST /webhook - Clerk subscription webhooks
+// POST /webhook - Subscription webhooks (stub for future Stripe integration)
 app.post("/webhook", async (c) => {
-  const payload = await c.req.text();
-  const headers: Record<string, string> = {};
-  c.req.raw.headers.forEach((value, key) => {
-    headers[key.toLowerCase()] = value;
-  });
-
-  // Verify webhook signature
-  let event: { type: string; data: { user_id?: string; quantity?: number } };
-  try {
-    const wh = new Webhook(c.env.CLERK_WEBHOOK_SECRET);
-    event = wh.verify(payload, {
-      "svix-id": headers["svix-id"] || "",
-      "svix-timestamp": headers["svix-timestamp"] || "",
-      "svix-signature": headers["svix-signature"] || "",
-    }) as typeof event;
-  } catch (error) {
-    console.error("Webhook verification failed:", error);
-    return c.json({ error: "Invalid webhook signature", debug: String(error) }, 401);
-  }
-
-  console.log("Received webhook event:", event.type);
-
-  const eventData = event.data as any;
-  const userId = eventData.payer?.user_id ?? eventData.user_id;
-
-  if (!userId) {
-    return c.json({ error: "Missing user_id" }, 400);
-  }
-
-  const kv = new RegistryKV(c.env.REGISTRY_KV);
-
-  if (event.type === "subscription.deleted") {
-    // Freeze only OWNED subdomains (user index contains both owned + collaborated)
-    const userRecord = await kv.getUser(userId);
-    if (userRecord?.subdomains.length) {
-      for (const subdomain of userRecord.subdomains) {
-        const record = await kv.getSubdomain(subdomain);
-        if (record && record.ownerId === userId && record.status !== 'frozen') {
-          const frozenRecord = freezeSubdomain(record);
-          await kv.putSubdomain(subdomain, frozenRecord);
-          console.log(`Froze subdomain: ${subdomain} for user ${userId}`);
-
-          // Propagate frozen status to Clerk publicMetadata
-          if (c.env.CLERK_SECRET_KEY) {
-            await updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, userId, subdomain, 'owner', true);
-            for (const collab of frozenRecord.collaborators) {
-              if (collab.userId) {
-                await updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, collab.userId, subdomain, 'collaborator', true);
-              }
-            }
-          }
-        }
-      }
-    }
-  } else if (event.type === "subscription.created" || event.type === "subscription.updated") {
-    // Unfreeze only OWNED frozen subdomains for this user
-    const userRecord = await kv.getUser(userId);
-    if (userRecord?.subdomains.length) {
-      for (const subdomain of userRecord.subdomains) {
-        const record = await kv.getSubdomain(subdomain);
-        if (record && record.ownerId === userId && record.status === 'frozen') {
-          const unfrozenRecord = unfreezeSubdomain(record);
-          await kv.putSubdomain(subdomain, unfrozenRecord);
-          console.log(`Unfroze subdomain: ${subdomain} for user ${userId}`);
-
-          // Propagate unfrozen status to Clerk publicMetadata
-          if (c.env.CLERK_SECRET_KEY) {
-            await updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, userId, subdomain, 'owner', false);
-            for (const collab of unfrozenRecord.collaborators) {
-              if (collab.userId) {
-                await updateClerkSubdomainClaims(c.env.CLERK_SECRET_KEY, collab.userId, subdomain, 'collaborator', false);
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  return c.json({ received: true });
+  // TODO: Implement Stripe webhook verification and handling in phase 2.
+  // Expected events: checkout.session.completed, customer.subscription.updated,
+  // customer.subscription.deleted — will freeze/unfreeze subdomains accordingly.
+  return c.json({ error: "Webhook handler not yet implemented" }, 501);
 });
 
 // POST /api/ai/chat - AI proxy to OpenRouter
@@ -502,7 +411,7 @@ app.get("/resolve/:subdomain", async (c) => {
   if (authHeader && !userId) {
     try {
       const permittedOrigins = parsePermittedOrigins(c.env.PERMITTED_ORIGINS);
-      const authResult = await verifyClerkJWT(authHeader, c.env.CLERK_PEM_PUBLIC_KEY, permittedOrigins);
+      const authResult = await verifyOIDCJWT(authHeader, c.env.OIDC_PEM_PUBLIC_KEY, permittedOrigins, c.env.OIDC_ISSUER);
       if (authResult) {
         userId = authResult.userId;
       }
@@ -563,40 +472,6 @@ app.get("/resolve/:subdomain", async (c) => {
 
   return c.json({ role: "none", frozen });
 });
-
-// Helper: Update Clerk publicMetadata with subdomain claims
-async function updateClerkSubdomainClaims(
-  secretKey: string,
-  userId: string,
-  subdomain: string,
-  role: 'owner' | 'collaborator',
-  frozen: boolean = false
-): Promise<void> {
-  try {
-    const userRes = await fetch(`https://api.clerk.com/v1/users/${userId}`, {
-      headers: { Authorization: `Bearer ${secretKey}` }
-    });
-    if (!userRes.ok) return;
-    const userData = await userRes.json() as any;
-    const currentMeta = userData.public_metadata || {};
-    const vibesSubdomains = currentMeta.vibes_subdomains || {};
-
-    vibesSubdomains[subdomain] = { role, frozen };
-
-    await fetch(`https://api.clerk.com/v1/users/${userId}/metadata`, {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${secretKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        public_metadata: { ...currentMeta, vibes_subdomains: vibesSubdomains }
-      })
-    });
-  } catch (e) {
-    console.warn('Failed to update Clerk subdomain claims:', e);
-  }
-}
 
 // 404 for everything else
 app.notFound((c) => c.json({ error: "Not Found" }, 404));

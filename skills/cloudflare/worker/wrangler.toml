@@ -24,7 +24,7 @@ ADMIN_USER_IDS = ""
 PLAN_QUOTAS = ""
 
 # Secrets (set via `wrangler secret put`):
-# - CLERK_PEM_PUBLIC_KEY
-# - CLERK_WEBHOOK_SECRET
+# - OIDC_PEM_PUBLIC_KEY
+# - OIDC_ISSUER (optional, for issuer validation)
 # - PERMITTED_ORIGINS
 # - OPENROUTER_API_KEY (optional, for AI features)

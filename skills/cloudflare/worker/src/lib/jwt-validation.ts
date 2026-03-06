@@ -1,8 +1,12 @@
 /**
- * JWT Validation Utilities
- * Copied from scripts/lib/jwt-validation.js with TypeScript types added.
+ * JWT Validation Utilities for OIDC tokens.
+ * Validates audience (azp) claims and token timing.
  */
 
+/**
+ * Match the azp (authorized party) claim against permitted origins.
+ * In OIDC, this validates the audience/client that the token was issued for.
+ */
 export function matchAzp(azp: string | undefined, permittedOrigins: string[]): boolean {
   if (!azp || !permittedOrigins || permittedOrigins.length === 0) {
     return true;
