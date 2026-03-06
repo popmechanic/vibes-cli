@@ -9,6 +9,7 @@
  *   "version": 1,
  *   "cloudflare": {
  *     "accountId": "...", "workersSubdomain": "...",
+ *     "apiToken": "...",
  *     "apiKey": "...", "email": "..."
  *   },
  *   "apps": {

@@ -1,4 +1,4 @@
-// scripts/__tests__/unit/editor-api-cloudflare.test.js
+// scripts/__tests__/integration/editor-api-cloudflare.test.js
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 describe('validateCloudflareCredentials', () => {
@@ -47,7 +47,7 @@ describe('validateCloudflareCredentials', () => {
     expect(result.error).toBeTruthy();
   });
 
-  it('sends correct auth headers for Global API Key', async () => {
+  it('sends correct auth headers and signal for Global API Key', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ success: true, result: [{ id: 'abc123' }] }),
@@ -61,6 +61,7 @@ describe('validateCloudflareCredentials', () => {
           'X-Auth-Key': 'mykey',
           'X-Auth-Email': 'me@test.com',
         }),
+        signal: expect.any(AbortSignal),
       }),
     );
   });
@@ -84,7 +85,7 @@ describe('validateCloudflareCredentials', () => {
     expect(result.authMode).toBe('api-token');
   });
 
-  it('sends Bearer header for API Token', async () => {
+  it('sends Bearer header and signal for API Token', async () => {
     globalThis.fetch = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
@@ -102,6 +103,7 @@ describe('validateCloudflareCredentials', () => {
         headers: expect.objectContaining({
           'Authorization': 'Bearer my-token',
         }),
+        signal: expect.any(AbortSignal),
       }),
     );
   });
@@ -120,6 +122,22 @@ describe('validateCloudflareCredentials', () => {
     expect(result.error).toMatch(/token/i);
   });
 
+  it('returns invalid when API Token is valid but no accounts accessible', async () => {
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ success: true, result: { status: 'active' } }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ success: true, result: [] }),
+      });
+
+    const result = await validateCloudflareCredentials({ apiToken: 'valid-but-no-accounts' });
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/no accounts/i);
+  });
+
   // --- Edge cases ---
 
   it('returns invalid when no credentials provided', async () => {
@@ -134,5 +152,15 @@ describe('validateCloudflareCredentials', () => {
     const result = await validateCloudflareCredentials({ apiKey: 'key', email: 'email@test.com' });
     expect(result.valid).toBe(false);
     expect(result.error).toMatch(/network|failed/i);
+  });
+
+  it('returns timeout message when fetch is aborted', async () => {
+    const abortError = new Error('The operation was aborted');
+    abortError.name = 'AbortError';
+    globalThis.fetch = vi.fn().mockRejectedValue(abortError);
+
+    const result = await validateCloudflareCredentials({ apiKey: 'key', email: 'email@test.com' });
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/timed out/i);
   });
 });
