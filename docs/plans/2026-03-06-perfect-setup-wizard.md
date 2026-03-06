@@ -276,47 +276,66 @@ git commit -m "Add detailed Cloudflare guidance with account creation and permis
 - Modify: `skills/vibes/templates/editor.html` (client-side hint text)
 - Modify: `scripts/server/handlers/editor-api.js` (server-side error messages)
 
-**Step 1: Improve client-side Clerk validation hints**
+**Step 1: Rewrite `validateWizardClerkInputs()` with swap detection and already-validated guard**
 
-Find `validateWizardClerkInputs()` (around line 3291-3324). Replace **only the hint if/else block** (do not rewrite the whole function — Task 7 will do the full rewrite with the already-validated early-return and these same hints combined):
+Find `validateWizardClerkInputs()` (around line 3291-3324). Replace the **entire function** with its final form. This includes both the swap-detection hints and the early-return for already-validated keys (so returning users aren't stuck with a disabled Next button):
 
 ```javascript
-// BEFORE (the hint block inside validateWizardClerkInputs, around line 3308-3316)
-if (key && !keyValid) {
-  hint.textContent = 'Publishable key must start with pk_test_ or pk_live_';
-  hint.style.display = '';
-} else if (secret && !secretValid) {
-  hint.textContent = 'Secret key must start with sk_test_ or sk_live_';
-  hint.style.display = '';
-} else {
-  hint.style.display = 'none';
+function validateWizardClerkInputs() {
+  const keyInput = document.getElementById('wizardClerkKey');
+  const secretInput = document.getElementById('wizardClerkSecret');
+  const hint = document.getElementById('wizardClerkHint');
+  const nextBtn = document.getElementById('wizardClerkNext');
+
+  const key = keyInput.value.trim();
+  const secret = secretInput.value.trim();
+
+  // If keys are already validated and user hasn't typed anything new, allow advancing
+  if (!key && !secret && wizardValidation.clerk === 'valid') {
+    keyInput.classList.remove('valid', 'invalid');
+    secretInput.classList.remove('valid', 'invalid');
+    hint.style.display = 'none';
+    nextBtn.disabled = false;
+    return;
+  }
+
+  const keyValid = key.startsWith('pk_test_') || key.startsWith('pk_live_');
+  const secretValid = secret.startsWith('sk_test_') || secret.startsWith('sk_live_');
+
+  keyInput.classList.toggle('valid', key && keyValid);
+  keyInput.classList.toggle('invalid', key && !keyValid);
+  secretInput.classList.toggle('valid', secret && secretValid);
+  secretInput.classList.toggle('invalid', secret && !secretValid);
+
+  // Swap detection hints
+  if (key && !keyValid) {
+    if (key.startsWith('sk_test_') || key.startsWith('sk_live_')) {
+      hint.textContent = 'This looks like a secret key — it goes in the field below. The publishable key starts with pk_test_ or pk_live_.';
+    } else {
+      hint.textContent = 'Publishable key must start with pk_test_ or pk_live_. Find it in Clerk Dashboard > Configure > API Keys.';
+    }
+    hint.style.display = '';
+  } else if (secret && !secretValid) {
+    if (secret.startsWith('pk_test_') || secret.startsWith('pk_live_')) {
+      hint.textContent = 'This looks like a publishable key — it goes in the field above. The secret key starts with sk_test_ or sk_live_.';
+    } else {
+      hint.textContent = 'Secret key must start with sk_test_ or sk_live_. In the Clerk Dashboard, click "Show" next to the secret key to reveal it.';
+    }
+    hint.style.display = '';
+  } else {
+    hint.style.display = 'none';
+  }
+
+  const valid = keyValid && secretValid;
+  nextBtn.disabled = !valid;
+  if (valid) {
+    wizardData.clerkKey = key;
+    wizardData.clerkSecret = secret;
+  }
 }
 ```
 
-Replace with:
-
-```javascript
-// AFTER — swap detection hints (Task 7 will incorporate this into the full rewrite)
-if (key && !keyValid) {
-  if (key.startsWith('sk_test_') || key.startsWith('sk_live_')) {
-    hint.textContent = 'This looks like a secret key — it goes in the field below. The publishable key starts with pk_test_ or pk_live_.';
-  } else {
-    hint.textContent = 'Publishable key must start with pk_test_ or pk_live_. Find it in Clerk Dashboard > Configure > API Keys.';
-  }
-  hint.style.display = '';
-} else if (secret && !secretValid) {
-  if (secret.startsWith('pk_test_') || secret.startsWith('pk_live_')) {
-    hint.textContent = 'This looks like a publishable key — it goes in the field above. The secret key starts with sk_test_ or sk_live_.';
-  } else {
-    hint.textContent = 'Secret key must start with sk_test_ or sk_live_. In the Clerk Dashboard, click "Show" next to the secret key to reveal it.';
-  }
-  hint.style.display = '';
-} else {
-  hint.style.display = 'none';
-}
-```
-
-**Note:** Task 7 will later rewrite the entire `validateWizardClerkInputs` function, incorporating these same hints plus an early-return for already-validated keys.
+This is the **final form** of this function. No later task modifies it.
 
 **Step 2: Improve Cloudflare validation error display**
 
@@ -461,7 +480,23 @@ Expected: PASS (these are testing existing utility functions)
 
 **Step 3: Add a Clerk FAPI validation endpoint to `editor-api.js`**
 
-Clerk publishable keys encode a Frontend API domain. We can verify the key by hitting that domain. Add this function and route handler to `scripts/server/handlers/editor-api.js`:
+Clerk publishable keys encode a Frontend API domain. We can verify the key by hitting that domain. First, add `extractClerkDomain` to the existing static import in `editor-api.js`.
+
+Find the import line at the top of the file (line 7):
+
+```javascript
+// BEFORE
+import { loadEnvFile, validateClerkKey, validateClerkSecretKey, writeEnvFile } from '../../lib/env-utils.js';
+```
+
+Replace with:
+
+```javascript
+// AFTER
+import { loadEnvFile, validateClerkKey, validateClerkSecretKey, extractClerkDomain, writeEnvFile } from '../../lib/env-utils.js';
+```
+
+Then add this function and route handler to `scripts/server/handlers/editor-api.js`:
 
 ```javascript
 /**
@@ -480,8 +515,7 @@ export async function validateClerkCredentials({ publishableKey } = {}) {
     return { valid: false, error: 'No publishable key provided.' };
   }
 
-  // Extract the FAPI domain from the key
-  const { extractClerkDomain } = await import('../../lib/env-utils.js');
+  // Extract the FAPI domain from the key (uses static import from top of file)
   const domain = extractClerkDomain(publishableKey);
   if (!domain) {
     return { valid: false, error: 'Could not decode domain from publishable key. Make sure you copied the full key.' };
@@ -548,12 +582,20 @@ The server uses a declarative `routeTable` object (not an if/else chain). Open `
 'POST /editor/credentials/validate-clerk':      editorApi.validateClerk,    // <-- add this line
 ```
 
-**Step 5: Update `saveClerkAndAdvance()` to validate before saving**
+**Step 5: Rewrite `saveClerkAndAdvance()` with FAPI validation and already-validated guard**
 
-In `skills/vibes/templates/editor.html`, find `saveClerkAndAdvance()` (around line 3326-3358). Replace it. **Note:** Task 7 will later add an early-return for already-validated keys at the top of this function; this version is the base that Task 7 builds on.
+In `skills/vibes/templates/editor.html`, find `saveClerkAndAdvance()` (around line 3326-3358). Replace it with its **final form** — includes both FAPI validation and the early-return for already-validated keys:
 
 ```javascript
 async function saveClerkAndAdvance() {
+  // If no new keys entered and existing validation is good, just advance
+  const keyInput = document.getElementById('wizardClerkKey');
+  const secretInput = document.getElementById('wizardClerkSecret');
+  if (!keyInput.value.trim() && !secretInput.value.trim() && wizardValidation.clerk === 'valid') {
+    setWizardStep(3);
+    return;
+  }
+
   const btn = document.getElementById('wizardClerkNext');
   const hint = document.getElementById('wizardClerkHint');
   hint.style.display = 'none';
@@ -600,6 +642,8 @@ async function saveClerkAndAdvance() {
   }
 }
 ```
+
+This is the **final form** of this function. No later task modifies it.
 
 **Step 6: Run tests**
 
@@ -692,12 +736,10 @@ git commit -m "Enhance summary step with edit buttons and verification status"
 
 **Problem:** `prefillFromStatus` sets validation state and placeholder text, but when a user navigates to a step that already has valid credentials (e.g., via the "Edit" button on the summary), the input fields are empty. The user might think their credentials are gone. We should show masked versions of existing values.
 
-**Supersession note:** This task writes the **final form** of three functions that earlier tasks partially modified:
+**Supersession note:** This task writes the **final form** of `prefillFromStatus` only. The other two functions that were previously split across tasks are now written in their final form earlier:
+- `validateWizardClerkInputs` — written in final form in Task 4 (swap detection + already-validated guard). Do NOT rewrite here.
+- `saveClerkAndAdvance` — written in final form in Task 5 (FAPI validation + already-validated guard). Do NOT rewrite here.
 - `prefillFromStatus` — Task 1 patched the step-skipping block; this task rewrites the full function with masked values, OpenRouter pre-population, and the same step-skipping logic.
-- `validateWizardClerkInputs` — Task 4 patched the hint block; this task rewrites the full function with the already-validated early-return and the same swap-detection hints.
-- `saveClerkAndAdvance` — Task 5 rewrote it with FAPI validation; this task adds the already-validated early-return at the top and keeps the rest identical.
-
-Each earlier task's changes are **incorporated** into the final version here. When executing, treat this task's code as the canonical version.
 
 **Files:**
 - Modify: `skills/vibes/templates/editor.html`
@@ -725,16 +767,29 @@ Replace with:
 
 ```javascript
 // AFTER
-// Build masked key previews for pre-population
-// NOTE: `defaultApp` is already declared as `const` earlier in this function (line 54),
-// so reuse it here — do NOT redeclare with `const`.
+// Build masked key previews for pre-population.
+// `checkEditorDeps` resolves Clerk keys from three sources (in priority order):
+//   1. _default sentinel (line 54-59)
+//   2. Most recent real app (line 62-69)
+//   3. .env file (line 73-79)
+// We need to read from whichever source actually provided the valid key.
+// Track the validated pk through the existing logic by hoisting it.
+
+// IMPORTANT: To make masking work, hoist the validated pk value.
+// Add `let validatedPk = '';` at the top of checkEditorDeps (after `let clerkOk = false;`),
+// and set `validatedPk = <the pk value>` in each of the three branches where clerkOk is set true.
+// Then use it here:
 const maskedKeys = {};
 if (clerkOk) {
-  // Reuse `defaultApp` from line 54 (already declared in this scope)
-  const pk = defaultApp?.clerk?.publishableKey || '';
-  if (pk) maskedKeys.clerkPublishableKey = pk.slice(0, 12) + '...' + pk.slice(-4);
+  if (validatedPk) maskedKeys.clerkPublishableKey = validatedPk.slice(0, 12) + '...' + validatedPk.slice(-4);
   maskedKeys.clerkSecretKey = 'sk_****_configured';
 }
+
+// The three changes needed earlier in the function:
+// 1. After `let clerkDetail = 'No Clerk keys configured';` add: `let validatedPk = '';`
+// 2. In the _default branch (line 57-58), add: `validatedPk = defaultPk;`
+// 3. In the most-recent-app branch (line 68), add: `validatedPk = pk;`
+// 4. In the .env branch (line 77), add: `validatedPk = envKey;`
 if (cfOk) {
   if (cfConfig.apiToken) {
     maskedKeys.cloudflareApiToken = cfConfig.apiToken.slice(0, 6) + '...' + cfConfig.apiToken.slice(-4);
@@ -811,132 +866,12 @@ function prefillFromStatus(status) {
 }
 ```
 
-**Step 3: Make Clerk step allow skipping if keys already validated**
-
-When the user navigates to the Clerk step and validation is already 'valid' (existing keys), they should be able to click Next without re-entering keys. Update `validateWizardClerkInputs` to handle this:
-
-Add this at the top of `validateWizardClerkInputs()`:
-
-```javascript
-function validateWizardClerkInputs() {
-  const keyInput = document.getElementById('wizardClerkKey');
-  const secretInput = document.getElementById('wizardClerkSecret');
-  const hint = document.getElementById('wizardClerkHint');
-  const nextBtn = document.getElementById('wizardClerkNext');
-
-  const key = keyInput.value.trim();
-  const secret = secretInput.value.trim();
-
-  // If keys are already validated and user hasn't typed anything new, allow advancing
-  if (!key && !secret && wizardValidation.clerk === 'valid') {
-    keyInput.classList.remove('valid', 'invalid');
-    secretInput.classList.remove('valid', 'invalid');
-    hint.style.display = 'none';
-    nextBtn.disabled = false;
-    return;
-  }
-
-  const keyValid = key.startsWith('pk_test_') || key.startsWith('pk_live_');
-  const secretValid = secret.startsWith('sk_test_') || secret.startsWith('sk_live_');
-
-  keyInput.classList.toggle('valid', key && keyValid);
-  keyInput.classList.toggle('invalid', key && !keyValid);
-  secretInput.classList.toggle('valid', secret && secretValid);
-  secretInput.classList.toggle('invalid', secret && !secretValid);
-
-  // Swap detection hints
-  if (key && !keyValid) {
-    if (key.startsWith('sk_test_') || key.startsWith('sk_live_')) {
-      hint.textContent = 'This looks like a secret key — it goes in the field below. The publishable key starts with pk_test_ or pk_live_.';
-    } else {
-      hint.textContent = 'Publishable key must start with pk_test_ or pk_live_. Find it in Clerk Dashboard > Configure > API Keys.';
-    }
-    hint.style.display = '';
-  } else if (secret && !secretValid) {
-    if (secret.startsWith('pk_test_') || secret.startsWith('pk_live_')) {
-      hint.textContent = 'This looks like a publishable key — it goes in the field above. The secret key starts with sk_test_ or sk_live_.';
-    } else {
-      hint.textContent = 'Secret key must start with sk_test_ or sk_live_. In the Clerk Dashboard, click "Show" next to the secret key to reveal it.';
-    }
-    hint.style.display = '';
-  } else {
-    hint.style.display = 'none';
-  }
-
-  const valid = keyValid && secretValid;
-  nextBtn.disabled = !valid;
-  if (valid) {
-    wizardData.clerkKey = key;
-    wizardData.clerkSecret = secret;
-  }
-}
-```
-
-**Step 4: Update `saveClerkAndAdvance` to skip validation when re-using existing keys**
-
-```javascript
-async function saveClerkAndAdvance() {
-  // If no new keys entered and existing validation is good, just advance
-  const keyInput = document.getElementById('wizardClerkKey');
-  const secretInput = document.getElementById('wizardClerkSecret');
-  if (!keyInput.value.trim() && !secretInput.value.trim() && wizardValidation.clerk === 'valid') {
-    setWizardStep(3);
-    return;
-  }
-
-  const btn = document.getElementById('wizardClerkNext');
-  const hint = document.getElementById('wizardClerkHint');
-  hint.style.display = 'none';
-  btn.disabled = true;
-  btn.innerHTML = '<span class="wizard-checking"></span> Verifying...';
-  wizardValidation.clerk = 'checking';
-  try {
-    // Validate the publishable key against Clerk's API
-    const valRes = await fetch('/editor/credentials/validate-clerk', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ publishableKey: wizardData.clerkKey }),
-    });
-    const valData = await valRes.json();
-    if (!valData.valid) {
-      throw new Error(valData.error || 'Clerk key validation failed');
-    }
-
-    // Save both keys
-    const res = await fetch('/editor/credentials', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        clerkPublishableKey: wizardData.clerkKey,
-        clerkSecretKey: wizardData.clerkSecret,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      const errMsg = data.errors ? Object.values(data.errors).join('; ') : 'Failed to save';
-      throw new Error(errMsg);
-    }
-    wizardValidation.clerk = 'valid';
-    setWizardStep(3);
-  } catch (err) {
-    wizardValidation.clerk = 'invalid';
-    hint.textContent = err.message;
-    hint.style.color = 'var(--vibes-red)';
-    hint.style.display = '';
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = 'Next';
-    validateWizardClerkInputs();
-  }
-}
-```
-
-**Step 5: Run tests**
+**Step 3: Run tests**
 
 Run: `cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard/scripts && npm test`
 Expected: All tests pass
 
-**Step 6: Commit**
+**Step 4: Commit**
 
 ```bash
 cd /Users/marcusestes/Websites/VibesCLI/vibes-skill/.worktrees/perfect-setup-wizard
@@ -1006,12 +941,28 @@ Add this function near the other wizard functions.
 **Caution:** Do NOT call `renderChecklist(status)` from `openSettings()`. `renderChecklist` contains `if (startBtn && requiredOk) { setTimeout(() => goToGenerate(), 800); }` which auto-redirects away from the wizard when both credentials are configured. That auto-redirect is correct on initial page load (skip the wizard entirely) but wrong when the user explicitly clicks Settings to re-enter. Only call `prefillFromStatus`, which handles step-skipping without the auto-redirect.
 
 ```javascript
+// Helper: update welcome step icons without the auto-redirect in renderChecklist
+function updateWelcomeIcons(status) {
+  const clerkIcon = document.getElementById('welcomeClerkIcon');
+  const cfIcon = document.getElementById('welcomeCfIcon');
+  if (clerkIcon) {
+    clerkIcon.style.background = status.clerk?.ok ? 'var(--vibes-green)' : '#999';
+    clerkIcon.innerHTML = status.clerk?.ok ? '&#10003;' : '1';
+  }
+  if (cfIcon) {
+    cfIcon.style.background = status.cloudflare?.ok ? 'var(--vibes-green)' : '#999';
+    cfIcon.innerHTML = status.cloudflare?.ok ? '&#10003;' : '2';
+  }
+}
+
 function openSettings() {
   // Re-fetch status and show the wizard — do NOT call renderChecklist()
   // because it auto-redirects to generate when all creds are present.
   // prefillFromStatus() handles smart step-skipping without the redirect.
+  // updateWelcomeIcons() updates the step 1 icons (extracted from renderChecklist).
   fetch('/editor/status').then(r => r.json()).then(status => {
     cloudflareReady = status.cloudflare?.ok || false;
+    updateWelcomeIcons(status);
     prefillFromStatus(status);
     setPhase('setup');
   }).catch(() => {
@@ -1019,6 +970,8 @@ function openSettings() {
   });
 }
 ```
+
+Also update `renderChecklist` to call the shared `updateWelcomeIcons` helper instead of duplicating the icon logic. Replace the icon-updating block in `renderChecklist` (around lines 3239-3249) with `updateWelcomeIcons(status);`.
 
 **Step 3: Commit**
 
@@ -1110,10 +1063,14 @@ git commit -m "Allow skipping Cloudflare step when credentials already validated
 
 Append these test cases to `scripts/__tests__/integration/wizard-flow.test.js`:
 
+Note: `scripts/package.json` has `"type": "module"` — all test files use ESM imports, not `require()`.
+
 ```javascript
-// Shared mock helpers — place at top of file or inside describe block
+// At the top of the file, add this import alongside the existing ones:
+import { Readable } from 'stream';
+
+// Shared mock helpers — place after imports, before describe blocks
 function mockReq(body) {
-  const { Readable } = require('stream');
   const req = new Readable({ read() {} });
   req.push(JSON.stringify(body));
   req.push(null);
