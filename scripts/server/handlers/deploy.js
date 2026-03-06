@@ -14,9 +14,13 @@ import { getCloudflareConfig } from '../../lib/registry.js';
 function getRegistryEnv() {
   const env = { ...process.env };
   const cf = getCloudflareConfig();
-  if (cf.apiToken && !env.CLOUDFLARE_API_TOKEN) env.CLOUDFLARE_API_TOKEN = cf.apiToken;
-  if (cf.apiKey && !env.CLOUDFLARE_API_KEY) env.CLOUDFLARE_API_KEY = cf.apiKey;
-  if (cf.email && !env.CLOUDFLARE_EMAIL) env.CLOUDFLARE_EMAIL = cf.email;
+  // Only inject the active auth method — API Token takes precedence
+  if (cf.apiToken) {
+    if (!env.CLOUDFLARE_API_TOKEN) env.CLOUDFLARE_API_TOKEN = cf.apiToken;
+  } else {
+    if (cf.apiKey && !env.CLOUDFLARE_API_KEY) env.CLOUDFLARE_API_KEY = cf.apiKey;
+    if (cf.email && !env.CLOUDFLARE_EMAIL) env.CLOUDFLARE_EMAIL = cf.email;
+  }
   return env;
 }
 

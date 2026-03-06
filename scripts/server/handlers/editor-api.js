@@ -165,7 +165,7 @@ export async function saveCredentials(ctx, req, res) {
 
     // --- Phase 2: All valid — write to registry + .env ---
 
-    if (hasClerk && (pk || sk)) {
+    if (hasClerk) {
       // _default is a sentinel app entry used by the wizard for credential status
       // checks. It stores Clerk keys in the registry so checkEditorDeps() can
       // verify them without reading .env. Deploy reads from .env (written below).
@@ -191,9 +191,17 @@ export async function saveCredentials(ctx, req, res) {
 
     if (hasCf) {
       const cfUpdate = {};
-      if (apiToken) cfUpdate.apiToken = apiToken;
-      if (apiKey) cfUpdate.apiKey = apiKey;
-      if (email) cfUpdate.email = email;
+      if (apiToken) {
+        // API Token mode — clear legacy Global API Key credentials
+        cfUpdate.apiToken = apiToken;
+        cfUpdate.apiKey = null;
+        cfUpdate.email = null;
+      } else if (apiKey || email) {
+        // Global API Key mode — clear scoped API Token
+        cfUpdate.apiToken = null;
+        if (apiKey) cfUpdate.apiKey = apiKey;
+        if (email) cfUpdate.email = email;
+      }
       if (body.cloudflareAccountId) cfUpdate.accountId = body.cloudflareAccountId;
       if (Object.keys(cfUpdate).length > 0) setCloudflareConfig(cfUpdate);
     }

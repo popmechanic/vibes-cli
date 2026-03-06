@@ -2494,6 +2494,7 @@
         <div class="wizard-help" id="wizardCfHint" style="display:none;"></div>
         <div class="setup-actions" style="margin-top:1rem;">
           <button class="btn btn-secondary" onclick="setWizardStep(2)">Back</button>
+          <!-- &amp; is correct here (HTML source); JS restores via textContent which handles & natively -->
           <button class="btn btn-primary" id="wizardCfNext" onclick="validateAndAdvanceCf()" disabled>Verify &amp; Continue</button>
         </div>
       </div>
@@ -3264,6 +3265,13 @@
 
   function setWizardStep(n) {
     wizardStep = n;
+    // Clear CF wizard data on re-entry to step 3 unless already validated
+    if (n === 3 && wizardValidation.cloudflare !== 'valid') {
+      wizardData.cfApiToken = '';
+      wizardData.cfApiKey = '';
+      wizardData.cfEmail = '';
+      wizardData.cfAccountId = '';
+    }
     document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
     const step = document.getElementById('wizardStep' + n);
     if (step) step.classList.add('active');
@@ -5462,7 +5470,20 @@
       prefillFromStatus(status);
     }
   }).catch(err => {
-    document.getElementById('generatePrompt').focus();
+    // Server unreachable — show wizard with error instead of silently skipping
+    setPhase('setup');
+    const step1 = document.getElementById('wizardStep1');
+    if (step1) {
+      step1.innerHTML = `
+        <div class="wizard-section-title">Cannot reach editor server</div>
+        <div class="wizard-help" style="color:var(--vibes-red);">
+          The editor API is not responding. This usually means the server process
+          has stopped or hasn't finished starting.
+        </div>
+        <div class="setup-actions" style="margin-top:1rem;">
+          <button class="btn btn-primary" onclick="location.reload()">Retry</button>
+        </div>`;
+    }
   });
 
   populateThemeSelect();
