@@ -9,7 +9,7 @@
  */
 
 import { execSync } from 'child_process';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync } from 'fs';
 import { resolve, join } from 'path';
 import { homedir } from 'os';
 import { randomBytes } from 'crypto';
@@ -17,7 +17,7 @@ import { generateSessionTokens, generateDeviceCAKeys } from './crypto-utils.js';
 
 const UPSTREAM_REPO = 'https://github.com/fireproof-storage/fireproof.git';
 const UPSTREAM_BRANCH = 'selem/docker-for-all';
-const SPARSE_DIRS = ['alchemy/', 'cloud/backend/cf-d1/', 'dashboard/'];
+const SPARSE_DIRS = ['alchemy/', 'cloud/', 'core/', 'dashboard/', 'patches/', 'vendor/'];
 
 function getCacheDir() {
   return process.env.VIBES_UPSTREAM_CACHE || join(homedir(), '.vibes', 'upstream', 'fireproof');
@@ -169,14 +169,32 @@ export async function deployConnect({
     alchemyPassword
   });
 
-  // Merge with current process env (for Cloudflare credentials from alchemy login/profile)
+  // Merge with current process env (for Cloudflare credentials)
   const env = { ...process.env, ...alchemyEnv };
+
+  // Alchemy uses its own credential store (~/.alchemy/) which is set up via `alchemy configure`.
+  // Only fall back to wrangler's OAuth token if alchemy is NOT configured AND no explicit token is set.
+  const alchemyConfigured = existsSync(join(homedir(), '.alchemy', 'credentials', 'default', 'cloudflare.json'));
+  if (!env.CLOUDFLARE_API_TOKEN && !env.CLOUDFLARE_API_KEY && !alchemyConfigured) {
+    try {
+      const wranglerConfig = readFileSync(join(homedir(), '.wrangler', 'config', 'default.toml'), 'utf8');
+      const tokenMatch = wranglerConfig.match(/oauth_token\s*=\s*"([^"]+)"/);
+      if (tokenMatch) {
+        env.CLOUDFLARE_API_TOKEN = tokenMatch[1];
+        console.log('Cloudflare auth: using wrangler OAuth token (alchemy not configured)');
+      }
+    } catch {
+      // No wrangler config — alchemy will try its own auth
+    }
+  } else if (alchemyConfigured) {
+    console.log('Cloudflare auth: using alchemy credentials');
+  }
 
   if (dryRun) {
     console.log('[DRY RUN] Would deploy Connect with stage:', appName);
     console.log('[DRY RUN] Alchemy env keys:', Object.keys(alchemyEnv));
     return {
-      apiUrl: `https://fireproof-dashboard-${appName}.workers.dev`,
+      apiUrl: `https://fireproof-dashboard-${appName}.workers.dev/api`,
       cloudUrl: `fpcloud://fireproof-cloud-${appName}.workers.dev?protocol=wss`,
       cloudWorkerName: `fireproof-cloud-${appName}`,
       dashboardWorkerName: `fireproof-dashboard-${appName}`,
@@ -187,10 +205,10 @@ export async function deployConnect({
     };
   }
 
-  // Install dependencies if needed
+  // Install dependencies if needed (pnpm required for workspace: protocol)
   if (!existsSync(join(repoDir, 'node_modules'))) {
     console.log('Installing alchemy dependencies...');
-    execSync('npm install', { cwd: repoDir, stdio: 'inherit' });
+    execSync('pnpm install --frozen-lockfile', { cwd: repoDir, stdio: 'inherit' });
   }
 
   // Run alchemy deploy with --stage
@@ -220,7 +238,7 @@ export async function deployConnect({
   const cloudUrl = `fpcloud://${url.host}?protocol=wss`;
 
   return {
-    apiUrl: dashboardUrl,
+    apiUrl: dashboardUrl.replace(/\/?$/, '/api'),
     cloudUrl,
     cloudWorkerName: `fireproof-cloud-${appName}`,
     dashboardWorkerName: `fireproof-dashboard-${appName}`,

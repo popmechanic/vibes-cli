@@ -208,6 +208,33 @@ async function main() {
     console.log(`  API:   ${connectResult.apiUrl}`);
     console.log(`  Cloud: ${connectResult.cloudUrl}`);
 
+    // Write Connect URLs to .env so assembly can find them
+    const envPath = resolve(envDir, '.env');
+    let envContent = existsSync(envPath) ? readFileSync(envPath, 'utf8') : '';
+
+    // Append or update VITE_API_URL and VITE_CLOUD_URL
+    for (const [key, value] of [['VITE_API_URL', connectResult.apiUrl], ['VITE_CLOUD_URL', connectResult.cloudUrl]]) {
+      const regex = new RegExp(`^${key}=.*$`, 'm');
+      if (regex.test(envContent)) {
+        envContent = envContent.replace(regex, `${key}=${value}`);
+      } else {
+        envContent = envContent.trimEnd() + `\n${key}=${value}\n`;
+      }
+    }
+    writeFileSync(envPath, envContent);
+    console.log(`Updated ${envPath} with Connect URLs`);
+
+    // Auto-assemble if index.html doesn't exist yet
+    const srcFile = resolve(process.cwd(), file);
+    const appJsx = resolve(process.cwd(), 'app.jsx');
+    if (!existsSync(srcFile) && existsSync(appJsx)) {
+      console.log(`\nAuto-assembling ${file} from app.jsx...`);
+      execSync(`node "${resolve(PLUGIN_ROOT, 'scripts/assemble.js')}" app.jsx "${file}"`, {
+        stdio: 'inherit',
+        cwd: process.cwd()
+      });
+    }
+
   } else {
     console.log(`\nUpdate deploy for "${name}" — using existing Connect instance.`);
     const existing = getApp(name);
