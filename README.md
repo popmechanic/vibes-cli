@@ -14,10 +14,6 @@ Your data lives locally in the browser, encrypted and portable. It syncs across 
 
 ## Installation
 
-> **Note:** Installation differs by platform. Claude Code has a built-in plugin system. Codex and OpenCode require manual setup.
-
-### Claude Code (via Plugin Marketplace)
-
 In Claude Code, register the marketplace first:
 
 ```
@@ -64,7 +60,7 @@ Creates a single HTML file with inline JavaScript, Fireproof database for local-
 - "Build a potluck sign-up for Friendsgiving"
 - "Create a trivia game about reality TV"
 
-### `design-reference`
+### `design`
 
 Have a design mockup or static HTML file? This skill mechanically transforms it into a working Vibes app while preserving the design exactly.
 

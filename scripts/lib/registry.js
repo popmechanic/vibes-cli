@@ -7,7 +7,11 @@
  * Schema (v1):
  * {
  *   "version": 1,
- *   "cloudflare": { "accountId": "...", "workersSubdomain": "..." },
+ *   "cloudflare": {
+ *     "accountId": "...", "workersSubdomain": "...",
+ *     "apiToken": "...",
+ *     "apiKey": "...", "email": "..."
+ *   },
  *   "apps": {
  *     "my-app": {
  *       "name": "my-app",
@@ -21,7 +25,7 @@
  * }
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, chmodSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 
@@ -60,7 +64,10 @@ export function loadRegistry() {
 export function saveRegistry(reg) {
   const dir = join(getVibesHome(), '.vibes');
   mkdirSync(dir, { recursive: true });
-  writeFileSync(getRegistryPath(), JSON.stringify(reg, null, 2));
+  const path = getRegistryPath();
+  writeFileSync(path, JSON.stringify(reg, null, 2), { mode: 0o600 });
+  // Also chmod in case the file already existed with broader permissions
+  try { chmodSync(path, 0o600); } catch (e) { console.warn('chmod registry failed:', e.message); }
 }
 
 /**
@@ -71,17 +78,31 @@ export function getApp(name) {
   return reg.apps[name] || null;
 }
 
+/** Keys whose values are objects that should be deep-merged (not replaced) by setApp. */
+const NESTED_KEYS = ['clerk', 'connect', 'app'];
+
 /**
  * Set (create or update) an app entry.
  * Adds updatedAt timestamp, and createdAt if not already present.
+ *
+ * Known nested keys (clerk, connect, app) are deep-merged with existing
+ * values so that partial updates don't clobber sibling fields.
+ * All other top-level keys are shallow-merged (last write wins).
  */
 export function setApp(name, entry) {
   const reg = loadRegistry();
   const existing = reg.apps[name] || {};
-  reg.apps[name] = { ...existing, ...entry, updatedAt: new Date().toISOString() };
-  if (!reg.apps[name].createdAt) {
-    reg.apps[name].createdAt = reg.apps[name].updatedAt;
+  const merged = { ...existing, ...entry, updatedAt: new Date().toISOString() };
+  // Deep-merge known nested objects
+  for (const key of NESTED_KEYS) {
+    if (entry[key] && typeof entry[key] === 'object' && existing[key] && typeof existing[key] === 'object') {
+      merged[key] = { ...existing[key], ...entry[key] };
+    }
   }
+  if (!merged.createdAt) {
+    merged.createdAt = merged.updatedAt;
+  }
+  reg.apps[name] = merged;
   saveRegistry(reg);
 }
 
@@ -98,7 +119,16 @@ export function getCloudflareConfig() {
  */
 export function setCloudflareConfig(config) {
   const reg = loadRegistry();
-  reg.cloudflare = { ...reg.cloudflare, ...config };
+  // Merge non-null values, delete keys explicitly set to null
+  const merged = { ...reg.cloudflare };
+  for (const [key, value] of Object.entries(config)) {
+    if (value === null) {
+      delete merged[key];
+    } else {
+      merged[key] = value;
+    }
+  }
+  reg.cloudflare = merged;
   saveRegistry(reg);
 }
 

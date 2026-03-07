@@ -1,5 +1,6 @@
 ---
 name: launch
+argument-hint: "[prompt]"
 description: Self-contained SaaS pipeline — invoke directly, do not decompose.
   Generates a Vibes app, adds auth + billing, and deploys live. Uses Agent Teams
   to parallelize for maximum speed.

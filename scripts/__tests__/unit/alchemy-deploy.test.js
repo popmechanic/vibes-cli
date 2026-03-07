@@ -118,6 +118,8 @@ describe('alchemy-deploy', () => {
       expect(env.CLOUD_SESSION_TOKEN_PUBLIC).toBe('token-pub');
       expect(env.CLOUD_SESSION_TOKEN_SECRET).toBe('token-sec');
       expect(env.ALCHEMY_PASSWORD).toBe('pass123');
+      // CLERK_PUB_JWT_URL removed — upstream now uses OIDC_AUTHORITY
+      expect(env.CLERK_PUB_JWT_URL).toBeUndefined();
     });
 
     it('includes device CA keys', () => {

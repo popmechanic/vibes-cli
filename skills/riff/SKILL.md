@@ -1,5 +1,6 @@
 ---
 name: riff
+argument-hint: "[prompt]"
 description: Self-contained parallel generator — invoke directly, do not decompose. Generates 3-10 app variations in parallel for comparing ideas. Use when user says "explore options", "give me variations", "riff on this", "brainstorm approaches", or wants to see multiple interpretations of a concept.
 license: MIT
 allowed-tools: Read, Write, Bash, Task, Glob, AskUserQuestion
@@ -27,7 +28,7 @@ Generate multiple app variations in parallel. Each riff is a different INTERPRET
 
 ### Terminal or Editor UI?
 
-Detect whether you're running in a terminal (Claude Code CLI, Codex) or an editor (Cursor, Windsurf, VS Code with Copilot). **Terminal agents** use `AskUserQuestion` for all input. **Editor agents** present requirements as a checklist comment, wait for user edits, then proceed. See the vibes skill for the full detection and interaction pattern.
+Detect whether you're running in a terminal (Claude Code CLI) or an editor (Cursor, Windsurf, VS Code with Copilot). **Terminal agents** use `AskUserQuestion` for all input. **Editor agents** present requirements as a checklist comment, wait for user edits, then proceed. See the vibes skill for the full detection and interaction pattern.
 
 ## Workflow
 

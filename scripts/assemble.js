@@ -62,7 +62,14 @@ async function main() {
     );
   }
 
-  console.log('Connect mode: OIDC auth + cloud sync enabled');
+  // Connect URLs are optional at assembly time — they'll be populated
+  // by deploy-cloudflare.js on first deploy (alchemy + auto-reassembly).
+  // If present, they'll be substituted; if absent, placeholders become empty strings.
+  if (envVars.VITE_API_URL) {
+    console.log('Connect mode: OIDC auth + cloud sync enabled');
+  } else {
+    console.log('Connect mode: OIDC auth enabled (Connect URLs will be set at deploy time)');
+  }
 
   // Strip imports/exports/destructuring that conflict with the template.
   // Keep React destructuring — vibes template provides React as a global,

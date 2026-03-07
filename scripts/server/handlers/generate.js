@@ -275,11 +275,11 @@ export function assembleAppFrame(ctx) {
   const envVars = loadEnvFile(ctx.projectRoot);
   template = populateConnectConfig(template, envVars);
 
-  if (!envVars.VITE_API_URL) {
-    console.warn('[preview] \u26a0 VITE_API_URL missing from .env \u2014 sync will not work');
-  }
-  if (!envVars.VITE_CLOUD_URL) {
-    console.warn('[preview] \u26a0 VITE_CLOUD_URL missing from .env \u2014 sync will not work');
+  if (!envVars.VITE_API_URL || !envVars.VITE_CLOUD_URL) {
+    if (!assembleAppFrame._warnedMissingConnect) {
+      assembleAppFrame._warnedMissingConnect = true;
+      console.log('[preview] Connect URLs not configured — sync disabled until first deploy');
+    }
   }
 
   return template;

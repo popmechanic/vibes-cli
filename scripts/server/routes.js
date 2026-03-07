@@ -46,8 +46,8 @@ function serveHtml(ctx, req, res) {
 function serveAppJsx(ctx, req, res) {
   const appPath = join(ctx.projectRoot, 'app.jsx');
   if (!existsSync(appPath)) {
-    res.writeHead(404);
-    return res.end('app.jsx not found');
+    res.writeHead(200, { 'Content-Type': 'text/javascript' });
+    return res.end('// app.jsx not yet generated\n');
   }
   res.writeHead(200, { 'Content-Type': 'text/javascript' });
   return res.end(readFileSync(appPath, 'utf-8'));
@@ -73,8 +73,13 @@ function serveAnimations(ctx, req, res) {
 function serveAppFrame(ctx, req, res) {
   const appPath = join(ctx.projectRoot, 'app.jsx');
   if (!existsSync(appPath)) {
-    res.writeHead(404);
-    return res.end('app.jsx not found');
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    return res.end(`<!DOCTYPE html>
+<html><head><style>
+  body { margin: 0; display: flex; align-items: center; justify-content: center;
+         height: 100vh; font-family: system-ui; color: #888; background: inherit; }
+</style></head>
+<body><p>Waiting for app to be generated...</p></body></html>`);
   }
   const assembled = assembleAppFrame(ctx);
   res.writeHead(200, { 'Content-Type': 'text/html' });
@@ -97,7 +102,8 @@ const routeTable = {
   'GET /editor/apps':                     editorApi.listApps,
   'GET /editor/apps/screenshot':          editorApi.getScreenshot,
   'POST /editor/credentials':             editorApi.saveCredentials,
-  'POST /editor/credentials/check-studio': editorApi.checkStudio,
+  'POST /editor/credentials/validate-cloudflare': editorApi.validateCloudflare,
+  'POST /editor/credentials/validate-clerk':      editorApi.validateClerk,
   'POST /editor/apps/load':              editorApi.loadApp,
   'POST /editor/apps/save':              editorApi.saveApp,
   'POST /editor/apps/screenshot':         editorApi.saveScreenshot,

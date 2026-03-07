@@ -1,5 +1,6 @@
 ---
 name: vibes
+argument-hint: "[prompt]"
 description: Self-contained app generator — invoke this skill directly, do not decompose into sub-steps. Generates React web apps with Fireproof database. Use when creating new web applications, adding components, or working with local-first databases. Ideal for quick prototypes and single-page apps that need real-time data sync.
 license: MIT
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
@@ -787,7 +788,7 @@ Options:
 - Label: "Keep improving this app"
   Description: "Continue iterating on what you've built. Add new features, refine the styling, or adjust functionality. Great when you have a clear vision and want to polish it further."
 
-- Label: "Apply a design reference (/design-reference)"
+- Label: "Apply a design reference (/design)"
   Description: "Have a design.html or mockup file? This skill mechanically transforms your app to match it exactly - pixel-perfect fidelity with your Fireproof data binding preserved."
 
 - Label: "Explore variations (/riff)"
@@ -805,7 +806,7 @@ Options:
 
 **After user responds:**
 - "Keep improving" → Acknowledge and stay ready for iteration prompts. After each round of changes to app.jsx, re-run assembly and re-deploy.
-- "Apply a design reference" → Auto-invoke /vibes:design-reference skill
+- "Apply a design reference" → Auto-invoke /vibes:design skill
 - "Explore variations" → Auto-invoke /vibes:riff skill
 - "Make it a SaaS" → Auto-invoke /vibes:sell skill
 - "Deploy" → Auto-invoke /vibes:cloudflare skill

@@ -266,7 +266,9 @@ export function wsAdapter(ws) {
         if (!event.skipChat) {
           ws.send(JSON.stringify({ type: 'chat', role: 'assistant', content: event.text }));
         }
-        ws.send(JSON.stringify({ type: 'app_updated' }));
+        if (event.hasEdited) {
+          ws.send(JSON.stringify({ type: 'app_updated' }));
+        }
       } else if (event.type === 'token') {
         ws.send(JSON.stringify({ type: 'token', text: event.text }));
       } else if (event.type === 'tool_detail') {

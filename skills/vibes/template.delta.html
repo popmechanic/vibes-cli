@@ -21,11 +21,13 @@
           return <ConfigError message="Missing OIDC configuration. Apps require authentication." />;
         }
 
-        // Warn if Connect URLs are missing (sync won't work but app can still run locally)
-        if (!config?.tokenApiUri || !config?.cloudBackendUrl ||
-            config.tokenApiUri.startsWith('__') || config.cloudBackendUrl.startsWith('__')) {
-          console.warn('[vibes] Connect URLs missing or unreplaced \u2014 data will not sync.',
+        // Warn if Connect URLs are unreplaced placeholders (assembly bug)
+        // Empty URLs are expected pre-deploy — sync configures on first deploy via alchemy
+        if (config?.tokenApiUri?.startsWith('__') || config?.cloudBackendUrl?.startsWith('__')) {
+          console.warn('[vibes] Connect URL placeholders not replaced — check assembly.',
             'tokenApiUri:', config?.tokenApiUri, 'cloudBackendUrl:', config?.cloudBackendUrl);
+        } else if (!config?.tokenApiUri || !config?.cloudBackendUrl) {
+          console.info('[vibes] Sync will be configured on first deploy.');
         }
 
         // Check if OIDC bridge loaded

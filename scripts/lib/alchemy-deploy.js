@@ -142,7 +142,8 @@ export async function deployConnect({
   appName,
   oidcAuthority,
   cacheDir,
-  dryRun = false
+  dryRun = false,
+  alchemyPassword: existingPassword
 }) {
   const repoDir = ensureSparseCheckout(cacheDir);
 
@@ -150,7 +151,10 @@ export async function deployConnect({
   console.log('Generating session tokens and device CA keys...');
   const { publicEnv: sessionTokenPublic, privateEnv: sessionTokenSecret } = await generateSessionTokens();
   const { privKey: deviceCaPrivKey, cert: deviceCaCert } = await generateDeviceCAKeys();
-  const alchemyPassword = randomBytes(32).toString('hex');
+  const alchemyPassword = existingPassword || randomBytes(32).toString('hex');
+  if (existingPassword) {
+    console.log('Reusing saved alchemy password for existing state.');
+  }
 
   // Build alchemy environment
   const alchemyEnv = buildAlchemyEnv({

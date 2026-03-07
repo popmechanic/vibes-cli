@@ -179,14 +179,27 @@ async function main() {
       );
     }
 
+    // Check for a saved alchemy password from a previous partial deploy.
+    // Alchemy encrypts its state with this password — if we lose it,
+    // subsequent deploys to the same stage fail with "Cannot deserialize secret".
+    const partialEntry = getApp(name);
+    let connectPassword = partialEntry?.connect?.alchemyPassword || null;
+    if (!connectPassword) {
+      // Pre-save the password before alchemy runs so it survives a crash.
+      const { randomBytes } = await import('crypto');
+      connectPassword = randomBytes(32).toString('hex');
+      setApp(name, { name, connect: { alchemyPassword: connectPassword } });
+    }
+
     // Deploy Connect via alchemy
     const connectResult = await deployConnect({
       appName: name,
       oidcAuthority,
-      dryRun: args.includes('--dry-run')
+      dryRun: args.includes('--dry-run'),
+      alchemyPassword: connectPassword
     });
 
-    // Write Connect metadata to registry
+    // Write Connect metadata to registry (includes alchemyPassword for reuse)
     setApp(name, {
       name,
       oidc: {
@@ -220,8 +233,8 @@ async function main() {
     console.log(`Updated ${envPath} with Connect URLs`);
 
     // Re-assemble after Connect provisioning so the HTML has correct Connect URLs.
-    // This is critical for first deploys: the editor assembles index.html BEFORE
-    // calling this script, so the HTML has stale/missing Connect URLs.
+    // On first deploy, index.html was assembled before Connect provisioning,
+    // so tokenApiUri/cloudBackendUrl are empty. Must re-assemble.
     const srcFile = resolve(process.cwd(), file);
     const appJsx = resolve(process.cwd(), 'app.jsx');
     if (existsSync(appJsx)) {

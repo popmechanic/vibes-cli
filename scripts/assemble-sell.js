@@ -202,6 +202,12 @@ if (!hasValidConnect) {
   process.exit(1);
 }
 
+// Connect URLs are optional at assembly time — they'll be populated
+// by deploy-cloudflare.js on first deploy (alchemy + auto-reassembly).
+if (!envVars.VITE_API_URL) {
+  console.log('Note: No VITE_API_URL — Connect URLs will be set at deploy time');
+}
+
 // Configuration replacements
 // Use CLI flags if provided, otherwise fall back to .env values (validated above)
 const replacements = {
