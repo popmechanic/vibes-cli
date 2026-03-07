@@ -4,7 +4,7 @@
  * Exports loadConfig() which returns a mutable ctx object shared by all modules.
  */
 
-import { readFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { homedir } from 'os';
@@ -88,6 +88,10 @@ export function loadConfig() {
   }
   console.log(`Extracted :root CSS for ${Object.keys(themeRootCss).length} themes`);
 
+  // Discover plugin skills
+  const pluginSkills = discoverPluginSkills();
+  console.log(`Skills: ${pluginSkills.length} discovered`);
+
   return {
     projectRoot,
     port,
@@ -101,6 +105,7 @@ export function loadConfig() {
     appsDir,
     themeDir,
     animationDir,
+    pluginSkills,
   };
 }
 
@@ -464,4 +469,101 @@ export function autoSelectTheme(ctx, userPrompt) {
 
   const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
   return sorted.length > 0 ? sorted[0][0] : 'default';
+}
+
+/**
+ * Resolve the skills directory for a plugin by reading its plugin.json.
+ */
+function resolveSkillsDir(installPath) {
+  const pluginJsonPath = join(installPath, '.claude-plugin', 'plugin.json');
+  if (existsSync(pluginJsonPath)) {
+    try {
+      const pluginJson = JSON.parse(readFileSync(pluginJsonPath, 'utf-8'));
+      if (pluginJson.skills) {
+        return join(installPath, pluginJson.skills);
+      }
+    } catch { /* fall through to default */ }
+  }
+  return join(installPath, 'skills');
+}
+
+/**
+ * Parse YAML frontmatter from SKILL.md content.
+ */
+function parseSkillFrontmatter(content) {
+  const fm = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!fm) return {};
+  const block = fm[1];
+  const result = {};
+  const nameMatch = block.match(/^name:\s*(.+)$/m);
+  if (nameMatch) result.name = nameMatch[1].trim().replace(/^["']|["']$/g, '');
+  const descMatch = block.match(/^description:\s*(.+)$/m);
+  if (descMatch) result.description = descMatch[1].trim().replace(/^["']|["']$/g, '');
+  const hintMatch = block.match(/^argument-hint:\s*(.+)$/m);
+  if (hintMatch) result.argumentHint = hintMatch[1].trim().replace(/^["']|["']$/g, '');
+  return result;
+}
+
+/**
+ * Discover all installed plugin skills, excluding vibes plugin skills.
+ */
+export function discoverPluginSkills() {
+  const installedPath = join(homedir(), '.claude', 'plugins', 'installed_plugins.json');
+  if (!existsSync(installedPath)) return [];
+
+  let installed;
+  try {
+    const raw = JSON.parse(readFileSync(installedPath, 'utf-8'));
+    // Handle version 2 format: { version: 2, plugins: { ... } }
+    installed = raw.plugins || raw;
+  } catch {
+    return [];
+  }
+
+  const skills = [];
+  for (const [pluginKey, pluginData] of Object.entries(installed)) {
+    // Skip vibes plugin
+    if (pluginKey.startsWith('vibes@')) continue;
+
+    const [pluginName, marketplace] = pluginKey.split('@');
+    // pluginData can be an array (v2) or an object (v1)
+    const entry = Array.isArray(pluginData) ? pluginData[0] : pluginData;
+    const installPath = entry?.installPath;
+    if (!installPath || !existsSync(installPath)) continue;
+
+    const skillsDir = resolveSkillsDir(installPath);
+    if (!existsSync(skillsDir)) continue;
+
+    let entries;
+    try {
+      entries = readdirSync(skillsDir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const skillMdPath = join(skillsDir, entry.name, 'SKILL.md');
+      if (!existsSync(skillMdPath)) continue;
+
+      let content;
+      try {
+        content = readFileSync(skillMdPath, 'utf-8');
+      } catch {
+        continue;
+      }
+
+      const frontmatter = parseSkillFrontmatter(content);
+      skills.push({
+        id: `${pluginName}/${entry.name}`,
+        name: frontmatter.name || entry.name,
+        description: frontmatter.description || '',
+        pluginName,
+        marketplace: marketplace || '',
+        skillMdPath,
+      });
+    }
+  }
+
+  return skills;
 }

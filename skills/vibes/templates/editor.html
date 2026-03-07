@@ -1569,6 +1569,15 @@
     }
     .animation-active-badge .clear-btn:hover { color: var(--vibes-red); }
 
+    .skill-active-badge {
+      background: var(--vibes-blue);
+      color: white;
+    }
+    .skill-active-badge .clear-btn {
+      color: white;
+    }
+    .skill-active-badge .clear-btn:hover { color: var(--vibes-red); }
+
     /* Animation modal */
     .anim-modal-overlay {
       position: fixed;
@@ -2767,6 +2776,10 @@
           <span id="animBadgeName"></span>
           <button class="clear-btn" onclick="clearAnimation()" title="Clear animation">&times;</button>
         </span>
+        <span class="skill-active-badge animation-active-badge" id="skillBadge">
+          <span id="skillBadgeName"></span>
+          <button class="clear-btn" onclick="clearSkill()" title="Clear skill">&times;</button>
+        </span>
       </div>
       <div class="chat-composer">
         <div class="chat-composer-box">
@@ -2821,6 +2834,11 @@
                 </div>
               </div>
             </div>
+            <button class="composer-btn" id="skillsBtn" onclick="toggleSkillsModal()" title="Add skill context" style="display:none">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </button>
             <textarea class="chat-input" id="chatInput" placeholder="Describe changes to your app..." rows="1"
               onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
             <div class="chat-btn-spacer"></div>
@@ -2900,6 +2918,20 @@
       <div class="anim-category-tabs" id="animCategoryTabs"></div>
       <div class="anim-modal-body">
         <div class="anim-grid" id="animGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Skills Modal -->
+  <div class="anim-modal-overlay" id="skillsModal">
+    <div class="anim-modal">
+      <div class="anim-modal-header">
+        <h2>Choose a Skill</h2>
+        <button class="modal-close" onclick="closeSkillsModal()">&times;</button>
+      </div>
+      <div class="anim-category-tabs" id="skillPluginTabs"></div>
+      <div class="anim-modal-body">
+        <div class="anim-grid" id="skillGrid"></div>
       </div>
     </div>
   </div>
@@ -4511,6 +4543,106 @@
     document.getElementById('chatInput').placeholder = 'Describe changes to your app...';
   }
 
+  // === Skills ===
+  let allSkills = [];
+  let activeSkillId = null;
+  let activeSkillPlugin = 'All';
+
+  async function loadSkills() {
+    try {
+      const res = await fetch('/skills');
+      allSkills = await res.json();
+      console.log(`Loaded ${allSkills.length} skills`);
+      document.getElementById('skillsBtn').style.display = allSkills.length > 0 ? '' : 'none';
+    } catch (err) {
+      console.error('Failed to load skills:', err);
+      document.getElementById('skillsBtn').style.display = 'none';
+    }
+  }
+
+  loadSkills();
+
+  function toggleSkillsModal() {
+    const modal = document.getElementById('skillsModal');
+    if (modal.classList.contains('open')) {
+      closeSkillsModal();
+    } else {
+      openSkillsModal();
+    }
+  }
+
+  function openSkillsModal() {
+    activeSkillPlugin = 'All';
+    document.getElementById('skillsModal').classList.add('open');
+    renderSkillPluginTabs();
+    renderSkillGrid();
+  }
+
+  function closeSkillsModal() {
+    document.getElementById('skillsModal').classList.remove('open');
+  }
+
+  function renderSkillPluginTabs() {
+    const tabs = document.getElementById('skillPluginTabs');
+    const plugins = ['All', ...new Set(allSkills.map(s => s.pluginName))];
+    tabs.innerHTML = plugins.map(p =>
+      `<button class="anim-category-tab${p === activeSkillPlugin ? ' active' : ''}" onclick="filterSkillsByPlugin('${escapeHtml(p)}')">${escapeHtml(p)}</button>`
+    ).join('');
+  }
+
+  function filterSkillsByPlugin(plugin) {
+    activeSkillPlugin = plugin;
+    renderSkillPluginTabs();
+    renderSkillGrid();
+  }
+
+  function renderSkillGrid() {
+    const grid = document.getElementById('skillGrid');
+    const filtered = activeSkillPlugin === 'All'
+      ? allSkills
+      : allSkills.filter(s => s.pluginName === activeSkillPlugin);
+
+    if (filtered.length === 0) {
+      grid.innerHTML = '<div style="text-align:center;color:#555;padding:2rem;grid-column:1/-1;">No skills available</div>';
+      return;
+    }
+
+    grid.innerHTML = filtered.map(s => {
+      const isActive = activeSkillId === s.id;
+      const activeStyle = isActive ? 'border-color:var(--vibes-blue);box-shadow:4px 4px 0px 0px var(--vibes-blue), 4px 4px 0px 2px var(--vibes-near-black);' : '';
+      return `<div class="anim-card" style="${activeStyle}" data-skill-id="${escapeHtml(s.id)}" onclick="selectSkill(this.dataset.skillId)">
+        <div class="anim-card-info" style="padding:0.75rem;">
+          <div class="anim-card-name">${escapeHtml(s.name)}</div>
+          <div class="anim-card-desc">${escapeHtml(s.description || '')}</div>
+          <div style="font-size:0.6rem;color:#888;margin-top:0.25rem;">${escapeHtml(s.pluginName)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function selectSkill(id) {
+    activeSkillId = id;
+    const skill = allSkills.find(s => s.id === id);
+    const badge = document.getElementById('skillBadge');
+    const badgeName = document.getElementById('skillBadgeName');
+    if (skill) {
+      badgeName.textContent = skill.name;
+      badge.classList.add('visible');
+      document.getElementById('skillsBtn').classList.add('active');
+    }
+    closeSkillsModal();
+  }
+
+  function clearSkill() {
+    activeSkillId = null;
+    document.getElementById('skillBadge').classList.remove('visible');
+    document.getElementById('skillsBtn').classList.remove('active');
+  }
+
+  document.getElementById('skillsModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('skillsModal')) closeSkillsModal();
+  });
+
   // === Model picker ===
   let selectedModel = '';
 
@@ -4988,17 +5120,20 @@
     if ((!text && !referenceFile) || isThinking || !ws || ws.readyState !== WebSocket.OPEN) return;
 
     const animLabel = activeAnimationId ? allAnimations.find(a => a.id === activeAnimationId)?.name : null;
+    const skillLabel = activeSkillId ? allSkills.find(s => s.id === activeSkillId)?.name : null;
     const refLabel = referenceFile ? referenceFile.name : null;
     const intentLabels = { none: '', mood: ' (Mood)', match: ' (Match)' };
     const refIntent = referenceFile ? (referenceFile.intent || 'match') : null;
     let displayText = text || (refLabel ? 'Style the app using this reference' : '');
     if (animLabel) displayText += '  [' + animLabel + ']';
+    if (skillLabel) displayText += '  [skill: ' + skillLabel + ']';
     if (refLabel) displayText += '  [ref: ' + refLabel + (intentLabels[refIntent] || '') + ']';
     addMessage('user', displayText);
 
     const defaultMsg = refIntent === 'none' ? '' : 'Style the app to match the attached reference';
     const payload = { type: 'chat', message: text || defaultMsg, model: getModel() };
     if (activeAnimationId) payload.animationId = activeAnimationId;
+    if (activeSkillId) payload.skillId = activeSkillId;
     if (referenceFile) {
       payload.reference = {
         name: referenceFile.name,
@@ -5013,6 +5148,7 @@
     input.value = '';
     input.style.height = 'auto';
     if (activeAnimationId) clearAnimation();
+    if (activeSkillId) clearSkill();
     if (referenceFile) clearReference();
   }
 
@@ -5337,7 +5473,7 @@
   }
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { closeThemeModal(); closeAnimationModal(); }
+    if (e.key === 'Escape') { closeThemeModal(); closeAnimationModal(); closeSkillsModal(); }
   });
 
   document.getElementById('themeModal').addEventListener('click', (e) => {

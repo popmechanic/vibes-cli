@@ -70,6 +70,18 @@ function serveAnimations(ctx, req, res) {
   return res.end(JSON.stringify(ctx.animations));
 }
 
+function serveSkills(ctx, req, res) {
+  const catalog = (ctx.pluginSkills || []).map(s => ({
+    id: s.id,
+    name: s.name,
+    description: s.description,
+    pluginName: s.pluginName,
+    marketplace: s.marketplace,
+  }));
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  return res.end(JSON.stringify(catalog));
+}
+
 function serveAppFrame(ctx, req, res) {
   const appPath = join(ctx.projectRoot, 'app.jsx');
   if (!existsSync(appPath)) {
@@ -95,6 +107,7 @@ const routeTable = {
   'GET /themes':                          serveThemes,
   'GET /themes/has-key':                  serveHasKey,
   'GET /animations':                      serveAnimations,
+  'GET /skills':                          serveSkills,
   'GET /app-frame':                       serveAppFrame,
   'GET /editor/status':                   editorApi.status,
   'GET /editor/initial-prompt':           editorApi.initialPrompt,

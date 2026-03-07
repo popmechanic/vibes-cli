@@ -30,7 +30,7 @@ export function setupWebSocket(wss, ctx, wsAdapter) {
 
     const onEvent = wsAdapter(ws);
     const dispatch = {
-      chat:             (msg) => handleChat(ctx, onEvent, msg.message, msg.effects || [], msg.animationId || null, msg.model, msg.reference || null),
+      chat:             (msg) => handleChat(ctx, onEvent, msg.message, msg.effects || [], msg.animationId || null, msg.model, msg.reference || null, msg.skillId || null),
       theme:            (msg) => handleThemeSwitch(ctx, onEvent, msg.themeId, msg.model),
       cancel:           ()    => { if (!cancelClaude()) onEvent({ type: 'error', message: 'No request in progress.' }); },
       generate:         (msg) => handleGenerate(ctx, onEvent, msg.prompt, msg.themeId, msg.model, msg.reference || null),
