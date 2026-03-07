@@ -313,23 +313,58 @@ async function main() {
       console.log(`  Found existing KV namespace: ${kvName} (${kvId})`);
     }
   } catch (e) {
-    // List failed, will create new
+    const stderr = e.stderr || e.message || String(e);
+    if (/authentication|auth.*error|code:\s*10000/i.test(stderr)) {
+      throw new Error(
+        `Wrangler authentication failed while listing KV namespaces.\n` +
+        `Run "npx wrangler login" to re-authenticate, then retry the deploy.\n` +
+        `Details: ${stderr.slice(0, 200)}`
+      );
+    }
+    console.warn(`  Warning: Could not list KV namespaces (${stderr.slice(0, 100)}). Will attempt to create.`);
   }
 
   if (!kvId) {
     console.log(`  Creating KV namespace: ${kvName}`);
-    const createOutput = execSync(`npx wrangler kv namespace create "${kvName}"`, {
-      cwd: WORKER_DIR,
-      encoding: "utf8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    // Parse the namespace ID from the output (JSON format: "id": "..." or TOML format: id = "...")
-    const idMatch = createOutput.match(/"id"\s*:\s*"([^"]+)"/) || createOutput.match(/id\s*=\s*"([^"]+)"/);
-    if (!idMatch) {
-      throw new Error(`Failed to parse KV namespace ID from output: ${createOutput}`);
+    try {
+      const createOutput = execSync(`npx wrangler kv namespace create "${kvName}"`, {
+        cwd: WORKER_DIR,
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      // Parse the namespace ID from the output (JSON format: "id": "..." or TOML format: id = "...")
+      const idMatch = createOutput.match(/"id"\s*:\s*"([^"]+)"/) || createOutput.match(/id\s*=\s*"([^"]+)"/);
+      if (!idMatch) {
+        throw new Error(`Failed to parse KV namespace ID from output: ${createOutput}`);
+      }
+      kvId = idMatch[1];
+      console.log(`  Created KV namespace: ${kvName} (${kvId})`);
+    } catch (e) {
+      const stderr = e.stderr || e.message || String(e);
+      if (/authentication|auth.*error|code:\s*10000/i.test(stderr)) {
+        throw new Error(
+          `Wrangler authentication failed. Run "npx wrangler login" to re-authenticate.\n` +
+          `Details: ${stderr.slice(0, 200)}`
+        );
+      }
+      if (/already exists/i.test(stderr)) {
+        // Namespace exists but list failed — retry list to get the ID
+        console.log(`  Namespace "${kvName}" already exists. Retrying lookup...`);
+        const retryOutput = execSync("npx wrangler kv namespace list", {
+          cwd: WORKER_DIR, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"],
+        });
+        const retryNs = JSON.parse(retryOutput);
+        const found = retryNs.find((ns) => ns.title === kvName);
+        if (found) {
+          kvId = found.id;
+          console.log(`  Found existing KV namespace: ${kvName} (${kvId})`);
+        } else {
+          throw new Error(`KV namespace "${kvName}" reportedly exists but was not found in namespace list.`);
+        }
+      } else {
+        throw new Error(`Failed to create KV namespace "${kvName}": ${stderr.slice(0, 300)}`);
+      }
     }
-    kvId = idMatch[1];
-    console.log(`  Created KV namespace: ${kvName} (${kvId})`);
   }
 
   // Rewrite wrangler.toml with the per-app KV namespace ID and billing mode
