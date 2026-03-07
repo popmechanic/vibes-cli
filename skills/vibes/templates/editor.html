@@ -3102,8 +3102,7 @@
             </button>
           </div>`;
       }
-      buttons += settingsButtonHtml;
-      headerRight.innerHTML = buttons;
+      headerRight.innerHTML = settingsButtonHtml + buttons;
     } else if (phase === 'edit') {
       headerRight.innerHTML = settingsButtonHtml + `
         <div class="navbar-button-wrapper">
