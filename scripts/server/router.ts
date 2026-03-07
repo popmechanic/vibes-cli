@@ -243,8 +243,9 @@ function serveSkills(ctx: ServerContext): Response {
 }
 
 function serveAppFrame(ctx: ServerContext): Response {
-  const appPath = join(ctx.projectRoot, 'app.jsx');
-  if (!existsSync(appPath)) {
+  const appDir = ctx.currentApp ? join(ctx.appsDir, ctx.currentApp) : null;
+  const appPath = appDir ? join(appDir, 'app.jsx') : null;
+  if (!appPath || !existsSync(appPath)) {
     return new Response(`<!DOCTYPE html>
 <html><head><style>
   body { margin: 0; display: flex; align-items: center; justify-content: center;
@@ -402,8 +403,8 @@ function editorLoadApp(ctx: ServerContext, url: URL): Response {
   if (!name) return new Response('Missing name', { status: 400, headers: corsHeaders() });
   const src = join(ctx.appsDir, name, 'app.jsx');
   if (!existsSync(src)) return new Response('App not found', { status: 404, headers: corsHeaders() });
-  copyFileSync(src, join(ctx.projectRoot, 'app.jsx'));
-  return json({ ok: true });
+  ctx.currentApp = name;
+  return json({ ok: true, currentApp: name });
 }
 
 function editorSaveApp(ctx: ServerContext, url: URL): Response {
