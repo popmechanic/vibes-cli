@@ -1,6 +1,6 @@
 # Bun Server Swap — Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **For Claude:** REQUIRED SUB-SKILL: Use trycycle-executing to implement this plan task-by-task.
 
 **Goal:** Replace the Node.js preview server with a Bun-native server. Adopt the Julian project's patterns for `Bun.serve`, `Bun.spawn`, and native WebSocket. Rethink the `claude -p` bridge to use Julian's long-lived process + stdin/stdout model instead of the current one-shot-per-message pattern. Implement a "time-lapse preview" HMR system that pushes renderable app.jsx snapshots to the browser during generation.
 
@@ -152,7 +152,7 @@ interface TurnState {
   startTime: number;
   skipChat: boolean;
   lastStdoutTime: number;
-  lastToolDetail: { name: string; filePath: string } | null;  // for HMR correlation
+  pendingTools: Map<string, { name: string; filePath: string }>;  // tool_use_id -> detail, for HMR correlation
 }
 
 let turnState: TurnState | null = null;
@@ -169,7 +169,7 @@ function send(message: string, opts: { skipChat?: boolean } = {}): boolean {
     startTime: Date.now(),
     skipChat: opts.skipChat || false,
     lastStdoutTime: Date.now(),
-    lastToolDetail: null,
+    pendingTools: new Map(),
   };
 
   const jsonl = JSON.stringify({
@@ -199,8 +199,11 @@ function dispatchEvent(parsed: any) {
         turnState.toolsUsed++;
         if (block.name === 'Edit' || block.name === 'Write') turnState.hasEdited = true;
         const inputSummary = summarizeInput(block);
-        // Stash tool_detail for HMR correlation — tool_result doesn't carry the file path
-        turnState.lastToolDetail = { name: block.name, filePath: inputSummary };
+        // Stash tool_detail keyed by tool_use_id for HMR correlation
+        // tool_use blocks carry `id`, tool_result events carry `tool_use_id` — these match
+        if (block.id) {
+          turnState.pendingTools.set(block.id, { name: block.name, filePath: inputSummary });
+        }
         onEvent({ type: 'tool_detail', name: block.name, input_summary: inputSummary, elapsed });
       }
       if (block.type === 'text' && block.text) {
@@ -210,9 +213,9 @@ function dispatchEvent(parsed: any) {
     }
     onEvent({ type: 'progress', ...calcProgress(turnState), elapsed });
   } else if (parsed.type === 'tool_result') {
-    // Correlate with the preceding tool_detail to get the file path for HMR
-    const toolDetail = turnState.lastToolDetail;
-    turnState.lastToolDetail = null;  // consumed
+    // Correlate with the stashed tool_detail via tool_use_id to get the file path for HMR
+    const toolDetail = parsed.tool_use_id ? turnState.pendingTools.get(parsed.tool_use_id) : undefined;
+    if (parsed.tool_use_id) turnState.pendingTools.delete(parsed.tool_use_id);  // consumed
     onEvent({
       type: 'tool_result',
       name: parsed.tool_name || '',
@@ -232,6 +235,12 @@ function dispatchEvent(parsed: any) {
       turnState.errorSent = true;
     } else {
       turnState.resultText = parsed.result || turnState.resultText || 'Done.';
+    }
+
+    // Post-process app.jsx (CSS unicode escape sanitization) — must run before 'complete'
+    // fires app_updated, since the editor reloads the preview on that event.
+    if (turnState.hasEdited) {
+      sanitizeAppJsx(ctx.projectRoot);
     }
 
     if (!turnState.errorSent) {
@@ -351,6 +360,16 @@ function cancelCurrent(): boolean {
   return true;
 }
 ```
+
+---
+
+## TDD Methodology
+
+Every task follows the cycle: **Write failing test -> Run to confirm failure -> Implement -> Run tests -> Commit**. Tests live in `scripts/__tests__/` and run via `cd scripts && bun test` (vitest under Bun).
+
+For tasks that create new modules, write unit tests for the module's exported functions FIRST. For tasks that port existing behavior, port the existing tests to TypeScript FIRST, verify they fail against the new (not-yet-implemented) module, then implement.
+
+Test files are created alongside implementation, not deferred. Each task's steps begin with test creation.
 
 ---
 
@@ -526,15 +545,25 @@ if (await file.exists()) {
 }
 ```
 
-**Step 1:** Create `router.ts` with the route table. Port each static route handler to return `Response`. Use `parseJsonBody` (with streaming size limit) for POST routes and `readBodyWithLimit` for the screenshot endpoint.
+**Step 1 (TEST):** Create `scripts/__tests__/unit/body-parser.test.ts` with tests for `parseJsonBody` and `readBodyWithLimit`:
+- Rejects bodies exceeding 1MB via Content-Length header (fast path)
+- Rejects bodies exceeding 1MB via streaming byte count (spoofed Content-Length)
+- Parses valid JSON bodies under limit
+- `readBodyWithLimit` rejects at 5MB for screenshots
+- Returns raw Buffer for binary content
+Run tests — they fail (modules don't exist yet).
 
-**Step 2:** Port `editor-api.ts` handlers to return `Response` objects. This is the largest handler file — 633 lines — but the changes are mechanical: `res.writeHead(200, {...}); res.end(JSON.stringify(x))` becomes `return Response.json(x, { headers })`. Replace the old streaming `parseJsonBody` with the new Bun-native streaming version.
+**Step 2 (IMPLEMENT):** Create `router.ts` with the route table, `parseJsonBody`, and `readBodyWithLimit`. Port each static route handler to return `Response`.
 
-**Step 3:** Port all remaining HTTP handlers (deploy, image-gen) to return `Response`.
+**Step 3 (TEST):** Run body-parser tests — they pass.
 
-**Step 4:** Verify all routes work via browser.
+**Step 4 (IMPLEMENT):** Port `editor-api.ts` handlers to return `Response` objects. This is the largest handler file — 633 lines — but the changes are mechanical: `res.writeHead(200, {...}); res.end(JSON.stringify(x))` becomes `return Response.json(x, { headers })`.
 
-**Step 5:** Commit: `"Port HTTP router to Bun.serve Response API"`
+**Step 5:** Port all remaining HTTP handlers (deploy, image-gen) to return `Response`.
+
+**Step 6:** Verify all routes work via browser.
+
+**Step 7:** Commit: `"Port HTTP router to Bun.serve Response API"`
 
 ---
 
@@ -597,9 +626,26 @@ The bridge implements the full response lifecycle described in the "Response Bou
 
 See the "Response Boundary Detection" section for the complete `dispatchEvent` and `send()` implementations.
 
+**Persistent bridge spawn command:**
+
+```typescript
+cmd: [
+  'claude', '--print',
+  '--input-format', 'stream-json',
+  '--output-format', 'stream-json',
+  '--verbose',                          // Required for stream-json output
+  '--permission-mode', 'acceptEdits',
+  '--allowedTools', 'Read,Edit,Write,Glob,Grep',
+],
+```
+
+**Note on `--verbose`:** Required when using `--output-format stream-json`. Without it, Claude CLI suppresses the streaming event output. Julian includes it. The current bridge gets it via `buildClaudeArgs` which adds it automatically — but the persistent bridge builds args inline, so it must be explicit.
+
 **Note on `--no-session-persistence`:** This flag is deliberately **omitted** from the persistent bridge spawn. The whole point of the persistent session is that Claude preserves context across messages — `--no-session-persistence` would defeat that. Julian's server omits it for the same reason. The flag IS used in `runOneShot` (Task 5) where each operation is self-contained and we don't want leftover session files.
 
 **Note on `--permission-mode`:** The persistent bridge uses `acceptEdits` (same as Julian) rather than `dontAsk`. Since chat is interactive and the user may ask Claude to do things that require tool approval, `acceptEdits` auto-approves edit operations while still gating destructive ones. One-shot spawns use `dontAsk` with explicit `--allowedTools` (Loom pattern) since they have well-defined tool sets.
+
+**`sanitizeAppJsx` post-processing:** The current handlers call `sanitizeAppJsx(ctx.projectRoot)` after `runClaude()` returns (which awaits completion). In the persistent bridge, `send()` is fire-and-forget — there is no await point. Instead, the bridge calls `sanitizeAppJsx` automatically in `dispatchEvent` when it detects a `result` event with `hasEdited: true`, immediately before firing the `complete` event. This ensures the CSS unicode escape sanitization runs before the editor reloads the preview. One-shot handlers (`runOneShot`) do the same: call `sanitizeAppJsx` after `proc.exited` resolves and before dispatching `complete`.
 
 **Key differences from current bridge:**
 1. `Bun.spawn` instead of `child_process.spawn`
@@ -611,17 +657,29 @@ See the "Response Boundary Detection" section for the complete `dispatchEvent` a
 7. Operation lock release tied to `result` event (persistent) or `proc.exited` (one-shot)
 8. `proc.exited` handler detects `max_turns` in stderr and treats as success (matching current bridge behavior)
 9. `rate_limit_event` handled with "Rate limited, waiting..." progress feedback
-10. `tool_detail`/`tool_result` correlation via `lastToolDetail` stash for HMR file path filtering
+10. `tool_detail`/`tool_result` correlation via `pendingTools` Map (keyed by `tool_use_id`) for HMR file path filtering
+11. `sanitizeAppJsx` called automatically on `result` event when `hasEdited: true` (no post-processing gap)
 
-**Step 1:** Create `claude-bridge.ts` with the persistent session model, per-turn accumulator, `result` event boundary detection, and the operation lock (see Concurrency Model and Response Boundary Detection sections). Keep the existing Loom event contract (`progress`, `token`, `tool_detail`, `tool_result`, `error`, `complete`).
+**Step 1 (TEST):** Create `scripts/__tests__/unit/claude-bridge.test.ts` with tests for:
+- Operation lock: `acquireLock` / `releaseLock` / `cancelCurrent` (pure functions, no subprocess needed)
+- `dispatchEvent` with `result` event: fires `complete`, calls `releaseLock`, calls `sanitizeAppJsx` when `hasEdited`
+- `dispatchEvent` with `assistant` + `tool_use`: increments `toolsUsed`, sets `hasEdited` for Write/Edit
+- `dispatchEvent` with `rate_limit_event`: emits `progress` with "Rate limited" stage
+- `pendingTools` Map: tool_detail stashes by `block.id`, tool_result correlates via `tool_use_id`, handles consecutive tool_use blocks correctly
+- `proc.exited` with `max_turns` in stderr: treats as success, releases lock
+Run tests -- they fail (module doesn't exist yet).
 
-**Step 2:** Create a `cleanEnv()` that strips CLAUDECODE / CMUX vars (port from current, carrying forward the Loom cmux fix).
+**Step 2 (IMPLEMENT):** Create `claude-bridge.ts` with the persistent session model, per-turn accumulator, `result` event boundary detection, `sanitizeAppJsx` post-processing on completion, and the operation lock. Include the spawn command with `--verbose`. Keep the existing Loom event contract (`progress`, `token`, `tool_detail`, `tool_result`, `error`, `complete`).
 
-**Step 3:** Wire the bridge into the WebSocket dispatch. The `onEvent` callback uses `createEventAdapter` (see Event Translation Layer) to translate internal events to client-facing messages.
+**Step 3 (TEST):** Run claude-bridge tests -- they pass.
 
-**Step 4:** Test manually: start server, send a chat message, verify streaming tokens arrive. **Specifically verify** that the `--print --input-format stream-json` combination keeps the process alive after the first message. If it exits, implement the fallback plan (see above). **Also verify** that the `result` event fires and the operation lock releases — send two messages in sequence and confirm the second one doesn't get "Another request in progress."
+**Step 4 (IMPLEMENT):** Create `cleanEnv()` that strips CLAUDECODE / CMUX vars (port from current, carrying forward the Loom cmux fix).
 
-**Step 5:** Commit: `"Rewrite claude-bridge as persistent session with Bun.spawn"`
+**Step 5:** Wire the bridge into the WebSocket dispatch. The `onEvent` callback uses `createEventAdapter` (see Event Translation Layer) to translate internal events to client-facing messages.
+
+**Step 6 (MANUAL TEST):** Start server, send a chat message, verify streaming tokens arrive. **Specifically verify** that the `--print --input-format stream-json` combination keeps the process alive after the first message. If it exits, implement the fallback plan (see above). **Also verify** that the `result` event fires and the operation lock releases — send two messages in sequence and confirm the second one doesn't get "Another request in progress."
+
+**Step 7:** Commit: `"Rewrite claude-bridge as persistent session with Bun.spawn"`
 
 ---
 
@@ -800,15 +858,25 @@ const dispatch: Record<string, (msg: any, onEvent: EventFn) => Promise<void> | v
 };
 ```
 
-**Step 1:** Create `ws.ts` exporting `createWsHandler(ctx)` that returns Bun's websocket handler object. Include `translateEvent` and `createEventAdapter` (from Event Translation Layer section).
+**Step 1 (TEST):** Create `scripts/__tests__/unit/event-translation.test.ts` with tests for `translateEvent`:
+- `progress` -> `status` with `thinking`
+- `complete` with `hasEdited` + `!skipChat` -> 3 messages (`status`, `chat`, `app_updated`)
+- `complete` with `skipChat` -> 2 messages (no `chat`)
+- `complete` with `!hasEdited` -> 2 messages (no `app_updated`)
+- `token`, `cancelled`, `error` pass through unchanged
+Run tests -- they fail.
 
-**Step 2:** Extract `delete_theme` and `save_app` inline handlers into their respective handler files (`theme.ts` and `editor-api.ts`).
+**Step 2 (IMPLEMENT):** Create `ws.ts` exporting `createWsHandler(ctx)`, `translateEvent`, and `createEventAdapter` (from Event Translation Layer section).
 
-**Step 3:** Port the full dispatch table — all 10 message types.
+**Step 3 (TEST):** Run event-translation tests -- they pass.
 
-**Step 4:** Verify WebSocket connects and all handlers fire. Specifically verify that `complete` events produce all three client messages (`status`, `chat`, `app_updated`) by watching the browser's WebSocket inspector.
+**Step 4:** Extract `delete_theme` and `save_app` inline handlers into their respective handler files (`theme.ts` and `editor-api.ts`).
 
-**Step 5:** Commit: `"Port WebSocket to Bun native handler with complete dispatch table"`
+**Step 5:** Port the full dispatch table -- all 10 message types.
+
+**Step 6 (MANUAL TEST):** Verify WebSocket connects and all handlers fire. Specifically verify that `complete` events produce all three client messages (`status`, `chat`, `app_updated`) by watching the browser's WebSocket inspector.
+
+**Step 7:** Commit: `"Port WebSocket to Bun native handler with complete dispatch table"`
 
 ---
 
@@ -1043,19 +1111,30 @@ case 'hmr_update':
   break;
 ```
 
-**Step 1:** Add `@babel/parser` to `scripts/package.json` **dependencies** (not devDependencies — it's used in production server code).
+**Step 1:** Add `@babel/parser` to `scripts/package.json` **dependencies** (not devDependencies -- it's used in production server code).
 
-**Step 2:** Create `hmr.ts` with the event-driven watcher + polling backstop, `isRenderable` (Babel-based), and broadcast logic.
+**Step 2 (TEST):** Create `scripts/__tests__/unit/hmr.test.ts` with tests for:
+- `isRenderable`: accepts complete React component with export default
+- `isRenderable`: rejects mid-function code, missing export, unterminated template literal
+- `isRenderable`: handles comments with unmatched braces, JSX expressions, template literals
+- `onToolResult`: triggers for `{ _toolName: 'Write', _filePath: '...app.jsx' }`
+- `onToolResult`: ignores `{ _toolName: 'Read' }` and `{ _toolName: 'Write', _filePath: 'styles.css' }`
+- Deduplication: same code twice produces only one broadcast
+Run tests -- they fail.
 
-**Step 3:** Modify `assembleAppFrame` to accept an optional `code` parameter.
+**Step 3 (IMPLEMENT):** Create `hmr.ts` with the event-driven watcher + polling backstop, `isRenderable` (Babel-based), and broadcast logic.
 
-**Step 4:** Integrate with `generate.ts` — call `hmr.start()` before generation, wrap `onEvent` to intercept `tool_result` events and pass them to `hmr.onToolResult()` (which filters by `_toolName` and `_filePath`), call `hmr.stop()` after. Also integrate with chat handler for polling-only mode during chat edits.
+**Step 4 (TEST):** Run hmr tests -- they pass.
 
-**Step 5:** Add `hmr_update` handling to the browser-side WebSocket handler.
+**Step 5:** Modify `assembleAppFrame` to accept an optional `code` parameter.
 
-**Step 6:** Test: generate an app, watch the preview update in real-time as Claude writes.
+**Step 6:** Integrate with `generate.ts` -- call `hmr.start()` before generation, wrap `onEvent` to intercept `tool_result` events and pass them to `hmr.onToolResult()` (which filters by `_toolName` and `_filePath`), call `hmr.stop()` after. Also integrate with chat handler for polling-only mode during chat edits.
 
-**Step 7:** Commit: `"Implement time-lapse HMR with Babel-validated snapshot detection"`
+**Step 7:** Add `hmr_update` handling to the browser-side WebSocket handler.
+
+**Step 8 (MANUAL TEST):** Generate an app, watch the preview update in real-time as Claude writes.
+
+**Step 9:** Commit: `"Implement time-lapse HMR with Babel-validated snapshot detection"`
 
 ---
 
@@ -1077,19 +1156,51 @@ case 'hmr_update':
 
 **Step 3:** Delete `preview-server.js` — replaced by `server.ts`.
 
-**Step 4:** Port `lifecycle.ts` — replace `execSync('lsof')` with a cleaner Bun approach:
+**Step 4:** Port `lifecycle.ts` — preserve the active port takeover behavior. The current `killProcessOnPort` finds and kills incumbent processes. A passive `isPortFree` check would make the server fail to bind if a previous instance is running. Use `Bun.spawn` for `lsof` + `process.kill`:
+
 ```typescript
-// Bun-native port check
-async function isPortFree(port: number): Promise<boolean> {
+// Bun-native port takeover — actively kills incumbent processes
+export async function killProcessOnPort(port: number): Promise<boolean> {
   try {
-    const server = Bun.serve({ port, fetch() { return new Response(); } });
-    server.stop();
-    return true;
+    const proc = Bun.spawn({
+      cmd: ['lsof', '-ti', `:${port}`],
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+    const pids = (await new Response(proc.stdout).text()).trim();
+    await proc.exited;
+    if (pids) {
+      for (const pid of pids.split('\n')) {
+        const pidNum = parseInt(pid);
+        if (pidNum && pidNum !== process.pid) {
+          process.kill(pidNum, 'SIGTERM');
+        }
+      }
+      return true;
+    }
   } catch {
-    return false;
+    // lsof returns non-zero when no process found — that's fine
   }
+  return false;
+}
+
+export async function waitForPort(port: number, attempts = 10): Promise<void> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const proc = Bun.spawn({ cmd: ['lsof', '-ti', `:${port}`], stdout: 'pipe', stderr: 'pipe' });
+      const pids = (await new Response(proc.stdout).text()).trim();
+      await proc.exited;
+      if (!pids) return;  // port is free
+    } catch {
+      return;  // lsof error = no process = port is free
+    }
+    await Bun.sleep(300);
+  }
+  throw new Error(`Port ${port} still in use after ${attempts} attempts`);
 }
 ```
+
+This preserves the exact semantics of the current `lifecycle.js`: actively kill, then poll until free. The only change is `execSync` -> `Bun.spawn` (async) and `setTimeout` -> `Bun.sleep`.
 
 **Step 5:** Update SKILL.md references from `node scripts/preview-server.js` to `bun scripts/server.ts`.
 
@@ -1097,16 +1208,19 @@ async function isPortFree(port: number): Promise<boolean> {
 
 ---
 
-### Task 9: Port tests
+### Task 9: Port existing tests + full suite validation
 
 **Files:**
 - Modify: `scripts/__tests__/unit/stream-parser.test.js` -> `.ts`
 - Modify: `scripts/__tests__/unit/claude-subprocess.test.js` -> `.ts`
-- Add: `scripts/__tests__/unit/hmr.test.ts`
-- Add: `scripts/__tests__/unit/claude-bridge.test.ts`
-- Add: `scripts/__tests__/unit/event-translation.test.ts`
+- Verify: `scripts/__tests__/unit/hmr.test.ts` (created in Task 7)
+- Verify: `scripts/__tests__/unit/claude-bridge.test.ts` (created in Task 4)
+- Verify: `scripts/__tests__/unit/event-translation.test.ts` (created in Task 6)
+- Verify: `scripts/__tests__/unit/body-parser.test.ts` (created in Task 3)
 
-**Keep Vitest** — it runs fine under Bun and the 520-test suite is too valuable to rewrite.
+**Keep Vitest** -- it runs fine under Bun and the 520-test suite is too valuable to rewrite.
+
+**Note:** Most new test files were already created during their respective tasks (TDD). This task ports existing `.js` tests to `.ts`, adds any remaining edge case tests, and validates the full suite passes together.
 
 **New tests for HMR:**
 ```typescript
@@ -1369,7 +1483,9 @@ grep -r "preview-server" --include="*.md" --include="*.js" --include="*.ts" --in
 | Per-message `maxTurns` not enforced in persistent session | Accepted regression. Silence timeout (45s/90s/300s) replaces maxTurns as safety net. One-shot handlers still enforce maxTurns. See Concurrency Model rule 7. |
 | Persistent bridge exits on `max_turns` with operation lock held | `proc.exited` handler parses stderr for `max_turns`, fires `complete`, releases lock. Same detection as current bridge. |
 | `rate_limit_event` not surfaced to user in persistent mode | `dispatchEvent` handles `rate_limit_event` — emits `progress` with "Rate limited, waiting..." stage text. |
-| HMR triggers on all Write operations, not just app.jsx | `tool_detail`/`tool_result` correlation: bridge stashes `lastToolDetail` with file path, attaches as `_filePath` on `tool_result`. HMR filters by `_toolName === 'Write'` and `_filePath.endsWith('app.jsx')`. |
+| HMR triggers on all Write operations, not just app.jsx | `tool_detail`/`tool_result` correlation via `pendingTools` Map keyed by `tool_use_id`. Handles consecutive tool_use blocks correctly (no overwrite). HMR filters by `_toolName === 'Write'` and `_filePath.endsWith('app.jsx')`. |
+| `sanitizeAppJsx` not called after persistent bridge completes | Bridge calls `sanitizeAppJsx(ctx.projectRoot)` in `dispatchEvent` on `result` event when `hasEdited: true`, before firing `complete`. One-shot handlers do the same after `proc.exited`. |
+| Port already in use blocks server startup | `killProcessOnPort` preserved with `Bun.spawn(['lsof', ...])` + `process.kill` -- same active takeover behavior as current Node implementation. |
 | Babel parse too slow for HMR debounce cycle | @babel/parser parses 30KB JSX in ~5ms; 500ms debounce makes this negligible. Measure in Task 7 and increase debounce if needed. |
 | Vitest under Bun may have edge cases | Vitest officially supports Bun; 520 tests will surface issues quickly |
 | macOS `fs.watch` (kqueue) drops events during rapid writes | HMR uses event-driven primary (Write tool_result callback) + `fs.watchFile` polling backstop. Neither depends on kqueue. `fs.watch` is not used. |
