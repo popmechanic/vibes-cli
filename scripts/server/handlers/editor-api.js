@@ -54,6 +54,7 @@ async function checkEditorDeps(ctx) {
   const env = loadEnvFile(ctx.projectRoot);
 
   const oidcAuthority = env.VITE_OIDC_AUTHORITY || '';
+  const oidcClientId = env.VITE_OIDC_CLIENT_ID || '';
   const oidcOk = validateOIDCAuthority(oidcAuthority);
 
   const apiUrl = env.VITE_API_URL || '';
@@ -100,10 +101,14 @@ async function checkEditorDeps(ctx) {
     oidc: {
       ok: oidcOk,
       detail: oidcOk ? oidcAuthority : 'No valid OIDC authority in .env',
+      authority: oidcOk ? oidcAuthority : '',
+      clientId: oidcOk ? oidcClientId : '',
     },
     connect: {
       ok: connectOk,
       detail: connectOk ? apiUrl : 'No VITE_API_URL / VITE_CLOUD_URL in .env',
+      apiUrl: connectOk ? apiUrl : '',
+      cloudUrl: connectOk ? cloudUrl : '',
     },
     cloudflare: { ok: cfOk, detail: cfDetail },
     openrouter: {

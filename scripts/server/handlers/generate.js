@@ -272,15 +272,9 @@ export function assembleAppFrame(ctx) {
   }
   template = template.replace(APP_PLACEHOLDER, strippedCode);
 
-  const envVars = loadEnvFile(ctx.projectRoot);
-  template = populateConnectConfig(template, envVars);
-
-  if (!envVars.VITE_API_URL || !envVars.VITE_CLOUD_URL) {
-    if (!assembleAppFrame._warnedMissingConnect) {
-      assembleAppFrame._warnedMissingConnect = true;
-      console.log('[preview] Connect URLs not configured — sync disabled until first deploy');
-    }
-  }
+  // Preview mode: don't populate Connect URLs — run local-only (no auth, no sync).
+  // Sync + auth are added on deploy via assemble scripts.
+  template = populateConnectConfig(template, {});
 
   return template;
 }

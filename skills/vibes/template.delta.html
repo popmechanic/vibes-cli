@@ -8,26 +8,35 @@
       const ConfigError = window.ConfigError;
       const LoadingError = window.LoadingError;
 
-      // App wrapper with OIDC auth gate (always required)
+      // App wrapper — full OIDC auth when Connect is configured, local-only otherwise
       function AppWrapper() {
         const config = window.__VIBES_CONFIG__;
 
         // Hook must be called unconditionally at top of component (Rules of Hooks)
         window.useVibesPanelEvents('Vibes');
 
-        // Check for configuration errors
-        if (!config?.oidcAuthority || config.oidcAuthority.startsWith('__') ||
-            !config?.oidcClientId || config.oidcClientId.startsWith('__')) {
-          return <ConfigError message="Missing OIDC configuration. Apps require authentication." />;
+        const hasConnect = !!(config?.tokenApiUri && config?.cloudBackendUrl &&
+          !config.tokenApiUri.startsWith('__') && !config.cloudBackendUrl.startsWith('__'));
+        const hasOidc = !!(config?.oidcAuthority && !config.oidcAuthority.startsWith('__') &&
+          config?.oidcClientId && !config.oidcClientId.startsWith('__'));
+
+        // No Connect URLs — run local-only (no auth, no sync)
+        if (!hasConnect) {
+          if (!hasOidc) {
+            console.info('[vibes] No credentials configured — running local-only.');
+          } else {
+            console.info('[vibes] Sync will be configured on first deploy. Running local-only preview.');
+          }
+          return (
+            <HiddenMenuWrapper menuContent={<VibesPanel />}>
+              <App />
+            </HiddenMenuWrapper>
+          );
         }
 
-        // Warn if Connect URLs are unreplaced placeholders (assembly bug)
-        // Empty URLs are expected pre-deploy — sync configures on first deploy via alchemy
-        if (config?.tokenApiUri?.startsWith('__') || config?.cloudBackendUrl?.startsWith('__')) {
-          console.warn('[vibes] Connect URL placeholders not replaced — check assembly.',
-            'tokenApiUri:', config?.tokenApiUri, 'cloudBackendUrl:', config?.cloudBackendUrl);
-        } else if (!config?.tokenApiUri || !config?.cloudBackendUrl) {
-          console.info('[vibes] Sync will be configured on first deploy.');
+        // Full mode — Connect configured, OIDC required
+        if (!hasOidc) {
+          return <ConfigError message="Missing OIDC configuration. Apps require authentication." />;
         }
 
         // Check if OIDC bridge loaded
@@ -82,33 +91,39 @@
         );
       }
 
-      // Load OIDC bridge components (required for all apps)
+      // Load OIDC bridge components when Connect is configured, otherwise local-only
       async function initApp() {
-        try {
-          // Dynamic import of OIDC bridge (mapped via import map to fireproof-oidc-bridge.js)
-          const oidcModule = await import("use-fireproof");
-          window.OIDCProvider = oidcModule.OIDCProvider;
-          window.OIDCComponents = {
-            OIDCProvider: oidcModule.OIDCProvider,
-            SignedIn: oidcModule.SignedIn,
-            SignedOut: oidcModule.SignedOut,
-            SignInButton: oidcModule.SignInButton,
-            UserButton: oidcModule.UserButton
-          };
-          // Export for user's App code
-          window.SignedIn = oidcModule.SignedIn;
-          window.SignedOut = oidcModule.SignedOut;
-          window.SignInButton = oidcModule.SignInButton;
-          window.UserButton = oidcModule.UserButton;
-          window.useUser = oidcModule.useUser;
-          // Export OIDC context for SharingBridge and user code
-          window.useOIDCContext = oidcModule.useOIDCContext;
+        const config = window.__VIBES_CONFIG__;
+        const hasConnect = !!(config?.tokenApiUri && config?.cloudBackendUrl &&
+          !config.tokenApiUri.startsWith('__') && !config.cloudBackendUrl.startsWith('__'));
 
-          // Export Fireproof hook for user's App code (bridge provides ledger routing + invite)
-          window.useFireproofClerk = oidcModule.useFireproofClerk;
-        } catch (err) {
-          console.error('Failed to load OIDC components:', err);
-          window.__OIDC_LOAD_ERROR__ = err.message || String(err);
+        if (hasConnect) {
+          try {
+            // Dynamic import of OIDC bridge (mapped via import map to fireproof-oidc-bridge.js)
+            const oidcModule = await import("use-fireproof");
+            window.OIDCProvider = oidcModule.OIDCProvider;
+            window.OIDCComponents = {
+              OIDCProvider: oidcModule.OIDCProvider,
+              SignedIn: oidcModule.SignedIn,
+              SignedOut: oidcModule.SignedOut,
+              SignInButton: oidcModule.SignInButton,
+              UserButton: oidcModule.UserButton
+            };
+            // Export for user's App code
+            window.SignedIn = oidcModule.SignedIn;
+            window.SignedOut = oidcModule.SignedOut;
+            window.SignInButton = oidcModule.SignInButton;
+            window.UserButton = oidcModule.UserButton;
+            window.useUser = oidcModule.useUser;
+            // Export OIDC context for SharingBridge and user code
+            window.useOIDCContext = oidcModule.useOIDCContext;
+
+            // Export Fireproof hook for user's App code (bridge provides ledger routing + invite)
+            window.useFireproofClerk = oidcModule.useFireproofClerk;
+          } catch (err) {
+            console.error('Failed to load OIDC components:', err);
+            window.__OIDC_LOAD_ERROR__ = err.message || String(err);
+          }
         }
 
         const rootElement = document.getElementById("container");
