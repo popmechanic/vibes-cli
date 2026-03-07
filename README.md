@@ -60,7 +60,7 @@ Creates a single HTML file with inline JavaScript, Fireproof database for local-
 - "Build a potluck sign-up for Friendsgiving"
 - "Create a trivia game about reality TV"
 
-### `design-reference`
+### `design`
 
 Have a design mockup or static HTML file? This skill mechanically transforms it into a working Vibes app while preserving the design exactly.
 

@@ -191,7 +191,6 @@ Never modify the original component files without explicit request. Bug fixes to
 | File | What to Update |
 |------|----------------|
 | `README.md` | Skills section |
-| `commands/` | Add a command `.md` if the skill should be user-invocable |
 
 ---
 
@@ -383,7 +382,7 @@ npm run test:e2e:server
 | `skills/sell/template.delta.html` | Sell-specific delta (multi-tenant routing) |
 | `skills/sell/templates/unified.html` | Generated SaaS template |
 | `skills/sell/SKILL.md` | Sell skill for SaaS transformation |
-| `skills/design-reference/SKILL.md` | Design reference skill - mechanical HTML→React transformation |
+| `skills/design/SKILL.md` | Design reference skill - mechanical HTML→React transformation |
 | `skills/launch/SKILL.md` | Launch skill - full SaaS pipeline with Agent Teams |
 | `skills/launch/LAUNCH-REFERENCE.md` | Launch architecture reference (dependency graph, timing, skip modes) |
 | `skills/launch/prompts/builder.md` | Builder agent prompt template with {placeholder} markers |
