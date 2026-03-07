@@ -35,7 +35,7 @@ The Loom skill audit (`2026-03-05-loom-best-practices-audit-design.md`) already 
 
 1. **The bridge itself.** Loom enriched a one-shot-per-message bridge. We replace it entirely with a persistent session (Julian pattern) for chat, while keeping one-shot for generate/theme. This is a deeper architectural change than Loom attempted.
 
-2. **`wsAdapter` as an indirection layer.** Loom kept the `onEvent → wsAdapter → ws.send` chain. The new design simplifies: the WebSocket handler holds a direct reference to a `broadcast` function. No adapter translation — events go straight to the client with the same shape.
+2. **`wsAdapter` as an indirection layer.** Loom kept the `onEvent -> wsAdapter -> ws.send` chain. The new design simplifies: the WebSocket handler holds a direct reference to a `broadcast` function. No adapter translation — events go straight to the client with the same shape.
 
 3. **`buildClaudeArgs` / `claude-subprocess.js`.** Loom added tool/permission support to this shared module. The new bridge builds args inline (persistent session has fixed args). The `runOneShot` helper reuses `buildClaudeArgs` for one-shot spawns, preserving Loom's tool allowlisting.
 
@@ -176,26 +176,83 @@ console.log(`Vibes Server — http://localhost:${ctx.port}`);
 
 **Body size limiting for POST routes:**
 
-The current `parseJsonBody` enforces a 1MB limit via streaming `req.on('data')` with a byte counter. Bun's `await req.json()` reads the full body with no size cap. To preserve the safety limit:
+The current `parseJsonBody` (in `editor-api.js`) enforces a 1MB limit by streaming `req.on('data')` with a byte counter and calling `req.destroy()` the instant the limit is exceeded — the oversized body is never fully buffered. Bun's `await req.json()` or `await req.text()` fully buffers the body before returning, meaning a 5MB screenshot POST would be fully read into memory before rejection.
+
+To preserve the streaming rejection behavior, use Bun's `req.body` ReadableStream with byte counting:
 
 ```typescript
 const MAX_BODY_SIZE = 1024 * 1024; // 1MB
 
-async function parseJsonBody(req: Request): Promise<any> {
+async function parseJsonBody(req: Request, maxSize = MAX_BODY_SIZE): Promise<any> {
+  // Phase 1: fast reject via Content-Length header (can be spoofed, so not sufficient alone)
   const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
-  if (contentLength > MAX_BODY_SIZE) {
+  if (contentLength > maxSize) {
     throw Object.assign(new Error('Request body too large'), { status: 413 });
   }
-  // Content-Length can be spoofed or missing — also limit the actual read
-  const body = await req.text();
-  if (body.length > MAX_BODY_SIZE) {
-    throw Object.assign(new Error('Request body too large'), { status: 413 });
+
+  // Phase 2: stream the body with byte counting — abort mid-stream if limit exceeded
+  const reader = req.body?.getReader();
+  if (!reader) throw new Error('No request body');
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > maxSize) {
+        reader.cancel();
+        throw Object.assign(new Error('Request body too large'), { status: 413 });
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
   }
+
+  const decoder = new TextDecoder();
+  const body = chunks.map(c => decoder.decode(c, { stream: true })).join('') + decoder.decode();
   return JSON.parse(body);
 }
 ```
 
-This two-phase check (header first for fast rejection, then actual body size) prevents both honest oversized requests and spoofed Content-Length headers. Use this instead of bare `await req.json()` for all POST endpoints that accept user input. The screenshot endpoint (`saveScreenshot`) uses a separate 5MB limit and should use the same pattern with `MAX_SCREENSHOT_SIZE`.
+This mirrors the current Node behavior: the request stream is abandoned as soon as the byte count exceeds the limit. The body is never fully buffered for oversized requests.
+
+**Screenshot endpoint** uses the same pattern with `MAX_SCREENSHOT_SIZE = 5 * 1024 * 1024` and returns raw `Buffer.concat(chunks)` instead of parsing JSON:
+
+```typescript
+async function readBodyWithLimit(req: Request, maxSize: number): Promise<Buffer> {
+  const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
+  if (contentLength > maxSize) {
+    throw Object.assign(new Error('Body too large'), { status: 413 });
+  }
+
+  const reader = req.body?.getReader();
+  if (!reader) throw new Error('No request body');
+
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > maxSize) {
+        reader.cancel();
+        throw Object.assign(new Error('Body too large'), { status: 413 });
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  return Buffer.concat(chunks);
+}
+```
 
 **Pattern from Julian:**
 ```typescript
@@ -206,9 +263,9 @@ if (await file.exists()) {
 }
 ```
 
-**Step 1:** Create `router.ts` with the route table. Port each static route handler to return `Response`. Use `parseJsonBody` (with size limit) for POST routes.
+**Step 1:** Create `router.ts` with the route table. Port each static route handler to return `Response`. Use `parseJsonBody` (with streaming size limit) for POST routes and `readBodyWithLimit` for the screenshot endpoint.
 
-**Step 2:** Port `editor-api.ts` handlers to return `Response` objects. This is the largest handler file — 633 lines — but the changes are mechanical: `res.writeHead(200, {...}); res.end(JSON.stringify(x))` becomes `return Response.json(x, { headers })`. Replace the old streaming `parseJsonBody` with the new Bun-native version that checks both Content-Length header and actual body size.
+**Step 2:** Port `editor-api.ts` handlers to return `Response` objects. This is the largest handler file — 633 lines — but the changes are mechanical: `res.writeHead(200, {...}); res.end(JSON.stringify(x))` becomes `return Response.json(x, { headers })`. Replace the old streaming `parseJsonBody` with the new Bun-native streaming version.
 
 **Step 3:** Port all remaining HTTP handlers (deploy, image-gen) to return `Response`.
 
@@ -225,20 +282,20 @@ if (await file.exists()) {
 **Files:**
 - Create: `scripts/server/claude-bridge.ts` (rewrite of `claude-bridge.js`)
 
-**This is the core architectural change.** The current bridge spawns a new `claude -p` subprocess per user message. Julian's pattern is better: spawn one long-lived `claude` process with `--input-format stream-json --output-format stream-json`, keep its stdin/stdout open, and pipe messages via JSON-lines on stdin.
+**This is the core architectural change.** The current bridge spawns a new `claude -p` subprocess per user message. Julian's pattern is better: spawn one long-lived `claude` process with `--print --input-format stream-json --output-format stream-json`, keep its stdin/stdout open, and pipe messages via JSON-lines on stdin.
 
 **Current (one-shot per message):**
 ```
-User sends chat → spawn claude -p with prompt on stdin → pipe stdout → close
-User sends chat → spawn claude -p again → ...
+User sends chat -> spawn claude -p with prompt on stdin -> pipe stdout -> close
+User sends chat -> spawn claude -p again -> ...
 ```
 
 **New (persistent session, Julian pattern):**
 ```
-Server starts → spawn claude with stream-json I/O → keep stdin/stdout open
-User sends chat → write JSON-line to stdin → read responses from stdout
-User sends chat → write JSON-line to stdin → read responses from stdout
-15min idle → SIGTERM → respawn on next message
+Server starts -> spawn claude with stream-json I/O -> keep stdin/stdout open
+User sends chat -> write JSON-line to stdin -> read responses from stdout
+User sends chat -> write JSON-line to stdin -> read responses from stdout
+15min idle -> SIGTERM -> respawn on next message
 ```
 
 **Benefits:**
@@ -246,6 +303,17 @@ User sends chat → write JSON-line to stdin → read responses from stdout
 - No 20-40s cold start per message
 - Simpler cancellation (write cancel marker vs. SIGTERM)
 - Matches Julian's proven pattern
+
+**The `--print` + `--input-format stream-json` interaction:**
+
+Julian's local mode uses exactly this combination: `claude --print --input-format stream-json --output-format stream-json`. The `--print` flag's documented behavior is "read stdin as a single prompt and exit," but when combined with `--input-format stream-json`, the CLI stays alive and reads newline-delimited JSON messages from stdin indefinitely. Julian's server proves this works — it writes multiple `{type: "user", message: ...}` JSON lines to the same process over its lifetime (see `claudeProc.stdin.write(jsonl)` + `claudeProc.stdin.flush()` in Julian's `sendMessage`).
+
+**Risk:** This behavior is undocumented. `--print` with `stream-json` input working as a persistent session is an implementation detail that could change in a Claude CLI update.
+
+**Fallback plan if this breaks:**
+1. **Try `--chat` mode** — the intended interactive mode, though it may require PTY emulation
+2. **Try omitting `--print`** — run `claude --input-format stream-json --output-format stream-json` without `--print`. This may work if the CLI detects piped stdin and skips the TUI
+3. **Fall back to one-shot-per-message** with `--resume <session-id>` to preserve context across spawns (Julian's remote mode uses this exact pattern: `claude --print --resume <url> --output-format stream-json <message>`)
 
 **Implementation:**
 
@@ -363,7 +431,7 @@ export function createClaudeBridge(ctx: ServerContext): ClaudeBridge {
 
 **Step 3:** Wire the bridge into the WebSocket dispatch.
 
-**Step 4:** Test manually: start server, send a chat message, verify streaming tokens arrive.
+**Step 4:** Test manually: start server, send a chat message, verify streaming tokens arrive. **Specifically verify** that the `--print --input-format stream-json` combination keeps the process alive after the first message. If it exits, implement the fallback plan (see above).
 
 **Step 5:** Commit: `"Rewrite claude-bridge as persistent session with Bun.spawn"`
 
@@ -512,13 +580,43 @@ websocket: {
 - `maxPayload` set via `Bun.serve({ websocket: { maxPayloadLength } })`
 - No `ws.on('message')` — use the `message(ws, data)` handler
 
+**Missing inline handlers from ws-dispatch.js:**
+
+The current `ws-dispatch.js` has several handlers defined inline in the dispatch table that are not covered by the dedicated handler files. These must be ported to the new `ws.ts` or grouped into handler files:
+
+| Handler | Current Location | New Location | Notes |
+|---------|-----------------|--------------|-------|
+| `palette_theme` | Inline in ws-dispatch.js, delegates to `handlePaletteTheme` from `theme.js` | `handlers/theme.ts` | Already imported from theme.js — just needs to be wired into the new dispatch table |
+| `delete_theme` | Inline in ws-dispatch.js (~15 lines) | `handlers/theme.ts` as `handleDeleteTheme` | File deletion + catalog update + `reloadThemes(ctx)`. Extract to theme handler for consistency. |
+| `save_app` | Inline in ws-dispatch.js (~10 lines) | `handlers/editor-api.ts` as `handleSaveApp` | `copyFileSync(app.jsx, appsDir/name/)`. Logically belongs with app CRUD in editor-api. |
+| `generate_image` | Inline in ws-dispatch.js, delegates to `handleGenerateImage` from `image-gen.js` | `handlers/image-gen.ts` | Already imported from image-gen.js — just wire into dispatch. |
+
+**The new dispatch table in `ws.ts`:**
+
+```typescript
+const dispatch: Record<string, (msg: any, onEvent: EventFn) => Promise<void> | void> = {
+  chat:           (msg, onEvent) => handleChat(ctx, onEvent, msg.message, msg.effects, msg.animationId, msg.model, msg.reference),
+  generate:       (msg, onEvent) => handleGenerate(ctx, onEvent, msg.prompt, msg.themeId, msg.model, msg.reference),
+  theme:          (msg, onEvent) => handleThemeSwitch(ctx, onEvent, msg.themeId, msg.model),
+  cancel:         (_msg, onEvent) => { if (!cancelCurrent()) onEvent({ type: 'error', message: 'No request in progress.' }); },
+  deploy:         (msg, onEvent) => handleDeploy(ctx, onEvent, msg.target, msg.name),
+  save_theme:     (msg, onEvent) => handleSaveTheme(ctx, onEvent, sanitizeName(msg.name), msg.model),
+  generate_image: (msg, onEvent) => handleGenerateImage(ctx, onEvent, msg.prompt, msg.model),
+  palette_theme:  (msg, onEvent) => handlePaletteTheme(ctx, onEvent, msg.colors),
+  delete_theme:   (msg, onEvent) => handleDeleteTheme(ctx, onEvent, msg.themeId),
+  save_app:       (msg, onEvent) => handleSaveApp(ctx, onEvent, msg.name),
+};
+```
+
 **Step 1:** Create `ws.ts` exporting `createWsHandler(ctx)` that returns Bun's websocket handler object.
 
-**Step 2:** Port the dispatch table from `ws-dispatch.js`.
+**Step 2:** Extract `delete_theme` and `save_app` inline handlers into their respective handler files (`theme.ts` and `editor-api.ts`).
 
-**Step 3:** Verify WebSocket connects and handlers fire.
+**Step 3:** Port the full dispatch table — all 10 message types.
 
-**Step 4:** Commit: `"Port WebSocket to Bun native handler"`
+**Step 4:** Verify WebSocket connects and all handlers fire.
+
+**Step 5:** Commit: `"Port WebSocket to Bun native handler with complete dispatch table"`
 
 ---
 
@@ -530,17 +628,29 @@ websocket: {
 
 **This is the creative, production-ready HMR system the user wants.** The challenge: during generation, Claude writes app.jsx token by token. Naive HMR would push every partial file to the browser, breaking the page mid-syntax.
 
-**Design: Babel-Validated Snapshot HMR**
+**Design: Dual-Source HMR — Event-Driven with File Watcher Backstop**
 
-The HMR system watches `app.jsx` during generation and pushes updates to the browser only when the file is in a renderable state. Rather than hand-rolling a bracket balancer that would miss JSX, comments, regex, and template literal expressions, we use Babel's parser as the renderability oracle — the same parser the browser uses to transpile the app.
+The HMR system uses two complementary triggers to detect app.jsx changes during generation:
+
+1. **Primary: Claude event stream.** The generate handler already receives `tool_result` events when Claude's Write tool completes. After each Write tool result, the HMR system reads app.jsx and checks renderability. This is perfectly reliable — the event fires exactly when a write has completed, no filesystem notification needed.
+
+2. **Backstop: `fs.watchFile` (polling).** For chat mode edits (where Claude uses Edit/Write tools through the persistent bridge), the event stream is less structured. A polling watcher catches any writes that don't come through a clean tool_result event. `fs.watchFile` uses stat polling — not macOS kqueue/FSEvents — so it never misses events during rapid writes. The trade-off is latency (polling interval), but since this is a backstop for chat edits (not the primary generate path), 1-second polling is acceptable.
+
+**Why NOT `fs.watch` alone:** macOS `fs.watch` uses kqueue, which is known to coalesce or drop events during rapid file writes — exactly the pattern Claude produces during generation. If the final write event is missed, the preview never shows the completed app. `fs.watchFile` (stat polling) is immune to this because it checks file modification time, not filesystem events.
+
+**Why NOT `fs.watchFile` alone:** Polling adds latency. During generation, we want sub-second updates. The event-driven path (tool_result -> check -> push) has zero latency because it fires on the exact moment the write completes.
+
+**Renderability check — Babel as the oracle:**
+
+Rather than hand-rolling a bracket balancer that would miss JSX, comments, regex, and template literal expressions, we use Babel's parser as the renderability oracle — the same parser the browser uses to transpile the app.
 
 **Why Babel:** The template system already depends on `@babel/standalone` (loaded from unpkg CDN in the browser). For the server-side parse check, we add `@babel/parser` as a dev dependency (~400KB). If it can parse the code, the browser can render it. This is the only reliable check for JSX code that may contain comments with unmatched braces, regex with brackets, template literals with nested expressions, and HTML-like syntax inside return statements.
 
 **Algorithm:**
 
-1. When generation starts, begin watching `app.jsx` with `fs.watch`.
+1. When generation starts, activate the HMR system. Register a callback on the generate handler's event stream to intercept `tool_result` events for Write operations.
 
-2. On each file change, read the current content and attempt a Babel parse:
+2. On each trigger (tool_result or watchFile callback), read the current content and attempt a Babel parse:
    ```typescript
    import { parse } from '@babel/parser';
 
@@ -573,9 +683,27 @@ The HMR system watches `app.jsx` during generation and pushes updates to the bro
 
 4. The browser receives `hmr_update`, and hot-swaps the iframe `srcdoc` with the assembled HTML.
 
-5. **Debounce:** Don't check more than once per 500ms. Claude writes in bursts — the file changes rapidly during tool execution, then pauses. The debounce naturally aligns with meaningful edit boundaries.
+5. **Debounce:** Don't check more than once per 500ms (event-driven path) or once per 1000ms (polling backstop). Claude writes in bursts — the file changes rapidly during tool execution, then pauses. The debounce naturally aligns with meaningful edit boundaries.
 
 6. **Parse cost:** `@babel/parser` parses a 30KB JSX file in ~5ms on modern hardware. With 500ms debounce, the CPU cost is negligible.
+
+**`assembleAppFrame` API change:**
+
+The current `assembleAppFrame(ctx)` reads app.jsx from disk internally. For HMR, we need to pass code that we've already read and validated. Add an optional `code` parameter:
+
+```typescript
+export function assembleAppFrame(ctx: ServerContext, code?: string): string {
+  // ... template loading unchanged ...
+
+  // If code is provided, use it directly. Otherwise read from disk (for /app-frame route).
+  const appCode = code ?? readFileSync(join(ctx.projectRoot, 'app.jsx'), 'utf-8');
+  const strippedCode = stripForTemplate(appCode, { stripReactHooks: false });
+
+  // ... rest of assembly unchanged ...
+}
+```
+
+This is a backward-compatible change — existing callers (`/app-frame` route) continue to call `assembleAppFrame(ctx)` with no code argument. The HMR system calls `assembleAppFrame(ctx, validatedCode)` to avoid a redundant disk read.
 
 **The "time-lapse" effect:** Since we only push when the code parses cleanly, the browser sees discrete "frames" of the app evolving — first the basic structure, then styles appear, then components flesh out, then animations activate. It's a time-lapse of the app coming together.
 
@@ -584,28 +712,45 @@ The HMR system watches `app.jsx` during generation and pushes updates to the bro
 ```typescript
 // scripts/server/hmr.ts
 import { parse } from '@babel/parser';
-import { watch, readFileSync } from 'fs';
+import { watchFile, unwatchFile, readFileSync } from 'fs';
 import { join } from 'path';
 import { assembleAppFrame } from './handlers/generate';
 
 export function createHmrWatcher(ctx: ServerContext, broadcast: (msg: object) => void) {
-  let watcher: ReturnType<typeof watch> | null = null;
   let lastSnapshot = '';
   let debounceTimer: Timer | null = null;
   let active = false;
+  const appPath = join(ctx.projectRoot, 'app.jsx');
 
-  function start() {
-    if (active) return;
-    active = true;
-    const appPath = join(ctx.projectRoot, 'app.jsx');
+  // Polling backstop for chat-mode edits
+  let polling = false;
 
-    watcher = watch(appPath, () => {
-      if (debounceTimer) clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => checkAndPush(appPath), 500);
+  function startPolling() {
+    if (polling) return;
+    polling = true;
+    watchFile(appPath, { interval: 1000 }, () => {
+      scheduleCheck();
     });
   }
 
-  function checkAndPush(appPath: string) {
+  function stopPolling() {
+    if (!polling) return;
+    polling = false;
+    unwatchFile(appPath);
+  }
+
+  function scheduleCheck() {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => checkAndPush(), 500);
+  }
+
+  // Called by generate handler on tool_result events (primary path)
+  function onWriteEvent() {
+    if (!active) return;
+    scheduleCheck();
+  }
+
+  function checkAndPush() {
     try {
       const code = readFileSync(appPath, 'utf-8');
       if (code === lastSnapshot) return;
@@ -622,14 +767,21 @@ export function createHmrWatcher(ctx: ServerContext, broadcast: (msg: object) =>
     } catch {}
   }
 
+  function start() {
+    if (active) return;
+    active = true;
+    lastSnapshot = '';
+    startPolling();
+  }
+
   function stop() {
     active = false;
-    if (watcher) { watcher.close(); watcher = null; }
+    stopPolling();
     if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
     lastSnapshot = '';
   }
 
-  return { start, stop };
+  return { start, stop, onWriteEvent };
 }
 
 function isRenderable(code: string): boolean {
@@ -664,15 +816,17 @@ case 'hmr_update':
 
 **Step 1:** Add `@babel/parser` to `scripts/package.json` devDependencies.
 
-**Step 2:** Create `hmr.ts` with the watcher, `isRenderable` (Babel-based), and broadcast logic.
+**Step 2:** Create `hmr.ts` with the dual-source watcher (event-driven + polling backstop), `isRenderable` (Babel-based), and broadcast logic.
 
-**Step 3:** Integrate with `generate.ts` — call `hmr.start()` before generation, `hmr.stop()` after.
+**Step 3:** Modify `assembleAppFrame` to accept an optional `code` parameter.
 
-**Step 4:** Add `hmr_update` handling to the browser-side WebSocket handler.
+**Step 4:** Integrate with `generate.ts` — call `hmr.start()` before generation, hook `hmr.onWriteEvent()` into tool_result events, call `hmr.stop()` after. Also integrate with chat handler for polling-only mode during chat edits.
 
-**Step 5:** Test: generate an app, watch the preview update in real-time as Claude writes.
+**Step 5:** Add `hmr_update` handling to the browser-side WebSocket handler.
 
-**Step 6:** Commit: `"Implement time-lapse HMR with Babel-validated snapshot detection"`
+**Step 6:** Test: generate an app, watch the preview update in real-time as Claude writes.
+
+**Step 7:** Commit: `"Implement time-lapse HMR with Babel-validated snapshot detection"`
 
 ---
 
@@ -684,11 +838,13 @@ case 'hmr_update':
 - Modify: `scripts/package.json`
 - Delete: `scripts/lib/ensure-deps.js`
 - Delete: `scripts/preview-server.js`
-- Modify: `scripts/server/lifecycle.js` → `lifecycle.ts`
+- Modify: `scripts/server/lifecycle.js` -> `lifecycle.ts`
+
+**`ensure-deps.js` deletion is safe.** Verified all callers: only `preview-server.js` imports from `ensure-deps.js` (via `ensurePreviewDeps`). The other exported functions (`ensureDeps` which checks `jsonwebtoken`, `ensureDependency` generic helper) are defined but never imported by any other file in the codebase. No migration needed — just delete.
 
 **Step 1:** Remove `ws` from `scripts/package.json` dependencies. Add `@babel/parser` to devDependencies (for HMR).
 
-**Step 2:** Delete `ensure-deps.js` — Bun doesn't need npm auto-install; it reads dependencies at startup. The `ensurePreviewDeps` function (which checked for `ws`) is obsolete. The `ensureDeps` function (which checked for `jsonwebtoken` for deploy) is also obsolete since Bun resolves deps at import time and errors clearly.
+**Step 2:** Delete `ensure-deps.js` — Bun doesn't need npm auto-install; it reads dependencies at startup. Both `ensurePreviewDeps` (checked `ws`) and `ensureDeps` (checked `jsonwebtoken`) have zero callers outside `preview-server.js`.
 
 **Step 3:** Delete `preview-server.js` — replaced by `server.ts`.
 
@@ -715,8 +871,8 @@ async function isPortFree(port: number): Promise<boolean> {
 ### Task 9: Port tests
 
 **Files:**
-- Modify: `scripts/__tests__/unit/stream-parser.test.js` → `.ts`
-- Modify: `scripts/__tests__/unit/claude-subprocess.test.js` → `.ts`
+- Modify: `scripts/__tests__/unit/stream-parser.test.js` -> `.ts`
+- Modify: `scripts/__tests__/unit/claude-subprocess.test.js` -> `.ts`
 - Add: `scripts/__tests__/unit/hmr.test.ts`
 - Add: `scripts/__tests__/unit/claude-bridge.test.ts`
 
@@ -782,13 +938,32 @@ describe('operation lock', () => {
 });
 ```
 
+**New tests for HMR dual-source triggering:**
+```typescript
+describe('hmr watcher', () => {
+  it('onWriteEvent triggers check after debounce', async () => {
+    // Write a valid app.jsx, call onWriteEvent, verify broadcast fires
+  });
+
+  it('does not broadcast unparseable code', async () => {
+    // Write broken JSX, call onWriteEvent, verify no broadcast
+  });
+
+  it('does not broadcast duplicate snapshots', async () => {
+    // Write same code twice, verify only one broadcast
+  });
+});
+```
+
 **Step 1:** Add HMR unit tests (isRenderable with edge cases: comments, JSX, template literals).
 
 **Step 2:** Add claude-bridge tests (event dispatching, send/cancel, operation lock).
 
-**Step 3:** Run full suite: `cd scripts && bun test` (or `npm test` — vitest works under both).
+**Step 3:** Add HMR integration tests (dual-source triggering, deduplication).
 
-**Step 4:** Commit: `"Add tests for HMR and claude-bridge"`
+**Step 4:** Run full suite: `cd scripts && bun test` (or `npm test` — vitest works under both).
+
+**Step 5:** Commit: `"Add tests for HMR and claude-bridge"`
 
 ---
 
@@ -800,7 +975,7 @@ describe('operation lock', () => {
 - Modify: `scripts/package.json` — update `"preview"` script
 
 **Step 1:** In `CLAUDE.md`, update:
-- `node scripts/preview-server.js` → `bun scripts/server.ts`
+- `node scripts/preview-server.js` -> `bun scripts/server.ts`
 - Architecture notes: add Bun.serve, native WebSocket, persistent session model
 - Remove references to `ws` npm package
 
@@ -821,33 +996,33 @@ describe('operation lock', () => {
 | `scripts/server.ts` | Bun.serve entry point |
 | `scripts/server/config.ts` | Config loader (port from .js) |
 | `scripts/server/router.ts` | HTTP route table returning Response objects |
-| `scripts/server/ws.ts` | Native WebSocket handler |
+| `scripts/server/ws.ts` | Native WebSocket handler with complete 10-handler dispatch table |
 | `scripts/server/claude-bridge.ts` | Persistent claude session + one-shot helper + operation lock |
 | `scripts/server/handlers/chat.ts` | Chat handler (persistent session) |
-| `scripts/server/handlers/generate.ts` | Generate handler (one-shot + HMR) |
-| `scripts/server/handlers/theme.ts` | Theme switch handler (one-shot) |
+| `scripts/server/handlers/generate.ts` | Generate handler (one-shot + HMR event hooks) |
+| `scripts/server/handlers/theme.ts` | Theme switch + palette theme + delete theme handlers |
 | `scripts/server/handlers/create-theme.ts` | Theme save handler (one-shot) |
 | `scripts/server/handlers/deploy.ts` | Deploy handler (Bun subprocess spawning) |
-| `scripts/server/hmr.ts` | Babel-validated snapshot HMR watcher |
+| `scripts/server/hmr.ts` | Babel-validated snapshot HMR with dual-source triggering |
 
 ### Deleted files (3)
 | File | Reason |
 |------|--------|
 | `scripts/preview-server.js` | Replaced by `server.ts` |
-| `scripts/lib/ensure-deps.js` | Bun doesn't need npm auto-install |
+| `scripts/lib/ensure-deps.js` | Only caller was `preview-server.js`. No other importers exist in the codebase. Bun doesn't need npm auto-install. |
 | `scripts/server/ws-dispatch.js` | Replaced by `ws.ts` |
 
 ### Modified files (8)
 | File | Change |
 |------|--------|
 | `scripts/package.json` | Remove `ws` dep, add `@babel/parser`, update scripts |
-| `scripts/server/config.js` → `.ts` | TypeScript, Bun-native imports |
-| `scripts/server/lifecycle.js` → `.ts` | Bun-native port management |
+| `scripts/server/config.js` -> `.ts` | TypeScript, Bun-native imports |
+| `scripts/server/lifecycle.js` -> `.ts` | Bun-native port management |
 | `scripts/server/routes.js` | Deleted (replaced by `router.ts`) |
 | `scripts/server/claude-bridge.js` | Deleted (replaced by `.ts`) |
-| `scripts/server/post-process.js` → `.ts` | TypeScript (logic unchanged) |
+| `scripts/server/post-process.js` -> `.ts` | TypeScript (logic unchanged) |
 | `CLAUDE.md` | Update dev commands |
-| `scripts/server/handlers/editor-api.js` → `.ts` | Response API, size-limited body parsing |
+| `scripts/server/handlers/editor-api.js` -> `.ts` | Response API, streaming size-limited body parsing, `handleSaveApp` extracted from ws-dispatch |
 
 ### Preserved files (unchanged)
 | File | Why |
@@ -856,7 +1031,7 @@ describe('operation lock', () => {
 | `scripts/lib/claude-subprocess.js` | Still used by `runOneShot` helper for `buildClaudeArgs`. Also used by other standalone scripts. |
 | `scripts/lib/*.js` | Pure utilities, runtime-agnostic |
 | `scripts/__tests__/` | Vitest tests — add new, keep existing |
-| `scripts/server/handlers/image-gen.js` | Pure fetch, no Node deps |
+| `scripts/server/handlers/image-gen.js` | Pure fetch, no Node deps. `handleGenerateImage` wired into new dispatch table. |
 | `scripts/assemble.js` | Standalone script — runs under both Node and Bun. Spawned by deploy handler via `bun run`. |
 | `scripts/deploy-cloudflare.js` | Standalone script — runs under both Node and Bun. Spawned by deploy handler via `bun run`. |
 
@@ -866,14 +1041,16 @@ describe('operation lock', () => {
 
 | Risk | Mitigation |
 |------|------------|
+| `--print` + `--input-format stream-json` persistent session is undocumented behavior | Julian proves it works today. Three-tier fallback plan documented in Task 4: try `--chat`, try omitting `--print`, fall back to one-shot + `--resume`. Test early in Task 4 Step 4. |
 | Bun.spawn stdin flushing behaves differently from Node child_process | Julian project proves this works; test early in Task 4 |
 | `--input-format stream-json` may not support tool set switching | Hybrid model (Task 5) — persistent session for chat, one-shot for others |
 | Babel parse too slow for HMR debounce cycle | @babel/parser parses 30KB JSX in ~5ms; 500ms debounce makes this negligible. Measure in Task 7 and increase debounce if needed. |
 | Vitest under Bun may have edge cases | Vitest officially supports Bun; 520 tests will surface issues quickly |
-| `Bun.file().watch()` not yet stable | Use `fs.watch` (Bun supports Node fs module) |
+| macOS `fs.watch` (kqueue) drops events during rapid writes | HMR uses dual-source: event-driven primary (tool_result callback) + `fs.watchFile` polling backstop. Neither depends on kqueue. `fs.watch` is not used. |
 | `assemble.js` or `deploy-cloudflare.js` uses a Node API Bun doesn't support | Verify each script with `bun run <script>` before merging (Task 5 verification step). `deploy-cloudflare.js` uses `createPublicKey` from crypto — verify this specifically. |
-| Body size limits lost on POST endpoints | `parseJsonBody` helper enforces Content-Length + actual body size checks (Task 3) |
+| Body size limits lost on POST endpoints | Streaming `req.body.getReader()` with byte counting aborts mid-stream (Task 3). Matches current Node behavior. |
 | Persistent bridge + one-shot spawn race on app.jsx | Operation lock (see Concurrency Model) serializes all claude operations. HMR watcher is read-only. |
+| Screenshot endpoint (5MB) fully buffered before rejection | `readBodyWithLimit` helper uses same streaming pattern with `MAX_SCREENSHOT_SIZE` limit. Reader cancelled on exceed. |
 
 ---
 
