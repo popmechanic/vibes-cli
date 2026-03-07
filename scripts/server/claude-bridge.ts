@@ -126,7 +126,10 @@ export async function runOneShot(
   proc.stdin.write(prompt);
   proc.stdin.end();
 
-  // Register cancel callback so the operation lock can kill this subprocess
+  // Register cancel callback so the operation lock can kill this subprocess.
+  // NOTE: The 5s SIGKILL fallback may not fire if the caller's process.exit()
+  // runs first (e.g., during server shutdown). This is acceptable — the OS
+  // reaps orphaned subprocesses, and SIGTERM is sufficient for `claude`.
   if (opts.onCancel) {
     opts.onCancel(() => {
       try { proc.kill('SIGTERM'); } catch {}

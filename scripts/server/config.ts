@@ -2,12 +2,16 @@
  * Server configuration — CLI args, .env, theme/animation catalogs.
  *
  * Exports loadConfig() which returns a mutable ctx object shared by all modules.
- * Bun-native version: uses import.meta.dir instead of fileURLToPath.
+ * Uses import.meta.dir (Bun) with fileURLToPath fallback (Node/vitest).
  */
 
 import { readFileSync, existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { homedir } from 'os';
+
+// Bun provides import.meta.dir; Node.js needs fileURLToPath fallback
+const __dirname = (import.meta as any).dir ?? dirname(fileURLToPath(import.meta.url));
 import { parseThemeCatalog } from '../lib/parse-theme-catalog.js';
 import { parseAnimationCatalog } from '../lib/parse-animation-catalog.js';
 
@@ -68,7 +72,7 @@ function buildThemeRootCss(
  * Build the ctx object from CLI args, .env, and catalogs.
  */
 export function loadConfig(): ServerContext {
-  const projectRoot = join(import.meta.dir, '../..');
+  const projectRoot = join(__dirname, '../..');
   const parsedPort = parseInt(
     process.argv.find((_, i, a) => a[i - 1] === '--port') ||
     process.env.PORT ||

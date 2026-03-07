@@ -11,6 +11,8 @@
  * Usage: bun scripts/server.ts [--port 3333] [--mode=editor]
  */
 
+if (typeof Bun === 'undefined') { console.error('This server requires Bun. Install from https://bun.sh'); process.exit(1); }
+
 import { loadConfig } from './server/config.ts';
 import { createRouter } from './server/router.ts';
 import { createWsHandler, type WsData } from './server/ws.ts';
@@ -20,6 +22,7 @@ import { cancelCurrent } from './server/claude-bridge.ts';
 // --- Process-level safety nets ---
 process.on('uncaughtException', (err) => {
   console.error('[Process] Uncaught exception:', err);
+  process.exit(1);
 });
 
 process.on('unhandledRejection', (reason) => {
@@ -37,12 +40,13 @@ let server: ReturnType<typeof Bun.serve> | null = null;
 // --- Graceful shutdown ---
 function shutdown(signal: string) {
   console.log(`\n[Server] ${signal} received — shutting down...`);
-  cancelCurrent(); // Kill any active Claude subprocesses
+  cancelCurrent(); // Kill any active Claude subprocesses (sends SIGTERM)
   if (server) {
     server.stop(true); // true = close existing connections
     server = null;
   }
-  process.exit(0);
+  // Brief delay to let SIGTERM propagate to child processes before exiting
+  setTimeout(() => process.exit(0), 1000);
 }
 
 process.on('SIGINT', () => shutdown('SIGINT'));

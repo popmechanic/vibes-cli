@@ -8,17 +8,14 @@
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync } from 'fs';
 import { join } from 'path';
-import { loadEnvFile, validateClerkKey, validateClerkSecretKey, extractClerkDomain, writeEnvFile } from '../../lib/env-utils.js';
+import { loadEnvFile, validateClerkKey, validateClerkSecretKey, writeEnvFile } from '../../lib/env-utils.js';
 // .ts extension works under vitest (esbuild transform) — this file is test-only
 import { loadOpenRouterKey } from '../config.ts';
 import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp } from '../../lib/registry.js';
+// Shared validation — single source of truth for SSRF guards + credential validators
+import { validateClerkCredentials, validateCloudflareCredentials } from '../validation.ts';
 
 const MAX_BODY_SIZE = 1024 * 1024; // 1MB
-
-// SSRF guard patterns — module-level for reuse and testability
-const PRIVATE_PATTERNS = /^(localhost|127\.|10\.|169\.254\.|192\.168\.|0\.)/;
-const PRIVATE_172 = /^172\.(1[6-9]|2\d|3[01])\./;
-const IS_IP = /^\d+\.\d+\.\d+\.\d+$/;
 
 /**
  * Parse JSON body from an HTTP request.
@@ -296,79 +293,8 @@ export async function saveCredentials(ctx, req, res) {
   }
 }
 
-/**
- * Validate Clerk credentials by probing the Frontend API.
- * The publishable key encodes a domain (base64). We hit that domain's
- * well-known endpoint to verify the key is real.
- *
- * @param {object} opts
- * @param {string} opts.publishableKey - Clerk publishable key (pk_test_... or pk_live_...)
- * @returns {Promise<{valid: boolean, error?: string}>}
- */
-export async function validateClerkCredentials({ publishableKey } = {}) {
-  const CLERK_TIMEOUT_MS = 10_000;
-
-  if (!publishableKey) {
-    return { valid: false, error: 'No publishable key provided.' };
-  }
-
-  // Extract the FAPI domain from the key (uses static import from top of file)
-  const domain = extractClerkDomain(publishableKey);
-  if (!domain) {
-    return { valid: false, error: 'Could not decode domain from publishable key. Make sure you copied the full key.' };
-  }
-
-  // SSRF guard: parse the domain through URL constructor to canonicalize,
-  // then validate the resolved hostname. This handles all bypass vectors:
-  // userinfo (@), Unicode dots, hex/octal IPs, etc.
-  if (domain.includes('@')) {
-    return { valid: false, error: 'Invalid Clerk domain. The key encodes a userinfo bypass.' };
-  }
-
-  let fapiUrl;
-  try {
-    fapiUrl = new URL('https://' + domain + '/v1/environment');
-  } catch {
-    return { valid: false, error: 'Invalid Clerk domain. The key encodes a malformed URL.' };
-  }
-
-  const hostname = fapiUrl.hostname;
-  if (IS_IP.test(hostname) || hostname.startsWith('[') ||
-      PRIVATE_PATTERNS.test(hostname) || PRIVATE_172.test(hostname)) {
-    return { valid: false, error: 'Invalid Clerk domain. The key encodes an IP address or reserved hostname.' };
-  }
-
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), CLERK_TIMEOUT_MS);
-  try {
-    const res = await fetch(fapiUrl.href, {
-      headers: { 'Authorization': `Bearer ${publishableKey}` },
-      signal: ctrl.signal,
-    });
-    clearTimeout(timer);
-
-    if (res.ok) {
-      return { valid: true };
-    }
-
-    // 401/403 means the key format decoded but isn't valid
-    if (res.status === 401 || res.status === 403) {
-      return { valid: false, error: 'Key was rejected by Clerk. Make sure you copied the correct publishable key from the API Keys page.' };
-    }
-
-    return { valid: false, error: `Clerk API returned status ${res.status}. The key may be invalid or the application may be paused.` };
-  } catch (err) {
-    clearTimeout(timer);
-    if (err.name === 'AbortError') {
-      return { valid: false, error: 'Clerk API request timed out (10s). Check your network connection.' };
-    }
-    // DNS resolution failure means the domain encoded in the key doesn't exist
-    if (err.cause?.code === 'ENOTFOUND' || err.message?.includes('ENOTFOUND')) {
-      return { valid: false, error: 'The domain encoded in this key does not exist. Make sure you copied the correct publishable key.' };
-    }
-    return { valid: false, error: 'Failed to reach Clerk API: ' + err.message };
-  }
-}
+// Re-export validateClerkCredentials from shared validation module for test backward compat
+export { validateClerkCredentials } from '../validation.ts';
 
 export async function validateClerk(ctx, req, res) {
   try {
@@ -389,100 +315,8 @@ export async function validateClerk(ctx, req, res) {
   }
 }
 
-/**
- * Validate Cloudflare credentials via the Cloudflare HTTP API.
- * Supports two auth modes:
- *   - API Token (preferred, scoped): GET /client/v4/user/tokens/verify
- *     with Authorization: Bearer <token>
- *   - Global API Key (legacy): GET /client/v4/accounts
- *     with X-Auth-Key/X-Auth-Email headers
- *
- * @param {object} opts
- * @param {string} [opts.apiToken] - Cloudflare API Token (scoped)
- * @param {string} [opts.apiKey] - Cloudflare Global API Key
- * @param {string} [opts.email] - Cloudflare account email (required with apiKey)
- * @returns {Promise<{valid: boolean, accountId?: string, authMode?: string, error?: string}>}
- */
-export async function validateCloudflareCredentials({ apiToken, apiKey, email } = {}) {
-  const CF_TIMEOUT_MS = 10_000;
-
-  try {
-    if (apiToken) {
-      // Scoped API Token — verify via token verify endpoint
-      const verifyCtrl = new AbortController();
-      const verifyTimer = setTimeout(() => verifyCtrl.abort(), CF_TIMEOUT_MS);
-      const verifyRes = await fetch('https://api.cloudflare.com/client/v4/user/tokens/verify', {
-        headers: {
-          'Authorization': `Bearer ${apiToken}`,
-          'Content-Type': 'application/json',
-        },
-        signal: verifyCtrl.signal,
-      });
-      clearTimeout(verifyTimer);
-      const verifyData = await verifyRes.json();
-      if (!verifyData.success || !verifyRes.ok) {
-        const errMsg = verifyData.errors?.[0]?.message || 'Token verification failed';
-        return { valid: false, error: errMsg + '. Check your API Token.' };
-      }
-
-      // Token is valid — fetch account ID via accounts endpoint
-      const acctCtrl = new AbortController();
-      const acctTimer = setTimeout(() => acctCtrl.abort(), CF_TIMEOUT_MS);
-      const acctRes = await fetch('https://api.cloudflare.com/client/v4/accounts', {
-        headers: {
-          'Authorization': `Bearer ${apiToken}`,
-          'Content-Type': 'application/json',
-        },
-        signal: acctCtrl.signal,
-      });
-      clearTimeout(acctTimer);
-      const acctData = await acctRes.json();
-      const accountId = acctData.result?.[0]?.id || null;
-
-      if (!accountId) {
-        return { valid: false, error: 'Token valid but no accounts accessible. Check token permissions.' };
-      }
-
-      return { valid: true, accountId, authMode: 'api-token' };
-    }
-
-    if (apiKey && email) {
-      // Global API Key — verify via accounts endpoint with legacy headers
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), CF_TIMEOUT_MS);
-      const res = await fetch('https://api.cloudflare.com/client/v4/accounts', {
-        headers: {
-          'X-Auth-Key': apiKey,
-          'X-Auth-Email': email,
-          'Content-Type': 'application/json',
-        },
-        signal: ctrl.signal,
-      });
-      clearTimeout(timer);
-
-      const data = await res.json();
-
-      if (!data.success || !res.ok) {
-        const errMsg = data.errors?.[0]?.message || 'Authentication failed';
-        return { valid: false, error: errMsg + '. Check your Global API Key and email.' };
-      }
-
-      const accountId = data.result?.[0]?.id || null;
-      if (!accountId) {
-        return { valid: false, error: 'No accounts found for this API key.' };
-      }
-
-      return { valid: true, accountId, authMode: 'global-api-key' };
-    }
-
-    return { valid: false, error: 'Provide either an API Token or a Global API Key + email.' };
-  } catch (err) {
-    const msg = err.name === 'AbortError'
-      ? 'Cloudflare API request timed out (10s). Check your network connection.'
-      : 'Failed to reach Cloudflare API: ' + err.message;
-    return { valid: false, error: msg };
-  }
-}
+// Re-export validateCloudflareCredentials from shared validation module for test backward compat
+export { validateCloudflareCredentials } from '../validation.ts';
 
 export async function validateCloudflare(ctx, req, res) {
   try {
