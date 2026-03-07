@@ -2,21 +2,35 @@
  * Server configuration — CLI args, .env, theme/animation catalogs.
  *
  * Exports loadConfig() which returns a mutable ctx object shared by all modules.
+ * Bun-native version: uses import.meta.dir instead of fileURLToPath.
  */
 
 import { readFileSync, existsSync, mkdirSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 import { homedir } from 'os';
 import { parseThemeCatalog } from '../lib/parse-theme-catalog.js';
 import { parseAnimationCatalog } from '../lib/parse-animation-catalog.js';
 
+export interface ServerContext {
+  projectRoot: string;
+  port: number;
+  mode: string;
+  initialPrompt: string;
+  themes: any[];
+  animations: any[];
+  themeColors: Record<string, any>;
+  themeRootCss: Record<string, string>;
+  openRouterKey: string | null;
+  appsDir: string;
+  themeDir: string;
+  animationDir: string;
+}
+
 /**
  * Build the ctx object from CLI args, .env, and catalogs.
  */
-export function loadConfig() {
-  const __dirname = dirname(fileURLToPath(import.meta.url));
-  const projectRoot = join(__dirname, '../..');
+export function loadConfig(): ServerContext {
+  const projectRoot = join(import.meta.dir, '../..');
   const parsedPort = parseInt(
     process.argv.find((_, i, a) => a[i - 1] === '--port') ||
     process.env.PORT ||
@@ -37,7 +51,7 @@ export function loadConfig() {
 
   // Load theme catalog
   const catalogPath = join(projectRoot, 'skills/vibes/themes/catalog.txt');
-  let themes = [];
+  let themes: any[] = [];
   if (existsSync(catalogPath)) {
     themes = parseThemeCatalog(readFileSync(catalogPath, 'utf-8'));
     console.log(`Loaded ${themes.length} themes from catalog`);
@@ -45,14 +59,14 @@ export function loadConfig() {
 
   // Load animation catalog
   const animCatalogPath = join(projectRoot, 'skills/vibes/animations/catalog.txt');
-  let animations = [];
+  let animations: any[] = [];
   if (existsSync(animCatalogPath)) {
     animations = parseAnimationCatalog(readFileSync(animCatalogPath, 'utf-8'));
     console.log(`Loaded ${animations.length} animations from catalog`);
   }
 
   // Pre-parse theme colors
-  const themeColors = {};
+  const themeColors: Record<string, any> = {};
   for (const t of themes) {
     const colors = parseThemeColors(themeDir, t.id);
     if (colors) themeColors[t.id] = colors;
@@ -60,7 +74,7 @@ export function loadConfig() {
   console.log(`Parsed colors for ${Object.keys(themeColors).length} themes`);
 
   // Extract :root CSS blocks
-  const themeRootCss = {};
+  const themeRootCss: Record<string, string> = {};
   for (const t of themes) {
     const txtFile = join(themeDir, `${t.id}.txt`);
     const mdFile = join(themeDir, `${t.id}.md`);
@@ -73,7 +87,7 @@ export function loadConfig() {
     } else {
       const c = themeColors[t.id];
       if (c) {
-        const lines = [];
+        const lines: string[] = [];
         if (c.bg) lines.push(`  --comp-bg: ${c.bg};`);
         if (c.text) lines.push(`  --comp-text: ${c.text};`);
         if (c.border) lines.push(`  --comp-border: ${c.border};`);
@@ -107,7 +121,7 @@ export function loadConfig() {
 /**
  * Reload themes, colors, and :root CSS from disk (after theme creation).
  */
-export function reloadThemes(ctx) {
+export function reloadThemes(ctx: ServerContext): void {
   const catalogPath = join(ctx.projectRoot, 'skills/vibes/themes/catalog.txt');
   if (!existsSync(catalogPath)) return;
 
@@ -134,7 +148,7 @@ export function reloadThemes(ctx) {
     } else {
       const c = ctx.themeColors[t.id];
       if (c) {
-        const lines = [];
+        const lines: string[] = [];
         if (c.bg) lines.push(`  --comp-bg: ${c.bg};`);
         if (c.text) lines.push(`  --comp-text: ${c.text};`);
         if (c.border) lines.push(`  --comp-border: ${c.border};`);
@@ -151,9 +165,9 @@ export function reloadThemes(ctx) {
   console.log(`Reloaded ${ctx.themes.length} themes (${Object.keys(ctx.themeColors).length} with colors)`);
 }
 
-// --- Internal helpers ---
+// --- Internal helpers (re-exported for backward compat) ---
 
-export function loadOpenRouterKey(projectRoot) {
+export function loadOpenRouterKey(projectRoot: string): string | null {
   const candidates = [
     join(projectRoot, '.env'),
     join(homedir(), '.vibes', '.env'),
@@ -185,7 +199,7 @@ export function loadOpenRouterKey(projectRoot) {
 /**
  * Get animation instructions text for a given animation ID.
  */
-export function getAnimationInstructions(ctx, animationId) {
+export function getAnimationInstructions(ctx: ServerContext, animationId: string): string | null {
   const filePath = join(ctx.animationDir, `${animationId}.txt`);
   if (existsSync(filePath)) return readFileSync(filePath, 'utf-8');
   return null;
@@ -194,14 +208,14 @@ export function getAnimationInstructions(ctx, animationId) {
 /**
  * Recommend themes based on app.jsx content keywords.
  */
-export function getRecommendedThemeIds(ctx) {
+export function getRecommendedThemeIds(ctx: ServerContext): Set<string> {
   const appPath = join(ctx.projectRoot, 'app.jsx');
   if (!existsSync(appPath)) return new Set();
 
   const code = readFileSync(appPath, 'utf-8').toLowerCase();
-  const keywords = new Set();
+  const keywords = new Set<string>();
 
-  const patterns = [
+  const patterns: [RegExp, string[]][] = [
     [/anime|manga|otaku|episode|series|watchlist/g, ['anime', 'media', 'tracker', 'entertainment', 'catalog']],
     [/blog|article|post|editor|publish|writing/g, ['blog', 'editorial', 'writing', 'content', 'publishing']],
     [/task|todo|project|kanban|board|sprint/g, ['productivity', 'project', 'task', 'management', 'tool']],
@@ -243,15 +257,15 @@ export function getRecommendedThemeIds(ctx) {
 /**
  * Bridge theme-specific variable names to --comp-* namespace.
  */
-export function buildCompTokenMapping(varLines) {
-  const vars = {};
+export function buildCompTokenMapping(varLines: string[]): string[] {
+  const vars: Record<string, string> = {};
   for (const line of varLines) {
     const m = line.match(/^\s*(--[\w-]+)\s*:\s*(.+?)\s*(?:\/\*.*)?;?\s*$/);
     if (m) vars[m[1]] = m[2].replace(/;$/, '').trim();
   }
 
   const names = Object.keys(vars);
-  const find = (patterns) => {
+  const find = (patterns: (string | RegExp)[]): string | null => {
     for (const p of patterns) {
       if (typeof p === 'string') {
         const exact = names.find(n => n === p);
@@ -279,7 +293,7 @@ export function buildCompTokenMapping(varLines) {
     }
   }
 
-  const lines = [];
+  const lines: string[] = [];
   if (compBg) lines.push(`  --comp-bg: ${compBg};`);
   if (compText) lines.push(`  --comp-text: ${compText};`);
   if (compAccent) lines.push(`  --comp-accent: ${compAccent};`);
@@ -295,7 +309,7 @@ export function buildCompTokenMapping(varLines) {
 /**
  * Parse color tokens from a theme file.
  */
-export function parseThemeColors(themeDir, themeId) {
+export function parseThemeColors(themeDir: string, themeId: string): any {
   const txtFile = join(themeDir, `${themeId}.txt`);
   const mdFile = join(themeDir, `${themeId}.md`);
   const filePath = existsSync(txtFile) ? txtFile : existsSync(mdFile) ? mdFile : null;
@@ -307,9 +321,9 @@ export function parseThemeColors(themeDir, themeId) {
   if (!colorSection) return null;
 
   const section = colorSection[0];
-  const result = { bg: null, text: null, accent: null, muted: null, border: null };
+  const result: any = { bg: null, text: null, accent: null, muted: null, border: null };
 
-  const stdMatch = (name) => {
+  const stdMatch = (name: string) => {
     const re = new RegExp(`--comp-${name}[^:]*:\\s*([^;\\n/*]+)`);
     const m = section.match(re);
     return m ? m[1].trim() : null;
@@ -342,7 +356,7 @@ export function parseThemeColors(themeDir, themeId) {
   const rootMatch = content.match(/:root\s*\{[\s\S]*?\}/);
   const allVarLines = content.match(/^\s*--[\w-]+:\s*(?:oklch\([^)]+\)|#[0-9a-fA-F]{3,8}).*$/gm);
   if (rootMatch) {
-    if (!rootMatch[0].includes('--comp-bg') && allVarLines?.length > 0) {
+    if (!rootMatch[0].includes('--comp-bg') && allVarLines?.length && allVarLines.length > 0) {
       const compLines = buildCompTokenMapping(allVarLines);
       if (compLines.length > 0) {
         result.rootBlock = rootMatch[0].replace(/\}$/, '\n\n  /* comp-* token bridge */\n' + compLines.join('\n') + '\n}');
@@ -375,11 +389,11 @@ export function parseThemeColors(themeDir, themeId) {
 /**
  * Extract targeted theme context for Pass 2 creative prompts.
  */
-export function extractPass2ThemeContext(themeContent, maxBytes = 12000) {
-  const sections = [];
+export function extractPass2ThemeContext(themeContent: string, maxBytes = 12000): string {
+  const sections: string[] = [];
   let total = 0;
 
-  const extractSection = (name) => {
+  const extractSection = (name: string) => {
     const re = new RegExp(`${name}[:\\s]*\\n([\\s\\S]*?)(?=\\n[A-Z]{2,}[A-Z ]*[:\\n]|$)`);
     const m = themeContent.match(re);
     return m ? m[1].trim() : '';
@@ -413,7 +427,7 @@ export function extractPass2ThemeContext(themeContent, maxBytes = 12000) {
   if (refStyles) {
     const creativePatterns = /@keyframes|box-shadow|backdrop-filter|linear-gradient|radial-gradient|conic-gradient|::before|::after|animation:|filter:|clip-path:|mask:|text-shadow:/;
     const cssBlocks = refStyles.split(/\n\s*\/\* ----/);
-    const creativeBlocks = [];
+    const creativeBlocks: string[] = [];
     for (const block of cssBlocks) {
       if (creativePatterns.test(block)) {
         const fullBlock = block.startsWith(' ') ? '  /* ----' + block : block;
@@ -442,7 +456,7 @@ export function extractPass2ThemeContext(themeContent, maxBytes = 12000) {
 /**
  * Auto-select theme based on user prompt keywords.
  */
-export function autoSelectTheme(ctx, userPrompt) {
+export function autoSelectTheme(ctx: ServerContext, userPrompt: string): string {
   const catalogPath = join(ctx.projectRoot, 'skills/vibes/themes/catalog.txt');
   if (!existsSync(catalogPath)) return 'default';
 
@@ -450,11 +464,11 @@ export function autoSelectTheme(ctx, userPrompt) {
   const promptLower = userPrompt.toLowerCase();
 
   const signalRegex = /^(\w+)\s+signals:\s*([\s\S]*?)(?=\n\n|\n\w+\s+signals:)/gm;
-  const scores = {};
+  const scores: Record<string, number> = {};
   let match;
   while ((match = signalRegex.exec(catalog)) !== null) {
     const themeId = match[1];
-    const keywords = match[2].match(/"([^"]+)"/g)?.map(k => k.replace(/"/g, '').toLowerCase()) || [];
+    const keywords = match[2].match(/"([^"]+)"/g)?.map((k: string) => k.replace(/"/g, '').toLowerCase()) || [];
     let score = 0;
     for (const kw of keywords) {
       if (promptLower.includes(kw)) score += kw.split(' ').length;
