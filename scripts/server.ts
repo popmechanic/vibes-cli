@@ -69,8 +69,8 @@ async function start() {
     async fetch(req, srv) {
       const url = new URL(req.url);
 
-      // WebSocket upgrade
-      if (url.pathname === '/ws') {
+      // WebSocket upgrade — accept both /ws and root path (editor.html connects to root)
+      if (url.pathname === '/ws' || req.headers.get('upgrade')?.toLowerCase() === 'websocket') {
         const upgraded = srv.upgrade(req, { data: { ctx, onEvent: () => {} } });
         // Bun.serve fetch() must return a Response, but on successful upgrade there is
         // nothing to send — Bun expects `undefined`. Cast to satisfy TypeScript.

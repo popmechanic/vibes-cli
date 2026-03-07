@@ -4,7 +4,7 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { runClaude } from '../claude-bridge.js';
+import { runOneShot } from '../claude-bridge.js';
 import { sanitizeAppJsx } from '../post-process.js';
 import { getAnimationInstructions } from '../config.js';
 import { currentAppDir } from '../app-context.js';
@@ -157,7 +157,7 @@ The goal is: if you put the app and the image side by side, they should look lik
   }
 
   // Skill context — prepend SKILL.md content with environment preamble
-  // TODO: Add integration test for skill context injection (requires mocking runClaude)
+  // TODO: Add integration test for skill context injection (requires mocking runOneShot)
   if (skillId) {
     const skill = (ctx.pluginSkills || []).find(s => s.id === skillId);
     if (skill && existsSync(skill.skillMdPath)) {
@@ -197,7 +197,7 @@ RULES:
 - Never change Fireproof document types or query filters`;
 
   const maxTurns = (animationId || effects.length > 0 || reference || skillId) ? 12 : 8;
-  await runClaude(prompt, { maxTurns, model, cwd: currentAppDir(ctx) || ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent);
+  await runOneShot(prompt, { maxTurns, model, cwd: currentAppDir(ctx) || ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent, ctx.projectRoot);
 
   sanitizeAppJsx(currentAppDir(ctx) || ctx.projectRoot);
 }

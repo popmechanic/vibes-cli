@@ -4,7 +4,7 @@
 
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { runClaude } from '../claude-bridge.js';
+import { runOneShot } from '../claude-bridge.js';
 import { sanitizeAppJsx } from '../post-process.js';
 import { autoSelectTheme, parseThemeColors, extractPass2ThemeContext } from '../config.js';
 import { stripForTemplate } from '../../lib/strip-code.js';
@@ -254,7 +254,7 @@ DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}),
 
   const maxTurns = reference ? 8 : 5;
   console.log(`[Generate] Starting — theme: ${themeId} (${themeName}), prompt: ${(prompt.length / 1024).toFixed(1)}KB${reference ? `, ref: ${reference.name} (${reference.intent})` : ''}`);
-  await runClaude(prompt, { skipChat: true, maxTurns, model, cwd: currentAppDir(ctx), tools: 'Write' }, onEvent);
+  await runOneShot(prompt, { skipChat: true, maxTurns, model, cwd: currentAppDir(ctx), tools: 'Write' }, onEvent, ctx.projectRoot);
 
   sanitizeAppJsx(currentAppDir(ctx));
 }

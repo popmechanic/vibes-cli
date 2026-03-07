@@ -231,6 +231,17 @@ function serveAnimations(ctx: ServerContext): Response {
   return json(ctx.animations);
 }
 
+function serveSkills(ctx: ServerContext): Response {
+  const catalog = ((ctx as any).pluginSkills || []).map((s: any) => ({
+    id: s.id,
+    name: s.name,
+    description: s.description,
+    pluginName: s.pluginName,
+    marketplace: s.marketplace,
+  }));
+  return json(catalog);
+}
+
 function serveAppFrame(ctx: ServerContext): Response {
   const appPath = join(ctx.projectRoot, 'app.jsx');
   if (!existsSync(appPath)) {
@@ -476,6 +487,7 @@ export function createRouter(ctx: ServerContext) {
       case 'GET /themes':                    return serveThemes(ctx);
       case 'GET /themes/has-key':            return serveHasKey(ctx);
       case 'GET /animations':               return serveAnimations(ctx);
+      case 'GET /skills':                    return serveSkills(ctx);
       case 'GET /app-frame':                return serveAppFrame(ctx);
       case 'GET /editor/status':            return editorStatus(ctx);
       case 'GET /editor/initial-prompt':    return editorInitialPrompt(ctx);
