@@ -79,9 +79,10 @@ export function buildAlchemyEnv({
   sessionTokenSecret,
   deviceCaPrivKey,
   deviceCaCert,
-  alchemyPassword
+  alchemyPassword,
+  oidcServiceWorkerName
 }) {
-  return {
+  const env = {
     OIDC_AUTHORITY: oidcAuthority,
     CLOUD_SESSION_TOKEN_PUBLIC: sessionTokenPublic,
     CLOUD_SESSION_TOKEN_SECRET: sessionTokenSecret,
@@ -95,6 +96,11 @@ export function buildAlchemyEnv({
     MAX_INVITES: '100',
     MAX_LEDGERS: '50'
   };
+  // Service binding to OIDC identity provider worker — bypasses CF Error 1042
+  if (oidcServiceWorkerName) {
+    env.OIDC_SERVICE_WORKER_NAME = oidcServiceWorkerName;
+  }
+  return env;
 }
 
 /**
@@ -141,6 +147,7 @@ export function parseAlchemyOutput(stdout) {
 export async function deployConnect({
   appName,
   oidcAuthority,
+  oidcServiceWorkerName,
   cacheDir,
   dryRun = false,
   alchemyPassword: existingPassword
@@ -163,7 +170,8 @@ export async function deployConnect({
     sessionTokenSecret,
     deviceCaPrivKey,
     deviceCaCert,
-    alchemyPassword
+    alchemyPassword,
+    oidcServiceWorkerName
   });
 
   // Merge with current process env (for Cloudflare credentials)

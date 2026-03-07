@@ -191,10 +191,23 @@ async function main() {
       setApp(name, { name, connect: { alchemyPassword: connectPassword } });
     }
 
+    // Derive the OIDC identity provider's CF Worker name from the authority URL
+    // so we can create a service binding (bypasses CF Error 1042).
+    // Authority URL pattern: https://{worker-name}.{subdomain}.workers.dev
+    let oidcWorkerName = null;
+    try {
+      const authorityHost = new URL(oidcAuthority).hostname;
+      if (authorityHost.endsWith('.workers.dev')) {
+        oidcWorkerName = authorityHost.split('.')[0];
+        console.log(`OIDC service binding: ${oidcWorkerName}`);
+      }
+    } catch { /* non-workers.dev authority doesn't need a service binding */ }
+
     // Deploy Connect via alchemy
     const connectResult = await deployConnect({
       appName: name,
       oidcAuthority,
+      oidcServiceWorkerName: oidcWorkerName,
       dryRun: args.includes('--dry-run'),
       alchemyPassword: connectPassword
     });
