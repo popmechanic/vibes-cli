@@ -926,7 +926,8 @@
           "@ipld/dag-json": "https://esm.sh/stable/@ipld/dag-json@10.2.3?external=multiformats",
           "@clerk/clerk-react": "https://esm.sh/stable/@clerk/clerk-react@5.59.2?external=react,react-dom",
           "use-fireproof": "/fireproof-vibes-bridge.js",
-          "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom"
+          "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom",
+          "use-fireproof-core": "https://esm.sh/stable/use-fireproof@0.24.12?external=react,react-dom"
         }
       }
     </script>
@@ -3462,7 +3463,7 @@ if (typeof window !== 'undefined') {
               config={config.tokenApiUri && config.cloudBackendUrl ? {
                 apiUrl: config.tokenApiUri,
                 cloudUrl: config.cloudBackendUrl
-              } : undefined}
+              } : {}}
             >
               <SignedOut>
                 <AuthGate />

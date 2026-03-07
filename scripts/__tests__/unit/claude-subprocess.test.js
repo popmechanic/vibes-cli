@@ -88,16 +88,24 @@ describe('buildClaudeArgs', () => {
       expect(args).not.toContain('--model');
     });
 
-    it('includes --allowedTools when tools is provided', () => {
+    it('includes --tools when tools is provided', () => {
       const args = buildClaudeArgs({ tools: 'Write,Edit' });
-      const idx = args.indexOf('--allowedTools');
+      const idx = args.indexOf('--tools');
       expect(idx).toBeGreaterThan(-1);
       expect(args[idx + 1]).toBe('Write,Edit');
     });
 
-    it('omits --allowedTools when tools is not provided', () => {
+    it('adds --disable-slash-commands and --disallowed-tools when tools is provided', () => {
+      const args = buildClaudeArgs({ tools: 'Write,Edit' });
+      expect(args).toContain('--disable-slash-commands');
+      const idx = args.indexOf('--disallowed-tools');
+      expect(idx).toBeGreaterThan(-1);
+      expect(args[idx + 1]).toBe('ToolSearch,Skill');
+    });
+
+    it('omits --tools when tools is not provided', () => {
       const args = buildClaudeArgs();
-      expect(args).not.toContain('--allowedTools');
+      expect(args).not.toContain('--tools');
     });
   });
 

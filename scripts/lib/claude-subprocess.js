@@ -52,6 +52,9 @@ export function buildClaudeArgs(config = {}) {
 
   if (config.tools) {
     args.push('--tools', config.tools);
+    // When restricting built-in tools, also block plugin tools from hijacking
+    args.push('--disable-slash-commands');
+    args.push('--disallowed-tools', 'ToolSearch,Skill');
   }
 
   if (config.maxTurns) {

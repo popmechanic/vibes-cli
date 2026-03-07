@@ -65,10 +65,10 @@ customer: [Target user persona]
 revenue: [Pricing/monetization model]
 */
 import React, { useState } from "react";
-import { useFireproof } from "use-fireproof";
+import { useFireproofClerk } from "use-fireproof";
 
 export default function App() {
-  const { useLiveQuery, useDocument } = useFireproof("riff-db");
+  const { database, useLiveQuery, useDocument } = useFireproofClerk("riff-db");
   // Your implementation
   return (
     <div className="min-h-screen [background from visual direction] p-4">

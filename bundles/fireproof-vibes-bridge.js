@@ -15,7 +15,8 @@
 
 import React from "react";
 export * from "@fireproof/clerk";
-import { useFireproofClerk as _originalUseFireproofClerk, useClerkFireproofContext, useFireproof as _useFireproof } from "@fireproof/clerk";
+import { useFireproofClerk as _originalUseFireproofClerk, useClerkFireproofContext } from "@fireproof/clerk";
+import { useFireproof as _useFireproof } from "use-fireproof-core";
 
 var _patchedApis = typeof WeakSet !== 'undefined' ? new WeakSet() : { has: function(){return false;}, add: function(){} };
 var _currentDbName = null;
