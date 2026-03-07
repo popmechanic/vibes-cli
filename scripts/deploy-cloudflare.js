@@ -360,8 +360,9 @@ async function main() {
   console.log("\nDeploying to Cloudflare...");
   let deployOutput = "";
   try {
-    console.log(`> npx wrangler deploy --name ${name}`);
-    deployOutput = execSync(`npx wrangler deploy --name ${name}`, {
+    const wranglerConfig = resolve(WORKER_DIR, "wrangler.toml");
+    console.log(`> npx wrangler deploy --name ${name} --config ${wranglerConfig}`);
+    deployOutput = execSync(`npx wrangler deploy --name ${name} --config "${wranglerConfig}"`, {
       cwd: WORKER_DIR,
       encoding: "utf8",
       stdio: ["inherit", "pipe", "pipe"],
