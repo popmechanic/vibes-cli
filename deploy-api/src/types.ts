@@ -13,7 +13,8 @@ export interface Env {
 
 export interface DeployRequest {
   name: string;
-  html: string;
+  files: Record<string, string>; // path → content, e.g. { "index.html": "<html>...", "fireproof-oidc-bridge.js": "..." }
+  html?: string; // legacy single-file format (wrapped as { "index.html": html })
 }
 
 export interface DeployResponse {

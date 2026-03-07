@@ -34,7 +34,7 @@ export function setupWebSocket(wss, ctx, wsAdapter) {
       theme:            (msg) => handleThemeSwitch(ctx, onEvent, msg.themeId, msg.model),
       cancel:           ()    => { if (!cancelClaude()) onEvent({ type: 'error', message: 'No request in progress.' }); },
       generate:         (msg) => handleGenerate(ctx, onEvent, msg.prompt, msg.themeId, msg.model, msg.reference || null),
-      deploy:           (msg) => handleDeploy(ctx, onEvent, msg.target, msg.name),
+      deploy:           (msg) => handleDeploy(ctx, onEvent, msg.target, msg.name, msg.token),
       save_theme:       (msg) => {
         const name = String(msg.name || '').replace(/[\x00-\x1f]/g, '').trim().slice(0, 100);
         if (!name) { onEvent({ type: 'error', message: 'Theme name is required' }); return; }

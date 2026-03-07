@@ -170,17 +170,31 @@ function userOwnsOrCanCreate(record: SubdomainRecord | null, userId: string): bo
 // ---------------------------------------------------------------------------
 
 /**
- * Deploy a single-file HTML app as a CF Worker that serves it.
+ * Deploy a multi-file app as a CF Worker that serves static files.
  */
 async function deployCFWorker(
   accountId: string,
   apiToken: string,
   appName: string,
-  html: string
+  files: Record<string, string>
 ): Promise<{ ok: boolean; url: string; error?: string }> {
-  // Worker script that serves the HTML
+  // Worker script that serves files from an embedded map
   const workerScript = `
-const HTML = ${JSON.stringify(html)};
+const FILES = ${JSON.stringify(files)};
+
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+};
+
+function getMime(path) {
+  const ext = path.substring(path.lastIndexOf('.'));
+  return MIME_TYPES[ext] || 'text/plain';
+}
 
 export default {
   async fetch(request) {
@@ -189,9 +203,20 @@ export default {
     if (url.pathname === "/__health") {
       return new Response("ok", { status: 200 });
     }
-    return new Response(HTML, {
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-    });
+    let path = url.pathname === '/' ? '/index.html' : url.pathname;
+    const key = path.startsWith('/') ? path.slice(1) : path;
+    if (key in FILES) {
+      return new Response(FILES[key], {
+        headers: { 'Content-Type': getMime(key) },
+      });
+    }
+    // SPA fallback
+    if ('index.html' in FILES) {
+      return new Response(FILES['index.html'], {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+      });
+    }
+    return new Response('Not Found', { status: 404 });
   },
 };
 `.trim();
@@ -288,7 +313,7 @@ app.post("/deploy", async (c) => {
     return c.json({ ok: false, error: "Invalid JSON body" }, 400);
   }
 
-  const { name, html } = body;
+  const { name } = body;
 
   // Validate name
   if (!name || typeof name !== "string") {
@@ -303,9 +328,20 @@ app.post("/deploy", async (c) => {
     );
   }
 
-  // Validate html
-  if (!html || typeof html !== "string") {
-    return c.json({ ok: false, error: "Missing 'html' field" }, 400);
+  // Build files map — accept `files` (new) or `html` (legacy)
+  let files: Record<string, string>;
+  if (body.files && typeof body.files === "object") {
+    files = body.files;
+  } else if (body.html && typeof body.html === "string") {
+    // Legacy single-file format
+    files = { "index.html": body.html };
+  } else {
+    return c.json({ ok: false, error: "Missing 'files' or 'html' field" }, 400);
+  }
+
+  // Must contain index.html
+  if (!files["index.html"]) {
+    return c.json({ ok: false, error: "files must contain 'index.html'" }, 400);
   }
 
   // Check registry ownership
@@ -315,7 +351,7 @@ app.post("/deploy", async (c) => {
   }
 
   // Deploy via CF API
-  const result = await deployCFWorker(c.env.CF_ACCOUNT_ID, c.env.CF_API_TOKEN, name, html);
+  const result = await deployCFWorker(c.env.CF_ACCOUNT_ID, c.env.CF_API_TOKEN, name, files);
   if (!result.ok) {
     return c.json({ ok: false, error: result.error }, 502);
   }

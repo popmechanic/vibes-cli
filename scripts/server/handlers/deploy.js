@@ -1,33 +1,17 @@
 /**
- * Deploy handlers — assemble + deploy to Cloudflare.
+ * Deploy handlers — assemble + deploy via the Deploy API.
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
 import { join } from 'path';
 import { spawn } from 'child_process';
-import { getCloudflareConfig } from '../../lib/registry.js';
+
+const DEPLOY_API_URL = 'https://vibes-deploy-api.vibes.diy';
 
 /**
- * Build a process.env copy with Cloudflare registry credentials injected.
- * Used only by the deploy subprocess (not assembly).
+ * Assemble and deploy an app via the Deploy API.
  */
-function getRegistryEnv() {
-  const env = { ...process.env };
-  const cf = getCloudflareConfig();
-  // Only inject the active auth method — API Token takes precedence
-  if (cf.apiToken) {
-    if (!env.CLOUDFLARE_API_TOKEN) env.CLOUDFLARE_API_TOKEN = cf.apiToken;
-  } else {
-    if (cf.apiKey && !env.CLOUDFLARE_API_KEY) env.CLOUDFLARE_API_KEY = cf.apiKey;
-    if (cf.email && !env.CLOUDFLARE_EMAIL) env.CLOUDFLARE_EMAIL = cf.email;
-  }
-  return env;
-}
-
-/**
- * Assemble and deploy an app to Cloudflare.
- */
-export async function handleDeploy(ctx, onEvent, target, name) {
+export async function handleDeploy(ctx, onEvent, target, name, token) {
   if (!target || target !== 'cloudflare') {
     onEvent({ type: 'error', message: 'Invalid deploy target. Use "cloudflare".' });
     return;
@@ -36,6 +20,11 @@ export async function handleDeploy(ctx, onEvent, target, name) {
   const appName = (name || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 63);
   if (!appName) {
     onEvent({ type: 'error', message: 'App name is required for deployment.' });
+    return;
+  }
+
+  if (!token) {
+    onEvent({ type: 'error', message: 'Authentication token is required for deployment.' });
     return;
   }
 
@@ -117,55 +106,48 @@ export async function handleDeploy(ctx, onEvent, target, name) {
 
   onEvent({ type: 'progress', progress: 30, stage: 'Deploying...', elapsed: getElapsed() });
 
-  const deployScript = join(ctx.projectRoot, 'scripts/deploy-cloudflare.js');
-  const deployArgs = ['--name', appName, '--file', indexHtmlPath];
+  // Build the files map for the Deploy API
+  const files = {
+    'index.html': readFileSync(indexHtmlPath, 'utf8'),
+  };
 
-  const deployResult = await new Promise((resolve) => {
-    const child = spawn('node', [deployScript, ...deployArgs], {
-      cwd: ctx.projectRoot,
-      env: getRegistryEnv(),
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+  // Include the OIDC bridge bundle so it's served alongside the app
+  const bridgePath = join(ctx.projectRoot, 'bundles/fireproof-oidc-bridge.js');
+  if (existsSync(bridgePath)) {
+    files['fireproof-oidc-bridge.js'] = readFileSync(bridgePath, 'utf8');
+  }
 
-    let stdout = '';
-    let stderr = '';
-
+  // Deploy via the Deploy API
+  let deployUrl = '';
+  try {
     const progressInterval = setInterval(() => {
       const elapsed = getElapsed();
       const progress = Math.min(30 + Math.round(60 * (1 - Math.exp(-elapsed / 30))), 90);
       onEvent({ type: 'progress', progress, stage: 'Deploying...', elapsed });
     }, 1000);
 
-    child.stdout.on('data', (d) => { stdout += d.toString(); });
-    child.stderr.on('data', (d) => { stderr += d.toString(); });
-
-    child.on('close', (code) => {
-      clearInterval(progressInterval);
-      resolve({ ok: code === 0, stdout, stderr });
+    const response = await fetch(`${DEPLOY_API_URL}/deploy`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ name: appName, files }),
     });
-    child.on('error', (err) => {
-      clearInterval(progressInterval);
-      resolve({ ok: false, stdout: '', stderr: err.message });
-    });
-  });
 
-  if (!deployResult.ok) {
-    onEvent({ type: 'error', message: `Deploy failed: ${deployResult.stderr.slice(0, 2000)}` });
+    clearInterval(progressInterval);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      onEvent({ type: 'error', message: `Deploy failed (${response.status}): ${errorText.slice(0, 2000)}` });
+      return;
+    }
+
+    const result = await response.json();
+    deployUrl = result.url || '';
+  } catch (err) {
+    onEvent({ type: 'error', message: `Deploy failed: ${err.message}` });
     return;
-  }
-
-  // Extract the APP URL from deploy output (not Connect infrastructure URLs).
-  // deploy-cloudflare.js prints "✅ Deployed to <url>" as its final URL line —
-  // match that specifically. Fall back to the last URL in stdout if the pattern
-  // isn't found (e.g. future output changes).
-  let deployUrl = '';
-  const deployedToMatch = deployResult.stdout.match(/Deployed to\s+(https?:\/\/[^\s]+)/);
-  if (deployedToMatch) {
-    deployUrl = deployedToMatch[1];
-  } else {
-    // Fallback: grab the last URL in stdout (app URL is always printed last)
-    const allUrls = [...deployResult.stdout.matchAll(/(https?:\/\/[^\s]+)/g)];
-    if (allUrls.length) deployUrl = allUrls[allUrls.length - 1][1];
   }
 
   // Save the deployed version to ~/.vibes/apps/

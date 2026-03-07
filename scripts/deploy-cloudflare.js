@@ -14,12 +14,13 @@ import { resolve } from "path";
 import { validateName } from './lib/registry.js';
 import { getAccessToken } from './lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from './lib/auth-constants.js';
+import { PLUGIN_ROOT } from './lib/paths.js';
 
 const DEPLOY_API_URL = 'https://vibes-deploy-api.vibes.diy';
 
-async function deployViaAPI(name, html, accessToken, options = {}) {
-  console.log(`Deploying ${name}...`);
-  const body = { name, html };
+async function deployViaAPI(name, files, accessToken, options = {}) {
+  console.log(`Deploying ${name} (${Object.keys(files).length} file(s))...`);
+  const body = { name, files };
   if (options.aiKey) {
     body.aiKey = options.aiKey;
   }
@@ -55,12 +56,21 @@ async function main() {
   const file = fileIdx !== -1 ? args[fileIdx + 1] : "index.html";
   const aiKey = aiKeyIdx !== -1 ? args[aiKeyIdx + 1] : null;
 
-  // Read the HTML file
+  // Build files map
   const srcFile = resolve(process.cwd(), file);
   if (!existsSync(srcFile)) {
     throw new Error(`File not found: ${srcFile}`);
   }
-  const html = readFileSync(srcFile, "utf8");
+
+  const files = {
+    'index.html': readFileSync(srcFile, 'utf8'),
+  };
+
+  // Add OIDC bridge bundle if present
+  const bridgePath = resolve(PLUGIN_ROOT, 'bundles/fireproof-oidc-bridge.js');
+  if (existsSync(bridgePath)) {
+    files['fireproof-oidc-bridge.js'] = readFileSync(bridgePath, 'utf8');
+  }
 
   console.log(`Deploying ${name} to Cloudflare Workers via Deploy API...`);
 
@@ -72,7 +82,7 @@ async function main() {
   });
 
   // Deploy via API
-  const result = await deployViaAPI(name, html, tokens.accessToken, { aiKey });
+  const result = await deployViaAPI(name, files, tokens.accessToken, { aiKey });
 
   const deployedUrl = result.url || `https://${name}.vibes.diy`;
   console.log(`\nDeployed to ${deployedUrl}`);
