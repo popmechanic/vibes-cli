@@ -465,12 +465,13 @@ function editorListApps(ctx: ServerContext): Response {
   }
 }
 
-function editorGetScreenshot(ctx: ServerContext, url: URL): Response {
+async function editorGetScreenshot(ctx: ServerContext, url: URL): Promise<Response> {
   const name = sanitizeAppName(url.searchParams.get('name') || '');
   if (!name) return new Response('Missing name', { status: 400, headers: corsHeaders() });
   const imgPath = join(ctx.appsDir, name, 'screenshot.png');
-  if (!existsSync(imgPath)) return new Response('No screenshot', { status: 404, headers: corsHeaders() });
-  return new Response(readFileSync(imgPath), { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'no-cache', ...corsHeaders() } });
+  const file = Bun.file(imgPath);
+  if (!(await file.exists())) return new Response('No screenshot', { status: 404, headers: corsHeaders() });
+  return new Response(file, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'no-cache', ...corsHeaders() } });
 }
 
 function editorLoadApp(ctx: ServerContext, url: URL): Response {

@@ -9,6 +9,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { loadEnvFile, validateClerkKey, validateClerkSecretKey, extractClerkDomain, writeEnvFile } from '../../lib/env-utils.js';
+// .ts extension works under vitest (esbuild transform) — this file is test-only
 import { loadOpenRouterKey } from '../config.ts';
 import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp } from '../../lib/registry.js';
 

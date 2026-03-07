@@ -1,16 +1,14 @@
 /**
- * Claude subprocess bridge — persistent session + one-shot helper.
- *
- * Persistent bridge: long-lived `claude --print --input-format stream-json --output-format stream-json`
- * process with stdin/stdout for chat. Detects response boundaries via `result` events.
+ * Claude subprocess bridge — one-shot helper + operation lock.
  *
  * One-shot helper: `runOneShot()` for generate/theme/create-theme operations.
  *
  * Operation lock: global mutex preventing concurrent claude operations.
+ *
+ * NOTE: A persistent bridge (long-lived `claude --print --input-format stream-json`)
+ * is planned for future persistent session support but not yet implemented.
  */
 
-import { join } from 'path';
-import type { Subprocess } from 'bun';
 import { buildClaudeArgs, cleanEnv } from '../lib/claude-subprocess.js';
 import { createStreamParser } from '../lib/stream-parser.js';
 import { sanitizeAppJsx } from './post-process.ts';
@@ -19,17 +17,6 @@ import type { ServerContext } from './config.ts';
 // --- Types ---
 
 export type EventCallback = (event: any) => void;
-
-interface TurnState {
-  resultText: string;
-  toolsUsed: number;
-  hasEdited: boolean;
-  errorSent: boolean;
-  startTime: number;
-  skipChat: boolean;
-  lastStdoutTime: number;
-  pendingTools: Map<string, { name: string; filePath: string }>;
-}
 
 interface OperationLock {
   type: 'chat' | 'generate' | 'theme' | 'create-theme';
@@ -61,11 +48,11 @@ export function isLocked(): boolean {
   return currentOp !== null;
 }
 
-// --- Progress calculation (shared by persistent bridge and one-shot) ---
+// --- Progress calculation ---
 
 /**
  * Compute progress percentage and stage label from elapsed time and tool usage.
- * Exported for reuse by both the persistent bridge dispatchEvent and one-shot calcProgressLocal.
+ * Exported for reuse by one-shot calcProgressLocal and tests.
  */
 export function calcProgressFromCounters(
   elapsedSec: number,
@@ -86,11 +73,6 @@ export function calcProgressFromCounters(
   return { progress, stage };
 }
 
-function calcProgress(turnState: TurnState): { progress: number; stage: string } {
-  const elapsed = Math.round((Date.now() - turnState.startTime) / 1000);
-  return calcProgressFromCounters(elapsed, turnState.toolsUsed, turnState.hasEdited);
-}
-
 function summarizeInput(block: any): string {
   const toolName = block.name || '';
   const input = block.input || {};
@@ -99,321 +81,6 @@ function summarizeInput(block: any): string {
   if (toolName === 'Grep') return input.pattern || '';
   if (toolName === 'Bash') return (input.command || '').slice(0, 80);
   return '';
-}
-
-// --- Persistent Bridge ---
-
-export interface PersistentBridge {
-  send: (message: string, opts?: { skipChat?: boolean }) => boolean;
-  cancel: () => void;
-  kill: () => void;
-  isAlive: () => boolean;
-}
-
-export function createPersistentBridge(
-  ctx: ServerContext,
-  onEvent: EventCallback
-): PersistentBridge {
-  let proc: Subprocess | null = null;
-  let alive = false;
-  let turnState: TurnState | null = null;
-  let stderrBuffer = '';
-  let lastActivity = Date.now();
-  let silenceInterval: Timer | null = null;
-
-  const SILENCE_SOFT = 45_000;
-  const SILENCE_WARN = 90_000;
-  const SILENCE_HARD = 300_000;
-  const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 min
-
-  function spawn(): void {
-    if (alive) return;
-
-    const cmd = [
-      'claude', '--print',
-      '--input-format', 'stream-json',
-      '--output-format', 'stream-json',
-      '--verbose',
-      '--permission-mode', 'acceptEdits',
-      '--allowedTools', 'Read,Edit,Write,Glob,Grep',
-    ];
-
-    proc = Bun.spawn({
-      cmd,
-      cwd: ctx.projectRoot,
-      env: cleanEnv(),
-      stdin: 'pipe',
-      stdout: 'pipe',
-      stderr: 'pipe',
-    });
-
-    alive = true;
-    stderrBuffer = '';
-    lastActivity = Date.now();
-
-    console.log('[Bridge] Spawned persistent claude session');
-
-    // Read stdout
-    readStdout();
-
-    // Read stderr
-    readStderr();
-
-    // Handle process exit
-    proc!.exited.then((code) => {
-      alive = false;
-      const exitedProc = proc;
-      proc = null;
-
-      if (silenceInterval) {
-        clearInterval(silenceInterval);
-        silenceInterval = null;
-      }
-
-      if (turnState) {
-        const elapsed = Math.round((Date.now() - turnState.startTime) / 1000);
-        const isMaxTurns = stderrBuffer.includes('max_turns') || stderrBuffer.includes('maxTurns');
-
-        if (isMaxTurns) {
-          console.log(`[Bridge] Hit max_turns (hasEdited=${turnState.hasEdited}) — treating as success`);
-          if (!turnState.errorSent) {
-            onEvent({
-              type: 'complete',
-              text: turnState.resultText || 'Done.',
-              toolsUsed: turnState.toolsUsed,
-              elapsed,
-              hasEdited: turnState.hasEdited,
-              skipChat: turnState.skipChat,
-            });
-          }
-        } else if (code !== 0) {
-          onEvent({ type: 'error', message: stderrBuffer.slice(0, 500) || `Bridge exited with code ${code}` });
-        }
-
-        turnState = null;
-        releaseLock();
-      }
-
-      onEvent({ type: 'session_end', exitCode: code });
-      console.log(`[Bridge] Process exited with code ${code}`);
-    });
-  }
-
-  async function readStdout(): Promise<void> {
-    if (!proc) return;
-    const reader = proc.stdout.getReader();
-    const parse = createStreamParser(dispatchEvent);
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (turnState) turnState.lastStdoutTime = Date.now();
-        lastActivity = Date.now();
-        parse(value);
-      }
-    } catch {
-      // Stream closed
-    }
-  }
-
-  async function readStderr(): Promise<void> {
-    if (!proc) return;
-    const reader = proc.stderr.getReader();
-    const decoder = new TextDecoder();
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        stderrBuffer += decoder.decode(value, { stream: true });
-        // Cap stderr buffer at 10KB
-        if (stderrBuffer.length > 10240) {
-          stderrBuffer = stderrBuffer.slice(-5120);
-        }
-      }
-    } catch {
-      // Stream closed
-    }
-  }
-
-  function dispatchEvent(parsed: any): void {
-    if (!turnState) return;
-
-    const elapsed = Math.round((Date.now() - turnState.startTime) / 1000);
-    turnState.lastStdoutTime = Date.now();
-
-    if (parsed.type === 'assistant' && parsed.message?.content) {
-      for (const block of parsed.message.content) {
-        if (block.type === 'tool_use') {
-          turnState.toolsUsed++;
-          const toolName = block.name || '';
-          if (toolName === 'Edit' || toolName === 'Write') turnState.hasEdited = true;
-          const inputSummary = summarizeInput(block);
-
-          if (block.id) {
-            turnState.pendingTools.set(block.id, { name: toolName, filePath: inputSummary });
-          }
-
-          onEvent({ type: 'tool_detail', name: toolName, input_summary: inputSummary, elapsed });
-        }
-        if (block.type === 'text' && block.text) {
-          turnState.resultText = block.text;
-          onEvent({ type: 'token', text: block.text });
-        }
-      }
-      onEvent({ type: 'progress', ...calcProgress(turnState), elapsed });
-    } else if (parsed.type === 'tool_result') {
-      const toolDetail = parsed.tool_use_id ? turnState.pendingTools.get(parsed.tool_use_id) : undefined;
-      if (parsed.tool_use_id) turnState.pendingTools.delete(parsed.tool_use_id);
-
-      onEvent({
-        type: 'tool_result',
-        name: parsed.tool_name || '',
-        content: (typeof parsed.content === 'string' ? parsed.content : JSON.stringify(parsed.content || '')).slice(0, 500),
-        is_error: !!parsed.is_error,
-        elapsed,
-        _filePath: toolDetail?.filePath || '',
-        _toolName: toolDetail?.name || parsed.tool_name || '',
-      });
-    } else if (parsed.type === 'rate_limit_event') {
-      onEvent({ type: 'progress', ...calcProgress(turnState), stage: 'Rate limited, waiting...', elapsed });
-    } else if (parsed.type === 'result') {
-      // *** RESPONSE BOUNDARY — turn is complete ***
-      if (parsed.is_error) {
-        onEvent({ type: 'error', message: parsed.result || 'Claude flagged the run as failed' });
-        turnState.errorSent = true;
-      } else {
-        turnState.resultText = parsed.result || turnState.resultText || 'Done.';
-      }
-
-      if (turnState.hasEdited) {
-        sanitizeAppJsx(ctx.projectRoot);
-      }
-
-      if (!turnState.errorSent) {
-        onEvent({
-          type: 'complete',
-          text: turnState.resultText,
-          toolsUsed: turnState.toolsUsed,
-          elapsed,
-          hasEdited: turnState.hasEdited,
-          skipChat: turnState.skipChat,
-        });
-      }
-
-      if (silenceInterval) {
-        clearInterval(silenceInterval);
-        silenceInterval = null;
-      }
-
-      turnState = null;
-      releaseLock();
-    } else if (parsed.type === 'stream_event' && parsed.event?.delta?.text) {
-      onEvent({ type: 'token', text: parsed.event.delta.text });
-    }
-  }
-
-  function send(message: string, opts: { skipChat?: boolean } = {}): boolean {
-    if (!alive || !proc) {
-      spawn();
-    }
-
-    if (!alive || !proc) return false;
-
-    turnState = {
-      resultText: '',
-      toolsUsed: 0,
-      hasEdited: false,
-      errorSent: false,
-      startTime: Date.now(),
-      skipChat: opts.skipChat || false,
-      lastStdoutTime: Date.now(),
-      pendingTools: new Map(),
-    };
-
-    const jsonl = JSON.stringify({
-      type: 'user',
-      message: { role: 'user', content: [{ type: 'text', text: message }] },
-    }) + '\n';
-
-    try {
-      proc.stdin.write(jsonl);
-      proc.stdin.flush();
-      lastActivity = Date.now();
-
-      // Start silence monitoring
-      if (silenceInterval) clearInterval(silenceInterval);
-      silenceInterval = setInterval(() => {
-        if (!turnState) {
-          if (silenceInterval) clearInterval(silenceInterval);
-          silenceInterval = null;
-          return;
-        }
-        const silentFor = Date.now() - turnState.lastStdoutTime;
-        const elapsed = Math.round((Date.now() - turnState.startTime) / 1000);
-
-        if (silentFor >= SILENCE_HARD) {
-          console.error(`[Bridge] No stdout for ${silentFor / 1000}s — killing bridge`);
-          kill();
-          return;
-        }
-
-        const overrides = silentFor >= SILENCE_WARN
-          ? { stage: `No activity for ${Math.round(silentFor / 1000)}s — click Cancel to retry` }
-          : silentFor >= SILENCE_SOFT
-          ? { stage: 'Waiting for response...' }
-          : {};
-
-        onEvent({ type: 'progress', ...calcProgress(turnState!), ...overrides, elapsed });
-      }, 1000);
-
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  function cancel(): void {
-    if (proc && alive) {
-      proc.kill('SIGTERM');
-    }
-    if (turnState) {
-      onEvent({ type: 'cancelled' });
-      turnState = null;
-    }
-    if (silenceInterval) {
-      clearInterval(silenceInterval);
-      silenceInterval = null;
-    }
-  }
-
-  function kill(): void {
-    if (proc && alive) {
-      proc.kill('SIGTERM');
-      // Force kill after 5s
-      setTimeout(() => {
-        if (proc && alive) proc.kill('SIGKILL');
-      }, 5000);
-    }
-    alive = false;
-    if (turnState) {
-      onEvent({ type: 'error', message: 'Claude stopped responding. Try again.' });
-      turnState = null;
-      releaseLock();
-    }
-    if (silenceInterval) {
-      clearInterval(silenceInterval);
-      silenceInterval = null;
-    }
-  }
-
-  return {
-    send,
-    cancel,
-    kill,
-    isAlive: () => alive,
-  };
 }
 
 // --- One-Shot Helper ---
@@ -433,7 +100,7 @@ export async function runOneShot(
   prompt: string,
   opts: OneShotOpts,
   onEvent: EventCallback,
-  projectRoot?: string,
+  projectRoot: string,
 ): Promise<string | null> {
   onEvent({ type: 'progress', progress: 0, stage: 'Starting Claude...', elapsed: 0 });
 
@@ -594,22 +261,23 @@ export async function runOneShot(
 
   console.log(`[OneShot] Completed in ${getElapsed()}s (${toolsUsed} tools, code ${exitCode})`);
 
+  if (killedByTimeout && !errorSent) {
+    onEvent({ type: 'error', message: `Claude stopped responding after ${getElapsed()}s. Try again.` });
+    return null;
+  }
+
   if (exitCode !== 0 && exitCode !== null) {
     const isMaxTurns = stderrBuffer.includes('max_turns') || stderrBuffer.includes('maxTurns');
     if (isMaxTurns) {
       console.log(`[OneShot] Hit max_turns (hasEdited=${hasEdited}) — treating as success`);
     } else if (!errorSent) {
-      if (exitCode === null && killedByTimeout) {
-        onEvent({ type: 'error', message: `Claude stopped responding after ${getElapsed()}s. Try again.` });
-      } else {
-        onEvent({ type: 'error', message: stderrBuffer.slice(0, 500) || `Claude exited with code ${exitCode}` });
-      }
+      onEvent({ type: 'error', message: stderrBuffer.slice(0, 500) || `Claude exited with code ${exitCode}` });
       return null;
     }
   }
 
   // Post-process
-  if (hasEdited && projectRoot) {
+  if (hasEdited) {
     sanitizeAppJsx(projectRoot);
   }
 

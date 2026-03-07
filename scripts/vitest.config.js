@@ -15,7 +15,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['*.js', 'lib/**/*.js'],
+      include: ['*.js', '*.ts', 'lib/**/*.js', 'server/**/*.ts'],
       exclude: ['__tests__/**', 'vitest.config.js']
     },
 
