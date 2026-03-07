@@ -503,7 +503,7 @@ export function createRouter(ctx: ServerContext) {
 
     // Static file fallback — path containment check prevents directory traversal
     const filePath = resolve(ctx.projectRoot, url.pathname.slice(1));
-    if (!filePath.startsWith(resolve(ctx.projectRoot))) {
+    if (!filePath.startsWith(resolve(ctx.projectRoot) + '/')) {
       return new Response('Forbidden', { status: 403, headers: corsHeaders() });
     }
     const file = Bun.file(filePath);

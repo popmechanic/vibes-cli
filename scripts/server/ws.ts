@@ -64,8 +64,10 @@ export function createEventAdapter(ws: ServerWebSocket<WsData>): EventCallback {
       for (const msg of translateEvent(event)) {
         ws.send(JSON.stringify(msg));
       }
-    } catch {
-      // ws may be closed
+    } catch (err: any) {
+      // Only swallow WebSocket-closed errors; re-throw unexpected failures
+      if (err?.message?.includes('WebSocket') || ws.readyState !== 1) return;
+      throw err;
     }
   };
 }

@@ -38,7 +38,10 @@ const wsHandler = createWsHandler(ctx);
 let server: ReturnType<typeof Bun.serve> | null = null;
 
 // --- Graceful shutdown ---
+let shuttingDown = false;
 function shutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
   console.log(`\n[Server] ${signal} received — shutting down...`);
   cancelCurrent(); // Kill any active Claude subprocesses (sends SIGTERM)
   if (server) {
