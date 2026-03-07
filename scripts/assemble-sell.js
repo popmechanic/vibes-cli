@@ -153,9 +153,14 @@ if (!domain) {
 }
 const appName = options.appName || 'my-app';
 
-// Load env vars from .env BEFORE replacements (so we can use as fallback for Clerk key)
+// Load env vars from .env BEFORE replacements (so we can use as fallback for Clerk key).
+// Check output directory first, fall back to cwd (editor saves credentials to project root).
 const outputDir = dirname(resolve(outputPath || 'index.html'));
-const envVars = loadEnvFile(outputDir);
+let envVars = loadEnvFile(outputDir);
+if (!validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY) && resolve(outputDir) !== resolve(process.cwd())) {
+  const cwdEnv = loadEnvFile(process.cwd());
+  envVars = { ...cwdEnv, ...envVars };
+}
 
 // If .env lacks Connect URLs, try global registry
 if (!envVars.VITE_API_URL || !envVars.VITE_CLERK_PUBLISHABLE_KEY) {

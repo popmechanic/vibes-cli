@@ -43,9 +43,15 @@ async function main() {
   const template = loadAndValidateTemplate(templatePath, readFileSync);
   const appCode = readFileSync(resolvedAppPath, 'utf8').trim();
 
-  // Load env vars from .env in the output directory
+  // Load env vars from .env — check output directory first, fall back to cwd.
+  // The editor saves credentials to the project root .env, but the assembler
+  // outputs to an app subdirectory (e.g. ~/.vibes/apps/my-app/index.html).
   const outputDir = dirname(resolvedOutputPath);
-  const envVars = loadEnvFile(outputDir);
+  let envVars = loadEnvFile(outputDir);
+  if (!validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY) && resolve(outputDir) !== resolve(process.cwd())) {
+    const cwdEnv = loadEnvFile(process.cwd());
+    envVars = { ...cwdEnv, ...envVars };
+  }
 
   // Validate Clerk key — required for all apps
   const hasClerkKey = validateClerkKey(envVars.VITE_CLERK_PUBLISHABLE_KEY);
