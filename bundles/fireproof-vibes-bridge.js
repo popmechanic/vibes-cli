@@ -23,14 +23,18 @@ import { useFireproof as _coreUseFireproof } from "use-fireproof-core";
 var _patchedApis = typeof WeakSet !== 'undefined' ? new WeakSet() : { has: function(){return false;}, add: function(){} };
 var _currentDbName = null;
 
-// Determined at module load — constant for the session, so hooks order is stable
+// Determined at module load — constant for the session, so hooks order is stable.
+// Must check BOTH Clerk key AND Connect URLs to match the template's hasConnect guard.
+// Without Connect URLs, ClerkFireproofProvider isn't rendered, so useClerkFireproofContext throws.
 var _config = typeof window !== 'undefined' && window.__VIBES_CONFIG__;
-var _hasClerk = !!(_config && _config.clerkPublishableKey &&
-  !_config.clerkPublishableKey.startsWith('__'));
+var _hasClerkAndConnect = !!(_config && _config.clerkPublishableKey &&
+  !_config.clerkPublishableKey.startsWith('__') &&
+  _config.tokenApiUri && !_config.tokenApiUri.startsWith('__') &&
+  _config.cloudBackendUrl && !_config.cloudBackendUrl.startsWith('__'));
 
 export function useFireproofClerk(name, opts) {
-  // Local-only mode: no Clerk key configured, use plain Fireproof (no sync)
-  if (!_hasClerk) {
+  // Local-only mode: Clerk or Connect not configured, use plain Fireproof (no sync)
+  if (!_hasClerkAndConnect) {
     _currentDbName = name;
     return _coreUseFireproof(name, opts);
   }
