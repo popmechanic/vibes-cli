@@ -2,10 +2,11 @@
  * Deploy handlers — assemble + deploy to Cloudflare.
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { spawn } from 'child_process';
 import { getCloudflareConfig } from '../../lib/registry.js';
+import { currentAppDir } from '../app-context.js';
 
 /**
  * Build a process.env copy with Cloudflare registry credentials injected.
@@ -45,8 +46,13 @@ export async function handleDeploy(ctx, onEvent, target, name) {
   // First assemble
   onEvent({ type: 'progress', progress: 5, stage: 'Assembling app...', elapsed: 0 });
 
-  const appJsxPath = join(ctx.projectRoot, 'app.jsx');
-  const indexHtmlPath = join(ctx.projectRoot, 'index.html');
+  const appDir = currentAppDir(ctx);
+  if (!appDir) {
+    onEvent({ type: 'error', message: 'No app active. Generate or load an app first.' });
+    return;
+  }
+  const appJsxPath = join(appDir, 'app.jsx');
+  const indexHtmlPath = join(appDir, 'index.html');
 
   const assembleResult = await new Promise((resolve) => {
     const child = spawn('node', [
@@ -168,15 +174,8 @@ export async function handleDeploy(ctx, onEvent, target, name) {
     if (allUrls.length) deployUrl = allUrls[allUrls.length - 1][1];
   }
 
-  // Save the deployed version to ~/.vibes/apps/
-  try {
-    const saveDest = join(ctx.appsDir, appName);
-    mkdirSync(saveDest, { recursive: true });
-    copyFileSync(appJsxPath, join(saveDest, 'app.jsx'));
-    console.log(`[Deploy] Saved deployed app.jsx to ${saveDest}`);
-  } catch (e) {
-    console.error('[Deploy] Failed to save app.jsx:', e.message);
-  }
+  // App is already in its directory — no need to copy
+  console.log(`[Deploy] App "${appName}" deployed from ${appDir}`);
 
   onEvent({ type: 'progress', progress: 100, stage: 'Done!', elapsed: getElapsed() });
   onEvent({ type: 'deploy_complete', url: deployUrl, name: appName });

@@ -9,6 +9,7 @@ import { sanitizeAppJsx } from '../post-process.js';
 import { parseThemeColors, extractPass2ThemeContext } from '../config.js';
 import { hasThemeMarkers, replaceThemeSection, extractNonThemeSections, moveVisualCSSToSurfaces } from '../../lib/theme-sections.js';
 import { createBackup, restoreFromBackup } from '../../lib/backup.js';
+import { currentAppDir } from '../app-context.js';
 
 /**
  * Extract Fireproof data schema from app.jsx for prompt context.
@@ -73,7 +74,12 @@ export async function handleThemeSwitch(ctx, onEvent, themeId, model) {
 
   onEvent({ type: 'theme_selected', themeId, themeName });
 
-  const appJsxPath = join(ctx.projectRoot, 'app.jsx');
+  const appDir = currentAppDir(ctx);
+  if (!appDir) {
+    onEvent({ type: 'error', message: 'No app active.' });
+    return;
+  }
+  const appJsxPath = join(appDir, 'app.jsx');
   if (!existsSync(appJsxPath)) {
     onEvent({ type: 'error', message: 'No app.jsx found.' });
     return;
@@ -168,7 +174,7 @@ ${extractDataSchema(pass1Code)}`;
   console.log(`[ThemeSwitch] Pass 2: Claude creative restyle, prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
 
   // Use skipChat in onEvent — the wsAdapter will check event.skipChat
-  const claudeResult = await runClaude(prompt, { skipChat: true, maxTurns: 5, model, cwd: ctx.projectRoot, tools: 'Read,Edit' }, onEvent);
+  const claudeResult = await runClaude(prompt, { skipChat: true, maxTurns: 5, model, cwd: currentAppDir(ctx), tools: 'Read,Edit' }, onEvent);
 
   if (claudeResult === null) {
     onEvent({ type: 'app_updated' });
@@ -209,7 +215,12 @@ async function handleThemeSwitchLegacy(ctx, onEvent, themeId, themeName, themeCo
     if (rootMatch) rootCss = rootMatch[0];
   }
 
-  const appJsxPath = join(ctx.projectRoot, 'app.jsx');
+  const appDir = currentAppDir(ctx);
+  if (!appDir) {
+    onEvent({ type: 'error', message: 'No app active.' });
+    return;
+  }
+  const appJsxPath = join(appDir, 'app.jsx');
   const appCode = readFileSync(appJsxPath, 'utf-8');
 
   const prompt = `Restyle app.jsx to the "${themeName}" (${themeId}) theme.
@@ -253,7 +264,7 @@ KEEP UNCHANGED:
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.`;
 
   console.log(`[ThemeSwitch] Legacy mode for "${themeName}" (${themeId}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
-  await runClaude(prompt, { skipChat: true, maxTurns: 8, model, cwd: ctx.projectRoot, tools: 'Read,Edit' }, onEvent);
+  await runClaude(prompt, { skipChat: true, maxTurns: 8, model, cwd: currentAppDir(ctx), tools: 'Read,Edit' }, onEvent);
 
   sanitizeAppJsx(ctx.projectRoot);
 }
@@ -267,7 +278,12 @@ export async function handlePaletteTheme(ctx, onEvent, colors) {
     return;
   }
 
-  const appJsxPath = join(ctx.projectRoot, 'app.jsx');
+  const appDir = currentAppDir(ctx);
+  if (!appDir) {
+    onEvent({ type: 'error', message: 'No app active.' });
+    return;
+  }
+  const appJsxPath = join(appDir, 'app.jsx');
   if (!existsSync(appJsxPath)) {
     onEvent({ type: 'error', message: 'No app.jsx found.' });
     return;

@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { spawn } from 'child_process';
 import { reloadThemes } from '../config.js';
+import { currentAppDir } from '../app-context.js';
 import { buildClaudeArgs, cleanEnv } from '../../lib/claude-subprocess.js';
 import { createStreamParser } from '../../lib/stream-parser.js';
 
@@ -137,7 +138,12 @@ Use oklch() for ALL color values in the COLOR TOKENS section. Study the app care
  * Save the current app.jsx theme as a catalog theme.
  */
 export async function handleSaveTheme(ctx, onEvent, themeName, model) {
-  const appJsxPath = join(ctx.projectRoot, 'app.jsx');
+  const appDir = currentAppDir(ctx);
+  if (!appDir) {
+    onEvent({ type: 'error', message: 'No app selected — generate an app first.' });
+    return;
+  }
+  const appJsxPath = join(appDir, 'app.jsx');
   if (!existsSync(appJsxPath)) {
     onEvent({ type: 'error', message: 'No app.jsx found — generate an app first.' });
     return;

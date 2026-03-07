@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 import { homedir } from 'os';
 import { parseThemeCatalog } from '../lib/parse-theme-catalog.js';
 import { parseAnimationCatalog } from '../lib/parse-animation-catalog.js';
+import { currentAppDir } from './app-context.js';
 
 /**
  * Build the ctx object from CLI args, .env, and catalogs.
@@ -101,6 +102,8 @@ export function loadConfig() {
     appsDir,
     themeDir,
     animationDir,
+    currentApp: null,
+    backupTimestamps: {},
   };
 }
 
@@ -195,7 +198,9 @@ export function getAnimationInstructions(ctx, animationId) {
  * Recommend themes based on app.jsx content keywords.
  */
 export function getRecommendedThemeIds(ctx) {
-  const appPath = join(ctx.projectRoot, 'app.jsx');
+  const appDir = currentAppDir(ctx);
+  if (!appDir) return new Set();
+  const appPath = join(appDir, 'app.jsx');
   if (!existsSync(appPath)) return new Set();
 
   const code = readFileSync(appPath, 'utf-8').toLowerCase();
