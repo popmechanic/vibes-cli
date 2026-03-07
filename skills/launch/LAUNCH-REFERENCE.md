@@ -5,46 +5,40 @@ Architecture and timing details for the `/vibes:launch` pipeline. Read this if y
 ## Pipeline Overview
 
 ```
-prompt → vibes app → OIDC setup → sell transform → Cloudflare deploy (auto-provisions Connect) → browser test
+prompt → generate app.jsx → collect SaaS config → assemble → deploy → verify
 ```
 
-Launch uses **Agent Teams** to parallelize independent steps. The key insight: app generation only needs the user's prompt, so it runs in parallel with OIDC setup (the longest manual step).
+Launch uses **Agent Teams** to run the builder in parallel with SaaS config collection. Auth and deploy credentials are fully automatic — no user setup required.
 
 ## Dependency Graph
 
-Parallel lanes: T1 || T2 || T4. All converge at T5 (assembly).
+T1 (build) runs in parallel with SaaS config collection (Phase 0.4). Both converge at T3 (assembly).
 
 ## Task Table
 
 | Task | Subject | BlockedBy | Owner |
 |------|---------|-----------|-------|
 | T1 | Generate app.jsx from prompt | -- | builder |
-| T2 | Collect OIDC credentials | -- | lead |
-| T4 | Collect sell config | -- | lead |
-| T5 | Run sell assembly | T1, T2, T4 | lead |
-| T6 | Deploy to Cloudflare (includes webhook secret) | T5 | lead |
-| T7 | Browser verification | T6 | lead |
+| T3 | Run sell assembly | T1 | lead |
+| T4 | Deploy to Cloudflare | T3 | lead |
+| T5 | Browser verification | T4 | lead |
 
 ## Timing
 
 | Step | Agent | Blocked By | Duration |
 |------|-------|-----------|----------|
 | Generate app.jsx | builder | prompt only | ~2-3 min |
-| OIDC configuration | lead (interactive) | nothing | ~5-10 min |
-| Sell config | lead (interactive) | nice-to-have | ~2 min |
-| Sell assembly | lead | app.jsx + .env + config | ~30 sec |
-| Cloudflare deploy (+ webhook secret) | lead | sell index.html + secrets | ~2 min |
+| SaaS config | lead (interactive) | nothing | ~2 min |
+| Sell assembly | lead | app.jsx + config | ~30 sec |
+| Deploy (+ Pocket ID login) | lead | index.html | ~1 min |
 | Browser test | lead (interactive) | deployed URL | ~1 min |
 
-**Best case** (OIDC already configured): ~8-10 minutes
-**Typical case** (new OIDC setup): ~15-20 minutes
+**Best case** (app.jsx exists): ~3-4 minutes
+**Typical case** (new app): ~5-7 minutes
 
 ## Skip Modes
 
-- `.env` has OIDC credentials → skip T2 (Connect auto-deploys with app)
 - `app.jsx` exists → skip T1 (ask reuse first)
-- `.env` has `OIDC_ADMIN_USER_ID` → skip Phase 3 (admin setup)
-- All three present → skip T1-T4, jump to Phase 2
 
 ## Common Builder Mistakes
 
