@@ -236,11 +236,13 @@ async function main() {
     writeFileSync(envPath, envContent);
     console.log(`Updated ${envPath} with Connect URLs`);
 
-    // Auto-assemble if index.html doesn't exist yet
+    // Re-assemble with Connect URLs now that they're in .env.
+    // On first deploy, index.html was assembled before Connect provisioning,
+    // so tokenApiUri/cloudBackendUrl are empty. Must re-assemble.
     const srcFile = resolve(process.cwd(), file);
     const appJsx = resolve(process.cwd(), 'app.jsx');
-    if (!existsSync(srcFile) && existsSync(appJsx)) {
-      console.log(`\nAuto-assembling ${file} from app.jsx...`);
+    if (existsSync(appJsx)) {
+      console.log(`\nRe-assembling ${file} with Connect URLs...`);
       execSync(`node "${resolve(PLUGIN_ROOT, 'scripts/assemble.js')}" app.jsx "${file}"`, {
         stdio: 'inherit',
         cwd: process.cwd()
