@@ -1,6 +1,6 @@
 ---
 name: cloudflare
-description: Self-contained deploy automation — invoke directly, do not decompose. Deploys a Vibes app to Cloudflare Workers via the Deploy API. Authenticates with Pocket ID OIDC.
+description: Self-contained deploy automation — invoke directly, do not decompose. Deploys a Vibes app to Cloudflare Workers via the Deploy API. Authenticates with Pocket ID.
 license: MIT
 allowed-tools: Bash, Read, Glob, AskUserQuestion, Write
 metadata:
@@ -12,7 +12,7 @@ metadata:
 ```
   ╔═══════════════════════════════════════════════╗
   ║   ☁️  CLOUDFLARE WORKERS DEPLOY               ║
-  ║   Deploy API · OIDC Auth · Edge Functions     ║
+  ║   Deploy API · Pocket ID · Edge Functions      ║
   ╚═══════════════════════════════════════════════╝
 ```
 
@@ -102,6 +102,6 @@ AskUserQuestion:
     - label: "Enable AI features"
       description: "Add OpenRouter API key for the useAI() hook"
     - label: "Add auth & SaaS features"
-      description: "Transform into SaaS with /vibes:sell (OIDC auth via Pocket ID), then redeploy"
+      description: "Transform into SaaS with /vibes:sell (Pocket ID auth), then redeploy"
     - label: "Open in browser"
       description: "Visit the deployed URL to verify everything works"

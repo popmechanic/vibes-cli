@@ -73,8 +73,8 @@ The FIRST question for /vibes:vibes and /vibes:launch is always "Terminal or Edi
 If Editor is chosen, start preview-server.js and STOP — the editor handles everything
 including credentials. Do NOT check .env or credentials before asking this question.
 
-.env checks only apply to Terminal mode. If the user chooses Terminal:
-OIDC credentials must exist before generating apps.
+Auth is automatic via Pocket ID — no credential setup needed. On first deploy,
+a browser window opens for login. Tokens are cached at ~/.vibes/auth.json.
 Connect deploys automatically on first app deploy to Cloudflare.
 
 generate app.jsx → assemble into index.html → deploy → verify in browser

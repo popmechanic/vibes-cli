@@ -83,21 +83,9 @@ Present Editor as the first/recommended option.
 
 **MANDATORY: Complete these steps BEFORE generating any app code.**
 
-- OIDC credentials must be available (in .env or provided during deploy)
+- Auth is automatic — on first deploy, a browser window opens for Pocket ID login
+- Tokens are cached at `~/.vibes/auth.json` for subsequent deploys
 - Connect deploys automatically on first app deploy — no manual setup needed
-
-Run this command to check for existing credentials:
-```bash
-if test -f "./.env" && \
-   grep -qE "^VITE_OIDC_AUTHORITY=" ./.env 2>/dev/null && \
-   grep -qE "^VITE_OIDC_CLIENT_ID=" ./.env 2>/dev/null; then
-  echo "CREDENTIALS_READY"
-else
-  echo "CREDENTIALS_NOT_READY"
-fi
-```
-
-**If output is "CREDENTIALS_NOT_READY"**, OIDC credentials are needed. Ask the user for their OIDC Authority URL and Client ID before proceeding.
 
 **Platform Name vs User Intent**: "Vibes" is the name of this app platform (Vibes DIY). When users say "vibe" or "vibes" in their prompt, interpret it as:
 - Their project/brand name ("my vibes tracker")
@@ -106,14 +94,14 @@ fi
 
 Do not default to ambient mood generators, floating orbs, or meditation apps unless explicitly requested.
 
-**Import Map Note**: The import map points `use-fireproof` to `/fireproof-oidc-bridge.js`, a bridge module that wraps the raw Fireproof bundle with sync status forwarding and an onTock kick effect. Your code uses `import { useFireproofClerk } from "use-fireproof"` (backward-compat alias) and the browser resolves this through the bridge. This is intentional—the bridge ensures `useLiveQuery` subscribers see synced data and that `SyncStatusDot` gets live sync status via a window global.
+**Import Map Note**: The import map points `use-fireproof` to `/fireproof-oidc-bridge.js`, a bridge module that wraps the raw Fireproof bundle with sync status forwarding and an onTock kick effect. Your code uses `import { useFireproofClerk } from "use-fireproof"` (backward-compat alias) and the browser resolves this through the bridge. This is intentional — the bridge ensures `useLiveQuery` subscribers see synced data and that `SyncStatusDot` gets live sync status via a window global.
 
 ## Core Rules
 
 - **Use JSX** - Standard React syntax with Babel transpilation
 - **Single HTML file** - App code assembled into template
 - **Fireproof for data** - Use `useFireproofClerk` for database + sync
-- **Auto-detect Connect** - Template handles OIDC auth (via Pocket ID) when Connect is configured
+- **Auto-detect Connect** - Template handles auth (via Pocket ID) automatically
 - **Tailwind for styling** - Mobile-first, responsive design
 
 ## Generation Process
@@ -281,7 +269,7 @@ export default function App() {
 
 **⚠️ CRITICAL: Fireproof Hook Pattern**
 
-The Fireproof OIDC package exports `useFireproofClerk` (backward-compat alias). Always use this pattern:
+The Fireproof auth package exports `useFireproofClerk` (backward-compat alias). Always use this pattern:
 
 ```jsx
 // ✅ CORRECT - This is the ONLY pattern that works
@@ -297,9 +285,7 @@ const { attach } = useFireproof("db", { attach: toCloud() });  // WRONG - old pa
 
 **Sync Status**: `syncStatus` provides the current sync state. Values: `"idle"`, `"connecting"`, `"synced"`, `"reconnecting"`, `"error"`. Display it for user feedback.
 
-**Connect Configuration**: Generated apps require OIDC authentication (via Pocket ID) and cloud sync.
-The `assemble.js` script populates `window.__VIBES_CONFIG__` from your `.env` file.
-Apps will show a configuration error if credentials are missing.
+**Connect Configuration**: Auth is managed automatically via Pocket ID. On first deploy, a browser window opens for login; tokens are cached at `~/.vibes/auth.json`. No `.env` credential setup is needed.
 
 ## Assembly Workflow
 
@@ -315,7 +301,7 @@ Apps will show a configuration error if credentials are missing.
    VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
    node "$VIBES_ROOT/scripts/assemble.js" app.jsx index.html
    ```
-5. Deploy the app so the user can see it. OIDC auth requires a public URL — the app cannot be viewed locally. Auto-invoke /vibes:cloudflare to deploy, then present the live URL.
+5. Deploy the app so the user can see it. Auto-invoke /vibes:cloudflare to deploy, then present the live URL.
 
 ---
 
@@ -409,7 +395,7 @@ import { useFireproofClerk } from "use-fireproof";
 const { database, useLiveQuery, useDocument, syncStatus } = useFireproofClerk("my-app-db");
 ```
 
-**Note**: When Connect is configured (via .env), the template wraps your App in `OIDCProvider`, enabling authenticated cloud sync automatically. Your code just uses `useFireproofClerk`.
+**Note**: The template wraps your App in an auth provider (Pocket ID), enabling authenticated cloud sync automatically. Your code just uses `useFireproofClerk`.
 
 ### Choosing Your Pattern
 
@@ -692,7 +678,7 @@ async function handleInvite(email) {
 }
 ```
 
-The hook is available on `window.useSharing` after the OIDC provider loads. Check `ready` before calling methods.
+The hook is available on `window.useSharing` after the auth provider loads. Check `ready` before calling methods.
 
 ---
 
@@ -744,9 +730,9 @@ The hook is available on `window.useSharing` after the OIDC provider loads. Chec
   // GOOD — explicit fields only
   await database.put({ _id: doc._id, type: doc.type, todo: doc.todo, completed: true });
   ```
-- **DON'T** wrap your app in `VibeContextProvider` or `OIDCProvider` yourself - those are provided by the template. Standalone apps use `useFireproofClerk()` directly inside the template's `OIDCProvider`.
+- **DON'T** wrap your app in `VibeContextProvider` or auth providers yourself - those are provided by the template. Standalone apps use `useFireproofClerk()` directly inside the template's auth provider.
 - **DON'T** panic if you see "Cannot read properties of null (reading 'useContext')" - the template already handles the React singleton via `?external=react,react-dom` in the import map. Check that the import map wasn't accidentally modified.
-- **NOTE:** Apps use `/fireproof-oidc-bridge.js` — this bridge module wraps the local Fireproof bundle with sync status forwarding + onTock kick. Apps work correctly with it.
+- **NOTE:** Apps use `/fireproof-oidc-bridge.js` — this bridge module wraps the local Fireproof bundle with sync status forwarding + onTock kick. Auth is handled automatically via Pocket ID. Apps work correctly with it.
 - **DON'T** hand-write `app.jsx` and assemble it manually — always generate through
   `/vibes:vibes`, even for test or diagnostic apps. The skill generates code that's
   compatible with the template by construction. Hand-written code may include imports
@@ -762,7 +748,7 @@ The shipped default files contain detailed reference material. Read them when th
 |------|------------------|-----------|
 | Design tokens & theming | colors, theme, tokens, brand colors, styling | `${CLAUDE_PLUGIN_ROOT}/build/design-tokens.txt` |
 | File uploads | "upload", "images", "photos", "attachments" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Working with Images" |
-| Auth / sync config | "OIDC", "Pocket ID", "Connect", "cloud sync", "login" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "OIDCProvider Config" |
+| Auth / sync config | "Pocket ID", "Connect", "cloud sync", "login" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Auth Config" |
 | Sync status display | "online/offline", "connection status" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Sync Status Display" |
 | Full Neobrute design details | detailed design system, spacing, typography | `${CLAUDE_SKILL_DIR}/defaults/style-prompt.txt` |
 | Advanced visual effects | "interactive", "animated", "3D", "particles", "shader", "canvas" | `${CLAUDE_SKILL_DIR}/defaults/advanced-effects-prompt.txt` |
@@ -795,7 +781,7 @@ Options:
   Description: "Not sure if this is the best approach? Riff generates 3-10 completely different interpretations of your idea in parallel. You'll get ranked variations with business model analysis to help you pick the winner."
 
 - Label: "Make it a SaaS (/sell)"
-  Description: "Ready to monetize? Sell transforms your app into a multi-tenant SaaS with OIDC authentication (via Pocket ID), subscription billing, and isolated databases per customer. Each user gets their own subdomain."
+  Description: "Ready to monetize? Sell transforms your app into a multi-tenant SaaS with Pocket ID authentication, subscription billing, and isolated databases per customer. Each user gets their own subdomain."
 
 - Label: "Deploy to Cloudflare (/cloudflare)"
   Description: "Go live on the edge. Deploy to Cloudflare Workers with a subdomain registry, KV storage, and global CDN. Fast, scalable, and always on."
@@ -813,4 +799,4 @@ Options:
 - "I'm done" → Confirm files saved, wish them well
 
 **Do NOT proceed to code generation until:**
-OIDC credentials are available (pre-flight check returns CREDENTIALS_READY).
+Pre-flight check is complete (auth is automatic on deploy — no credentials to collect).
