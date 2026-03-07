@@ -781,6 +781,15 @@ export function useFireproofOIDC(name, opts) {
           if (stableRuns >= SYNC_STABLE_THRESHOLD) {
             console.debug("[vibes-oidc] Initial sync settled");
             stopped = true;
+            // Kick useLiveQuery subscriptions — Fireproof's fast-forward path
+            // sets clock.head without firing onTock, so useLiveQuery never
+            // re-renders on a second device without this manual kick.
+            try {
+              database.ledger.crdt.clock.noPayloadWatchers.forEach(function(fn) { fn(); });
+              console.debug("[vibes-oidc] Kicked onTock after sync settled,", count, "docs");
+            } catch (e) {
+              console.debug("[vibes-oidc] onTock kick failed:", e);
+            }
             return;
           }
         } else {
