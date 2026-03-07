@@ -268,193 +268,72 @@
       50% { opacity: 1; transform: scale(1.05); }
     }
 
-    /* === PHASE 1: SETUP === */
-    .setup-phase {
-      align-items: center;
-      justify-content: center;
+    /* === PHASE 1: WELCOME === */
+    .welcome-phase {
+      align-items: center; justify-content: center;
+      min-height: 80vh;
       background: var(--vibes-menu-bg);
       background-image:
         linear-gradient(var(--grid-color) 1px, transparent 1px),
         linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
       background-size: var(--grid-size) var(--grid-size);
     }
-    .setup-card {
-      background: var(--vibes-cream);
-      border: 3px solid var(--vibes-near-black);
-      border-radius: 12px;
-      padding: 2rem;
-      width: 480px;
-      max-width: 90vw;
-      box-shadow: 8px 10px 0px 0px var(--vibes-blue), 8px 10px 0px 3px var(--vibes-near-black);
+    .welcome-card {
+      background: white; border-radius: 16px; padding: 3rem 2.5rem;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08); text-align: center;
+      max-width: 420px; width: 100%;
     }
-    .setup-title {
-      font-size: 1.25rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .setup-item {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem 0;
-      border-bottom: 1px solid rgba(0,0,0,0.1);
-    }
-    .setup-item:last-of-type { border-bottom: none; }
-    .setup-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-weight: 800;
-      flex-shrink: 0;
-    }
-    .setup-icon.pass { background: var(--vibes-green); color: white; }
-    .setup-icon.fail { background: var(--vibes-red); color: white; }
-    .setup-icon.checking { background: var(--vibes-yellow); color: var(--vibes-near-black); }
-    .setup-icon.optional { background: #999; color: white; }
-    .setup-label {
-      flex: 1;
-      font-size: 0.875rem;
-      font-weight: 600;
-    }
-    .setup-detail {
-      font-size: 0.75rem;
-      color: #555;
-    }
-    /* Wizard */
-    .wizard-progress {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
-    }
-    .wizard-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: rgba(0,0,0,0.15);
-      transition: background 0.2s;
-    }
-    .wizard-dot.active { background: var(--vibes-blue); }
-    .wizard-dot.done { background: var(--vibes-green); }
-    .wizard-dot-line {
-      width: 24px;
-      height: 2px;
-      background: rgba(0,0,0,0.15);
-    }
-    .wizard-step { display: none; }
-    .wizard-step.active { display: block; }
-    .wizard-input {
-      width: 100%;
-      background: white;
-      border: 2px solid var(--vibes-near-black);
-      color: var(--vibes-near-black);
-      padding: 0.6rem 0.75rem;
-      border-radius: 10px;
-      font-size: 0.8125rem;
-      outline: none;
-      font-family: inherit;
-      margin-bottom: 0.5rem;
-      box-sizing: border-box;
-    }
-    .wizard-input:focus { border-color: var(--vibes-blue); box-shadow: 0 0 0 2px rgba(0,154,206,0.25); }
-    .wizard-input.valid { border-color: var(--vibes-green); }
-    .wizard-input.invalid { border-color: var(--vibes-red); }
-    .wizard-help {
-      font-size: 0.75rem;
-      color: #666;
-      margin-bottom: 0.75rem;
-      line-height: 1.4;
-    }
-    .wizard-link {
-      color: var(--vibes-blue);
-      text-decoration: none;
-      font-weight: 600;
-    }
-    .wizard-link:hover { text-decoration: underline; }
-    .wizard-link::after { content: ' →'; }
-    .wizard-summary-table {
-      width: 100%;
-      margin-bottom: 1rem;
-    }
-    .wizard-summary-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
-      font-size: 0.8125rem;
-    }
-    .wizard-summary-row:last-child { border-bottom: none; }
-    .wizard-summary-key {
-      font-weight: 700;
+    .welcome-title {
+      font-size: 1.75rem; font-weight: 800; margin-bottom: 0.75rem;
       color: var(--vibes-near-black);
     }
-    .wizard-summary-value {
-      color: #555;
-      font-family: monospace;
-      font-size: 0.75rem;
-      max-width: 60%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    .welcome-subtitle {
+      font-size: 1rem; line-height: 1.5; color: #555; margin-bottom: 2rem;
     }
-    .wizard-terminal {
-      background: var(--vibes-near-black);
-      color: var(--vibes-green);
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 0.75rem;
-      padding: 0.75rem;
-      border-radius: 8px;
-      max-height: 160px;
-      overflow-y: auto;
-      margin-bottom: 0.75rem;
-      line-height: 1.5;
-      white-space: pre-wrap;
+    .welcome-btn {
+      display: inline-block; padding: 0.875rem 2rem; font-size: 1rem;
+      font-weight: 700; border: none; border-radius: 10px; cursor: pointer;
+      background: var(--vibes-blue); color: white;
+      min-height: 48px; /* 44px+ tap target */
+      transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
     }
-    .wizard-radio-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
+    @media (hover: hover) {
+      .welcome-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,154,206,0.3);
+      }
     }
-    .wizard-radio {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.6rem 0.75rem;
-      background: white;
-      border: 2px solid var(--vibes-near-black);
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 0.8125rem;
-      font-weight: 600;
-      transition: all 0.15s;
+    .welcome-btn:active { transform: translateY(0); }
+    .welcome-spinner {
+      display: inline-block; width: 20px; height: 20px;
+      border: 2.5px solid #ccc; border-top-color: var(--vibes-blue);
+      border-radius: 50%; animation: welcome-spin 0.8s linear infinite;
+      vertical-align: middle; margin-right: 0.5rem;
     }
-    .wizard-radio:hover { border-color: var(--vibes-blue); }
-    .wizard-radio.selected { border-color: var(--vibes-blue); background: rgba(0,154,206,0.05); }
-    .wizard-radio.disabled { opacity: 0.5; cursor: not-allowed; }
-    .wizard-radio input[type="radio"] { accent-color: var(--vibes-blue); }
-    .wizard-section-title {
-      font-size: 0.875rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
+    @keyframes welcome-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      .welcome-spinner { animation: none; border-top-color: var(--vibes-blue); opacity: 0.7; }
     }
-    .setup-actions {
-      display: flex;
-      gap: 0.75rem;
-      margin-top: 1.5rem;
-      justify-content: flex-end;
+    .welcome-greeting {
+      font-size: 1.5rem; font-weight: 700; color: var(--vibes-near-black);
+      animation: welcome-fade-in 0.25s ease-out both;
     }
+    @keyframes welcome-fade-in {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .welcome-greeting { animation: none; }
+    }
+    .welcome-check {
+      color: var(--vibes-green); margin-left: 0.5rem;
+    }
+    /* Shared state containers — consistent card dimensions, no layout shift */
+    #welcomeDefault, #welcomeWaiting, #welcomeGreeting, #welcomeError {
+      min-height: 120px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    #welcomeWaiting, #welcomeGreeting, #welcomeError { display: none; }
     .btn {
       background: var(--vibes-cream);
       border: 2px solid var(--vibes-near-black);
@@ -2110,34 +1989,31 @@
       border-color: var(--vibes-blue);
       box-shadow: 0 0 0 2px rgba(83,152,201,0.15);
     }
-    .deploy-option {
+    .deploy-publish-btn {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem 1rem;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1rem;
       cursor: pointer;
       font-size: 0.875rem;
-      font-weight: 600;
-      transition: background 0.15s;
-      border: none;
-      background: none;
-      width: 100%;
-      text-align: left;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      transition: background 0.15s, transform 0.1s;
+      border: 2px solid var(--vibes-near-black);
+      background: var(--vibes-green);
+      width: calc(100% - 1.7rem);
+      margin: 0 0.85rem 0.75rem;
+      text-align: center;
       font-family: inherit;
       color: var(--vibes-near-black);
+      border-radius: 8px;
+      box-shadow: 2px 2px 0px 0px var(--vibes-near-black);
     }
-    .deploy-option:hover { background: rgba(0,154,206,0.08); }
-    .deploy-option:last-child { border-radius: 0 0 8px 8px; }
-    .deploy-option:not(:last-child) { border-bottom: 1px solid rgba(0,0,0,0.06); }
-    .deploy-option:disabled { color: #aaa; cursor: not-allowed; }
-    .deploy-option:disabled:hover { background: none; }
-    .deploy-option-icon { font-size: 1.1rem; width: 1.5rem; text-align: center; }
-    .deploy-option-detail {
-      font-size: 0.6875rem;
-      color: #888;
-      font-weight: 400;
-    }
-    .deploy-option-detail.ready { color: var(--vibes-green); }
+    .deploy-publish-btn:hover { background: #6dbf5c; transform: translate(-1px, -1px); box-shadow: 3px 3px 0px 0px var(--vibes-near-black); }
+    .deploy-publish-btn:active { transform: translate(1px, 1px); box-shadow: 0px 0px 0px 0px var(--vibes-near-black); }
+    .deploy-publish-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: 2px 2px 0px 0px var(--vibes-near-black); }
+    .deploy-publish-btn:disabled:hover { background: var(--vibes-green); transform: none; }
     .deploy-section-divider {
       border: none;
       border-top: 1.5px solid rgba(0,0,0,0.1);
@@ -2308,7 +2184,7 @@
   <!-- Header -->
   <div class="header">
     <div class="header-left">
-      <div class="vibes-pill-wrap" onclick="goToGenerate()" title="Back to prompt">
+      <div class="vibes-pill-wrap" onclick="setPhase('generate')" title="Back to prompt">
         <svg class="vibes-pill" xmlns="http://www.w3.org/2000/svg" viewBox="0 118 600 185" fill="currentColor">
           <path fill-rule="evenodd" clip-rule="evenodd" fill="#000" d="M293.353,298.09c-41.038,0-82.078,0.125-123.115-0.077c-11.993-0.06-24.011-0.701-35.964-1.703c-15.871-1.331-29.73-7.937-41.948-17.946c-16.769-13.736-27.207-31.417-30.983-52.7c-4.424-24.93,1.404-47.685,16.506-67.913c11.502-15.407,26.564-26.1,45.258-30.884c7.615-1.949,15.631-2.91,23.501-3.165c20.08-0.652,40.179-0.853,60.271-0.879c69.503-0.094,139.007-0.106,208.51,0.02c14.765,0.026,29.583,0.097,44.28,1.313c36.984,3.059,61.78,23.095,74.653,57.301c17.011,45.199-8.414,96.835-54.29,111.864c-7.919,2.595-16.165,3.721-24.434,3.871c-25.614,0.467-51.234,0.742-76.853,0.867C350.282,298.197,321.817,298.09,293.353,298.09z"/>
           <path fill="#fff" fill-rule="evenodd" clip-rule="evenodd" d="M165.866,285.985c-7.999-0.416-19.597-0.733-31.141-1.687c-15.692-1.297-28.809-8.481-40.105-19.104c-12.77-12.008-20.478-26.828-22.714-44.177c-3.048-23.644,3.384-44.558,19.646-62.143c9.174-9.92,20.248-17.25,33.444-20.363c7.786-1.837,15.944-2.399,23.973-2.828c9.988-0.535,121.023-0.666,131.021-0.371c10.191,0.301,20.433,0.806,30.521,2.175c12.493,1.696,23.132,7.919,32.552,16.091c14.221,12.337,22.777,27.953,25.184,46.594c2.822,21.859-2.605,41.617-16.777,58.695c-9.494,11.441-21.349,19.648-35.722,23.502c-6.656,1.785-13.724,2.278-20.647,2.77C286.914,285.721,177.682,285.667,165.866,285.985z"/>
@@ -2361,192 +2237,37 @@
     </svg>
   </div>
 
-  <!-- Phase 1: Setup -->
-  <div class="phase setup-phase" id="phaseSetup">
-    <div class="setup-card" style="width:520px;">
-      <div class="setup-title">
-        <span>&#9889;</span> Setup Wizard
-      </div>
-      <div class="wizard-progress" id="wizardProgress">
-        <div class="wizard-dot active" data-step="1"></div>
-        <div class="wizard-dot-line"></div>
-        <div class="wizard-dot" data-step="2"></div>
-        <div class="wizard-dot-line"></div>
-        <div class="wizard-dot" data-step="3"></div>
-        <div class="wizard-dot-line"></div>
-        <div class="wizard-dot" data-step="4"></div>
-        <div class="wizard-dot-line"></div>
-        <div class="wizard-dot" data-step="5"></div>
-        <div class="wizard-dot-line"></div>
-        <div class="wizard-dot" data-step="6"></div>
-      </div>
-
-      <!-- Step 1: Welcome -->
-      <div class="wizard-step active" id="wizardStep1">
-        <div class="wizard-section-title">Welcome to Vibes</div>
-        <div class="wizard-help">
-          Vibes needs two things to build and deploy your apps:<br>
-          <strong>OIDC credentials</strong> (authentication via Pocket ID) and a <strong>Connect Studio</strong> (database sync).
+  <!-- Phase 1: Welcome -->
+  <div class="phase welcome-phase" id="phaseSetup">
+    <div class="welcome-card" id="welcomeCard">
+      <div id="welcomeDefault">
+        <div class="welcome-title">Welcome to Vibes</div>
+        <div class="welcome-subtitle">
+          Describe an app and we'll build it.<br>
+          Sign in to save and share your apps.
         </div>
-        <div id="setupChecklist"></div>
-        <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-secondary" onclick="skipSetup()">Skip for now</button>
-          <button class="btn btn-primary" id="wizardStartBtn" onclick="setWizardStep(2)">Set up credentials</button>
+        <button class="welcome-btn" id="welcomeBtn" onclick="startAuth()">
+          Sign in with Pocket ID
+        </button>
+        <div style="margin-top:0.75rem;font-size:0.8rem;color:#888;">
+          Don't have an account? You'll be able to create one.
         </div>
       </div>
-
-      <!-- Step 2: OIDC Credentials -->
-      <div class="wizard-step" id="wizardStep2">
-        <div class="wizard-section-title">OIDC Authentication</div>
-        <div class="wizard-help">
-          Pocket ID handles user sign-in for your apps via OIDC.
-          Deploy a Connect Studio to get your OIDC credentials.
-        </div>
-        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">OIDC Authority URL</label>
-        <input class="wizard-input" id="wizardOidcAuthority" type="text" placeholder="https://studio.exe.xyz/auth" oninput="validateWizardOidcInputs()" />
-        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">OIDC Client ID</label>
-        <input class="wizard-input" id="wizardOidcClientId" type="text" placeholder="your-client-id" oninput="validateWizardOidcInputs()" />
-        <div class="wizard-help" id="wizardOidcHint" style="color:var(--vibes-red);display:none;"></div>
-        <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-secondary" onclick="setWizardStep(1)">Back</button>
-          <button class="btn btn-primary" id="wizardOidcNext" onclick="setWizardStep(3)" disabled>Next</button>
+      <div id="welcomeWaiting">
+        <div class="welcome-title">Welcome to Vibes</div>
+        <div style="margin-top:1.5rem;color:#555;">
+          <span class="welcome-spinner"></span> Waiting for sign in...
         </div>
       </div>
-
-      <!-- Step 3: Connect Studio -->
-      <div class="wizard-step" id="wizardStep3">
-        <div class="wizard-section-title">Connect Studio</div>
-        <div class="wizard-help">
-          Connect Studio provides cloud sync for your Fireproof database.
-        </div>
-        <div class="wizard-radio-group" id="wizardStudioRadios">
-          <label class="wizard-radio selected" onclick="selectStudioMode('existing')">
-            <input type="radio" name="studioMode" value="existing" checked />
-            I have a Studio
-          </label>
-          <label class="wizard-radio" id="wizardDeployRadio" onclick="selectStudioMode('deploy')">
-            <input type="radio" name="studioMode" value="deploy" />
-            Deploy a new Studio
-          </label>
-          <label class="wizard-radio" onclick="selectStudioMode('advanced')">
-            <input type="radio" name="studioMode" value="advanced" />
-            Advanced: enter URLs manually
-          </label>
-        </div>
-
-        <!-- Existing studio -->
-        <div id="studioExisting">
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Studio Name</label>
-          <input class="wizard-input" id="wizardStudioName" type="text" placeholder="my-studio" oninput="debouncedCheckStudio()" />
-          <div class="wizard-help" id="wizardStudioHint"></div>
-        </div>
-
-        <!-- Deploy new studio -->
-        <div id="studioDeploy" style="display:none;">
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">New Studio Name</label>
-          <input class="wizard-input" id="wizardNewStudioName" type="text" placeholder="my-studio" />
-          <div class="wizard-terminal" id="studioDeployLog" style="display:none;"></div>
-          <button class="btn btn-primary" id="studioDeployBtn" onclick="startStudioDeploy()" style="margin-bottom:0.75rem;">Deploy Studio</button>
-          <div class="wizard-help" id="wizardDeployHint"></div>
-        </div>
-
-        <!-- Advanced: raw URLs -->
-        <div id="studioAdvanced" style="display:none;">
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">API URL</label>
-          <input class="wizard-input" id="wizardApiUrl" type="text" placeholder="https://my-studio.example.com/api/" oninput="validateAdvancedUrls()" />
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Cloud URL</label>
-          <input class="wizard-input" id="wizardCloudUrl" type="text" placeholder="fpcloud://my-studio.example.com?protocol=wss" oninput="validateAdvancedUrls()" />
-        </div>
-
-        <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-secondary" onclick="setWizardStep(2)">Back</button>
-          <button class="btn btn-primary" id="wizardStudioNext" onclick="setWizardStep(4)" disabled>Next</button>
+      <div id="welcomeGreeting">
+        <div class="welcome-greeting">
+          Welcome, <span id="welcomeUserName"></span>! <span class="welcome-check">&#10003;</span>
         </div>
       </div>
-
-      <!-- Step 4: Cloudflare Credentials -->
-      <div class="wizard-step" id="wizardStep4">
-        <div class="wizard-section-title">Cloudflare Deploy</div>
-        <div class="wizard-help">
-          Deploy your apps to Cloudflare Workers. You can skip this and deploy later.
-        </div>
-        <div style="display:flex;gap:0;border-bottom:2px solid #eee;margin-bottom:1rem;">
-          <button id="cfTabToken" class="btn" onclick="setCfAuthMode('token')" style="border:none;border-bottom:2px solid var(--vibes-blue);margin-bottom:-2px;border-radius:0;padding:0.5rem 1rem;font-weight:700;font-size:0.8125rem;background:none;color:var(--vibes-blue);cursor:pointer;box-shadow:none;">API Token</button>
-          <button id="cfTabGlobal" class="btn" onclick="setCfAuthMode('global')" style="border:none;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:0;padding:0.5rem 1rem;font-weight:700;font-size:0.8125rem;background:none;color:#888;cursor:pointer;box-shadow:none;">Global API Key</button>
-        </div>
-
-        <!-- API Token panel -->
-        <div id="cfPanelToken">
-          <div style="background:rgba(0,154,206,0.06);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.8125rem;line-height:1.5;">
-            <strong>Create an API Token:</strong>
-            <ol style="margin:0.5rem 0 0 1.25rem;padding:0;">
-              <li>Go to <a class="wizard-link" href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare API Tokens</a></li>
-              <li>Click <strong>Create Token</strong></li>
-              <li>Find <strong>"Edit Cloudflare Workers"</strong> and click <strong>Use template</strong></li>
-              <li>Under <strong>Account Resources</strong>, select your account</li>
-              <li>Under <strong>Zone Resources</strong>, select <strong>All zones</strong> (or a specific zone)</li>
-              <li>Click <strong>Continue to summary</strong>, then <strong>Create Token</strong></li>
-              <li>Copy the token &mdash; <em>you won't be able to see it again</em></li>
-            </ol>
-          </div>
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">API Token</label>
-          <input class="wizard-input" id="wizardCfApiToken" type="password" placeholder="Paste your API Token..." oninput="validateWizardCfInputs()" autocomplete="off" />
-        </div>
-
-        <!-- Global API Key panel (hidden by default) -->
-        <div id="cfPanelGlobal" style="display:none;">
-          <div style="background:rgba(0,154,206,0.06);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.8125rem;line-height:1.5;">
-            <strong>Find your Global API Key:</strong>
-            <ol style="margin:0.5rem 0 0 1.25rem;padding:0;">
-              <li>Go to <a class="wizard-link" href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare API Tokens</a></li>
-              <li>Scroll down to the <strong>API Keys</strong> section</li>
-              <li>Next to <strong>Global API Key</strong>, click <strong>View</strong></li>
-              <li>Complete the verification and copy the key</li>
-            </ol>
-            <div style="margin-top:0.5rem;padding:0.5rem;background:rgba(218,41,28,0.06);border-radius:4px;font-size:0.75rem;color:#666;">
-              <strong>Note:</strong> Global API Key grants full account access. API Token (above) is recommended for better security.
-            </div>
-          </div>
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Account Email</label>
-          <input class="wizard-input" id="wizardCfEmail" type="email" placeholder="you@example.com" oninput="validateWizardCfInputs()" autocomplete="off" />
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;margin-top:0.5rem;">Global API Key</label>
-          <input class="wizard-input" id="wizardCfKey" type="password" placeholder="Paste your Global API Key..." oninput="validateWizardCfInputs()" autocomplete="off" />
-        </div>
-
-        <div class="wizard-help" id="wizardCfHint" style="display:none;"></div>
-        <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-secondary" onclick="setWizardStep(3)">Back</button>
-          <button class="btn btn-secondary" onclick="setWizardStep(5)">Skip</button>
-          <button class="btn btn-primary" id="wizardCfNext" onclick="validateAndAdvanceCf()" disabled>Verify &amp; Continue</button>
-        </div>
-      </div>
-
-      <!-- Step 5: OpenRouter API Key (optional) -->
-      <div class="wizard-step" id="wizardStep5">
-        <div class="wizard-section-title">OpenRouter API Key</div>
-        <div class="wizard-help">
-          Enables AI theme generation and the <code>useAI</code> hook in your apps. This is optional.
-          <a class="wizard-link" href="https://openrouter.ai/keys" target="_blank">Get an API key</a>
-        </div>
-        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">API Key</label>
-        <input class="wizard-input" id="wizardOpenRouterKey" type="password" placeholder="sk-or-..." oninput="validateOpenRouterKey()" />
-        <div class="wizard-help" id="wizardOpenRouterHint" style="color:var(--vibes-red);display:none;"></div>
-        <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-secondary" onclick="setWizardStep(4)">Back</button>
-          <button class="btn btn-secondary" id="wizardOpenRouterSkip" onclick="setWizardStep(6)">Skip</button>
-          <button class="btn btn-primary" id="wizardOpenRouterNext" onclick="setWizardStep(6)" disabled>Next</button>
-        </div>
-      </div>
-
-      <!-- Step 6: Confirm & Save -->
-      <div class="wizard-step" id="wizardStep6">
-        <div class="wizard-section-title">Confirm &amp; Save</div>
-        <div class="wizard-help">These values will be written to your <code>.env</code> file:</div>
-        <div class="wizard-summary-table" id="wizardSummary"></div>
-        <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-secondary" onclick="setWizardStep(5)">Back</button>
-          <button class="btn btn-primary" id="wizardSaveBtn" onclick="wizardSave()">Save &amp; Continue</button>
-        </div>
+      <div id="welcomeError">
+        <div class="welcome-title">Welcome to Vibes</div>
+        <div style="margin-top:1rem;color:var(--vibes-red);" id="welcomeErrorMsg"></div>
+        <button class="welcome-btn" style="margin-top:1.5rem;" onclick="startAuth()">Try again</button>
       </div>
     </div>
   </div>
@@ -2911,12 +2632,6 @@
   let pendingThemeId = null;
   let currentThemeId = null;
   let currentAppName = null;
-  let wizardStep = 1;
-  let wizardData = { oidcAuthority: '', oidcClientId: '', studioName: '', apiUrl: '', cloudUrl: '', cfApiToken: '', cfEmail: '', cfApiKey: '', cfAccountId: '', openRouterKey: '' };
-  let cfAuthMode = 'token';
-  let studioCheckTimer = null;
-  let studioMode = 'existing';
-
   // === Vibes Audio Toggle ===
   let vibesAudio = null;
   let vibesPlaying = false;
@@ -3031,22 +2746,13 @@
         </div>`;
 
   async function openSettings() {
-    try {
-      const res = await fetch('/editor/status');
-      const status = await res.json();
-      // Reset wizard state for clean re-entry
-      wizardData = { oidcAuthority: '', oidcClientId: '', studioName: '', apiUrl: '', cloudUrl: '', cfApiToken: '', cfEmail: '', cfApiKey: '', cfAccountId: '', openRouterKey: '' };
-      document.querySelectorAll('.wizard-step input').forEach(i => {
-        i.classList.remove('valid', 'invalid');
-        if (i.type === 'text' || i.type === 'password') i.value = '';
-      });
-      document.querySelectorAll('.wizard-step .wizard-hint').forEach(h => h.style.display = 'none');
-      setPhase('setup');
-      setWizardStep(1);
-      prefillFromStatus(status);
-    } catch (err) {
-      console.error('Failed to open settings:', err);
-    }
+    setPhase('setup');
+    const btn = document.getElementById('welcomeBtn');
+    btn.textContent = 'Sign in with Pocket ID';
+    document.getElementById('welcomeDefault').style.display = 'flex';
+    document.getElementById('welcomeWaiting').style.display = 'none';
+    document.getElementById('welcomeGreeting').style.display = 'none';
+    document.getElementById('welcomeError').style.display = 'none';
   }
 
   function setPhase(phase) {
@@ -3142,12 +2848,12 @@
               <input type="text" id="deployNameInput" placeholder="my-app"
                 onclick="event.stopPropagation()" />
             </div>
-            <button class="deploy-option" id="deployCf" onclick="startDeploy('cloudflare')" disabled>
-              <span class="deploy-option-icon">&#9729;</span>
-              <div>
-                <div>Cloudflare Workers</div>
-                <div class="deploy-option-detail" id="deployCfDetail">Checking...</div>
-              </div>
+            <button class="deploy-publish-btn" id="deployCf" onclick="startDeploy('cloudflare')">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+                <path d="M8 1l5 5h-3.25v5h-3.5V6H3L8 1z" fill="currentColor"/>
+                <rect x="3" y="13" width="10" height="1.5" rx="0.75" fill="currentColor"/>
+              </svg>
+              Publish to Web
             </button>
             <div id="deployHistorySection" style="display:none">
               <hr class="deploy-section-divider">
@@ -3232,35 +2938,23 @@
         const select = document.getElementById('themeSelect');
         if (select && msg.themeId) select.value = msg.themeId;
         console.log('[Theme] Selected:', msg.themeId, name);
+      } else if (msg.type === 'auth_complete') {
+        handleAuthComplete(msg.user?.name);
+        return;
+      } else if (msg.type === 'auth_required') {
+        setPhase('setup');
+        const btn = document.getElementById('welcomeBtn');
+        btn.textContent = 'Sign in with Pocket ID';
+        document.getElementById('welcomeDefault').style.display = 'flex';
+        document.getElementById('welcomeWaiting').style.display = 'none';
+        document.getElementById('welcomeGreeting').style.display = 'none';
+        document.getElementById('welcomeError').style.display = 'none';
+        return;
       } else if (msg.type === 'deploy_complete') {
         setThinking(false);
         if (msg.name) currentAppName = msg.name;
         addMessage('deploy-success', 'Deployed! ' + (msg.url || ''));
         captureScreenshot();
-      } else if (msg.type === 'studio-progress') {
-        const logEl = document.getElementById('studioDeployLog');
-        if (logEl) {
-          logEl.textContent += msg.line + '\n';
-          logEl.scrollTop = logEl.scrollHeight;
-        }
-      } else if (msg.type === 'studio-complete') {
-        const logEl = document.getElementById('studioDeployLog');
-        if (logEl) logEl.textContent += 'Deploy complete!\n';
-        const btn = document.getElementById('studioDeployBtn');
-        if (btn) { btn.textContent = 'Deployed!'; btn.disabled = true; }
-        wizardData.apiUrl = msg.apiUrl;
-        wizardData.cloudUrl = msg.cloudUrl;
-        wizardData.studioName = document.getElementById('wizardNewStudioName')?.value || '';
-        updateStudioNextButton();
-        const hint = document.getElementById('wizardDeployHint');
-        if (hint) { hint.textContent = 'Studio deployed successfully!'; hint.style.color = 'var(--vibes-green)'; }
-      } else if (msg.type === 'studio-error') {
-        const logEl = document.getElementById('studioDeployLog');
-        if (logEl) logEl.textContent += 'ERROR: ' + msg.message + '\n';
-        const btn = document.getElementById('studioDeployBtn');
-        if (btn) { btn.disabled = false; btn.textContent = 'Retry Deploy'; }
-        const hint = document.getElementById('wizardDeployHint');
-        if (hint) { hint.textContent = msg.message; hint.style.color = 'var(--vibes-red)'; }
       } else if (msg.type === 'theme_created') {
         setThinking(false);
         onThemeCreated(msg.themeId, msg.themeName);
@@ -3295,491 +2989,48 @@
     };
   }
 
-  // === Phase 1: Setup ===
-  async function checkSetup() {
+  // === Phase 1: Welcome / Auth ===
+  async function startAuth() {
+    // Show waiting state
+    document.getElementById('welcomeDefault').style.display = 'none';
+    document.getElementById('welcomeError').style.display = 'none';
+    document.getElementById('welcomeWaiting').style.display = 'flex';
+
     try {
-      const res = await fetch('/editor/status');
-      const status = await res.json();
-      renderChecklist(status);
-    } catch (err) {
-      document.getElementById('setupChecklist').innerHTML = `
-        <div class="setup-item">
-          <div class="setup-icon fail">&#10007;</div>
-          <div>
-            <div class="setup-label">Failed to check dependencies</div>
-            <div class="setup-detail">${escapeHtml(err.message)}</div>
-          </div>
-        </div>`;
-      document.getElementById('setupActions').style.display = '';
-      document.getElementById('setupSkipBtn').style.display = '';
-    }
-  }
-
-  function renderChecklist(status) {
-    const items = [
-      { key: 'oidc', label: 'OIDC credentials', detail: status.oidc?.detail || '', required: true },
-      { key: 'connect', label: 'Connect Studio', detail: status.connect?.detail || '', required: true },
-      { key: 'openrouter', label: 'OpenRouter API key', detail: status.openrouter?.detail || '', required: false },
-      { key: 'cloudflare', label: 'Cloudflare Deploy', detail: status.cloudflare?.detail || '', required: false },
-    ];
-
-    deployTargets.cloudflare = status.cloudflare?.ok || false;
-
-    const requiredOk = items.filter(i => i.required).every(i => status[i.key]?.ok);
-    const allOk = items.every(i => status[i.key]?.ok);
-
-    let html = '';
-    for (const item of items) {
-      const s = status[item.key] || {};
-      const iconClass = s.ok ? 'pass' : (item.required ? 'fail' : 'optional');
-      const iconChar = s.ok ? '&#10003;' : (item.required ? '&#10007;' : '&#8212;');
-      html += `<div class="setup-item">
-        <div class="setup-icon ${iconClass}">${iconChar}</div>
-        <div>
-          <div class="setup-label">${escapeHtml(item.label)}${!item.required ? ' <span style="font-size:0.7rem;color:#888;">(optional)</span>' : ''}</div>
-          ${item.detail ? `<div class="setup-detail">${escapeHtml(item.detail)}</div>` : ''}
-        </div>
-      </div>`;
-    }
-    document.getElementById('setupChecklist').innerHTML = html;
-    // In wizard mode, the Start button handles advancement
-    const startBtn = document.getElementById('wizardStartBtn');
-    if (startBtn && requiredOk) {
-      // All required present — auto-advance after brief flash
-      setTimeout(() => goToGenerate(), 800);
-    }
-  }
-
-  function skipSetup() {
-    goToGenerate();
-  }
-
-  function goToGenerate() {
-    setPhase('generate');
-  }
-
-  function setWizardStep(n) {
-    wizardStep = n;
-    document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
-    const step = document.getElementById('wizardStep' + n);
-    if (step) step.classList.add('active');
-    // Update progress dots
-    document.querySelectorAll('.wizard-dot').forEach(dot => {
-      const s = parseInt(dot.dataset.step);
-      dot.classList.toggle('active', s === n);
-      dot.classList.toggle('done', s < n);
-    });
-    if (n === 6) renderWizardSummary();
-  }
-
-  function validateWizardOidcInputs() {
-    const authorityInput = document.getElementById('wizardOidcAuthority');
-    const clientIdInput = document.getElementById('wizardOidcClientId');
-    const hint = document.getElementById('wizardOidcHint');
-    const nextBtn = document.getElementById('wizardOidcNext');
-
-    const authority = authorityInput.value.trim();
-    const clientId = clientIdInput.value.trim();
-
-    const authorityValid = authority.startsWith('https://');
-    const clientIdValid = clientId.length > 0;
-
-    authorityInput.classList.toggle('valid', authority && authorityValid);
-    authorityInput.classList.toggle('invalid', authority && !authorityValid);
-    clientIdInput.classList.toggle('valid', clientId && clientIdValid);
-    clientIdInput.classList.toggle('invalid', clientId && !clientIdValid);
-
-    if (authority && !authorityValid) {
-      hint.textContent = 'OIDC Authority must be an HTTPS URL (e.g. https://studio.exe.xyz/auth)';
-      hint.style.display = '';
-    } else {
-      hint.style.display = 'none';
-    }
-
-    const valid = authorityValid && clientIdValid;
-    nextBtn.disabled = !valid;
-    if (valid) {
-      wizardData.oidcAuthority = authority;
-      wizardData.oidcClientId = clientId;
-    }
-  }
-
-  function selectStudioMode(mode) {
-    studioMode = mode;
-    document.querySelectorAll('#wizardStudioRadios .wizard-radio').forEach(r => r.classList.remove('selected'));
-    const radio = document.querySelector(`#wizardStudioRadios input[value="${mode}"]`);
-    if (radio) {
-      radio.checked = true;
-      radio.closest('.wizard-radio').classList.add('selected');
-    }
-    document.getElementById('studioExisting').style.display = mode === 'existing' ? '' : 'none';
-    document.getElementById('studioDeploy').style.display = mode === 'deploy' ? '' : 'none';
-    document.getElementById('studioAdvanced').style.display = mode === 'advanced' ? '' : 'none';
-    // Reset next button state
-    updateStudioNextButton();
-  }
-
-  function updateStudioNextButton() {
-    const nextBtn = document.getElementById('wizardStudioNext');
-    if (studioMode === 'existing') {
-      nextBtn.disabled = !wizardData.apiUrl;
-    } else if (studioMode === 'deploy') {
-      nextBtn.disabled = !wizardData.apiUrl;
-    } else if (studioMode === 'advanced') {
-      const apiUrl = document.getElementById('wizardApiUrl').value.trim();
-      const cloudUrl = document.getElementById('wizardCloudUrl').value.trim();
-      nextBtn.disabled = !apiUrl.startsWith('https://') || !cloudUrl.startsWith('fpcloud://');
-    }
-  }
-
-  function debouncedCheckStudio() {
-    if (studioCheckTimer) clearTimeout(studioCheckTimer);
-    studioCheckTimer = setTimeout(checkStudio, 600);
-  }
-
-  async function checkStudio() {
-    const name = document.getElementById('wizardStudioName').value.trim();
-    const hint = document.getElementById('wizardStudioHint');
-    const input = document.getElementById('wizardStudioName');
-    if (!name) {
-      hint.textContent = '';
-      input.classList.remove('valid', 'invalid');
-      wizardData.apiUrl = '';
-      wizardData.cloudUrl = '';
-      wizardData.studioName = '';
-      updateStudioNextButton();
-      return;
-    }
-    hint.textContent = 'Checking...';
-    hint.style.color = '#666';
-    try {
-      const res = await fetch('/editor/credentials/check-studio', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studio: name }),
-      });
+      const res = await fetch('/editor/auth/login', { method: 'POST' });
       const data = await res.json();
-      if (data.reachable) {
-        hint.textContent = 'Studio reachable at ' + data.apiUrl;
-        hint.style.color = 'var(--vibes-green)';
-        input.classList.add('valid');
-        input.classList.remove('invalid');
-        wizardData.studioName = name;
-        wizardData.apiUrl = data.apiUrl;
-        wizardData.cloudUrl = data.cloudUrl;
-      } else {
-        hint.textContent = data.error || 'Studio not reachable';
-        hint.style.color = 'var(--vibes-red)';
-        input.classList.add('invalid');
-        input.classList.remove('valid');
-        wizardData.apiUrl = '';
-        wizardData.cloudUrl = '';
+      if (!data.ok) {
+        showWelcomeError(data.error || 'Sign in failed');
       }
+      // Success is handled by the WebSocket auth_complete message
     } catch (err) {
-      hint.textContent = 'Failed to check: ' + err.message;
-      hint.style.color = 'var(--vibes-red)';
-      input.classList.add('invalid');
-      input.classList.remove('valid');
-    }
-    updateStudioNextButton();
-  }
-
-  function validateAdvancedUrls() {
-    const apiInput = document.getElementById('wizardApiUrl');
-    const cloudInput = document.getElementById('wizardCloudUrl');
-    const api = apiInput.value.trim();
-    const cloud = cloudInput.value.trim();
-
-    apiInput.classList.toggle('valid', api && api.startsWith('https://'));
-    apiInput.classList.toggle('invalid', api && !api.startsWith('https://'));
-    cloudInput.classList.toggle('valid', cloud && cloud.startsWith('fpcloud://'));
-    cloudInput.classList.toggle('invalid', cloud && !cloud.startsWith('fpcloud://'));
-
-    if (api.startsWith('https://') && cloud.startsWith('fpcloud://')) {
-      wizardData.apiUrl = api;
-      wizardData.cloudUrl = cloud;
-    } else {
-      wizardData.apiUrl = '';
-      wizardData.cloudUrl = '';
-    }
-    updateStudioNextButton();
-  }
-
-  function setCfAuthMode(mode) {
-    cfAuthMode = mode;
-    const tokenPanel = document.getElementById('cfPanelToken');
-    const globalPanel = document.getElementById('cfPanelGlobal');
-    const tokenTab = document.getElementById('cfTabToken');
-    const globalTab = document.getElementById('cfTabGlobal');
-    if (mode === 'token') {
-      tokenPanel.style.display = '';
-      globalPanel.style.display = 'none';
-      tokenTab.style.borderBottomColor = 'var(--vibes-blue)';
-      tokenTab.style.color = 'var(--vibes-blue)';
-      globalTab.style.borderBottomColor = 'transparent';
-      globalTab.style.color = '#888';
-    } else {
-      tokenPanel.style.display = 'none';
-      globalPanel.style.display = '';
-      globalTab.style.borderBottomColor = 'var(--vibes-blue)';
-      globalTab.style.color = 'var(--vibes-blue)';
-      tokenTab.style.borderBottomColor = 'transparent';
-      tokenTab.style.color = '#888';
-    }
-    validateWizardCfInputs();
-  }
-
-  function validateWizardCfInputs() {
-    const nextBtn = document.getElementById('wizardCfNext');
-    if (cfAuthMode === 'token') {
-      const tokenInput = document.getElementById('wizardCfApiToken');
-      const token = tokenInput.value.trim();
-      const tokenValid = token.length >= 40;
-      tokenInput.classList.toggle('valid', token && tokenValid);
-      tokenInput.classList.toggle('invalid', token && !tokenValid);
-      nextBtn.disabled = !tokenValid;
-      wizardData.cfApiToken = tokenValid ? token : '';
-    } else {
-      const emailInput = document.getElementById('wizardCfEmail');
-      const keyInput = document.getElementById('wizardCfKey');
-      const email = emailInput.value.trim();
-      const key = keyInput.value.trim();
-      const emailValid = email.includes('@') && email.includes('.');
-      const keyValid = key.length >= 20;
-      emailInput.classList.toggle('valid', email && emailValid);
-      emailInput.classList.toggle('invalid', email && !emailValid);
-      keyInput.classList.toggle('valid', key && keyValid);
-      keyInput.classList.toggle('invalid', key && !keyValid);
-      nextBtn.disabled = !(emailValid && keyValid);
-      if (emailValid && keyValid) {
-        wizardData.cfEmail = email;
-        wizardData.cfApiKey = key;
-      }
+      showWelcomeError(err.message || 'Could not reach the server');
     }
   }
 
-  async function validateAndAdvanceCf() {
-    const btn = document.getElementById('wizardCfNext');
-    const hint = document.getElementById('wizardCfHint');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="wizard-checking"></span> Verifying...';
-    hint.style.display = 'none';
-
-    try {
-      const valPayload = cfAuthMode === 'token'
-        ? { apiToken: wizardData.cfApiToken }
-        : { apiKey: wizardData.cfApiKey, email: wizardData.cfEmail };
-
-      const valRes = await fetch('/editor/credentials/validate-cloudflare', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(valPayload),
-      });
-      const valData = await valRes.json();
-      if (!valData.valid) {
-        throw new Error(valData.error || 'Cloudflare validation failed');
-      }
-
-      wizardData.cfAccountId = valData.accountId || '';
-
-      const savePayload = cfAuthMode === 'token'
-        ? { cloudflareApiToken: wizardData.cfApiToken, cloudflareAccountId: wizardData.cfAccountId }
-        : { cloudflareApiKey: wizardData.cfApiKey, cloudflareEmail: wizardData.cfEmail, cloudflareAccountId: wizardData.cfAccountId };
-
-      const saveRes = await fetch('/editor/credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(savePayload),
-      });
-      const saveData = await saveRes.json();
-      if (!saveRes.ok) {
-        const errMsg = saveData.errors ? Object.values(saveData.errors).join('; ') : 'Failed to save';
-        throw new Error(errMsg);
-      }
-
-      deployTargets.cloudflare = true;
-      setWizardStep(5);
-    } catch (err) {
-      let msg = err.message;
-      if (msg.includes('Token verification failed') || msg.includes('Authentication failed')) {
-        msg += ' Double-check that you copied the full token with no extra spaces.';
-      } else if (msg.includes('timed out')) {
-        msg += ' Try again — this is usually a temporary network issue.';
-      } else if (msg.includes('no accounts accessible') || msg.includes('No accounts found')) {
-        msg += ' The token might not have the right permissions. Try creating a new token with the "Edit Cloudflare Workers" template.';
-      }
-      hint.textContent = msg;
-      hint.style.color = 'var(--vibes-red)';
-      hint.style.display = '';
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = 'Verify &amp; Continue';
-      validateWizardCfInputs();
-    }
+  function showWelcomeError(msg) {
+    document.getElementById('welcomeWaiting').style.display = 'none';
+    document.getElementById('welcomeDefault').style.display = 'none';
+    document.getElementById('welcomeErrorMsg').textContent = msg;
+    document.getElementById('welcomeError').style.display = 'flex';
   }
 
-  function validateOpenRouterKey() {
-    const input = document.getElementById('wizardOpenRouterKey');
-    const hint = document.getElementById('wizardOpenRouterHint');
-    const nextBtn = document.getElementById('wizardOpenRouterNext');
+  function handleAuthComplete(userName) {
+    // Show greeting
+    document.getElementById('welcomeWaiting').style.display = 'none';
+    document.getElementById('welcomeDefault').style.display = 'none';
+    document.getElementById('welcomeError').style.display = 'none';
+    document.getElementById('welcomeUserName').textContent = userName || 'friend';
+    document.getElementById('welcomeGreeting').style.display = 'flex';
 
-    const key = input.value.trim();
-
-    if (!key) {
-      input.classList.remove('valid', 'invalid');
-      hint.style.display = 'none';
-      nextBtn.disabled = true;
-      wizardData.openRouterKey = '';
-      return;
-    }
-
-    const valid = key.startsWith('sk-or-');
-    input.classList.toggle('valid', valid);
-    input.classList.toggle('invalid', !valid);
-
-    if (!valid) {
-      hint.textContent = 'OpenRouter keys start with sk-or-';
-      hint.style.display = '';
-    } else {
-      hint.style.display = 'none';
-    }
-
-    nextBtn.disabled = !valid;
-    if (valid) {
-      wizardData.openRouterKey = key;
-    } else {
-      wizardData.openRouterKey = '';
-    }
-  }
-
-  function startStudioDeploy() {
-    const name = document.getElementById('wizardNewStudioName').value.trim();
-    if (!name) return;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-
-    const logEl = document.getElementById('studioDeployLog');
-    const btn = document.getElementById('studioDeployBtn');
-    const hint = document.getElementById('wizardDeployHint');
-    logEl.style.display = '';
-    logEl.textContent = 'Starting deploy...\n';
-    btn.disabled = true;
-    hint.textContent = '';
-
-    ws.send(JSON.stringify({
-      type: 'deploy-studio',
-      studioName: name,
-      oidcAuthority: wizardData.oidcAuthority,
-      oidcClientId: wizardData.oidcClientId,
-    }));
-  }
-
-  function renderWizardSummary() {
-    const table = document.getElementById('wizardSummary');
-    const vars = [
-      ['VITE_OIDC_AUTHORITY', wizardData.oidcAuthority],
-      ['VITE_OIDC_CLIENT_ID', wizardData.oidcClientId],
-      ['VITE_API_URL', wizardData.apiUrl],
-      ['VITE_CLOUD_URL', wizardData.cloudUrl],
-    ];
-    if (wizardData.openRouterKey) {
-      vars.push(['OPENROUTER_API_KEY', '••••' + wizardData.openRouterKey.slice(-8)]);
-    }
-    table.innerHTML = vars.map(([k, v]) =>
-      `<div class="wizard-summary-row">
-        <span class="wizard-summary-key">${k}</span>
-        <span class="wizard-summary-value" title="${escapeHtml(v)}">${escapeHtml(v)}</span>
-      </div>`
-    ).join('');
-  }
-
-  async function wizardSave() {
-    const btn = document.getElementById('wizardSaveBtn');
-    btn.disabled = true;
-    btn.textContent = 'Saving...';
-    try {
-      const payload = {
-        VITE_OIDC_AUTHORITY: wizardData.oidcAuthority,
-        VITE_OIDC_CLIENT_ID: wizardData.oidcClientId,
-        VITE_API_URL: wizardData.apiUrl,
-        VITE_CLOUD_URL: wizardData.cloudUrl,
-      };
-      if (wizardData.openRouterKey) {
-        payload.OPENROUTER_API_KEY = wizardData.openRouterKey;
-      }
-      const res = await fetch('/editor/credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        const errMsg = data.errors
-          ? Object.values(data.errors).join('; ')
-          : 'Failed to save';
-        throw new Error(errMsg);
-      }
-      deployTargets.cloudflare = data.status?.cloudflare?.ok || false;
-      goToGenerate();
-    } catch (err) {
-      btn.disabled = false;
-      btn.textContent = 'Save & Continue';
-      const table = document.getElementById('wizardSummary');
-      const errDiv = document.createElement('div');
-      errDiv.style.cssText = 'color:var(--vibes-red);font-size:0.8125rem;margin-top:0.5rem;';
-      errDiv.textContent = err.message;
-      table.after(errDiv);
-    }
-  }
-
-  function prefillFromStatus(status) {
-    const stepsDone = { 2: false, 3: false, 4: false, 5: false };
-
-    if (status.oidc?.ok) {
-      stepsDone[2] = true;
-      wizardData.oidcAuthority = status.oidc.authority || status.oidc.detail || '';
-      wizardData.oidcClientId = status.oidc.clientId || '';
-      const authorityInput = document.getElementById('wizardOidcAuthority');
-      const clientIdInput = document.getElementById('wizardOidcClientId');
-      if (authorityInput && wizardData.oidcAuthority) {
-        authorityInput.value = wizardData.oidcAuthority;
-        authorityInput.classList.add('valid');
-      }
-      if (clientIdInput && wizardData.oidcClientId) {
-        clientIdInput.value = wizardData.oidcClientId;
-        clientIdInput.classList.add('valid');
-      }
-    }
-
-    if (status.connect?.ok) {
-      stepsDone[3] = true;
-      wizardData.apiUrl = status.connect.apiUrl || status.connect.detail || '';
-      wizardData.cloudUrl = status.connect.cloudUrl || '';
-    }
-
-    if (status.cloudflare?.ok) {
-      stepsDone[4] = true;
-      deployTargets.cloudflare = true;
-    }
-
-    if (status.openrouter?.ok) {
-      stepsDone[5] = true;
-      if (status.maskedKeys?.openRouterKey) {
-        const orInput = document.getElementById('wizardOpenRouterKey');
-        if (orInput) orInput.placeholder = status.maskedKeys.openRouterKey;
-      }
-    }
-
-    // Smart-skip to first incomplete step, or summary if all done
-    if (stepsDone[2] && stepsDone[3] && stepsDone[4] && stepsDone[5]) {
-      setWizardStep(6);
-    } else if (stepsDone[2] && stepsDone[3] && stepsDone[4]) {
-      setWizardStep(5);
-    } else if (stepsDone[2] && stepsDone[3]) {
-      setWizardStep(4);
-    } else if (stepsDone[2]) {
-      setWizardStep(3);
-    }
-    // Otherwise stay on step 1 (welcome)
+    // Transition to prompt after 1.5s
+    setTimeout(() => {
+      setPhase('generate');
+      fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
+        if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;
+      }).catch(() => {});
+      document.getElementById('generatePrompt').focus();
+    }, 1500);
   }
 
   // === Phase 2: Generate ===
@@ -4234,13 +3485,9 @@
   }
 
   function updateDeployButtons() {
+    // Deploy is always available — auth happens automatically via Pocket ID
     const cfBtn = document.getElementById('deployCf');
-    if (cfBtn) {
-      cfBtn.disabled = !deployTargets.cloudflare;
-      const cfDetail = document.getElementById('deployCfDetail');
-      cfDetail.textContent = deployTargets.cloudflare ? 'Ready' : 'wrangler not configured';
-      cfDetail.classList.toggle('ready', deployTargets.cloudflare);
-    }
+    if (cfBtn) cfBtn.disabled = false;
   }
 
   function toggleDeployMenu() {
@@ -4254,11 +3501,6 @@
       const rect = btn.getBoundingClientRect();
       menu.style.top = (rect.bottom + 6) + 'px';
       menu.style.right = (window.innerWidth - rect.right + 4) + 'px';
-      // Refresh deploy status
-      fetch('/editor/status').then(r => r.json()).then(status => {
-        deployTargets.cloudflare = status.cloudflare?.ok || false;
-        updateDeployButtons();
-      }).catch(() => {});
       // Load previous deployments
       loadDeployHistory();
     }
@@ -4329,7 +3571,7 @@
   function updateDeploy(appName) {
     if (isThinking || !ws || ws.readyState !== WebSocket.OPEN) return;
     document.getElementById('deployMenu').classList.remove('open');
-    addMessage('user', 'Update "' + appName + '" on Cloudflare Workers');
+    addMessage('user', 'Publishing update to "' + appName + '"');
     ws.send(JSON.stringify({ type: 'deploy', target: 'cloudflare', name: appName }));
   }
 
@@ -4344,7 +3586,7 @@
     }
     nameInput.style.borderColor = 'var(--vibes-near-black)';
     document.getElementById('deployMenu').classList.remove('open');
-    addMessage('user', 'Deploy "' + name + '" to Cloudflare Workers');
+    addMessage('user', 'Publishing "' + name + '" to the web');
     ws.send(JSON.stringify({ type: 'deploy', target, name }));
   }
 
@@ -5650,38 +4892,30 @@
     });
   }
 
-  setPhase('generate');
   connectWs();
-
-  // App gallery only needs filesystem data — load immediately, don't wait for wrangler/ssh
   checkExistingApps();
 
-  // Check status → decide setup wizard vs generate
+  // Check auth → decide welcome vs generate/edit
   fetch('/editor/status').then(r => r.json()).then(status => {
-    deployTargets.cloudflare = status.cloudflare?.ok || false;
-
-    if (status.oidc?.ok && status.connect?.ok) {
-      // Credentials present — check if app.jsx exists to resume edit phase
-      fetch('/editor/app-exists').then(r => r.json()).then(data => {
-        if (data.exists) {
-          setPhase('edit');
-        } else {
-          fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
-            if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;
-          }).catch(() => {});
-          document.getElementById('generatePrompt').focus();
-        }
-      }).catch(() => {
-        document.getElementById('generatePrompt').focus();
-      });
+    if (status.auth?.state === 'valid') {
+      // Authenticated — always start at the prompt
+      setPhase('generate');
+      fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
+        if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;
+      }).catch(() => {});
+      document.getElementById('generatePrompt').focus();
     } else {
-      // Missing credentials → show wizard
+      // Not authenticated — show welcome
       setPhase('setup');
-      renderChecklist(status);
-      prefillFromStatus(status);
+      // Smart button label: returning users see "Sign in", not "create" hint
+      if (status.auth?.state === 'expired') {
+        const btn = document.getElementById('welcomeBtn');
+        btn.textContent = 'Sign in with Pocket ID';
+      }
     }
-  }).catch(err => {
-    document.getElementById('generatePrompt').focus();
+  }).catch(() => {
+    // Network error — show welcome anyway
+    setPhase('setup');
   });
 
   populateThemeSelect();

@@ -31,12 +31,12 @@ export async function handleDeploy(ctx, onEvent, target, name, token) {
     try {
       const tokens = await getAccessToken({ authority: OIDC_AUTHORITY, clientId: OIDC_CLIENT_ID, silent: true });
       if (!tokens) {
-        onEvent({ type: 'error', message: 'Not signed in. Run /vibes:vibes in your terminal to sign in, then try deploying again.' });
+        onEvent({ type: 'auth_required' });
         return;
       }
       token = tokens.accessToken;
     } catch (err) {
-      onEvent({ type: 'error', message: `Authentication failed: ${err.message}` });
+      onEvent({ type: 'auth_required' });
       return;
     }
   }

@@ -49,6 +49,7 @@ const server = createServer((req, res) => {
 
 // --- WebSocket Server ---
 const wss = new WebSocketServer({ server, maxPayload: 50 * 1024 * 1024 /* 50MB for image refs */ });
+ctx.wss = wss;
 setupWebSocket(wss, ctx, wsAdapter);
 wss.on('error', (err) => {
   console.error('[WSS] Server error:', err);

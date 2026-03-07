@@ -63,7 +63,7 @@ export function isTokenExpired(expiresAt) {
 // ---------------------------------------------------------------------------
 
 async function refreshTokens({ authority, clientId, refreshToken }) {
-  const tokenUrl = `${authority}/oauth/token`;
+  const tokenUrl = `${authority}/api/oidc/token`;
   const body = new URLSearchParams({
     grant_type: 'refresh_token',
     client_id: clientId,
@@ -160,7 +160,7 @@ export async function loginWithBrowser({ authority, clientId, authFile = DEFAULT
         }
 
         // Exchange authorization code for tokens
-        const tokenUrl = `${authority}/oauth/token`;
+        const tokenUrl = `${authority}/api/oidc/token`;
         const body = new URLSearchParams({
           grant_type: 'authorization_code',
           client_id: clientId,

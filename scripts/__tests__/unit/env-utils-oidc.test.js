@@ -8,11 +8,11 @@ import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../../lib/auth-constants.js';
 
 describe('OIDC auth constants', () => {
   it('exports hardcoded OIDC authority URL', () => {
-    expect(OIDC_AUTHORITY).toBe('https://pocket-id.vibes.diy');
+    expect(OIDC_AUTHORITY).toBe('https://pocket-id.marcus-e.workers.dev');
   });
 
   it('exports hardcoded OIDC client ID', () => {
-    expect(OIDC_CLIENT_ID).toBe('vibes-apps');
+    expect(OIDC_CLIENT_ID).toBe('6c154be6-e6fa-47f3-ad2b-31740cedc1f1');
   });
 });
 
