@@ -8,12 +8,10 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 
-// Connect config placeholders (required - apps need OIDC auth)
+// Connect config placeholders (OIDC constants are hardcoded in auth-constants.js)
 export const CONFIG_PLACEHOLDERS = {
   '__VITE_API_URL__': 'VITE_API_URL',
   '__VITE_CLOUD_URL__': 'VITE_CLOUD_URL',
-  '__VITE_OIDC_AUTHORITY__': 'VITE_OIDC_AUTHORITY',
-  '__VITE_OIDC_CLIENT_ID__': 'VITE_OIDC_CLIENT_ID'
 };
 
 /**

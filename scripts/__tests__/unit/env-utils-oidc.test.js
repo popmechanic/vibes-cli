@@ -4,11 +4,22 @@ import {
   validateOIDCAuthority,
   validateOIDCClientId,
 } from '../../lib/env-utils.js';
+import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../../lib/auth-constants.js';
+
+describe('OIDC auth constants', () => {
+  it('exports hardcoded OIDC authority URL', () => {
+    expect(OIDC_AUTHORITY).toBe('https://pocket-id.vibes.diy');
+  });
+
+  it('exports hardcoded OIDC client ID', () => {
+    expect(OIDC_CLIENT_ID).toBe('vibes-apps');
+  });
+});
 
 describe('OIDC config placeholders', () => {
-  it('includes OIDC authority and client ID placeholders', () => {
-    expect(CONFIG_PLACEHOLDERS['__VITE_OIDC_AUTHORITY__']).toBe('VITE_OIDC_AUTHORITY');
-    expect(CONFIG_PLACEHOLDERS['__VITE_OIDC_CLIENT_ID__']).toBe('VITE_OIDC_CLIENT_ID');
+  it('does NOT include OIDC placeholders (now hardcoded constants)', () => {
+    expect(CONFIG_PLACEHOLDERS['__VITE_OIDC_AUTHORITY__']).toBeUndefined();
+    expect(CONFIG_PLACEHOLDERS['__VITE_OIDC_CLIENT_ID__']).toBeUndefined();
   });
 
   it('does NOT include legacy Clerk publishable key placeholder', () => {

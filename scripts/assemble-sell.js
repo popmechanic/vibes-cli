@@ -12,8 +12,6 @@
  *   node scripts/assemble-sell.js <app.jsx> [output.html] [options]
  *
  * Options:
- *   --oidc-authority <url> OIDC authority URL (optional - uses .env if not provided)
- *   --oidc-client-id <id> OIDC client ID (optional - uses .env if not provided)
  *   --app-name <name>     App name for database naming (e.g., "wedding-photos")
  *   --app-title <title>   Display title (e.g., "Wedding Photos")
  *   --domain <domain>     Root domain (e.g., "myapp.exe.xyz")
@@ -38,14 +36,13 @@ import { TEMPLATES } from './lib/paths.js';
 import { stripForTemplate, stripImports } from './lib/strip-code.js';
 import { createBackup } from './lib/backup.js';
 import { prompt } from './lib/prompt.js';
-import { loadEnvFile, validateOIDCAuthority, populateConnectConfig } from './lib/env-utils.js';
+import { loadEnvFile, populateConnectConfig } from './lib/env-utils.js';
+import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from './lib/auth-constants.js';
 import { APP_PLACEHOLDER } from './lib/assembly-utils.js';
 import { parseArgs as parseCliArgs, formatHelp } from './lib/cli-utils.js';
 
 // Parse command line arguments
 const assembleSellSchema = [
-  { name: 'oidcAuthority', flag: '--oidc-authority', type: 'string', description: 'OIDC authority URL (uses .env if not provided)' },
-  { name: 'oidcClientId', flag: '--oidc-client-id', type: 'string', description: 'OIDC client ID (uses .env if not provided)' },
   { name: 'appName', flag: '--app-name', type: 'string', description: 'App name for database naming (e.g., "wedding-photos")' },
   { name: 'appTitle', flag: '--app-title', type: 'string', description: 'Display title (e.g., "Wedding Photos")' },
   { name: 'domain', flag: '--domain', type: 'string', description: 'Root domain (e.g., "myapp.exe.xyz")' },
@@ -65,7 +62,6 @@ const assembleSellMeta = {
   usage: 'node scripts/assemble-sell.js <app.jsx> [output.html] [options]',
   examples: [
     'node scripts/assemble-sell.js app.jsx index.html \\',
-    '  --oidc-authority https://auth.example.com \\',
     '  --app-name wedding-photos \\',
     '  --app-title "Wedding Photos" \\',
     '  --domain myapp.exe.xyz \\',
@@ -159,47 +155,17 @@ const outputDir = dirname(resolve(outputPath || 'index.html'));
 const envVars = loadEnvFile(outputDir);
 
 // If .env lacks Connect URLs, try global registry
-if (!envVars.VITE_API_URL || !envVars.VITE_OIDC_AUTHORITY) {
+if (!envVars.VITE_API_URL) {
   const registryAppName = options.appName || null;
   if (registryAppName) {
     const { getApp } = await import('./lib/registry.js');
     const app = getApp(registryAppName);
     if (app) {
-      envVars.VITE_OIDC_AUTHORITY = envVars.VITE_OIDC_AUTHORITY || app.oidc?.authority;
-      envVars.VITE_OIDC_CLIENT_ID = envVars.VITE_OIDC_CLIENT_ID || app.oidc?.clientId;
       envVars.VITE_API_URL = envVars.VITE_API_URL || app.connect?.apiUrl;
       envVars.VITE_CLOUD_URL = envVars.VITE_CLOUD_URL || app.connect?.cloudUrl;
       console.log(`Connect config: from registry (app: ${registryAppName})`);
     }
   }
-}
-
-// Validate OIDC credentials - fail fast if invalid
-const hasValidConnect = validateOIDCAuthority(envVars.VITE_OIDC_AUTHORITY) &&
-                        envVars.VITE_API_URL;
-
-if (!hasValidConnect) {
-  console.error(`
-╔════════════════════════════════════════════════════════════════╗
-║  ERROR: Invalid OIDC credentials                               ║
-╠════════════════════════════════════════════════════════════════╣
-║  Missing required values in .env or registry.                  ║
-║                                                                 ║
-║  Required:                                                      ║
-║    VITE_OIDC_AUTHORITY=https://...                              ║
-║    VITE_OIDC_CLIENT_ID=<your-client-id>                        ║
-║    VITE_API_URL=https://...                                     ║
-║    VITE_CLOUD_URL=fpcloud://...                                 ║
-║                                                                 ║
-║  Current values:                                                ║
-║    VITE_OIDC_AUTHORITY=${(envVars.VITE_OIDC_AUTHORITY || '(not set)').substring(0, 30).padEnd(30)}    ║
-║    VITE_API_URL=${(envVars.VITE_API_URL || '(not set)').substring(0, 40).padEnd(40)}    ║
-║                                                                 ║
-║  SOLUTION: Deploy first to auto-configure Connect,             ║
-║  or set up .env manually.                                       ║
-╚════════════════════════════════════════════════════════════════╝
-`);
-  process.exit(1);
 }
 
 // Connect URLs are optional at assembly time — they'll be populated
@@ -211,8 +177,8 @@ if (!envVars.VITE_API_URL) {
 // Configuration replacements
 // Use CLI flags if provided, otherwise fall back to .env values (validated above)
 const replacements = {
-  '__OIDC_AUTHORITY__': options.oidcAuthority || envVars.VITE_OIDC_AUTHORITY || '',
-  '__OIDC_CLIENT_ID__': options.oidcClientId || envVars.VITE_OIDC_CLIENT_ID || '',
+  '__OIDC_AUTHORITY__': OIDC_AUTHORITY,
+  '__OIDC_CLIENT_ID__': OIDC_CLIENT_ID,
   '__APP_NAME__': appName,
   '__APP_TITLE__': options.appTitle || appName,
   '__APP_DOMAIN__': domain,
@@ -266,6 +232,10 @@ for (const [placeholder, value] of Object.entries(replacements)) {
 // Must run before placeholder validation so Connect placeholders are replaced
 console.log('Connect mode: OIDC auth + cloud sync enabled');
 output = populateConnectConfig(output, envVars, true);
+
+// Inject hardcoded OIDC constants (same for every app)
+output = output.split('__VITE_OIDC_AUTHORITY__').join(OIDC_AUTHORITY);
+output = output.split('__VITE_OIDC_CLIENT_ID__').join(OIDC_CLIENT_ID);
 
 // Known safe patterns that aren't config placeholders
 // __PURE__ is a tree-shaking comment used by bundlers

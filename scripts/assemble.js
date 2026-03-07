@@ -15,7 +15,8 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { createBackup } from './lib/backup.js';
-import { loadEnvFile, validateOIDCAuthority, populateConnectConfig } from './lib/env-utils.js';
+import { loadEnvFile, populateConnectConfig } from './lib/env-utils.js';
+import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from './lib/auth-constants.js';
 import { APP_PLACEHOLDER, validateAssembly, loadAndValidateTemplate } from './lib/assembly-utils.js';
 import { stripForTemplate } from './lib/strip-code.js';
 
@@ -47,21 +48,6 @@ async function main() {
   const outputDir = dirname(resolvedOutputPath);
   const envVars = loadEnvFile(outputDir);
 
-  // Validate OIDC credentials - fail fast if invalid
-  const hasValidConnect = validateOIDCAuthority(envVars.VITE_OIDC_AUTHORITY) &&
-                          envVars.VITE_API_URL;
-
-  if (!hasValidConnect) {
-    throw new Error(
-      'Valid OIDC credentials required.\n\n' +
-      'Expected in .env or registry:\n' +
-      '  VITE_OIDC_AUTHORITY=https://...\n' +
-      '  VITE_OIDC_CLIENT_ID=<client-id>\n' +
-      '  VITE_API_URL=https://...\n\n' +
-      'Deploy first to auto-configure Connect, or set up .env manually.'
-    );
-  }
-
   // Connect URLs are optional at assembly time — they'll be populated
   // by deploy-cloudflare.js on first deploy (alchemy + auto-reassembly).
   // If present, they'll be substituted; if absent, placeholders become empty strings.
@@ -79,6 +65,10 @@ async function main() {
   // Assemble: insert app code at placeholder, then populate Connect config
   let output = template.replace(APP_PLACEHOLDER, cleanedAppCode);
   output = populateConnectConfig(output, envVars);
+
+  // Inject hardcoded OIDC constants (same for every app)
+  output = output.replace('__VITE_OIDC_AUTHORITY__', OIDC_AUTHORITY);
+  output = output.replace('__VITE_OIDC_CLIENT_ID__', OIDC_CLIENT_ID);
 
   // Validate output
   const validationErrors = validateAssembly(output, appCode);
