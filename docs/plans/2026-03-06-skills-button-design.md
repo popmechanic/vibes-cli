@@ -12,7 +12,7 @@ The feature follows the same pattern as the existing animation system:
 Server: discover skills on startup → serve catalog via HTTP endpoint
 Client: Skills button → modal with cards → select → badge appears
 Client: sendMessage() includes skillId in payload
-Server: chat handler reads SKILL.md content, prepends to Claude prompt
+Server: chat handler reads SKILL.md content, prepends to Claude prompt with environment preamble
 ```
 
 ### Key Design Decisions
@@ -22,6 +22,9 @@ Server: chat handler reads SKILL.md content, prepends to Claude prompt
 3. The Skills button goes in the left button group alongside `refBtn`, `modelBtn`, `imggenBtn`
 4. Skills are discovered at server startup by scanning `~/.claude/plugins/installed_plugins.json` and reading SKILL.md frontmatter from each plugin's install path
 5. The vibes plugin is excluded by matching on plugin name `"vibes"` from the installed_plugins.json key format `pluginName@marketplace`
+6. **Skill IDs are compound keys** (`pluginName/skillDirName`) to guarantee uniqueness across plugins that may share skill directory names
+7. **Skills directory is resolved from each plugin's `plugin.json`** via the `"skills"` field, falling back to `skills/` when absent. This handles plugins like `interface-design` that use `./.claude/skills` instead of the default.
+8. **Skill content is injected with an environment preamble** explaining the constrained tool set (`Read,Edit,Write,Glob,Grep`) so Claude understands which skill instructions it can and cannot follow in the web editor context
 
 ## Files to Modify
 
@@ -29,7 +32,7 @@ Server: chat handler reads SKILL.md content, prepends to Claude prompt
 |------|--------|
 | `scripts/server/config.js` | Add `discoverPluginSkills()` function; call from `loadConfig()` to populate `ctx.pluginSkills` |
 | `scripts/server/routes.js` | Add `GET /skills` route serving `ctx.pluginSkills` as JSON |
-| `scripts/server/handlers/chat.js` | Accept `skillId` param; read SKILL.md content; prepend as context block |
+| `scripts/server/handlers/chat.js` | Accept `skillId` param; read SKILL.md content; prepend as context block with environment preamble |
 | `scripts/server/ws-dispatch.js` | Pass `msg.skillId` through to `handleChat()` |
 | `skills/vibes/templates/editor.html` | Add Skills button, modal, badge, and JS logic (directly — not template-merged) |
 
@@ -43,28 +46,58 @@ Add a `discoverPluginSkills()` function that:
 
 1. Reads `~/.claude/plugins/installed_plugins.json`
 2. Iterates each plugin entry; skips any where the key starts with `vibes@` (our own plugin)
-3. For each plugin's `installPath`, scans `skills/*/SKILL.md` using `readdirSync` + `existsSync`
-4. Parses YAML frontmatter from each SKILL.md (everything between `---` delimiters) to extract `name`, `description`, and optionally `argument-hint`
-5. Returns an array of skill objects:
+3. For each plugin's `installPath`, reads `.claude-plugin/plugin.json` to resolve the skills directory:
+   - If `plugin.json` has a `"skills"` field (e.g., `"./.claude/skills"`), resolve it relative to the install path
+   - If `"skills"` is absent or `plugin.json` doesn't exist, fall back to `skills/` under the install path
+4. Scans `${resolvedSkillsDir}/*/SKILL.md` using `readdirSync` + `existsSync`
+5. Parses YAML frontmatter from each SKILL.md (everything between `---` delimiters) to extract `name`, `description`, and optionally `argument-hint`
+6. Returns an array of skill objects with compound IDs:
 
 ```js
 {
-  id: 'systematic-debugging',           // skill directory name
-  name: 'systematic-debugging',         // from frontmatter
+  id: 'superpowers/systematic-debugging',  // compound: pluginName/skillDirName
+  name: 'systematic-debugging',            // from frontmatter
   description: 'Use when encountering any bug...', // from frontmatter
-  pluginName: 'superpowers',           // from installed_plugins key
-  marketplace: 'claude-plugins-official', // from installed_plugins key
+  pluginName: 'superpowers',               // from installed_plugins key
+  marketplace: 'claude-plugins-official',  // from installed_plugins key
   skillMdPath: '/Users/.../skills/systematic-debugging/SKILL.md'  // absolute path for reading content later
 }
 ```
 
 Call `discoverPluginSkills()` from `loadConfig()` and store result as `ctx.pluginSkills`. Log count: `console.log(\`Skills: ${ctx.pluginSkills.length} discovered\`)`.
 
+**Skills directory resolution logic:**
+```js
+function resolveSkillsDir(installPath) {
+  const pluginJsonPath = join(installPath, '.claude-plugin', 'plugin.json');
+  if (existsSync(pluginJsonPath)) {
+    try {
+      const pluginJson = JSON.parse(readFileSync(pluginJsonPath, 'utf-8'));
+      if (pluginJson.skills) {
+        // Resolve relative path (e.g., "./.claude/skills") against install root
+        return join(installPath, pluginJson.skills);
+      }
+    } catch { /* fall through to default */ }
+  }
+  return join(installPath, 'skills');
+}
+```
+
 **YAML frontmatter parsing:** Simple regex extraction — no dependency needed. Pattern:
 ```js
 const fm = content.match(/^---\n([\s\S]*?)\n---/);
 // Then extract name/description with line-level regex
 ```
+
+**Compound ID construction:**
+```js
+// pluginKey is e.g. "superpowers@claude-plugins-official"
+const [pluginName, marketplace] = pluginKey.split('@');
+// skillDir is the directory name under the resolved skills path
+const id = `${pluginName}/${skillDir}`;
+```
+
+This prevents collisions when multiple plugins have skills with the same directory name (e.g., two plugins both having a `debugging/` skill directory).
 
 ### Step 2: Server — HTTP Endpoint (`scripts/server/routes.js`)
 
@@ -99,18 +132,32 @@ export async function handleChat(ctx, onEvent, message, effects, animationId, mo
 ```
 
 When `skillId` is provided:
-1. Find the skill in `ctx.pluginSkills` by id
+1. Find the skill in `ctx.pluginSkills` by id (compound key match)
 2. Read the SKILL.md file from `skill.skillMdPath`
-3. Prepend the content as a context block before the main prompt, similar to how animation instructions are prepended:
+3. Truncate content to 30KB if larger
+4. Prepend the content as a context block before the main prompt, with an **environment preamble** that explains the constrained tool set:
 
 ```js
 let skillBlock = '';
 if (skillId) {
   const skill = (ctx.pluginSkills || []).find(s => s.id === skillId);
   if (skill && existsSync(skill.skillMdPath)) {
-    const skillContent = readFileSync(skill.skillMdPath, 'utf-8');
+    let skillContent = readFileSync(skill.skillMdPath, 'utf-8');
+    // Truncate very large SKILL.md files
+    if (skillContent.length > 30000) {
+      skillContent = skillContent.slice(0, 30000) + '\n\n[... truncated — skill content exceeded 30KB ...]';
+    }
     skillBlock = `\n\nSKILL CONTEXT: "${skill.name}" (from ${skill.pluginName} plugin)
-The user selected this skill to guide your approach. Follow its instructions carefully.
+The user selected this skill to guide your approach.
+
+IMPORTANT — ENVIRONMENT CONSTRAINTS:
+You are running inside the Vibes web editor, which is a constrained environment.
+Your available tools are ONLY: Read, Edit, Write, Glob, Grep.
+You do NOT have access to: Bash, shell commands, terminal, Task/Agent spawning, or any other tools.
+Your working directory is the app project root. You are editing a React JSX app (app.jsx).
+If the skill instructions below reference bash commands, spawning agents, running tests,
+or using tools you don't have, adapt the guidance to what you CAN do — focus on the
+conceptual approach and any code patterns the skill recommends.
 
 ${skillContent}
 
@@ -191,7 +238,9 @@ Reuses animation modal CSS classes for visual consistency.
 
 #### 5e: JavaScript — Skills logic
 
-Add in the `<script>` block, after the animation section (around line 4512):
+Add in the `<script>` block, after the animation section (around line 4512).
+
+Note: skill IDs are compound keys containing `/` (e.g., `superpowers/systematic-debugging`). The `onclick` handlers must use `data-skill-id` attributes rather than inline string interpolation to avoid escaping issues.
 
 ```js
 // === Skills ===
@@ -238,7 +287,7 @@ function renderSkillPluginTabs() {
   const tabs = document.getElementById('skillPluginTabs');
   const plugins = ['All', ...new Set(allSkills.map(s => s.pluginName))];
   tabs.innerHTML = plugins.map(p =>
-    `<button class="anim-category-tab${p === activeSkillPlugin ? ' active' : ''}" onclick="filterSkillsByPlugin('${p}')">${p}</button>`
+    `<button class="anim-category-tab${p === activeSkillPlugin ? ' active' : ''}" onclick="filterSkillsByPlugin('${escapeHtml(p)}')">${escapeHtml(p)}</button>`
   ).join('');
 }
 
@@ -262,7 +311,7 @@ function renderSkillGrid() {
   grid.innerHTML = filtered.map(s => {
     const isActive = activeSkillId === s.id;
     const activeStyle = isActive ? 'border-color:var(--vibes-blue);box-shadow:4px 4px 0px 0px var(--vibes-blue), 4px 4px 0px 2px var(--vibes-near-black);' : '';
-    return `<div class="anim-card" style="${activeStyle}" onclick="selectSkill('${s.id}')">
+    return `<div class="anim-card" style="${activeStyle}" data-skill-id="${escapeHtml(s.id)}" onclick="selectSkill(this.dataset.skillId)">
       <div class="anim-card-info" style="padding:0.75rem;">
         <div class="anim-card-name">${escapeHtml(s.name)}</div>
         <div class="anim-card-desc">${escapeHtml(s.description || '')}</div>
@@ -319,18 +368,22 @@ if (activeSkillId) clearSkill();
 
 1. Start editor server: `node scripts/preview-server.js --mode=editor`
 2. Verify `/skills` endpoint returns JSON array of skills (excluding vibes plugin skills)
-3. Verify Skills button appears in composer (or is hidden if no skills installed)
-4. Click Skills button → modal opens with cards grouped by plugin
-5. Select a skill → badge appears, modal closes
-6. Send a message → check server console for SKILL CONTEXT block in the prompt
-7. After send, badge auto-clears
-8. Clear button on badge works
+3. Verify skill IDs are compound keys (e.g., `superpowers/systematic-debugging`, not just `systematic-debugging`)
+4. Verify plugins with custom `"skills"` paths in plugin.json are discovered (e.g., `interface-design`)
+5. Verify Skills button appears in composer (or is hidden if no skills installed)
+6. Click Skills button → modal opens with cards grouped by plugin
+7. Select a skill → badge appears, modal closes
+8. Send a message → check server console for SKILL CONTEXT block with environment preamble in the prompt
+9. After send, badge auto-clears
+10. Clear button on badge works
 
 ### Unit Test Considerations
 
 - `discoverPluginSkills()` can be tested in isolation by mocking the filesystem
+- `resolveSkillsDir()` should be tested with: no plugin.json, plugin.json without skills field, plugin.json with custom skills path
 - YAML frontmatter parsing can be tested with sample SKILL.md content
 - The `/skills` endpoint handler can be tested with a mock `ctx`
+- Compound ID generation should be tested for uniqueness across plugins with same-named skill directories
 
 ## Risks and Mitigations
 
@@ -341,6 +394,10 @@ if (activeSkillId) clearSkill();
 | Plugin install paths stale/missing | `existsSync` check before reading; skip missing |
 | No plugins installed | Hide Skills button entirely when catalog is empty |
 | SKILL.md has no frontmatter | Use directory name as fallback `name`; empty `description` |
+| Skill ID collisions across plugins | Compound key `pluginName/skillDir` guarantees uniqueness |
+| Plugins using custom skills directory paths | Read `plugin.json` `"skills"` field; fall back to `skills/` |
+| Skill instructions reference unavailable tools (Bash, Agent, etc.) | Environment preamble tells Claude which tools are available and to adapt instructions accordingly |
+| Compound IDs contain `/` causing HTML/JS escaping issues | Use `data-skill-id` attribute + `dataset.skillId` instead of inline string interpolation in onclick handlers |
 
 ## Visual Design
 
