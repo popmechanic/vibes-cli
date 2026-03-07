@@ -305,7 +305,7 @@ const templateConstants = ['CLERK_PUBLISHABLE_KEY', 'APP_NAME', 'APP_DOMAIN', 'B
 let appCode = stripForTemplate(readFileSync(resolvedAppPath, 'utf8'), templateConstants);
 
 // Check if app uses hardcoded database name
-const firepoolMatch = appCode.match(/useFireproofClerk\s*\(\s*["']([^"']+)["']\s*\)/);
+const firepoolMatch = appCode.match(/useFireproof(?:Clerk)?\s*\(\s*["']([^"']+)["']\s*\)/)
 if (firepoolMatch) {
   const originalDbName = firepoolMatch[1];
   console.log(`Note: Found hardcoded database name "${originalDbName}".`);

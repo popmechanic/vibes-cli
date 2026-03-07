@@ -33,6 +33,41 @@ function run(cmd, options = {}) {
 }
 
 /**
+ * Run a wrangler command with retry for transient API failures.
+ * Returns stdout string. Throws on persistent or auth failures.
+ */
+function wranglerExec(cmd, options = {}) {
+  const execOpts = {
+    cwd: WORKER_DIR,
+    encoding: "utf8",
+    stdio: ["pipe", "pipe", "pipe"],
+    ...options,
+  };
+  const maxRetries = 2;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return execSync(cmd, execOpts);
+    } catch (e) {
+      const stderr = e.stderr || e.message || String(e);
+      // Auth failures won't resolve with retries
+      if (/authentication|code:\s*10000/i.test(stderr)) {
+        throw new Error(
+          `Wrangler authentication failed. Run "npx wrangler login" to re-authenticate.\n` +
+          `Details: ${stderr.slice(0, 200)}`
+        );
+      }
+      if (attempt < maxRetries) {
+        const waitMs = (attempt + 1) * 2000;
+        console.warn(`  Wrangler command failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${waitMs / 1000}s...`);
+        execSync(`sleep ${waitMs / 1000}`);
+        continue;
+      }
+      throw e;
+    }
+  }
+}
+
+/**
  * Recursively copy a directory
  */
 // Extensions to skip when copying assets to the worker's public dir
@@ -300,12 +335,7 @@ async function main() {
   const kvName = `${name}-registry`;
   let kvId;
   try {
-    // List existing KV namespaces to check if one already exists for this app
-    const listOutput = execSync("npx wrangler kv namespace list", {
-      cwd: WORKER_DIR,
-      encoding: "utf8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    const listOutput = wranglerExec("npx wrangler kv namespace list");
     const namespaces = JSON.parse(listOutput);
     const existing = namespaces.find((ns) => ns.title === kvName);
     if (existing) {
@@ -313,23 +343,40 @@ async function main() {
       console.log(`  Found existing KV namespace: ${kvName} (${kvId})`);
     }
   } catch (e) {
-    // List failed, will create new
+    // wranglerExec already throws on auth errors with a clear message
+    if (/authentication/i.test(e.message)) throw e;
+    console.warn(`  Warning: Could not list KV namespaces. Will attempt to create.`);
   }
 
   if (!kvId) {
     console.log(`  Creating KV namespace: ${kvName}`);
-    const createOutput = execSync(`npx wrangler kv namespace create "${kvName}"`, {
-      cwd: WORKER_DIR,
-      encoding: "utf8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    // Parse the namespace ID from the output (JSON format: "id": "..." or TOML format: id = "...")
-    const idMatch = createOutput.match(/"id"\s*:\s*"([^"]+)"/) || createOutput.match(/id\s*=\s*"([^"]+)"/);
-    if (!idMatch) {
-      throw new Error(`Failed to parse KV namespace ID from output: ${createOutput}`);
+    try {
+      const createOutput = wranglerExec(`npx wrangler kv namespace create "${kvName}"`);
+      const idMatch = createOutput.match(/"id"\s*:\s*"([^"]+)"/) || createOutput.match(/id\s*=\s*"([^"]+)"/);
+      if (!idMatch) {
+        throw new Error(`Failed to parse KV namespace ID from output: ${createOutput}`);
+      }
+      kvId = idMatch[1];
+      console.log(`  Created KV namespace: ${kvName} (${kvId})`);
+    } catch (e) {
+      // wranglerExec already throws on auth errors with a clear message
+      if (/authentication/i.test(e.message)) throw e;
+      const stderr = e.stderr || e.message || String(e);
+      if (/already exists/i.test(stderr)) {
+        console.log(`  Namespace "${kvName}" already exists. Retrying lookup...`);
+        const retryOutput = wranglerExec("npx wrangler kv namespace list");
+        const retryNs = JSON.parse(retryOutput);
+        const found = retryNs.find((ns) => ns.title === kvName);
+        if (found) {
+          kvId = found.id;
+          console.log(`  Found existing KV namespace: ${kvName} (${kvId})`);
+        } else {
+          throw new Error(`KV namespace "${kvName}" reportedly exists but was not found in namespace list.`);
+        }
+      } else {
+        throw new Error(`Failed to create KV namespace "${kvName}": ${stderr.slice(0, 300)}`);
+      }
     }
-    kvId = idMatch[1];
-    console.log(`  Created KV namespace: ${kvName} (${kvId})`);
   }
 
   // Rewrite wrangler.toml with the per-app KV namespace ID and billing mode

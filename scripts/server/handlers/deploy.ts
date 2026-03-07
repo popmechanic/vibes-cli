@@ -1,21 +1,28 @@
 /**
  * Deploy handlers — assemble + deploy to Cloudflare.
+ * Uses Bun.spawn for subprocess management.
  */
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { spawn } from 'child_process';
 import { getCloudflareConfig } from '../../lib/registry.js';
 import { currentAppDir } from '../app-context.js';
+import { runBunScript, type EventCallback } from '../claude-bridge.ts';
+import type { ServerContext } from '../config.ts';
 
 /**
- * Build a process.env copy with Cloudflare registry credentials injected.
- * Used only by the deploy subprocess (not assembly).
+ * Build env for the deploy subprocess.
+ * Only injects registry credentials if wrangler's own OAuth config is missing.
+ * This prevents stale API tokens from overriding a valid `npx wrangler login` session.
  */
-function getRegistryEnv() {
-  const env = { ...process.env };
+function getRegistryEnv(): Record<string, string> {
+  const env = { ...process.env } as Record<string, string>;
+  // If wrangler already has OAuth credentials, don't inject registry tokens
+  const hasWranglerOAuth = existsSync(join(process.env.HOME || '', '.wrangler', 'config', 'default.toml'));
+  if (hasWranglerOAuth && !env.CLOUDFLARE_API_TOKEN && !env.CLOUDFLARE_API_KEY) {
+    return env;
+  }
   const cf = getCloudflareConfig();
-  // Only inject the active auth method — API Token takes precedence
   if (cf.apiToken) {
     if (!env.CLOUDFLARE_API_TOKEN) env.CLOUDFLARE_API_TOKEN = cf.apiToken;
   } else {
@@ -25,10 +32,12 @@ function getRegistryEnv() {
   return env;
 }
 
-/**
- * Assemble and deploy an app to Cloudflare.
- */
-export async function handleDeploy(ctx, onEvent, target, name) {
+export async function handleDeploy(
+  ctx: ServerContext,
+  onEvent: EventCallback,
+  target: string,
+  name: string,
+): Promise<void> {
   if (!target || target !== 'cloudflare') {
     onEvent({ type: 'error', message: 'Invalid deploy target. Use "cloudflare".' });
     return;
@@ -43,7 +52,6 @@ export async function handleDeploy(ctx, onEvent, target, name) {
   const startTime = Date.now();
   function getElapsed() { return Math.round((Date.now() - startTime) / 1000); }
 
-  // First assemble
   onEvent({ type: 'progress', progress: 5, stage: 'Assembling app...', elapsed: 0 });
 
   const appDir = currentAppDir(ctx);
@@ -54,29 +62,11 @@ export async function handleDeploy(ctx, onEvent, target, name) {
   const appJsxPath = join(appDir, 'app.jsx');
   const indexHtmlPath = join(appDir, 'index.html');
 
-  const assembleResult = await new Promise((resolve) => {
-    const child = spawn('node', [
-      join(ctx.projectRoot, 'scripts/assemble.js'),
-      appJsxPath,
-      indexHtmlPath,
-    ], {
-      cwd: ctx.projectRoot,
-      env: { ...process.env },
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (d) => { stdout += d.toString(); });
-    child.stderr.on('data', (d) => { stderr += d.toString(); });
-
-    child.on('close', (code) => {
-      resolve({ ok: code === 0, stdout, stderr });
-    });
-    child.on('error', (err) => {
-      resolve({ ok: false, stdout: '', stderr: err.message });
-    });
-  });
+  const assembleResult = await runBunScript(
+    join(ctx.projectRoot, 'scripts/assemble.js'),
+    [appJsxPath, indexHtmlPath],
+    { cwd: ctx.projectRoot },
+  );
 
   if (!assembleResult.ok) {
     onEvent({ type: 'error', message: `Assembly failed: ${assembleResult.stderr.slice(0, 300)}` });
@@ -99,6 +89,11 @@ export async function handleDeploy(ctx, onEvent, target, name) {
       if (bodyBgMatch) bgColor = bodyBgMatch[1].trim();
     }
 
+    // Sanitize bgColor — reject characters that could break out of CSS value context
+    if (bgColor && /[;{}]/.test(bgColor)) {
+      console.warn(`[Deploy] Rejected suspicious bgColor value: ${bgColor.slice(0, 50)}`);
+      bgColor = '';
+    }
     const bg = bgColor || 'inherit';
 
     const headPatch = `<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -117,7 +112,7 @@ export async function handleDeploy(ctx, onEvent, target, name) {
 
     writeFileSync(indexHtmlPath, html);
     console.log('[Deploy] Patched body::before background' + (bgColor ? `: ${bgColor}` : ''));
-  } catch (e) {
+  } catch (e: any) {
     console.error('[Deploy] Patch failed:', e.message);
   }
 
@@ -126,50 +121,31 @@ export async function handleDeploy(ctx, onEvent, target, name) {
   const deployScript = join(ctx.projectRoot, 'scripts/deploy-cloudflare.js');
   const deployArgs = ['--name', appName, '--file', indexHtmlPath];
 
-  const deployResult = await new Promise((resolve) => {
-    const child = spawn('node', [deployScript, ...deployArgs], {
-      cwd: ctx.projectRoot,
-      env: getRegistryEnv(),
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+  // Progress updates during deploy
+  const progressInterval = setInterval(() => {
+    const elapsed = getElapsed();
+    const progress = Math.min(30 + Math.round(60 * (1 - Math.exp(-elapsed / 30))), 90);
+    onEvent({ type: 'progress', progress, stage: 'Deploying...', elapsed });
+  }, 1000);
 
-    let stdout = '';
-    let stderr = '';
-
-    const progressInterval = setInterval(() => {
-      const elapsed = getElapsed();
-      const progress = Math.min(30 + Math.round(60 * (1 - Math.exp(-elapsed / 30))), 90);
-      onEvent({ type: 'progress', progress, stage: 'Deploying...', elapsed });
-    }, 1000);
-
-    child.stdout.on('data', (d) => { stdout += d.toString(); });
-    child.stderr.on('data', (d) => { stderr += d.toString(); });
-
-    child.on('close', (code) => {
-      clearInterval(progressInterval);
-      resolve({ ok: code === 0, stdout, stderr });
-    });
-    child.on('error', (err) => {
-      clearInterval(progressInterval);
-      resolve({ ok: false, stdout: '', stderr: err.message });
-    });
+  const deployResult = await runBunScript(deployScript, deployArgs, {
+    cwd: ctx.projectRoot,
+    env: getRegistryEnv(),
   });
+
+  clearInterval(progressInterval);
 
   if (!deployResult.ok) {
     onEvent({ type: 'error', message: `Deploy failed: ${deployResult.stderr.slice(0, 600)}` });
     return;
   }
 
-  // Extract the APP URL from deploy output (not Connect infrastructure URLs).
-  // deploy-cloudflare.js prints "✅ Deployed to <url>" as its final URL line —
-  // match that specifically. Fall back to the last URL in stdout if the pattern
-  // isn't found (e.g. future output changes).
+  // Extract deploy URL
   let deployUrl = '';
   const deployedToMatch = deployResult.stdout.match(/Deployed to\s+(https?:\/\/[^\s]+)/);
   if (deployedToMatch) {
     deployUrl = deployedToMatch[1];
   } else {
-    // Fallback: grab the last URL in stdout (app URL is always printed last)
     const allUrls = [...deployResult.stdout.matchAll(/(https?:\/\/[^\s]+)/g)];
     if (allUrls.length) deployUrl = allUrls[allUrls.length - 1][1];
   }

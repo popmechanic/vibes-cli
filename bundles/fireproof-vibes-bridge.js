@@ -8,6 +8,8 @@
  *   3. dashApi patching -> routes ensureCloudToken to correct per-database ledger
  *   4. Invite auto-redemption -> reads ?invite= URL param
  *   5. onTock kick -> polls allDocs() after sync, fires noPayloadWatchers
+ *   6. useFireproof export -> local-only passthrough from use-fireproof-core@0.24.12
+ *      (version must match what @necrodome/fireproof-clerk@0.0.7 uses internally)
  *
  * Import map: "use-fireproof" -> this file
  *             "@fireproof/clerk" -> esm.sh (raw package)
@@ -16,21 +18,25 @@
 import React from "react";
 export * from "@fireproof/clerk";
 import { useFireproofClerk as _originalUseFireproofClerk, useClerkFireproofContext } from "@fireproof/clerk";
-import { useFireproof as _useFireproof } from "use-fireproof-core";
+import { useFireproof as _coreUseFireproof } from "use-fireproof-core";
 
 var _patchedApis = typeof WeakSet !== 'undefined' ? new WeakSet() : { has: function(){return false;}, add: function(){} };
 var _currentDbName = null;
 
-// Determined at module load — constant for the session, so hooks order is stable
+// Determined at module load — constant for the session, so hooks order is stable.
+// Must check BOTH Clerk key AND Connect URLs to match the template's hasConnect guard.
+// Without Connect URLs, ClerkFireproofProvider isn't rendered, so useClerkFireproofContext throws.
 var _config = typeof window !== 'undefined' && window.__VIBES_CONFIG__;
-var _hasClerk = !!(_config && _config.clerkPublishableKey &&
-  !_config.clerkPublishableKey.startsWith('__'));
+var _hasClerkAndConnect = !!(_config && _config.clerkPublishableKey &&
+  !_config.clerkPublishableKey.startsWith('__') &&
+  _config.tokenApiUri && !_config.tokenApiUri.startsWith('__') &&
+  _config.cloudBackendUrl && !_config.cloudBackendUrl.startsWith('__'));
 
 export function useFireproofClerk(name, opts) {
-  // Local-only mode: no Clerk key configured, use plain Fireproof (no sync)
-  if (!_hasClerk) {
+  // Local-only mode: Clerk or Connect not configured, use plain Fireproof (no sync)
+  if (!_hasClerkAndConnect) {
     _currentDbName = name;
-    return _useFireproof(name, opts);
+    return _coreUseFireproof(name, opts);
   }
 
   var ctx = useClerkFireproofContext();
@@ -228,4 +234,11 @@ export function useFireproofClerk(name, opts) {
   }, [syncVal, result.database]);
 
   return result;
+}
+
+// Local-only Fireproof fallback — no sync, no auth, no onTock kick.
+// Available for apps that don't need Clerk auth/sync.
+// Also provides backward compatibility for apps using the deprecated import name.
+export function useFireproof(name, opts) {
+  return _coreUseFireproof(name, opts);
 }

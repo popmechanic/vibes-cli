@@ -3,7 +3,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     // ESM support
-    include: ['__tests__/**/*.test.js'],
+    include: ['__tests__/**/*.test.{js,ts}'],
 
     // Environment
     environment: 'node',
@@ -15,7 +15,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      include: ['*.js', 'lib/**/*.js'],
+      include: ['*.js', '*.ts', 'lib/**/*.js', 'server/**/*.ts'],
       exclude: ['__tests__/**', 'vitest.config.js']
     },
 

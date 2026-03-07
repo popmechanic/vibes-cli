@@ -8,7 +8,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
-const CSS_UNICODE_MAP = {
+const CSS_UNICODE_MAP: Record<string, string> = {
   '2192': '\u2192', // →
   '2190': '\u2190', // ←
   '2191': '\u2191', // ↑
@@ -37,9 +37,9 @@ const CSS_UNICODE_MAP = {
 /**
  * Replace CSS unicode escapes in content: properties with actual Unicode chars.
  */
-export function sanitizeCssEscapes(code) {
+export function sanitizeCssEscapes(code: string): string {
   return code.replace(/(content\s*:\s*['"])([^'"]*\\[0-9a-fA-F]{2,6}[^'"]*?)(['"])/g, (full, pre, inner, post) => {
-    const replaced = inner.replace(/\\([0-9a-fA-F]{2,6})/g, (esc, hex) => {
+    const replaced = inner.replace(/\\([0-9a-fA-F]{2,6})/g, (esc: string, hex: string) => {
       const upper = hex.toUpperCase().replace(/^0+/, '') || '0';
       const padded = upper.padStart(4, '0');
       if (CSS_UNICODE_MAP[padded]) return CSS_UNICODE_MAP[padded];
@@ -66,7 +66,7 @@ export function stripRedeclaredGlobals(code) {
  * Sanitize app.jsx: fix CSS unicode escapes and strip redeclared globals.
  * Shared post-processing step used by multiple handlers.
  */
-export function sanitizeAppJsx(projectRoot) {
+export function sanitizeAppJsx(projectRoot: string): void {
   const appPath = join(projectRoot, 'app.jsx');
   if (!existsSync(appPath)) return;
   let code = readFileSync(appPath, 'utf-8');
