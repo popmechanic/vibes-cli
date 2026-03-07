@@ -1,7 +1,7 @@
 // Auto-generated vibes menu components
 // Run: node scripts/build-components.js --force to regenerate
 // Source: components/
-// Generated: 2026-02-18T20:07:54.489Z
+// Generated: 2026-03-07T11:10:48.018Z
 // Components: 26/26
 
 // === useMobile ===
