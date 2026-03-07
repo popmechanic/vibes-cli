@@ -36,6 +36,7 @@ export interface JWTPayload {
 export interface SubdomainRecord {
   owner: string;
   collaborators?: Array<{ userId: string; email?: string; role?: string }>;
+  connectProvisioned?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }

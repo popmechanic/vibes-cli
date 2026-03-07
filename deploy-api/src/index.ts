@@ -324,7 +324,7 @@ app.post("/deploy", async (c) => {
   const now = new Date().toISOString();
   const record: SubdomainRecord = existing
     ? { ...existing, updatedAt: now }
-    : { owner: userId, createdAt: now, updatedAt: now };
+    : { owner: userId, collaborators: [], connectProvisioned: false, createdAt: now, updatedAt: now };
   await setSubdomain(c.env.REGISTRY_KV, name, record);
 
   // Update user mapping (append if new)
@@ -338,6 +338,19 @@ app.post("/deploy", async (c) => {
 
   const response: DeployResponse = { ok: true, url: result.url, name };
   return c.json(response);
+});
+
+// Status endpoint — returns deploy + Connect provisioning status
+app.get("/status/:name", async (c) => {
+  const name = c.req.param("name");
+  const record = await getSubdomain(c.env.REGISTRY_KV, name);
+  if (!record) return c.json({ exists: false }, 404);
+  return c.json({
+    exists: true,
+    owner: record.owner,
+    connectProvisioned: record.connectProvisioned ?? false,
+    updatedAt: record.updatedAt,
+  });
 });
 
 export default app;
