@@ -101,6 +101,8 @@ export function loadConfig() {
     appsDir,
     themeDir,
     animationDir,
+    currentApp: null,
+    backupTimestamps: {},
   };
 }
 
