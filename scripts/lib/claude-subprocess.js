@@ -46,8 +46,9 @@ export function buildClaudeArgs(config = {}) {
   args.push('--output-format', format);
 
   // --verbose is required when using stream-json output
+  // --include-partial-messages gives granular events during thinking
   if (format === 'stream-json') {
-    args.push('--verbose');
+    args.push('--verbose', '--include-partial-messages');
   }
 
   if (config.tools) {

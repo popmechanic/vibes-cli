@@ -62,6 +62,7 @@ export async function runClaude(prompt, opts = {}, onEvent) {
     let hasEdited = false;
     let hitRateLimit = false;
     let errorSent = false;
+    let tokenChars = 0;
     const startTime = Date.now();
     let lastStdoutTime = Date.now();
     let killedByTimeout = false;
@@ -127,6 +128,7 @@ export async function runClaude(prompt, opts = {}, onEvent) {
           }
         }
       } else if (event.type === 'stream_event' && event.event?.delta?.text) {
+        tokenChars += event.event.delta.text.length;
         onEvent({ type: 'token', text: event.event.delta.text });
       } else if (event.type === 'tool_result') {
         const content = typeof event.content === 'string'
@@ -164,9 +166,14 @@ export async function runClaude(prompt, opts = {}, onEvent) {
 
     child.stderr.on('data', (data) => { stderr += data.toString(); });
 
-    const SILENCE_SOFT = 45_000;   // gentle hint
-    const SILENCE_WARN = 90_000;   // explicit warning
     const SILENCE_HARD = 300_000;  // safety net kill
+
+    function formatTokens() {
+      if (tokenChars === 0) return '';
+      const estimated = tokenChars / 4;
+      if (estimated < 100) return ` • ~${Math.round(estimated)} tokens`;
+      return ` • ~${(Math.round(estimated / 100) / 10).toFixed(1)}k tokens`;
+    }
 
     const progressInterval = setInterval(() => {
       if (!activeClaude) return;
@@ -178,12 +185,9 @@ export async function runClaude(prompt, opts = {}, onEvent) {
         setTimeout(() => { if (activeClaude === child) child.kill('SIGKILL'); }, 5000);
         return;
       }
-      const silenceOverride = silentFor >= SILENCE_WARN
-        ? { stage: `No activity for ${Math.round(silentFor / 1000)}s — click Cancel to retry` }
-        : silentFor >= SILENCE_SOFT
-        ? { stage: 'Waiting for response...' }
-        : {};
-      sendProgress(silenceOverride);
+      const { stage } = calcProgress();
+      const tokenSuffix = formatTokens();
+      sendProgress({ stage: stage + tokenSuffix });
     }, 1000);
 
     child.on('close', (code) => {
