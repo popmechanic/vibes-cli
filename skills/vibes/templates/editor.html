@@ -4572,7 +4572,7 @@
     grid.innerHTML = filtered.map(s => {
       const isActive = activeSkillId === s.id;
       const activeStyle = isActive ? 'border-color:var(--vibes-blue);box-shadow:4px 4px 0px 0px var(--vibes-blue), 4px 4px 0px 2px var(--vibes-near-black);' : '';
-      return `<div class="anim-card" style="${activeStyle}" data-skill-id="${escapeHtml(s.id)}" onclick="selectSkill(this.dataset.skillId)">
+      return `<div class="anim-card" style="${activeStyle}" data-skill-id="${escapeHtml(s.id)}">
         <div class="anim-card-info" style="padding:0.75rem;">
           <div class="anim-card-name">${escapeHtml(s.name)}</div>
           <div class="anim-card-desc">${escapeHtml(s.description || '')}</div>
@@ -4580,6 +4580,10 @@
         </div>
       </div>`;
     }).join('');
+
+    grid.querySelectorAll('.anim-card[data-skill-id]').forEach(card => {
+      card.addEventListener('click', () => selectSkill(card.dataset.skillId));
+    });
   }
 
   function selectSkill(id) {

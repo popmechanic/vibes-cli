@@ -201,7 +201,7 @@ ${extractDataSchema(pass1Code)}`;
     });
   } else {
     console.log(`[ThemeSwitch] Pass 2 validated — non-theme content unchanged`);
-    sanitizeAppJsx(ctx.projectRoot);
+    sanitizeAppJsx(currentAppDir(ctx) || ctx.projectRoot);
   }
 }
 
@@ -266,7 +266,7 @@ KEEP UNCHANGED:
   console.log(`[ThemeSwitch] Legacy mode for "${themeName}" (${themeId}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
   await runClaude(prompt, { skipChat: true, maxTurns: 8, model, cwd: currentAppDir(ctx), tools: 'Read,Edit' }, onEvent);
 
-  sanitizeAppJsx(ctx.projectRoot);
+  sanitizeAppJsx(currentAppDir(ctx) || ctx.projectRoot);
 }
 
 /**

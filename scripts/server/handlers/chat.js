@@ -199,5 +199,5 @@ RULES:
   const maxTurns = (animationId || effects.length > 0 || reference || skillId) ? 12 : 8;
   await runClaude(prompt, { maxTurns, model, cwd: currentAppDir(ctx) || ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent);
 
-  sanitizeAppJsx(ctx.projectRoot);
+  sanitizeAppJsx(currentAppDir(ctx) || ctx.projectRoot);
 }

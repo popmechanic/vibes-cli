@@ -3,7 +3,7 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, renameSync, rmSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { loadEnvFile, validateClerkKey, validateClerkSecretKey, extractClerkDomain, writeEnvFile } from '../../lib/env-utils.js';
 import { loadOpenRouterKey } from '../config.js';
 import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp } from '../../lib/registry.js';
@@ -666,8 +666,9 @@ export function renameApp(ctx, req, res, url) {
   const from = sanitizeAppName(params.get('from'));
   const to = sanitizeAppName(params.get('to'));
   if (!from || !to) { res.writeHead(400); return res.end('Missing from or to'); }
-  const srcDir = join(ctx.appsDir, from);
-  const destDir = join(ctx.appsDir, to);
+  const srcDir = resolve(ctx.appsDir, from);
+  const destDir = resolve(ctx.appsDir, to);
+  if (!srcDir.startsWith(ctx.appsDir) || !destDir.startsWith(ctx.appsDir)) { res.writeHead(400); return res.end('Invalid path'); }
   if (!existsSync(srcDir)) { res.writeHead(404); return res.end('Source app not found'); }
   if (existsSync(destDir)) { res.writeHead(409); return res.end('Destination name already exists'); }
   renameSync(srcDir, destDir);
@@ -680,7 +681,8 @@ export function deleteApp(ctx, req, res, url) {
   const params = url.searchParams;
   const name = sanitizeAppName(params.get('name'));
   if (!name) { res.writeHead(400); return res.end('Missing name'); }
-  const dir = join(ctx.appsDir, name);
+  const dir = resolve(ctx.appsDir, name);
+  if (!dir.startsWith(ctx.appsDir)) { res.writeHead(400); return res.end('Invalid path'); }
   if (!existsSync(dir)) { res.writeHead(404); return res.end('App not found'); }
   rmSync(dir, { recursive: true, force: true });
   if (ctx.currentApp === name) ctx.currentApp = null;
