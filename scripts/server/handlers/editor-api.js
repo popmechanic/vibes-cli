@@ -1,5 +1,9 @@
 /**
  * Editor API handlers — credentials, app CRUD, screenshots, status.
+ *
+ * NOTE: This file is the original Node.js version retained for integration tests
+ * (editor-api-cloudflare.test.js, wizard-flow.test.js). Production serving uses
+ * router.ts which has these functions ported inline with the Bun Response API.
  */
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync } from 'fs';

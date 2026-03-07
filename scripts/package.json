@@ -14,13 +14,10 @@
   },
   "dependencies": {
     "@babel/parser": "^7.26.0",
-    "esbuild": "^0.24.0",
-    "jsonwebtoken": "^9.0.2",
-    "svix": "^1.44.0"
+    "esbuild": "^0.24.0"
   },
   "devDependencies": {
     "@ipld/dag-json": "^10.2.6",
-    "@types/jsonwebtoken": "^9.0.7",
     "@vitest/coverage-v8": "^3.2.4",
     "multiformats": "^13.4.2",
     "vitest": "^3.0.0"

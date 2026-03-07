@@ -73,6 +73,11 @@ export async function handleDeploy(
       if (bodyBgMatch) bgColor = bodyBgMatch[1].trim();
     }
 
+    // Sanitize bgColor — reject characters that could break out of CSS value context
+    if (bgColor && /[;{}]/.test(bgColor)) {
+      console.warn(`[Deploy] Rejected suspicious bgColor value: ${bgColor.slice(0, 50)}`);
+      bgColor = '';
+    }
     const bg = bgColor || 'inherit';
 
     const headPatch = `<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">

@@ -116,6 +116,13 @@ Use oklch() for ALL color values.`;
     }
   });
 
+  // Start timeout BEFORE reading stdout so it fires even if the read loop hangs
+  const EXTRACT_TIMEOUT = 240_000;
+  const timeoutId = setTimeout(() => {
+    console.error(`[SaveTheme] Timeout after ${EXTRACT_TIMEOUT / 1000}s — killing subprocess`);
+    proc.kill('SIGTERM');
+  }, EXTRACT_TIMEOUT);
+
   const reader = proc.stdout.getReader();
   try {
     while (true) {
@@ -124,13 +131,6 @@ Use oklch() for ALL color values.`;
       parse(value);
     }
   } catch {}
-
-  // Timeout
-  const EXTRACT_TIMEOUT = 240_000;
-  const timeoutId = setTimeout(() => {
-    console.error(`[SaveTheme] Timeout after ${EXTRACT_TIMEOUT / 1000}s — killing subprocess`);
-    proc.kill('SIGTERM');
-  }, EXTRACT_TIMEOUT);
 
   const exitCode = await proc.exited;
   clearTimeout(timeoutId);

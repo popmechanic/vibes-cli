@@ -48,7 +48,7 @@ export async function waitForPort(port: number, attempts = 10): Promise<void> {
     } catch {
       return; // lsof error = no process = port is free
     }
-    await Bun.sleep(300);
+    await Bun.sleep(300); // Bun-specific — no Node.js equivalent; use setTimeout w/ promise for Node
   }
   throw new Error(`Port ${port} still in use after ${attempts} attempts`);
 }

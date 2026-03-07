@@ -31,7 +31,8 @@ export async function handleGenerate(
     return;
   }
 
-  if (!acquireLock('generate', () => {})) {
+  let cancelFn = () => {};
+  if (!acquireLock('generate', () => cancelFn())) {
     onEvent({ type: 'error', message: 'Another request is in progress. Please wait.' });
     return;
   }
@@ -225,6 +226,7 @@ DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}),
       model,
       cwd: ctx.projectRoot,
       tools: 'Write',
+      onCancel: (fn) => { cancelFn = fn; },
     }, wrappedOnEvent, ctx.projectRoot);
   } finally {
     hmr.stop();

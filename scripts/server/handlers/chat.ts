@@ -153,7 +153,8 @@ RULES:
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
 - Never change Fireproof document types or query filters`;
 
-  if (!acquireLock('chat', () => {})) {
+  let cancelFn = () => {};
+  if (!acquireLock('chat', () => cancelFn())) {
     onEvent({ type: 'error', message: 'Another request is in progress. Please wait.' });
     return;
   }
@@ -177,6 +178,7 @@ RULES:
       model,
       cwd: ctx.projectRoot,
       tools: 'Read,Edit,Write,Glob,Grep',
+      onCancel: (fn) => { cancelFn = fn; },
     }, wrappedOnEvent, ctx.projectRoot);
   } finally {
     hmr.stop();

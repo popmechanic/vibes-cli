@@ -412,6 +412,8 @@ export interface OneShotOpts {
   cwd?: string;
   skipChat?: boolean;
   permissionMode?: string;
+  /** Called with a cancel function once the subprocess is spawned. Wire to acquireLock. */
+  onCancel?: (cancelFn: () => void) => void;
 }
 
 export async function runOneShot(
@@ -443,6 +445,14 @@ export async function runOneShot(
 
   proc.stdin.write(prompt);
   proc.stdin.end();
+
+  // Register cancel callback so the operation lock can kill this subprocess
+  if (opts.onCancel) {
+    opts.onCancel(() => {
+      try { proc.kill('SIGTERM'); } catch {}
+      setTimeout(() => { try { proc.kill('SIGKILL'); } catch {} }, 5000);
+    });
+  }
 
   let stderrBuffer = '';
   let resultText = '';
@@ -615,6 +625,8 @@ export async function runOneShot(
 }
 
 // --- Bun script runner (for deploy subprocess spawning) ---
+// Requires `bun` on PATH. This is intentional — the server runs on Bun and all
+// scripts are invoked via `bun run` to drop the Node.js runtime dependency.
 
 interface SpawnOpts {
   cwd?: string;

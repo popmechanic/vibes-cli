@@ -46,7 +46,7 @@ async function start() {
 
       // WebSocket upgrade
       if (url.pathname === '/ws') {
-        const upgraded = server.upgrade(req, { data: { ctx, onEvent: () => {}, bridge: null } });
+        const upgraded = server.upgrade(req, { data: { ctx, onEvent: () => {} } });
         if (upgraded) return undefined as any;
         return new Response('WebSocket upgrade failed', { status: 400 });
       }

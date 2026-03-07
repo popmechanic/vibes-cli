@@ -73,7 +73,8 @@ export async function handleThemeSwitch(
     return;
   }
 
-  if (!acquireLock('theme', () => {})) {
+  let cancelFn = () => {};
+  if (!acquireLock('theme', () => cancelFn())) {
     onEvent({ type: 'error', message: 'Another request is in progress. Please wait.' });
     return;
   }
@@ -82,10 +83,11 @@ export async function handleThemeSwitch(
   const colors = parseThemeColors(ctx.themeDir, themeId);
 
   try {
+    const onCancel = (fn: () => void) => { cancelFn = fn; };
     if (hasThemeMarkers(appCode)) {
-      await handleThemeSwitchMultiPass(ctx, onEvent, themeId, themeName, themeContent, appCode, appJsxPath, colors, model);
+      await handleThemeSwitchMultiPass(ctx, onEvent, themeId, themeName, themeContent, appCode, appJsxPath, colors, model, onCancel);
     } else {
-      await handleThemeSwitchLegacy(ctx, onEvent, themeId, themeName, themeContent, colors, model);
+      await handleThemeSwitchLegacy(ctx, onEvent, themeId, themeName, themeContent, colors, model, onCancel);
     }
   } finally {
     releaseLock();
@@ -102,6 +104,7 @@ async function handleThemeSwitchMultiPass(
   appJsxPath: string,
   colors: any,
   model: string | undefined,
+  onCancel?: (fn: () => void) => void,
 ): Promise<void> {
   console.log(`[ThemeSwitch] Multi-pass for "${themeName}" (${themeId})`);
 
@@ -160,6 +163,7 @@ ${extractDataSchema(pass1Code)}`;
     model,
     cwd: ctx.projectRoot,
     tools: 'Read,Edit',
+    onCancel,
   }, onEvent, ctx.projectRoot);
 
   if (claudeResult === null) {
@@ -196,6 +200,7 @@ async function handleThemeSwitchLegacy(
   themeContent: string,
   colors: any,
   model: string | undefined,
+  onCancel?: (fn: () => void) => void,
 ): Promise<void> {
   let rootCss = colors?.rootBlock || '';
   if (!rootCss) {
@@ -243,6 +248,7 @@ KEEP UNCHANGED: All components, hooks, functions, state, data models, Fireproof 
     model,
     cwd: ctx.projectRoot,
     tools: 'Read,Edit',
+    onCancel,
   }, onEvent, ctx.projectRoot);
 }
 

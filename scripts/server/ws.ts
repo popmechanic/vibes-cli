@@ -10,7 +10,7 @@ import { join } from 'path';
 import type { ServerWebSocket } from 'bun';
 import type { ServerContext } from './config.ts';
 import { reloadThemes } from './config.ts';
-import { cancelCurrent, acquireLock, releaseLock, createPersistentBridge, type EventCallback, type PersistentBridge } from './claude-bridge.ts';
+import { cancelCurrent, type EventCallback } from './claude-bridge.ts';
 import { handleChat } from './handlers/chat.ts';
 import { handleThemeSwitch, handlePaletteTheme } from './handlers/theme.ts';
 import { handleGenerate } from './handlers/generate.ts';
@@ -23,7 +23,6 @@ import { handleGenerateImage } from './handlers/image-gen.ts';
 export interface WsData {
   ctx: ServerContext;
   onEvent: EventCallback;
-  bridge: PersistentBridge | null;
 }
 
 // --- Event Translation Layer ---
@@ -49,6 +48,7 @@ export function translateEvent(event: any): object[] {
     return msgs;
   }
   if (event.type === 'tool_result') {
+    // Strip internal fields (_filePath, _toolName, elapsed) — only forward client-safe fields
     return [{ type: 'tool_result', name: event.name, content: event.content, is_error: event.is_error }];
   }
   // All others pass through (token, cancelled, error, tool_detail, theme_selected, etc.)
@@ -81,17 +81,6 @@ export function broadcast(msg: object): void {
   }
 }
 
-// --- Per-context bridge (shared across connections) ---
-
-let sharedBridge: PersistentBridge | null = null;
-
-function getOrCreateBridge(ctx: ServerContext, onEvent: EventCallback): PersistentBridge {
-  if (!sharedBridge) {
-    sharedBridge = createPersistentBridge(ctx, onEvent);
-  }
-  return sharedBridge;
-}
-
 // --- WebSocket Handler ---
 
 export function createWsHandler(ctx: ServerContext) {
@@ -112,10 +101,6 @@ export function createWsHandler(ctx: ServerContext) {
       } catch {
         ws.data.onEvent({ type: 'error', message: 'Invalid JSON' });
         return;
-      }
-
-      if (msg.type === 'chat') {
-        console.log(`[WS] chat msg keys:`, Object.keys(msg), msg.reference ? `ref: ${msg.reference.name} (${msg.reference.dataUrl?.length} chars)` : 'no ref');
       }
 
       const onEvent = ws.data.onEvent;
@@ -217,10 +202,6 @@ export function createWsHandler(ctx: ServerContext) {
       // If no more clients, cancel active operations
       if (connectedClients.size === 0) {
         cancelCurrent();
-        if (sharedBridge) {
-          sharedBridge.kill();
-          sharedBridge = null;
-        }
       }
     },
   };

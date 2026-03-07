@@ -6,7 +6,7 @@
  */
 
 import { readFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, writeFileSync } from 'fs';
-import { join, extname } from 'path';
+import { join, extname, resolve } from 'path';
 import type { ServerContext } from './config.ts';
 import { getRecommendedThemeIds, loadOpenRouterKey } from './config.ts';
 import { assembleAppFrame } from './handlers/generate.ts';
@@ -45,8 +45,7 @@ export async function parseJsonBody(req: Request, maxSize = MAX_BODY_SIZE): Prom
     reader.releaseLock();
   }
 
-  const decoder = new TextDecoder();
-  const body = chunks.map(c => decoder.decode(c, { stream: true })).join('') + decoder.decode();
+  const body = new TextDecoder().decode(Buffer.concat(chunks));
   return JSON.parse(body);
 }
 
@@ -580,8 +579,11 @@ export function createRouter(ctx: ServerContext) {
       }
     }
 
-    // Static file fallback
-    const filePath = join(ctx.projectRoot, url.pathname.slice(1));
+    // Static file fallback — path containment check prevents directory traversal
+    const filePath = resolve(ctx.projectRoot, url.pathname.slice(1));
+    if (!filePath.startsWith(resolve(ctx.projectRoot))) {
+      return new Response('Forbidden', { status: 403, headers: corsHeaders() });
+    }
     const file = Bun.file(filePath);
     if (await file.exists()) {
       const ext = extname(filePath);
