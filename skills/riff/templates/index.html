@@ -3388,6 +3388,7 @@ if (typeof window !== 'undefined') {
       window.applyVibesTheme = applyVibesTheme;
     </script>
     <script type="text/babel" data-type="module">
+      import React, { useState, useEffect, useRef, useCallback, useMemo, useContext, Fragment } from "react";
       import ReactDOMClient from "react-dom/client";
       import { useFireproofClerk } from "use-fireproof";
 

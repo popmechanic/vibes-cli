@@ -3388,6 +3388,7 @@ if (typeof window !== 'undefined') {
       window.applyVibesTheme = applyVibesTheme;
     </script>
     <script type="text/babel" data-type="module">
+      import React, { useState, useEffect, useRef, useCallback, useMemo, useContext, Fragment } from "react";
       import ReactDOMClient from "react-dom/client";
       import { useFireproofClerk } from "use-fireproof";
 
@@ -3397,7 +3398,7 @@ if (typeof window !== 'undefined') {
       const ConfigError = window.ConfigError;
       const LoadingError = window.LoadingError;
 
-      // App wrapper with Clerk auth gate (always required)
+      // App wrapper — full Clerk auth when Connect is configured, local-only otherwise
       function AppWrapper() {
         const config = window.__VIBES_CONFIG__;
 
@@ -3463,7 +3464,7 @@ if (typeof window !== 'undefined') {
               config={config.tokenApiUri && config.cloudBackendUrl ? {
                 apiUrl: config.tokenApiUri,
                 cloudUrl: config.cloudBackendUrl
-              } : undefined}
+              } : {}}
             >
               <SignedOut>
                 <AuthGate />
@@ -3479,7 +3480,7 @@ if (typeof window !== 'undefined') {
         );
       }
 
-      // Load Clerk components (required for all apps)
+      // Load Clerk components when Connect is configured, otherwise local-only
       async function initApp() {
         try {
           // Dynamic import via bridge (re-exports all @fireproof/clerk symbols + wraps useFireproofClerk)
