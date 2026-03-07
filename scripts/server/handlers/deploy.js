@@ -5,6 +5,8 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
 import { join } from 'path';
 import { spawn } from 'child_process';
+import { getAccessToken } from '../../lib/cli-auth.js';
+import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../../lib/auth-constants.js';
 
 const DEPLOY_API_URL = 'https://vibes-deploy-api.vibes.diy';
 
@@ -23,9 +25,15 @@ export async function handleDeploy(ctx, onEvent, target, name, token) {
     return;
   }
 
+  // Auto-obtain token via Pocket ID if not provided by client
   if (!token) {
-    onEvent({ type: 'error', message: 'Authentication token is required for deployment.' });
-    return;
+    onEvent({ type: 'progress', progress: 1, stage: 'Signing in via Pocket ID...', elapsed: 0 });
+    try {
+      token = await getAccessToken({ authority: OIDC_AUTHORITY, clientId: OIDC_CLIENT_ID });
+    } catch (err) {
+      onEvent({ type: 'error', message: `Authentication failed: ${err.message}` });
+      return;
+    }
   }
 
   const startTime = Date.now();
