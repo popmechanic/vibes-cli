@@ -352,6 +352,8 @@ git commit -m "Add POST /editor/auth/login endpoint with WebSocket broadcast"
 
 ## Task 3: Replace Wizard HTML with Welcome Screen
 
+> **BEFORE writing any code in this task:** Invoke the `emil-design-engineering` skill via the Skill tool (`skill: "emil-design-engineering"`). Read its animations and UI polish guides. Apply its principles to all CSS in this task — easing, transitions, reduced motion, tap targets, no layout shift.
+
 **Files:**
 - Modify: `skills/vibes/templates/editor.html`
 
@@ -455,6 +457,8 @@ git commit -m "Replace wizard HTML/CSS with single-step welcome screen"
 ---
 
 ## Task 4: Replace Wizard JavaScript with Auth Flow
+
+> **BEFORE writing any code in this task:** If you haven't already, invoke the `emil-design-engineering` skill via the Skill tool (`skill: "emil-design-engineering"`). The greeting acknowledgment should fade/scale in (not just appear). State transitions between welcome/waiting/greeting/error should animate smoothly with ease-out timing.
 
 **Files:**
 - Modify: `skills/vibes/templates/editor.html`
@@ -595,6 +599,8 @@ git commit -m "Replace wizard JS with single-step auth flow"
 ---
 
 ## Task 5: Update Deploy Handler for Re-Auth
+
+> **Design note:** The re-auth transition (deploy fails → welcome screen reappears) should animate smoothly. If you haven't already invoked the `emil-design-engineering` skill, do so now via the Skill tool (`skill: "emil-design-engineering"`).
 
 **Files:**
 - Modify: `scripts/server/handlers/deploy.js:29-41`
