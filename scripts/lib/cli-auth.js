@@ -247,7 +247,7 @@ export async function loginWithBrowser({ authority, clientId, authFile = DEFAULT
 // Main entry point
 // ---------------------------------------------------------------------------
 
-export async function getAccessToken({ authority, clientId, authFile = DEFAULT_AUTH_FILE }) {
+export async function getAccessToken({ authority, clientId, authFile = DEFAULT_AUTH_FILE, silent = false }) {
   // 1. Check cache
   const cached = readCachedTokens(authFile);
 
@@ -268,11 +268,15 @@ export async function getAccessToken({ authority, clientId, authFile = DEFAULT_A
         writeCachedTokens(authFile, refreshed);
         return refreshed;
       } catch (err) {
+        if (silent) return null;
         console.warn(`Token refresh failed, falling back to browser login: ${err.message}`);
       }
     }
   }
 
-  // 3. Full browser login
+  // 3. Silent mode: no browser popup
+  if (silent) return null;
+
+  // 4. Full browser login
   return loginWithBrowser({ authority, clientId, authFile });
 }

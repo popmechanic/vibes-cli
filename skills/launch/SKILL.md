@@ -32,9 +32,43 @@ For architecture context, see `LAUNCH-REFERENCE.md` in this directory.
 
 ---
 
+## Auth Check (silent — only prompt if needed)
+
+Before asking Terminal or Editor, check for cached auth:
+
+```bash
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node --input-type=module -e "
+import { readCachedTokens, isTokenExpired } from '$VIBES_ROOT/scripts/lib/cli-auth.js';
+const tokens = readCachedTokens();
+if (tokens && !isTokenExpired(tokens.expiresAt)) {
+  console.log('AUTH_OK');
+} else {
+  console.log('AUTH_NEEDED');
+}
+"
+```
+
+- If `AUTH_OK` → proceed silently to "Terminal or Editor?" (do not mention auth)
+- If `AUTH_NEEDED` → ask: "To deploy apps, you'll need a Vibes account. Sign in now? (A browser window will open for Pocket ID — takes about 10 seconds.)"
+  - If yes:
+    ```bash
+    VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+    node --input-type=module -e "
+    import { getAccessToken } from '$VIBES_ROOT/scripts/lib/cli-auth.js';
+    import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '$VIBES_ROOT/scripts/lib/auth-constants.js';
+    const tokens = await getAccessToken({ authority: OIDC_AUTHORITY, clientId: OIDC_CLIENT_ID });
+    if (tokens) console.log('Signed in successfully!');
+    "
+    ```
+    Confirm success, then proceed to "Terminal or Editor?"
+  - If no → proceed anyway (auth will be needed at deploy time)
+
+---
+
 ## FIRST: Terminal or Editor UI?
 
-**This is the very first question — ask before anything else.**
+**This is the very first question — ask before anything else (after auth check above).**
 **DO NOT check .env, credentials, or project state before asking this question.**
 **DO NOT invoke any other skill before asking this question.**
 **If Editor is chosen, skip ALL remaining steps — the editor handles everything.**

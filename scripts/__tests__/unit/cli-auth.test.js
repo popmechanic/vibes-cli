@@ -87,4 +87,34 @@ describe('cli-auth token cache', () => {
     const later = Math.floor(Date.now() / 1000) + 120;
     expect(isTokenExpired(later)).toBe(false);
   });
+
+  it('getAccessToken({ silent: true }) returns null when no cache exists', async () => {
+    const { getAccessToken } = await import('../../lib/cli-auth.js');
+    const result = await getAccessToken({
+      authority: 'https://example.com',
+      clientId: 'test-client',
+      authFile: join(testDir, 'nonexistent.json'),
+      silent: true,
+    });
+    expect(result).toBeNull();
+  });
+
+  it('getAccessToken({ silent: true }) returns cached token if valid', async () => {
+    const tokens = {
+      accessToken: 'cached-access',
+      refreshToken: 'cached-refresh',
+      idToken: 'cached-id',
+      expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    };
+    writeFileSync(authFile, JSON.stringify(tokens));
+    const { getAccessToken } = await import('../../lib/cli-auth.js');
+    const result = await getAccessToken({
+      authority: 'https://example.com',
+      clientId: 'test-client',
+      authFile,
+      silent: true,
+    });
+    expect(result).not.toBeNull();
+    expect(result.accessToken).toBe('cached-access');
+  });
 });
