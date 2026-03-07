@@ -152,6 +152,7 @@ interface TurnState {
   startTime: number;
   skipChat: boolean;
   lastStdoutTime: number;
+  lastToolDetail: { name: string; filePath: string } | null;  // for HMR correlation
 }
 
 let turnState: TurnState | null = null;
@@ -168,6 +169,7 @@ function send(message: string, opts: { skipChat?: boolean } = {}): boolean {
     startTime: Date.now(),
     skipChat: opts.skipChat || false,
     lastStdoutTime: Date.now(),
+    lastToolDetail: null,
   };
 
   const jsonl = JSON.stringify({
@@ -196,7 +198,10 @@ function dispatchEvent(parsed: any) {
       if (block.type === 'tool_use') {
         turnState.toolsUsed++;
         if (block.name === 'Edit' || block.name === 'Write') turnState.hasEdited = true;
-        onEvent({ type: 'tool_detail', name: block.name, input_summary: summarizeInput(block), elapsed });
+        const inputSummary = summarizeInput(block);
+        // Stash tool_detail for HMR correlation — tool_result doesn't carry the file path
+        turnState.lastToolDetail = { name: block.name, filePath: inputSummary };
+        onEvent({ type: 'tool_detail', name: block.name, input_summary: inputSummary, elapsed });
       }
       if (block.type === 'text' && block.text) {
         turnState.resultText = block.text;
@@ -205,13 +210,21 @@ function dispatchEvent(parsed: any) {
     }
     onEvent({ type: 'progress', ...calcProgress(turnState), elapsed });
   } else if (parsed.type === 'tool_result') {
+    // Correlate with the preceding tool_detail to get the file path for HMR
+    const toolDetail = turnState.lastToolDetail;
+    turnState.lastToolDetail = null;  // consumed
     onEvent({
       type: 'tool_result',
       name: parsed.tool_name || '',
       content: (typeof parsed.content === 'string' ? parsed.content : JSON.stringify(parsed.content || '')).slice(0, 500),
       is_error: !!parsed.is_error,
       elapsed,
+      // Attach file path from the correlated tool_detail for HMR filtering
+      _filePath: toolDetail?.filePath || '',
+      _toolName: toolDetail?.name || parsed.tool_name || '',
     });
+  } else if (parsed.type === 'rate_limit_event') {
+    onEvent({ type: 'progress', ...calcProgress(turnState), stage: 'Rate limited, waiting...', elapsed });
   } else if (parsed.type === 'result') {
     // *** RESPONSE BOUNDARY — turn is complete ***
     if (parsed.is_error) {
@@ -242,6 +255,44 @@ function dispatchEvent(parsed: any) {
 
 **Silence timeout for persistent bridge:** The progress interval from the current bridge (45s soft, 90s warn, 300s hard kill) is preserved. The interval starts when `send()` is called and clears when `result` is received. If the hard timeout fires, the bridge is killed (SIGTERM), the operation lock is released, and the bridge respawns on next message.
 
+**`max_turns` process exit handling:** If the persistent bridge process exits unexpectedly (e.g., `--max-turns` is set process-wide and the CLI exits after hitting it), the `proc.exited` handler must detect this and release the operation lock. The current bridge parses stderr for `max_turns`/`maxTurns` and treats it as a successful completion. The persistent bridge's `proc.exited` handler does the same:
+
+```typescript
+proc.exited.then((code) => {
+  alive = false;
+  proc = null;
+
+  // If a turn was in progress, handle the unexpected exit
+  if (turnState) {
+    const elapsed = Math.round((Date.now() - turnState.startTime) / 1000);
+    const isMaxTurns = stderrBuffer.includes('max_turns') || stderrBuffer.includes('maxTurns');
+
+    if (isMaxTurns) {
+      console.log(`[Bridge] Hit max_turns (hasEdited=${turnState.hasEdited}) — treating as success`);
+      if (!turnState.errorSent) {
+        onEvent({
+          type: 'complete',
+          text: turnState.resultText || 'Done.',
+          toolsUsed: turnState.toolsUsed,
+          elapsed,
+          hasEdited: turnState.hasEdited,
+          skipChat: turnState.skipChat,
+        });
+      }
+    } else if (code !== 0) {
+      onEvent({ type: 'error', message: stderrBuffer.slice(0, 500) || `Bridge exited with code ${code}` });
+    }
+
+    turnState = null;
+    releaseLock();  // Always release lock on process exit
+  }
+
+  onEvent({ type: 'session_end', exitCode: code });
+});
+```
+
+This ensures the operation lock is never left held when the process exits, regardless of reason (max_turns, crash, SIGTERM). The bridge will lazily respawn on the next chat message.
+
 ---
 
 ## Concurrency Model
@@ -266,7 +317,14 @@ The hybrid architecture (persistent session + one-shot spawns) introduces two su
    - If one-shot is running: SIGTERM the one-shot process
    - The operation lock is released on cancel
 
-6. **Lock release is always tied to response boundary detection.** For the persistent bridge, the `result` event releases the lock. For one-shot spawns, `proc.exited` releases the lock. For cancel, the cancel handler releases the lock. There is no path where the lock is acquired but never released.
+6. **Lock release is always tied to response boundary detection.** For the persistent bridge, the `result` event releases the lock. For one-shot spawns, `proc.exited` releases the lock. For cancel, the cancel handler releases the lock. If the persistent bridge process exits unexpectedly (max_turns, crash), `proc.exited` releases the lock. There is no path where the lock is acquired but never released.
+
+7. **Per-message `maxTurns` is not enforced in the persistent session.** The current chat handler varies `maxTurns` between 8 (simple messages) and 12 (animations, effects, reference images). In the persistent model, `--max-turns` is a process-level flag set at spawn time — it cannot vary per message. **This is an accepted regression.** Rationale:
+   - The persistent bridge does not set `--max-turns` at all. Claude runs until it emits a `result` event (turn complete).
+   - The silence timeout (45s/90s/300s) serves as the safety net that `maxTurns` was providing — it kills runaway operations.
+   - The distinction between 8 and 12 turns was a cost-optimization heuristic, not a correctness requirement. Simple messages rarely use more than 3-4 turns; the 8-turn cap was defensive.
+   - One-shot handlers (generate, theme, create-theme) still enforce `maxTurns` via `buildClaudeArgs` since each one-shot spawns a fresh process.
+   - If per-message turn limits become important, a future enhancement can count `tool_result` events per turn and SIGTERM the bridge when the limit is reached (with respawn on next message).
 
 ```typescript
 interface OperationLock {
@@ -551,6 +609,9 @@ See the "Response Boundary Detection" section for the complete `dispatchEvent` a
 5. `proc.exited` promise for process lifecycle (not turn lifecycle)
 6. `proc.stdin.flush()` — Bun-specific, ensures data is written immediately
 7. Operation lock release tied to `result` event (persistent) or `proc.exited` (one-shot)
+8. `proc.exited` handler detects `max_turns` in stderr and treats as success (matching current bridge behavior)
+9. `rate_limit_event` handled with "Rate limited, waiting..." progress feedback
+10. `tool_detail`/`tool_result` correlation via `lastToolDetail` stash for HMR file path filtering
 
 **Step 1:** Create `claude-bridge.ts` with the persistent session model, per-turn accumulator, `result` event boundary detection, and the operation lock (see Concurrency Model and Response Boundary Detection sections). Keep the existing Loom event contract (`progress`, `token`, `tool_detail`, `tool_result`, `error`, `complete`).
 
@@ -763,7 +824,7 @@ const dispatch: Record<string, (msg: any, onEvent: EventFn) => Promise<void> | v
 
 The HMR system uses two complementary triggers to detect app.jsx changes during generation:
 
-1. **Primary: Claude event stream.** The generate handler (one-shot) and chat handler (persistent bridge) both receive `tool_result` events when Claude's Write tool completes. After each Write `tool_result`, the HMR system reads app.jsx and checks renderability. This is the most reliable trigger — it fires exactly when a complete write operation has finished, meaning the file is in a consistent state (not mid-write).
+1. **Primary: Claude event stream.** The generate handler (one-shot) and chat handler (persistent bridge) both receive `tool_result` events when Claude's Write tool completes. However, `tool_result` events from stream-json only carry `tool_name` (e.g., "Write") — they do NOT carry the file path. The file path comes from the preceding `tool_detail` event (via `input_summary`). The bridge correlates these by stashing the last `tool_detail` and attaching its `filePath` as `_filePath` on the subsequent `tool_result` (see `dispatchEvent`). The HMR system's `onToolResult` then filters by `_toolName === 'Write'` and `_filePath.endsWith('app.jsx')` to only trigger on app.jsx writes. This is the most reliable trigger — it fires exactly when a complete write operation has finished, meaning the file is in a consistent state (not mid-write).
 
 2. **Backstop: `fs.watchFile` (polling).** For edge cases where tool_result events are missed or delayed. `fs.watchFile` uses stat polling — not macOS kqueue/FSEvents — so it never misses events during rapid writes. 1-second polling interval is acceptable for the backstop role.
 
@@ -789,7 +850,7 @@ Rather than hand-rolling a bracket balancer that would miss JSX, comments, regex
 
 **Algorithm:**
 
-1. When generation starts, register a callback on the handler's event stream to intercept `tool_result` events for Write operations targeting `app.jsx`.
+1. When generation starts, register a callback on the handler's event stream to intercept `tool_result` events. The bridge's `dispatchEvent` correlates `tool_detail` (which carries the file path) with the subsequent `tool_result`, attaching `_toolName` and `_filePath` to each `tool_result` event. The HMR `onToolResult` callback filters for Write operations targeting `app.jsx`.
 
 2. On each trigger (Write tool_result or watchFile callback), read the current content and attempt a Babel parse:
    ```typescript
@@ -885,12 +946,13 @@ export function createHmrWatcher(ctx: ServerContext, broadcast: (msg: object) =>
     debounceTimer = setTimeout(() => checkAndPush(), 500);
   }
 
-  // Called by handler on Write tool_result events (primary path)
-  function onWriteEvent(toolName: string, filePath: string) {
+  // Called by handler on tool_result events (primary path)
+  // Uses _toolName and _filePath from the correlated tool_detail (see dispatchEvent)
+  function onToolResult(event: { _toolName?: string; _filePath?: string }) {
     if (!active) return;
-    // Only trigger for Write operations on app.jsx
-    if (toolName !== 'Write') return;
-    if (filePath && !filePath.endsWith('app.jsx')) return;
+    // Only trigger for Write operations targeting app.jsx
+    if (event._toolName !== 'Write') return;
+    if (event._filePath && !event._filePath.endsWith('app.jsx')) return;
     scheduleCheck();
   }
 
@@ -925,7 +987,7 @@ export function createHmrWatcher(ctx: ServerContext, broadcast: (msg: object) =>
     lastSnapshot = '';
   }
 
-  return { start, stop, onWriteEvent };
+  return { start, stop, onToolResult };
 }
 
 function isRenderable(code: string): boolean {
@@ -955,7 +1017,8 @@ hmr.start();
 const wrappedOnEvent = (event) => {
   onEvent(event);  // original handler for WS translation
   if (event.type === 'tool_result') {
-    hmr.onWriteEvent(event.name, event.input_summary || '');
+    // tool_result carries _toolName and _filePath from the correlated tool_detail
+    hmr.onToolResult(event);
   }
 };
 
@@ -986,7 +1049,7 @@ case 'hmr_update':
 
 **Step 3:** Modify `assembleAppFrame` to accept an optional `code` parameter.
 
-**Step 4:** Integrate with `generate.ts` — call `hmr.start()` before generation, wrap `onEvent` to intercept Write `tool_result` events, call `hmr.stop()` after. Also integrate with chat handler for polling-only mode during chat edits.
+**Step 4:** Integrate with `generate.ts` — call `hmr.start()` before generation, wrap `onEvent` to intercept `tool_result` events and pass them to `hmr.onToolResult()` (which filters by `_toolName` and `_filePath`), call `hmr.stop()` after. Also integrate with chat handler for polling-only mode during chat edits.
 
 **Step 5:** Add `hmr_update` handling to the browser-side WebSocket handler.
 
@@ -1172,20 +1235,20 @@ describe('response boundary', () => {
 **New tests for HMR event-driven triggering:**
 ```typescript
 describe('hmr watcher', () => {
-  it('onWriteEvent triggers check for Write to app.jsx', () => {
-    // Write valid app.jsx, call onWriteEvent('Write', 'app.jsx'), verify broadcast fires
+  it('onToolResult triggers check for Write to app.jsx', () => {
+    // Write valid app.jsx, call onToolResult({ _toolName: 'Write', _filePath: 'app.jsx' }), verify broadcast fires
   });
 
-  it('onWriteEvent ignores non-Write tools', () => {
-    // Call onWriteEvent('Read', 'app.jsx'), verify no broadcast
+  it('onToolResult ignores non-Write tools', () => {
+    // Call onToolResult({ _toolName: 'Read', _filePath: 'app.jsx' }), verify no broadcast
   });
 
-  it('onWriteEvent ignores writes to other files', () => {
-    // Call onWriteEvent('Write', 'other.js'), verify no broadcast
+  it('onToolResult ignores writes to other files', () => {
+    // Call onToolResult({ _toolName: 'Write', _filePath: 'styles.css' }), verify no broadcast
   });
 
   it('does not broadcast unparseable code', () => {
-    // Write broken JSX, call onWriteEvent, verify no broadcast
+    // Write broken JSX, call onToolResult, verify no broadcast
   });
 
   it('does not broadcast duplicate snapshots', () => {
@@ -1303,6 +1366,10 @@ grep -r "preview-server" --include="*.md" --include="*.js" --include="*.ts" --in
 | Bun.spawn stdin flushing behaves differently from Node child_process | Julian project proves this works; test early in Task 4 |
 | `--input-format stream-json` may not support tool set switching | Hybrid model (Task 5) — persistent session for chat, one-shot for others |
 | `result` event not emitted for persistent sessions | Julian's local mode proves it works — `result` fires after each turn. Fallback: detect via silence timeout (300s hard kill). |
+| Per-message `maxTurns` not enforced in persistent session | Accepted regression. Silence timeout (45s/90s/300s) replaces maxTurns as safety net. One-shot handlers still enforce maxTurns. See Concurrency Model rule 7. |
+| Persistent bridge exits on `max_turns` with operation lock held | `proc.exited` handler parses stderr for `max_turns`, fires `complete`, releases lock. Same detection as current bridge. |
+| `rate_limit_event` not surfaced to user in persistent mode | `dispatchEvent` handles `rate_limit_event` — emits `progress` with "Rate limited, waiting..." stage text. |
+| HMR triggers on all Write operations, not just app.jsx | `tool_detail`/`tool_result` correlation: bridge stashes `lastToolDetail` with file path, attaches as `_filePath` on `tool_result`. HMR filters by `_toolName === 'Write'` and `_filePath.endsWith('app.jsx')`. |
 | Babel parse too slow for HMR debounce cycle | @babel/parser parses 30KB JSX in ~5ms; 500ms debounce makes this negligible. Measure in Task 7 and increase debounce if needed. |
 | Vitest under Bun may have edge cases | Vitest officially supports Bun; 520 tests will surface issues quickly |
 | macOS `fs.watch` (kqueue) drops events during rapid writes | HMR uses event-driven primary (Write tool_result callback) + `fs.watchFile` polling backstop. Neither depends on kqueue. `fs.watch` is not used. |
