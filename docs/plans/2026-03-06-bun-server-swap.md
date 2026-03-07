@@ -13,6 +13,81 @@ The current server is a Node.js `http.createServer` + `ws` WebSocket library wit
 **Reference codebases studied:**
 - Julian server: `/Users/marcusestes/Websites/Julian/server/server.ts` — Bun.serve, Bun.spawn, ReadableStream stdout parsing, SSE event log, native WebSocket
 - Current server: `/Users/marcusestes/Websites/VibesCLI/vibes-skill/scripts/preview-server.js` + `scripts/server/` — Node http, ws, child_process
+- Loom best practices audit: `/Users/marcusestes/Websites/VibesCLI/vibes-skill/docs/plans/2026-03-05-loom-best-practices-audit-design.md` — stream parser extraction, event contract enrichment, cleanEnv cmux fix, permission mode defaults, tool allowlisting
+
+---
+
+## Loom Skill Lineage
+
+The Loom skill audit (`2026-03-05-loom-best-practices-audit-design.md`) already delivered several patterns that were implemented into the current codebase. This plan carries them forward into the Bun rewrite, and documents which ones get rethought vs. preserved:
+
+| Loom Contribution | Current State | Bun Plan |
+|-------------------|---------------|----------|
+| `stream-parser.js` — shared JSON-lines parser with UTF-8 chunk buffering | Implemented, used by `claude-bridge.js` and `create-theme.js` | **Preserved.** The parser is runtime-agnostic (`TextDecoder`). No changes needed — import it directly into the new `.ts` files. |
+| Enriched event contract (`token`, `tool_detail`, `tool_result`, `error`, `complete`) | Implemented in `claude-bridge.js` + `wsAdapter` | **Preserved.** The same event types flow through the new bridge. The persistent session emits them identically. |
+| `cleanEnv()` — CMUX nesting var stripping | Implemented in `claude-subprocess.js` | **Ported.** New `cleanEnv()` in `claude-bridge.ts` carries the same CLAUDECODE + CMUX stripping. Julian's server does the same (`CLAUDECODE: '', CLAUDE_CODE_ENTRYPOINT: ''`). |
+| `dontAsk` permission default + per-handler `allowedTools` | Implemented. Chat: `Read,Edit,Write,Glob,Grep`. Generate: `Write`. Theme: `Read,Edit`. | **Preserved for one-shot spawns.** The persistent bridge uses `acceptEdits` (like Julian) since it needs to allow edits interactively. One-shot spawns keep `dontAsk` + explicit tool lists. |
+| `is_error` result checking | Implemented in bridge's stream parser callback | **Preserved.** Same check in both persistent and one-shot stdout readers. |
+| SIGTERM for cancel (not SIGKILL) | Implemented | **Preserved.** Both `bridge.cancel()` and one-shot timeout use SIGTERM. |
+| `createStreamParser` DRYing `create-theme.js` | Implemented — create-theme uses shared parser | **Preserved.** The one-shot helper reuses the same parser. |
+
+**What gets rethought (not just ported):**
+
+1. **The bridge itself.** Loom enriched a one-shot-per-message bridge. We replace it entirely with a persistent session (Julian pattern) for chat, while keeping one-shot for generate/theme. This is a deeper architectural change than Loom attempted.
+
+2. **`wsAdapter` as an indirection layer.** Loom kept the `onEvent → wsAdapter → ws.send` chain. The new design simplifies: the WebSocket handler holds a direct reference to a `broadcast` function. No adapter translation — events go straight to the client with the same shape.
+
+3. **`buildClaudeArgs` / `claude-subprocess.js`.** Loom added tool/permission support to this shared module. The new bridge builds args inline (persistent session has fixed args). The `runOneShot` helper reuses `buildClaudeArgs` for one-shot spawns, preserving Loom's tool allowlisting.
+
+---
+
+## Concurrency Model
+
+The hybrid architecture (persistent session + one-shot spawns) introduces two subprocess pathways that must not collide.
+
+**Rules:**
+
+1. **Global operation lock.** A single `operationLock: { type: string, abortController: AbortController } | null` guards all claude operations. Only one operation (chat message, generate, theme switch, theme save) can run at a time. This matches the current `activeClaude` mutex — the UI already serializes operations via the "Another request is in progress" error.
+
+2. **Persistent bridge lifecycle.** The persistent bridge spawns lazily on first chat message. It stays alive across chat messages (context preservation). Generate/theme operations do NOT use the bridge — they spawn one-shot processes. The bridge is killed on:
+   - 15-minute inactivity timeout
+   - User disconnects (all WebSockets close)
+   - Server shutdown
+
+3. **One-shot operations pause the bridge.** When a one-shot operation starts (generate, theme, create-theme), the operation lock is acquired. If the persistent bridge is processing a chat response, the one-shot waits (the lock serializes them). The bridge's stdin remains open but idle during one-shot operations — it doesn't interfere because nothing is writing to it.
+
+4. **app.jsx write contention.** Only one writer at a time (enforced by the operation lock). The HMR watcher is read-only — it never writes. Chat edits go through the persistent bridge (Claude uses Edit/Write tools). Generate/theme go through one-shot spawns. The lock prevents overlapping writes.
+
+5. **Cancel semantics.** Cancel kills whichever operation is active:
+   - If persistent bridge is processing: send a cancel signal (or SIGTERM + respawn)
+   - If one-shot is running: SIGTERM the one-shot process
+   - The operation lock is released on cancel
+
+```typescript
+interface OperationLock {
+  type: 'chat' | 'generate' | 'theme' | 'create-theme';
+  cancel: () => void;
+}
+
+let currentOp: OperationLock | null = null;
+
+function acquireLock(type: string, cancelFn: () => void): boolean {
+  if (currentOp) return false; // "Another request in progress"
+  currentOp = { type, cancel: cancelFn };
+  return true;
+}
+
+function releaseLock() {
+  currentOp = null;
+}
+
+function cancelCurrent(): boolean {
+  if (!currentOp) return false;
+  currentOp.cancel();
+  currentOp = null;
+  return true;
+}
+```
 
 ---
 
@@ -98,7 +173,29 @@ console.log(`Vibes Server — http://localhost:${ctx.port}`);
 - `Bun.file()` for static serving (no `readFileSync` + manual content-type)
 - CORS via a helper that wraps `Response` headers
 - Route table stays the same shape: `'GET /themes'` => handler
-- `parseJsonBody` replaced by `await req.json()` (Bun natively parses request bodies)
+
+**Body size limiting for POST routes:**
+
+The current `parseJsonBody` enforces a 1MB limit via streaming `req.on('data')` with a byte counter. Bun's `await req.json()` reads the full body with no size cap. To preserve the safety limit:
+
+```typescript
+const MAX_BODY_SIZE = 1024 * 1024; // 1MB
+
+async function parseJsonBody(req: Request): Promise<any> {
+  const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
+  if (contentLength > MAX_BODY_SIZE) {
+    throw Object.assign(new Error('Request body too large'), { status: 413 });
+  }
+  // Content-Length can be spoofed or missing — also limit the actual read
+  const body = await req.text();
+  if (body.length > MAX_BODY_SIZE) {
+    throw Object.assign(new Error('Request body too large'), { status: 413 });
+  }
+  return JSON.parse(body);
+}
+```
+
+This two-phase check (header first for fast rejection, then actual body size) prevents both honest oversized requests and spoofed Content-Length headers. Use this instead of bare `await req.json()` for all POST endpoints that accept user input. The screenshot endpoint (`saveScreenshot`) uses a separate 5MB limit and should use the same pattern with `MAX_SCREENSHOT_SIZE`.
 
 **Pattern from Julian:**
 ```typescript
@@ -109,9 +206,9 @@ if (await file.exists()) {
 }
 ```
 
-**Step 1:** Create `router.ts` with the route table. Port each static route handler to return `Response`. For POST routes that currently use `parseJsonBody`, use `await req.json()`.
+**Step 1:** Create `router.ts` with the route table. Port each static route handler to return `Response`. Use `parseJsonBody` (with size limit) for POST routes.
 
-**Step 2:** Port `editor-api.js` handlers to return `Response` objects. This is the largest handler file — 633 lines — but the changes are mechanical: `res.writeHead(200, {...}); res.end(JSON.stringify(x))` becomes `return Response.json(x, { headers })`.
+**Step 2:** Port `editor-api.ts` handlers to return `Response` objects. This is the largest handler file — 633 lines — but the changes are mechanical: `res.writeHead(200, {...}); res.end(JSON.stringify(x))` becomes `return Response.json(x, { headers })`. Replace the old streaming `parseJsonBody` with the new Bun-native version that checks both Content-Length header and actual body size.
 
 **Step 3:** Port all remaining HTTP handlers (deploy, image-gen) to return `Response`.
 
@@ -180,9 +277,8 @@ export function createClaudeBridge(ctx: ServerContext): ClaudeBridge {
         '--input-format', 'stream-json',
         '--output-format', 'stream-json',
         '--verbose',
-        '--permission-mode', 'dontAsk',
+        '--permission-mode', 'acceptEdits',
         '--allowedTools', 'Read,Edit,Write,Glob,Grep',
-        '--no-session-persistence',
       ],
       cwd: ctx.projectRoot,
       env: cleanEnv(),
@@ -250,6 +346,10 @@ export function createClaudeBridge(ctx: ServerContext): ClaudeBridge {
 }
 ```
 
+**Note on `--no-session-persistence`:** This flag is deliberately **omitted** from the persistent bridge spawn. The whole point of the persistent session is that Claude preserves context across messages — `--no-session-persistence` would defeat that. Julian's server omits it for the same reason. The flag IS used in `runOneShot` (Task 5) where each operation is self-contained and we don't want leftover session files.
+
+**Note on `--permission-mode`:** The persistent bridge uses `acceptEdits` (same as Julian) rather than `dontAsk`. Since chat is interactive and the user may ask Claude to do things that require tool approval, `acceptEdits` auto-approves edit operations while still gating destructive ones. One-shot spawns use `dontAsk` with explicit `--allowedTools` (Loom pattern) since they have well-defined tool sets.
+
 **Key differences from current bridge:**
 1. `Bun.spawn` instead of `child_process.spawn`
 2. `ReadableStream.getReader()` instead of `child.stdout.on('data')` events
@@ -257,9 +357,9 @@ export function createClaudeBridge(ctx: ServerContext): ClaudeBridge {
 4. `proc.exited` promise instead of `child.on('close')` callback
 5. `proc.stdin.flush()` — Bun-specific, ensures data is written immediately
 
-**Step 1:** Create `claude-bridge.ts` with the persistent session model. Keep the existing event contract (`progress`, `token`, `tool_detail`, `tool_result`, `error`, `complete`).
+**Step 1:** Create `claude-bridge.ts` with the persistent session model and the operation lock (see Concurrency Model section). Keep the existing Loom event contract (`progress`, `token`, `tool_detail`, `tool_result`, `error`, `complete`).
 
-**Step 2:** Create a `cleanEnv()` that strips CLAUDECODE / CMUX vars (port from current).
+**Step 2:** Create a `cleanEnv()` that strips CLAUDECODE / CMUX vars (port from current, carrying forward the Loom cmux fix).
 
 **Step 3:** Wire the bridge into the WebSocket dispatch.
 
@@ -276,6 +376,7 @@ export function createClaudeBridge(ctx: ServerContext): ClaudeBridge {
 - Create: `scripts/server/handlers/generate.ts`
 - Create: `scripts/server/handlers/theme.ts`
 - Create: `scripts/server/handlers/create-theme.ts`
+- Create: `scripts/server/handlers/deploy.ts`
 
 **The key insight:** With a persistent session, handlers no longer spawn subprocesses. Instead, they build a prompt and call `bridge.send(prompt)`. The bridge's stdout reader dispatches events to all WebSocket clients.
 
@@ -287,17 +388,21 @@ However, some handlers need **different tool sets** and **different maxTurns** p
 
 **Go with Option A.** The handlers become:
 
-- `chat.ts` — Uses the persistent bridge (`bridge.send(prompt)`)
-- `generate.ts` — Spawns a one-shot `Bun.spawn` (self-contained, needs only Write tool)
-- `theme.ts` — Spawns a one-shot `Bun.spawn` (self-contained, needs Read+Edit)
-- `create-theme.ts` — Spawns a one-shot `Bun.spawn` (self-contained, needs Read+Write+Edit)
+- `chat.ts` — Uses the persistent bridge (`bridge.send(prompt)`). Acquires operation lock as `'chat'`.
+- `generate.ts` — Spawns a one-shot `Bun.spawn` (self-contained, needs only Write tool). Acquires lock as `'generate'`.
+- `theme.ts` — Spawns a one-shot `Bun.spawn` (self-contained, needs Read+Edit). Acquires lock as `'theme'`.
+- `create-theme.ts` — Spawns a one-shot `Bun.spawn` (self-contained, needs Read+Write+Edit). Acquires lock as `'create-theme'`.
+- `deploy.ts` — Spawns subprocesses for assembly + deploy. See deploy section below.
 
 The one-shot spawn pattern is a helper function:
 
 ```typescript
 export async function runOneShot(prompt: string, opts: OneShotOpts, onEvent: EventCallback): Promise<string | null> {
   const proc = Bun.spawn({
-    cmd: buildClaudeArgs(opts),
+    cmd: buildClaudeArgs({
+      ...opts,
+      // One-shot spawns: no session persistence, dontAsk with explicit tools (Loom pattern)
+    }),
     cwd: opts.cwd,
     env: cleanEnv(),
     stdin: 'pipe',
@@ -308,15 +413,62 @@ export async function runOneShot(prompt: string, opts: OneShotOpts, onEvent: Eve
   proc.stdin.write(prompt);
   proc.stdin.end();
 
-  // Read stdout with ReadableStream
+  // Read stdout with ReadableStream (same as persistent bridge)
   const reader = proc.stdout.getReader();
-  // ... same pattern as bridge.readStdout
+  // ... same pattern as bridge.readStdout, using Loom's stream-parser
 }
 ```
 
-**Step 1:** Create the shared `runOneShot` helper.
+**Deploy handler — Bun subprocess migration:**
 
-**Step 2:** Port each handler to TypeScript, replacing `child_process.spawn` with `Bun.spawn` and `runOneShot`.
+The current `deploy.js` spawns two Node subprocesses:
+1. `spawn('node', ['scripts/assemble.js', ...])` — assembly
+2. `spawn('node', ['scripts/deploy-cloudflare.js', ...])` — deploy
+
+Both `assemble.js` and `deploy-cloudflare.js` are standard ESM scripts using `fs`, `path`, `child_process`, and `crypto` — all of which Bun supports natively. The `deploy-cloudflare.js` script also calls `npx wrangler` via `execSync`, which works identically under Bun.
+
+**Migration:** Replace `spawn('node', [...])` with `Bun.spawn({ cmd: ['bun', 'run', ...] })`. Both scripts work under Bun without modification because:
+- They use Node-compatible APIs that Bun implements (`fs`, `path`, `crypto`, `child_process`)
+- Their shebangs (`#!/usr/bin/env node`) are irrelevant when spawned explicitly
+- `execSync('npx wrangler ...')` works the same under Bun's shell
+
+```typescript
+// deploy.ts — Bun subprocess spawning
+const assembleResult = await runBunScript(
+  join(ctx.projectRoot, 'scripts/assemble.js'),
+  [appJsxPath, indexHtmlPath],
+  { cwd: ctx.projectRoot }
+);
+
+const deployResult = await runBunScript(
+  join(ctx.projectRoot, 'scripts/deploy-cloudflare.js'),
+  deployArgs,
+  { cwd: ctx.projectRoot, env: getRegistryEnv() }
+);
+
+// Helper: spawn a JS script under Bun
+async function runBunScript(script: string, args: string[], opts: SpawnOpts): Promise<{ ok: boolean; stdout: string; stderr: string }> {
+  const proc = Bun.spawn({
+    cmd: ['bun', 'run', script, ...args],
+    cwd: opts.cwd,
+    env: opts.env || { ...process.env },
+    stdin: 'pipe',
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+
+  const stdout = await new Response(proc.stdout).text();
+  const stderr = await new Response(proc.stderr).text();
+  const exitCode = await proc.exited;
+  return { ok: exitCode === 0, stdout, stderr };
+}
+```
+
+**Verification step:** Before merging, run `bun run scripts/assemble.js app.jsx index.html` and `bun run scripts/deploy-cloudflare.js --name test --file index.html` standalone to confirm Bun compatibility. If any script uses a Node API that Bun doesn't support, fix the script (not the spawn call).
+
+**Step 1:** Create the shared `runOneShot` helper (for claude subprocess) and `runBunScript` helper (for JS script spawning).
+
+**Step 2:** Port each handler to TypeScript, replacing `child_process.spawn` with `Bun.spawn` and the appropriate helper.
 
 **Step 3:** Port `post-process.ts` (trivial — pure string transforms, no Node deps).
 
@@ -378,26 +530,34 @@ websocket: {
 
 **This is the creative, production-ready HMR system the user wants.** The challenge: during generation, Claude writes app.jsx token by token. Naive HMR would push every partial file to the browser, breaking the page mid-syntax.
 
-**Design: Parseable-Snapshot HMR**
+**Design: Babel-Validated Snapshot HMR**
 
-The HMR system watches `app.jsx` during generation and pushes updates to the browser only when the file is in a renderable state. The key insight: we don't need to parse JSX — we need to detect when the file has **balanced braces and a valid export**.
+The HMR system watches `app.jsx` during generation and pushes updates to the browser only when the file is in a renderable state. Rather than hand-rolling a bracket balancer that would miss JSX, comments, regex, and template literal expressions, we use Babel's parser as the renderability oracle — the same parser the browser uses to transpile the app.
+
+**Why Babel:** The template system already depends on `@babel/standalone` (loaded from unpkg CDN in the browser). For the server-side parse check, we add `@babel/parser` as a dev dependency (~400KB). If it can parse the code, the browser can render it. This is the only reliable check for JSX code that may contain comments with unmatched braces, regex with brackets, template literals with nested expressions, and HTML-like syntax inside return statements.
 
 **Algorithm:**
 
-1. When generation starts, begin watching `app.jsx` with `fs.watch` (or `Bun.file().watch()` when stable).
+1. When generation starts, begin watching `app.jsx` with `fs.watch`.
 
-2. On each file change, read the current content and run a fast syntactic check:
+2. On each file change, read the current content and attempt a Babel parse:
    ```typescript
+   import { parse } from '@babel/parser';
+
    function isRenderable(code: string): boolean {
-     // Must have export default
+     // Must have export default (quick pre-check avoids parse cost on tiny fragments)
      if (!code.includes('export default')) return false;
-     // Balanced braces/parens/brackets (fast O(n) scan)
-     if (!hasBracketBalance(code)) return false;
-     // Must have at least one complete component (function returning JSX)
-     if (!hasCompleteComponent(code)) return false;
-     // No unterminated string literals
-     if (hasUnterminatedStrings(code)) return false;
-     return true;
+
+     try {
+       parse(code, {
+         sourceType: 'module',
+         plugins: ['jsx'],
+         errorRecovery: false,
+       });
+       return true;
+     } catch {
+       return false;
+     }
    }
    ```
 
@@ -405,26 +565,31 @@ The HMR system watches `app.jsx` during generation and pushes updates to the bro
    ```typescript
    ws.send(JSON.stringify({
      type: 'hmr_update',
-     code: snapshotCode,
+     html: assembledHtml,
      timestamp: Date.now(),
+     codeLength: code.length,
    }));
    ```
 
-4. The browser receives `hmr_update`, assembles it into the template frame (like `/app-frame` does server-side), and hot-swaps the iframe `srcdoc`.
+4. The browser receives `hmr_update`, and hot-swaps the iframe `srcdoc` with the assembled HTML.
 
 5. **Debounce:** Don't check more than once per 500ms. Claude writes in bursts — the file changes rapidly during tool execution, then pauses. The debounce naturally aligns with meaningful edit boundaries.
 
-6. **Diffing optimization (optional, Phase 2):** Instead of sending the full code each time, send a diff. But for v1, full code is fine — app.jsx is typically 5-30KB, well within WebSocket frame limits.
+6. **Parse cost:** `@babel/parser` parses a 30KB JSX file in ~5ms on modern hardware. With 500ms debounce, the CPU cost is negligible.
 
-**The "time-lapse" effect:** Since we only push when the code is parseable, the browser sees discrete "frames" of the app evolving — first the basic structure, then styles appear, then components flesh out, then animations activate. It's a time-lapse of the app coming together.
+**The "time-lapse" effect:** Since we only push when the code parses cleanly, the browser sees discrete "frames" of the app evolving — first the basic structure, then styles appear, then components flesh out, then animations activate. It's a time-lapse of the app coming together.
 
 **Implementation:**
 
 ```typescript
 // scripts/server/hmr.ts
+import { parse } from '@babel/parser';
+import { watch, readFileSync } from 'fs';
+import { join } from 'path';
+import { assembleAppFrame } from './handlers/generate';
 
 export function createHmrWatcher(ctx: ServerContext, broadcast: (msg: object) => void) {
-  let watcher: ReturnType<typeof import('fs').watch> | null = null;
+  let watcher: ReturnType<typeof watch> | null = null;
   let lastSnapshot = '';
   let debounceTimer: Timer | null = null;
   let active = false;
@@ -467,48 +632,18 @@ export function createHmrWatcher(ctx: ServerContext, broadcast: (msg: object) =>
   return { start, stop };
 }
 
-// Fast bracket balance checker
-function hasBracketBalance(code: string): boolean {
-  let depth = { '{': 0, '(': 0, '[': 0, '`': 0 };
-  let inString: string | null = null;
-  let escape = false;
-
-  for (let i = 0; i < code.length; i++) {
-    const ch = code[i];
-    if (escape) { escape = false; continue; }
-    if (ch === '\\') { escape = true; continue; }
-
-    if (inString) {
-      if (ch === inString) inString = null;
-      continue;
-    }
-
-    if (ch === '"' || ch === "'" || ch === '`') { inString = ch; continue; }
-    if (ch === '{') depth['{']++;
-    else if (ch === '}') depth['{']--;
-    else if (ch === '(') depth['(']++;
-    else if (ch === ')') depth['(']--;
-    else if (ch === '[') depth['[']++;
-    else if (ch === ']') depth['[']--;
-
-    if (depth['{'] < 0 || depth['('] < 0 || depth['['] < 0) return false;
+function isRenderable(code: string): boolean {
+  if (!code.includes('export default')) return false;
+  try {
+    parse(code, {
+      sourceType: 'module',
+      plugins: ['jsx'],
+      errorRecovery: false,
+    });
+    return true;
+  } catch {
+    return false;
   }
-
-  return depth['{'] === 0 && depth['('] === 0 && depth['['] === 0;
-}
-
-function hasCompleteComponent(code: string): boolean {
-  return /function\s+\w+\s*\([^)]*\)\s*\{/.test(code) &&
-         code.includes('return') &&
-         /export\s+default\s+\w+/.test(code);
-}
-
-function hasUnterminatedStrings(code: string): boolean {
-  // Quick heuristic: odd number of unescaped quotes
-  const singles = (code.match(/(?<!\\)'/g) || []).length;
-  const doubles = (code.match(/(?<!\\)"/g) || []).length;
-  const backticks = (code.match(/(?<!\\)`/g) || []).length;
-  return (singles % 2 !== 0) || (doubles % 2 !== 0) || (backticks % 2 !== 0);
 }
 ```
 
@@ -527,15 +662,17 @@ case 'hmr_update':
   break;
 ```
 
-**Step 1:** Create `hmr.ts` with the watcher, balance checker, and broadcast logic.
+**Step 1:** Add `@babel/parser` to `scripts/package.json` devDependencies.
 
-**Step 2:** Integrate with `generate.ts` — call `hmr.start()` before generation, `hmr.stop()` after.
+**Step 2:** Create `hmr.ts` with the watcher, `isRenderable` (Babel-based), and broadcast logic.
 
-**Step 3:** Add `hmr_update` handling to the browser-side WebSocket handler.
+**Step 3:** Integrate with `generate.ts` — call `hmr.start()` before generation, `hmr.stop()` after.
 
-**Step 4:** Test: generate an app, watch the preview update in real-time as Claude writes.
+**Step 4:** Add `hmr_update` handling to the browser-side WebSocket handler.
 
-**Step 5:** Commit: `"Implement time-lapse HMR with parseable-snapshot detection"`
+**Step 5:** Test: generate an app, watch the preview update in real-time as Claude writes.
+
+**Step 6:** Commit: `"Implement time-lapse HMR with Babel-validated snapshot detection"`
 
 ---
 
@@ -549,9 +686,9 @@ case 'hmr_update':
 - Delete: `scripts/preview-server.js`
 - Modify: `scripts/server/lifecycle.js` → `lifecycle.ts`
 
-**Step 1:** Remove `ws` from `scripts/package.json` dependencies.
+**Step 1:** Remove `ws` from `scripts/package.json` dependencies. Add `@babel/parser` to devDependencies (for HMR).
 
-**Step 2:** Delete `ensure-deps.js` — Bun doesn't need npm auto-install; it reads dependencies at startup.
+**Step 2:** Delete `ensure-deps.js` — Bun doesn't need npm auto-install; it reads dependencies at startup. The `ensurePreviewDeps` function (which checked for `ws`) is obsolete. The `ensureDeps` function (which checked for `jsonwebtoken` for deploy) is also obsolete since Bun resolves deps at import time and errors clearly.
 
 **Step 3:** Delete `preview-server.js` — replaced by `server.ts`.
 
@@ -598,21 +735,56 @@ describe('isRenderable', () => {
     expect(isRenderable(code)).toBe(false);
   });
 
-  it('rejects unbalanced braces', () => {
-    const code = `function App() { return <div>Hello</div>;\nexport default App;`;
+  it('rejects code without export', () => {
+    const code = `function App() { return <div>Hello</div>; }`;
     expect(isRenderable(code)).toBe(false);
   });
 
-  it('rejects code without export', () => {
-    const code = `function App() { return <div>Hello</div>; }`;
+  it('handles comments with unmatched braces', () => {
+    const code = `// this has a { without closing\nfunction App() { return <div>Hi</div>; }\nexport default App;`;
+    expect(isRenderable(code)).toBe(true);
+  });
+
+  it('handles JSX with embedded expressions', () => {
+    const code = `function App() { const x = [1,2,3]; return <div>{x.map(i => <span key={i}>{i}</span>)}</div>; }\nexport default App;`;
+    expect(isRenderable(code)).toBe(true);
+  });
+
+  it('handles template literals with nested braces', () => {
+    const code = 'function App() { const s = `${JSON.stringify({a:1})}`; return <div>{s}</div>; }\nexport default App;';
+    expect(isRenderable(code)).toBe(true);
+  });
+
+  it('rejects unterminated template literal', () => {
+    const code = 'function App() { const s = `hello ${world'; // unterminated
     expect(isRenderable(code)).toBe(false);
   });
 });
 ```
 
-**Step 1:** Add HMR unit tests (isRenderable, hasBracketBalance, hasUnterminatedStrings).
+**New tests for concurrency model:**
+```typescript
+describe('operation lock', () => {
+  it('rejects concurrent operations', () => {
+    expect(acquireLock('chat', () => {})).toBe(true);
+    expect(acquireLock('generate', () => {})).toBe(false);
+    releaseLock();
+    expect(acquireLock('generate', () => {})).toBe(true);
+  });
 
-**Step 2:** Add claude-bridge tests (event dispatching, send/cancel).
+  it('cancel releases the lock', () => {
+    const cancel = vi.fn();
+    acquireLock('chat', cancel);
+    expect(cancelCurrent()).toBe(true);
+    expect(cancel).toHaveBeenCalled();
+    expect(acquireLock('generate', () => {})).toBe(true);
+  });
+});
+```
+
+**Step 1:** Add HMR unit tests (isRenderable with edge cases: comments, JSX, template literals).
+
+**Step 2:** Add claude-bridge tests (event dispatching, send/cancel, operation lock).
 
 **Step 3:** Run full suite: `cd scripts && bun test` (or `npm test` — vitest works under both).
 
@@ -643,19 +815,20 @@ describe('isRenderable', () => {
 
 ## File Inventory
 
-### New files (10)
+### New files (11)
 | File | Purpose |
 |------|---------|
 | `scripts/server.ts` | Bun.serve entry point |
 | `scripts/server/config.ts` | Config loader (port from .js) |
 | `scripts/server/router.ts` | HTTP route table returning Response objects |
 | `scripts/server/ws.ts` | Native WebSocket handler |
-| `scripts/server/claude-bridge.ts` | Persistent claude session + one-shot helper |
+| `scripts/server/claude-bridge.ts` | Persistent claude session + one-shot helper + operation lock |
 | `scripts/server/handlers/chat.ts` | Chat handler (persistent session) |
 | `scripts/server/handlers/generate.ts` | Generate handler (one-shot + HMR) |
 | `scripts/server/handlers/theme.ts` | Theme switch handler (one-shot) |
 | `scripts/server/handlers/create-theme.ts` | Theme save handler (one-shot) |
-| `scripts/server/hmr.ts` | Parseable-snapshot HMR watcher |
+| `scripts/server/handlers/deploy.ts` | Deploy handler (Bun subprocess spawning) |
+| `scripts/server/hmr.ts` | Babel-validated snapshot HMR watcher |
 
 ### Deleted files (3)
 | File | Reason |
@@ -667,24 +840,25 @@ describe('isRenderable', () => {
 ### Modified files (8)
 | File | Change |
 |------|--------|
-| `scripts/package.json` | Remove `ws` dep, update scripts |
+| `scripts/package.json` | Remove `ws` dep, add `@babel/parser`, update scripts |
 | `scripts/server/config.js` → `.ts` | TypeScript, Bun-native imports |
 | `scripts/server/lifecycle.js` → `.ts` | Bun-native port management |
 | `scripts/server/routes.js` | Deleted (replaced by `router.ts`) |
 | `scripts/server/claude-bridge.js` | Deleted (replaced by `.ts`) |
 | `scripts/server/post-process.js` → `.ts` | TypeScript (logic unchanged) |
 | `CLAUDE.md` | Update dev commands |
-| `scripts/server/handlers/editor-api.js` → `.ts` | Response API, `req.json()` |
+| `scripts/server/handlers/editor-api.js` → `.ts` | Response API, size-limited body parsing |
 
 ### Preserved files (unchanged)
 | File | Why |
 |------|-----|
-| `scripts/lib/stream-parser.js` | Pure utility, no Node deps |
-| `scripts/lib/claude-subprocess.js` | Still used by other scripts (deploy, etc.) |
+| `scripts/lib/stream-parser.js` | Loom pattern — pure utility, runtime-agnostic, used by both persistent bridge and one-shot helper |
+| `scripts/lib/claude-subprocess.js` | Still used by `runOneShot` helper for `buildClaudeArgs`. Also used by other standalone scripts. |
 | `scripts/lib/*.js` | Pure utilities, runtime-agnostic |
 | `scripts/__tests__/` | Vitest tests — add new, keep existing |
-| `scripts/server/handlers/deploy.js` | Spawns `node` subprocess for deploy scripts — separate concern |
 | `scripts/server/handlers/image-gen.js` | Pure fetch, no Node deps |
+| `scripts/assemble.js` | Standalone script — runs under both Node and Bun. Spawned by deploy handler via `bun run`. |
+| `scripts/deploy-cloudflare.js` | Standalone script — runs under both Node and Bun. Spawned by deploy handler via `bun run`. |
 
 ---
 
@@ -694,10 +868,12 @@ describe('isRenderable', () => {
 |------|------------|
 | Bun.spawn stdin flushing behaves differently from Node child_process | Julian project proves this works; test early in Task 4 |
 | `--input-format stream-json` may not support tool set switching | Hybrid model (Task 5) — persistent session for chat, one-shot for others |
-| HMR bracket balance checker produces false positives/negatives | Conservative: only push when ALL checks pass. False negatives (missing valid states) are fine — user just sees fewer intermediate frames |
+| Babel parse too slow for HMR debounce cycle | @babel/parser parses 30KB JSX in ~5ms; 500ms debounce makes this negligible. Measure in Task 7 and increase debounce if needed. |
 | Vitest under Bun may have edge cases | Vitest officially supports Bun; 520 tests will surface issues quickly |
 | `Bun.file().watch()` not yet stable | Use `fs.watch` (Bun supports Node fs module) |
-| Deploy handler spawns `node` subprocesses | Keep as-is — deploy scripts are separate from the server runtime |
+| `assemble.js` or `deploy-cloudflare.js` uses a Node API Bun doesn't support | Verify each script with `bun run <script>` before merging (Task 5 verification step). `deploy-cloudflare.js` uses `createPublicKey` from crypto — verify this specifically. |
+| Body size limits lost on POST endpoints | `parseJsonBody` helper enforces Content-Length + actual body size checks (Task 3) |
+| Persistent bridge + one-shot spawn race on app.jsx | Operation lock (see Concurrency Model) serializes all claude operations. HMR watcher is read-only. |
 
 ---
 
