@@ -1,0 +1,15 @@
+name = "vibes-deploy-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[vars]
+OIDC_ISSUER = "https://pocket-id.vibes.diy"
+
+# Secrets (set via `wrangler secret put`):
+# CF_API_TOKEN - scoped to Workers deploys on our account
+# OIDC_PEM_PUBLIC_KEY - PEM from Pocket ID JWKS (for JWT verification)
+# CF_ACCOUNT_ID - our Cloudflare account ID
+
+[[kv_namespaces]]
+binding = "REGISTRY_KV"
+id = "" # filled at deploy time
