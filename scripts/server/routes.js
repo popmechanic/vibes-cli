@@ -10,6 +10,7 @@ import { join, extname } from 'path';
 import * as editorApi from './handlers/editor-api.js';
 import { getRecommendedThemeIds } from './config.js';
 import { assembleAppFrame } from './handlers/generate.js';
+import { currentAppDir } from './app-context.js';
 
 const MIME = {
   '.html': 'text/html',
@@ -44,7 +45,12 @@ function serveHtml(ctx, req, res) {
 }
 
 function serveAppJsx(ctx, req, res) {
-  const appPath = join(ctx.projectRoot, 'app.jsx');
+  const appDir = currentAppDir(ctx);
+  if (!appDir) {
+    res.writeHead(200, { 'Content-Type': 'text/javascript' });
+    return res.end('// No app active\n');
+  }
+  const appPath = join(appDir, 'app.jsx');
   if (!existsSync(appPath)) {
     res.writeHead(200, { 'Content-Type': 'text/javascript' });
     return res.end('// app.jsx not yet generated\n');
@@ -70,9 +76,21 @@ function serveAnimations(ctx, req, res) {
   return res.end(JSON.stringify(ctx.animations));
 }
 
+function serveSkills(ctx, req, res) {
+  const catalog = (ctx.pluginSkills || []).map(s => ({
+    id: s.id,
+    name: s.name,
+    description: s.description,
+    pluginName: s.pluginName,
+    marketplace: s.marketplace,
+  }));
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  return res.end(JSON.stringify(catalog));
+}
+
 function serveAppFrame(ctx, req, res) {
-  const appPath = join(ctx.projectRoot, 'app.jsx');
-  if (!existsSync(appPath)) {
+  const appDir = currentAppDir(ctx);
+  if (!appDir || !existsSync(join(appDir, 'app.jsx'))) {
     res.writeHead(200, { 'Content-Type': 'text/html' });
     return res.end(`<!DOCTYPE html>
 <html><head><style>
@@ -95,6 +113,7 @@ const routeTable = {
   'GET /themes':                          serveThemes,
   'GET /themes/has-key':                  serveHasKey,
   'GET /animations':                      serveAnimations,
+  'GET /skills':                          serveSkills,
   'GET /app-frame':                       serveAppFrame,
   'GET /editor/status':                   editorApi.status,
   'GET /editor/initial-prompt':           editorApi.initialPrompt,
@@ -108,6 +127,8 @@ const routeTable = {
   'POST /editor/apps/save':              editorApi.saveApp,
   'POST /editor/apps/screenshot':         editorApi.saveScreenshot,
   'POST /editor/apps/write':             editorApi.writeApp,
+  'POST /editor/apps/rename':            editorApi.renameApp,
+  'POST /editor/apps/delete':            editorApi.deleteApp,
   'GET /editor/deployments':             editorApi.listDeployments,
 };
 

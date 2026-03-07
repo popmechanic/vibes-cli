@@ -7,6 +7,7 @@ import { join } from 'path';
 import { runClaude } from '../claude-bridge.js';
 import { sanitizeAppJsx } from '../post-process.js';
 import { getAnimationInstructions } from '../config.js';
+import { currentAppDir } from '../app-context.js';
 
 const EFFECT_INSTRUCTIONS = {
   '3d': `MANDATORY: Use WebGL or CSS 3D transforms (perspective, rotateX/Y/Z, preserve-3d) for this feature. Create actual 3D depth — not flat elements with shadows. Consider: rotating 3D cards, perspective grids, WebGL scenes with Three.js-style raw GL, isometric layouts, parallax depth layers. Use useRef + useEffect for any canvas/WebGL setup with proper cleanup.`,
@@ -16,9 +17,10 @@ const EFFECT_INSTRUCTIONS = {
   'shader': `MANDATORY: Add a WebGL fragment shader background. Create a fullscreen quad with vertex shader, pass u_time/u_resolution/u_mouse uniforms. Use effects like: aurora (sine wave color mixing), plasma (layered sine interference), noise gradient mesh (hash-based noise with mouse reactivity), or animated color fields. Use precision mediump float. Graceful fallback if WebGL unavailable.`,
 };
 
-export async function handleChat(ctx, onEvent, message, effects = [], animationId = null, model, reference = null) {
+export async function handleChat(ctx, onEvent, message, effects = [], animationId = null, model, reference = null, skillId = null) {
   let effectBlock = '';
   let referenceBlock = '';
+  let skillBlock = '';
 
   console.log(`[Chat] reference received:`, reference ? { name: reference.name, type: reference.type, hasDataUrl: !!reference.dataUrl, dataUrlLen: reference.dataUrl?.length } : null);
 
@@ -154,7 +156,35 @@ The goal is: if you put the app and the image side by side, they should look lik
     }
   }
 
-  const prompt = `${referenceBlock}The user is iterating on a React app in app.jsx. Read app.jsx first, then Edit it.
+  // Skill context — prepend SKILL.md content with environment preamble
+  // TODO: Add integration test for skill context injection (requires mocking runClaude)
+  if (skillId) {
+    const skill = (ctx.pluginSkills || []).find(s => s.id === skillId);
+    if (skill && existsSync(skill.skillMdPath)) {
+      let skillContent = readFileSync(skill.skillMdPath, 'utf-8');
+      if (skillContent.length > 30000) {
+        console.warn(`[Chat] Skill "${skill.name}" SKILL.md truncated from ${skillContent.length} to 30000 bytes`);
+        skillContent = skillContent.slice(0, 30000) + '\n\n[... truncated — skill content exceeded 30KB ...]';
+      }
+      skillBlock = `\n\nSKILL CONTEXT: "${skill.name}" (from ${skill.pluginName} plugin)
+The user selected this skill to guide your approach.
+
+IMPORTANT — ENVIRONMENT CONSTRAINTS:
+You are running inside the Vibes web editor, which is a constrained environment.
+Your available tools are ONLY: Read, Edit, Write, Glob, Grep.
+You do NOT have access to: Bash, shell commands, terminal, Task/Agent spawning, or any other tools.
+Your working directory is the app project root. You are editing a React JSX app (app.jsx).
+If the skill instructions below reference bash commands, spawning agents, running tests,
+or using tools you don't have, adapt the guidance to what you CAN do — focus on the
+conceptual approach and any code patterns the skill recommends.
+
+${skillContent}
+
+`;
+    }
+  }
+
+  const prompt = `${skillBlock}${referenceBlock}The user is iterating on a React app in app.jsx. Read app.jsx first, then Edit it.
 
 User says: "${message}"${effectBlock}
 
@@ -166,8 +196,8 @@ RULES:
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
 - Never change Fireproof document types or query filters`;
 
-  const maxTurns = (animationId || effects.length > 0 || reference) ? 12 : 8;
-  await runClaude(prompt, { maxTurns, model, cwd: ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent);
+  const maxTurns = (animationId || effects.length > 0 || reference || skillId) ? 12 : 8;
+  await runClaude(prompt, { maxTurns, model, cwd: currentAppDir(ctx) || ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent);
 
   sanitizeAppJsx(ctx.projectRoot);
 }

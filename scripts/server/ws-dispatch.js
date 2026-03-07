@@ -2,7 +2,7 @@
  * WebSocket dispatch — thin message router with a dispatch table.
  */
 
-import { existsSync, mkdirSync, copyFileSync, unlinkSync, readFileSync, writeFileSync } from 'fs';
+import { existsSync, unlinkSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { cancelClaude } from './claude-bridge.js';
 import { handleChat } from './handlers/chat.js';
@@ -30,7 +30,7 @@ export function setupWebSocket(wss, ctx, wsAdapter) {
 
     const onEvent = wsAdapter(ws);
     const dispatch = {
-      chat:             (msg) => handleChat(ctx, onEvent, msg.message, msg.effects || [], msg.animationId || null, msg.model, msg.reference || null),
+      chat:             (msg) => handleChat(ctx, onEvent, msg.message, msg.effects || [], msg.animationId || null, msg.model, msg.reference || null, msg.skillId || null),
       theme:            (msg) => handleThemeSwitch(ctx, onEvent, msg.themeId, msg.model),
       cancel:           ()    => { if (!cancelClaude()) onEvent({ type: 'error', message: 'No request in progress.' }); },
       generate:         (msg) => handleGenerate(ctx, onEvent, msg.prompt, msg.themeId, msg.model, msg.reference || null),
@@ -58,17 +58,6 @@ export function setupWebSocket(wss, ctx, wsAdapter) {
         reloadThemes(ctx);
         onEvent({ type: 'theme_deleted', themeId });
         console.log(`[DeleteTheme] Deleted theme "${themeId}"`);
-      },
-      save_app:         (msg) => {
-        const name = (msg.name || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 63);
-        if (!name) { onEvent({ type: 'error', message: 'App name is required' }); return; }
-        const appSrc = join(ctx.projectRoot, 'app.jsx');
-        if (!existsSync(appSrc)) { onEvent({ type: 'error', message: 'No app.jsx to save' }); return; }
-        const dest = join(ctx.appsDir, name);
-        mkdirSync(dest, { recursive: true });
-        copyFileSync(appSrc, join(dest, 'app.jsx'));
-        onEvent({ type: 'app_saved', name });
-        console.log(`[Save] Saved app to ${dest}`);
       },
     };
 
