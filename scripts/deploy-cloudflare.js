@@ -181,15 +181,28 @@ async function main() {
       console.warn('No CLERK_SECRET_KEY in .env — Connect dashboard features may be limited.');
     }
 
+    // Check for a saved alchemy password from a previous partial deploy.
+    // Alchemy encrypts its state with this password — if we lose it,
+    // subsequent deploys to the same stage fail with "Cannot deserialize secret".
+    const partialEntry = getApp(name);
+    let connectPassword = partialEntry?.connect?.alchemyPassword || null;
+    if (!connectPassword) {
+      // Pre-save the password before alchemy runs so it survives a crash.
+      const { randomBytes } = await import('crypto');
+      connectPassword = randomBytes(32).toString('hex');
+      setApp(name, { name, connect: { alchemyPassword: connectPassword } });
+    }
+
     // Deploy Connect via alchemy
     const connectResult = await deployConnect({
       appName: name,
       clerkPublishableKey: clerkKey,
       clerkSecretKey: connectClerkSecret,
-      dryRun: args.includes('--dry-run')
+      dryRun: args.includes('--dry-run'),
+      alchemyPassword: connectPassword
     });
 
-    // Write Connect metadata to registry
+    // Write Connect metadata to registry (includes alchemyPassword for reuse)
     setApp(name, {
       name,
       clerk: {
