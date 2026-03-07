@@ -15,18 +15,28 @@
         // Hook must be called unconditionally at top of component (Rules of Hooks)
         window.useVibesPanelEvents('Vibes');
 
-        // Check for configuration errors
-        if (!config?.clerkPublishableKey || config.clerkPublishableKey.startsWith('__')) {
-          return <ConfigError message="Missing Clerk publishable key. Apps require authentication." />;
+        const hasConnect = !!(config?.tokenApiUri && config?.cloudBackendUrl &&
+          !config.tokenApiUri.startsWith('__') && !config.cloudBackendUrl.startsWith('__'));
+        const hasClerk = !!(config?.clerkPublishableKey &&
+          !config.clerkPublishableKey.startsWith('__'));
+
+        // No Connect URLs — run local-only (no auth, no sync)
+        if (!hasConnect) {
+          if (!hasClerk) {
+            console.info('[vibes] No credentials configured — running local-only.');
+          } else {
+            console.info('[vibes] Sync will be configured on first deploy. Running local-only preview.');
+          }
+          return (
+            <HiddenMenuWrapper menuContent={<VibesPanel />}>
+              <App />
+            </HiddenMenuWrapper>
+          );
         }
 
-        // Warn if Connect URLs are unreplaced placeholders (assembly bug)
-        // Empty URLs are expected pre-deploy — sync configures on first deploy via alchemy
-        if (config?.tokenApiUri?.startsWith('__') || config?.cloudBackendUrl?.startsWith('__')) {
-          console.warn('[vibes] Connect URL placeholders not replaced — check assembly.',
-            'tokenApiUri:', config?.tokenApiUri, 'cloudBackendUrl:', config?.cloudBackendUrl);
-        } else if (!config?.tokenApiUri || !config?.cloudBackendUrl) {
-          console.info('[vibes] Sync will be configured on first deploy.');
+        // Full mode — Connect configured, Clerk required
+        if (!hasClerk) {
+          return <ConfigError message="Missing Clerk publishable key. Apps require authentication." />;
         }
 
         // Check if Clerk components loaded
