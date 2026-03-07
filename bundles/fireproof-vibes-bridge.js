@@ -23,7 +23,18 @@ import { useFireproof as _coreUseFireproof } from "use-fireproof-core";
 var _patchedApis = typeof WeakSet !== 'undefined' ? new WeakSet() : { has: function(){return false;}, add: function(){} };
 var _currentDbName = null;
 
+// Determined at module load — constant for the session, so hooks order is stable
+var _config = typeof window !== 'undefined' && window.__VIBES_CONFIG__;
+var _hasClerk = !!(_config && _config.clerkPublishableKey &&
+  !_config.clerkPublishableKey.startsWith('__'));
+
 export function useFireproofClerk(name, opts) {
+  // Local-only mode: no Clerk key configured, use plain Fireproof (no sync)
+  if (!_hasClerk) {
+    _currentDbName = name;
+    return _coreUseFireproof(name, opts);
+  }
+
   var ctx = useClerkFireproofContext();
   var dashApi = ctx && ctx.dashApi;
   // Patch dashApi to route to correct per-database ledger. Three tiers:
