@@ -493,16 +493,16 @@ export function resolveSkillsDir(installPath) {
  * YAML block scalars (> or |) or indented continuation lines.
  */
 export function parseSkillFrontmatter(content) {
+  content = content.replace(/\r\n/g, '\n');
   const fm = content.match(/^---\n([\s\S]*?)\n---/);
   if (!fm) return {};
   const block = fm[1];
   const result = {};
 
-  for (const field of ['name', 'description', 'argument-hint']) {
+  for (const field of ['name', 'description']) {
     const value = extractYamlField(block, field);
     if (value !== null) {
-      const key = field === 'argument-hint' ? 'argumentHint' : field;
-      result[key] = value;
+      result[field] = value;
     }
   }
   return result;

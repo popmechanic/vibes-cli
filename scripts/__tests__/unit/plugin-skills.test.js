@@ -48,16 +48,6 @@ description: 'Single quoted description'
     expect(result.description).toBe('Single quoted description');
   });
 
-  it('parses argument-hint as argumentHint', () => {
-    const content = `---
-name: my-skill
-description: A skill
-argument-hint: "[file path]"
----`;
-    const result = parseSkillFrontmatter(content);
-    expect(result.argumentHint).toBe('[file path]');
-  });
-
   it('handles missing fields gracefully', () => {
     const content = `---
 name: only-name
@@ -65,7 +55,13 @@ name: only-name
     const result = parseSkillFrontmatter(content);
     expect(result.name).toBe('only-name');
     expect(result.description).toBeUndefined();
-    expect(result.argumentHint).toBeUndefined();
+  });
+
+  it('normalizes CRLF line endings', () => {
+    const content = "---\r\nname: crlf-skill\r\ndescription: Windows line endings\r\n---\r\n# Content";
+    const result = parseSkillFrontmatter(content);
+    expect(result.name).toBe('crlf-skill');
+    expect(result.description).toBe('Windows line endings');
   });
 
   it('parses multiline description with indented continuation', () => {
@@ -74,11 +70,9 @@ name: complex-skill
 description: First line of a long description
   that continues on the next line
   and even a third line
-argument-hint: hint
 ---`;
     const result = parseSkillFrontmatter(content);
     expect(result.description).toBe('First line of a long description that continues on the next line and even a third line');
-    expect(result.argumentHint).toBe('hint');
   });
 
   it('parses YAML folded block scalar (>)', () => {
