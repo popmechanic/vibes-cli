@@ -19,17 +19,9 @@ if [ -f "$REGISTRY" ]; then
     app_count=$(grep -c '"name"' "$REGISTRY" 2>/dev/null || echo "0")
     state_hints=$'\n\n## Project State\nVibes registry found with '"$app_count"' app(s). Deploy with /vibes:cloudflare.'
 elif [ -f "${PWD}/.env" ]; then
-    has_oidc_credentials=false
-    if grep -q "VITE_OIDC_AUTHORITY=" "${PWD}/.env" 2>/dev/null; then
-        has_oidc_credentials=true
-    fi
-    if [ "$has_oidc_credentials" = true ]; then
-        state_hints=$'\n\n## Project State\n.env found with OIDC credentials. Deploy with /vibes:cloudflare to auto-configure Connect.'
-    else
-        state_hints=$'\n\n## Project State\n.env found but missing OIDC credentials. Provide VITE_OIDC_AUTHORITY before deploying.'
-    fi
+    state_hints=$'\n\n## Project State\n.env found. Deploy with /vibes:cloudflare (auth handled automatically via Pocket ID).'
 else
-    state_hints=$'\n\n## Project State\nNo registry or .env found. OIDC credentials will be configured on first app deploy.'
+    state_hints=$'\n\n## Project State\nNo registry or .env found. Auth is handled automatically on first deploy via Pocket ID.'
 fi
 
 if [ -f "${PWD}/app.jsx" ]; then
