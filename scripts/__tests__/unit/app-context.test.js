@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { mkdtempSync, mkdirSync, rmSync } from 'fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { currentAppDir, slugifyPrompt, resolveAppName } from '../../server/app-context.js';
+import { currentAppDir, slugifyPrompt, resolveAppName, throttledBackup } from '../../server/app-context.js';
 
 const tempDirs = [];
 function makeTempDir() {
@@ -75,5 +75,52 @@ describe('resolveAppName', () => {
     mkdirSync(join(dir, 'my-app-2'));
     mkdirSync(join(dir, 'my-app-3'));
     expect(resolveAppName(dir, 'my-app')).toBe('my-app-4');
+  });
+});
+
+describe('throttledBackup', () => {
+  it('creates a backup on first call', () => {
+    const dir = makeTempDir();
+    const filePath = join(dir, 'app.jsx');
+    writeFileSync(filePath, 'const App = () => <div/>;');
+    const timestamps = {};
+
+    throttledBackup(filePath, 'test-app', timestamps);
+
+    const files = readdirSync(dir);
+    expect(files.some(f => f.includes('.bak.'))).toBe(true);
+  });
+
+  it('skips backup within cooldown period', () => {
+    const dir = makeTempDir();
+    const filePath = join(dir, 'app.jsx');
+    writeFileSync(filePath, 'v1');
+    const timestamps = {};
+
+    throttledBackup(filePath, 'test-app', timestamps);
+    const count1 = readdirSync(dir).filter(f => f.includes('.bak.')).length;
+
+    throttledBackup(filePath, 'test-app', timestamps);
+    const count2 = readdirSync(dir).filter(f => f.includes('.bak.')).length;
+
+    expect(count2).toBe(count1);
+  });
+
+  it('creates backup after cooldown expires', async () => {
+    const dir = makeTempDir();
+    const filePath = join(dir, 'app.jsx');
+    writeFileSync(filePath, 'v1');
+    const timestamps = {};
+
+    throttledBackup(filePath, 'test-app', timestamps);
+    // Fake the timestamp to 31 seconds ago
+    timestamps['test-app'] = Date.now() - 31000;
+
+    // Wait 1 second so the backup timestamp differs (second-resolution filenames)
+    await new Promise(r => setTimeout(r, 1100));
+
+    throttledBackup(filePath, 'test-app', timestamps);
+    const backups = readdirSync(dir).filter(f => f.includes('.bak.'));
+    expect(backups.length).toBe(2);
   });
 });

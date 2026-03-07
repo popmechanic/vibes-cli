@@ -1,5 +1,6 @@
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { createBackup } from '../lib/backup.js';
 
 const FILLER_WORDS = new Set([
   'build', 'me', 'a', 'an', 'the', 'my', 'for', 'make', 'create',
@@ -22,6 +23,16 @@ export function slugifyPrompt(prompt) {
   if (words.length === 0) return 'untitled';
 
   return words.slice(0, 4).join('-').slice(0, 63);
+}
+
+const BACKUP_COOLDOWN_MS = 30_000;
+
+export function throttledBackup(filePath, appName, timestamps) {
+  const now = Date.now();
+  const last = timestamps[appName] || 0;
+  if (now - last < BACKUP_COOLDOWN_MS) return;
+  createBackup(filePath);
+  timestamps[appName] = now;
 }
 
 export function resolveAppName(appsDir, slug) {
