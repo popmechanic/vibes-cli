@@ -9,8 +9,18 @@ import { getCloudflareConfig } from '../../lib/registry.js';
 import { runBunScript, type EventCallback } from '../claude-bridge.ts';
 import type { ServerContext } from '../config.ts';
 
+/**
+ * Build env for the deploy subprocess.
+ * Only injects registry credentials if wrangler's own OAuth config is missing.
+ * This prevents stale API tokens from overriding a valid `npx wrangler login` session.
+ */
 function getRegistryEnv(): Record<string, string> {
   const env = { ...process.env } as Record<string, string>;
+  // If wrangler already has OAuth credentials, don't inject registry tokens
+  const hasWranglerOAuth = existsSync(join(process.env.HOME || '', '.wrangler', 'config', 'default.toml'));
+  if (hasWranglerOAuth && !env.CLOUDFLARE_API_TOKEN && !env.CLOUDFLARE_API_KEY) {
+    return env;
+  }
   const cf = getCloudflareConfig();
   if (cf.apiToken) {
     if (!env.CLOUDFLARE_API_TOKEN) env.CLOUDFLARE_API_TOKEN = cf.apiToken;
