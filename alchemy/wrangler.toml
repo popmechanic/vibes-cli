@@ -21,6 +21,3 @@ new_sqlite_classes = ["PocketIdContainer"]
 POCKET_ID_APP_URL = "https://pocket-id.marcus-e.workers.dev"
 POCKET_ID_ENCRYPTION_KEY = "yjfKnxrgD0WHj5OfVpMO9LTp9txwogqztQVQ7XkCdY8="
 POCKET_ID_STATIC_API_KEY = "536c92459e65ce61911813d5cf1871bcebc93253b64b318dd1b9e0157aefcb34"
-# Auto-register these OIDC clients when the container restarts (ephemeral SQLite).
-# The middleware ensures these clients exist before any OIDC authorize request.
-POCKET_ID_DEFAULT_CLIENTS = '[{"name":"vibes-test-app","callbackURLs":["https://toe.marcus-e.workers.dev/","https://toe.marcus-e.workers.dev"],"isPublic":true,"pkceEnabled":true}]'

@@ -5,6 +5,5 @@
  * and shared OIDC client are managed infrastructure — users never configure these.
  */
 
-// TODO: Replace with actual production values after Pocket ID deployment
-export const OIDC_AUTHORITY = 'https://pocket-id.vibes.diy';
-export const OIDC_CLIENT_ID = 'vibes-apps';
+export const OIDC_AUTHORITY = 'https://pocket-id.marcus-e.workers.dev';
+export const OIDC_CLIENT_ID = '6c154be6-e6fa-47f3-ad2b-31740cedc1f1';
