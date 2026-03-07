@@ -3204,13 +3204,24 @@
       } else if (msg.type === 'app_updated') {
         console.log('[app_updated] phase:', currentPhase, 'pendingTheme:', pendingThemeId);
         setThinking(false);
-        if (!isVersionNav) versionPush();
         if (currentPhase === 'generate') {
-          setPhase('edit');
-          loadPreview();
-          // Auto-save only on initial generate to set the app name
-          autoSaveApp();
+          fetch('/editor/app-exists').then(r => r.json()).then(d => {
+            if (d.exists) {
+              if (!isVersionNav) versionPush();
+              setPhase('edit');
+              loadPreview();
+              autoSaveApp();
+            } else {
+              document.getElementById('generateProgress').classList.remove('active');
+              document.getElementById('generateActions').style.display = '';
+              document.getElementById('generateBtn').disabled = false;
+              const errEl = document.getElementById('generateError');
+              errEl.textContent = 'Generation completed but no app was created. Try again.';
+              errEl.style.display = '';
+            }
+          });
         } else {
+          if (!isVersionNav) versionPush();
           reloadPreview();
         }
       } else if (msg.type === 'error') {
@@ -3355,6 +3366,9 @@
 
   function goToGenerate() {
     setPhase('generate');
+    checkExistingApps();
+    const promptEl = document.getElementById('generatePrompt');
+    if (promptEl) promptEl.focus();
   }
 
   function setWizardStep(n) {
@@ -5672,19 +5686,11 @@
     cloudflareReady = status.cloudflare?.ok || false;
 
     if (status.clerk?.ok && status.cloudflare?.ok) {
-      // Credentials present — check if app.jsx exists to resume edit phase
-      fetch('/editor/app-exists').then(r => r.json()).then(data => {
-        if (data.exists) {
-          setPhase('edit');
-        } else {
-          fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
-            if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;
-          }).catch(() => {});
-          document.getElementById('generatePrompt').focus();
-        }
-      }).catch(() => {
-        document.getElementById('generatePrompt').focus();
-      });
+      // Always land on generate — user can access existing apps via the gallery
+      fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
+        if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;
+      }).catch(() => {});
+      document.getElementById('generatePrompt').focus();
     } else {
       // Missing credentials → show wizard
       setPhase('setup');
