@@ -170,11 +170,16 @@ async function main() {
   // Plan quotas: JSON map of plan slug to max subdomains
   const planQuotas = planQuotasIdx !== -1 ? args[planQuotasIdx + 1] : null;
 
-  // Resolve env directory for .env auto-detection (defaults to --file's parent dir)
+  // Resolve env directory for .env auto-detection (defaults to --file's parent dir,
+  // falls back to cwd — the editor saves credentials to the project root .env).
   const envDir = envDirIdx !== -1
     ? resolve(process.cwd(), args[envDirIdx + 1])
     : dirname(resolve(process.cwd(), file));
-  const envVars = loadEnvFile(envDir);
+  let envVars = loadEnvFile(envDir);
+  if (!envVars.VITE_CLERK_PUBLISHABLE_KEY && resolve(envDir) !== resolve(process.cwd())) {
+    const cwdEnv = loadEnvFile(process.cwd());
+    envVars = { ...cwdEnv, ...envVars };
+  }
 
   // Clerk key: flag > .env auto-detect
   let clerkKey = clerkKeyIdx !== -1 ? args[clerkKeyIdx + 1] : null;
