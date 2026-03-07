@@ -14,10 +14,6 @@ Your data lives locally in the browser, encrypted and portable. It syncs across 
 
 ## Installation
 
-> **Note:** Installation differs by platform. Claude Code has a built-in plugin system. Codex and OpenCode require manual setup.
-
-### Claude Code (via Plugin Marketplace)
-
 In Claude Code, register the marketplace first:
 
 ```

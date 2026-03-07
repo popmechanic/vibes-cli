@@ -130,7 +130,7 @@ node scripts/merge-templates.js --force      # Merge base + tokens + deltas into
 
 ### Auth Components
 
-The `components/` directory contains TypeScript components designed by Amber (commit f34b5ebc). These are the **source of truth** for UI/UX patterns. Templates are directly informed by these components.
+The `components/` directory contains TypeScript components. These are the **source of truth** for UI/UX patterns. Templates are directly informed by these components.
 
 **Component inventory:**
 
@@ -184,50 +184,14 @@ Never modify the original component files without explicit request. Bug fixes to
 
 ---
 
-## Multi-Harness Support
-
-This plugin works with multiple coding agents, not just Claude Code.
-
-### Distribution Model
-
-| Agent | Installation | Bootstrap |
-|-------|--------------|-----------|
-| Claude Code | `/plugin install vibes@vibes-cli` | Automatic via plugin system |
-| Codex | Fetch `.codex/INSTALL.md` | `vibes-codex bootstrap` |
-| OpenCode / Others | `git clone` to `~/.vibes` | `vibes-codex bootstrap` |
-
-### Key Files
-
-| File | Purpose |
-|------|---------|
-| `.codex/vibes-codex` | CLI wrapper for non-Claude-Code agents |
-| `.codex/vibes-bootstrap.md` | Tool mappings (AskUserQuestion → prompt, etc.) |
-| `.codex/INSTALL.md` | Fetchable installation guide |
-| `lib/resolve-paths.js` | Finds plugin directory across install locations |
-
-### Path Resolution
-
-`lib/resolve-paths.js` checks these locations in order:
-1. `VIBES_PLUGIN_ROOT` environment variable
-2. Claude Code plugin cache (`~/.claude/plugins/cache/vibes-cli/vibes/<version>`)
-3. Standard git clone (`~/.vibes`)
-4. Development mode (relative to script)
-
 ### Adding or Removing Skills (Manual Checklist)
 
 **When you add, remove, or rename a skill**, update these files:
 
 | File | What to Update |
 |------|----------------|
-| `.codex/vibes-bootstrap.md` | Skills table |
 | `README.md` | Skills section |
 | `commands/` | Add a command `.md` if the skill should be user-invocable |
-
-**Note:** `.codex/vibes-codex` auto-discovers skills from the filesystem — no manual update needed. It excludes skills whose `compatibility` frontmatter field mentions "Claude Code" (e.g., `launch` requires Agent Teams).
-
-**Claude Code-only skills** need `compatibility: Requires Claude Code with Agent Teams support` (or similar) in their SKILL.md frontmatter. The `.codex/` system auto-excludes them. Add a note in `.codex/vibes-bootstrap.md` pointing Codex/OpenCode users to the sequential alternative.
-
-**Skill content changes** (editing `skills/*/SKILL.md`) flow automatically to all harnesses—no manual steps needed.
 
 ---
 
@@ -368,12 +332,10 @@ npm run test:e2e:server
 |------|---------|
 | `scripts/assemble.js` | Assembly script - inserts JSX into template |
 | `scripts/assemble-sell.js` | SaaS assembly script - generates multi-tenant app |
-| `scripts/assemble-vite.js` | Vite-based assembly (alternative to Babel for Connect apps) |
 | `scripts/assemble-all.js` | Batch assembler for riff directories |
 | `scripts/build-components.js` | Build components from local `components/` directory |
 | `scripts/build-design-tokens.js` | Build design tokens CSS + AI docs from single source |
 | `scripts/merge-templates.js` | Merge base + tokens + deltas into final templates |
-| `scripts/find-plugin.js` | Plugin directory lookup with validation |
 | `scripts/generate-riff.js` | Parallel riff generator - spawns claude -p for variations |
 | `scripts/generate-handoff.js` | Generate HANDOFF.md context document for remote Claude |
 | `scripts/preview-server.js` | Live preview server - HTTP + WebSocket bridge to Claude Code |
@@ -398,7 +360,6 @@ npm run test:e2e:server
 | `scripts/lib/component-transforms.js` | Pure functions for transforming component source code |
 | `scripts/lib/parse-theme-catalog.js` | Parser for theme catalog.txt → JSON array |
 | `scripts/__tests__/fixtures/` | Pre-written JSX test fixtures |
-| `lib/resolve-paths.js` | Find plugin directory across install locations |
 | `bundles/fireproof-vibes-bridge.js` | ES module bridge -- wraps @fireproof/clerk with Vibes-specific logic (sync status, ledger routing, invite redemption) |
 | `assets/` | Favicon, branding images, auth card designs |
 | `docs/plans/` | Architecture decision records and planning docs |

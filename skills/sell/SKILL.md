@@ -94,7 +94,7 @@ This approach simplifies deployment - you upload one file and it handles everyth
 
 ### Terminal or Editor UI?
 
-Detect whether you're running in a terminal (Claude Code CLI, Codex) or an editor (Cursor, Windsurf, VS Code with Copilot). **Terminal agents** use `AskUserQuestion` for all input. **Editor agents** present requirements as a checklist comment, wait for user edits, then proceed. See the vibes skill for the full detection and interaction pattern.
+Detect whether you're running in a terminal (Claude Code CLI) or an editor (Cursor, Windsurf, VS Code with Copilot). **Terminal agents** use `AskUserQuestion` for all input. **Editor agents** present requirements as a checklist comment, wait for user edits, then proceed. See the vibes skill for the full detection and interaction pattern.
 
 ## Step 1: Pre-Flight Checks
 
