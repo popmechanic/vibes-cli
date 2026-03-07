@@ -1,7 +1,10 @@
 /**
  * Image generation handler — generates UI mockup images via OpenRouter.
- * All generated images are web app interfaces ready for mood/match reference.
+ * Pure fetch, no runtime deps. Ported to TypeScript.
  */
+
+import type { EventCallback } from '../claude-bridge.ts';
+import type { ServerContext } from '../config.ts';
 
 const UI_SYSTEM_PROMPT = `You are a UI/UX designer generating interface mockups. RULES:
 - Generate ONLY a flat UI screenshot — a single screen of a web application interface
@@ -18,7 +21,12 @@ const UI_SYSTEM_PROMPT = `You are a UI/UX designer generating interface mockups.
 - The interface must look like a real, shippable product — not a wireframe or sketch
 - Responsive-aware layout: sidebar+main, header+content, cards grid, or split-pane`;
 
-export async function handleGenerateImage(ctx, onEvent, prompt, model) {
+export async function handleGenerateImage(
+  ctx: ServerContext,
+  onEvent: EventCallback,
+  prompt: string,
+  model: string | undefined,
+): Promise<void> {
   if (!ctx.openRouterKey) {
     onEvent({ type: 'error', message: 'OpenRouter API key not configured. Add OPENROUTER_API_KEY to .env to enable image generation.' });
     return;
@@ -58,7 +66,7 @@ export async function handleGenerateImage(ctx, onEvent, prompt, model) {
       return;
     }
 
-    const data = await resp.json();
+    const data = await resp.json() as any;
     const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url || null;
 
     if (!imageUrl) {
@@ -68,7 +76,7 @@ export async function handleGenerateImage(ctx, onEvent, prompt, model) {
 
     onEvent({ type: 'imggen_result', imageUrl, prompt: sanitized });
     console.log(`[ImageGen] Generated UI mockup for "${sanitized.slice(0, 50)}..."`);
-  } catch (err) {
+  } catch (err: any) {
     console.error('[ImageGen] Error:', err.message);
     onEvent({ type: 'error', message: `Image generation failed: ${err.message}` });
   }

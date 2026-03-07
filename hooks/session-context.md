@@ -70,7 +70,7 @@ When user intent matches a row below, invoke it via the Skill tool
 ## Workflow
 
 The FIRST question for /vibes:vibes and /vibes:launch is always "Terminal or Editor?".
-If Editor is chosen, start preview-server.js and STOP — the editor handles everything
+If Editor is chosen, start server.ts and STOP — the editor handles everything
 including credentials. Do NOT check .env or credentials before asking this question.
 
 .env checks only apply to Terminal mode. If the user chooses Terminal:

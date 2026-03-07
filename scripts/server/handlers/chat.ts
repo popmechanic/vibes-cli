@@ -1,14 +1,18 @@
 /**
  * Chat handler — iterative edits to app.jsx via Claude.
+ * Uses the persistent bridge for context preservation across messages.
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { runClaude } from '../claude-bridge.js';
-import { sanitizeAppJsx } from '../post-process.js';
-import { getAnimationInstructions } from '../config.js';
+import { runOneShot, acquireLock, releaseLock, type EventCallback } from '../claude-bridge.ts';
+import { sanitizeAppJsx } from '../post-process.ts';
+import { getAnimationInstructions } from '../config.ts';
+import type { ServerContext } from '../config.ts';
+import { createHmrWatcher } from '../hmr.ts';
+import { broadcast } from '../ws.ts';
 
-const EFFECT_INSTRUCTIONS = {
+const EFFECT_INSTRUCTIONS: Record<string, string> = {
   '3d': `MANDATORY: Use WebGL or CSS 3D transforms (perspective, rotateX/Y/Z, preserve-3d) for this feature. Create actual 3D depth — not flat elements with shadows. Consider: rotating 3D cards, perspective grids, WebGL scenes with Three.js-style raw GL, isometric layouts, parallax depth layers. Use useRef + useEffect for any canvas/WebGL setup with proper cleanup.`,
   'animated': `MANDATORY: Add rich CSS & JS animations. Use @keyframes, CSS transitions, requestAnimationFrame loops, staggered animation-delay on lists, scroll-triggered reveals with IntersectionObserver, @property for animated gradients, clip-path morphing, and entrance/exit animations. Everything should feel alive and in motion.`,
   'interactive': `MANDATORY: Make elements respond to user interaction. Add mouse-follow effects (cursor glow, tilt cards on hover with perspective), drag & drop, hover state morphs, click-triggered path drawing, SMIL animate on mouseover/mouseout, parallax on scroll, and mouse-reactive particle displacement. Use onMouseMove with getBoundingClientRect for position tracking.`,
@@ -16,17 +20,24 @@ const EFFECT_INSTRUCTIONS = {
   'shader': `MANDATORY: Add a WebGL fragment shader background. Create a fullscreen quad with vertex shader, pass u_time/u_resolution/u_mouse uniforms. Use effects like: aurora (sine wave color mixing), plasma (layered sine interference), noise gradient mesh (hash-based noise with mouse reactivity), or animated color fields. Use precision mediump float. Graceful fallback if WebGL unavailable.`,
 };
 
-export async function handleChat(ctx, onEvent, message, effects = [], animationId = null, model, reference = null) {
+export async function handleChat(
+  ctx: ServerContext,
+  onEvent: EventCallback,
+  message: string,
+  effects: string[] = [],
+  animationId: string | null = null,
+  model: string | undefined,
+  reference: any = null,
+): Promise<void> {
   let effectBlock = '';
   let referenceBlock = '';
 
   console.log(`[Chat] reference received:`, reference ? { name: reference.name, type: reference.type, hasDataUrl: !!reference.dataUrl, dataUrlLen: reference.dataUrl?.length } : null);
 
-  // New animation catalog system — single animation selection
   if (animationId) {
     const instructions = getAnimationInstructions(ctx, animationId);
     if (instructions) {
-      const animMeta = ctx.animations.find(a => a.id === animationId);
+      const animMeta = ctx.animations.find((a: any) => a.id === animationId);
       const animName = animMeta ? animMeta.name : animationId;
       effectBlock = `\n\nANIMATION MODIFIER: "${animName}" (${animationId})
 The user selected this animation effect — you MUST implement it in the app.
@@ -41,7 +52,6 @@ ANIMATION RULES:
     }
   }
 
-  // Legacy effect chips support (backward compat with preview.html)
   if (!animationId && effects.length > 0) {
     const instructions = effects
       .filter(e => EFFECT_INSTRUCTIONS[e])
@@ -57,7 +67,6 @@ EFFECT RULES:
     }
   }
 
-  // Reference file — image or HTML the user wants the app styled after
   if (reference && reference.name && reference.dataUrl) {
     const isHtml = /\.html?$/i.test(reference.name);
     const intent = reference.intent || 'match';
@@ -78,76 +87,54 @@ ${htmlContent.slice(0, 15000)}
 
 `;
     } else {
-      // Save image to disk so Claude can read it visually
       writeFileSync(refPath, Buffer.from(base64, 'base64'));
 
       if (intent === 'none') {
-        referenceBlock = `The user attached an image: ${refPath}. Read it with the Read tool if relevant to their message.
-
-`;
+        referenceBlock = `The user attached an image: ${refPath}. Read it with the Read tool if relevant to their message.\n\n`;
       } else if (intent === 'mood') {
         referenceBlock = `MANDATORY FIRST STEP: Read the image at ${refPath} using the Read tool.
 
 ANALYZE the image like a theme designer — before writing any code, identify:
-- MOOD: 3-4 adjectives describing the visual feeling (e.g. "warm, editorial, minimal, earthy")
-- COLOR PALETTE: extract every distinct color as oklch() — background, text, accent, borders, muted tones
-- DESIGN PRINCIPLES: border styles (sharp/rounded/none), shadow depth (flat/subtle/dramatic), spacing rhythm (tight/airy)
-- TYPOGRAPHY FEEL: weight (light/bold/mixed), style (serif/sans/mono), sizing hierarchy
+- MOOD: 3-4 adjectives describing the visual feeling
+- COLOR PALETTE: extract every distinct color as oklch()
+- DESIGN PRINCIPLES: border styles, shadow depth, spacing rhythm
+- TYPOGRAPHY FEEL: weight, style, sizing hierarchy
 - SURFACE TREATMENT: glass/frosted effects, gradients, textures, card styles
-- MOTION ENERGY: calm/lively/dramatic — what kind of transitions and hover effects fit
+- MOTION ENERGY: calm/lively/dramatic
 - DECORATIVE ELEMENTS: any SVG patterns, background shapes, dividers, icons style
 - BEST FOR: what types of apps would this aesthetic suit
 - NOT FOR: what types of apps would clash with this mood
 
 Now apply as a THEME — update the app's CSS token system:
 
-1. REPLACE the :root block (or /* @theme:tokens */ section if markers exist) with new --comp-* oklch() values extracted from the image:
-   --comp-bg, --comp-text, --comp-border, --comp-accent, --comp-accent-text, --comp-muted, --color-background, --grid-color
-2. Update /* @theme:surfaces */ section (if markers exist) — shadows, borders, glass effects matching your analysis.
-3. Update /* @theme:motion */ section (if markers exist) — animations matching the energy you identified.
-4. Update /* @theme:decoration */ section (if markers exist) — SVG/decorative elements matching the mood.
-5. Update window.__VIBES_THEMES__ = [{ id: "custom", name: "Custom Theme" }] and the useVibesTheme default to "custom".
-6. --color-background MUST match the image's background. Never leave it transparent or unset.
+1. REPLACE the :root block with new --comp-* oklch() values extracted from the image
+2. Update /* @theme:surfaces */ section (if markers exist)
+3. Update /* @theme:motion */ section (if markers exist)
+4. Update /* @theme:decoration */ section (if markers exist)
+5. Update window.__VIBES_THEMES__ and useVibesTheme default to "custom"
+6. --color-background MUST match the image's background
 
-Do NOT change layout, component structure, grid/flex arrangements, or functionality.
-Keep the existing layout exactly — only transform colors, typography feel, surfaces, motion, and decoration.
+Do NOT change layout, component structure, or functionality.
 
 `;
       } else {
-        // intent === 'match' (default)
         referenceBlock = `MANDATORY FIRST STEP: Read the image at ${refPath} using the Read tool.
 
 ANALYZE the image like a theme designer — before writing any code, identify:
-- MOOD: 3-4 adjectives describing the visual feeling (e.g. "dark, technical, dense, neon")
-- COLOR PALETTE: extract every distinct color as oklch() — background, text, accent, borders, muted tones
-- DESIGN PRINCIPLES: border styles (sharp/rounded/none), shadow depth (flat/subtle/dramatic), spacing rhythm (tight/airy)
-- TYPOGRAPHY FEEL: weight (light/bold/mixed), style (serif/sans/mono), sizing hierarchy
+- MOOD: 3-4 adjectives describing the visual feeling
+- COLOR PALETTE: extract every distinct color as oklch()
+- DESIGN PRINCIPLES: border styles, shadow depth, spacing rhythm
+- TYPOGRAPHY FEEL: weight, style, sizing hierarchy
 - SURFACE TREATMENT: glass/frosted effects, gradients, textures, card styles
-- MOTION ENERGY: calm/lively/dramatic — what kind of transitions and hover effects fit
-- DECORATIVE ELEMENTS: any SVG patterns, background shapes, dividers, icons style
-- LAYOUT STRUCTURE: how is the space divided? sidebar? header? grid? cards? split-pane? tabs?
-- BEST FOR: what types of apps would this aesthetic suit
-- NOT FOR: what types of apps would clash with this design
-- ADAPTATION NOTES: how to handle tables, forms, lists, charts in this visual style
+- LAYOUT STRUCTURE: how is the space divided?
+- MOTION ENERGY: calm/lively/dramatic
+- DECORATIVE ELEMENTS: any SVG patterns, background shapes, dividers
 
-Now apply as a FULL THEME + LAYOUT — this is a complete visual redesign:
+Now apply as a FULL THEME + LAYOUT:
 
-THEME TOKENS:
-1. REPLACE the :root block (or /* @theme:tokens */ section if markers exist) with new --comp-* oklch() values extracted from the image:
-   --comp-bg, --comp-text, --comp-border, --comp-accent, --comp-accent-text, --comp-muted, --color-background, --grid-color
-2. Update /* @theme:surfaces */ — shadows, borders, glass effects matching your analysis.
-3. Update /* @theme:motion */ — animations matching the energy you identified.
-4. Update /* @theme:decoration */ — SVG/decorative elements matching the mood.
-5. Update window.__VIBES_THEMES__ = [{ id: "custom", name: "Custom Theme" }] and the useVibesTheme default to "custom".
-6. --color-background MUST match the image's background. Never leave it transparent or unset.
-
-LAYOUT REBUILD:
-- Grid/flex structure, component arrangement, spacing, sizing, positioning, navigation placement, card layouts, sidebar/header/footer structure — match the spatial organization of the image.
-- Typography hierarchy, font sizes, weights, letter-spacing — match what you see.
-- All visual details: rounded corners, padding, margins, gaps, border-radius values.
-
-PRESERVE: all Fireproof hooks (useDocument, useLiveQuery), database.put/del calls, data models, all functional logic, and the user's actual data. Every piece of data and functionality must still work.
-The goal is: if you put the app and the image side by side, they should look like the same UI.
+THEME TOKENS: Replace :root with --comp-* oklch() values from the image
+LAYOUT REBUILD: Match spatial organization of the image
+PRESERVE: all Fireproof hooks, database calls, data models, functionality
 
 `;
       }
@@ -166,8 +153,35 @@ RULES:
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
 - Never change Fireproof document types or query filters`;
 
-  const maxTurns = (animationId || effects.length > 0 || reference) ? 12 : 8;
-  await runClaude(prompt, { maxTurns, model, cwd: ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent);
+  let cancelFn = () => {};
+  if (!acquireLock('chat', () => cancelFn())) {
+    onEvent({ type: 'error', message: 'Another request is in progress. Please wait.' });
+    return;
+  }
 
-  sanitizeAppJsx(ctx.projectRoot);
+  // Set up HMR for chat edits (polling backstop only — no event-driven triggering for chat)
+  const hmr = createHmrWatcher(ctx, broadcast);
+  hmr.start();
+
+  const wrappedOnEvent: EventCallback = (event) => {
+    onEvent(event);
+    if (event.type === 'tool_result') {
+      hmr.onToolResult(event);
+    }
+  };
+
+  const maxTurns = (animationId || effects.length > 0 || reference) ? 12 : 8;
+
+  try {
+    await runOneShot(prompt, {
+      maxTurns,
+      model,
+      cwd: ctx.projectRoot,
+      tools: 'Read,Edit,Write,Glob,Grep',
+      onCancel: (fn) => { cancelFn = fn; },
+    }, wrappedOnEvent, ctx.projectRoot);
+  } finally {
+    hmr.stop();
+    releaseLock();
+  }
 }
