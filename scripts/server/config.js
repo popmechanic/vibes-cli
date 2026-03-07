@@ -474,7 +474,7 @@ export function autoSelectTheme(ctx, userPrompt) {
 /**
  * Resolve the skills directory for a plugin by reading its plugin.json.
  */
-function resolveSkillsDir(installPath) {
+export function resolveSkillsDir(installPath) {
   const pluginJsonPath = join(installPath, '.claude-plugin', 'plugin.json');
   if (existsSync(pluginJsonPath)) {
     try {
@@ -489,23 +489,85 @@ function resolveSkillsDir(installPath) {
 
 /**
  * Parse YAML frontmatter from SKILL.md content.
+ * Handles single-line values, quoted values, and multiline values using
+ * YAML block scalars (> or |) or indented continuation lines.
  */
-function parseSkillFrontmatter(content) {
+export function parseSkillFrontmatter(content) {
   const fm = content.match(/^---\n([\s\S]*?)\n---/);
   if (!fm) return {};
   const block = fm[1];
   const result = {};
-  const nameMatch = block.match(/^name:\s*(.+)$/m);
-  if (nameMatch) result.name = nameMatch[1].trim().replace(/^["']|["']$/g, '');
-  const descMatch = block.match(/^description:\s*(.+)$/m);
-  if (descMatch) result.description = descMatch[1].trim().replace(/^["']|["']$/g, '');
-  const hintMatch = block.match(/^argument-hint:\s*(.+)$/m);
-  if (hintMatch) result.argumentHint = hintMatch[1].trim().replace(/^["']|["']$/g, '');
+
+  for (const field of ['name', 'description', 'argument-hint']) {
+    const value = extractYamlField(block, field);
+    if (value !== null) {
+      const key = field === 'argument-hint' ? 'argumentHint' : field;
+      result[key] = value;
+    }
+  }
   return result;
 }
 
 /**
+ * Extract a single YAML field value, handling:
+ * - Simple: `key: value`
+ * - Quoted: `key: "value"` or `key: 'value'`
+ * - Block scalar: `key: >` or `key: |` followed by indented lines
+ * - Continuation: `key: first line\n  continued line`
+ */
+function extractYamlField(block, fieldName) {
+  const re = new RegExp(`^${fieldName}:\\s*(.*)$`, 'm');
+  const m = block.match(re);
+  if (!m) return null;
+
+  let firstLine = m[1].trim();
+
+  // Block scalar indicators (> or |, optionally with chomping indicator like >-, |+)
+  if (/^[>|][-+]?\s*$/.test(firstLine)) {
+    const isFolded = firstLine.startsWith('>');
+    const lines = block.slice(m.index + m[0].length).split('\n');
+    const indentedLines = [];
+    for (const line of lines) {
+      if (line === '' || /^\s+/.test(line)) {
+        indentedLines.push(line.replace(/^\s+/, ''));
+      } else {
+        break; // Hit a non-indented line (next field)
+      }
+    }
+    const joined = isFolded
+      ? indentedLines.join(' ').replace(/\s+/g, ' ').trim()
+      : indentedLines.join('\n').trim();
+    return joined || null;
+  }
+
+  // Quoted value
+  if ((firstLine.startsWith('"') && firstLine.endsWith('"')) ||
+      (firstLine.startsWith("'") && firstLine.endsWith("'"))) {
+    return firstLine.slice(1, -1) || null;
+  }
+
+  // Plain value — may have indented continuation lines
+  const rest = block.slice(m.index + m[0].length).replace(/^\n/, '');
+  const lines = rest.split('\n');
+  const parts = [firstLine];
+  for (const line of lines) {
+    if (/^\s+\S/.test(line)) {
+      parts.push(line.trim());
+    } else {
+      break;
+    }
+  }
+  const value = parts.join(' ').trim();
+  return value || null;
+}
+
+/**
  * Discover all installed plugin skills, excluding vibes plugin skills.
+ *
+ * TODO: Skills are discovered once at startup. If plugins are installed/removed
+ * while the server is running, the catalog will be stale. A future enhancement
+ * could add a refresh endpoint or file watcher, but this is acceptable for now
+ * since the editor server is typically short-lived.
  */
 export function discoverPluginSkills() {
   const installedPath = join(homedir(), '.claude', 'plugins', 'installed_plugins.json');
@@ -525,25 +587,28 @@ export function discoverPluginSkills() {
     // Skip vibes plugin
     if (pluginKey.startsWith('vibes@')) continue;
 
-    const [pluginName, marketplace] = pluginKey.split('@');
+    // Safe split: plugin names could theoretically contain @, so split on first @
+    const atIdx = pluginKey.indexOf('@');
+    const pluginName = atIdx >= 0 ? pluginKey.slice(0, atIdx) : pluginKey;
+    const marketplace = atIdx >= 0 ? pluginKey.slice(atIdx + 1) : '';
     // pluginData can be an array (v2) or an object (v1)
-    const entry = Array.isArray(pluginData) ? pluginData[0] : pluginData;
-    const installPath = entry?.installPath;
+    const pluginEntry = Array.isArray(pluginData) ? pluginData[0] : pluginData;
+    const installPath = pluginEntry?.installPath;
     if (!installPath || !existsSync(installPath)) continue;
 
     const skillsDir = resolveSkillsDir(installPath);
     if (!existsSync(skillsDir)) continue;
 
-    let entries;
+    let dirEntries;
     try {
-      entries = readdirSync(skillsDir, { withFileTypes: true });
+      dirEntries = readdirSync(skillsDir, { withFileTypes: true });
     } catch {
       continue;
     }
 
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const skillMdPath = join(skillsDir, entry.name, 'SKILL.md');
+    for (const dirEntry of dirEntries) {
+      if (!dirEntry.isDirectory()) continue;
+      const skillMdPath = join(skillsDir, dirEntry.name, 'SKILL.md');
       if (!existsSync(skillMdPath)) continue;
 
       let content;
@@ -555,11 +620,11 @@ export function discoverPluginSkills() {
 
       const frontmatter = parseSkillFrontmatter(content);
       skills.push({
-        id: `${pluginName}/${entry.name}`,
-        name: frontmatter.name || entry.name,
+        id: `${pluginName}/${dirEntry.name}`,
+        name: frontmatter.name || dirEntry.name,
         description: frontmatter.description || '',
         pluginName,
-        marketplace: marketplace || '',
+        marketplace,
         skillMdPath,
       });
     }

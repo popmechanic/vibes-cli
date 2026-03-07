@@ -4551,6 +4551,7 @@
   async function loadSkills() {
     try {
       const res = await fetch('/skills');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       allSkills = await res.json();
       console.log(`Loaded ${allSkills.length} skills`);
       document.getElementById('skillsBtn').style.display = allSkills.length > 0 ? '' : 'none';
@@ -4586,8 +4587,11 @@
     const tabs = document.getElementById('skillPluginTabs');
     const plugins = ['All', ...new Set(allSkills.map(s => s.pluginName))];
     tabs.innerHTML = plugins.map(p =>
-      `<button class="anim-category-tab${p === activeSkillPlugin ? ' active' : ''}" onclick="filterSkillsByPlugin('${escapeHtml(p)}')">${escapeHtml(p)}</button>`
+      `<button class="anim-category-tab${p === activeSkillPlugin ? ' active' : ''}" data-plugin="${escapeHtml(p)}">${escapeHtml(p)}</button>`
     ).join('');
+    tabs.querySelectorAll('[data-plugin]').forEach(btn => {
+      btn.addEventListener('click', () => filterSkillsByPlugin(btn.dataset.plugin));
+    });
   }
 
   function filterSkillsByPlugin(plugin) {
