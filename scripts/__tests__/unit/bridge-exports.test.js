@@ -69,5 +69,17 @@ describe('generated templates contain import map entries', () => {
       const html = readFileSync(resolve(ROOT, relPath), 'utf8');
       expect(html).toContain('"use-fireproof": "/fireproof-vibes-bridge.js"');
     });
+
+    it(`${name} template initApp imports through bridge, not raw @fireproof/clerk`, () => {
+      const html = readFileSync(resolve(ROOT, relPath), 'utf8');
+      expect(html).toContain('await import("use-fireproof")');
+      expect(html).not.toContain('await import("@fireproof/clerk")');
+    });
+
+    it(`${name} template does not contain duplicate sync wrapper code`, () => {
+      const html = readFileSync(resolve(ROOT, relPath), 'utf8');
+      // The bridge handles onTock kick — templates should not duplicate it
+      expect(html).not.toContain('noPayloadWatchers');
+    });
   }
 });

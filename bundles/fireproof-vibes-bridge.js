@@ -222,7 +222,7 @@ export function useFireproofClerk(name, opts) {
 }
 
 // Local-only Fireproof fallback — no sync, no auth, no onTock kick.
-// Used when Clerk is not configured (_hasClerk is false).
+// Available for apps that don't need Clerk auth/sync.
 // Also provides backward compatibility for apps using the deprecated import name.
 export function useFireproof(name, opts) {
   return _coreUseFireproof(name, opts);
