@@ -40,12 +40,12 @@ export async function ensureDependency(moduleName, scriptPath) {
 }
 
 /**
- * Ensure deployment dependencies are installed (jsonwebtoken, svix, etc.)
+ * Ensure build dependencies are installed (esbuild)
  * @param {string} [scriptPath] - Path to the calling script
  * @returns {Promise<void>}
  */
 export async function ensureDeps(scriptPath) {
-  return ensureDependency('jsonwebtoken', scriptPath);
+  return ensureDependency('esbuild', scriptPath);
 }
 
 /**
