@@ -8,6 +8,8 @@
  *   3. dashApi patching -> routes ensureCloudToken to correct per-database ledger
  *   4. Invite auto-redemption -> reads ?invite= URL param
  *   5. onTock kick -> polls allDocs() after sync, fires noPayloadWatchers
+ *   6. useFireproof export -> local-only passthrough from use-fireproof-core@0.24.12
+ *      (version must match what @necrodome/fireproof-clerk@0.0.7 uses internally)
  *
  * Import map: "use-fireproof" -> this file
  *             "@fireproof/clerk" -> esm.sh (raw package)
@@ -219,6 +221,9 @@ export function useFireproofClerk(name, opts) {
   return result;
 }
 
+// Local-only Fireproof fallback — no sync, no auth, no onTock kick.
+// Used when Clerk is not configured (_hasClerk is false).
+// Also provides backward compatibility for apps using the deprecated import name.
 export function useFireproof(name, opts) {
   return _coreUseFireproof(name, opts);
 }

@@ -3472,8 +3472,8 @@ if (typeof window !== 'undefined') {
       // Load Clerk components (required for all apps)
       async function initApp() {
         try {
-          // Dynamic import of @fireproof/clerk package
-          const clerkModule = await import("@fireproof/clerk");
+          // Dynamic import via bridge (re-exports all @fireproof/clerk symbols + wraps useFireproofClerk)
+          const clerkModule = await import("use-fireproof");
           window.ClerkFireproofProvider = clerkModule.ClerkFireproofProvider;
           window.ClerkComponents = {
             ClerkFireproofProvider: clerkModule.ClerkFireproofProvider,
@@ -3491,7 +3491,7 @@ if (typeof window !== 'undefined') {
           // Export sharing APIs for user's App code and SharingBridge
           window.useClerkFireproofContext = clerkModule.useClerkFireproofContext;
           if (clerkModule.useSharing) window.useSharing = clerkModule.useSharing;
-          // Export Fireproof hook for user's App code (bridge module provides sync + onTock wrapping)
+          // Export bridge-wrapped Fireproof hook (includes sync status, onTock kick, ledger routing)
           window.useFireproofClerk = clerkModule.useFireproofClerk;
         } catch (err) {
           console.error('Failed to load Clerk components:', err);
