@@ -9,6 +9,7 @@
  * 2. Backstop: fs.watchFile polling (1s interval)
  */
 
+// @babel/parser ships its own TypeScript declarations — no @types/ package needed
 import { parse } from '@babel/parser';
 import { watchFile, unwatchFile, readFileSync } from 'fs';
 import { join } from 'path';

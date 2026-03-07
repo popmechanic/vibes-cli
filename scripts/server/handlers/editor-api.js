@@ -9,7 +9,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { loadEnvFile, validateClerkKey, validateClerkSecretKey, extractClerkDomain, writeEnvFile } from '../../lib/env-utils.js';
-import { loadOpenRouterKey } from '../config.js';
+import { loadOpenRouterKey } from '../config.ts';
 import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp } from '../../lib/registry.js';
 
 const MAX_BODY_SIZE = 1024 * 1024; // 1MB

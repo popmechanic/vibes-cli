@@ -15,6 +15,7 @@ import { loadConfig } from './server/config.ts';
 import { createRouter } from './server/router.ts';
 import { createWsHandler, type WsData } from './server/ws.ts';
 import { killProcessOnPort, waitForPort } from './server/lifecycle.ts';
+import { cancelCurrent } from './server/claude-bridge.ts';
 
 // --- Process-level safety nets ---
 process.on('uncaughtException', (err) => {
@@ -30,6 +31,23 @@ const ctx = loadConfig();
 const router = createRouter(ctx);
 const wsHandler = createWsHandler(ctx);
 
+// Module-scope server reference for graceful shutdown
+let server: ReturnType<typeof Bun.serve> | null = null;
+
+// --- Graceful shutdown ---
+function shutdown(signal: string) {
+  console.log(`\n[Server] ${signal} received — shutting down...`);
+  cancelCurrent(); // Kill any active Claude subprocesses
+  if (server) {
+    server.stop(true); // true = close existing connections
+    server = null;
+  }
+  process.exit(0);
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
 // --- Port takeover ---
 async function start() {
   if (await killProcessOnPort(ctx.port)) {
@@ -37,16 +55,18 @@ async function start() {
     await waitForPort(ctx.port);
   }
 
-  const server = Bun.serve<WsData>({
+  server = Bun.serve<WsData>({
     port: ctx.port,
     idleTimeout: 255,
 
-    async fetch(req, server) {
+    async fetch(req, srv) {
       const url = new URL(req.url);
 
       // WebSocket upgrade
       if (url.pathname === '/ws') {
-        const upgraded = server.upgrade(req, { data: { ctx, onEvent: () => {} } });
+        const upgraded = srv.upgrade(req, { data: { ctx, onEvent: () => {} } });
+        // Bun.serve fetch() must return a Response, but on successful upgrade there is
+        // nothing to send — Bun expects `undefined`. Cast to satisfy TypeScript.
         if (upgraded) return undefined as any;
         return new Response('WebSocket upgrade failed', { status: 400 });
       }

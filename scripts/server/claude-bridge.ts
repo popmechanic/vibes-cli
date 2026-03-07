@@ -61,21 +61,34 @@ export function isLocked(): boolean {
   return currentOp !== null;
 }
 
-// --- Progress calculation ---
+// --- Progress calculation (shared by persistent bridge and one-shot) ---
+
+/**
+ * Compute progress percentage and stage label from elapsed time and tool usage.
+ * Exported for reuse by both the persistent bridge dispatchEvent and one-shot calcProgressLocal.
+ */
+export function calcProgressFromCounters(
+  elapsedSec: number,
+  toolsUsed: number,
+  hasEdited: boolean,
+  floorProgress = 0,
+): { progress: number; stage: string } {
+  const timePct = Math.round(80 * (1 - Math.exp(-elapsedSec / 40)));
+  const toolPct = hasEdited ? 85 : toolsUsed >= 3 ? 75 : toolsUsed >= 1 ? 50 : 0;
+  const progress = Math.min(Math.max(timePct, toolPct, floorProgress), 95);
+
+  const stage = hasEdited ? 'Finishing up...' :
+                toolsUsed >= 3 ? 'Writing changes...' :
+                toolsUsed >= 1 ? 'Reading & analyzing...' :
+                elapsedSec > 10 ? 'Thinking about design...' :
+                elapsedSec > 3 ? 'Loading context...' : 'Starting Claude...';
+
+  return { progress, stage };
+}
 
 function calcProgress(turnState: TurnState): { progress: number; stage: string } {
   const elapsed = Math.round((Date.now() - turnState.startTime) / 1000);
-  const timePct = Math.round(80 * (1 - Math.exp(-elapsed / 40)));
-  const toolPct = turnState.hasEdited ? 85 : turnState.toolsUsed >= 3 ? 75 : turnState.toolsUsed >= 1 ? 50 : 0;
-  const progress = Math.min(Math.max(timePct, toolPct), 95);
-
-  const stage = turnState.hasEdited ? 'Finishing up...' :
-                turnState.toolsUsed >= 3 ? 'Writing changes...' :
-                turnState.toolsUsed >= 1 ? 'Reading & analyzing...' :
-                elapsed > 10 ? 'Thinking about design...' :
-                elapsed > 3 ? 'Loading context...' : 'Starting Claude...';
-
-  return { progress, stage };
+  return calcProgressFromCounters(elapsed, turnState.toolsUsed, turnState.hasEdited);
 }
 
 function summarizeInput(block: any): string {
@@ -471,19 +484,9 @@ export async function runOneShot(
   let baseProgress = 0;
 
   function calcProgressLocal(): { progress: number; stage: string } {
-    const elapsed = getElapsed();
-    const timePct = Math.round(80 * (1 - Math.exp(-elapsed / 40)));
-    const toolPct = hasEdited ? 85 : toolsUsed >= 3 ? 75 : toolsUsed >= 1 ? 50 : 0;
-    baseProgress = Math.max(baseProgress, timePct, toolPct);
-    const progress = Math.min(baseProgress, 95);
-
-    const stage = hasEdited ? 'Finishing up...' :
-                  toolsUsed >= 3 ? 'Writing changes...' :
-                  toolsUsed >= 1 ? 'Reading & analyzing...' :
-                  elapsed > 10 ? 'Thinking about design...' :
-                  elapsed > 3 ? 'Loading context...' : 'Starting Claude...';
-
-    return { progress, stage };
+    const result = calcProgressFromCounters(getElapsed(), toolsUsed, hasEdited, baseProgress);
+    baseProgress = result.progress; // ratchet: progress never decreases in one-shot
+    return result;
   }
 
   // Read stderr in background

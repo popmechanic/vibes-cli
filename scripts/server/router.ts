@@ -15,10 +15,13 @@ import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp 
 
 // --- Body parsing helpers ---
 
-const MAX_BODY_SIZE = 1024 * 1024; // 1MB
+const MAX_BODY_SIZE = 1024 * 1024; // 1MB for JSON API payloads
+const MAX_APP_WRITE_SIZE = 5 * 1024 * 1024; // 5MB for app.jsx writes (inline SVGs/base64 can be large)
 const MAX_SCREENSHOT_SIZE = 5 * 1024 * 1024; // 5MB
 
 export async function parseJsonBody(req: Request, maxSize = MAX_BODY_SIZE): Promise<any> {
+  // Fast-path optimization: reject obviously oversized bodies before reading.
+  // Not a security boundary — the streaming accumulator below is the actual enforcement.
   const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
   if (contentLength > maxSize) {
     throw Object.assign(new Error('Request body too large'), { status: 413 });
@@ -50,6 +53,8 @@ export async function parseJsonBody(req: Request, maxSize = MAX_BODY_SIZE): Prom
 }
 
 export async function readBodyWithLimit(req: Request, maxSize: number): Promise<Buffer> {
+  // Fast-path optimization: reject obviously oversized bodies before reading.
+  // Not a security boundary — the streaming accumulator below is the actual enforcement.
   const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
   if (contentLength > maxSize) {
     throw Object.assign(new Error('Body too large'), { status: 413 });
@@ -97,6 +102,8 @@ function json(data: any, status = 200, extraHeaders: Record<string, string> = {}
 }
 
 // --- SSRF guard patterns ---
+// TODO: Add IPv6 loopback (::1) and link-local (fe80::) guards.
+// Currently only checks IPv4 private ranges and hostnames.
 
 const PRIVATE_PATTERNS = /^(localhost|127\.|10\.|169\.254\.|192\.168\.|0\.)/;
 const PRIVATE_172 = /^172\.(1[6-9]|2\d|3[01])\./;
@@ -283,17 +290,19 @@ async function validateCloudflareCredentials({ apiToken, apiKey, email }: { apiT
 
 type RouteHandler = (ctx: ServerContext, req: Request, url: URL) => Response | Promise<Response>;
 
-function serveHtml(ctx: ServerContext): Response {
+async function serveHtml(ctx: ServerContext): Promise<Response> {
   const htmlFile = ctx.mode === 'editor' ? 'editor.html' : 'preview.html';
   const htmlPath = join(ctx.projectRoot, 'skills/vibes/templates', htmlFile);
-  if (!existsSync(htmlPath)) return new Response(`${htmlFile} not found`, { status: 404, headers: corsHeaders() });
-  return new Response(readFileSync(htmlPath, 'utf-8'), { headers: { 'Content-Type': 'text/html', ...corsHeaders() } });
+  const file = Bun.file(htmlPath);
+  if (!(await file.exists())) return new Response(`${htmlFile} not found`, { status: 404, headers: corsHeaders() });
+  return new Response(file, { headers: { 'Content-Type': 'text/html', ...corsHeaders() } });
 }
 
-function serveAppJsx(ctx: ServerContext): Response {
+async function serveAppJsx(ctx: ServerContext): Promise<Response> {
   const appPath = join(ctx.projectRoot, 'app.jsx');
-  if (!existsSync(appPath)) return new Response('// app.jsx not yet generated\n', { headers: { 'Content-Type': 'text/javascript', ...corsHeaders() } });
-  return new Response(readFileSync(appPath, 'utf-8'), { headers: { 'Content-Type': 'text/javascript', ...corsHeaders() } });
+  const file = Bun.file(appPath);
+  if (!(await file.exists())) return new Response('// app.jsx not yet generated\n', { headers: { 'Content-Type': 'text/javascript', ...corsHeaders() } });
+  return new Response(file, { headers: { 'Content-Type': 'text/javascript', ...corsHeaders() } });
 }
 
 function serveThemes(ctx: ServerContext): Response {
@@ -501,7 +510,7 @@ async function editorSaveScreenshot(ctx: ServerContext, req: Request, url: URL):
 
 async function editorWriteApp(ctx: ServerContext, req: Request): Promise<Response> {
   try {
-    const body = await readBodyWithLimit(req, MAX_BODY_SIZE);
+    const body = await readBodyWithLimit(req, MAX_APP_WRITE_SIZE);
     writeFileSync(join(ctx.projectRoot, 'app.jsx'), body.toString('utf-8'));
     return json({ ok: true });
   } catch (err: any) {
