@@ -3236,21 +3236,19 @@
         console.log('[app_updated] phase:', currentPhase, 'pendingTheme:', pendingThemeId);
         setThinking(false);
         if (currentPhase === 'generate') {
-          fetch('/editor/app-exists').then(r => r.json()).then(d => {
-            if (d.exists) {
-              if (!isVersionNav) versionPush();
-              setPhase('edit');
-              loadPreview();
-              autoSaveApp();
-            } else {
-              document.getElementById('generateProgress').classList.remove('active');
-              document.getElementById('generateActions').style.display = '';
-              document.getElementById('generateBtn').disabled = false;
-              const errEl = document.getElementById('generateError');
-              errEl.textContent = 'Generation completed but no app was created. Try again.';
-              errEl.style.display = '';
-            }
-          });
+          if (currentAppName) {
+            if (!isVersionNav) versionPush();
+            setPhase('edit');
+            loadPreview();
+            autoSaveApp();
+          } else {
+            document.getElementById('generateProgress').classList.remove('active');
+            document.getElementById('generateActions').style.display = '';
+            document.getElementById('generateBtn').disabled = false;
+            const errEl = document.getElementById('generateError');
+            errEl.textContent = 'Generation completed but no app was created. Try again.';
+            errEl.style.display = '';
+          }
         } else {
           if (!isVersionNav) versionPush();
           reloadPreview();
@@ -3283,6 +3281,10 @@
         const select = document.getElementById('themeSelect');
         if (select && msg.themeId) select.value = msg.themeId;
         console.log('[Theme] Selected:', msg.themeId, name);
+      } else if (msg.type === 'app_created') {
+        // Server created a new per-app directory from the prompt slug
+        if (msg.name) currentAppName = msg.name;
+        console.log('[AppCreated] App directory:', msg.name);
       } else if (msg.type === 'deploy_complete') {
         setThinking(false);
         if (msg.name) currentAppName = msg.name;
@@ -3910,15 +3912,10 @@
 
   async function checkExistingApps() {
     try {
-      const [existsRes, appsRes] = await Promise.all([
-        fetch('/editor/app-exists').then(r => r.json()).catch(() => ({ exists: false })),
-        fetch('/editor/apps').then(r => r.json()).catch(() => []),
-      ]);
-
-      const hasCurrentApp = existsRes.exists;
+      const appsRes = await fetch('/editor/apps').then(r => r.json()).catch(() => []);
       const savedApps = Array.isArray(appsRes) ? appsRes : [];
 
-      if (!hasCurrentApp && savedApps.length === 0) return;
+      if (savedApps.length === 0) return;
 
       // Populate grid content but keep panel hidden until toggled
       const grid = document.getElementById('appGalleryGrid');
@@ -3927,17 +3924,6 @@
 
       let gridHtml = '';
       let listHtml = '';
-
-      // "Continue current app" always goes first as a card
-      if (hasCurrentApp) {
-        gridHtml += `<div class="app-card" onclick="useExistingApp()">
-          <div class="app-card-thumb"><span class="app-card-placeholder">&#9998;</span></div>
-          <div class="app-card-info">
-            <div class="app-card-name">Continue current app</div>
-            <div class="app-card-meta">app.jsx in working directory</div>
-          </div>
-        </div>`;
-      }
 
       // Top 8 recent apps get cards with screenshots
       const recentApps = savedApps.slice(0, 8);
@@ -3998,7 +3984,8 @@
     try {
       const res = await fetch('/editor/apps/load?name=' + encodeURIComponent(name), { method: 'POST' });
       if (!res.ok) throw new Error('Failed to load app');
-      currentAppName = name;
+      const data = await res.json();
+      currentAppName = data.currentApp || name;
       setPhase('edit');
       loadPreview();
       versionHistory = [];
@@ -4010,45 +3997,22 @@
   }
 
   function autoSaveApp() {
-    // Derive a name from the prompt or use current app name
-    if (currentAppName) {
-      // Already named — save silently
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'save_app', name: currentAppName }));
-      }
-      return;
-    }
-    // Derive name from prompt: take first 3 words, slugify
-    const prompt = document.getElementById('generatePrompt')?.value || '';
-    const slug = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
-    if (slug && ws && ws.readyState === WebSocket.OPEN) {
-      currentAppName = slug;
-      ws.send(JSON.stringify({ type: 'save_app', name: slug }));
-      // Pre-fill deploy name input if empty
-      const deployInput = document.getElementById('deployNameInput');
-      if (deployInput && !deployInput.value) deployInput.value = slug;
-    }
+    // App is already saved in its per-app directory — just capture screenshot
+    if (!currentAppName) return;
+    captureScreenshot();
+    // Pre-fill deploy name input if empty
+    const deployInput = document.getElementById('deployNameInput');
+    if (deployInput && !deployInput.value) deployInput.value = currentAppName;
   }
 
   function saveApp() {
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    if (currentAppName) {
-      ws.send(JSON.stringify({ type: 'save_app', name: currentAppName }));
-      addMessage('system', 'Saved.');
-      captureScreenshot();
-    } else {
-      // No name yet — derive from prompt
-      const prompt = document.getElementById('generatePrompt')?.value || '';
-      const slug = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
-      if (slug) {
-        currentAppName = slug;
-        ws.send(JSON.stringify({ type: 'save_app', name: slug }));
-        addMessage('system', 'Saved as "' + slug + '".');
-        captureScreenshot();
-      } else {
-        addMessage('system', 'Generate an app first before saving.');
-      }
+    if (!currentAppName) {
+      addMessage('system', 'Generate an app first before saving.');
+      return;
     }
+    // App is already saved in its per-app directory — capture screenshot
+    captureScreenshot();
+    addMessage('system', 'Saved.');
   }
 
   async function captureScreenshot() {
@@ -4180,12 +4144,6 @@
     }
     ws.send(JSON.stringify(payload));
     genClearReference();
-  }
-
-  function useExistingApp() {
-    setPhase('edit');
-    loadPreview();
-    versionPush();
   }
 
   // === Version History (Undo/Redo) ===

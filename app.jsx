@@ -1,7 +1,7 @@
-window.__VIBES_THEMES__ = [{ id: "orbit", name: "Orbit Dashboard" }];
+window.__VIBES_THEMES__ = [{ id: "sensor", name: "Sensor Dashboard" }];
 
 function useVibesTheme() {
-  const [theme, setTheme] = React.useState(() => localStorage.getItem("vibes-theme") || "orbit");
+  const [theme, setTheme] = React.useState(() => localStorage.getItem("vibes-theme") || "sensor");
   React.useEffect(() => {
     const handler = (e) => { const t = e.detail?.theme; if (t) { setTheme(t); localStorage.setItem("vibes-theme", t); } };
     document.addEventListener("vibes-design-request", handler);
@@ -10,737 +10,863 @@ function useVibesTheme() {
   return theme;
 }
 
-/* ─── SVG Doodle Icons ─── */
+const { useFireproofClerk } = window;
 
-function HeartDoodle({ size = 28, color = "var(--scrap-red)", style = {} }) {
+/* ─── SVG ICONS ─── */
+function FlameIcon({ size = 24, glow = false }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: "inline-block", ...style }}>
-      <path
-        d="M50 88C50 88 10 60 10 35C10 18 25 8 38 15C44 18 48 24 50 28C52 24 56 18 62 15C75 8 90 18 90 35C90 60 50 88 50 88Z"
-        fill={color} stroke="var(--comp-border)" strokeWidth="3" strokeLinejoin="round"
-      />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={glow ? "flame-glow" : ""}>
+      <path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0c0-5-7-13-7-13z" fill="var(--accent)" opacity="0.85"/>
+      <path d="M12 8c0 0-3 4-3 7a3 3 0 006 0c0-3-3-7-3-7z" fill="var(--accent-weak)" opacity="0.6"/>
+      <animateTransform attributeName="transform" type="scale" values="1;1.04;1" dur="1.5s" repeatCount="indefinite" additive="sum" origin="center"/>
     </svg>
   );
 }
 
-function CartDoodle({ size = 48 }) {
+function CheckSensorIcon({ checked, size = 22 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: "inline-block" }}>
-      <path d="M15 20 L25 20 L38 70 L80 70 L90 30 L30 30" fill="none" stroke="var(--comp-border)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="45" cy="82" r="7" fill="var(--scrap-red)" stroke="var(--comp-border)" strokeWidth="2.5" />
-      <circle cx="72" cy="82" r="7" fill="var(--scrap-red)" stroke="var(--comp-border)" strokeWidth="2.5" />
-      <path d="M42 45 L75 45" stroke="var(--comp-border)" strokeWidth="2" strokeDasharray="4 3" />
-      <path d="M40 55 L78 55" stroke="var(--comp-border)" strokeWidth="2" strokeDasharray="4 3" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" stroke={checked ? "var(--accent)" : "var(--stroke)"} strokeWidth="2" fill={checked ? "var(--accent)" : "transparent"} opacity={checked ? 1 : 0.5}/>
+      {checked && <path d="M7 12.5l3 3 7-7" stroke="var(--bg)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>}
+      {checked && <circle cx="12" cy="12" r="10" stroke="var(--accent)" strokeWidth="1" opacity="0.3">
+        <animate attributeName="r" values="10;14;10" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.3;0;0.3" dur="2s" repeatCount="indefinite"/>
+      </circle>}
     </svg>
   );
 }
 
-function AppleDoodle({ size = 32, style = {} }) {
+function TargetIcon({ size = 20 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: "inline-block", ...style }}>
-      <path d="M50 25C50 25 55 8 65 10" fill="none" stroke="oklch(0.4 0.12 145)" strokeWidth="3" strokeLinecap="round" />
-      <ellipse cx="50" cy="60" rx="30" ry="32" fill="var(--scrap-red)" stroke="var(--comp-border)" strokeWidth="2.5" />
-      <path d="M50 28C40 28 25 35 25 60" fill="none" stroke="var(--comp-border)" strokeWidth="1.5" opacity="0.3" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2">
+      <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2" fill="var(--accent)" stroke="var(--accent)"/>
     </svg>
   );
 }
 
-function CarrotDoodle({ size = 30, style = {} }) {
+function ChartIcon({ size = 20 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: "inline-block", ...style }}>
-      <path d="M50 95L30 40C30 40 50 25 70 40Z" fill="oklch(0.72 0.15 55)" stroke="var(--comp-border)" strokeWidth="2.5" />
-      <path d="M40 30C42 15 48 5 50 5C52 5 55 10 53 25" fill="oklch(0.55 0.15 145)" stroke="var(--comp-border)" strokeWidth="2" />
-      <path d="M55 32C58 18 62 10 60 8" fill="none" stroke="oklch(0.55 0.15 145)" strokeWidth="2" strokeLinecap="round" />
-      <line x1="38" y1="55" x2="62" y2="55" stroke="var(--comp-border)" strokeWidth="1.5" opacity="0.3" />
-      <line x1="40" y1="70" x2="58" y2="70" stroke="var(--comp-border)" strokeWidth="1.5" opacity="0.3" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="var(--muted)" strokeWidth="2" strokeLinecap="round">
+      <polyline points="4,18 8,12 12,15 16,8 20,11"/>
     </svg>
   );
 }
 
-function StarDoodle({ size = 22, style = {} }) {
+/* ─── SPARKLINE ─── */
+function Sparkline({ data, width = 120, height = 32 }) {
+  if (!data || data.length < 2) return null;
+  const max = Math.max(...data, 1);
+  const points = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * width;
+    const y = height - (v / max) * (height - 4) - 2;
+    return `${x},${y}`;
+  }).join(" ");
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: "inline-block", ...style }}>
-      <path d="M50 5L61 38L95 38L68 60L78 95L50 73L22 95L32 60L5 38L39 38Z" fill="var(--comp-accent)" stroke="var(--comp-border)" strokeWidth="2.5" strokeLinejoin="round" />
+    <svg width={width} height={height} className="sparkline-svg">
+      <defs>
+        <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.3"/>
+          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0"/>
+        </linearGradient>
+      </defs>
+      <polygon points={`0,${height} ${points} ${width},${height}`} fill="url(#spark-grad)"/>
+      <polyline points={points} fill="none" stroke="var(--accent-weak)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      {data.length > 0 && (() => {
+        const lastX = width;
+        const lastY = height - (data[data.length - 1] / max) * (height - 4) - 2;
+        return <circle cx={lastX} cy={lastY} r="2.5" fill="var(--accent)"/>;
+      })()}
     </svg>
   );
 }
 
-function EmptyBagDoodle() {
+/* ─── SEGMENTED PROGRESS BAR ─── */
+function SegmentedProgress({ value, total, label }) {
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+  const segments = 12;
+  const filledSegments = Math.round((pct / 100) * segments);
   return (
-    <svg width="120" height="140" viewBox="0 0 120 140" className="empty-bag-float">
-      <rect x="20" y="50" width="80" height="80" rx="5" fill="oklch(0.97 0.01 90)" stroke="var(--comp-border)" strokeWidth="3" />
-      <path d="M40 50C40 50 40 25 60 25C80 25 80 50 80 50" fill="none" stroke="var(--comp-border)" strokeWidth="3" strokeLinecap="round" />
-      <text x="60" y="98" textAnchor="middle" fontFamily="'Caveat', cursive" fontSize="18" fill="var(--comp-muted)">empty!</text>
-      <circle cx="45" cy="80" r="3" fill="var(--scrap-red)" opacity="0.5">
-        <animate attributeName="r" values="3;4;3" dur="2s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="75" cy="85" r="2.5" fill="var(--comp-accent)" opacity="0.5">
-        <animate attributeName="r" values="2.5;3.5;2.5" dur="2.5s" repeatCount="indefinite" />
-      </circle>
-    </svg>
-  );
-}
-
-/* ─── Family Members ─── */
-const FAMILY_MEMBERS = [
-  { name: "Mom", color: "oklch(0.65 0.2 350)" },
-  { name: "Dad", color: "oklch(0.5 0.15 250)" },
-  { name: "Kid 1", color: "oklch(0.6 0.18 145)" },
-  { name: "Kid 2", color: "oklch(0.7 0.15 55)" },
-];
-
-function App() {
-  const theme = useVibesTheme();
-  const { database, useLiveQuery, useDocument } = useFireproofClerk("family-grocery");
-
-  const [newItem, setNewItem] = React.useState("");
-  const [currentMember, setCurrentMember] = React.useState("Mom");
-  const [category, setCategory] = React.useState("general");
-  const listRef = React.useRef(null);
-
-  const groceries = useLiveQuery("type", { key: "grocery" });
-  const items = groceries?.rows?.map(r => r.doc) || [];
-
-  const uncheckedItems = items.filter(i => !i.checked).sort((a, b) => (b.created || 0) - (a.created || 0));
-  const checkedItems = items.filter(i => i.checked).sort((a, b) => (b.created || 0) - (a.created || 0));
-
-  const categories = [
-    { id: "produce", label: "Produce", icon: "🥬" },
-    { id: "dairy", label: "Dairy", icon: "🥛" },
-    { id: "meat", label: "Meat", icon: "🍗" },
-    { id: "bakery", label: "Bakery", icon: "🍞" },
-    { id: "frozen", label: "Frozen", icon: "🧊" },
-    { id: "general", label: "Other", icon: "📦" },
-  ];
-
-  const handleAdd = async (e) => {
-    e.preventDefault();
-    if (!newItem.trim()) return;
-    await database.put({
-      type: "grocery",
-      text: newItem.trim(),
-      addedBy: currentMember,
-      category,
-      checked: false,
-      created: Date.now(),
-    });
-    setNewItem("");
-    setTimeout(() => {
-      if (listRef.current) listRef.current.scrollTop = 0;
-    }, 100);
-  };
-
-  const toggleItem = async (doc) => {
-    await database.put({ ...doc, checked: !doc.checked });
-  };
-
-  const deleteItem = async (doc) => {
-    await database.del(doc);
-  };
-
-  const clearChecked = async () => {
-    for (const item of checkedItems) {
-      await database.del(item);
-    }
-  };
-
-  const getMemberColor = (name) => {
-    const m = FAMILY_MEMBERS.find(f => f.name === name);
-    return m ? m.color : "var(--comp-muted)";
-  };
-
-  const getCategoryIcon = (catId) => {
-    const c = categories.find(ct => ct.id === catId);
-    return c ? c.icon : "📦";
-  };
-
-  return (
-    <div className="desk-surface">
-      {/* @theme:decoration */}
-      <div className="desk-texture" />
-      <svg style={{ position: "fixed", top: "10%", left: "8%", opacity: 0.08, pointerEvents: "none" }} width="80" height="80" viewBox="0 0 80 80">
-        <circle cx="40" cy="40" r="36" fill="none" stroke="var(--accent-green)" strokeWidth="1.5" />
-        <circle cx="40" cy="40" r="24" fill="none" stroke="var(--accent-blue)" strokeWidth="1" />
-        <circle cx="40" cy="40" r="12" fill="none" stroke="var(--accent-yellow)" strokeWidth="0.8" />
-        <circle cx="40" cy="8" r="3" fill="var(--accent-green)" />
-        <circle cx="68" cy="40" r="3" fill="var(--accent-blue)" />
-        <circle cx="40" cy="64" r="2.5" fill="var(--accent-orange)" />
-      </svg>
-      <svg style={{ position: "fixed", bottom: "15%", right: "5%", opacity: 0.06, pointerEvents: "none" }} width="60" height="60" viewBox="0 0 60 60">
-        <circle cx="30" cy="30" r="26" fill="none" stroke="var(--accent-blue)" strokeWidth="1" />
-        <circle cx="30" cy="30" r="14" fill="none" stroke="var(--accent-orange)" strokeWidth="0.8" />
-        <circle cx="30" cy="6" r="2.5" fill="var(--accent-yellow)" />
-        <circle cx="54" cy="30" r="2.5" fill="var(--accent-green)" />
-      </svg>
-      <svg style={{ position: "fixed", top: "50%", left: "3%", opacity: 0.05, pointerEvents: "none" }} width="40" height="40" viewBox="0 0 40 40">
-        <circle cx="20" cy="20" r="16" fill="none" stroke="var(--accent-orange)" strokeWidth="1" />
-        <circle cx="20" cy="6" r="2" fill="var(--accent-blue)" />
-      </svg>
-      {/* @theme:decoration:end */}
-
-      <div className="app-frame">
-        {/* Header / Awning */}
-        <header className="awning">
-          <div className="heart-decor heart-left">
-            <HeartDoodle size={26} />
-          </div>
-          <div className="heart-decor heart-right">
-            <HeartDoodle size={26} />
-          </div>
-          <div className="awning-cart"><CartDoodle size={42} /></div>
-          <h1 className="awning-title">
-            the family <span className="highlight">pantry</span>
-          </h1>
-          <p className="awning-sub">what do we need today?</p>
-        </header>
-
-        {/* Member Selector */}
-        <div className="member-bar">
-          <span className="member-label">shopping as:</span>
-          <div className="member-chips">
-            {FAMILY_MEMBERS.map(m => (
-              <button
-                key={m.name}
-                className={`member-chip ${currentMember === m.name ? "active" : ""}`}
-                onClick={() => setCurrentMember(m.name)}
-                style={{ "--chip-color": m.color }}
-              >
-                {m.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Scrollable List */}
-        <main className="window-display" ref={listRef}>
-          {items.length === 0 && (
-            <div className="empty-state">
-              <EmptyBagDoodle />
-              <p className="empty-text">the list is empty!</p>
-              <p className="empty-hint">add something below</p>
-            </div>
-          )}
-
-          {uncheckedItems.map((item, i) => (
-            <label
-              key={item._id}
-              className="list-item"
-              style={{ animationDelay: `${i * 0.04}s`, "--tilt": `${(i % 3 - 1) * 0.6}deg` }}
-            >
-              <input
-                type="checkbox"
-                className="scrap-checkbox"
-                checked={false}
-                onChange={() => toggleItem(item)}
-              />
-              <div className="item-content">
-                <span className="item-text">{getCategoryIcon(item.category)} {item.text}</span>
-                <span className="item-meta" style={{ color: getMemberColor(item.addedBy) }}>
-                  added by {item.addedBy}
-                </span>
-              </div>
-              <button className="delete-btn" onClick={(e) => { e.preventDefault(); deleteItem(item); }}>×</button>
-            </label>
-          ))}
-
-          {checkedItems.length > 0 && (
-            <>
-              <div className="checked-divider">
-                <svg width="100%" height="16" viewBox="0 0 400 16" preserveAspectRatio="none">
-                  <path d="M0 8C50 4 100 12 150 8C200 4 250 12 300 8C350 4 400 12 400 8" fill="none" stroke="var(--comp-border)" strokeWidth="2" strokeDasharray="6 4" opacity="0.3" />
-                </svg>
-                <span className="checked-label">got it!</span>
-                <button className="clear-btn" onClick={clearChecked}>clear all</button>
-              </div>
-              {checkedItems.map((item, i) => (
-                <label
-                  key={item._id}
-                  className="list-item checked"
-                  style={{ "--tilt": `${(i % 3 - 1) * 0.4}deg` }}
-                >
-                  <input
-                    type="checkbox"
-                    className="scrap-checkbox"
-                    checked={true}
-                    onChange={() => toggleItem(item)}
-                  />
-                  <div className="item-content">
-                    <span className="item-text struck">{getCategoryIcon(item.category)} {item.text}</span>
-                    <span className="item-meta" style={{ color: getMemberColor(item.addedBy), opacity: 0.5 }}>
-                      added by {item.addedBy}
-                    </span>
-                  </div>
-                  <button className="delete-btn" onClick={(e) => { e.preventDefault(); deleteItem(item); }}>×</button>
-                </label>
-              ))}
-            </>
-          )}
-        </main>
-
-        {/* Input Footer */}
-        <footer className="input-area">
-          <div className="category-row">
-            {categories.map(c => (
-              <button
-                key={c.id}
-                className={`cat-chip ${category === c.id ? "active" : ""}`}
-                onClick={() => setCategory(c.id)}
-                title={c.label}
-              >
-                {c.icon}
-              </button>
-            ))}
-          </div>
-          <form className="input-wrapper" onSubmit={handleAdd}>
-            <input
-              type="text"
-              value={newItem}
-              onChange={e => setNewItem(e.target.value)}
-              placeholder="we need..."
-              className="scrap-input"
-            />
-            <button type="submit" className="add-btn">add</button>
-          </form>
-        </footer>
+    <div className="progress-container">
+      <div className="progress-header">
+        <span className="label-text">{label}</span>
+        <span className="accent-num" style={{ fontSize: "1.1rem" }}>{pct}%</span>
+      </div>
+      <div className="segmented-bar">
+        {Array.from({ length: segments }, (_, i) => (
+          <div key={i} className={`segment ${i < filledSegments ? "segment-filled" : ""}`}/>
+        ))}
+      </div>
+      <div className="knob-track">
+        <div className="knob" style={{ left: `${pct}%` }}/>
       </div>
     </div>
   );
 }
 
-/* ─── Styles ─── */
-const styleTag = document.createElement("style");
-styleTag.textContent = `
+/* ─── CONFETTI CANVAS ─── */
+function useConfetti() {
+  const canvasRef = React.useRef(null);
+  const particlesRef = React.useRef([]);
+  const animRef = React.useRef(null);
+  const activeRef = React.useRef(false);
 
-/* @theme:typography */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
-/* @theme:typography:end */
+  const burst = React.useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 
-/* @theme:tokens */
-:root {
-  --bg-gradient-from: oklch(0.56 0.29 302)   /* purple-600 body gradient start */;
-  --bg-gradient-to:   oklch(0.44 0.22 304)   /* purple-800 body gradient end */;
-  --surface:     oklch(0.00 0.000 0)          /* main container black */;
-  --card:        oklch(0.18 0.000 0 / 0.8)    /* stat card glass rgba(30,30,30,0.8) */;
-  --card-solid:  oklch(0.28 0.03 257)         /* match items gray-800 */;
-  --border:      oklch(0.37 0.03 260)         /* concentric rings gray-700 */;
-  --fg:          oklch(1.00 0.000 0)          /* primary text white */;
-  --fg-muted:    oklch(0.71 0.02 261)         /* labels gray-400 */;
-  --fg-dim:      oklch(0.55 0.03 264)         /* inactive nav gray-500 */;
-  --accent-green:  oklch(0.79 0.21 152)       /* green-400 */;
-  --accent-blue:   oklch(0.71 0.17 255)       /* blue-400 */;
-  --accent-yellow: oklch(0.85 0.20 92)        /* yellow-400 */;
-  --accent-orange: oklch(0.75 0.18 56)        /* orange-400 */;
+    const colors = [
+      "oklch(0.53 0.22 25)", "oklch(0.45 0.19 25)",
+      "oklch(0.93 0.005 264)", "oklch(0.63 0.008 264)",
+      "oklch(0.60 0.22 25)"
+    ];
 
-  /* comp-* token bridge */
-  --comp-bg: var(--surface);
-  --comp-text: var(--fg);
-  --comp-accent: var(--accent-green);
-  --comp-accent-text: oklch(1.00 0 0);
-  --comp-muted: var(--fg-muted);
-  --comp-border: var(--border);
-  --color-background: var(--surface);
-  --grid-color: transparent;
-}
-/* @theme:tokens:end */
+    const particles = [];
+    for (let i = 0; i < 80; i++) {
+      particles.push({
+        x: canvas.width / 2 + (Math.random() - 0.5) * 200,
+        y: canvas.height / 2,
+        vx: (Math.random() - 0.5) * 12,
+        vy: -Math.random() * 14 - 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: Math.random() * 5 + 2,
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 10,
+        life: 1
+      });
+    }
+    particlesRef.current = particles;
+    activeRef.current = true;
 
-/* @theme:motion */
-@keyframes fadeSlideIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes gentleFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
-@keyframes checkPop {
-  0% { transform: scale(0); }
-  60% { transform: scale(1.2); }
-  100% { transform: scale(1); }
-}
-@keyframes progressFill {
-  from { width: 0; }
-}
-/* @theme:motion:end */
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = 0;
+      for (const p of particlesRef.current) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.35;
+        p.vx *= 0.99;
+        p.rotation += p.rotSpeed;
+        p.life -= 0.012;
+        if (p.life <= 0) continue;
+        alive++;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        ctx.restore();
+      }
+      if (alive > 0) {
+        animRef.current = requestAnimationFrame(animate);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        activeRef.current = false;
+      }
+    }
+    if (animRef.current) cancelAnimationFrame(animRef.current);
+    animate();
+  }, []);
 
-/* @theme:surfaces */
-.desk-surface {
-  min-height: 100vh;
-  background-color: var(--color-background);
-  font-family: 'Patrick Hand', cursive;
-  color: var(--comp-text);
-}
+  React.useEffect(() => {
+    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+  }, []);
 
-.desk-texture {
-  position: fixed;
-  inset: 0;
-  background-image:
-    radial-gradient(circle at 20% 30%, oklch(0.91 0.04 135 / 0.5) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, oklch(0.91 0.05 100 / 0.3) 0%, transparent 40%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.app-frame {
-  background-color: var(--scrap-paper);
-  border: 3.5px solid var(--comp-border);
-  box-shadow: 6px 6px 0 var(--scrap-shadow);
-  position: relative;
-  overflow: hidden;
-  transform: rotate(-0.3deg);
+  return { canvasRef, burst };
 }
 
-.awning {
-  background-color: var(--scrap-paper);
-  border-bottom: 3.5px solid var(--comp-border);
-  text-align: center;
-  position: relative;
-  z-index: 10;
-  background-image:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 28px,
-      oklch(0.8 0.03 220 / 0.12) 28px,
-      oklch(0.8 0.03 220 / 0.12) 29px
-    );
+/* ─── DOT GRID BACKGROUND ─── */
+function DotGridBG() {
+  return (
+    <div className="dot-grid-bg" style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }}>
+      <div className="dot-grid-pattern"/>
+      <div className="dot-grid-fade"/>
+    </div>
+  );
 }
 
-.awning-title {
-  font-family: 'Caveat', cursive;
-  font-size: clamp(2rem, 6vw, 2.8rem);
-  font-weight: 700;
-  line-height: 1.1;
-  color: var(--comp-text);
-  text-transform: lowercase;
-  letter-spacing: -0.5px;
+/* ─── HELPERS ─── */
+function getDayKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-.highlight {
-  background: linear-gradient(170deg, transparent 40%, var(--comp-accent) 40%, var(--comp-accent) 85%, transparent 85%);
-  padding: 0 0.3rem;
+function getToday() { return getDayKey(new Date()); }
+
+function getLast7Days() {
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(getDayKey(d));
+  }
+  return days;
 }
 
-.awning-sub {
-  font-family: 'Architects Daughter', cursive;
-  font-size: 1rem;
-  color: var(--comp-muted);
+function getDayLabel(dateStr) {
+  const d = new Date(dateStr + "T12:00:00");
+  return d.toLocaleDateString("en", { weekday: "short" }).toUpperCase();
 }
 
-.awning-cart {
-  opacity: 0.15;
-  position: absolute;
-  top: 8px;
-  right: 12px;
+function calcStreak(completions, habitId) {
+  let streak = 0;
+  const d = new Date();
+  while (true) {
+    const key = getDayKey(d);
+    if (completions[`${habitId}::${key}`]) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return streak;
 }
 
-.heart-decor {
-  position: absolute;
-  z-index: 20;
-  pointer-events: none;
-}
-.heart-left { top: -4px; left: 10px; transform: rotate(-15deg); }
-.heart-right { top: -4px; right: 10px; transform: rotate(15deg); }
+/* ─── MAIN APP ─── */
+function App() {
+  const theme = useVibesTheme();
+  const { database, useLiveQuery, useDocument } = useFireproofClerk("habit-sensor-db");
+  const { canvasRef, burst } = useConfetti();
+  const [view, setView] = React.useState("tracker");
+  const today = getToday();
+  const last7 = getLast7Days();
 
-.member-bar {
-  border-bottom: 2px dashed var(--comp-border);
-  background: oklch(0.96 0.02 120 / 0.6);
-  font-family: 'Architects Daughter', cursive;
-  font-size: 0.9rem;
-  color: var(--comp-muted);
-}
+  // Query habits and completions
+  const habitsResult = useLiveQuery("type", { key: "habit" });
+  const completionsResult = useLiveQuery("type", { key: "completion" });
 
-.member-chip {
-  font-family: 'Caveat', cursive;
-  font-size: 1rem;
-  font-weight: 600;
-  background: var(--scrap-paper);
-  border: 2px solid var(--comp-border);
-  color: var(--comp-text);
-  cursor: pointer;
-  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
-  transition: transform 0.15s, background-color 0.15s, box-shadow 0.15s;
-}
-.member-chip:hover {
-  transform: translateY(-1px) rotate(-1deg);
-  box-shadow: 2px 2px 0 var(--scrap-shadow);
-}
-.member-chip.active {
-  background: var(--chip-color, var(--comp-accent));
-  color: var(--scrap-paper);
-  box-shadow: 3px 3px 0 var(--scrap-shadow);
-  transform: rotate(-1.5deg);
-}
+  const habits = habitsResult?.rows?.map(r => r.doc) || [];
+  const completions = React.useMemo(() => {
+    const map = {};
+    (completionsResult?.rows || []).forEach(r => {
+      const doc = r.doc;
+      map[`${doc.habitId}::${doc.day}`] = true;
+    });
+    return map;
+  }, [completionsResult]);
 
-.window-display {
-  background-color: var(--scrap-paper);
-  background-image:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 38px,
-      oklch(0.8 0.03 220 / 0.1) 38px,
-      oklch(0.8 0.03 220 / 0.1) 39px
-    );
-}
+  // New habit form
+  const [newHabitName, setNewHabitName] = React.useState("");
 
-.window-display::-webkit-scrollbar { width: 10px; }
-.window-display::-webkit-scrollbar-track { background: var(--scrap-paper); border-left: 2px solid var(--comp-border); }
-.window-display::-webkit-scrollbar-thumb { background-color: var(--comp-border); border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; }
+  const addHabit = React.useCallback(async () => {
+    const name = newHabitName.trim();
+    if (!name) return;
+    await database.put({ type: "habit", name, createdAt: Date.now() });
+    setNewHabitName("");
+  }, [newHabitName, database]);
 
-.list-item {
-  background-color: var(--scrap-paper);
-  border: 2.5px solid var(--comp-border);
-  cursor: pointer;
-  transform: rotate(var(--tilt, 0deg));
-  box-shadow: 3px 3px 0 oklch(0.12 0.01 0 / 0.15);
-  animation: fadeSlideIn 0.3s ease both;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-.list-item:hover {
-  transform: translateY(-2px) rotate(-1deg);
-  box-shadow: 5px 5px 0 oklch(0.12 0.01 0 / 0.2);
-}
-.list-item.checked {
-  opacity: 0.55;
-  background: oklch(0.96 0.01 90 / 0.7);
-}
+  const toggleCompletion = React.useCallback(async (habitId, day) => {
+    const key = `${habitId}::${day}`;
+    if (completions[key]) {
+      // Find and delete the completion doc
+      const rows = completionsResult?.rows || [];
+      const match = rows.find(r => r.doc.habitId === habitId && r.doc.day === day);
+      if (match) await database.del(match.doc);
+    } else {
+      await database.put({ type: "completion", habitId, day, completedAt: Date.now() });
+      // Check if all habits completed today
+      const todayCompletions = habits.filter(h => completions[`${h._id}::${day}`] || h._id === habitId);
+      if (todayCompletions.length >= habits.length && habits.length > 0) {
+        burst();
+      }
+    }
+  }, [completions, completionsResult, habits, database, burst]);
 
-.scrap-checkbox {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 26px;
-  height: 26px;
-  border: 2.5px solid var(--comp-border);
-  border-radius: 50%;
-  background-color: var(--scrap-paper);
-  cursor: pointer;
-  flex-shrink: 0;
-  position: relative;
-  display: grid;
-  place-content: center;
-}
-.scrap-checkbox::before {
-  content: "";
-  width: 15px;
-  height: 15px;
-  background-color: var(--scrap-red);
-  border-radius: 50%;
-  transform: scale(0);
-  transition: transform 0.15s ease;
-}
-.scrap-checkbox:checked::before {
-  transform: scale(1);
-  animation: checkPop 0.25s ease;
-}
+  const deleteHabit = React.useCallback(async (habit) => {
+    // Delete all completions for this habit
+    const rows = completionsResult?.rows || [];
+    for (const r of rows) {
+      if (r.doc.habitId === habit._id) await database.del(r.doc);
+    }
+    await database.del(habit);
+  }, [completionsResult, database]);
 
-.item-text {
-  font-family: 'Patrick Hand', cursive;
-  font-size: 1.15rem;
-  font-weight: 400;
-  color: var(--comp-text);
-  line-height: 1.2;
-  word-break: break-word;
-}
-.item-text.struck {
-  text-decoration: line-through;
-  text-decoration-thickness: 2.5px;
-  text-decoration-color: var(--scrap-red);
-  color: var(--comp-muted);
-}
-.item-meta {
-  font-family: 'Architects Daughter', cursive;
-  font-size: 0.78rem;
-  display: block;
-  margin-top: 0.15rem;
-  opacity: 0.7;
-}
+  // Stats
+  const todayCompleted = habits.filter(h => completions[`${h._id}::${today}`]).length;
+  const totalHabits = habits.length;
 
-.delete-btn {
-  background: none;
-  border: none;
-  color: var(--scrap-red);
-  font-family: 'Caveat', cursive;
-  font-size: 1.6rem;
-  cursor: pointer;
-  line-height: 1;
-  opacity: 0;
-  transition: opacity 0.2s, transform 0.15s;
-}
-.list-item:hover .delete-btn { opacity: 1; }
-.delete-btn:hover { transform: scale(1.2) rotate(10deg); }
+  // Weekly data per habit
+  const getWeeklyData = React.useCallback((habitId) => {
+    return last7.map(day => completions[`${habitId}::${day}`] ? 1 : 0);
+  }, [last7, completions]);
 
-.checked-divider {
-  font-family: 'Caveat', cursive;
-  color: var(--comp-muted);
-}
-.checked-label {
-  font-size: 1rem;
-  font-style: italic;
-}
-.clear-btn {
-  font-family: 'Caveat', cursive;
-  font-size: 0.85rem;
-  background: none;
-  border: 1.5px dashed var(--scrap-red);
-  color: var(--scrap-red);
-  cursor: pointer;
-  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
-  transition: background 0.15s, color 0.15s;
-}
-.clear-btn:hover {
-  background: var(--scrap-red);
-  color: var(--scrap-paper);
-}
+  // Overall weekly completion rate
+  const weeklyOverall = React.useMemo(() => {
+    if (habits.length === 0) return last7.map(() => 0);
+    return last7.map(day => {
+      const done = habits.filter(h => completions[`${h._id}::${day}`]).length;
+      return Math.round((done / habits.length) * 100);
+    });
+  }, [habits, last7, completions]);
 
-.empty-state {
-  font-family: 'Caveat', cursive;
-  color: var(--comp-muted);
-  text-align: center;
-}
-.empty-text { font-size: 1.4rem; font-weight: 600; }
-.empty-hint { font-size: 1rem; font-family: 'Architects Daughter', cursive; }
-.empty-bag-float { animation: gentleFloat 4s ease-in-out infinite; }
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit", hour12: false });
 
-.cat-chip {
-  background: var(--scrap-paper);
-  border: 2px solid var(--comp-border);
-  font-size: 1.1rem;
-  cursor: pointer;
-  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
-  transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
-  line-height: 1;
-}
-.cat-chip:hover { transform: translateY(-1px); box-shadow: 2px 2px 0 var(--scrap-shadow); }
-.cat-chip.active {
-  background: var(--comp-accent);
-  box-shadow: 2px 2px 0 var(--scrap-shadow);
-  transform: scale(1.1) rotate(-2deg);
-}
+  return (
+    <div className="sensor-app grid-background" style={{ minHeight: "100vh", background: "var(--bg)" }}>
+      <style>{`
+        /* @theme:typography */
+        @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+        /* @theme:typography:end */
 
-.input-area {
-  border-top: 3.5px solid var(--comp-border);
-  background: var(--scrap-paper);
-  z-index: 10;
-  position: relative;
-}
-.input-wrapper {
-  border: 3px solid var(--comp-border);
-  background: var(--scrap-paper);
-}
-.scrap-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  font-family: 'Patrick Hand', cursive;
-  font-size: 1.15rem;
-  color: var(--comp-text);
-  outline: none;
-}
-.scrap-input::placeholder {
-  color: var(--comp-muted);
-  font-style: italic;
-}
-.add-btn {
-  background-color: var(--scrap-red);
-  color: var(--scrap-paper);
-  border: 2.5px solid var(--comp-border);
-  font-family: 'Caveat', cursive;
-  font-weight: 700;
-  font-size: 1.3rem;
-  cursor: pointer;
-  text-transform: lowercase;
-  transition: transform 0.1s, background-color 0.15s;
-  box-shadow: 2px 2px 0 var(--scrap-shadow);
-}
-.add-btn:hover { transform: translateY(-1px); box-shadow: 3px 3px 0 var(--scrap-shadow); }
-.add-btn:active { transform: translateY(1px); box-shadow: 1px 1px 0 var(--scrap-shadow); background-color: var(--comp-border); }
-/* @theme:surfaces:end */
+        /* @theme:tokens */
+        :root {
+          --bg:          oklch(0.10 0.003 264);
+          --panel:       oklch(0.16 0.003 264);
+          --panel-hi:    oklch(0.19 0.003 264);
+          --stroke:      oklch(0.24 0.003 264);
+          --bar-bg:      oklch(0.20 0.005 264);
+          --muted:       oklch(0.63 0.008 264);
+          --text:        oklch(0.93 0.005 264);
+          --accent:      oklch(0.53 0.22 25);
+          --accent-weak: oklch(0.45 0.19 25);
+          --glow:        0 0 0.6rem oklch(0.53 0.22 25 / 0.35);
+          --knob-glow:   0 0 0 2px oklch(0.53 0.22 25 / 0.45), 0 0 18px oklch(0.53 0.22 25 / 0.35);
 
-/* ─── Pure Layout (outside theme markers) ─── */
-.desk-surface {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 2vmin;
-}
-.app-frame {
-  width: 100%;
-  max-width: 580px;
-  height: 92vh;
-  max-height: 900px;
-  display: flex;
-  flex-direction: column;
-}
-.awning {
-  padding: 1.25rem 1rem 1.5rem;
-  position: relative;
-}
-.member-bar {
-  padding: 0.6rem 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.member-label { flex-shrink: 0; }
-.member-chips { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-.member-chip { padding: 0.2rem 0.7rem; }
-.window-display {
-  flex: 1;
-  padding: 1rem 1rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-.list-item {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 0.85rem;
-  gap: 0.7rem;
-}
-.item-content { flex: 1; min-width: 0; }
-.delete-btn { padding: 0 0.4rem; }
-.checked-divider {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0;
-}
-.checked-divider svg { flex: 1; }
-.clear-btn { padding: 0.15rem 0.6rem; flex-shrink: 0; }
-.empty-state {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-.category-row {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.5rem;
-}
-.cat-chip { padding: 0.25rem 0.5rem; }
-.input-area { padding: 0.8rem 1rem 1rem; }
-.input-wrapper {
-  display: flex;
-  gap: 0.6rem;
-  padding: 0.4rem;
-}
-.scrap-input { padding: 0.4rem; }
-.add-btn { padding: 0.35rem 1.2rem; }
+          --comp-bg: var(--bg);
+          --comp-text: var(--text);
+          --comp-accent: var(--accent);
+          --comp-accent-text: oklch(1.00 0 0);
+          --comp-muted: var(--muted);
+          --comp-border: var(--stroke);
+          --color-background: var(--bg);
+          --grid-color: transparent;
+        }
+        /* @theme:tokens:end */
 
-@media (max-width: 480px) {
-  .app-frame { height: 100vh; max-height: none; border: none; box-shadow: none; transform: none; }
-  .awning { padding: 1rem 0.75rem 1.1rem; }
-  .window-display { padding: 0.75rem 0.75rem; }
-  .input-area { padding: 0.6rem 0.75rem 0.8rem; }
+        /* @theme:surfaces */
+        .sensor-app {
+          font-family: 'Rajdhani', sans-serif;
+          color: var(--text);
+          background: var(--bg);
+        }
+
+        .dot-grid-pattern {
+          position: absolute; inset: 0;
+          background-image: radial-gradient(circle, oklch(0.25 0.003 264) 1px, transparent 1px);
+          background-size: 24px 24px;
+          opacity: 0.4;
+        }
+        .dot-grid-fade {
+          position: absolute; inset: 0;
+          background: radial-gradient(ellipse at center, transparent 30%, var(--bg) 80%);
+        }
+
+        .header-bar {
+          background: var(--panel);
+          box-shadow: inset 0 0 0 1px var(--stroke);
+          border-radius: 0 0 14px 14px;
+        }
+        .model-id {
+          font-family: 'IBM Plex Mono', monospace;
+          color: var(--accent);
+          font-size: 0.75rem;
+          text-shadow: var(--glow);
+        }
+        .header-title {
+          font-family: 'Rajdhani', sans-serif;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.15em;
+          color: var(--text);
+          font-size: 1.1rem;
+        }
+
+        .tile {
+          background: var(--panel);
+          border-radius: 14px;
+          box-shadow: inset 0 0 0 1px var(--stroke);
+          transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .tile:hover {
+          background: var(--panel-hi);
+          transform: translateY(-2px);
+          box-shadow: inset 0 0 0 1px var(--stroke), 0 4px 20px oklch(0 0 0 / 0.3);
+        }
+
+        .label-text {
+          font-family: 'Rajdhani', sans-serif;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          color: var(--muted);
+          font-size: 0.7rem;
+        }
+
+        .accent-num {
+          font-family: 'IBM Plex Mono', monospace;
+          font-weight: 500;
+          color: var(--accent);
+          text-shadow: var(--glow);
+        }
+
+        .data-text {
+          font-family: 'IBM Plex Mono', monospace;
+          color: var(--text);
+        }
+
+        .habit-name {
+          font-family: 'Rajdhani', sans-serif;
+          font-weight: 600;
+          color: var(--text);
+          font-size: 1rem;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+
+        .segmented-bar {
+          background: var(--bar-bg);
+          border-radius: 6px;
+          overflow: hidden;
+        }
+        .segment {
+          background: var(--bar-bg);
+          border-right: 1px solid oklch(0.14 0.003 264);
+          transition: background 0.3s ease;
+        }
+        .segment:last-child { border-right: none; }
+        .segment-filled {
+          background: var(--accent);
+          box-shadow: 0 0 8px oklch(0.53 0.22 25 / 0.3);
+        }
+        .knob-track {
+          height: 4px;
+        }
+        .knob {
+          width: 10px; height: 10px;
+          background: var(--accent);
+          border-radius: 50%;
+          box-shadow: var(--knob-glow);
+          transition: left 0.3s ease;
+          transform: translate(-50%, -50%);
+        }
+
+        .check-btn {
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          padding: 0;
+          transition: transform 0.15s ease;
+        }
+        .check-btn:hover { transform: scale(1.15); }
+        .check-btn:active { transform: scale(0.9); }
+
+        .add-input {
+          background: transparent;
+          border: 1px solid var(--stroke);
+          border-radius: 8px;
+          color: var(--text);
+          font-family: 'Rajdhani', sans-serif;
+          font-size: 0.95rem;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          outline: none;
+          transition: border-color 0.2s ease;
+        }
+        .add-input:focus {
+          border-color: var(--accent);
+        }
+        .add-input::placeholder {
+          color: var(--muted);
+          opacity: 0.6;
+        }
+
+        .add-btn {
+          background: transparent;
+          border: 1px solid var(--accent);
+          border-radius: 8px;
+          color: var(--accent);
+          font-family: 'Rajdhani', sans-serif;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .add-btn:hover {
+          background: var(--accent);
+          color: var(--bg);
+        }
+
+        .delete-btn {
+          background: transparent;
+          border: none;
+          color: var(--muted);
+          cursor: pointer;
+          font-size: 1rem;
+          opacity: 0;
+          transition: opacity 0.2s ease, color 0.2s ease;
+        }
+        .tile:hover .delete-btn { opacity: 1; }
+        .delete-btn:hover { color: var(--accent); }
+
+        .nav-btn {
+          background: transparent;
+          border: none;
+          color: var(--muted);
+          font-family: 'Rajdhani', sans-serif;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          font-size: 0.75rem;
+          cursor: pointer;
+          transition: color 0.2s ease;
+        }
+        .nav-btn.active { color: var(--accent); text-shadow: var(--glow); }
+        .nav-btn:hover { color: var(--text); }
+
+        .footer-bar {
+          background: var(--panel);
+          box-shadow: inset 0 0 0 1px var(--stroke);
+          border-radius: 14px 14px 0 0;
+        }
+        .footer-label {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 0.65rem;
+          color: var(--muted);
+        }
+        .footer-val {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 0.7rem;
+          color: var(--accent);
+          text-shadow: var(--glow);
+        }
+
+        .sparkline-svg { opacity: 0.8; }
+
+        .weekly-bar {
+          background: var(--bar-bg);
+          border-radius: 3px;
+          overflow: hidden;
+          transition: height 0.3s ease;
+        }
+        .weekly-bar-fill {
+          background: var(--accent);
+          border-radius: 3px;
+          transition: height 0.4s ease;
+          box-shadow: 0 0 6px oklch(0.53 0.22 25 / 0.3);
+        }
+        .weekly-label {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 0.6rem;
+          color: var(--muted);
+        }
+        .weekly-pct {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 0.55rem;
+          color: var(--accent);
+        }
+
+        .empty-state-text {
+          font-family: 'Rajdhani', sans-serif;
+          color: var(--muted);
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+        }
+
+        .streak-badge {
+          background: oklch(0.53 0.22 25 / 0.12);
+          border: 1px solid oklch(0.53 0.22 25 / 0.25);
+          border-radius: 6px;
+          color: var(--accent);
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 0.7rem;
+          font-weight: 500;
+        }
+
+        .section-label {
+          font-family: 'IBM Plex Mono', monospace;
+          color: var(--accent);
+          font-size: 0.65rem;
+          text-shadow: var(--glow);
+          text-transform: uppercase;
+          letter-spacing: 0.15em;
+        }
+
+        .confetti-canvas {
+          pointer-events: none;
+        }
+        /* @theme:surfaces:end */
+
+        /* @theme:motion */
+        @keyframes pulse-glow {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+        @keyframes tile-enter {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scan-line {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(100vh); }
+        }
+
+        .tile { animation: tile-enter 0.4s ease both; }
+        .tile:nth-child(1) { animation-delay: 0.05s; }
+        .tile:nth-child(2) { animation-delay: 0.1s; }
+        .tile:nth-child(3) { animation-delay: 0.15s; }
+        .tile:nth-child(4) { animation-delay: 0.2s; }
+        .tile:nth-child(5) { animation-delay: 0.25s; }
+        .tile:nth-child(6) { animation-delay: 0.3s; }
+
+        .scan-line-el {
+          background: linear-gradient(to bottom, transparent, oklch(0.53 0.22 25 / 0.04), transparent);
+          animation: scan-line 8s linear infinite;
+          pointer-events: none;
+        }
+        /* @theme:motion:end */
+
+        /* Layout-only */
+        .sensor-app { position: relative; }
+        .app-content { position: relative; z-index: 1; max-width: 600px; margin: 0 auto; padding: 0 1rem 5rem; }
+        .header-bar { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1.25rem; position: sticky; top: 0; z-index: 10; }
+        .progress-container { padding: 0.75rem 1rem; }
+        .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
+        .segmented-bar { display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px; height: 8px; }
+        .knob-track { position: relative; margin-top: 2px; }
+        .knob { position: absolute; top: 0; }
+        .tile { padding: 1rem; margin-bottom: 0.75rem; }
+        .habit-row { display: flex; align-items: center; gap: 0.75rem; }
+        .habit-info { flex: 1; min-width: 0; }
+        .habit-meta { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.35rem; }
+        .sparkline-row { margin-top: 0.5rem; display: flex; align-items: center; justify-content: space-between; }
+        .add-form { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .add-input { flex: 1; padding: 0.6rem 0.8rem; }
+        .add-btn { padding: 0.6rem 1rem; white-space: nowrap; }
+        .section-header { display: flex; align-items: center; gap: 0.5rem; margin: 1.25rem 0 0.75rem; }
+        .footer-bar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 10; display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 1.25rem; }
+        .footer-group { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; }
+        .nav-group { display: flex; gap: 1.5rem; }
+        .weekly-chart { display: flex; align-items: flex-end; gap: 0.5rem; justify-content: space-between; }
+        .weekly-col { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; flex: 1; }
+        .weekly-bar { width: 100%; }
+        .confetti-canvas { position: fixed; inset: 0; z-index: 100; }
+        .scan-line-el { position: fixed; inset: 0; z-index: 1; height: 100%; }
+        .streak-badge { padding: 0.15rem 0.4rem; display: inline-flex; align-items: center; gap: 0.25rem; }
+        .delete-btn { padding: 0.25rem; display: flex; align-items: center; }
+        .empty-state { display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 3rem 1rem; }
+        .habit-tiles { display: grid; grid-template-columns: 1fr; gap: 0; }
+        @media (min-width: 520px) {
+          .habit-tiles { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+          .habit-tiles .tile { margin-bottom: 0; }
+        }
+      `}</style>
+
+      {/* @theme:decoration */}
+      <DotGridBG/>
+      <div className="scan-line-el"/>
+      {/* @theme:decoration:end */}
+
+      <canvas ref={canvasRef} className="confetti-canvas"/>
+
+      <div className="app-content">
+        {/* Header */}
+        <div className="header-bar">
+          <span className="model-id">SYS-HBT</span>
+          <span className="header-title">Habit Sensor</span>
+          <span className="model-id">{timeStr}</span>
+        </div>
+
+        {/* Daily progress */}
+        {totalHabits > 0 && (
+          <div className="tile" style={{ marginTop: "1rem" }}>
+            <SegmentedProgress value={todayCompleted} total={totalHabits} label="Today's completion"/>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <div style={{ display: "flex", justifyContent: "center", gap: "2rem", margin: "1rem 0" }}>
+          <button className={`nav-btn ${view === "tracker" ? "active" : ""}`} onClick={() => setView("tracker")}>
+            <TargetIcon size={14}/> Tracker
+          </button>
+          <button className={`nav-btn ${view === "weekly" ? "active" : ""}`} onClick={() => setView("weekly")}>
+            <ChartIcon size={14}/> Weekly
+          </button>
+        </div>
+
+        {view === "tracker" && (
+          <>
+            {/* Add Habit */}
+            <div className="section-header">
+              <span className="section-label">H-01 Add Sensor</span>
+            </div>
+            <form className="add-form" onSubmit={(e) => { e.preventDefault(); addHabit(); }}>
+              <input
+                className="add-input"
+                type="text"
+                placeholder="New habit name..."
+                value={newHabitName}
+                onChange={(e) => setNewHabitName(e.target.value)}
+              />
+              <button type="submit" className="add-btn">+ Add</button>
+            </form>
+
+            {/* Habits List */}
+            <div className="section-header">
+              <span className="section-label">H-02 Active Sensors</span>
+              <span className="label-text" style={{ marginLeft: "auto" }}>{totalHabits} registered</span>
+            </div>
+
+            {habits.length === 0 ? (
+              <div className="tile">
+                <div className="empty-state">
+                  <TargetIcon size={48}/>
+                  <span className="empty-state-text">Zero sensors registered</span>
+                  <span className="label-text">Add a habit above to begin tracking</span>
+                </div>
+              </div>
+            ) : (
+              <div className="habit-tiles">
+                {habits.sort((a, b) => a.createdAt - b.createdAt).map((habit, idx) => {
+                  const isCompleted = completions[`${habit._id}::${today}`];
+                  const streak = calcStreak(completions, habit._id);
+                  const weekData = getWeeklyData(habit._id);
+                  const weekDone = weekData.filter(v => v > 0).length;
+
+                  return (
+                    <div key={habit._id} className="tile">
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <span className="label-text">H-{String(idx + 1).padStart(2, "0")}</span>
+                        <button className="delete-btn" onClick={() => deleteHabit(habit)} title="Remove">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                          </svg>
+                        </button>
+                      </div>
+                      <div className="habit-row" style={{ marginTop: "0.35rem" }}>
+                        <button className="check-btn" onClick={() => toggleCompletion(habit._id, today)}>
+                          <CheckSensorIcon checked={isCompleted} size={28}/>
+                        </button>
+                        <div className="habit-info">
+                          <div className="habit-name" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{habit.name}</div>
+                          <div className="habit-meta">
+                            {streak > 0 && (
+                              <span className="streak-badge">
+                                <FlameIcon size={12} glow/> {streak}d
+                              </span>
+                            )}
+                            <span className="label-text">{weekDone}/7 this week</span>
+                          </div>
+                        </div>
+                        <span className="accent-num" style={{ fontSize: "1.5rem" }}>{streak}</span>
+                      </div>
+                      <div className="sparkline-row">
+                        <Sparkline data={weekData} width={100} height={24}/>
+                        <span className="label-text">7d trend</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {view === "weekly" && (
+          <>
+            <div className="section-header">
+              <span className="section-label">H-03 Weekly Analysis</span>
+            </div>
+
+            {/* Overall weekly chart */}
+            <div className="tile">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                <span className="label-text">Completion Rate</span>
+                <span className="label-text">Last 7 Days</span>
+              </div>
+              <div className="weekly-chart" style={{ height: "120px" }}>
+                {last7.map((day, i) => {
+                  const pct = weeklyOverall[i];
+                  return (
+                    <div key={day} className="weekly-col">
+                      <span className="weekly-pct">{pct}%</span>
+                      <div className="weekly-bar" style={{ height: "80px" }}>
+                        <div className="weekly-bar-fill" style={{ height: `${pct}%`, marginTop: "auto", position: "relative", top: `${100 - pct}%` }}/>
+                      </div>
+                      <span className="weekly-label">{getDayLabel(day)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="sparkline-row" style={{ marginTop: "0.75rem" }}>
+                <Sparkline data={weeklyOverall} width={200} height={28}/>
+                <span className="label-text">Trend</span>
+              </div>
+            </div>
+
+            {/* Per-habit weekly */}
+            {habits.length === 0 ? (
+              <div className="tile" style={{ marginTop: "0.75rem" }}>
+                <div className="empty-state">
+                  <ChartIcon size={48}/>
+                  <span className="empty-state-text">No data yet</span>
+                  <span className="label-text">Add habits and check them off to see trends</span>
+                </div>
+              </div>
+            ) : (
+              <div className="habit-tiles" style={{ marginTop: "0.75rem" }}>
+                {habits.sort((a, b) => a.createdAt - b.createdAt).map((habit, idx) => {
+                  const weekData = getWeeklyData(habit._id);
+                  const streak = calcStreak(completions, habit._id);
+                  const weekDone = weekData.filter(v => v > 0).length;
+                  const weekPct = Math.round((weekDone / 7) * 100);
+
+                  return (
+                    <div key={habit._id} className="tile">
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span className="label-text">H-{String(idx + 1).padStart(2, "0")}</span>
+                        <span className="accent-num" style={{ fontSize: "1.2rem" }}>{weekPct}%</span>
+                      </div>
+                      <div className="habit-name" style={{ margin: "0.35rem 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{habit.name}</div>
+                      <div className="weekly-chart" style={{ height: "60px", marginBottom: "0.35rem" }}>
+                        {last7.map((day, i) => {
+                          const done = weekData[i];
+                          return (
+                            <div key={day} className="weekly-col">
+                              <div className="weekly-bar" style={{ height: "40px" }}>
+                                <div className="weekly-bar-fill" style={{ height: done ? "100%" : "0%", position: "relative", top: done ? "0" : "100%" }}/>
+                              </div>
+                              <span className="weekly-label">{getDayLabel(day).charAt(0)}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span className="streak-badge">
+                          <FlameIcon size={12}/> {streak}d streak
+                        </span>
+                        <span className="label-text">{weekDone}/7</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="footer-bar">
+        <div className="footer-group">
+          <span className="footer-label">SYNC</span>
+          <span className="footer-val">{timeStr}</span>
+        </div>
+        <div className="nav-group">
+          <button className={`nav-btn ${view === "tracker" ? "active" : ""}`} onClick={() => setView("tracker")}>Track</button>
+          <button className={`nav-btn ${view === "weekly" ? "active" : ""}`} onClick={() => setView("weekly")}>Analyze</button>
+        </div>
+        <div className="footer-group">
+          <span className="footer-label">PERIOD</span>
+          <span className="footer-val">7D</span>
+        </div>
+      </div>
+    </div>
+  );
 }
-`;
-document.head.appendChild(styleTag);
 
 export default App;

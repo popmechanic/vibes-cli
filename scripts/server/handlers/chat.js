@@ -7,6 +7,7 @@ import { join } from 'path';
 import { runClaude } from '../claude-bridge.js';
 import { sanitizeAppJsx } from '../post-process.js';
 import { getAnimationInstructions } from '../config.js';
+import { currentAppDir } from '../app-context.js';
 
 const EFFECT_INSTRUCTIONS = {
   '3d': `MANDATORY: Use WebGL or CSS 3D transforms (perspective, rotateX/Y/Z, preserve-3d) for this feature. Create actual 3D depth — not flat elements with shadows. Consider: rotating 3D cards, perspective grids, WebGL scenes with Three.js-style raw GL, isometric layouts, parallax depth layers. Use useRef + useEffect for any canvas/WebGL setup with proper cleanup.`,
@@ -196,7 +197,7 @@ RULES:
 - Never change Fireproof document types or query filters`;
 
   const maxTurns = (animationId || effects.length > 0 || reference || skillId) ? 12 : 8;
-  await runClaude(prompt, { maxTurns, model, cwd: ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent);
+  await runClaude(prompt, { maxTurns, model, cwd: currentAppDir(ctx) || ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent);
 
   sanitizeAppJsx(ctx.projectRoot);
 }

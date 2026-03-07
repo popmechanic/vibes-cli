@@ -2,11 +2,12 @@
  * Editor API handlers — credentials, app CRUD, screenshots, status.
  */
 
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, renameSync, rmSync } from 'fs';
 import { join } from 'path';
 import { loadEnvFile, validateClerkKey, validateClerkSecretKey, extractClerkDomain, writeEnvFile } from '../../lib/env-utils.js';
 import { loadOpenRouterKey } from '../config.js';
 import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp } from '../../lib/registry.js';
+import { currentAppDir, throttledBackup } from '../app-context.js';
 
 const MAX_BODY_SIZE = 1024 * 1024; // 1MB
 
@@ -164,9 +165,10 @@ export function initialPrompt(ctx, req, res) {
 }
 
 export function appExists(ctx, req, res) {
-  const exists = existsSync(join(ctx.projectRoot, 'app.jsx'));
+  const appDir = currentAppDir(ctx);
+  const exists = appDir ? existsSync(join(appDir, 'app.jsx')) : false;
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  return res.end(JSON.stringify({ exists }));
+  return res.end(JSON.stringify({ exists, currentApp: ctx.currentApp }));
 }
 
 export async function saveCredentials(ctx, req, res) {
@@ -535,26 +537,47 @@ function sanitizeAppName(name) {
   return name.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/^-+|-+$/g, '').slice(0, 63);
 }
 
-export function loadApp(ctx, req, res, url) {
+export async function loadApp(ctx, req, res, url) {
   const params = url.searchParams;
   const name = sanitizeAppName(params.get('name'));
   if (!name) { res.writeHead(400); return res.end('Missing name'); }
   const src = join(ctx.appsDir, name, 'app.jsx');
   if (!existsSync(src)) { res.writeHead(404); return res.end('App not found'); }
-  copyFileSync(src, join(ctx.projectRoot, 'app.jsx'));
+
+  // Auto-save current app before switching
+  if (ctx.currentApp) {
+    try {
+      const { assembleAppFrame } = await import('./generate.js');
+      const html = assembleAppFrame(ctx);
+      writeFileSync(join(currentAppDir(ctx), 'index.html'), html);
+    } catch (e) {
+      console.warn(`[LoadApp] Auto-save failed for "${ctx.currentApp}": ${e.message}`);
+    }
+  }
+
+  ctx.currentApp = name;
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  return res.end(JSON.stringify({ ok: true }));
+  return res.end(JSON.stringify({ ok: true, currentApp: name }));
 }
 
 export function saveApp(ctx, req, res, url) {
   const params = url.searchParams;
   const name = sanitizeAppName(params.get('name'));
   if (!name) { res.writeHead(400); return res.end('Missing name'); }
-  const appSrc = join(ctx.projectRoot, 'app.jsx');
-  if (!existsSync(appSrc)) { res.writeHead(404); return res.end('No app.jsx to save'); }
+  const appDir = currentAppDir(ctx);
+  if (!appDir || !existsSync(join(appDir, 'app.jsx'))) {
+    res.writeHead(404); return res.end('No active app to save');
+  }
+  if (name === ctx.currentApp) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ ok: true }));
+  }
   const dest = join(ctx.appsDir, name);
   mkdirSync(dest, { recursive: true });
-  copyFileSync(appSrc, join(dest, 'app.jsx'));
+  copyFileSync(join(appDir, 'app.jsx'), join(dest, 'app.jsx'));
+  if (existsSync(join(appDir, 'index.html'))) {
+    copyFileSync(join(appDir, 'index.html'), join(dest, 'index.html'));
+  }
   res.writeHead(200, { 'Content-Type': 'application/json' });
   return res.end(JSON.stringify({ ok: true }));
 }
@@ -622,11 +645,45 @@ export function listDeployments(ctx, req, res) {
 }
 
 export function writeApp(ctx, req, res) {
+  const appDir = currentAppDir(ctx);
+  if (!appDir) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ error: 'No active app' }));
+  }
   const chunks = [];
   req.on('data', c => chunks.push(c));
   req.on('end', () => {
-    writeFileSync(join(ctx.projectRoot, 'app.jsx'), Buffer.concat(chunks).toString('utf-8'));
+    const appPath = join(appDir, 'app.jsx');
+    throttledBackup(appPath, ctx.currentApp, ctx.backupTimestamps);
+    writeFileSync(appPath, Buffer.concat(chunks).toString('utf-8'));
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true }));
   });
+}
+
+export function renameApp(ctx, req, res, url) {
+  const params = url.searchParams;
+  const from = sanitizeAppName(params.get('from'));
+  const to = sanitizeAppName(params.get('to'));
+  if (!from || !to) { res.writeHead(400); return res.end('Missing from or to'); }
+  const srcDir = join(ctx.appsDir, from);
+  const destDir = join(ctx.appsDir, to);
+  if (!existsSync(srcDir)) { res.writeHead(404); return res.end('Source app not found'); }
+  if (existsSync(destDir)) { res.writeHead(409); return res.end('Destination name already exists'); }
+  renameSync(srcDir, destDir);
+  if (ctx.currentApp === from) ctx.currentApp = to;
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  return res.end(JSON.stringify({ ok: true, name: to }));
+}
+
+export function deleteApp(ctx, req, res, url) {
+  const params = url.searchParams;
+  const name = sanitizeAppName(params.get('name'));
+  if (!name) { res.writeHead(400); return res.end('Missing name'); }
+  const dir = join(ctx.appsDir, name);
+  if (!existsSync(dir)) { res.writeHead(404); return res.end('App not found'); }
+  rmSync(dir, { recursive: true, force: true });
+  if (ctx.currentApp === name) ctx.currentApp = null;
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  return res.end(JSON.stringify({ ok: true }));
 }

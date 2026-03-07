@@ -2,7 +2,7 @@
  * Generate handler — create a new app from scratch via Claude.
  */
 
-import { readFileSync, existsSync, writeFileSync, mkdirSync, copyFileSync, unlinkSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { runClaude } from '../claude-bridge.js';
 import { sanitizeAppJsx } from '../post-process.js';
@@ -11,6 +11,7 @@ import { stripForTemplate } from '../../lib/strip-code.js';
 import { APP_PLACEHOLDER } from '../../lib/assembly-utils.js';
 import { loadEnvFile, populateConnectConfig } from '../../lib/env-utils.js';
 import { TEMPLATES } from '../../lib/paths.js';
+import { currentAppDir, slugifyPrompt, resolveAppName } from '../app-context.js';
 
 /**
  * Generate a new app from a user prompt.
@@ -23,18 +24,29 @@ export async function handleGenerate(ctx, onEvent, userPrompt, themeId, model, r
 
   console.log(`[Generate] ▸ START prompt="${userPrompt.slice(0, 60)}" themeId=${themeId || '(auto)'}`);
 
-  // Auto-archive existing app.jsx before generating a new one
-  const appJsxPath = join(ctx.projectRoot, 'app.jsx');
-  if (existsSync(appJsxPath)) {
-    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const archiveName = `auto-${ts}`;
-    const dest = join(ctx.appsDir, archiveName);
-    mkdirSync(dest, { recursive: true });
-    copyFileSync(appJsxPath, join(dest, 'app.jsx'));
-    unlinkSync(appJsxPath);
-    onEvent({ type: 'app_archived', name: archiveName });
-    console.log(`[Generate] Archived existing app.jsx → ${archiveName}`);
+  // Auto-save previous app before switching
+  if (ctx.currentApp) {
+    try {
+      const prevDir = currentAppDir(ctx);
+      const prevIndexPath = join(prevDir, 'index.html');
+      const assembled = assembleAppFrame(ctx);
+      writeFileSync(prevIndexPath, assembled);
+      console.log(`[Generate] Auto-saved index.html for "${ctx.currentApp}"`);
+    } catch (e) {
+      console.warn(`[Generate] Auto-save failed for "${ctx.currentApp}": ${e.message}`);
+    }
   }
+
+  // Create app directory from prompt
+  const slug = slugifyPrompt(userPrompt);
+  const appName = resolveAppName(ctx.appsDir, slug);
+  const appDir = join(ctx.appsDir, appName);
+  mkdirSync(appDir, { recursive: true });
+  ctx.currentApp = appName;
+  onEvent({ type: 'app_created', name: appName });
+  console.log(`[Generate] Created app directory: ${appName}`);
+
+  const appJsxPath = join(appDir, 'app.jsx');
 
   const stylePath = join(ctx.projectRoot, 'skills/vibes/defaults/style-prompt.txt');
 
@@ -242,9 +254,9 @@ DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}),
 
   const maxTurns = reference ? 8 : 5;
   console.log(`[Generate] Starting — theme: ${themeId} (${themeName}), prompt: ${(prompt.length / 1024).toFixed(1)}KB${reference ? `, ref: ${reference.name} (${reference.intent})` : ''}`);
-  await runClaude(prompt, { skipChat: true, maxTurns, model, cwd: ctx.projectRoot, tools: 'Write' }, onEvent);
+  await runClaude(prompt, { skipChat: true, maxTurns, model, cwd: currentAppDir(ctx), tools: 'Write' }, onEvent);
 
-  sanitizeAppJsx(ctx.projectRoot);
+  sanitizeAppJsx(currentAppDir(ctx));
 }
 
 /**
@@ -259,7 +271,12 @@ export function assembleAppFrame(ctx) {
 
   let template = readFileSync(templatePath, 'utf-8');
 
-  const appPath = join(ctx.projectRoot, 'app.jsx');
+  const appDir = currentAppDir(ctx);
+  if (!appDir) {
+    return `<html><body><h1>No app active</h1></body></html>`;
+  }
+
+  const appPath = join(appDir, 'app.jsx');
   if (!existsSync(appPath)) {
     return `<html><body><h1>app.jsx not found</h1></body></html>`;
   }
@@ -272,15 +289,9 @@ export function assembleAppFrame(ctx) {
   }
   template = template.replace(APP_PLACEHOLDER, strippedCode);
 
-  const envVars = loadEnvFile(ctx.projectRoot);
-  template = populateConnectConfig(template, envVars);
-
-  if (!envVars.VITE_API_URL || !envVars.VITE_CLOUD_URL) {
-    if (!assembleAppFrame._warnedMissingConnect) {
-      assembleAppFrame._warnedMissingConnect = true;
-      console.log('[preview] Connect URLs not configured — sync disabled until first deploy');
-    }
-  }
+  // Preview mode: don't populate Connect URLs — run local-only (no auth, no sync).
+  // Sync + auth are added on deploy via assemble scripts.
+  template = populateConnectConfig(template, {});
 
   return template;
 }
