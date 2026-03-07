@@ -1,8 +1,8 @@
 /**
- * Integration tests for deploy-cloudflare.js connect provisioning
+ * Integration tests for deploy-cloudflare.js registry behavior
  *
- * Tests the first-deploy detection logic that pairs Cloudflare Workers
- * apps with Fireproof Connect instances via the registry.
+ * Tests the first-deploy detection logic and registry metadata storage
+ * used by the Deploy API flow.
  *
  * Uses VIBES_HOME env var override + vi.resetModules() for test isolation.
  */
@@ -91,28 +91,26 @@ describe('deploy-cloudflare connect integration', () => {
       expect(loaded.oidc.authority).toBe('https://auth.example.com');
     });
 
-    it('stores app metadata after wrangler deploy', () => {
+    it('stores app metadata after Deploy API call', () => {
       // Simulate first-deploy connect metadata
       registry.setApp('my-app', {
         name: 'my-app',
         connect: { stage: 'my-app', apiUrl: 'https://dash.workers.dev' }
       });
 
-      // Simulate post-wrangler app metadata update
+      // Simulate post-deploy app metadata update
       const appEntry = registry.getApp('my-app') || { name: 'my-app' };
       registry.setApp('my-app', {
         ...appEntry,
         app: {
           workerName: 'my-app',
-          kvNamespaceId: 'kv-abc-123',
-          url: 'https://my-app.acct.workers.dev'
+          url: 'https://my-app.vibes.diy'
         }
       });
 
       const loaded = registry.getApp('my-app');
       expect(loaded.app.workerName).toBe('my-app');
-      expect(loaded.app.kvNamespaceId).toBe('kv-abc-123');
-      expect(loaded.app.url).toBe('https://my-app.acct.workers.dev');
+      expect(loaded.app.url).toBe('https://my-app.vibes.diy');
       // Connect metadata should still be present
       expect(loaded.connect.apiUrl).toBe('https://dash.workers.dev');
     });
