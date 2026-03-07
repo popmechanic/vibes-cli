@@ -926,7 +926,8 @@
           "@ipld/dag-json": "https://esm.sh/stable/@ipld/dag-json@10.2.3?external=multiformats",
           "@clerk/clerk-react": "https://esm.sh/stable/@clerk/clerk-react@5.59.2?external=react,react-dom",
           "use-fireproof": "/fireproof-vibes-bridge.js",
-          "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom"
+          "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom",
+          "use-fireproof-core": "https://esm.sh/stable/use-fireproof@0.24.12?external=react,react-dom"
         }
       }
     </script>
@@ -5169,26 +5170,19 @@ if (typeof window !== 'undefined') {
         }
 
         const { ClerkFireproofProvider } = window.ClerkComponents;
-        const hasConnect = !!(vibesConfig.tokenApiUri && vibesConfig.cloudBackendUrl);
-
-        // ClerkFireproofProvider requires config.apiUrl — crashes if config is undefined.
-        // Pre-deploy (no Connect URLs), use ClerkProvider for auth-only mode.
-        const Provider = hasConnect ? ClerkFireproofProvider : window.ClerkProviderAuthOnly;
-
-        const providerProps = { publishableKey };
-        if (hasConnect) {
-          providerProps.config = {
-            apiUrl: vibesConfig.tokenApiUri,
-            cloudUrl: vibesConfig.cloudBackendUrl
-          };
-        }
 
         return (
           <>
             <SyncStatusDot />
-            <Provider {...providerProps}>
+            <ClerkFireproofProvider
+              publishableKey={publishableKey}
+              config={vibesConfig.tokenApiUri && vibesConfig.cloudBackendUrl ? {
+                apiUrl: vibesConfig.tokenApiUri,
+                cloudUrl: vibesConfig.cloudBackendUrl
+              } : undefined}
+            >
               <AppRouter />
-            </Provider>
+            </ClerkFireproofProvider>
           </>
         );
       }
@@ -5202,8 +5196,6 @@ if (typeof window !== 'undefined') {
           const clerkReact = await import("@clerk/clerk-react");
           const { SignUpButton } = clerkReact;
 
-          // Auth-only provider for pre-deploy (no Connect URLs)
-          window.ClerkProviderAuthOnly = clerkReact.ClerkProvider;
           window.ClerkFireproofProvider = clerkModule.ClerkFireproofProvider;
           window.ClerkComponents = {
             ClerkFireproofProvider: clerkModule.ClerkFireproofProvider,
