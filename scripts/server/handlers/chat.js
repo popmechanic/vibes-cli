@@ -156,11 +156,13 @@ The goal is: if you put the app and the image side by side, they should look lik
   }
 
   // Skill context — prepend SKILL.md content with environment preamble
+  // TODO: Add integration test for skill context injection (requires mocking runClaude)
   if (skillId) {
     const skill = (ctx.pluginSkills || []).find(s => s.id === skillId);
     if (skill && existsSync(skill.skillMdPath)) {
       let skillContent = readFileSync(skill.skillMdPath, 'utf-8');
       if (skillContent.length > 30000) {
+        console.warn(`[Chat] Skill "${skill.name}" SKILL.md truncated from ${skillContent.length} to 30000 bytes`);
         skillContent = skillContent.slice(0, 30000) + '\n\n[... truncated — skill content exceeded 30KB ...]';
       }
       skillBlock = `\n\nSKILL CONTEXT: "${skill.name}" (from ${skill.pluginName} plugin)
@@ -193,7 +195,7 @@ RULES:
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
 - Never change Fireproof document types or query filters`;
 
-  const maxTurns = (animationId || effects.length > 0 || reference) ? 12 : 8;
+  const maxTurns = (animationId || effects.length > 0 || reference || skillId) ? 12 : 8;
   await runClaude(prompt, { maxTurns, model, cwd: ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent);
 
   sanitizeAppJsx(ctx.projectRoot);

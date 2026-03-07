@@ -113,7 +113,7 @@ name: chomp-skill
 description: >-
   Folded with strip
   chomping indicator
-name: chomp-skill
+argument-hint: hint
 ---`;
     const result = parseSkillFrontmatter(content);
     expect(result.description).toBe('Folded with strip chomping indicator');
@@ -178,23 +178,18 @@ describe('resolveSkillsDir', () => {
 
 describe('discoverPluginSkills', () => {
   let tmpBase;
-  let origHome;
 
   beforeEach(() => {
     tmpBase = join(tmpdir(), `vibes-test-discover-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     mkdirSync(tmpBase, { recursive: true });
-    origHome = process.env.HOME;
-    // Override HOME so discoverPluginSkills reads our temp installed_plugins.json
-    process.env.HOME = tmpBase;
   });
 
   afterEach(() => {
-    process.env.HOME = origHome;
     rmSync(tmpBase, { recursive: true, force: true });
   });
 
   it('returns empty array when installed_plugins.json does not exist', () => {
-    const result = discoverPluginSkills();
+    const result = discoverPluginSkills(tmpBase);
     expect(result).toEqual([]);
   });
 
@@ -202,7 +197,7 @@ describe('discoverPluginSkills', () => {
     const pluginsDir = join(tmpBase, '.claude', 'plugins');
     mkdirSync(pluginsDir, { recursive: true });
     writeFileSync(join(pluginsDir, 'installed_plugins.json'), '{{bad json');
-    const result = discoverPluginSkills();
+    const result = discoverPluginSkills(tmpBase);
     expect(result).toEqual([]);
   });
 
@@ -223,7 +218,7 @@ description: A test skill
       'test-plugin@test-marketplace': { installPath: pluginInstall }
     }));
 
-    const result = discoverPluginSkills();
+    const result = discoverPluginSkills(tmpBase);
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('test-plugin/my-skill');
     expect(result[0].name).toBe('my-skill');
@@ -251,7 +246,7 @@ description: Debug stuff
       }
     }));
 
-    const result = discoverPluginSkills();
+    const result = discoverPluginSkills(tmpBase);
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('v2-plugin/debug');
     expect(result[0].marketplace).toBe('v2-market');
@@ -272,7 +267,7 @@ name: vibes-skill
       'vibes@vibes-cli': { installPath: vibesInstall }
     }));
 
-    const result = discoverPluginSkills();
+    const result = discoverPluginSkills(tmpBase);
     expect(result).toEqual([]);
   });
 
@@ -288,7 +283,7 @@ name: vibes-skill
       'bare-plugin@market': { installPath: pluginInstall }
     }));
 
-    const result = discoverPluginSkills();
+    const result = discoverPluginSkills(tmpBase);
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('bare-skill');
     expect(result[0].description).toBe('');
@@ -301,7 +296,7 @@ name: vibes-skill
       'ghost-plugin@market': { installPath: '/nonexistent/path/12345' }
     }));
 
-    const result = discoverPluginSkills();
+    const result = discoverPluginSkills(tmpBase);
     expect(result).toEqual([]);
   });
 
@@ -322,7 +317,7 @@ name: vibes-skill
       'beta@market': { installPath: plugin2 },
     }));
 
-    const result = discoverPluginSkills();
+    const result = discoverPluginSkills(tmpBase);
     expect(result).toHaveLength(2);
     const ids = result.map(s => s.id);
     expect(ids).toContain('alpha/debug');
@@ -341,7 +336,7 @@ name: vibes-skill
       'local': { installPath: pluginInstall }
     }));
 
-    const result = discoverPluginSkills();
+    const result = discoverPluginSkills(tmpBase);
     expect(result).toHaveLength(1);
     expect(result[0].pluginName).toBe('local');
     expect(result[0].marketplace).toBe('');
@@ -363,7 +358,7 @@ name: vibes-skill
       'custom-paths@market': { installPath: pluginInstall }
     }));
 
-    const result = discoverPluginSkills();
+    const result = discoverPluginSkills(tmpBase);
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('custom-paths/design');
     expect(result[0].name).toBe('design');

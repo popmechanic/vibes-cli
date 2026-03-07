@@ -569,8 +569,8 @@ function extractYamlField(block, fieldName) {
  * could add a refresh endpoint or file watcher, but this is acceptable for now
  * since the editor server is typically short-lived.
  */
-export function discoverPluginSkills() {
-  const installedPath = join(homedir(), '.claude', 'plugins', 'installed_plugins.json');
+export function discoverPluginSkills(homeDir = null) {
+  const installedPath = join(homeDir || homedir(), '.claude', 'plugins', 'installed_plugins.json');
   if (!existsSync(installedPath)) return [];
 
   let installed;
