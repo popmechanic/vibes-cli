@@ -28,7 +28,7 @@ export function setupWebSocket(wss, ctx, wsAdapter) {
   wss.on('connection', (ws) => {
     console.log('[WS] Client connected');
 
-    const onEvent = wsAdapter(ws);
+    const onEvent = wsAdapter(ws, wss);
     const dispatch = {
       chat:             (msg) => handleChat(ctx, onEvent, msg.message, msg.effects || [], msg.animationId || null, msg.model, msg.reference || null),
       theme:            (msg) => handleThemeSwitch(ctx, onEvent, msg.themeId, msg.model),
@@ -89,7 +89,9 @@ export function setupWebSocket(wss, ctx, wsAdapter) {
 
     ws.on('close', () => {
       console.log('[WS] Client disconnected');
-      cancelClaude();
+      // Don't cancel Claude on disconnect — the client auto-reconnects
+      // and the generation should continue. Only explicit 'cancel' messages
+      // should abort the subprocess.
     });
   });
 }

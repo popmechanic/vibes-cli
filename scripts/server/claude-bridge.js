@@ -260,35 +260,51 @@ export function cancelClaude() {
  * Create an onEvent callback that forwards events to a WebSocket.
  * Translates internal event types to the client-facing message format.
  */
-export function wsAdapter(ws) {
+export function wsAdapter(ws, wss) {
+  /**
+   * Send a message to the original ws, or broadcast to all clients if it's closed.
+   * This handles WS reconnections during long-running operations like generation.
+   */
+  function send(data) {
+    const json = JSON.stringify(data);
+    if (ws.readyState === 1) {
+      ws.send(json);
+    } else if (wss) {
+      for (const client of wss.clients) {
+        if (client.readyState === 1) {
+          try { client.send(json); } catch { /* client may have disconnected */ }
+        }
+      }
+    }
+  }
+
   return (event) => {
     try {
       if (event.type === 'progress') {
-        ws.send(JSON.stringify({ type: 'status', status: 'thinking', progress: event.progress, stage: event.stage, elapsed: event.elapsed }));
+        send({ type: 'status', status: 'thinking', progress: event.progress, stage: event.stage, elapsed: event.elapsed });
       } else if (event.type === 'complete') {
-        ws.send(JSON.stringify({ type: 'status', status: 'thinking', progress: 100, stage: 'Done!', elapsed: event.elapsed }));
+        send({ type: 'status', status: 'thinking', progress: 100, stage: 'Done!', elapsed: event.elapsed });
         if (!event.skipChat) {
-          ws.send(JSON.stringify({ type: 'chat', role: 'assistant', content: event.text }));
+          send({ type: 'chat', role: 'assistant', content: event.text });
         }
         if (event.hasEdited) {
-          ws.send(JSON.stringify({ type: 'app_updated' }));
+          send({ type: 'app_updated' });
         }
       } else if (event.type === 'token') {
-        ws.send(JSON.stringify({ type: 'token', text: event.text }));
+        send({ type: 'token', text: event.text });
       } else if (event.type === 'tool_detail') {
-        ws.send(JSON.stringify(event));
+        send(event);
       } else if (event.type === 'tool_result') {
-        ws.send(JSON.stringify({ type: 'tool_result', name: event.name, content: event.content, is_error: event.is_error }));
+        send({ type: 'tool_result', name: event.name, content: event.content, is_error: event.is_error });
       } else if (event.type === 'cancelled') {
-        ws.send(JSON.stringify({ type: 'cancelled' }));
+        send({ type: 'cancelled' });
       } else if (event.type === 'error') {
-        ws.send(JSON.stringify(event));
+        send(event);
       } else {
-        // Forward any other event types as-is
-        ws.send(JSON.stringify(event));
+        send(event);
       }
     } catch {
-      // ws may be closed
+      // all clients may be closed
     }
   };
 }
