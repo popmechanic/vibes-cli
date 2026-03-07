@@ -10,6 +10,14 @@
 
 **Design doc:** `docs/plans/2026-03-07-editor-onboarding-design.md`
 
+**Design skill:** Tasks 3, 4, and 5 touch the user-facing welcome screen. When implementing those tasks, invoke the `emil-design-engineering` skill and apply its principles — particularly animations (enter/exit transitions, easing), UI polish (typography, shadows, spacing), and accessibility (reduced motion, keyboard nav, tap targets). The welcome screen is the first thing a non-technical user sees; it should feel subtly vibrant, warm, and alive. Refer to the skill's animation decision flowchart and easing guide. Key constraints from the skill:
+- Animate with ease-out, 150-250ms for user-initiated transitions
+- The greeting acknowledgment (1.5s) should fade/scale in, not just appear
+- Spinner should respect `prefers-reduced-motion`
+- Button needs 44px+ tap target, hover enhancement only via `@media (hover: hover)`
+- No `transition: all` — specify exact properties
+- No layout shift between welcome states (use consistent card dimensions)
+
 ---
 
 ## Task 1: Rewrite `/editor/status` to Auth-Only Check
