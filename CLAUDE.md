@@ -2,20 +2,20 @@
 
 ## Agent Quick Reference
 
-**This section helps coding agents navigate this codebase efficiently.**
-
 ### When to Read What
 
 | Task | Read First |
 |------|------------|
 | Working on skills | The specific `skills/*/SKILL.md` file |
 | Generating app code | SKILL.md has patterns; for advanced features, read `docs/fireproof.txt` |
-| Working on scripts | `scripts/package.json` for deps, this file for architecture |
-| Debugging React errors | "React Singleton Problem" section below; also `skills/vibes/SKILL.md` Common Mistakes |
+| Working on scripts | `scripts/package.json` for deps |
+| Debugging React errors | `.claude/rules/react-singleton.md` loads automatically; also `skills/vibes/SKILL.md` Common Mistakes |
 | Deploying to Cloudflare | `skills/cloudflare/SKILL.md` |
 | Testing plugin changes | `cd scripts && npm run test:fixtures` for structural tests; `/vibes:test` for full E2E |
-| Understanding skill sequencing | "Workflow Sequence" section below |
 | Editing SessionStart hook context | `hooks/session-context.md` for content; `hooks/session-start.sh` for logic |
+| Editing auth components | `.claude/rules/auth-components.md` loads automatically |
+| Editing templates or build system | `.claude/rules/template-build.md` loads automatically |
+| Working on sharing/invites | `.claude/rules/sharing-architecture.md` loads automatically |
 
 ### Fireproof API Reference
 
@@ -23,544 +23,112 @@ SKILL.md provides common patterns (useDocument, useLiveQuery, database.put/del) 
 
 **Read `docs/fireproof.txt` when the user's app needs:**
 
-| Feature | Signal in prompt | fireproof.txt section |
-|---------|------------------|----------------------|
-| User authentication | "login", "auth", "accounts", "Clerk" | Quick Start, API Reference |
-| Sync status indicators | "connection status", "online/offline" | Sync Status Display |
-| User context/identity | "user name", "profile", "who is logged in" | User Context, useUser() |
-| Complete example | "full example", "show me how" | Complete Example |
-| Migration from use-fireproof | "migrate", "update existing" | Differences from Standard Fireproof |
-
-### Architecture at a Glance
-
-```
-User invokes skill (e.g., /vibes:vibes)
-       │
-       ▼
-skills/*.SKILL.md loaded into context
-       │
-       ▼
-Agent generates app.jsx
-       │
-       ▼
-scripts/assemble.js (inserts JSX into template)
-       │
-       ▼
-index.html (ready to deploy)
-```
+| Feature | Signal in prompt |
+|---------|------------------|
+| User authentication | "login", "auth", "accounts", "Clerk" |
+| Sync status indicators | "connection status", "online/offline" |
+| User context/identity | "user name", "profile", "who is logged in" |
+| Complete example | "full example", "show me how" |
 
 ### Environment Variables in SKILL.md
 
-`CLAUDE_PLUGIN_ROOT` is set by the plugin runtime but may be missing in dev mode (`claude --plugin .`). `CLAUDE_SKILL_DIR` is text-substituted before the agent sees the markdown — always reliable.
+`CLAUDE_PLUGIN_ROOT` is set by plugin runtime but may be missing in dev mode (`claude --plugin .`). `CLAUDE_SKILL_DIR` is text-substituted before the agent sees the markdown — always reliable.
 
-All SKILL.md bash blocks use a fallback pattern:
+All SKILL.md bash blocks use the fallback pattern:
 ```bash
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-node "$VIBES_ROOT/scripts/some-script.js"
 ```
 
-`CLAUDE_SKILL_DIR` is `<plugin-root>/skills/<name>/`, so `dirname dirname` gives the plugin root. Non-bash references (`Read file:`, catalog.txt paths) use `${CLAUDE_PLUGIN_ROOT}` directly since they're text-interpolated.
+`CLAUDE_SKILL_DIR` is `<plugin-root>/skills/<name>/`, so `dirname dirname` gives the plugin root.
 
-### Workflow Sequence
+## Critical Rules
 
-All Vibes skills follow this dependency graph:
+### `?external=` for React Singleton
 
-```
-CR (credentials) → G (generate) → A (assemble) → D (deploy + auto-connect) → V (verify)
-SaaS path adds: S (sell config) before A, AD (admin setup) after D.
-Iterate loop: edit app.jsx → A → D → V (always includes re-deploy)
-```
+Any esm.sh package that depends on React MUST use `?external=react,react-dom`. Details in `.claude/rules/react-singleton.md` (loads automatically when editing templates).
 
-**Hard rules:**
-- Deploy is mandatory — Clerk auth requires a public URL. No local-only path.
-- Connect is provisioned automatically during deploy via alchemy.
-- Iterate loop always includes re-deploy: edit app.jsx → A → D → V.
+### Import Map Lives in Base Template
 
-**Node registry:**
+The authoritative import map is in `source-templates/base/template.html`. After editing, run `node scripts/merge-templates.js --force`.
 
-| ID | Node | Inputs | Outputs | Prereqs | Skip If |
-|----|------|--------|---------|---------|---------|
-| CR | CREDENTIALS | user input | Clerk PK+SK in .env | -- | .env has valid Clerk keys |
-| G | GENERATE | user prompt | app.jsx | -- | app.jsx exists (ask reuse) |
-| S | SELL | app context | sell config | CR | not SaaS path |
-| A | ASSEMBLE | app.jsx + .env [+ sell config] | index.html | G + CR; SaaS: + S | -- |
-| D | DEPLOY | index.html | live URL (auto-provisions Connect) | A | -- |
-| AD | ADMIN_SETUP | deployed URL + user signup | admin ID, re-assembled+re-deployed | D | admin ID cached; or not SaaS |
-| V | VERIFY | live URL | user confirmation | D (or AD if SaaS) | -- |
+### Skills Are Atomic
 
-**Hard dependencies:**
-```
-CR → G        Generate needs Clerk keys
-G + CR → A    Assembly needs app.jsx + .env
-G + CR + S → A  SaaS assembly needs all three
-A → D         Deploy needs index.html (Connect auto-provisioned)
-D → AD        Admin setup needs deployed app for signup
-D|AD → V      Verify needs live URL
-```
-
-Skill-specific context tables (Launch task assignments, Test phases, Native Skills entry/exit nodes) live in their respective SKILL.md and LAUNCH-REFERENCE.md files.
-
-### Template Inheritance Architecture
-
-Templates use a DRY inheritance pattern:
-
-```
-components/             → build-components.js → build/vibes-menu.js
-                                                       ↓
-scripts/lib/design-tokens.js → build-design-tokens.js → build/design-tokens.css
-                                                       → build/design-tokens.txt
-                                                       ↓
-source-templates/base/template.html  ←── shared code (tokens placeholder, components, CSS, imports)
-         +
-skills/vibes/template.delta.html  ←── vibes-specific code
-skills/sell/template.delta.html   ←── sell-specific code (multi-tenant routing)
-skills/riff/template.delta.html   ←── riff-specific code
-         ↓
-    merge-templates.js (injects tokens CSS + components + deltas)
-         ↓
-skills/*/templates/index.html  ←── final assembled templates
-```
-
-Build workflow:
-```bash
-node scripts/build-components.js --force     # Build components from local source
-node scripts/build-design-tokens.js --force  # Build design tokens CSS + AI docs
-node scripts/merge-templates.js --force      # Merge base + tokens + deltas into final templates
-```
-
-### Auth Components
-
-The `components/` directory contains TypeScript components. These are the **source of truth** for UI/UX patterns. Templates are directly informed by these components.
-
-**Component inventory:**
-
-| Component | Purpose | Used By |
-|-----------|---------|---------|
-| `AuthPopUp/` | Modal auth dialog (isOpen/onClose) | vibes template |
-| `AuthScreen/` | Full-screen auth gate (always visible) | sell template |
-| `BrutalistCard/` | Animated card with shred/collapse effects | Auth flows |
-| `LabelContainer/` | Form field wrapper with labels | Auth forms |
-| `VibesButton/` | Styled button component | All templates |
-| `VibesPanel/` | Settings panel UI | Menu system |
-| `VibesSwitch/` | Toggle switch for menu | All templates |
-| `HiddenMenuWrapper/` | Slide-out menu container | All templates |
-| `icons/` | SVG icon components | Various |
-
-**AuthPopUp vs AuthScreen:**
-
-Both components share the same visual design patterns but serve different purposes:
-
-| Aspect | AuthPopUp | AuthScreen |
-|--------|-----------|------------|
-| Visibility | Modal (isOpen/onClose props) | Always visible (gate) |
-| Close button | Yes (dismissible) | No (must complete auth) |
-| Content | Hardcoded buttons | Flexible `children` prop |
-| Use case | Optional auth prompt | Required auth gate (SaaS) |
-
-**Style consistency rules:**
-
-When creating or modifying auth components, match these values from AuthPopUp:
-- `getButtonsContainerStyle`: `gap: "1rem"`, `maxWidth: "400px"`
-- `getContainerStyle`: `minHeight: "500px"`, `gap: "2rem"`
-- Animations: `shredCard`, `collapseToLine` keyframes
-
-**Preserving Amber's work:**
-
-Never modify the original component files without explicit request. Bug fixes to HiddenMenuWrapper (CSS variable fixes, button resets) are acceptable. Design changes require discussion.
-
-### File Intent Guide
-
-| File Pattern | Intent |
-|--------------|--------|
-| `skills/*/SKILL.md` | Loaded verbatim into Claude. Edit carefully - affects agent behavior |
-| `source-templates/base/template.html` | Base template with shared code. Edit for all skills. |
-| `skills/*/template.delta.html` | Skill-specific code. Only unique functionality. |
-| `skills/*/templates/*.html` | Generated templates. Don't edit - regenerated by merge-templates.js |
-| `components/` | Local TypeScript components. Built by build-components.js |
-| `scripts/*.js` | Node.js tools. Run locally, not loaded into Claude |
-| `build/*` | Build output (gitignored). Built components from build-components.js |
-| `skills/*/defaults/*` | Shipped defaults (git-tracked). Style prompts, example credentials |
-| `hooks/*` | SessionStart hook infrastructure. Context injected every conversation |
-
----
-
-### Adding or Removing Skills (Manual Checklist)
-
-**When you add, remove, or rename a skill**, update these files:
-
-| File | What to Update |
-|------|----------------|
-| `README.md` | Skills section |
-
----
+Each skill is ONE plan step — never decompose into sub-steps. Always invoke the skill before running its commands, even for reassembly/redeploy.
 
 ## Package Versions
 
 The import map in `source-templates/base/template.html` is the authoritative source for current package versions (`esm.sh/stable/` URLs, `@necrodome/fireproof-clerk@0.0.7`, React 19.2.4).
 
-## Critical Rules
+## Architecture: JSX + Babel
 
-### 1. Use `?external=` for React Singleton
-
-When using `@necrodome/fireproof-clerk` via esm.sh, you MUST add `?external=react,react-dom` to ensure a single React instance:
-
-```json
-"@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom"
-```
-
-**Why `?external=`:** This tells esm.sh to keep `react` and `react-dom` as bare specifiers instead of bundling them. The browser's import map then intercepts these bare specifiers, ensuring all code uses the same React instance.
-
-**Why NOT `?alias=`:** The `?alias` parameter rewrites imports at esm.sh build time, but doesn't prevent esm.sh from resolving its own React version for internal dependencies. `?external` is more reliable for no-build workflows.
-
-### 2. Import Map Lives in Base Template
-
-The authoritative import map is defined in `source-templates/base/template.html` — read it there, not here. Key rule: `?external=react,react-dom` is REQUIRED on any esm.sh package that depends on React. After editing the base template, run `node scripts/merge-templates.js --force` to regenerate.
+The plugin uses JSX with Babel runtime transpilation. See `source-templates/base/template.html` for the `<script type="text/babel">` pattern.
 
 ## Local Development
 
-To test the plugin from local source (instead of the installed version):
-
 ```bash
-# From the plugin directory
-claude --plugin .
-
-# Or with absolute path
-claude --plugin /path/to/vibes-skill
+claude --plugin .                        # From the plugin directory
+claude --plugin /path/to/vibes-skill     # Or with absolute path
 ```
-
-This loads skills and commands from your local checkout, so you can test changes without publishing.
 
 ## Testing
 
-The plugin includes a comprehensive test suite using Vitest. Tests are organized into three tiers:
-
-### Running Tests
-
 ```bash
 cd scripts
-
-# Install dependencies (first time)
-npm install
-
-# Run all tests
-npm test
-
-# Run only unit tests (fastest, <1 second)
-npm run test:unit
-
-# Run integration tests (mocked external services)
-npm run test:integration
-
-# Start E2E local server for manual testing
-npm run test:e2e:server
+npm install          # First time
+npm test             # All tests
+npm run test:unit    # Unit only (<1 second)
+npm run test:integration  # Mocked external services
+npm run test:e2e:server   # E2E local server for manual testing
 ```
 
-### Test Structure
-
-```
-scripts/__tests__/
-├── unit/                           # Pure logic, no I/O
-│   ├── ai-proxy.test.js
-│   ├── assemble-validation.test.js
-│   ├── auth-flows.test.js          # State machine transitions
-│   ├── component-transforms.test.js
-│   ├── generate-handoff.test.js
-│   ├── jwt-validation.test.js      # azp matching, timing validation
-│   ├── strip-code.test.js
-│   ├── template-merge.test.js
-│   └── webhook-signature.test.js
-├── integration/                    # Mocked external services
-│   ├── assembly-pipeline.test.js
-│   ├── deploy-ai-proxy.test.js
-│   └── deploy-handoff.test.js
-├── e2e/                            # Local server for manual testing
-│   └── local-server.js
-└── mocks/                          # Shared test doubles
-    └── clerk-webhooks.js
-```
-
-### E2E Testing with /etc/hosts
-
-For full subdomain routing tests without real DNS:
-
-1. Add to `/etc/hosts`:
-```
-127.0.0.1  test-app.local
-127.0.0.1  tenant1.test-app.local
-127.0.0.1  admin.test-app.local
-```
-
-2. Start the local server:
-```bash
-npm run test:e2e:server
-```
-
-3. Open in browser:
-   - `http://test-app.local:3000` - Landing page
-   - `http://tenant1.test-app.local:3000` - Tenant app
-   - `http://admin.test-app.local:3000` - Admin dashboard
-
-### Test Generated Apps
-
-1. Generate a simple app with `/vibes:vibes`
-2. Open `index.html` in your browser
-3. Check console for errors:
-   - No "Fireproof is not defined" errors
-   - No infinite loops or page lockups
-
-### Adding New Tests
-
-- **Unit tests** go in `scripts/__tests__/unit/` - for pure functions with no I/O
-- **Integration tests** go in `scripts/__tests__/integration/` - use mocks from `mocks/`
-- **Mocks** go in `scripts/__tests__/mocks/` - shared test doubles for external services
-
-## Integration Testing
+### Integration Testing
 
 | What Changed | How to Test |
 |-------------|-------------|
 | Template structure | `cd scripts && npm run test:fixtures` (vitest, ~200ms) |
 | Full E2E (assembly + deploy + browser) | `/vibes:test` |
 
-**Structural tests** (`npm run test:fixtures`) validate assembly output without credentials — no placeholders, import map present, Babel script block intact. Fast enough to run after every template edit.
+### E2E with /etc/hosts
 
-**Full E2E** (`/vibes:test`) orchestrates real credentials, Cloudflare deploy, and presents a live URL for browser verification. Use after structural tests pass.
-
-## File Reference
-
-| File | Purpose |
-|------|---------|
-| `scripts/assemble.js` | Assembly script - inserts JSX into template |
-| `scripts/assemble-sell.js` | SaaS assembly script - generates multi-tenant app |
-| `scripts/assemble-all.js` | Batch assembler for riff directories |
-| `scripts/build-components.js` | Build components from local `components/` directory |
-| `scripts/build-design-tokens.js` | Build design tokens CSS + AI docs from single source |
-| `scripts/merge-templates.js` | Merge base + tokens + deltas into final templates |
-| `scripts/generate-riff.js` | Parallel riff generator - spawns claude -p for variations |
-| `scripts/generate-handoff.js` | Generate HANDOFF.md context document for remote Claude |
-| `scripts/preview-server.js` | Live preview server - HTTP + WebSocket bridge to Claude Code |
-| `scripts/deploy-cloudflare.js` | Cloudflare deployment script |
-| `skills/cloudflare/worker/src/lib/kv-storage.ts` | Per-subdomain key model with collaborator support |
-| `skills/cloudflare/worker/src/lib/registry-logic.ts` | Collaborator-aware subdomain registry logic |
-| `scripts/vitest.config.js` | Vitest test runner configuration |
-| `scripts/package.json` | Node.js deps |
-| `scripts/lib/env-utils.js` | Shared .env loading, Clerk key validation |
-| `scripts/lib/paths.js` | Centralized path resolution for all plugin paths |
-| `scripts/lib/crypto-utils.js` | Session token and device CA key generation for Connect |
-| `scripts/lib/ensure-deps.js` | Auto-install npm dependencies on first run |
-| `scripts/lib/backup.js` | Timestamped backup utilities for file operations |
-| `scripts/lib/prompt.js` | Readline prompt utilities for interactive CLI |
-| `scripts/lib/strip-code.js` | Strip import/export statements from JSX before template injection |
-| `scripts/lib/resolve-workers-url.js` | Resolve full Cloudflare Workers URL for an app |
-| `scripts/lib/jwt-validation.js` | JWT validation utilities (azp matching, timing) |
-| `scripts/lib/auth-flows.js` | Auth flow state machines (signup, signin, gate) |
-| `scripts/lib/template-merge.js` | Pure functions for merging base + delta templates |
-| `scripts/lib/design-tokens.js` | Single source of truth for all design tokens (TOKEN_CATALOG + VIBES_THEME_CSS) |
-| `scripts/lib/component-catalog.js` | Bare HTML component templates (shadcn-style, unstyled) — LLM styles them with tokens |
-| `scripts/lib/component-transforms.js` | Pure functions for transforming component source code |
-| `scripts/lib/parse-theme-catalog.js` | Parser for theme catalog.txt → JSON array |
-| `scripts/__tests__/fixtures/` | Pre-written JSX test fixtures |
-| `bundles/fireproof-vibes-bridge.js` | ES module bridge -- wraps @fireproof/clerk with Vibes-specific logic (sync status, ledger routing, invite redemption) |
-| `assets/` | Favicon, branding images, auth card designs |
-| `docs/plans/` | Architecture decision records and planning docs |
-| `components/` | Local TypeScript components - source of truth for UI/UX |
-| `components/AuthPopUp/` | Modal auth dialog (Amber's original design) |
-| `components/AuthScreen/` | Full-screen auth gate for sell template |
-| `components/BrutalistCard/` | Animated card with shred/collapse effects |
-| `docs/fireproof.txt` | Fireproof API reference documentation |
-| `build/vibes-menu.js` | Built components from local source (gitignored) |
-| `source-templates/base/template.html` | Base template with shared code (components, CSS, imports) |
-| `skills/vibes/template.delta.html` | Vibes-specific delta (Clerk auth wrapper) |
-| `skills/vibes/templates/index.html` | Generated vibes template |
-| `skills/vibes/templates/preview.html` | Live preview wrapper (side-by-side chat + theme modal) |
-| `skills/vibes/SKILL.md` | Main vibes skill (has import map) |
-| `skills/vibes/defaults/` | Shipped defaults - style-prompt.txt, dev-credentials.example.json |
-| `skills/vibes/defaults/advanced-effects-prompt.txt` | Advanced visual effects guide (Canvas, WebGL, SVG, CSS) |
-| `skills/riff/defaults/` | Shipped defaults - style-prompt.txt |
-| `skills/riff/template.delta.html` | Riff-specific delta |
-| `skills/riff/templates/index.html` | Generated riff template |
-| `skills/riff/SKILL.md` | Riff skill for parallel app generation |
-| `skills/sell/template.delta.html` | Sell-specific delta (multi-tenant routing) |
-| `skills/sell/templates/unified.html` | Generated SaaS template |
-| `skills/sell/SKILL.md` | Sell skill for SaaS transformation |
-| `skills/design/SKILL.md` | Design reference skill - mechanical HTML→React transformation |
-| `skills/launch/SKILL.md` | Launch skill - full SaaS pipeline with Agent Teams |
-| `skills/launch/LAUNCH-REFERENCE.md` | Launch architecture reference (dependency graph, timing, skip modes) |
-| `skills/launch/prompts/builder.md` | Builder agent prompt template with {placeholder} markers |
-| `skills/launch/prompts/infra.md` | Infra agent prompt template with {placeholder} markers |
-| `scripts/lib/registry.js` | Global deployment registry (~/.vibes/deployments.json) |
-| `scripts/lib/alchemy-deploy.js` | Connect provisioning via alchemy sparse checkout |
-| `skills/cloudflare/SKILL.md` | Cloudflare Workers deployment skill |
-| `skills/cloudflare/worker/` | Cloudflare Worker source (Hono, KV, Web Crypto JWT) |
-| `skills/test/SKILL.md` | E2E integration test skill |
-| `hooks/hooks.json` | SessionStart hook declaration |
-| `hooks/run-hook.cmd` | Cross-platform polyglot wrapper for hooks |
-| `hooks/session-start.sh` | SessionStart logic — reads context + detects project state |
-| `hooks/session-context.md` | Reasoning-based skill awareness content injected every conversation |
-
-### Build Output and Defaults
-
-**`/build/`** (gitignored) - Build output from build scripts:
-- `vibes-menu.js` - Built components (from build-components.js)
-
-**`skills/*/defaults/`** (git-tracked) - Shipped defaults:
-- `style-prompt.txt` - UI style guidance (in `skills/vibes/defaults/` and `skills/riff/defaults/`)
-- `advanced-effects-prompt.txt` - Advanced visual effects (Canvas 2D, WebGL shaders, interactive SVG, CSS @property) in `skills/vibes/defaults/`
-- `dev-credentials.example.json` - Example credentials (in `skills/vibes/defaults/`)
-
-**`docs/fireproof.txt`** - Fireproof API reference:
-- Contains `@fireproof/clerk` docs for authenticated sync
-- Read when Connect is set up and apps need Clerk auth patterns
-
-**Build scripts:**
-- `build-components.js` - Builds vibes-menu.js from local `components/` directory to `build/`
-- `build-design-tokens.js` - Builds design-tokens.css + design-tokens.txt from `scripts/lib/design-tokens.js`
-- `merge-templates.js` - Combines base + tokens + delta templates into final templates
-
-**When to read defaults:**
-- `style-prompt.txt` - Read when you need UI/color guidance beyond what's in SKILL.md
-- `advanced-effects-prompt.txt` - Read when apps need interactive visuals, Canvas backgrounds, WebGL effects, or animated SVGs
-
-## Architecture: JSX + Babel
-
-The plugin uses JSX with Babel runtime transpilation (matching vibes.diy). See `source-templates/base/template.html` for the `<script type="text/babel">` pattern.
-
-## The React Singleton Problem
-
-### Understanding the Architecture
-
-vibes.diy uses import maps - a browser-native feature (since March 2023) that maps bare specifiers like `"react"` to CDN URLs.
-
-### The Core Problem
-
-**Import maps can only intercept bare specifiers**, not absolute URL paths:
-
-| Import Type | Example | Import Map Intercepts? |
-|-------------|---------|------------------------|
-| Bare specifier | `import "react"` | ✅ Yes |
-| Absolute path | `import "/react@19.2.4"` | ❌ No |
-
-When esm.sh bundles `@fireproof/clerk`, internal React imports become absolute paths:
-```javascript
-import "/react@>=19.1.0?target=es2022";  // Resolved relative to esm.sh origin
+For subdomain routing tests, add to `/etc/hosts`:
 ```
-
-**Result**: Our import map provides React 19.2.4, but `@fireproof/clerk` loads React 19.2.6 → TWO React instances → context fails.
-
-### The Solution: `?external=`
-
-From Preact's no-build workflow guide and esm.sh documentation:
-
-> "By using `?external=preact`, we tell esm.sh that it shouldn't provide a copy of preact... the browser will use our importmap to resolve `preact`, using the same instance as the rest of our code."
-
-The `?external=` parameter tells esm.sh to keep specified dependencies as **bare specifiers** so our import map can intercept them.
-
-### esm.sh Query Parameters
-
-| Parameter | Syntax | Effect |
-|-----------|--------|--------|
-| `?external=` | `?external=react,react-dom` | **Recommended.** Keeps bare specifiers for import map resolution |
-| `?deps=` | `?deps=react@19.2.4` | Forces specific dependency versions at build time |
-| `?alias=` | `?alias=react:react@19.2.4` | Rewrites import specifiers at build time (less reliable for no-build) |
-| `*` prefix | `https://esm.sh/*pkg@ver` | Marks ALL deps as external (exposes internal deps) |
-
-### Correct Import Map
-
-See `source-templates/base/template.html` for the current authoritative import map. The key points:
-- The `/stable/` path uses pre-built, cached versions that avoid dependency resolution issues
-- `?external=react,react-dom` ensures import map controls React
-- Currently uses a local bundle workaround for `use-fireproof` and `@fireproof/clerk`
+127.0.0.1  test-app.local  tenant1.test-app.local  admin.test-app.local
+```
+Then `npm run test:e2e:server` and open `http://test-app.local:3000`.
 
 ## Hooks (SessionStart)
 
-The plugin uses a `SessionStart` hook to inject framework awareness context into every conversation. This ensures agents always know what Vibes is, when to use each skill, and what technical rules to follow — even before any skill is invoked.
+The `SessionStart` hook injects framework awareness context into every conversation.
 
-### Hook Files
+1. `hooks.json` triggers `run-hook.cmd session-start.sh`
+2. `session-start.sh` reads `session-context.md` (static) + detects project state in `$PWD`
+3. Outputs JSON with `additionalContext` → appears in system reminders
 
-| File | Purpose |
-|------|---------|
-| `hooks/hooks.json` | Hook declaration — triggers on startup, resume, clear, compact |
-| `hooks/run-hook.cmd` | Cross-platform polyglot wrapper (bash on Unix, Git Bash on Windows) |
-| `hooks/session-start.sh` | Main logic — reads context file, detects project state, outputs JSON |
-| `hooks/session-context.md` | Reasoning-based skill awareness (why Vibes exists, when to use it, dispatch table) |
+**Editing:** Static content in `hooks/session-context.md` (keep under 100 lines). Dynamic detection in `hooks/session-start.sh` (pure bash only). Test with `echo '{}' | bash hooks/session-start.sh`.
 
-### How It Works
+## Non-Obvious Files
 
-1. Claude Code fires `SessionStart` event
-2. `hooks.json` triggers `run-hook.cmd session-start.sh`
-3. `session-start.sh` reads `session-context.md` (static content)
-4. Script detects project state in `$PWD`: `.env` (Clerk keys?), `app.jsx`, `index.html`
-5. Appends dynamic hints like "No .env found — run /vibes:cloudflare first"
-6. Outputs JSON with `additionalContext` field → appears in system reminders
-
-### Editing Injected Context
-
-- **Static content**: Edit `hooks/session-context.md`. Keep under 100 lines — this is injected into every conversation.
-- **Dynamic detection**: Edit `hooks/session-start.sh`. Uses pure bash only (no sed/awk) for cross-platform compatibility.
-- **Testing**: Run `echo '{}' | bash hooks/session-start.sh` to verify valid JSON output. Test from directories with/without `.env` to verify state detection.
-
-## Skills Are Atomic
-
-**Each skill is a self-contained automation.** When planning work, a skill invocation is always ONE plan step (e.g., "Invoke /vibes:cloudflare"), never decomposed into its internal sub-steps. Skill selection and descriptions are driven by YAML frontmatter in each SKILL.md file.
-
-The frontmatter description must signal atomicity (e.g., "Self-contained deploy automation — invoke directly, do not decompose") so the agent treats the skill as a single unit even in plan mode. Without this, agents read the SKILL.md during planning and extract internal steps as separate plan tasks.
-
-**Corollary: always invoke the skill before running its commands.** Even when re-assembling or re-deploying an existing app, invoke the skill (e.g., `/vibes:sell`) to load its SKILL.md first, then follow its workflow — including validation gates and explicit flags. Running a skill's internal commands without loading the skill risks skipping placeholder checks, credential flags, and registry verification steps.
+| File | Why it matters |
+|------|---------------|
+| `bundles/fireproof-vibes-bridge.js` | ES module bridge wrapping @fireproof/clerk — sync status, ledger routing, invite redemption |
+| `scripts/lib/env-utils.js` | Shared .env loading, Clerk key validation, Connect config |
+| `scripts/lib/paths.js` | Centralized path resolution for all plugin paths |
+| `skills/launch/LAUNCH-REFERENCE.md` | Launch dependency graph, timing, skip modes |
+| `skills/launch/prompts/builder.md` | Builder agent prompt template with {placeholder} markers |
 
 ## Cloudflare Deployment
 
-All apps deploy to Cloudflare Workers. Connect deploys automatically on first
-app deploy via alchemy. App-Connect pairings tracked in `~/.vibes/deployments.json`.
+All apps deploy to Cloudflare Workers. Connect deploys automatically on first app deploy via alchemy. App-Connect pairings tracked in `~/.vibes/deployments.json`.
 
-## Sharing / Invite Architecture
+## Adding or Removing Skills
 
-The sharing feature lets users invite others to collaborate on their Fireproof database via the VibesPanel invite UI.
-
-### DOM Event Bridge Pattern
-
-VibesPanel (inside HiddenMenuWrapper) dispatches DOM events. SharingBridge (rendered inside `ClerkFireproofProvider > SignedIn`) listens and calls `dashApi`:
-
-```
-VibesPanel → dispatches 'vibes-share-request' {email, right}
-SharingBridge → calls dashApi.inviteUser() via useClerkFireproofContext()
-SharingBridge → dispatches 'vibes-share-success' or 'vibes-share-error'
-VibesPanel → listens for result events, shows BrutalistCard feedback
-```
-
-**Why a bridge?** `useVibesPanelEvents()` runs outside `ClerkFireproofProvider` (it's called at AppWrapper top level), so it can't access `dashApi`. SharingBridge solves this by living inside the provider tree.
-
-### Ledger Discovery
-
-SharingBridge calls `dashApi.listLedgersByUser({})` to find the current app's ledger. It matches by hostname (ledger name contains `window.location.hostname`), falling back to the first ledger. The result is cached after the first call.
-
-### Available dashApi Methods
-
-| Method | Purpose |
-|--------|---------|
-| `inviteUser({ ticket })` | Send invitation by email |
-| `listLedgersByUser({})` | List user's ledgers for discovery |
-| `findUser({ query })` | Look up users |
-
-### useSharing Hook (for user app code)
-
-If the bundle exports `useSharing`, user apps can use it directly:
-
-```javascript
-const { useSharing } = window;
-const { inviteUser, listInvites, deleteInvite, findUser, ready } = useSharing();
-```
-
-The hook is conditionally exported via `window.useSharing` in the delta template's `initApp()`.
+Update `README.md` (Skills section).
 
 ## Plugin Versioning
 
-When releasing a new version, update the version number in **both** files to comply with Claude Code plugin standards:
-
-1. `.claude-plugin/plugin.json` - The main plugin manifest
-2. `.claude-plugin/marketplace.json` - The marketplace metadata (in the `plugins` array)
-
-Both files must have matching version numbers.
-
-**Name fields:** `plugin.json` uses `"name": "vibes"` (the plugin's internal name). `marketplace.json` uses `"name": "vibes-cli"` at the top level (the public listing name on the marketplace), while the plugin entry inside its `plugins` array uses `"name": "vibes"` to match `plugin.json`.
+Update version in **both** files — they must match:
+1. `.claude-plugin/plugin.json` — `"name": "vibes"`
+2. `.claude-plugin/marketplace.json` — top-level `"name": "vibes-cli"`, plugin entry `"name": "vibes"`
 
 ## Commit Messages
 
