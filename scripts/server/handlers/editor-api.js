@@ -277,7 +277,7 @@ export async function validateOIDCCredentials({ authority } = {}) {
   }
 }
 
-export async function validateClerk(ctx, req, res) {
+export async function validateOidc(ctx, req, res) {
   try {
     const body = await parseJsonBody(req);
     const { authority } = body;
@@ -407,6 +407,56 @@ export async function validateCloudflare(ctx, req, res) {
     const statusCode = err.statusCode || 400;
     res.writeHead(statusCode, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ valid: false, error: err.message }));
+  }
+}
+
+export async function checkStudio(ctx, req, res) {
+  try {
+    const body = await parseJsonBody(req);
+    const { studio } = body;
+    if (!studio || typeof studio !== 'string') {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ reachable: false, error: 'Provide a studio name.' }));
+    }
+
+    const { apiUrl, cloudUrl } = deriveStudioUrls(studio);
+
+    // SSRF guard on derived URL
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(apiUrl);
+    } catch {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ reachable: false, error: 'Invalid studio URL.' }));
+    }
+
+    const hostname = parsedUrl.hostname;
+    if (IS_IP.test(hostname) || hostname.startsWith('[') ||
+        PRIVATE_PATTERNS.test(hostname) || PRIVATE_172.test(hostname)) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ reachable: false, error: 'Studio URL resolves to a private address.' }));
+    }
+
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
+    try {
+      const probe = await fetch(parsedUrl.href, { signal: ctrl.signal });
+      clearTimeout(timer);
+      // Any HTTP response means the studio is reachable (dashboard API returns 503 for GET)
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ reachable: true, apiUrl, cloudUrl }));
+    } catch (err) {
+      clearTimeout(timer);
+      const msg = err.name === 'AbortError'
+        ? 'Studio not reachable (timed out after 5s).'
+        : 'Studio not reachable: ' + err.message;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ reachable: false, error: msg }));
+    }
+  } catch (err) {
+    const statusCode = err.statusCode || 400;
+    res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+    return res.end(JSON.stringify({ reachable: false, error: err.message }));
   }
 }
 

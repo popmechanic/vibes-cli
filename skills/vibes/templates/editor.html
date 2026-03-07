@@ -2957,6 +2957,38 @@
   }
 
   // === Phase Navigation ===
+  const settingsButtonHtml = `
+        <div class="navbar-button-wrapper">
+          <button style="background:var(--vibes-menu-bg)" onclick="openSettings()">
+            <div class="navbar-button-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--vibes-near-black)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </div>
+            <div class="navbar-button-label" style="color:var(--vibes-near-black)">Settings</div>
+          </button>
+        </div>`;
+
+  async function openSettings() {
+    try {
+      const res = await fetch('/editor/status');
+      const status = await res.json();
+      // Reset wizard state for clean re-entry
+      wizardData = { oidcAuthority: '', oidcClientId: '', studioName: '', apiUrl: '', cloudUrl: '', openRouterKey: '' };
+      document.querySelectorAll('.wizard-step input').forEach(i => {
+        i.classList.remove('valid', 'invalid');
+        if (i.type === 'text' || i.type === 'password') i.value = '';
+      });
+      document.querySelectorAll('.wizard-step .wizard-hint').forEach(h => h.style.display = 'none');
+      setPhase('setup');
+      setWizardStep(1);
+      prefillFromStatus(status);
+    } catch (err) {
+      console.error('Failed to open settings:', err);
+    }
+  }
+
   function setPhase(phase) {
     currentPhase = phase;
     document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
@@ -2984,8 +3016,9 @@
     if (phase === 'generate') {
       // Show apps button only if there are apps to show
       const appsGrid = document.getElementById('appGalleryGrid');
+      let generateButtons = settingsButtonHtml;
       if (appsGrid && appsGrid.innerHTML.trim()) {
-        headerRight.innerHTML = `
+        generateButtons += `
           <div class="navbar-button-wrapper">
             <button style="background:var(--vibes-yellow)" onclick="toggleAppsPanel()">
               <div class="navbar-button-icon">
@@ -3000,11 +3033,10 @@
               <div class="navbar-button-label" style="color:var(--vibes-near-black)">Apps</div>
             </button>
           </div>`;
-      } else {
-        headerRight.innerHTML = '';
       }
+      headerRight.innerHTML = generateButtons;
     } else if (phase === 'edit') {
-      headerRight.innerHTML = `
+      headerRight.innerHTML = settingsButtonHtml + `
         <div class="navbar-button-wrapper">
           <button style="background:#5398c9" onclick="openThemeModal()">
             <div class="navbar-button-icon">
@@ -3527,12 +3559,41 @@
   }
 
   function prefillFromStatus(status) {
+    const stepsDone = { 2: false, 3: false, 4: false };
+
     if (status.oidc?.ok) {
-      // Pre-fill is tricky since we only have status — just mark step as done
+      stepsDone[2] = true;
+      wizardData.oidcAuthority = status.oidc.detail || '';
+      // Mark OIDC inputs as pre-filled
+      const authorityInput = document.getElementById('wizardOidcAuthority');
+      if (authorityInput && wizardData.oidcAuthority) {
+        authorityInput.value = wizardData.oidcAuthority;
+        authorityInput.classList.add('valid');
+      }
     }
-    if (status.connect?.ok && status.connect?.detail) {
-      // Could pre-fill but user already has credentials
+
+    if (status.connect?.ok) {
+      stepsDone[3] = true;
+      wizardData.apiUrl = status.connect.detail || '';
     }
+
+    if (status.openrouter?.ok) {
+      stepsDone[4] = true;
+      if (status.maskedKeys?.openRouterKey) {
+        const orInput = document.getElementById('wizardOpenRouterKey');
+        if (orInput) orInput.placeholder = status.maskedKeys.openRouterKey;
+      }
+    }
+
+    // Smart-skip to first incomplete step, or summary if all done
+    if (stepsDone[2] && stepsDone[3] && stepsDone[4]) {
+      setWizardStep(5);
+    } else if (stepsDone[2] && stepsDone[3]) {
+      setWizardStep(4);
+    } else if (stepsDone[2]) {
+      setWizardStep(3);
+    }
+    // Otherwise stay on step 1 (welcome)
   }
 
   // === Phase 2: Generate ===

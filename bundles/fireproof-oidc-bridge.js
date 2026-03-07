@@ -349,7 +349,7 @@ export function OIDCProvider(props) {
     if (!authState.accessToken || !config.apiUrl) return null;
     var apiUrl = config.apiUrl.replace(/\/$/, "");
     // Use the ID token for dashApi calls — it contains user identity claims
-    // (email, name, etc.) needed by the dashboard's ClerkClaimSchema mapping.
+    // (email, name, etc.) needed by the dashboard's claim mapping.
     // Fall back to access token if no ID token is available.
     var idToken = sessionStorage.getItem(STORAGE_KEY_ID);
     var token = idToken || authState.accessToken;
@@ -543,8 +543,8 @@ var BASE_RETRY_DELAY_MS = 2000;
 var MAX_RETRY_DELAY_MS = 30000;
 
 // ─── OIDCTokenStrategy ─────────────────────────────────────────────────
-// Implements Fireproof's TokenStrategie interface using OIDC-authenticated
-// dashboard API calls instead of Clerk.
+// Implements Fireproof's TokenStrategy interface using OIDC-authenticated
+// dashboard API calls.
 
 function _decodeJwtPayload(jwt) {
   try {
