@@ -472,10 +472,61 @@
       border-top: 1px dashed #555;
       margin: 0.5rem 0 1rem;
     }
+    /* Account panel — slides in from right, overlays content */
+    .account-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); z-index: 900;
+    }
+    .account-overlay.active { display: block; }
+    .account-panel {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 380px; max-width: 90vw;
+      background: #1a1a1a; box-shadow: -4px 0 24px rgba(0,0,0,0.5); z-index: 901;
+      overflow-y: auto; padding: 2rem;
+      transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+    }
+    .account-overlay.active .account-panel { transform: translateX(0); }
+    .account-header {
+      display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+      padding-bottom: 1.5rem; border-bottom: 1px dashed #555;
+    }
+    .account-avatar {
+      width: 48px; height: 48px; border-radius: 50%; background: #333;
+      border: 2px solid #555; object-fit: cover; flex-shrink: 0;
+    }
+    .account-name { font-weight: 700; font-size: 1rem; color: #f0f0f0; }
+    .account-email { font-size: 0.8125rem; color: #999; margin-top: 0.125rem; }
+    .account-signout {
+      font-size: 0.75rem; color: var(--vibes-variant-red, #DA291C); cursor: pointer;
+      margin-top: 0.25rem; background: none; border: none; padding: 0; text-align: left;
+    }
+    .account-signout:hover { text-decoration: underline; }
+    .deploy-card {
+      background: #2a2a2a; border: 2px solid #444; border-radius: 10px;
+      padding: 0.75rem 1rem; margin-bottom: 0.75rem;
+      transition: box-shadow 0.15s, transform 0.15s;
+    }
+    .deploy-card:hover {
+      box-shadow: 4px 4px 0 0 rgba(255,255,255,0.15); transform: translate(-2px,-2px);
+    }
+    .deploy-card-name { font-weight: 700; font-size: 0.875rem; color: #f0f0f0; }
+    .deploy-card-url {
+      font-size: 0.75rem; color: var(--vibes-variant-blue, #009ACE);
+      text-decoration: none; display: block; margin-top: 0.25rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .deploy-card-url:hover { text-decoration: underline; }
+    .deploy-card-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    .deploy-card-btn {
+      font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.05em; padding: 0.25rem 0.75rem; border-radius: 4px;
+      border: 1px solid #555; background: transparent; color: #ccc; cursor: pointer;
+    }
+    .deploy-card-btn:hover { background: #333; color: #fff; }
     @media (max-width: 768px) {
       .generate-phase { flex-direction: column; }
       .generate-left { flex: none; width: 100%; }
       .generate-right { border-top: 2px solid #333; }
+      .account-panel { width: 100%; }
     }
     .generate-card {
       width: 600px;
@@ -2219,6 +2270,22 @@
     </div>
   </div>
 
+  <!-- Account Panel (overlay) -->
+  <div class="account-overlay" id="accountOverlay" onclick="if(event.target===this)closeAccountPanel()">
+    <div class="account-panel" id="accountPanel">
+      <div class="account-header">
+        <img class="account-avatar" id="accountAvatar" src="" alt="">
+        <div>
+          <div class="account-name" id="accountName"></div>
+          <div class="account-email" id="accountEmail"></div>
+          <button class="account-signout" onclick="signOut()">Sign out</button>
+        </div>
+      </div>
+      <div class="gallery-title">Deployed Apps</div>
+      <div id="accountDeployments"><div style="color:#888;font-size:0.875rem;">Loading...</div></div>
+    </div>
+  </div>
+
   <!-- Loading Screen -->
   <div class="phase loading-phase active" id="phaseLoading">
     <svg class="loading-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 118 600 185" fill="currentColor" style="width:200px;">
@@ -2704,6 +2771,70 @@
   let versionIndex = -1;
   let isVersionNav = false; // true when navigating via undo/redo (skip pushing to history)
 
+  // === Account state ===
+  let currentUser = null; // { name, email, picture }
+
+  function openAccountPanel() {
+    const overlay = document.getElementById('accountOverlay');
+    if (!currentUser) return;
+    document.getElementById('accountName').textContent = currentUser.name || 'User';
+    document.getElementById('accountEmail').textContent = currentUser.email || '';
+    const avatar = document.getElementById('accountAvatar');
+    if (currentUser.picture) {
+      avatar.src = currentUser.picture;
+      avatar.style.display = '';
+    } else {
+      avatar.style.display = 'none';
+    }
+    overlay.classList.add('active');
+    // Fetch deployments
+    fetch('/editor/deployments').then(r => r.json()).then(deps => {
+      const container = document.getElementById('accountDeployments');
+      if (!deps.length) {
+        container.innerHTML = '<div style="color:#888;font-size:0.875rem;">No deployed apps yet.</div>';
+        return;
+      }
+      container.innerHTML = deps.map(d => `
+        <div class="deploy-card">
+          <div class="deploy-card-name">${d.name}</div>
+          <a class="deploy-card-url" href="${d.url}" target="_blank" rel="noopener">${d.url}</a>
+          <div class="deploy-card-actions">
+            <button class="deploy-card-btn" onclick="window.open('${d.url}','_blank')">Open</button>
+            <button class="deploy-card-btn" onclick="loadAndRedeploy('${d.name}')">Redeploy</button>
+          </div>
+        </div>
+      `).join('');
+    }).catch(() => {
+      document.getElementById('accountDeployments').innerHTML =
+        '<div style="color:#888;font-size:0.875rem;">Could not load deployments.</div>';
+    });
+  }
+
+  function closeAccountPanel() {
+    document.getElementById('accountOverlay').classList.remove('active');
+  }
+
+  async function signOut() {
+    closeAccountPanel();
+    await fetch('/editor/auth/logout', { method: 'POST' });
+    location.reload();
+  }
+
+  function loadAndRedeploy(name) {
+    closeAccountPanel();
+    // Load the app, then trigger deploy
+    fetch('/editor/apps/load', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          currentAppName = name;
+          if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: 'save_app', name }));
+          }
+        }
+      }).catch(() => {});
+  }
+
   // === Apps Panel Toggle ===
   let appsPanelVisible = false;
   function toggleAppsPanel() {
@@ -2746,13 +2877,17 @@
         </div>`;
 
   async function openSettings() {
-    setPhase('setup');
-    const btn = document.getElementById('welcomeBtn');
-    btn.textContent = 'Sign in with Pocket ID';
-    document.getElementById('welcomeDefault').style.display = 'flex';
-    document.getElementById('welcomeWaiting').style.display = 'none';
-    document.getElementById('welcomeGreeting').style.display = 'none';
-    document.getElementById('welcomeError').style.display = 'none';
+    if (currentUser) {
+      openAccountPanel();
+    } else {
+      setPhase('setup');
+      const btn = document.getElementById('welcomeBtn');
+      btn.textContent = 'Sign in with Pocket ID';
+      document.getElementById('welcomeDefault').style.display = 'flex';
+      document.getElementById('welcomeWaiting').style.display = 'none';
+      document.getElementById('welcomeGreeting').style.display = 'none';
+      document.getElementById('welcomeError').style.display = 'none';
+    }
   }
 
   function setPhase(phase) {
@@ -2939,7 +3074,7 @@
         if (select && msg.themeId) select.value = msg.themeId;
         console.log('[Theme] Selected:', msg.themeId, name);
       } else if (msg.type === 'auth_complete') {
-        handleAuthComplete(msg.user?.name);
+        handleAuthComplete(msg.user);
         return;
       } else if (msg.type === 'auth_required') {
         setPhase('setup');
@@ -3015,12 +3150,13 @@
     document.getElementById('welcomeError').style.display = 'flex';
   }
 
-  function handleAuthComplete(userName) {
+  function handleAuthComplete(user) {
+    currentUser = user || { name: 'friend' };
     // Show greeting
     document.getElementById('welcomeWaiting').style.display = 'none';
     document.getElementById('welcomeDefault').style.display = 'none';
     document.getElementById('welcomeError').style.display = 'none';
-    document.getElementById('welcomeUserName').textContent = userName || 'friend';
+    document.getElementById('welcomeUserName').textContent = currentUser.name || 'friend';
     document.getElementById('welcomeGreeting').style.display = 'flex';
 
     // Transition to prompt after 1.5s
@@ -4898,6 +5034,7 @@
   // Check auth → decide welcome vs generate/edit
   fetch('/editor/status').then(r => r.json()).then(status => {
     if (status.auth?.state === 'valid') {
+      currentUser = status.auth.user;
       // Authenticated — always start at the prompt
       setPhase('generate');
       fetch('/editor/initial-prompt').then(r => r.json()).then(data => {

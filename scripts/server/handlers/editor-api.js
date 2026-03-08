@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { loadRegistry } from '../../lib/registry.js';
-import { readCachedTokens, isTokenExpired, getAccessToken, loginWithBrowser } from '../../lib/cli-auth.js';
+import { readCachedTokens, isTokenExpired, getAccessToken, loginWithBrowser, removeCachedTokens } from '../../lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../../lib/auth-constants.js';
 
 const MAX_BODY_SIZE = 1024 * 1024; // 1MB
@@ -45,14 +45,18 @@ export function parseJsonBody(req) {
 }
 
 /**
- * Parse the 'name' claim from a JWT id_token without verification.
- * Returns null if parsing fails or name is absent.
+ * Parse user info from a JWT id_token without verification.
+ * Returns { name, email, picture } or null.
  */
-function parseUserNameFromIdToken(idToken) {
+function parseUserFromIdToken(idToken) {
   if (!idToken) return null;
   try {
     const payload = JSON.parse(Buffer.from(idToken.split('.')[1], 'base64url').toString());
-    return payload.name || payload.preferred_username || null;
+    return {
+      name: payload.name || payload.preferred_username || null,
+      email: payload.email || null,
+      picture: payload.picture || null,
+    };
   } catch {
     return null;
   }
@@ -66,11 +70,11 @@ export async function checkAuthStatus() {
   const cached = readCachedTokens();
 
   if (!cached) {
-    return { auth: { state: 'none', userName: null } };
+    return { auth: { state: 'none', user: null } };
   }
 
   if (!isTokenExpired(cached.expiresAt)) {
-    return { auth: { state: 'valid', userName: parseUserNameFromIdToken(cached.idToken) } };
+    return { auth: { state: 'valid', user: parseUserFromIdToken(cached.idToken) } };
   }
 
   // Try silent refresh
@@ -81,13 +85,13 @@ export async function checkAuthStatus() {
       silent: true,
     });
     if (refreshed) {
-      return { auth: { state: 'valid', userName: parseUserNameFromIdToken(refreshed.idToken) } };
+      return { auth: { state: 'valid', user: parseUserFromIdToken(refreshed.idToken) } };
     }
   } catch {
     // refresh failed
   }
 
-  return { auth: { state: 'expired', userName: parseUserNameFromIdToken(cached.idToken) } };
+  return { auth: { state: 'expired', user: parseUserFromIdToken(cached.idToken) } };
 }
 
 /**
@@ -101,10 +105,10 @@ export async function handleAuthLogin(ctx, req, res) {
       clientId: OIDC_CLIENT_ID,
     });
 
-    const userName = parseUserNameFromIdToken(tokens.idToken);
+    const user = parseUserFromIdToken(tokens.idToken);
 
     // Broadcast to all connected WebSocket clients
-    const message = JSON.stringify({ type: 'auth_complete', user: { name: userName } });
+    const message = JSON.stringify({ type: 'auth_complete', user });
     for (const client of ctx.wss.clients) {
       if (client.readyState === 1) {
         try { client.send(message); } catch { /* client may have disconnected */ }
@@ -112,12 +116,18 @@ export async function handleAuthLogin(ctx, req, res) {
     }
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, userName }));
+    res.end(JSON.stringify({ ok: true, user }));
   } catch (err) {
     console.error('[Auth] Login failed:', err.message);
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: false, error: err.message }));
   }
+}
+
+export function handleAuthLogout(ctx, req, res) {
+  removeCachedTokens();
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ ok: true }));
 }
 
 // --- Route handlers ---

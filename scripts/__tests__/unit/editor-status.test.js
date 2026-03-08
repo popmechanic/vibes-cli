@@ -6,6 +6,7 @@ vi.mock('../../lib/cli-auth.js', () => ({
   isTokenExpired: vi.fn(),
   getAccessToken: vi.fn(),
   loginWithBrowser: vi.fn(),
+  removeCachedTokens: vi.fn(),
 }));
 
 // Mock auth-constants
@@ -26,10 +27,10 @@ describe('checkAuthStatus', () => {
     readCachedTokens.mockReturnValue(null);
     const result = await checkAuthStatus();
     expect(result.auth.state).toBe('none');
-    expect(result.auth.userName).toBe(null);
+    expect(result.auth.user).toBe(null);
   });
 
-  it('returns state "valid" with userName when token is not expired', async () => {
+  it('returns state "valid" with user info when token is not expired', async () => {
     readCachedTokens.mockReturnValue({
       accessToken: 'tok',
       idToken: 'eyJhbGciOiJSUzI1NiJ9.eyJuYW1lIjoiTWFyY3VzIn0.fake',
@@ -38,7 +39,7 @@ describe('checkAuthStatus', () => {
     isTokenExpired.mockReturnValue(false);
     const result = await checkAuthStatus();
     expect(result.auth.state).toBe('valid');
-    expect(result.auth.userName).toBe('Marcus');
+    expect(result.auth.user.name).toBe('Marcus');
   });
 
   it('returns state "valid" after successful silent refresh', async () => {

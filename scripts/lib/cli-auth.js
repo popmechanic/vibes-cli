@@ -7,7 +7,7 @@
 
 import { createServer } from 'http';
 import { URL } from 'url';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
 import { randomBytes, createHash } from 'crypto';
@@ -78,6 +78,12 @@ export function readCachedTokens(authFile = DEFAULT_AUTH_FILE) {
   } catch {
     return null;
   }
+}
+
+export function removeCachedTokens(authFile = DEFAULT_AUTH_FILE) {
+  try {
+    if (existsSync(authFile)) unlinkSync(authFile);
+  } catch { /* ignore */ }
 }
 
 export function writeCachedTokens(authFile = DEFAULT_AUTH_FILE, tokens) {

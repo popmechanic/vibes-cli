@@ -98,6 +98,7 @@ const routeTable = {
   'GET /app-frame':                       serveAppFrame,
   'GET /editor/status':                   editorApi.status,
   'POST /editor/auth/login':              editorApi.handleAuthLogin,
+  'POST /editor/auth/logout':             editorApi.handleAuthLogout,
   'GET /editor/initial-prompt':           editorApi.initialPrompt,
   'GET /editor/app-exists':               editorApi.appExists,
   'GET /editor/apps':                     editorApi.listApps,

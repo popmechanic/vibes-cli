@@ -5,6 +5,7 @@ vi.mock('../../lib/cli-auth.js', () => ({
   readCachedTokens: vi.fn(),
   isTokenExpired: vi.fn(),
   getAccessToken: vi.fn(),
+  removeCachedTokens: vi.fn(),
 }));
 
 vi.mock('../../lib/auth-constants.js', () => ({
