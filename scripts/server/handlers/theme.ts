@@ -4,9 +4,11 @@
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { runOneShot } from '../claude-bridge.js';
-import { sanitizeAppJsx } from '../post-process.js';
-import { parseThemeColors, extractPass2ThemeContext } from '../config.js';
+import { runOneShot } from '../claude-bridge.ts';
+import type { EventCallback } from '../claude-bridge.ts';
+import { sanitizeAppJsx } from '../post-process.ts';
+import { parseThemeColors, extractPass2ThemeContext } from '../config.ts';
+import type { ServerContext } from '../config.ts';
 import { hasThemeMarkers, replaceThemeSection, extractNonThemeSections, moveVisualCSSToSurfaces } from '../../lib/theme-sections.js';
 import { createBackup, restoreFromBackup } from '../../lib/backup.js';
 import { currentAppDir } from '../app-context.js';
@@ -57,7 +59,7 @@ function updateThemeMeta(code, themeId, themeName) {
 /**
  * Handle theme switch — dispatches to multi-pass or legacy based on markers.
  */
-export async function handleThemeSwitch(ctx, onEvent, themeId, model) {
+export async function handleThemeSwitch(ctx: ServerContext, onEvent: EventCallback, themeId: string, model: string | undefined) {
   const txtFile = join(ctx.themeDir, `${themeId}.txt`);
   const mdFile = join(ctx.themeDir, `${themeId}.md`);
   let themeContent = '';
@@ -272,7 +274,7 @@ KEEP UNCHANGED:
 /**
  * Apply a custom color palette to app.jsx by replacing :root block.
  */
-export async function handlePaletteTheme(ctx, onEvent, colors) {
+export async function handlePaletteTheme(ctx: ServerContext, onEvent: EventCallback, colors: Record<string, string>) {
   if (!colors || typeof colors !== 'object' || Object.keys(colors).length === 0) {
     onEvent({ type: 'error', message: 'Invalid palette colors' });
     return;

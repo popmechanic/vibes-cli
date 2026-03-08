@@ -12,10 +12,30 @@ import { parseThemeCatalog } from '../lib/parse-theme-catalog.js';
 import { parseAnimationCatalog } from '../lib/parse-animation-catalog.js';
 import { currentAppDir } from './app-context.js';
 
+// --- Types ---
+
+export interface ServerContext {
+  projectRoot: string;
+  port: number;
+  mode: string;
+  initialPrompt: string;
+  themes: any[];
+  animations: any[];
+  themeColors: Record<string, any>;
+  themeRootCss: Record<string, string>;
+  openRouterKey: string | null;
+  appsDir: string;
+  themeDir: string;
+  animationDir: string;
+  pluginSkills: any[];
+  currentApp: string | null;
+  backupTimestamps: Record<string, number>;
+}
+
 /**
  * Build the ctx object from CLI args, .env, and catalogs.
  */
-export function loadConfig() {
+export function loadConfig(): ServerContext {
   const __dirname = dirname(fileURLToPath(import.meta.url));
   const projectRoot = join(__dirname, '../..');
   const parsedPort = parseInt(

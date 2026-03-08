@@ -6,7 +6,36 @@
  * duplicated business logic drifting between the two files.
  */
 
-import { extractClerkDomain } from '../lib/env-utils.js';
+// --- Clerk helpers (inlined from deprecated env-utils Clerk functions) ---
+
+/**
+ * Validate a Clerk publishable key format.
+ */
+export function validateClerkKey(key: string): boolean {
+  return typeof key === 'string' && (key.startsWith('pk_test_') || key.startsWith('pk_live_'));
+}
+
+/**
+ * Validate a Clerk secret key format.
+ */
+export function validateClerkSecretKey(key: string): boolean {
+  return typeof key === 'string' && (key.startsWith('sk_test_') || key.startsWith('sk_live_'));
+}
+
+/**
+ * Extract the Clerk domain from a publishable key.
+ * The key encodes the domain as base64 after the prefix.
+ */
+function extractClerkDomain(key: string): string | null {
+  try {
+    const base64Part = key.replace(/^pk_(test|live)_/, '');
+    const decoded = atob(base64Part);
+    // Clerk encodes "domain$" — strip the trailing $
+    return decoded.replace(/\$$/, '') || null;
+  } catch {
+    return null;
+  }
+}
 
 // --- SSRF guard patterns ---
 // TODO: Add IPv6 loopback (::1) and link-local (fe80::) guards.

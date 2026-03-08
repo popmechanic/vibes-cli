@@ -10,9 +10,9 @@ import { join, extname, resolve } from 'path';
 import type { ServerContext } from './config.ts';
 import { getRecommendedThemeIds, loadOpenRouterKey } from './config.ts';
 import { assembleAppFrame } from './handlers/generate.ts';
-import { loadEnvFile, validateClerkKey, validateClerkSecretKey, writeEnvFile } from '../lib/env-utils.js';
+import { loadEnvFile, writeEnvFile } from '../lib/env-utils.js';
 import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp } from '../lib/registry.js';
-import { validateClerkCredentials, validateCloudflareCredentials } from './validation.ts';
+import { validateClerkKey, validateClerkSecretKey, validateClerkCredentials, validateCloudflareCredentials } from './validation.ts';
 
 // --- Body parsing helpers ---
 

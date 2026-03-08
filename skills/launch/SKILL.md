@@ -83,12 +83,12 @@ Present Editor as the first/recommended option.
   Launch the editor server:
   ```bash
   VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-  node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
+  bun "$VIBES_ROOT/scripts/server.ts" --mode=editor --prompt "USER_PROMPT_HERE"
   ```
   If no prompt was given, omit `--prompt`:
   ```bash
   VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-  node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor
+  bun "$VIBES_ROOT/scripts/server.ts" --mode=editor
   ```
   Tell the user: "Open http://localhost:3333 — the editor handles everything from here."
   **Your job is done. Stop. Do not read further. Do not proceed to any phase below.**
@@ -212,7 +212,7 @@ Scan app.jsx for builder mistakes (see LAUNCH-REFERENCE.md "Common Builder Mista
 - "Yes — open live preview" — Start the preview server and iterate on the design
 - "No — deploy now" — Skip preview, go straight to deploy
 
-If yes: run `node "$VIBES_ROOT/scripts/preview-server.js"` and tell the user to open `http://localhost:3333`. They can chat to iterate on the design and switch themes. When satisfied, stop the server and continue to 2.3.
+If yes: run `bun "$VIBES_ROOT/scripts/server.ts"` and tell the user to open `http://localhost:3333`. They can chat to iterate on the design and switch themes. When satisfied, stop the server and continue to 2.3.
 
 ### 2.3 Assemble & Deploy
 

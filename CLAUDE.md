@@ -86,15 +86,15 @@ After editing server code, handlers, or templates (e.g. `scripts/server/`, `skil
 
 ```bash
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(pwd)}"
-node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor
+bun "$VIBES_ROOT/scripts/server.ts" --mode=editor
 ```
 
 Run in background if you need to continue working:
 ```bash
-node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor &
+bun "$VIBES_ROOT/scripts/server.ts" --mode=editor &
 ```
 
-**Do NOT use `pkill -f preview-server.js`** — the server handles takeover automatically via `killProcessOnPort()`. Re-running the command is the only correct restart method.
+**Do NOT use `pkill -f server.ts`** — the server handles takeover automatically via `killProcessOnPort()`. Re-running the command is the only correct restart method.
 
 The `--mode=editor` flag is required for the editor UI. Omit it for preview-only mode. Optional flags: `--port 3333` (default), `--prompt "..."`.
 

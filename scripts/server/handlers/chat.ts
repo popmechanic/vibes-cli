@@ -4,9 +4,11 @@
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { runOneShot } from '../claude-bridge.js';
-import { sanitizeAppJsx } from '../post-process.js';
-import { getAnimationInstructions } from '../config.js';
+import { runOneShot } from '../claude-bridge.ts';
+import type { EventCallback } from '../claude-bridge.ts';
+import { sanitizeAppJsx } from '../post-process.ts';
+import { getAnimationInstructions } from '../config.ts';
+import type { ServerContext } from '../config.ts';
 import { currentAppDir } from '../app-context.js';
 
 const EFFECT_INSTRUCTIONS = {
@@ -17,7 +19,7 @@ const EFFECT_INSTRUCTIONS = {
   'shader': `MANDATORY: Add a WebGL fragment shader background. Create a fullscreen quad with vertex shader, pass u_time/u_resolution/u_mouse uniforms. Use effects like: aurora (sine wave color mixing), plasma (layered sine interference), noise gradient mesh (hash-based noise with mouse reactivity), or animated color fields. Use precision mediump float. Graceful fallback if WebGL unavailable.`,
 };
 
-export async function handleChat(ctx, onEvent, message, effects = [], animationId = null, model, reference = null, skillId = null) {
+export async function handleChat(ctx: ServerContext, onEvent: EventCallback, message: string, effects: string[] = [], animationId: string | null = null, model: string | undefined, reference: any = null, skillId: string | null = null) {
   let effectBlock = '';
   let referenceBlock = '';
   let skillBlock = '';

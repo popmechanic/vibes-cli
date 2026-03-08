@@ -359,17 +359,18 @@ name: vibes-skill
   });
 });
 
-// --- serveSkills route handler ---
+// --- serveSkills route handler (via createRouter) ---
 
 describe('serveSkills route (via /skills endpoint)', () => {
   it('strips skillMdPath from response', async () => {
-    // Dynamically import routes to get serveSkills behavior
-    // We test it indirectly via handleRequest
-    const { handleRequest } = await import('../../server/routes.js');
+    const { createRouter } = await import('../../server/router.ts');
 
     const ctx = {
       port: 3333,
       projectRoot: '/tmp/fake',
+      mode: 'preview',
+      appsDir: '/tmp/fake/apps',
+      currentApp: null,
       pluginSkills: [{
         id: 'test/skill',
         name: 'Test Skill',
@@ -380,21 +381,13 @@ describe('serveSkills route (via /skills endpoint)', () => {
       }],
     };
 
-    let responseBody = '';
-    let responseCode = 0;
-    let responseHeaders = {};
+    const router = createRouter(ctx);
+    const req = new Request('http://localhost:3333/skills');
+    const url = new URL(req.url);
+    const res = await router(req, url);
 
-    const req = { method: 'GET', url: '/skills' };
-    const res = {
-      setHeader: (k, v) => { responseHeaders[k] = v; },
-      writeHead: (code, headers) => { responseCode = code; Object.assign(responseHeaders, headers || {}); },
-      end: (body) => { responseBody = body; },
-    };
-
-    await handleRequest(ctx, req, res);
-
-    expect(responseCode).toBe(200);
-    const parsed = JSON.parse(responseBody);
+    expect(res.status).toBe(200);
+    const parsed = await res.json();
     expect(parsed).toHaveLength(1);
     expect(parsed[0].id).toBe('test/skill');
     expect(parsed[0].name).toBe('Test Skill');
@@ -402,34 +395,24 @@ describe('serveSkills route (via /skills endpoint)', () => {
   });
 
   it('returns empty array when no skills', async () => {
-    const { handleRequest } = await import('../../server/routes.js');
+    const { createRouter } = await import('../../server/router.ts');
 
-    const ctx = { port: 3333, projectRoot: '/tmp/fake', pluginSkills: [] };
-    let responseBody = '';
-    const req = { method: 'GET', url: '/skills' };
-    const res = {
-      setHeader: () => {},
-      writeHead: () => {},
-      end: (body) => { responseBody = body; },
-    };
-
-    await handleRequest(ctx, req, res);
-    expect(JSON.parse(responseBody)).toEqual([]);
+    const ctx = { port: 3333, projectRoot: '/tmp/fake', mode: 'preview', appsDir: '/tmp/fake/apps', currentApp: null, pluginSkills: [] };
+    const router = createRouter(ctx);
+    const req = new Request('http://localhost:3333/skills');
+    const url = new URL(req.url);
+    const res = await router(req, url);
+    expect(await res.json()).toEqual([]);
   });
 
   it('handles missing pluginSkills gracefully', async () => {
-    const { handleRequest } = await import('../../server/routes.js');
+    const { createRouter } = await import('../../server/router.ts');
 
-    const ctx = { port: 3333, projectRoot: '/tmp/fake' };
-    let responseBody = '';
-    const req = { method: 'GET', url: '/skills' };
-    const res = {
-      setHeader: () => {},
-      writeHead: () => {},
-      end: (body) => { responseBody = body; },
-    };
-
-    await handleRequest(ctx, req, res);
-    expect(JSON.parse(responseBody)).toEqual([]);
+    const ctx = { port: 3333, projectRoot: '/tmp/fake', mode: 'preview', appsDir: '/tmp/fake/apps', currentApp: null };
+    const router = createRouter(ctx);
+    const req = new Request('http://localhost:3333/skills');
+    const url = new URL(req.url);
+    const res = await router(req, url);
+    expect(await res.json()).toEqual([]);
   });
 });

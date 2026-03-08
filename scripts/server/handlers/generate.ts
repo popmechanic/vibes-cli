@@ -4,9 +4,11 @@
 
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { runOneShot } from '../claude-bridge.js';
-import { sanitizeAppJsx } from '../post-process.js';
-import { autoSelectTheme, parseThemeColors, extractPass2ThemeContext } from '../config.js';
+import { runOneShot } from '../claude-bridge.ts';
+import type { EventCallback } from '../claude-bridge.ts';
+import { sanitizeAppJsx } from '../post-process.ts';
+import { autoSelectTheme, parseThemeColors, extractPass2ThemeContext } from '../config.ts';
+import type { ServerContext } from '../config.ts';
 import { stripForTemplate } from '../../lib/strip-code.js';
 import { APP_PLACEHOLDER } from '../../lib/assembly-utils.js';
 import { loadEnvFile, populateConnectConfig } from '../../lib/env-utils.js';
@@ -16,7 +18,7 @@ import { currentAppDir, slugifyPrompt, resolveAppName } from '../app-context.js'
 /**
  * Generate a new app from a user prompt.
  */
-export async function handleGenerate(ctx, onEvent, userPrompt, themeId, model, reference = null) {
+export async function handleGenerate(ctx: ServerContext, onEvent: EventCallback, userPrompt: string, themeId: string | undefined, model: string | undefined, reference: any = null) {
   if (!userPrompt) {
     onEvent({ type: 'error', message: 'Please describe what you want to build.' });
     return;

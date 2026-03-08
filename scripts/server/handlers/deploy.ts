@@ -6,20 +6,23 @@
  * into the assembled HTML before sending to the Deploy API.
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
 import { join } from 'path';
-import { spawn } from 'child_process';
 import { getAccessToken } from '../../lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../../lib/auth-constants.js';
 import { isFirstDeploy, getApp, setApp } from '../../lib/registry.js';
 import { deployConnect } from '../../lib/alchemy-deploy.js';
+import { runBunScript } from '../claude-bridge.ts';
+import type { EventCallback } from '../claude-bridge.ts';
+import type { ServerContext } from '../config.ts';
+import { currentAppDir } from '../app-context.js';
 
 const DEPLOY_API_URL = 'https://vibes-deploy-api.marcus-e.workers.dev';
 
 /**
  * Assemble and deploy an app via the Deploy API.
  */
-export async function handleDeploy(ctx, onEvent, target, name, token) {
+export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, target: string, name: string, token?: string) {
   if (!target || target !== 'cloudflare') {
     onEvent({ type: 'error', message: 'Invalid deploy target. Use "cloudflare".' });
     return;
