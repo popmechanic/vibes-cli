@@ -210,8 +210,9 @@ export async function loginWithBrowser({ authority, clientId, authFile = DEFAULT
       }
     });
 
-    // Listen on a random available port
-    server.listen(0, '127.0.0.1', () => {
+    // Listen on a fixed port so the redirect URI matches what's registered in Pocket ID
+    const CLI_AUTH_PORT = 18192;
+    server.listen(CLI_AUTH_PORT, '127.0.0.1', () => {
       const port = server.address().port;
       const redirectUri = `http://localhost:${port}/callback`;
 
