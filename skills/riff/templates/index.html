@@ -924,10 +924,9 @@
           "multiformats/": "https://esm.sh/stable/multiformats@13.3.1/",
           "@ipld/dag-cbor": "https://esm.sh/stable/@ipld/dag-cbor@9.2.2?external=multiformats",
           "@ipld/dag-json": "https://esm.sh/stable/@ipld/dag-json@10.2.3?external=multiformats",
-          "@clerk/clerk-react": "https://esm.sh/stable/@clerk/clerk-react@5.59.2?external=react,react-dom",
-          "use-fireproof": "/fireproof-vibes-bridge.js",
-          "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom",
-          "use-fireproof-core": "https://esm.sh/stable/use-fireproof@0.24.12?external=react,react-dom"
+          "oauth4webapi": "https://esm.sh/stable/oauth4webapi@3.3.0",
+          "@fireproof/core": "https://esm.sh/stable/use-fireproof@0.24.12?external=react,react-dom",
+          "use-fireproof": "/fireproof-oidc-bridge.js"
         }
       }
     </script>
@@ -936,7 +935,8 @@
       window.__VIBES_CONFIG__ = {
         tokenApiUri: "__VITE_API_URL__",
         cloudBackendUrl: "__VITE_CLOUD_URL__",
-        clerkPublishableKey: "__VITE_CLERK_PUBLISHABLE_KEY__"
+        oidcAuthority: "__VITE_OIDC_AUTHORITY__",
+        oidcClientId: "__VITE_OIDC_CLIENT_ID__"
       };
       // Default: single theme hides the Design button in VibesPanel.
       // Apps with multiple themes override this before menu loads.
@@ -950,7 +950,7 @@
       // Auto-generated vibes menu components
 // Run: node scripts/build-components.js --force to regenerate
 // Source: components/
-// Generated: 2026-02-18T20:07:54.489Z
+// Generated: 2026-03-08T06:25:41.688Z
 // Components: 26/26
 
 // === useMobile ===
@@ -1605,7 +1605,8 @@ const getContainerStyle = () => ({
   width: "100%",
   gap: "2rem",
   padding: "3rem 0rem",
-  position: "relative"
+  position: "relative",
+  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
 });
 const getBackgroundStyle = (isShredding, isError) => ({
   position: "absolute",
@@ -1729,10 +1730,10 @@ const getAnimationStyles = () => `
 
 // === AuthScreen ===
 const CARD_URLS = [
-  "/assets/auth-cards/card-1.png",
-  "/assets/auth-cards/card-2.png",
-  "/assets/auth-cards/card-3.png",
-  "/assets/auth-cards/card-4.png"
+  "/assets/auth-cards/card-1.svg",
+  "/assets/auth-cards/card-2.svg",
+  "/assets/auth-cards/card-3.svg",
+  "/assets/auth-cards/card-4.svg"
 ];
 const AuthScreen = ({
   children,
@@ -1763,7 +1764,46 @@ const AuthScreen = ({
       onLoad: () => setCardLoaded(true),
       onError: () => setCardError(true)
     }
-  )), /* @__PURE__ */ React.createElement("div", { style: getAuthContentStyle() }, title && /* @__PURE__ */ React.createElement("h1", { style: getTitleStyle(isError) }, title), message && /* @__PURE__ */ React.createElement("p", { style: getMessageStyle(isError) }, message), errorDetails && /* @__PURE__ */ React.createElement("details", { style: { width: "100%" } }, /* @__PURE__ */ React.createElement("summary", { style: { cursor: "pointer", fontSize: "0.875rem", color: "#7f1d1d" } }, "Technical details"), /* @__PURE__ */ React.createElement("pre", { style: getErrorDetailsStyle() }, errorDetails))), /* @__PURE__ */ React.createElement("div", { style: getButtonsContainerStyle() }, children)))));
+  )), /* @__PURE__ */ React.createElement("div", { style: getAuthContentStyle() }, title && /* @__PURE__ */ React.createElement("h1", { style: getTitleStyle(isError) }, title), message && /* @__PURE__ */ React.createElement("p", { style: getMessageStyle(isError) }, message), errorDetails && /* @__PURE__ */ React.createElement("details", { style: { width: "100%" } }, /* @__PURE__ */ React.createElement("summary", { style: { cursor: "pointer", fontSize: "0.875rem", color: "#7f1d1d" } }, "Technical details"), /* @__PURE__ */ React.createElement("pre", { style: getErrorDetailsStyle() }, errorDetails))), /* @__PURE__ */ React.createElement("div", { style: getButtonsContainerStyle() }, children, /* @__PURE__ */ React.createElement(
+    "a",
+    {
+      href: `${window.__VIBES_CONFIG__?.oidcAuthority || ""}/signup`,
+      target: "_blank",
+      rel: "noopener noreferrer",
+      style: {
+        display: "block",
+        width: "100%",
+        padding: "3px",
+        backgroundColor: "transparent",
+        border: "1px solid var(--vibes-button-border, #1a1a1a)",
+        color: "#1a1a1a",
+        fontSize: "24px",
+        fontWeight: "bold",
+        letterSpacing: "2px",
+        cursor: "pointer",
+        transition: "0.2s",
+        borderRadius: "20px",
+        textDecoration: "none",
+        textAlign: "center",
+        boxSizing: "border-box"
+      },
+      onClick: () => {
+        sessionStorage.setItem("vibes-signup-pending", "1");
+      },
+      onMouseEnter: (e) => {
+        e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.05)";
+      },
+      onMouseLeave: (e) => {
+        e.currentTarget.style.backgroundColor = "transparent";
+      }
+    },
+    "Create Account"
+  ), /* @__PURE__ */ React.createElement("p", { style: {
+    fontSize: "0.75rem",
+    color: "#666",
+    margin: "0.25rem 0 0",
+    textAlign: "center"
+  } }, "You'll be signed in automatically when you return"))))));
 };
 
 
@@ -2512,6 +2552,45 @@ function VibesButton({
 
 
 // === VibesPanel.styles ===
+if (typeof document !== "undefined") {
+  const styleId = "vibes-panel-transition-keyframes";
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = `
+      @keyframes vibes-stagger-in {
+        from {
+          opacity: 0;
+          transform: translateY(8px) scale(0.97);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .vibes-panel-stagger > * {
+        animation: vibes-stagger-in 250ms cubic-bezier(0.23, 1, 0.32, 1) both;
+        will-change: opacity, transform;
+      }
+
+      .vibes-panel-stagger > *:nth-child(1) { animation-delay: 0ms; }
+      .vibes-panel-stagger > *:nth-child(2) { animation-delay: 60ms; }
+      .vibes-panel-stagger > *:nth-child(3) { animation-delay: 120ms; }
+      .vibes-panel-stagger > *:nth-child(4) { animation-delay: 180ms; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .vibes-panel-stagger > * {
+          animation: none !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
+function getPanelEnterStyle() {
+  return {};
+}
 function getOuterContainerStyle(customStyle) {
   return {
     padding: "12px",
@@ -2775,81 +2854,89 @@ function VibesPanel({
       label: "Launcher",
       disappear: true
     },
-    /* @__PURE__ */ React.createElement("div", { style: getButtonContainerStyle(isMobile) }, mode === "invite" ? /* @__PURE__ */ React.createElement("div", { style: getInviteRowStyle(isMobile) }, /* @__PURE__ */ React.createElement(
-      VibesButton,
+    /* @__PURE__ */ React.createElement(
+      "div",
       {
-        variant: YELLOW,
-        onClick: () => {
-        },
-        icon: "invite"
+        key: mode,
+        className: mode === "default" ? "vibes-panel-stagger" : void 0,
+        style: getButtonContainerStyle(isMobile)
       },
-      "Invite"
-    ), inviteStatus === "idle" ? /* @__PURE__ */ React.createElement(
-      "form",
-      {
-        onSubmit: handleInviteSubmit,
-        style: getInviteFormStyle(isMobile)
-      },
-      /* @__PURE__ */ React.createElement("label", { htmlFor: emailId, style: getInviteLabelStyle() }, "Invite by email"),
-      /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          id: emailId,
-          type: "email",
-          placeholder: "friend@example.com",
-          value: email,
-          onChange: (e) => setEmail(e.target.value),
-          style: getInviteInputStyle(),
-          autoComplete: "email",
-          required: true
-        }
-      ),
-      /* @__PURE__ */ React.createElement(
+      mode === "invite" ? /* @__PURE__ */ React.createElement("div", { className: "vibes-panel-stagger", style: getInviteRowStyle(isMobile) }, /* @__PURE__ */ React.createElement(
         VibesButton,
         {
           variant: YELLOW,
-          type: "submit",
-          disabled: !email.trim()
+          onClick: () => {
+          },
+          icon: "invite"
         },
-        "Submit"
-      )
-    ) : /* @__PURE__ */ React.createElement(
-      BrutalistCard,
-      {
-        id: "invite-status",
-        role: "status",
-        "aria-live": "polite",
-        size: "sm",
-        variant: inviteStatus === "sending" ? "default" : inviteStatus === "error" ? "error" : "success",
-        style: getInviteStatusStyle()
-      },
-      inviteStatus === "sending" ? "Inviting..." : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", null, inviteMessage), inviteLink && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "0.5rem" } }, /* @__PURE__ */ React.createElement("button", { onClick: handleCopyLink, style: {
-        background: "none",
-        border: "2px solid currentColor",
-        borderRadius: "6px",
-        padding: "0.25rem 0.75rem",
-        cursor: "pointer",
-        color: "inherit",
-        fontWeight: 600,
-        fontSize: "0.85em"
-      } }, linkCopied ? "Copied!" : "Copy Invite Link")))
-    ), /* @__PURE__ */ React.createElement(VibesButton, { variant: GRAY, onClick: handleBackClick, icon: "back" }, "Back")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
-      VibesButton,
-      {
-        variant: BLUE,
-        onClick: handleLogoutClick,
-        icon: "login"
-      },
-      "Logout"
-    ), /* @__PURE__ */ React.createElement(
-      VibesButton,
-      {
-        variant: YELLOW,
-        onClick: handleInviteClick,
-        icon: "invite"
-      },
-      "Invite"
-    )))
+        "Invite"
+      ), inviteStatus === "idle" ? /* @__PURE__ */ React.createElement(
+        "form",
+        {
+          onSubmit: handleInviteSubmit,
+          style: getInviteFormStyle(isMobile)
+        },
+        /* @__PURE__ */ React.createElement("label", { htmlFor: emailId, style: getInviteLabelStyle() }, "Invite by email"),
+        /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            id: emailId,
+            type: "email",
+            placeholder: "friend@example.com",
+            value: email,
+            onChange: (e) => setEmail(e.target.value),
+            style: getInviteInputStyle(),
+            autoComplete: "email",
+            required: true
+          }
+        ),
+        /* @__PURE__ */ React.createElement(
+          VibesButton,
+          {
+            variant: YELLOW,
+            type: "submit",
+            disabled: !email.trim()
+          },
+          "Submit"
+        )
+      ) : /* @__PURE__ */ React.createElement(
+        BrutalistCard,
+        {
+          id: "invite-status",
+          role: "status",
+          "aria-live": "polite",
+          size: "sm",
+          variant: inviteStatus === "sending" ? "default" : inviteStatus === "error" ? "error" : "success",
+          style: getInviteStatusStyle()
+        },
+        inviteStatus === "sending" ? "Inviting..." : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", null, inviteMessage), inviteLink && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "0.5rem" } }, /* @__PURE__ */ React.createElement("button", { onClick: handleCopyLink, style: {
+          background: "none",
+          border: "2px solid currentColor",
+          borderRadius: "6px",
+          padding: "0.25rem 0.75rem",
+          cursor: "pointer",
+          color: "inherit",
+          fontWeight: 600,
+          fontSize: "0.85em"
+        } }, linkCopied ? "Copied!" : "Copy Invite Link")))
+      ), /* @__PURE__ */ React.createElement(VibesButton, { variant: GRAY, onClick: handleBackClick, icon: "back" }, "Back")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+        VibesButton,
+        {
+          variant: BLUE,
+          onClick: handleLogoutClick,
+          icon: "login"
+        },
+        "Logout"
+      ), /* @__PURE__ */ React.createElement(
+        VibesButton,
+        {
+          variant: YELLOW,
+          onClick: handleInviteClick,
+          icon: "invite"
+        },
+        "Invite"
+      ))
+    )
   ));
 }
 
@@ -2901,13 +2988,11 @@ if (typeof window !== 'undefined') {
           setError(null);
 
           try {
-            // Get auth token if Clerk is available (sell apps)
+            // Get auth token if OIDC session is available
             let authHeader = {};
-            if (typeof window !== 'undefined' && window.Clerk?.session) {
-              const token = await window.Clerk.session.getToken();
-              if (token) {
-                authHeader = { 'Authorization': 'Bearer ' + token };
-              }
+            const oidcToken = window.__VIBES_OIDC_TOKEN__;
+            if (oidcToken) {
+              authHeader = { 'Authorization': 'Bearer ' + oidcToken };
             }
 
             const response = await fetch('/api/ai/chat', {
@@ -2961,10 +3046,10 @@ if (typeof window !== 'undefined') {
             message: message,
             showCard: false,
             isError: true,
-            errorDetails: 'Run Connect setup to configure Clerk credentials.'
+            errorDetails: 'Run Connect setup to configure OIDC credentials.'
           },
             React.createElement('p', { style: { color: 'var(--comp-accent-red, #7f1d1d)', fontSize: '0.875rem' } },
-              'Check your .env file for missing credentials.'
+              'Check your .env file for missing OIDC credentials.'
             )
           );
         }
@@ -2974,7 +3059,7 @@ if (typeof window !== 'undefined') {
             React.createElement('div', { className: 'text-red-500 text-4xl mb-4' }, '⚠️'),
             React.createElement('h1', { className: 'text-xl font-bold text-red-700 mb-4' }, 'Configuration Error'),
             React.createElement('p', { className: 'text-gray-600 mb-4' }, message),
-            React.createElement('p', { className: 'text-sm text-gray-500' }, 'Run Connect setup to configure Clerk credentials.')
+            React.createElement('p', { className: 'text-sm text-gray-500' }, 'Run Connect setup to configure OIDC credentials.')
           )
         );
       }
@@ -3147,10 +3232,10 @@ if (typeof window !== 'undefined') {
       window.SyncStatusDot = SyncStatusDot;
 
       // === SharingBridge ===
-      // Must be rendered inside ClerkFireproofProvider > SignedIn.
+      // Must be rendered inside OIDCProvider > SignedIn.
       // Bridges vibes-share-request DOM events to the dashApi.
       function SharingBridge() {
-        var ctx = window.useClerkFireproofContext();
+        var ctx = window.useOIDCContext ? window.useOIDCContext() : {};
         var dashApi = ctx.dashApi;
         var dashApiRef = React.useRef(null);
         var ledgerCacheRef = React.useRef(null);
@@ -3254,7 +3339,7 @@ if (typeof window !== 'undefined') {
                 try {
                   var kvRegistryUrl = window.__VIBES_REGISTRY_URL__;
                   if (kvRegistryUrl && !kvRegistryUrl.startsWith('__')) {
-                    var token = await window.Clerk?.session?.getToken();
+                    var token = window.__VIBES_OIDC_TOKEN__;
                     if (token) {
                       var hostname = window.location.hostname;
                       var parts = hostname.split('.');
@@ -3271,7 +3356,7 @@ if (typeof window !== 'undefined') {
                         console.log('[vibes-sharing] KV invite written successfully for', email, 'on', kvSubdomain);
                       }
                     } else {
-                      console.warn('[vibes-sharing] KV invite skipped: no Clerk session token available');
+                      console.warn('[vibes-sharing] KV invite skipped: no OIDC token available');
                     }
                   }
                 } catch (kvErr) {
@@ -3307,7 +3392,7 @@ if (typeof window !== 'undefined') {
       function useVibesPanelEvents(logPrefix) {
         React.useEffect(() => {
           const handleLogout = () => {
-            if (window.Clerk) window.Clerk.signOut();
+            if (window.__vibes_oidc_signOut) window.__vibes_oidc_signOut();
           };
           const handleSyncDisable = () => {
             console.log('[' + logPrefix + '] Sync disabled');
@@ -3397,7 +3482,7 @@ if (typeof window !== 'undefined') {
       const ConfigError = window.ConfigError;
       const LoadingError = window.LoadingError;
 
-      // App wrapper with Clerk auth gate (always required)
+      // App wrapper with OIDC auth gate (always required)
       function AppWrapper() {
         const config = window.__VIBES_CONFIG__;
 
@@ -3405,8 +3490,9 @@ if (typeof window !== 'undefined') {
         window.useVibesPanelEvents('Riff');
 
         // Check for configuration errors
-        if (!config?.clerkPublishableKey || config.clerkPublishableKey.startsWith('__')) {
-          return <ConfigError message="Missing Clerk publishable key. Apps require authentication." />;
+        if (!config?.oidcAuthority || config.oidcAuthority.startsWith('__') ||
+            !config?.oidcClientId || config.oidcClientId.startsWith('__')) {
+          return <ConfigError message="Missing OIDC configuration. Apps require authentication." />;
         }
 
         // Warn if Connect URLs are unreplaced placeholders (assembly bug)
@@ -3418,12 +3504,12 @@ if (typeof window !== 'undefined') {
           console.info('[riff] Sync will be configured on first deploy.');
         }
 
-        // Check if Clerk components loaded
-        if (!window.ClerkFireproofProvider) {
-          return <LoadingError error={window.__CLERK_LOAD_ERROR__ || 'Clerk components not available'} />;
+        // Check if OIDC bridge loaded
+        if (!window.OIDCProvider) {
+          return <LoadingError error={window.__OIDC_LOAD_ERROR__ || 'OIDC components not available'} />;
         }
 
-        const { ClerkFireproofProvider, SignedIn, SignedOut, SignInButton } = window.ClerkComponents;
+        const { OIDCProvider, SignedIn, SignedOut, SignInButton } = window.OIDCComponents;
 
         // Use shared components from window
         const AuthScreen = window.AuthScreen;
@@ -3437,7 +3523,7 @@ if (typeof window !== 'undefined') {
             message="This app uses cloud sync and requires authentication."
             showCard={true}
           >
-            <SignInButton mode="modal">
+            <SignInButton>
               <VibesButton variant={RED} buttonType="form">
                 Sign In
               </VibesButton>
@@ -3448,12 +3534,13 @@ if (typeof window !== 'undefined') {
         return (
           <>
             <SyncStatusDot />
-            <ClerkFireproofProvider
-              publishableKey={config.clerkPublishableKey}
-              config={config.tokenApiUri && config.cloudBackendUrl ? {
+            <OIDCProvider
+              authority={config.oidcAuthority}
+              clientId={config.oidcClientId}
+              config={{
                 apiUrl: config.tokenApiUri,
                 cloudUrl: config.cloudBackendUrl
-              } : undefined}
+              }}
             >
               <SignedOut>
                 <AuthGate />
@@ -3464,38 +3551,78 @@ if (typeof window !== 'undefined') {
                   <App />
                 </HiddenMenuWrapper>
               </SignedIn>
-            </ClerkFireproofProvider>
+            </OIDCProvider>
           </>
         );
       }
 
-      // Load Clerk components (required for all apps)
+      // Load OIDC bridge components (required for all apps)
       async function initApp() {
         try {
-          // Dynamic import via bridge (re-exports all @fireproof/clerk symbols + wraps useFireproofClerk)
-          const clerkModule = await import("use-fireproof");
-          window.ClerkFireproofProvider = clerkModule.ClerkFireproofProvider;
-          window.ClerkComponents = {
-            ClerkFireproofProvider: clerkModule.ClerkFireproofProvider,
-            SignedIn: clerkModule.SignedIn,
-            SignedOut: clerkModule.SignedOut,
-            SignInButton: clerkModule.SignInButton,
-            UserButton: clerkModule.UserButton
+          // Dynamic import of OIDC bridge (mapped via import map to fireproof-oidc-bridge.js)
+          const oidcModule = await import("@fireproof/clerk");
+          window.OIDCProvider = oidcModule.OIDCProvider;
+          window.OIDCComponents = {
+            OIDCProvider: oidcModule.OIDCProvider,
+            SignedIn: oidcModule.SignedIn,
+            SignedOut: oidcModule.SignedOut,
+            SignInButton: oidcModule.SignInButton,
+            UserButton: oidcModule.UserButton
           };
           // Export for user's App code
-          window.SignedIn = clerkModule.SignedIn;
-          window.SignedOut = clerkModule.SignedOut;
-          window.SignInButton = clerkModule.SignInButton;
-          window.UserButton = clerkModule.UserButton;
-          window.useUser = clerkModule.useUser;
-          // Export sharing APIs for user's App code and SharingBridge
-          window.useClerkFireproofContext = clerkModule.useClerkFireproofContext;
-          if (clerkModule.useSharing) window.useSharing = clerkModule.useSharing;
-          // Export bridge-wrapped Fireproof hook (includes sync status, onTock kick, ledger routing)
-          window.useFireproofClerk = clerkModule.useFireproofClerk;
+          window.SignedIn = oidcModule.SignedIn;
+          window.SignedOut = oidcModule.SignedOut;
+          window.SignInButton = oidcModule.SignInButton;
+          window.UserButton = oidcModule.UserButton;
+          window.useUser = oidcModule.useUser;
+          // Export OIDC context for SharingBridge and user code
+          window.useOIDCContext = oidcModule.useOIDCContext;
+          if (oidcModule.useSharing) window.useSharing = oidcModule.useSharing;
+          // Export Fireproof hook for user's App code, with sync status bridge
+          var _originalUseFireproofClerk = oidcModule.useFireproofClerk;
+          window.useFireproofClerk = function(name, opts) {
+            var result = _originalUseFireproofClerk(name, opts);
+            var syncVal = result.syncStatus || 'idle';
+            React.useEffect(function() {
+              if (window.__VIBES_SYNC_STATUS__ !== syncVal) {
+                window.__VIBES_SYNC_STATUS__ = syncVal;
+                window.dispatchEvent(new CustomEvent('vibes-sync-status-change'));
+              }
+            }, [syncVal]);
+            // Workaround: Fireproof's fast-forward path sets clock.head without
+            // firing onTock. Poll allDocs and kick notifications when data appears.
+            React.useEffect(function() {
+              if (syncVal !== 'synced') return;
+              var db = result.database;
+              var kicked = false;
+              var poll = function() {
+                if (kicked) return;
+                db.allDocs().then(function(res) {
+                  if (kicked) return;
+                  if (res.rows.length > 0) {
+                    kicked = true;
+                    try {
+                      db.ledger.crdt.clock.noPayloadWatchers.forEach(function(fn) { fn(); });
+                      console.debug('[vibes] Kicked onTock after detecting', res.rows.length, 'docs');
+                    } catch (e) {
+                      console.debug('[vibes] onTock kick failed:', e);
+                    }
+                  } else if (!kicked) {
+                    setTimeout(poll, 2000);
+                  }
+                }).catch(function() {
+                  if (!kicked) setTimeout(poll, 2000);
+                });
+              };
+              var start = setTimeout(poll, 2000);
+              var max = setTimeout(function() { kicked = true; }, 20000);
+              return function() { kicked = true; clearTimeout(start); clearTimeout(max); };
+            }, [syncVal, result.database]);
+            return result;
+          };
         } catch (err) {
-          console.error('Failed to load Clerk components:', err);
-          window.__CLERK_LOAD_ERROR__ = err.message || String(err);
+          console.error('Failed to load OIDC components:', err);
+          window.__OIDC_LOAD_ERROR__ = err.message || String(err);
         }
 
         const rootElement = document.getElementById("container");

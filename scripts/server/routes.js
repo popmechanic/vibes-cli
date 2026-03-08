@@ -116,13 +116,12 @@ const routeTable = {
   'GET /skills':                          serveSkills,
   'GET /app-frame':                       serveAppFrame,
   'GET /editor/status':                   editorApi.status,
+  'POST /editor/auth/login':              editorApi.handleAuthLogin,
+  'POST /editor/auth/logout':             editorApi.handleAuthLogout,
   'GET /editor/initial-prompt':           editorApi.initialPrompt,
   'GET /editor/app-exists':               editorApi.appExists,
   'GET /editor/apps':                     editorApi.listApps,
   'GET /editor/apps/screenshot':          editorApi.getScreenshot,
-  'POST /editor/credentials':             editorApi.saveCredentials,
-  'POST /editor/credentials/validate-cloudflare': editorApi.validateCloudflare,
-  'POST /editor/credentials/validate-clerk':      editorApi.validateClerk,
   'POST /editor/apps/load':              editorApi.loadApp,
   'POST /editor/apps/save':              editorApi.saveApp,
   'POST /editor/apps/screenshot':         editorApi.saveScreenshot,
@@ -149,7 +148,7 @@ export async function handleRequest(ctx, req, res) {
   if (handler) return handler(ctx, req, res, url);
 
   // Bundle files: import map references these at root paths
-  if (url.pathname === '/fireproof-vibes-bridge.js' || url.pathname === '/fireproof-clerk-bundle.js') {
+  if (url.pathname === '/fireproof-oidc-bridge.js' || url.pathname === '/fireproof-vibes-bridge.js') {
     const bundlePath = join(ctx.projectRoot, 'bundles', url.pathname.slice(1));
     if (existsSync(bundlePath)) {
       res.writeHead(200, { 'Content-Type': 'text/javascript' });

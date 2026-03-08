@@ -2,17 +2,16 @@
  * Shared environment/config utilities
  *
  * Used by assemble.js and assemble-sell.js for .env loading,
- * Clerk key validation, and Connect config population.
+ * OIDC config validation, and Connect config population.
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 
-// Connect config placeholders (required - apps need Clerk auth)
+// Connect config placeholders (OIDC constants are hardcoded in auth-constants.js)
 export const CONFIG_PLACEHOLDERS = {
   '__VITE_API_URL__': 'VITE_API_URL',
   '__VITE_CLOUD_URL__': 'VITE_CLOUD_URL',
-  '__VITE_CLERK_PUBLISHABLE_KEY__': 'VITE_CLERK_PUBLISHABLE_KEY'
 };
 
 /**
@@ -44,23 +43,21 @@ export function loadEnvFile(dir) {
 }
 
 /**
- * Validate that a Clerk publishable key has the correct format
+ * Validate that an OIDC authority URL is valid (must be HTTPS)
+ * @param {string} url - The OIDC authority URL
+ * @returns {boolean}
  */
-export function validateClerkKey(key) {
-  return key && (key.startsWith('pk_test_') || key.startsWith('pk_live_'));
+export function validateOIDCAuthority(url) {
+  return typeof url === 'string' && url.startsWith('https://');
 }
 
 /**
- * Extract the Clerk Frontend API domain from a publishable key.
- * Keys are formatted as pk_test_<base64(domain + "$")> or pk_live_<base64(domain + "$")>
- * @param {string} publishableKey - Clerk publishable key
- * @returns {string|null} The decoded domain, or null if invalid format
+ * Validate that an OIDC client ID is a non-empty string
+ * @param {string} id - The OIDC client ID
+ * @returns {boolean}
  */
-export function extractClerkDomain(publishableKey) {
-  const match = publishableKey?.match(/^pk_(test|live)_(.+)$/);
-  if (!match) return null;
-  const decoded = Buffer.from(match[2], 'base64').toString('utf8');
-  return decoded.replace(/\$$/, '');
+export function validateOIDCClientId(id) {
+  return typeof id === 'string' && id.length > 0;
 }
 
 /**
@@ -71,24 +68,11 @@ export function validateOpenRouterKey(key) {
 }
 
 /**
- * Validate that a Clerk user ID has the correct format
- */
-export function validateClerkUserId(id) {
-  return typeof id === 'string' && id.startsWith('user_');
-}
-
-/**
  * Replace Connect config placeholders with values from .env
  * @param {string} html - Template HTML
  * @param {object} envVars - Environment variables
  * @param {boolean} [globalReplace=false] - Use global regex replacement (for sell templates with multiple occurrences)
  */
-/**
- * Validate a Clerk secret key format
- */
-export function validateClerkSecretKey(key) {
-  return key && (key.startsWith('sk_test_') || key.startsWith('sk_live_'));
-}
 
 /**
  * Validate Connect URL format
@@ -103,11 +87,12 @@ export function validateConnectUrl(url, type) {
 }
 
 /**
- * Derive Connect URLs from a studio name
+ * Derive Connect URLs from a studio name (legacy exe.dev pattern).
+ * NOTE: registry.js has a different deriveConnectUrls for Cloudflare Workers URLs.
  * @param {string} studioName - Studio name or full hostname
  * @returns {{ apiUrl: string, cloudUrl: string }}
  */
-export function deriveConnectUrls(studioName) {
+export function deriveStudioUrls(studioName) {
   if (!studioName || typeof studioName !== 'string') {
     throw new Error('Studio name is required');
   }

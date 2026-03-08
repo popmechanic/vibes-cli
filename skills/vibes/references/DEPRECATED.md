@@ -2,9 +2,9 @@
 
 This document contains deprecated API patterns that should NOT be used in new code. These are kept for reference when migrating older apps.
 
-## Old use-vibes / use-fireproof API (Pre-fireproof-clerk)
+## Old use-vibes / use-fireproof API (Pre-OIDC bridge)
 
-The `@necrodome/fireproof-clerk` package has a DIFFERENT API than the old `use-vibes` package.
+The OIDC bridge package (backward-compat alias: `@necrodome/fireproof-clerk`) has a DIFFERENT API than the old `use-vibes` package.
 
 **NEVER generate code with these patterns:**
 
@@ -36,10 +36,10 @@ If you encounter an existing app using the old patterns:
 
 ## Why This Changed
 
-The new `@necrodome/fireproof-clerk` package provides:
-- Built-in Clerk authentication integration
+The OIDC bridge package (backward-compat name: `@necrodome/fireproof-clerk`) provides:
+- Built-in OIDC authentication integration (Pocket ID)
 - Simplified API surface
 - Automatic cloud sync when Connect is configured
 - Better TypeScript support
 
-The import map aliases `use-fireproof` to `@necrodome/fireproof-clerk`, so code using the correct pattern works automatically.
+The import map aliases `use-fireproof` to the OIDC bridge, so code using the correct pattern works automatically.

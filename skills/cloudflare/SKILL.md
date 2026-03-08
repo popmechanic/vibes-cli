@@ -1,6 +1,6 @@
 ---
 name: cloudflare
-description: Self-contained deploy automation — invoke directly, do not decompose. Deploys a Vibes app to Cloudflare Workers with subdomain registry. Uses KV for storage and native Web Crypto for JWT verification.
+description: Self-contained deploy automation — invoke directly, do not decompose. Deploys a Vibes app to Cloudflare Workers via the Deploy API. Authenticates with Pocket ID.
 license: MIT
 allowed-tools: Bash, Read, Glob, AskUserQuestion, Write
 metadata:
@@ -12,63 +12,36 @@ metadata:
 ```
   ╔═══════════════════════════════════════════════╗
   ║   ☁️  CLOUDFLARE WORKERS DEPLOY               ║
-  ║   KV Registry · JWT Auth · Edge Functions     ║
+  ║   Deploy API · Pocket ID · Edge Functions      ║
   ╚═══════════════════════════════════════════════╝
 ```
 
 ## Deploy to Cloudflare
 
-Deploy your Vibes app to Cloudflare Workers with the subdomain registry.
+Deploy your Vibes app to Cloudflare Workers via the Deploy API.
 
 ### Prerequisites
 
-1. **Cloudflare account** with Workers enabled
-2. **Wrangler CLI** installed (`npm install -g wrangler`)
-3. **KV namespace** created for registry storage
+1. **Assembled HTML file** (from `/vibes:vibes` or `/vibes:sell`)
+2. **Pocket ID account** (browser login on first deploy)
+
+No Cloudflare account or wrangler CLI needed — the Deploy API handles infrastructure.
 
 ### Quick Deploy
 
 ```bash
-cd skills/cloudflare/worker
-npm install
-wrangler deploy
+node scripts/deploy-cloudflare.js --name myapp --file index.html
 ```
 
-### Environment Setup
+On first run, a browser window opens for Pocket ID authentication. Tokens are cached for subsequent deploys.
 
-Before deploying, set the required secrets:
+### Deploy with AI enabled
 
 ```bash
-cd skills/cloudflare/worker
-npx wrangler secret put CLERK_PEM_PUBLIC_KEY
-npx wrangler secret put CLERK_WEBHOOK_SECRET
+node scripts/deploy-cloudflare.js --name myapp --file index.html --ai-key "sk-or-v1-your-key"
 ```
 
-### Automatic Connect Deployment
-
-On first deploy, the script automatically provisions a paired Fireproof Connect
-instance via alchemy. This includes: R2 bucket, D1 databases, cloud backend
-Worker (blob ops + WebSocket rooms), and dashboard Worker.
-
-Subsequent deploys skip Connect and only update the app Worker.
-
-App-Connect pairings are tracked in `~/.vibes/deployments.json`.
-
-### Deploy Script
-
-For deploying with static assets (index.html, bundles, assets):
-
-```bash
-node scripts/deploy-cloudflare.js --name myapp --file index.html --clerk-key "pk_test_xxx"
-```
-
-The `--clerk-key` flag auto-fetches the PEM public key from Clerk's JWKS endpoint and sets it as `CLERK_PEM_PUBLIC_KEY`. Without it, the Worker can't verify JWTs for authenticated endpoints like `/claim`.
-
-This automatically:
-- Copies index.html to worker's public/
-- Copies bundles/*.js (fireproof-vibes-bridge.js + fireproof-clerk-bundle.js)
-- Copies assets/ directory (images, icons)
-- Runs wrangler deploy
+The `--ai-key` flag configures the OpenRouter API key for the `useAI()` hook. Without it, `/api/ai/chat` returns `{"error": "AI not configured"}`.
 
 ### Endpoints
 
@@ -77,20 +50,7 @@ This automatically:
 | `/registry.json` | GET | Public registry read |
 | `/check/:subdomain` | GET | Check subdomain availability |
 | `/claim` | POST | Claim a subdomain (auth required) |
-| `/webhook` | POST | Clerk subscription webhooks |
-| `/api/ai/chat` | POST | AI proxy to OpenRouter (requires OPENROUTER_API_KEY) |
-
-### KV Storage
-
-The registry is stored in Cloudflare KV under the key `registry`. Schema:
-
-```json
-{
-  "claims": { "subdomain": { "userId": "...", "claimedAt": "..." } },
-  "reserved": ["admin", "api", "www"],
-  "preallocated": {}
-}
-```
+| `/api/ai/chat` | POST | AI proxy to OpenRouter (requires AI key) |
 
 ### Important: Custom Domain Required for Subdomains
 
@@ -119,81 +79,14 @@ After setup:
 - `tenant.yourdomain.com` → tenant app
 - `admin.yourdomain.com` → admin dashboard
 
-### Required Secrets
-
-| Secret | Source | Purpose |
-|--------|--------|---------|
-| `CLERK_PEM_PUBLIC_KEY` | Clerk JWKS endpoint | JWT signature verification |
-| `PERMITTED_ORIGINS` | Your domains | JWT azp claim validation |
-| `CLERK_WEBHOOK_SECRET` | Clerk dashboard | Webhook signature verification |
-| `OPENROUTER_API_KEY` | OpenRouter dashboard | AI proxy for `useAI()` hook (optional) |
-
-**Setting secrets:**
-```bash
-cd skills/cloudflare/worker
-npx wrangler secret put CLERK_PEM_PUBLIC_KEY
-# Paste the PEM key (-----BEGIN PUBLIC KEY----- ... -----END PUBLIC KEY-----)
-
-npx wrangler secret put CLERK_WEBHOOK_SECRET
-# Paste the webhook signing secret from Clerk dashboard
-
-npx wrangler secret put PERMITTED_ORIGINS
-# Enter: https://yourdomain.com,https://*.yourdomain.com
-```
-
-**Getting CLERK_PEM_PUBLIC_KEY:**
-
-1. Find your Clerk Frontend API URL in Clerk dashboard (e.g., `clerk.yourdomain.com`)
-2. Fetch JWKS: `curl https://clerk.yourdomain.com/.well-known/jwks.json`
-3. Convert JWK to PEM using Node.js:
-```javascript
-const crypto = require('crypto');
-const jwk = { /* paste the key from jwks.json */ };
-const pem = crypto.createPublicKey({ key: jwk, format: 'jwk' }).export({ type: 'spki', format: 'pem' });
-console.log(pem);
-```
-
-### Deploy with --name Flag
-
-Always use the `--name` flag to deploy to your app's worker:
-
-```bash
-node scripts/deploy-cloudflare.js --name myapp --file index.html
-```
-
-**Important:** The `--name` determines the worker URL. Without it, wrangler uses
-the name from wrangler.toml (`vibes-registry`), not your app.
-
-### AI Features
-
-Apps using the `useAI()` hook call `/api/ai/chat` on the same origin. The worker proxies these requests to OpenRouter.
-
-**Deploy with AI enabled:**
-
-```bash
-node scripts/deploy-cloudflare.js --name myapp --file index.html --clerk-key "pk_test_xxx" --ai-key "sk-or-v1-your-key"
-```
-
-The `--ai-key` flag sets the `OPENROUTER_API_KEY` secret on the worker after deployment. Without it, `/api/ai/chat` returns `{"error": "AI not configured"}`.
-
-**Manual setup:**
-
-```bash
-npx wrangler secret put OPENROUTER_API_KEY --name myapp
-# Paste your OpenRouter API key
-```
-
 ### Troubleshooting
 
 | Problem | Cause | Fix |
 |---------|-------|-----|
-| `wrangler: command not found` | Wrangler not installed | `npm install -g wrangler` or use `npx wrangler` |
-| KV namespace errors | Namespace doesn't exist or wrong ID | Run `npx wrangler kv namespace list` to verify |
-| JWT verification fails (401) | Missing or wrong PEM key | Check `CLERK_PEM_PUBLIC_KEY` is set: `npx wrangler secret list --name <app>` |
-| JWT azp mismatch (403) | Origins not configured | Set `PERMITTED_ORIGINS` to include your domain |
+| Browser doesn't open for auth | Headless environment | Copy the printed URL and open manually |
+| Deploy API returns 401 | Expired or invalid token | Delete `~/.vibes/auth.json` and retry |
 | 404 on subdomain URL | Workers.dev doesn't support nested subdomains | Set up a custom domain (see Custom Domain Setup above) |
-| `/api/ai/chat` returns "AI not configured" | Missing OpenRouter key | Set `OPENROUTER_API_KEY` secret or redeploy with `--ai-key` |
-| `wrangler deploy` auth error | Not logged in | Run `npx wrangler login` |
+| `/api/ai/chat` returns "AI not configured" | Missing OpenRouter key | Redeploy with `--ai-key` |
 | Stale content after redeploy | Browser cache | Hard refresh (Cmd+Shift+R) or clear cache |
 
 ### What's Next?
@@ -208,7 +101,7 @@ AskUserQuestion:
       description: "Configure DNS for subdomain routing (required for multi-tenant)"
     - label: "Enable AI features"
       description: "Add OpenRouter API key for the useAI() hook"
-    - label: "Add billing & auth"
-      description: "Transform into SaaS with /vibes:sell, then redeploy"
+    - label: "Add auth & SaaS features"
+      description: "Transform into SaaS with /vibes:sell (Pocket ID auth), then redeploy"
     - label: "Open in browser"
       description: "Visit the deployed URL to verify everything works"

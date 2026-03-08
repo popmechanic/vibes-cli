@@ -26,18 +26,52 @@ metadata:
 
 ## Notation
 
-**Ask [Header]**: "question" means call AskUserQuestion with that header and question. Options listed as bullets. User can always type custom via "Other". When collecting a key/secret, put one option like "Paste key" — the user types the actual value via Other.
+**Ask [Header]**: "question" means call AskUserQuestion with that header and question. Options listed as bullets. User can always type custom via "Other".
 
 For architecture context, see `LAUNCH-REFERENCE.md` in this directory.
 
 ---
 
+## Auth Check (silent — only prompt if needed)
+
+Before asking Terminal or Editor, check for cached auth:
+
+```bash
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+node --input-type=module -e "
+import { readCachedTokens, isTokenExpired } from '$VIBES_ROOT/scripts/lib/cli-auth.js';
+const tokens = readCachedTokens();
+if (tokens && !isTokenExpired(tokens.expiresAt)) {
+  console.log('AUTH_OK');
+} else {
+  console.log('AUTH_NEEDED');
+}
+"
+```
+
+- If `AUTH_OK` → proceed silently to "Terminal or Editor?" (do not mention auth)
+- If `AUTH_NEEDED` → ask: "To deploy apps, you'll need a Vibes account. Sign in now? (A browser window will open for Pocket ID — takes about 10 seconds.)"
+  - If yes:
+    ```bash
+    VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+    node --input-type=module -e "
+    import { getAccessToken } from '$VIBES_ROOT/scripts/lib/cli-auth.js';
+    import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '$VIBES_ROOT/scripts/lib/auth-constants.js';
+    const tokens = await getAccessToken({ authority: OIDC_AUTHORITY, clientId: OIDC_CLIENT_ID });
+    if (tokens) console.log('Signed in successfully!');
+    "
+    ```
+    Confirm success, then proceed to "Terminal or Editor?"
+  - If no → proceed anyway (auth will be needed at deploy time)
+
+---
+
 ## FIRST: Terminal or Editor UI?
 
-**This is the very first question — ask before anything else.**
+**This is the very first question — ask before anything else (after auth check above).**
 **DO NOT check .env, credentials, or project state before asking this question.**
 **DO NOT invoke any other skill before asking this question.**
-**If Editor is chosen, skip ALL pre-flight checks — the editor handles everything.**
+**If Editor is chosen, skip ALL remaining steps — the editor handles everything.**
 
 Ask the user:
 > "How do you want to build? **Editor** (opens a browser UI with live preview, chat, and deploy button) or **Terminal** (I'll generate and deploy from here)?"
@@ -49,17 +83,17 @@ Present Editor as the first/recommended option.
   Launch the editor server:
   ```bash
   VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-  bun "$VIBES_ROOT/scripts/server.ts" --mode=editor --prompt "USER_PROMPT_HERE"
+  node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor --prompt "USER_PROMPT_HERE"
   ```
   If no prompt was given, omit `--prompt`:
   ```bash
   VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-  bun "$VIBES_ROOT/scripts/server.ts" --mode=editor
+  node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor
   ```
   Tell the user: "Open http://localhost:3333 — the editor handles everything from here."
   **Your job is done. Stop. Do not read further. Do not proceed to any phase below.**
 
-- **If Terminal**: Continue with the pre-flight checks and normal workflow below.
+- **If Terminal**: Continue with the workflow below.
 
 ---
 
@@ -70,17 +104,15 @@ Present Editor as the first/recommended option.
 
 ---
 
-## Pre-Flight Decision Tree
+## Pre-Flight Check
 
-Run all five checks before collecting any input:
+Only one check before collecting input:
 
 | # | Check | Command | If True |
 |---|-------|---------|---------|
-| 1 | .env has Clerk keys | `grep -qE '^VITE_CLERK_PUBLISHABLE_KEY=pk_' .env` | Set `CLERK_READY`. Read .env for clerkPk. Skip T2. Connect auto-deploys with app. |
-| 2 | .env has admin user ID | `grep CLERK_ADMIN_USER_ID .env` | Store value. Skip Phase 3. |
-| 3 | app.jsx exists | `test -f app.jsx` | **Ask [Reuse]**: "app.jsx exists. Reuse it or regenerate?" If reuse: skip T1. |
-| 4 | Wrangler authenticated | `npx wrangler whoami 2>&1` | If NOT authenticated: tell user to run `npx wrangler login` and wait. |
-| 5 | SSH key exists | `ls ~/.ssh/id_ed25519 ~/.ssh/id_rsa ~/.ssh/id_ecdsa 2>/dev/null` | Optional — not required for Cloudflare deploy. |
+| 1 | app.jsx exists | `test -f app.jsx` | **Ask [Reuse]**: "app.jsx exists. Reuse it or regenerate?" If reuse: skip T1. |
+
+Auth and deploy credentials are handled automatically — no user setup needed. On first deploy, a browser window opens for Pocket ID login. Tokens are cached at `~/.vibes/auth.json`.
 
 ## Phase 0: Collect Inputs
 
@@ -93,19 +125,13 @@ Run all five checks before collecting any input:
 
 Store as `appPrompt`.
 
-### 0.2 App Name + Domain
+### 0.2 App Name
 
-**Ask [App name]**: "What's the app name? (used for subdomain + database)" AND **[Domain]**: "Where will this be deployed?"
-- App name: "Derive from prompt" or "Let me specify"
-- Domain: "Cloudflare Workers (Recommended)" or "Custom domain"
+**Ask [App name]**: "What's the app name? (used for subdomain + database)"
+- "Derive from prompt" — Generate a URL-safe slug automatically
+- "Let me specify" — I'll type my own name
 
-If "Derive from prompt": generate URL-safe slug (lowercase, hyphens, max 30 chars). If "Custom domain": ask for domain name. Store as `appName`.
-
-Resolve Workers URL (if Cloudflare):
-```bash
-node "{pluginRoot}/scripts/lib/resolve-workers-url.js" --name "{appName}"
-```
-Store output as `domain`. If script fails, ask for their Cloudflare subdomain and construct `{appName}.{subdomain}.workers.dev`.
+If "Derive from prompt": generate URL-safe slug (lowercase, hyphens, max 30 chars). Store as `appName`.
 
 ### 0.3 AI Features (conditional)
 
@@ -118,78 +144,19 @@ If detected: **Ask [AI features]**: "Does this app need AI features?"
 
 If yes: check `grep OPENROUTER_API_KEY ~/.vibes/.env`. If found, offer reuse (mask key). Otherwise collect via Ask and offer to cache to `~/.vibes/.env`. Store as `openRouterKey` (or null if no AI).
 
-### 0.4 Theme Selection
+### 0.4 SaaS Config
 
-Theme switching is handled by the live preview wrapper, not inside the app. The builder generates a single-theme layout. Set `themeCount = 1`.
-
----
-
-## Phase 1: Spawn Team & Parallel Work
-
-### 1.1 Setup
-
-1. Resolve plugin root — use this in all bash blocks:
-   ```bash
-   VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-   ```
-2. Create team: `TeamCreate("launch-{appName}", "Full SaaS pipeline for {appName}")`
-3. Create all tasks per the table in LAUNCH-REFERENCE.md. If `CLERK_READY`: mark T2 completed immediately.
-
-### 1.2 Spawn Builder (T1)
-
-1. Read `${CLAUDE_SKILL_DIR}/prompts/builder.md`
-2. Substitute: `{appPrompt}`, `{appName}`, `{pluginRoot}`
-3. Set `{aiInstructions}`: if `openRouterKey` is set, add rule about `useAI` hook (see vibes SKILL.md "AI Features"). If null, leave empty.
-4. Spawn: Task tool, `team_name="launch-{appName}"`, `name="builder"`, `subagent_type="general-purpose"`
-
-### 1.3 Clerk Credentials (T2) — simultaneous with builder
-
-**Skip entirely if CLERK_READY.**
-
-**Ask [Clerk app]**: "Do you have a Clerk app configured?"
-- "I have one ready" — Already has passkeys and email auth
-- "I need to create one" — Walk me through setup
-
-If creating new: guide through clerk.com/dashboard — create app, enable Email + Passkey, configure email settings (require OFF, verify ON, link ON, code ON). Then set up JWT template and webhook:
-
-**Ask [Clerk config]**: "Complete these two setup steps in Clerk Dashboard:\n\n1. **JWT Template**: JWT Templates → New Template → name it `with-email`, paste this JSON as the custom claims (the `|| ''` fallbacks are required — Fireproof Studio rejects null names):\n```json\n{\n  \"params\": {\n    \"email\": \"{{user.primary_email_address}}\",\n    \"email_verified\": \"{{user.email_verified}}\",\n    \"external_id\": \"{{user.external_id}}\",\n    \"first\": \"{{user.first_name || ''}}\",\n    \"last\": \"{{user.last_name || ''}}\",\n    \"name\": \"{{user.full_name || ''}}\",\n    \"image_url\": \"{{user.image_url}}\",\n    \"public_meta\": \"{{user.public_metadata}}\"\n  },\n  \"role\": \"authenticated\",\n  \"userId\": \"{{user.id}}\"\n}\n```\n2. **Webhook**: Webhooks → Add Endpoint → URL `https://{domain}/webhook` → subscribe to `subscription.deleted`\n\nHave you completed both?"
-- "Yes, both done" — JWT template 'with-email' with email/name claims + webhook endpoint created
-- "I need help" — Walk me through it step by step
-
-Collect four credentials via Ask (user types actual values via Other):
-
-**Ask [Clerk PK]**: "Paste your Clerk Publishable Key (starts with pk_test_ or pk_live_)"
-- "Paste key" — From Clerk dashboard > API Keys. Validate prefix.
-
-Repeat pattern for:
-- **[Clerk SK]**: Secret Key — starts with `sk_test_` or `sk_live_`
-- **[PEM Key]**: JWKS PEM Public Key — from API Keys > Advanced > Public Key. Starts with `-----BEGIN PUBLIC KEY-----`
-- **[Webhook Secret]**: From Webhooks > endpoint > Signing Secret. Starts with `whsec_`
-
-Save PEM to file:
-```bash
-cat > clerk-jwks-key.pem << 'PEMEOF'
-{pemKey}
-PEMEOF
-```
-
-Mark T2 completed.
-
-### 1.4 Sell Config (T4) — while builder generates
-
-**Sell config is collected here but applied later by invoking `/vibes:sell` (or its assembly script) as an atomic step.** Do NOT hand-implement SaaS logic — the sell skill handles tenant routing, auth gating, billing, and admin setup.
+**Sell config is collected here but applied later by the assembly script.** Do NOT hand-implement SaaS logic — the sell assembly handles tenant routing, auth gating, and billing.
 
 Choose billing mode based on monetization intent:
 - **"off" (free)** — all authenticated users get full access. Good for MVPs and internal tools.
-- **"required" (subscription)** — users must subscribe. Requires Clerk Billing (Dev instances auto-connect to Stripe sandbox).
+- **"required" (subscription)** — users must subscribe. Stripe billing integration is phase 2.
 
 **Always ask the user** — do not assume a default.
 
 **Ask [Billing]**: "What billing mode for your SaaS?" AND **[Title]**: "App display title?"
 - Billing: "Free (no billing)" or "Subscription required"
 - Title: "Derive from app name" or "Let me specify"
-
-**If billing is "Subscription required"**: Note that Clerk Billing must be configured in the Clerk Dashboard after deploy (plans, Stripe connection). Dev instances auto-connect to Stripe sandbox for testing.
 
 **Ask [Tagline]**: "Describe your app's tagline (short punchy phrase)"
 - "Generate one" — Create from app description
@@ -199,48 +166,71 @@ Choose billing mode based on monetization intent:
 
 Repeat pattern for subtitle and features list (3-5 bullet points).
 
-Store: `billingMode` ("off"/"required"), `appTitle`, `tagline`, `subtitle`, `features` (JSON array). Mark T4 completed.
+Store: `billingMode` ("off"/"required"), `appTitle`, `tagline`, `subtitle`, `features` (JSON array).
+
+### 0.5 Theme Selection
+
+Theme switching is handled by the live preview wrapper, not inside the app. The builder generates a single-theme layout. Set `themeCount = 1`.
+
+---
+
+## Phase 1: Build
+
+### 1.1 Setup
+
+1. Resolve plugin root — use this in all bash blocks:
+   ```bash
+   VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+   ```
+2. Create team: `TeamCreate("launch-{appName}", "Full SaaS pipeline for {appName}")`
+3. Create tasks: T1 (generate app.jsx), T3 (assembly), T4 (deploy), T5 (verify).
+
+### 1.2 Spawn Builder (T1)
+
+1. Read `${CLAUDE_SKILL_DIR}/prompts/builder.md`
+2. Substitute: `{appPrompt}`, `{appName}`, `{pluginRoot}`
+3. Set `{aiInstructions}`: if `openRouterKey` is set, add rule about `useAI` hook (see vibes SKILL.md "AI Features"). If null, leave empty.
+4. Spawn: Task tool, `team_name="launch-{appName}"`, `name="builder"`, `subagent_type="general-purpose"`
+
+While the builder generates, SaaS config was already collected in Phase 0. Nothing else needs to happen in parallel — no credential collection, no manual setup.
 
 ---
 
 ## Phase 2: Assembly & Deploy
 
-**Blocked by T1 + T2 + T4.** Check TaskList until all complete.
+**Blocked by T1.** Check TaskList until builder completes.
 
 ### 2.1 Verify Inputs
 
-Confirm: `app.jsx` exists with valid JSX. `.env` has `VITE_CLERK_PUBLISHABLE_KEY`. Connect URLs are auto-provisioned on deploy. All sell config values collected.
+Confirm: `app.jsx` exists with valid JSX. All sell config values collected.
 
 Scan app.jsx for builder mistakes (see LAUNCH-REFERENCE.md "Common Builder Mistakes"). Fix any found before proceeding.
 
-### 2.1.5 Preview Before Deploy
+### 2.2 Preview Before Deploy
 
 **Ask [Preview]**: "Want to preview the app before deploying?"
 - "Yes — open live preview" — Start the preview server and iterate on the design
 - "No — deploy now" — Skip preview, go straight to deploy
 
-If yes: run `bun "$VIBES_ROOT/scripts/server.ts"` and tell the user to open `http://localhost:3333`. They can chat to iterate on the design and switch themes. When satisfied, stop the server and continue to 2.2.
+If yes: run `node "$VIBES_ROOT/scripts/preview-server.js"` and tell the user to open `http://localhost:3333`. They can chat to iterate on the design and switch themes. When satisfied, stop the server and continue to 2.3.
 
-### 2.2 Deploy Cycle
-
-This sequence runs twice: first here (with `--admin-ids '[]'`), then in Phase 3 (with real admin ID). Steps:
+### 2.3 Assemble & Deploy
 
 **Step A — Assemble:**
 ```bash
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
 node "$VIBES_ROOT/scripts/assemble-sell.js" app.jsx index.html \
-  --clerk-key "{clerkPk}" \
   --app-name "{appName}" \
   --app-title "{appTitle}" \
-  --domain "{domain}" \
+  --domain "{appName}.vibes.diy" \
   --billing-mode "{billingMode}" \
   --tagline "{tagline}" \
   --subtitle "{subtitle}" \
   --features '{featuresJSON}' \
-  --admin-ids '{adminIds}'
+  --admin-ids '[]'
 ```
 
-**Step B — Validate:** `grep -c '__VITE_\|__CLERK_\|__APP_' index.html` — must be 0.
+**Step B — Validate:** `grep -c '__VITE_\|__OIDC_\|__APP_' index.html` — must be 0.
 
 **Step C — Deploy:**
 ```bash
@@ -248,92 +238,47 @@ VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}
 node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
   --name "{appName}" \
   --file index.html \
-  --clerk-key "{clerkPk}" \
-  --billing-mode "{billingMode}" \
-  --webhook-secret "{webhookSecret}" \
   {aiKeyFlag}
 ```
-Where `{aiKeyFlag}` = `--ai-key "{openRouterKey}"` if set, omitted if null. The `--billing-mode` flag controls whether the client enforces JWT-based plan checks. The `--webhook-secret` flag sets the Clerk webhook signing secret as a Wrangler secret.
+Where `{aiKeyFlag}` = `--ai-key "{openRouterKey}"` if set, omitted if null.
 
-Run the cycle now with `{adminIds}` = `'[]'` (or `'["{existingAdminId}"]'` if found in pre-flight). Mark T5, T6 completed.
-
----
-
-## Phase 3: Admin Setup
-
-**Skip if `CLERK_ADMIN_USER_ID` was found in pre-flight.**
-
-### 3.1 Guide Signup
-
-Tell the user:
-> Your app is live! Create your admin account:
-> 1. Open: `https://{domain}?subdomain=test`
-> 2. Sign up with your email
-> 3. Complete email verification
-> 4. Create a passkey when prompted
-
-**Ask [Signup]**: "Have you completed signup on the app?"
-- "Yes, signed up" — Completed verification + passkey
-- "Skip admin setup" — I'll do this later
-
-If skip: proceed to Phase 4.
-
-### 3.2 Collect Admin ID
-
-Tell user: Go to clerk.com/dashboard > your app > Users > click your user > copy User ID (starts with `user_`).
-
-**Ask [User ID]**: "Paste your Clerk User ID (starts with user_)"
-- "I need help finding it" — Clerk Dashboard > Users > click name > ID at top
-
-Validate starts with `user_`. Save to `.env`:
-```bash
-echo "CLERK_ADMIN_USER_ID={userId}" >> .env
-```
-
-### 3.3 Re-run Deploy Cycle
-
-Re-run Phase 2.2 steps A-D with `{adminIds}` = `'["{userId}"]'`.
-
-Tell user: Admin dashboard now works at `https://{domain}?subdomain=admin`
+On first deploy, the CLI opens a browser for Pocket ID login. The user signs in once and tokens are cached for future deploys.
 
 ---
 
-## Phase 4: Verify & Cleanup
+## Phase 3: Verify & Cleanup
 
-### 4.1 Verify
+### 3.1 Verify
 
-**Ask [Verify]**: "Your app is live! Open each URL and verify:\n\n- Landing: https://{domain}\n- Tenant: https://{domain}?subdomain=test\n- Admin: https://{domain}?subdomain=admin\n\nDoes everything look right?"
+**Ask [Verify]**: "Your app is live! Open each URL and verify:\n\n- Landing: https://{appName}.vibes.diy\n- Tenant: https://{appName}.vibes.diy?subdomain=test\n\nDoes everything look right?"
 - "All working" — Everything loads correctly
 - "Something's broken" — Need to troubleshoot
 
-**If `billingMode === "required"`**: Also ask the user to verify billing:
-> "Check billing flow: Sign in at `https://{domain}?subdomain=test` — you should see a paywall with pricing. Use test card `4242 4242 4242 4242` (any future expiry, any CVC) to complete a test subscription. After subscribing, the tenant app should load."
+If broken, ask what's wrong and troubleshoot.
 
-Mark T7 completed. If broken, ask what's wrong and troubleshoot.
-
-### 4.2 Shutdown
+### 3.2 Shutdown
 
 Send `shutdown_request` to "builder" (if spawned). Wait for response. Clean up team.
 
-### 4.3 Summary
+### 3.3 Summary
 
 ```
 ## Launch Complete
 
 **App**: {appTitle}
-**URL**: https://{domain}
-**Clerk**: {clerkPk}
+**URL**: https://{appName}.vibes.diy
 **Billing**: {billingMode}
 
 ### What's deployed:
-- Cloudflare Worker with KV registry
-- Fireproof Connect (auto-provisioned with app) for real-time sync
-- Clerk authentication with passkeys
+- Cloudflare Worker via Deploy API
+- Fireproof Connect for real-time sync (auto-provisioned)
+- Pocket ID authentication with passkeys
 - Subdomain-based multi-tenancy
 
 ### Next steps:
-- Configure a custom domain (see CLAUDE.md DNS section)
-- Set up Clerk billing plans if using subscription mode
+- Sign in at your app URL to become the first user
+- Configure admin access via the app settings
+- Set up Stripe billing if using subscription mode
 ```
 
 ---
@@ -343,8 +288,8 @@ Send `shutdown_request` to "builder" (if spawned). Wait for response. Clean up t
 | Failure | Recovery |
 |---------|----------|
 | Builder generates invalid JSX | Read app.jsx, fix TS syntax / wrong hooks, re-save |
-| Assembly has placeholders | Check .env for missing values, re-run assembly |
-| Cloudflare deploy fails | Check `npx wrangler whoami`. Guide `npx wrangler login` if needed |
-| Wrangler secret put fails | Retry. If persistent, have user run manually |
+| Assembly has placeholders | Re-run assembly — auth constants are hardcoded, no .env needed |
+| Deploy fails (auth) | Delete `~/.vibes/auth.json` and retry — browser login will re-open |
+| Deploy fails (other) | Check error output from deploy-cloudflare.js |
 | Teammate silent 3+ min | SendMessage status check. If no response, take over task |
 | Builder hardcodes DB name | Edit app.jsx: replace with `useTenant()` pattern before assembly |

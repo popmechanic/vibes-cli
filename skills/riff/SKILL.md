@@ -196,7 +196,7 @@ Options:
   Description: "The rankings are just my analysis - you might see something special in another variation. Tell me which riff number speaks to you and I'll set it up for development."
 
 - Label: "Turn winner into SaaS (/sell)"
-  Description: "Ready to monetize the best one? Sell adds Clerk authentication with passkeys, subscription billing, and multi-tenant database isolation. Each customer gets their own subdomain with their own data."
+  Description: "Ready to monetize the best one? Sell adds authentication via Pocket ID with passkeys, subscription billing, and multi-tenant database isolation. Each customer gets their own subdomain with their own data."
 
 - Label: "Deploy a riff as demo (/cloudflare)"
   Description: "Want to share one quickly? Deploy puts any variation live on Cloudflare Workers within minutes. Great for getting feedback before committing to further development."

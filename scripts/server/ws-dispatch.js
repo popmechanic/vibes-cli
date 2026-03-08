@@ -28,13 +28,13 @@ export function setupWebSocket(wss, ctx, wsAdapter) {
   wss.on('connection', (ws) => {
     console.log('[WS] Client connected');
 
-    const onEvent = wsAdapter(ws);
+    const onEvent = wsAdapter(ws, wss);
     const dispatch = {
       chat:             (msg) => handleChat(ctx, onEvent, msg.message, msg.effects || [], msg.animationId || null, msg.model, msg.reference || null, msg.skillId || null),
       theme:            (msg) => handleThemeSwitch(ctx, onEvent, msg.themeId, msg.model),
       cancel:           ()    => { if (!cancelClaude()) onEvent({ type: 'error', message: 'No request in progress.' }); },
       generate:         (msg) => handleGenerate(ctx, onEvent, msg.prompt, msg.themeId, msg.model, msg.reference || null),
-      deploy:           (msg) => handleDeploy(ctx, onEvent, msg.target, msg.name),
+      deploy:           (msg) => handleDeploy(ctx, onEvent, msg.target, msg.name, msg.token),
       save_theme:       (msg) => {
         const name = String(msg.name || '').replace(/[\x00-\x1f]/g, '').trim().slice(0, 100);
         if (!name) { onEvent({ type: 'error', message: 'Theme name is required' }); return; }
@@ -78,7 +78,9 @@ export function setupWebSocket(wss, ctx, wsAdapter) {
 
     ws.on('close', () => {
       console.log('[WS] Client disconnected');
-      cancelClaude();
+      // Don't cancel Claude on disconnect — the client auto-reconnects
+      // and the generation should continue. Only explicit 'cancel' messages
+      // should abort the subprocess.
     });
   });
 }

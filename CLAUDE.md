@@ -25,7 +25,7 @@ SKILL.md provides common patterns (useDocument, useLiveQuery, database.put/del) 
 
 | Feature | Signal in prompt |
 |---------|------------------|
-| User authentication | "login", "auth", "accounts", "Clerk" |
+| User authentication | "login", "auth", "accounts", "Pocket ID" |
 | Sync status indicators | "connection status", "online/offline" |
 | User context/identity | "user name", "profile", "who is logged in" |
 | Complete example | "full example", "show me how" |
@@ -57,7 +57,17 @@ Each skill is ONE plan step — never decompose into sub-steps. Always invoke th
 
 ## Package Versions
 
-The import map in `source-templates/base/template.html` is the authoritative source for current package versions (`esm.sh/stable/` URLs, `@necrodome/fireproof-clerk@0.0.7`, React 19.2.4).
+The import map in `source-templates/base/template.html` is the authoritative source for current package versions (`esm.sh/stable/` URLs, `oauth4webapi`, React 19.2.4). The OIDC bridge (`bundles/fireproof-oidc-bridge.js`) is loaded as a local bundle, not from esm.sh.
+
+## Deploy Workflow
+
+Apps deploy to Cloudflare Workers via the shared Deploy API Worker. No wrangler installation or user Cloudflare tokens required.
+
+```bash
+node scripts/deploy-cloudflare.js --name <app> --file index.html
+```
+
+Auth happens automatically: the CLI opens a browser for Pocket ID login and caches credentials at `~/.vibes/auth.json`. The Deploy API accepts the assembled HTML plus an OIDC token and handles Cloudflare API calls server-side.
 
 ## Architecture: JSX + Babel
 
@@ -69,6 +79,24 @@ The plugin uses JSX with Babel runtime transpilation. See `source-templates/base
 claude --plugin .                        # From the plugin directory
 claude --plugin /path/to/vibes-skill     # Or with absolute path
 ```
+
+## Restarting the Preview Server
+
+After editing server code, handlers, or templates (e.g. `scripts/server/`, `skills/vibes/templates/editor.html`), the running server must be restarted to pick up changes. The server auto-kills any existing process on the same port — just re-run the start command:
+
+```bash
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(pwd)}"
+node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor
+```
+
+Run in background if you need to continue working:
+```bash
+node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor &
+```
+
+**Do NOT use `pkill -f preview-server.js`** — the server handles takeover automatically via `killProcessOnPort()`. Re-running the command is the only correct restart method.
+
+The `--mode=editor` flag is required for the editor UI. Omit it for preview-only mode. Optional flags: `--port 3333` (default), `--prompt "..."`.
 
 ## Testing
 
@@ -110,15 +138,18 @@ The `SessionStart` hook injects framework awareness context into every conversat
 
 | File | Why it matters |
 |------|---------------|
-| `bundles/fireproof-vibes-bridge.js` | ES module bridge wrapping @fireproof/clerk — sync status, ledger routing, invite redemption |
-| `scripts/lib/env-utils.js` | Shared .env loading, Clerk key validation, Connect config |
+| `bundles/fireproof-oidc-bridge.js` | ES module bridge wrapping OIDC auth -- sync status, ledger routing, invite redemption |
+| `deploy-api/` | Deploy API Worker — accepts HTML + OIDC token, deploys to CF Workers server-side |
+| `scripts/lib/cli-auth.js` | CLI OIDC authentication with localhost callback, token caching |
+| `scripts/lib/auth-constants.js` | Hardcoded OIDC authority and client ID (shared Pocket ID instance) |
+| `scripts/lib/env-utils.js` | Shared .env loading, Connect config |
 | `scripts/lib/paths.js` | Centralized path resolution for all plugin paths |
 | `skills/launch/LAUNCH-REFERENCE.md` | Launch dependency graph, timing, skip modes |
 | `skills/launch/prompts/builder.md` | Builder agent prompt template with {placeholder} markers |
 
 ## Cloudflare Deployment
 
-All apps deploy to Cloudflare Workers. Connect deploys automatically on first app deploy via alchemy. App-Connect pairings tracked in `~/.vibes/deployments.json`.
+All apps deploy to Cloudflare Workers via the shared Deploy API Worker — no wrangler or user CF tokens needed. Connect deploys automatically on first app deploy. App-Connect pairings tracked in `~/.vibes/deployments.json`.
 
 ## Adding or Removing Skills
 

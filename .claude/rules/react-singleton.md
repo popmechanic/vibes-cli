@@ -10,14 +10,14 @@ description: React singleton rules for import map and esm.sh configuration
 
 vibes.diy uses import maps to map bare specifiers like `"react"` to CDN URLs. Import maps can only intercept bare specifiers — not absolute URL paths that esm.sh resolves internally.
 
-When esm.sh bundles `@fireproof/clerk`, internal React imports become absolute paths → TWO React instances → context fails.
+When esm.sh bundles a package like `@fireproof/core`, internal React imports become absolute paths → TWO React instances → context fails.
 
 ## The Fix: `?external=react,react-dom`
 
 This tells esm.sh to keep React as bare specifiers so our import map intercepts them. REQUIRED on any esm.sh package that depends on React.
 
 ```json
-"@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom"
+"@fireproof/core": "https://esm.sh/stable/use-fireproof@0.24.12?external=react,react-dom"
 ```
 
 **Why NOT `?alias=`:** Rewrites imports at build time but doesn't prevent esm.sh from resolving its own React version for internal deps. `?external` is more reliable for no-build workflows.

@@ -39,7 +39,7 @@ export const GATE_STATES = {
 /**
  * Determine next signup state after email submission
  * @param {string} currentState
- * @param {object} signUpResult - Clerk signup result
+ * @param {object} signUpResult - Auth signup result
  * @returns {string} Next state
  */
 export function getNextSignupState(currentState, signUpResult) {
@@ -107,7 +107,7 @@ export function getNextSigninStateAfterEmail(currentState, factors) {
 
 /**
  * Determine gate state based on user's passkeys
- * @param {object|null} user - Clerk user object
+ * @param {object|null} user - Auth user object
  * @returns {string} Gate state
  */
 export function getGateState(user) {
@@ -121,7 +121,7 @@ export function getGateState(user) {
 
 /**
  * Determine claim prompt state based on user's passkeys
- * @param {object|null} user - Clerk user object
+ * @param {object|null} user - Auth user object
  * @returns {string} Claim prompt state
  */
 export function getClaimPromptState(user) {
@@ -135,7 +135,7 @@ export function getClaimPromptState(user) {
 
 /**
  * Determine which email verification strategy to use
- * @param {Array} supportedFactors - Clerk's supportedFirstFactors array
+ * @param {Array} supportedFactors - Auth provider's supportedFirstFactors array
  * @returns {{ strategy: string|null, emailAddressId: string|null }}
  */
 export function selectEmailVerificationStrategy(supportedFactors) {

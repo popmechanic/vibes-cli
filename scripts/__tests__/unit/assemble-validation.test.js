@@ -18,7 +18,7 @@ const SAFE_PLACEHOLDER_PATTERNS = [
   '__PURE__',
   '__esModule',
   '__VIBES_CONFIG__',
-  '__CLERK_LOAD_ERROR__',
+  '__OIDC_LOAD_ERROR__',
   '__VIBES_SYNC_STATUS__',
   '__VIBES_APP_CODE__',
   '__ADMIN_CODE__'
@@ -140,15 +140,15 @@ describe('validateSellTemplate (pre-injection)', () => {
   });
 
   it('allows safe placeholder patterns', () => {
-    const html = '<html>/*#__PURE__*/ __esModule __VIBES_CONFIG__ __CLERK_LOAD_ERROR__</html>';
+    const html = '<html>/*#__PURE__*/ __esModule __VIBES_CONFIG__ __OIDC_LOAD_ERROR__</html>';
     expect(validateSellTemplate(html)).toEqual([]);
   });
 
   it('detects unreplaced config placeholders', () => {
-    const html = '<html>__CLERK_KEY__ and __APP_NAME__</html>';
+    const html = '<html>__OIDC_KEY__ and __APP_NAME__</html>';
     const errors = validateSellTemplate(html);
     expect(errors.some(e => e.includes('Unreplaced placeholders'))).toBe(true);
-    expect(errors.some(e => e.includes('__CLERK_KEY__'))).toBe(true);
+    expect(errors.some(e => e.includes('__OIDC_KEY__'))).toBe(true);
   });
 
   it('deduplicates repeated placeholders', () => {
