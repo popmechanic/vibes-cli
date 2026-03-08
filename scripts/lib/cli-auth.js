@@ -145,7 +145,7 @@ function openBrowser(url) {
   const platform = process.platform;
   try {
     if (platform === 'darwin') {
-      execSync(`open "${url}"`);
+      execSync(`/usr/bin/open "${url}"`);
     } else if (platform === 'win32') {
       execSync(`start "" "${url}"`);
     } else {
