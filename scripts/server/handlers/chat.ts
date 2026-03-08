@@ -80,6 +80,14 @@ You MUST match this HTML file's design language — colors, typography, spacing,
 ${htmlContent.slice(0, 15000)}
 \`\`\`
 
+Now update the app's CSS token system to match this HTML:
+1. REPLACE the :root block (or /* @theme:tokens */ section if markers exist) with new --comp-* oklch() values extracted from the HTML's CSS:
+   --comp-bg, --comp-text, --comp-border, --comp-accent, --comp-accent-text, --comp-muted, --color-background, --grid-color
+2. Update /* @theme:surfaces */ section (if markers exist) — shadows, borders, glass effects matching the HTML.
+3. Update /* @theme:motion */ section (if markers exist) — animations matching the HTML's effects.
+4. Update window.__VIBES_THEMES__ = [{ id: "custom-ref", name: "Custom Reference" }] and the useVibesTheme default to "custom-ref".
+5. --color-background MUST match the HTML's background color. Never leave it transparent or unset.
+
 `;
     } else {
       // Save image to disk so Claude can read it visually

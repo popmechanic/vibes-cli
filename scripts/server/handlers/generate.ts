@@ -60,6 +60,192 @@ export async function handleGenerate(ctx: ServerContext, onEvent: EventCallback,
     console.log(`[Generate]   ✗ Could not read style-prompt.txt: ${e.message}`);
   }
 
+  // Design reference path — skip theme resolution, let the reference guide design
+  const hasRef = reference && reference.name && reference.dataUrl;
+  if (hasRef) {
+    const isHtmlRef = /\.html?$/i.test(reference.name);
+    const intent = reference.intent || 'match';
+    const base64 = reference.dataUrl.split(',')[1];
+    const tmpDir = join(ctx.projectRoot, '.vibes-tmp');
+    mkdirSync(tmpDir, { recursive: true });
+    const refPath = join(tmpDir, reference.name);
+
+    let referenceBlock = '';
+
+    if (isHtmlRef) {
+      const htmlContent = Buffer.from(base64, 'base64').toString('utf-8');
+      writeFileSync(refPath, htmlContent, 'utf-8');
+      const inlined = htmlContent.length <= 30000 ? htmlContent : htmlContent.slice(0, 30000) + '\n<!-- truncated -->';
+      console.log(`[Generate]   ✓ HTML reference saved: ${refPath} (${(htmlContent.length / 1024).toFixed(1)}KB, inlined)`);
+
+      referenceBlock = `=== DESIGN REFERENCE (HTML: "${reference.name}") ===
+
+Study this HTML file's design — colors, typography, spacing, layout, surfaces, effects — and use it as your design spec.
+
+\`\`\`html
+${inlined}
+\`\`\`
+
+Extract the visual design from this HTML:
+- COLOR PALETTE: map every color to oklch() values for the --comp-* tokens
+- TYPOGRAPHY: font families, weights, sizing hierarchy
+- SURFACES: border styles, shadows, gradients, glass effects
+- LAYOUT PATTERNS: spatial organization, card styles, grid/flex structure
+- MOTION/EFFECTS: animations, transitions, hover states
+- --color-background MUST match the HTML's background. Never transparent.
+
+`;
+    } else {
+      // Image reference
+      writeFileSync(refPath, Buffer.from(base64, 'base64'));
+      console.log(`[Generate]   ✓ reference image saved: ${refPath} (intent: ${intent})`);
+
+      if (intent === 'mood') {
+        referenceBlock = `MANDATORY FIRST STEP: Read the image at ${refPath} using the Read tool.
+
+ANALYZE the image like a theme designer — before writing any code, identify:
+- MOOD: 3-4 adjectives describing the visual feeling
+- COLOR PALETTE: extract every distinct color as oklch() — background, text, accent, borders, muted tones
+- DESIGN PRINCIPLES: border styles, shadow depth, spacing rhythm
+- TYPOGRAPHY FEEL: weight, style, sizing hierarchy
+- SURFACE TREATMENT: glass/frosted effects, gradients, textures, card styles
+- MOTION ENERGY: calm/lively/dramatic — what kind of transitions and hover effects fit
+- DECORATIVE ELEMENTS: any SVG patterns, background shapes, dividers, icons style
+
+Apply the MOOD and COLOR PALETTE from this image to the app you generate.
+Use the extracted oklch() colors for the --comp-* tokens and :root block.
+--color-background MUST match the image's background. Never leave it transparent or unset.
+
+`;
+      } else {
+        // intent === 'match'
+        referenceBlock = `MANDATORY FIRST STEP: Read the image at ${refPath} using the Read tool.
+
+ANALYZE the image like a theme designer — before writing any code, identify:
+- MOOD: 3-4 adjectives describing the visual feeling
+- COLOR PALETTE: extract every distinct color as oklch() — background, text, accent, borders, muted tones
+- DESIGN PRINCIPLES: border styles, shadow depth, spacing rhythm
+- TYPOGRAPHY FEEL: weight, style, sizing hierarchy
+- SURFACE TREATMENT: glass/frosted effects, gradients, textures, card styles
+- LAYOUT STRUCTURE: how is the space divided? sidebar? header? grid? cards? split-pane?
+- MOTION ENERGY: calm/lively/dramatic
+- DECORATIVE ELEMENTS: any SVG patterns, background shapes, dividers, icons style
+
+Apply BOTH the visual style AND layout structure from this image to the app you generate.
+Use the extracted oklch() colors for the --comp-* tokens and :root block.
+Match the layout structure, spatial organization, component arrangement, and visual hierarchy of the image.
+--color-background MUST match the image's background. Never leave it transparent or unset.
+The goal: the generated app should look like the image was its design spec.
+
+`;
+      }
+    }
+
+    const refPrompt = `${referenceBlock}You are an expert React app designer. Generate a beautiful, creative app.
+
+USER REQUEST: "${userPrompt}"
+
+Your app.jsx MUST start with these EXACT lines (copy-paste, do not modify):
+
+\`\`\`jsx
+window.__VIBES_THEMES__ = [{ id: "custom-ref", name: "Custom Reference" }];
+
+function useVibesTheme() {
+  const [theme, setTheme] = React.useState(() => localStorage.getItem("vibes-theme") || "custom-ref");
+  React.useEffect(() => {
+    const handler = (e) => { const t = e.detail?.theme; if (t) { setTheme(t); localStorage.setItem("vibes-theme", t); } };
+    document.addEventListener("vibes-design-request", handler);
+    return () => document.removeEventListener("vibes-design-request", handler);
+  }, []);
+  return theme;
+}
+\`\`\`
+
+Derive ALL :root CSS tokens from the design reference above — do NOT use any predefined theme.
+
+=== DESIGN GUIDANCE ===
+
+${styleGuide}
+
+=== DESIGN REASONING ===
+
+Think in a <design> block:
+- What colors, typography, and surfaces did you extract from the reference?
+- How will you map them to --comp-* tokens?
+- What custom SVG illustrations fit this app?
+- What animations and effects match the reference mood? (Canvas particles, animated SVG, scroll reveals, card tilt, cursor glow)
+
+=== WRITE app.jsx ===
+
+Write the complete app to app.jsx. Rules:
+- FIRST: the exact __VIBES_THEMES__ + useVibesTheme code shown above
+- THEN: <style> tag with reference-derived CSS organized into marked sections (see below), plus component styles
+- Add rich visual effects: Canvas 2D backgrounds, animated SVG illustrations, CSS @property animations, hover effects
+- JSX with React hooks (useState, useEffect, useRef, useCallback, useMemo)
+- useFireproofClerk("db-name") for database — returns { database, useLiveQuery, useDocument }
+- NO import statements — runs in Babel script block with globals
+- NO TypeScript. End with: export default App
+- Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
+- Responsive (mobile-first with Tailwind). className="btn" for buttons, "grid-background" on root
+
+=== THEME SECTION MARKERS ===
+
+Organize ALL visual CSS into marked sections. This enables fast theme switching.
+
+In your <style> tag, wrap CSS in comment markers:
+
+\`\`\`css
+/* @theme:tokens */
+:root { --comp-bg: ...; --comp-text: ...; /* all color variables */ }
+/* @theme:tokens:end */
+
+/* @theme:typography */
+@import url('...');  /* Google Fonts or other font imports */
+/* @theme:typography:end */
+
+/* @theme:surfaces */
+.glass-card { backdrop-filter: ...; }
+.nav-button { display: flex; gap: 0.5rem; background: var(--comp-accent); border: 2px solid var(--comp-border); }
+/* @theme:surfaces:end */
+
+/* @theme:motion */
+@keyframes drift { ... } /* all @keyframes and animation definitions */
+/* @theme:motion:end */
+
+/* Pure-layout ONLY — no visual properties */
+.grid-wrapper { display: grid; gap: 1rem; max-width: 800px; margin: 0 auto; }
+\`\`\`
+
+In your JSX, wrap decorative elements:
+
+\`\`\`jsx
+{/* @theme:decoration */}
+<svg className="atmospheric-bg">...</svg>
+<div className="scan-line" />
+{/* @theme:decoration:end */}
+\`\`\`
+
+Rules:
+- EVERY :root block must be inside @theme:tokens markers
+- EVERY @import font URL must be inside @theme:typography markers
+- EVERY @keyframes must be inside @theme:motion markers
+- Decorative SVGs and atmospheric elements go in @theme:decoration
+- ANY class with visual properties (color, background, border, box-shadow, font-family, font-size, font-weight, text-shadow, fill, stroke, opacity, gradients) MUST go inside @theme:surfaces — even if it also has layout properties
+- ONLY pure-layout classes go outside markers: display, grid-template, gap, padding, margin, position, z-index, width, max-width, height, flex-*, align-items, justify-content, overflow, box-sizing
+
+DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}), database.put/del`;
+
+    onEvent({ type: 'theme_selected', themeId: 'custom-ref', themeName: 'Custom Reference' });
+
+    const maxTurns = isHtmlRef ? 5 : 8;
+    console.log(`[Generate] Starting (reference path) — ref: ${reference.name} (${intent}), prompt: ${(refPrompt.length / 1024).toFixed(1)}KB`);
+    await runOneShot(refPrompt, { skipChat: true, maxTurns, model, cwd: currentAppDir(ctx), tools: isHtmlRef ? 'Write' : 'Write,Read' }, onEvent, ctx.projectRoot);
+
+    sanitizeAppJsx(currentAppDir(ctx));
+    return;
+  }
+
+  // Normal theme path — no design reference
   const isAuto = !themeId;
 
   if (isAuto) {
@@ -96,60 +282,7 @@ export async function handleGenerate(ctx: ServerContext, onEvent: EventCallback,
     .trim();
   if (themeEssentials.length > 4000) themeEssentials = themeEssentials.slice(0, 4000) + '\n...';
 
-  // Handle reference image
-  let referenceBlock = '';
-  if (reference && reference.name && reference.dataUrl) {
-    const intent = reference.intent || 'match';
-    const base64 = reference.dataUrl.split(',')[1];
-    const tmpDir = join(ctx.projectRoot, '.vibes-tmp');
-    mkdirSync(tmpDir, { recursive: true });
-    const refPath = join(tmpDir, reference.name);
-    writeFileSync(refPath, Buffer.from(base64, 'base64'));
-    console.log(`[Generate]   ✓ reference image saved: ${refPath} (intent: ${intent})`);
-
-    if (intent === 'mood') {
-      referenceBlock = `MANDATORY FIRST STEP: Read the image at ${refPath} using the Read tool.
-
-ANALYZE the image like a theme designer — before writing any code, identify:
-- MOOD: 3-4 adjectives describing the visual feeling
-- COLOR PALETTE: extract every distinct color as oklch() — background, text, accent, borders, muted tones
-- DESIGN PRINCIPLES: border styles, shadow depth, spacing rhythm
-- TYPOGRAPHY FEEL: weight, style, sizing hierarchy
-- SURFACE TREATMENT: glass/frosted effects, gradients, textures, card styles
-- MOTION ENERGY: calm/lively/dramatic — what kind of transitions and hover effects fit
-- DECORATIVE ELEMENTS: any SVG patterns, background shapes, dividers, icons style
-
-Apply the MOOD and COLOR PALETTE from this image to the app you generate.
-Use the extracted oklch() colors for the --comp-* tokens and :root block INSTEAD of the theme file colors.
-Keep the theme's layout patterns and structural ideas but OVERRIDE all colors and visual mood with what you see in the image.
---color-background MUST match the image's background. Never leave it transparent or unset.
-
-`;
-    } else {
-      // intent === 'match'
-      referenceBlock = `MANDATORY FIRST STEP: Read the image at ${refPath} using the Read tool.
-
-ANALYZE the image like a theme designer — before writing any code, identify:
-- MOOD: 3-4 adjectives describing the visual feeling
-- COLOR PALETTE: extract every distinct color as oklch() — background, text, accent, borders, muted tones
-- DESIGN PRINCIPLES: border styles, shadow depth, spacing rhythm
-- TYPOGRAPHY FEEL: weight, style, sizing hierarchy
-- SURFACE TREATMENT: glass/frosted effects, gradients, textures, card styles
-- LAYOUT STRUCTURE: how is the space divided? sidebar? header? grid? cards? split-pane?
-- MOTION ENERGY: calm/lively/dramatic
-- DECORATIVE ELEMENTS: any SVG patterns, background shapes, dividers, icons style
-
-Apply BOTH the visual style AND layout structure from this image to the app you generate.
-Use the extracted oklch() colors for the --comp-* tokens and :root block INSTEAD of the theme file colors.
-Match the layout structure, spatial organization, component arrangement, and visual hierarchy of the image.
---color-background MUST match the image's background. Never leave it transparent or unset.
-The goal: the generated app should look like the image was its design spec.
-
-`;
-    }
-  }
-
-  const prompt = `${referenceBlock}You are an expert React app designer. Generate a beautiful, creative app.
+  const prompt = `You are an expert React app designer. Generate a beautiful, creative app.
 
 USER REQUEST: "${userPrompt}"
 
@@ -254,9 +387,8 @@ DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}),
 
   onEvent({ type: 'theme_selected', themeId, themeName });
 
-  const maxTurns = reference ? 8 : 5;
-  console.log(`[Generate] Starting — theme: ${themeId} (${themeName}), prompt: ${(prompt.length / 1024).toFixed(1)}KB${reference ? `, ref: ${reference.name} (${reference.intent})` : ''}`);
-  await runOneShot(prompt, { skipChat: true, maxTurns, model, cwd: currentAppDir(ctx), tools: 'Write' }, onEvent, ctx.projectRoot);
+  console.log(`[Generate] Starting — theme: ${themeId} (${themeName}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
+  await runOneShot(prompt, { skipChat: true, maxTurns: 5, model, cwd: currentAppDir(ctx), tools: 'Write' }, onEvent, ctx.projectRoot);
 
   sanitizeAppJsx(currentAppDir(ctx));
 }

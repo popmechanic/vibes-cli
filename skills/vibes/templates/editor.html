@@ -692,6 +692,25 @@
       border-color: var(--vibes-near-black);
     }
     .theme-carousel-btn:hover { background: white; color: var(--vibes-near-black); }
+    .theme-carousel.overridden {
+      opacity: 0.3;
+      pointer-events: none;
+      position: relative;
+    }
+    .theme-carousel.overridden::after {
+      content: 'Using design reference';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--vibes-near-black);
+      pointer-events: none;
+    }
     .theme-select { display: none; }
     .theme-select-row { display: none; }
     .theme-select-label { display: none; }
@@ -2618,7 +2637,7 @@
         </div>
       </div>
       <input type="file" id="refFileInput" accept="image/*,.html,.htm" style="display:none" onchange="handleRefFile(event)" />
-      <input type="file" id="genRefFileInput" accept="image/*" style="display:none" onchange="genHandleRefFile(event)" />
+      <input type="file" id="genRefFileInput" accept="image/*,.html,.htm" style="display:none" onchange="genHandleRefFile(event)" />
       <!-- Palette Sidebar (replaces chat content when active) -->
       <div id="paletteSidebar" class="palette-sidebar" style="display:none;">
         <div class="palette-sidebar-header">
@@ -4224,13 +4243,19 @@
   function genClearReference() {
     genReferenceFile = null;
     document.getElementById('genRefBadgeRow').classList.remove('visible');
+    setThemeCarouselOverridden(false);
   }
 
   function genAttachRefFromFile(file) {
+    const isHtml = /\.html?$/i.test(file.name);
     const reader = new FileReader();
     reader.onload = () => {
       genReferenceFile = { name: file.name, type: file.type, dataUrl: reader.result, intent: 'match' };
-      if (file.type.startsWith('image/')) {
+      if (isHtml) {
+        // HTML files always use "match" intent, skip intent picker
+        genShowRefBadge(file.name, ' (HTML Design)');
+        setThemeCarouselOverridden(true);
+      } else if (file.type.startsWith('image/')) {
         genShowRefIntentPicker(file);
       } else {
         genShowRefBadge(file.name, null);
@@ -4258,6 +4283,7 @@
     genReferenceFile.intent = intent;
     const intentLabels = { mood: ' (Mood)', match: ' (Match)' };
     genShowRefBadge(genReferenceFile.name, intentLabels[intent] || '');
+    setThemeCarouselOverridden(true);
     document.getElementById('generatePrompt').focus();
   }
 
@@ -4273,6 +4299,13 @@
       <button class="clear-btn" onclick="genClearReference()" title="Remove reference">&times;</button>
     </span>`;
     row.classList.add('visible');
+  }
+
+  function setThemeCarouselOverridden(overridden) {
+    const carousel = document.querySelector('.theme-carousel');
+    if (carousel) {
+      carousel.classList.toggle('overridden', overridden);
+    }
   }
 
   function genToggleImgGen() {
