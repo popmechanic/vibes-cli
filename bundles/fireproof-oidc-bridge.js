@@ -22,8 +22,7 @@
 import React from "react";
 import * as oauth from "oauth4webapi";
 
-// Re-export base Fireproof for user app code
-export { useFireproof } from "@fireproof/core";
+// Import base Fireproof (local-only) — used internally by useFireproofOIDC
 import { useFireproof as _baseUseFireproof, toCloud as _toCloud } from "@fireproof/core";
 
 // ─── OIDC Token Management ───────────────────────────────────────────────
@@ -683,7 +682,6 @@ export function useFireproofOIDC(name, opts) {
     if (_isPreviewMode) return;
     if (!dashApi || !config.cloudBackendUrl || attachingRef.current) return;
     if (attachStatus !== "detached") return;
-
     attachingRef.current = true;
     setSyncStatus("connecting");
     setAttachStatus("attaching");
@@ -853,3 +851,8 @@ export function useFireproofOIDC(name, opts) {
 
 // Backward-compat alias: templates may use useFireproofClerk
 export { useFireproofOIDC as useFireproofClerk };
+
+// Export OIDC-enhanced hook as useFireproof so all apps get cloud sync automatically.
+// When no OIDCProvider is present (local-only mode), dashApi is null and cloud attach
+// is gracefully skipped — behaves identically to the base useFireproof.
+export { useFireproofOIDC as useFireproof };
