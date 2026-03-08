@@ -15,6 +15,7 @@ import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp 
 import { readCachedTokens, isTokenExpired, getAccessToken, startLoginFlow, removeCachedTokens } from '../lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../lib/auth-constants.js';
 import { validateClerkKey, validateClerkSecretKey, validateClerkCredentials, validateCloudflareCredentials } from './validation.ts';
+import { broadcast } from './ws.ts';
 
 // --- Body parsing helpers ---
 
@@ -308,24 +309,10 @@ async function editorAuthLogin(ctx: ServerContext): Promise<Response> {
     // Wait for callback in the background, then broadcast via WebSocket
     tokenPromise.then((tokens: any) => {
       const user = parseUserFromIdToken(tokens.idToken);
-      const message = JSON.stringify({ type: 'auth_complete', user });
-      if ((ctx as any).wss) {
-        for (const client of (ctx as any).wss.clients) {
-          if (client.readyState === 1) {
-            try { client.send(message); } catch {}
-          }
-        }
-      }
+      broadcast({ type: 'auth_complete', user });
     }).catch((err: any) => {
       console.error('[Auth] Login failed:', err.message);
-      const message = JSON.stringify({ type: 'auth_error', error: err.message });
-      if ((ctx as any).wss) {
-        for (const client of (ctx as any).wss.clients) {
-          if (client.readyState === 1) {
-            try { client.send(message); } catch {}
-          }
-        }
-      }
+      broadcast({ type: 'auth_error', error: err.message });
     });
 
     // Return the authorize URL immediately so frontend can window.open() it
