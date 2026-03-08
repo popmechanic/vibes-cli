@@ -167,7 +167,6 @@ if (!envVars.VITE_API_URL) {
 }
 
 // Configuration replacements
-// Use CLI flags if provided, otherwise fall back to .env values (validated above)
 const replacements = {
   '__OIDC_AUTHORITY__': OIDC_AUTHORITY,
   '__OIDC_CLIENT_ID__': OIDC_CLIENT_ID,
@@ -220,7 +219,7 @@ for (const [placeholder, value] of Object.entries(replacements)) {
   output = output.split(placeholder).join(value);
 }
 
-// Populate Connect config placeholders from .env (envVars loaded earlier)
+// Populate Connect config placeholders (from registry if available)
 // Must run before placeholder validation so Connect placeholders are replaced
 console.log('Connect mode: OIDC auth + cloud sync enabled');
 output = populateConnectConfig(output, envVars, true);
@@ -278,7 +277,7 @@ const templateErrors = validateSellTemplate(output);
 if (templateErrors.length > 0) {
   console.error('Sell assembly failed (template validation):');
   templateErrors.forEach(e => console.error(`  - ${e}`));
-  console.error('\nFix: Check your config options and .env file');
+  console.error('\nFix: Check your config options');
   process.exit(1);
 }
 

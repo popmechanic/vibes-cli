@@ -38,7 +38,7 @@ export function validateOpenRouterKey(key) {
 }
 
 /**
- * Replace Connect config placeholders with values from .env
+ * Replace Connect config placeholders with values from env vars object
  * @param {string} html - Template HTML
  * @param {object} envVars - Environment variables
  * @param {boolean} [globalReplace=false] - Use global regex replacement (for sell templates with multiple occurrences)
