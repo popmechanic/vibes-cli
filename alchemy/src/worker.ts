@@ -94,7 +94,7 @@ const VIBES_OIDC_CLIENT = {
     "http://127.0.0.1/callback",
     "http://localhost:18192/callback",
     "http://127.0.0.1:18192/callback",
-    "https://*.marcus-e.workers.dev/*",
+    "https://*.marcus-e.workers.dev/**",
   ],
   isPublic: true,
 };
