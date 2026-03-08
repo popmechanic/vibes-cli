@@ -10,7 +10,6 @@ import { join, extname, resolve } from 'path';
 import type { ServerContext } from './config.ts';
 import { getRecommendedThemeIds, loadOpenRouterKey } from './config.ts';
 import { assembleAppFrame } from './handlers/generate.ts';
-import { loadEnvFile, writeEnvFile } from '../lib/env-utils.js';
 import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp } from '../lib/registry.js';
 import { readCachedTokens, isTokenExpired, getAccessToken, startLoginFlow, removeCachedTokens } from '../lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../lib/auth-constants.js';
@@ -148,18 +147,6 @@ async function checkEditorDeps(ctx: ServerContext) {
         const sk = apps[0].clerk?.secretKey || '';
         if (sk.startsWith('sk_test_') || sk.startsWith('sk_live_')) validatedSk = sk;
       }
-    }
-  }
-
-  if (!clerkOk) {
-    const env = loadEnvFile(ctx.projectRoot);
-    const envKey = env.VITE_CLERK_PUBLISHABLE_KEY || '';
-    if (validateClerkKey(envKey)) {
-      clerkOk = true;
-      clerkDetail = `${envKey.slice(0, 12)}... (from .env)`;
-      validatedPk = envKey;
-      const envSk = env.CLERK_SECRET_KEY || '';
-      if (envSk.startsWith('sk_test_') || envSk.startsWith('sk_live_')) validatedSk = envSk;
     }
   }
 
@@ -382,10 +369,6 @@ async function editorSaveCredentials(ctx: ServerContext, req: Request): Promise<
         name: '_default',
         clerk: { publishableKey: pk || existingClerk.publishableKey || '', secretKey: sk || existingClerk.secretKey || '' },
       });
-      const envVars: Record<string, string> = {};
-      if (pk) envVars.VITE_CLERK_PUBLISHABLE_KEY = pk;
-      if (sk) { envVars.CLERK_SECRET_KEY = sk; envVars.VITE_CLERK_SECRET_KEY = sk; }
-      writeEnvFile(ctx.projectRoot, envVars);
     }
 
     if (hasCf) {
@@ -397,7 +380,6 @@ async function editorSaveCredentials(ctx: ServerContext, req: Request): Promise<
     }
 
     if (hasOpenRouter) {
-      writeEnvFile(ctx.projectRoot, { OPENROUTER_API_KEY: body.openRouterKey });
       ctx.openRouterKey = body.openRouterKey;
     }
 

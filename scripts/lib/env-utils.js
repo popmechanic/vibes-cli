@@ -1,12 +1,9 @@
 /**
  * Shared environment/config utilities
  *
- * Used by assemble.js and assemble-sell.js for .env loading,
- * OIDC config validation, and Connect config population.
+ * OIDC config validation and Connect config population.
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { resolve } from 'path';
 
 // Connect config placeholders (OIDC constants are hardcoded in auth-constants.js)
 export const CONFIG_PLACEHOLDERS = {
@@ -14,33 +11,6 @@ export const CONFIG_PLACEHOLDERS = {
   '__VITE_CLOUD_URL__': 'VITE_CLOUD_URL',
 };
 
-/**
- * Parse .env file if it exists
- * Returns object with env var values
- */
-export function loadEnvFile(dir) {
-  const envPath = resolve(dir, '.env');
-  if (!existsSync(envPath)) {
-    return {};
-  }
-
-  const content = readFileSync(envPath, 'utf8');
-  const env = {};
-
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-
-    const eqIndex = trimmed.indexOf('=');
-    if (eqIndex === -1) continue;
-
-    const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).trim();
-    env[key] = value.replace(/^["']|["']$/g, '');
-  }
-
-  return env;
-}
 
 /**
  * Validate that an OIDC authority URL is valid (must be HTTPS)
@@ -105,50 +75,6 @@ export function deriveStudioUrls(studioName) {
   };
 }
 
-/**
- * Merge-write environment variables to .env file.
- * Preserves comments, blank lines, and keys not in newVars.
- * Overwrites matching keys, appends new ones.
- * @param {string} dir - Directory containing .env
- * @param {object} newVars - Key-value pairs to write
- */
-export function writeEnvFile(dir, newVars) {
-  const envPath = resolve(dir, '.env');
-  const lines = [];
-  const written = new Set();
-
-  if (existsSync(envPath)) {
-    const content = readFileSync(envPath, 'utf8');
-    for (const line of content.split('\n')) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) {
-        lines.push(line);
-        continue;
-      }
-      const eqIndex = trimmed.indexOf('=');
-      if (eqIndex === -1) {
-        lines.push(line);
-        continue;
-      }
-      const key = trimmed.slice(0, eqIndex).trim();
-      if (key in newVars) {
-        lines.push(`${key}=${newVars[key]}`);
-        written.add(key);
-      } else {
-        lines.push(line);
-      }
-    }
-  }
-
-  // Append new keys not yet written
-  for (const [key, value] of Object.entries(newVars)) {
-    if (!written.has(key)) {
-      lines.push(`${key}=${value}`);
-    }
-  }
-
-  writeFileSync(envPath, lines.join('\n') + '\n');
-}
 
 export function populateConnectConfig(html, envVars, globalReplace = false) {
   let result = html;
