@@ -472,14 +472,14 @@
       border-top: 1px dashed #555;
       margin: 0.5rem 0 1rem;
     }
-    /* Account panel — slides in from right, overlays content */
+    /* Account panel — slides in from right, below navbar */
     .account-overlay {
-      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      display: none; position: fixed; top: 64px; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.5); z-index: 900;
     }
     .account-overlay.active { display: block; }
     .account-panel {
-      position: fixed; top: 0; right: 0; bottom: 0; width: 380px; max-width: 90vw;
+      position: fixed; top: 64px; right: 0; bottom: 0; width: 380px; max-width: 90vw;
       background: #1a1a1a; box-shadow: -4px 0 24px rgba(0,0,0,0.5); z-index: 901;
       overflow-y: auto; padding: 2rem;
       transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
@@ -2878,6 +2878,8 @@
 
   async function openSettings() {
     if (currentUser) {
+      const overlay = document.getElementById('accountOverlay');
+      if (overlay.classList.contains('active')) { closeAccountPanel(); return; }
       openAccountPanel();
     } else {
       setPhase('setup');

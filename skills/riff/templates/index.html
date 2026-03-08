@@ -950,7 +950,7 @@
       // Auto-generated vibes menu components
 // Run: node scripts/build-components.js --force to regenerate
 // Source: components/
-// Generated: 2026-03-08T05:06:30.888Z
+// Generated: 2026-03-08T06:25:41.688Z
 // Components: 26/26
 
 // === useMobile ===
@@ -2552,6 +2552,45 @@ function VibesButton({
 
 
 // === VibesPanel.styles ===
+if (typeof document !== "undefined") {
+  const styleId = "vibes-panel-transition-keyframes";
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = `
+      @keyframes vibes-stagger-in {
+        from {
+          opacity: 0;
+          transform: translateY(8px) scale(0.97);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .vibes-panel-stagger > * {
+        animation: vibes-stagger-in 250ms cubic-bezier(0.23, 1, 0.32, 1) both;
+        will-change: opacity, transform;
+      }
+
+      .vibes-panel-stagger > *:nth-child(1) { animation-delay: 0ms; }
+      .vibes-panel-stagger > *:nth-child(2) { animation-delay: 60ms; }
+      .vibes-panel-stagger > *:nth-child(3) { animation-delay: 120ms; }
+      .vibes-panel-stagger > *:nth-child(4) { animation-delay: 180ms; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .vibes-panel-stagger > * {
+          animation: none !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
+function getPanelEnterStyle() {
+  return {};
+}
 function getOuterContainerStyle(customStyle) {
   return {
     padding: "12px",
@@ -2815,81 +2854,89 @@ function VibesPanel({
       label: "Launcher",
       disappear: true
     },
-    /* @__PURE__ */ React.createElement("div", { style: getButtonContainerStyle(isMobile) }, mode === "invite" ? /* @__PURE__ */ React.createElement("div", { style: getInviteRowStyle(isMobile) }, /* @__PURE__ */ React.createElement(
-      VibesButton,
+    /* @__PURE__ */ React.createElement(
+      "div",
       {
-        variant: YELLOW,
-        onClick: () => {
-        },
-        icon: "invite"
+        key: mode,
+        className: mode === "default" ? "vibes-panel-stagger" : void 0,
+        style: getButtonContainerStyle(isMobile)
       },
-      "Invite"
-    ), inviteStatus === "idle" ? /* @__PURE__ */ React.createElement(
-      "form",
-      {
-        onSubmit: handleInviteSubmit,
-        style: getInviteFormStyle(isMobile)
-      },
-      /* @__PURE__ */ React.createElement("label", { htmlFor: emailId, style: getInviteLabelStyle() }, "Invite by email"),
-      /* @__PURE__ */ React.createElement(
-        "input",
-        {
-          id: emailId,
-          type: "email",
-          placeholder: "friend@example.com",
-          value: email,
-          onChange: (e) => setEmail(e.target.value),
-          style: getInviteInputStyle(),
-          autoComplete: "email",
-          required: true
-        }
-      ),
-      /* @__PURE__ */ React.createElement(
+      mode === "invite" ? /* @__PURE__ */ React.createElement("div", { className: "vibes-panel-stagger", style: getInviteRowStyle(isMobile) }, /* @__PURE__ */ React.createElement(
         VibesButton,
         {
           variant: YELLOW,
-          type: "submit",
-          disabled: !email.trim()
+          onClick: () => {
+          },
+          icon: "invite"
         },
-        "Submit"
-      )
-    ) : /* @__PURE__ */ React.createElement(
-      BrutalistCard,
-      {
-        id: "invite-status",
-        role: "status",
-        "aria-live": "polite",
-        size: "sm",
-        variant: inviteStatus === "sending" ? "default" : inviteStatus === "error" ? "error" : "success",
-        style: getInviteStatusStyle()
-      },
-      inviteStatus === "sending" ? "Inviting..." : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", null, inviteMessage), inviteLink && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "0.5rem" } }, /* @__PURE__ */ React.createElement("button", { onClick: handleCopyLink, style: {
-        background: "none",
-        border: "2px solid currentColor",
-        borderRadius: "6px",
-        padding: "0.25rem 0.75rem",
-        cursor: "pointer",
-        color: "inherit",
-        fontWeight: 600,
-        fontSize: "0.85em"
-      } }, linkCopied ? "Copied!" : "Copy Invite Link")))
-    ), /* @__PURE__ */ React.createElement(VibesButton, { variant: GRAY, onClick: handleBackClick, icon: "back" }, "Back")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
-      VibesButton,
-      {
-        variant: BLUE,
-        onClick: handleLogoutClick,
-        icon: "login"
-      },
-      "Logout"
-    ), /* @__PURE__ */ React.createElement(
-      VibesButton,
-      {
-        variant: YELLOW,
-        onClick: handleInviteClick,
-        icon: "invite"
-      },
-      "Invite"
-    )))
+        "Invite"
+      ), inviteStatus === "idle" ? /* @__PURE__ */ React.createElement(
+        "form",
+        {
+          onSubmit: handleInviteSubmit,
+          style: getInviteFormStyle(isMobile)
+        },
+        /* @__PURE__ */ React.createElement("label", { htmlFor: emailId, style: getInviteLabelStyle() }, "Invite by email"),
+        /* @__PURE__ */ React.createElement(
+          "input",
+          {
+            id: emailId,
+            type: "email",
+            placeholder: "friend@example.com",
+            value: email,
+            onChange: (e) => setEmail(e.target.value),
+            style: getInviteInputStyle(),
+            autoComplete: "email",
+            required: true
+          }
+        ),
+        /* @__PURE__ */ React.createElement(
+          VibesButton,
+          {
+            variant: YELLOW,
+            type: "submit",
+            disabled: !email.trim()
+          },
+          "Submit"
+        )
+      ) : /* @__PURE__ */ React.createElement(
+        BrutalistCard,
+        {
+          id: "invite-status",
+          role: "status",
+          "aria-live": "polite",
+          size: "sm",
+          variant: inviteStatus === "sending" ? "default" : inviteStatus === "error" ? "error" : "success",
+          style: getInviteStatusStyle()
+        },
+        inviteStatus === "sending" ? "Inviting..." : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", null, inviteMessage), inviteLink && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "0.5rem" } }, /* @__PURE__ */ React.createElement("button", { onClick: handleCopyLink, style: {
+          background: "none",
+          border: "2px solid currentColor",
+          borderRadius: "6px",
+          padding: "0.25rem 0.75rem",
+          cursor: "pointer",
+          color: "inherit",
+          fontWeight: 600,
+          fontSize: "0.85em"
+        } }, linkCopied ? "Copied!" : "Copy Invite Link")))
+      ), /* @__PURE__ */ React.createElement(VibesButton, { variant: GRAY, onClick: handleBackClick, icon: "back" }, "Back")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+        VibesButton,
+        {
+          variant: BLUE,
+          onClick: handleLogoutClick,
+          icon: "login"
+        },
+        "Logout"
+      ), /* @__PURE__ */ React.createElement(
+        VibesButton,
+        {
+          variant: YELLOW,
+          onClick: handleInviteClick,
+          icon: "invite"
+        },
+        "Invite"
+      ))
+    )
   ));
 }
 
