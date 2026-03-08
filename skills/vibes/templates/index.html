@@ -3429,6 +3429,9 @@ if (typeof window !== 'undefined') {
       import ReactDOMClient from "react-dom/client";
       import { useFireproof, useFireproofClerk } from "use-fireproof";
 
+      // Always export useFireproofClerk so app code works in both local-only and deployed modes
+      window.useFireproofClerk = useFireproofClerk;
+
       // __VIBES_APP_CODE__
 
       // Use shared error components from base template
@@ -3558,9 +3561,6 @@ if (typeof window !== 'undefined') {
             window.useUser = oidcModule.useUser;
             // Export OIDC context for SharingBridge and user code
             window.useOIDCContext = oidcModule.useOIDCContext;
-
-            // Export Fireproof hook for user's App code (bridge provides ledger routing + invite)
-            window.useFireproofClerk = oidcModule.useFireproofClerk;
           } catch (err) {
             console.error('Failed to load OIDC components:', err);
             window.__OIDC_LOAD_ERROR__ = err.message || String(err);
