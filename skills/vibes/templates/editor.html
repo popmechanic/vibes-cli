@@ -3415,6 +3415,7 @@
       const res = await fetch('/editor/apps/load?name=' + encodeURIComponent(name), { method: 'POST' });
       if (!res.ok) throw new Error('Failed to load app');
       currentAppName = name;
+      document.getElementById('chatMessages').innerHTML = '';
       setPhase('edit');
       loadPreview();
       versionHistory = [];
@@ -3599,6 +3600,7 @@
   }
 
   function useExistingApp() {
+    document.getElementById('chatMessages').innerHTML = '';
     setPhase('edit');
     loadPreview();
     versionPush();
