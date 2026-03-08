@@ -3105,6 +3105,9 @@
       } else if (msg.type === 'auth_complete') {
         handleAuthComplete(msg.user);
         return;
+      } else if (msg.type === 'auth_error') {
+        showWelcomeError(msg.error || 'Sign in failed');
+        return;
       } else if (msg.type === 'auth_required') {
         setPhase('setup');
         const btn = document.getElementById('welcomeBtn');
@@ -3165,6 +3168,15 @@
       const data = await res.json();
       if (!data.ok) {
         showWelcomeError(data.error || 'Sign in failed');
+        return;
+      }
+      // Open the authorize URL as a JS popup so window.close() works on callback
+      if (data.authorizeUrl) {
+        const w = 500, h = 650;
+        const left = window.screenX + (window.outerWidth - w) / 2;
+        const top = window.screenY + (window.outerHeight - h) / 2;
+        window.open(data.authorizeUrl, 'vibes_auth',
+          `width=${w},height=${h},left=${left},top=${top},popup=yes`);
       }
       // Success is handled by the WebSocket auth_complete message
     } catch (err) {

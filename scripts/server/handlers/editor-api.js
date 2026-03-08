@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { loadRegistry } from '../../lib/registry.js';
-import { readCachedTokens, isTokenExpired, getAccessToken, loginWithBrowser, removeCachedTokens } from '../../lib/cli-auth.js';
+import { readCachedTokens, isTokenExpired, getAccessToken, loginWithBrowser, startLoginFlow, removeCachedTokens } from '../../lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../../lib/auth-constants.js';
 
 const MAX_BODY_SIZE = 1024 * 1024; // 1MB
@@ -95,30 +95,41 @@ export async function checkAuthStatus() {
 }
 
 /**
- * Trigger browser-based Pocket ID login.
- * On success, broadcasts auth_complete to all WebSocket clients.
+ * Start Pocket ID login — returns the authorize URL for the frontend to open
+ * as a JS popup (so window.close() works on the callback page).
+ * Waits for the callback in the background and broadcasts auth_complete via WS.
  */
 export async function handleAuthLogin(ctx, req, res) {
   try {
-    const tokens = await loginWithBrowser({
+    const { authorizeUrl, tokenPromise } = await startLoginFlow({
       authority: OIDC_AUTHORITY,
       clientId: OIDC_CLIENT_ID,
     });
 
-    const user = parseUserFromIdToken(tokens.idToken);
-
-    // Broadcast to all connected WebSocket clients
-    const message = JSON.stringify({ type: 'auth_complete', user });
-    for (const client of ctx.wss.clients) {
-      if (client.readyState === 1) {
-        try { client.send(message); } catch { /* client may have disconnected */ }
-      }
-    }
-
+    // Return the URL immediately so the frontend can window.open() it
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, user }));
+    res.end(JSON.stringify({ ok: true, authorizeUrl }));
+
+    // Wait for the callback in the background, then broadcast
+    tokenPromise.then((tokens) => {
+      const user = parseUserFromIdToken(tokens.idToken);
+      const message = JSON.stringify({ type: 'auth_complete', user });
+      for (const client of ctx.wss.clients) {
+        if (client.readyState === 1) {
+          try { client.send(message); } catch { /* client may have disconnected */ }
+        }
+      }
+    }).catch((err) => {
+      console.error('[Auth] Login failed:', err.message);
+      const message = JSON.stringify({ type: 'auth_error', error: err.message });
+      for (const client of ctx.wss.clients) {
+        if (client.readyState === 1) {
+          try { client.send(message); } catch { /* ignore */ }
+        }
+      }
+    });
   } catch (err) {
-    console.error('[Auth] Login failed:', err.message);
+    console.error('[Auth] Could not start login flow:', err.message);
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: false, error: err.message }));
   }

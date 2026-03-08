@@ -160,7 +160,15 @@ function openBrowser(url) {
 // Full browser login (OIDC Authorization Code + PKCE)
 // ---------------------------------------------------------------------------
 
-export async function loginWithBrowser({ authority, clientId, authFile = DEFAULT_AUTH_FILE }) {
+/**
+ * Start the OIDC callback server and return the authorize URL + a promise
+ * that resolves with tokens once the callback completes.
+ *
+ * This is the low-level helper used by both `loginWithBrowser` (CLI mode,
+ * opens the browser itself) and `startLoginFlow` (editor mode, returns the
+ * URL so the frontend can open it as a JS popup for reliable auto-close).
+ */
+function _startCallbackServer({ authority, clientId, authFile = DEFAULT_AUTH_FILE }) {
   // Close any stale callback server from a previous login attempt
   if (_callbackServer) {
     try {
@@ -175,120 +183,143 @@ export async function loginWithBrowser({ authority, clientId, authFile = DEFAULT
   const codeChallenge = generateCodeChallenge(codeVerifier);
   const state = randomBytes(16).toString('hex');
 
-  return new Promise((resolve, reject) => {
-    let settled = false;
+  let resolveTokens, rejectTokens;
+  const tokenPromise = new Promise((resolve, reject) => {
+    resolveTokens = resolve;
+    rejectTokens = reject;
+  });
 
-    const server = createServer(async (req, res) => {
-      if (settled) {
+  let settled = false;
+
+  const server = createServer(async (req, res) => {
+    if (settled) {
+      res.writeHead(404);
+      res.end();
+      return;
+    }
+
+    try {
+      const reqUrl = new URL(req.url, `http://localhost`);
+      if (reqUrl.pathname !== '/callback') {
         res.writeHead(404);
-        res.end();
+        res.end('Not found');
         return;
       }
 
-      try {
-        const reqUrl = new URL(req.url, `http://localhost`);
-        if (reqUrl.pathname !== '/callback') {
-          res.writeHead(404);
-          res.end('Not found');
-          return;
-        }
+      const code = reqUrl.searchParams.get('code');
+      const returnedState = reqUrl.searchParams.get('state');
+      const error = reqUrl.searchParams.get('error');
 
-        const code = reqUrl.searchParams.get('code');
-        const returnedState = reqUrl.searchParams.get('state');
-        const error = reqUrl.searchParams.get('error');
+      if (error) {
+        const desc = reqUrl.searchParams.get('error_description') || error;
+        res.writeHead(400, { 'Content-Type': 'text/html' });
+        res.end(callbackPage('Authentication Failed', desc));
+        settled = true;
+        server.close();
+        rejectTokens(new Error(`OIDC error: ${desc}`));
+        return;
+      }
 
-        if (error) {
-          const desc = reqUrl.searchParams.get('error_description') || error;
-          res.writeHead(400, { 'Content-Type': 'text/html' });
-          res.end(callbackPage('Authentication Failed', desc));
-          settled = true;
-          server.close();
-          reject(new Error(`OIDC error: ${desc}`));
-          return;
-        }
+      if (!code || returnedState !== state) {
+        res.writeHead(400, { 'Content-Type': 'text/html' });
+        res.end(callbackPage('Invalid Callback', 'Missing code or state mismatch.'));
+        settled = true;
+        server.close();
+        rejectTokens(new Error('Invalid callback: missing code or state mismatch'));
+        return;
+      }
 
-        if (!code || returnedState !== state) {
-          res.writeHead(400, { 'Content-Type': 'text/html' });
-          res.end(callbackPage('Invalid Callback', 'Missing code or state mismatch.'));
-          settled = true;
-          server.close();
-          reject(new Error('Invalid callback: missing code or state mismatch'));
-          return;
-        }
+      // Exchange authorization code for tokens
+      const tokenUrl = `${authority}/api/oidc/token`;
+      const body = new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: clientId,
+        code,
+        redirect_uri: `http://localhost:${server.address().port}/callback`,
+        code_verifier: codeVerifier,
+      });
 
-        // Exchange authorization code for tokens
-        const tokenUrl = `${authority}/api/oidc/token`;
-        const body = new URLSearchParams({
-          grant_type: 'authorization_code',
-          client_id: clientId,
-          code,
-          redirect_uri: `http://localhost:${server.address().port}/callback`,
-          code_verifier: codeVerifier,
-        });
+      const tokenRes = await fetch(tokenUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+      });
 
-        const tokenRes = await fetch(tokenUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: body.toString(),
-        });
+      if (!tokenRes.ok) {
+        const text = await tokenRes.text();
+        res.writeHead(500, { 'Content-Type': 'text/html' });
+        res.end(callbackPage('Token Exchange Failed', text));
+        settled = true;
+        server.close();
+        rejectTokens(new Error(`Token exchange failed (${tokenRes.status}): ${text}`));
+        return;
+      }
 
-        if (!tokenRes.ok) {
-          const text = await tokenRes.text();
-          res.writeHead(500, { 'Content-Type': 'text/html' });
-          res.end(callbackPage('Token Exchange Failed', text));
-          settled = true;
-          server.close();
-          reject(new Error(`Token exchange failed (${tokenRes.status}): ${text}`));
-          return;
-        }
+      const data = await tokenRes.json();
+      const tokens = {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token || null,
+        idToken: data.id_token || null,
+        expiresAt: Math.floor(Date.now() / 1000) + (data.expires_in || 3600),
+      };
 
-        const data = await tokenRes.json();
-        const tokens = {
-          accessToken: data.access_token,
-          refreshToken: data.refresh_token || null,
-          idToken: data.id_token || null,
-          expiresAt: Math.floor(Date.now() / 1000) + (data.expires_in || 3600),
-        };
+      writeCachedTokens(authFile, tokens);
 
-        writeCachedTokens(authFile, tokens);
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(callbackPage('Authenticated', 'This tab will close automatically\u2026', { ok: true, autoClose: true }));
 
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end(callbackPage('Authenticated', 'This tab will close automatically\u2026', { ok: true, autoClose: true }));
-
+      settled = true;
+      for (const conn of _callbackConnections) conn.destroy();
+      _callbackConnections.clear();
+      server.close();
+      _callbackServer = null;
+      resolveTokens(tokens);
+    } catch (err) {
+      if (!settled) {
         settled = true;
         for (const conn of _callbackConnections) conn.destroy();
         _callbackConnections.clear();
         server.close();
         _callbackServer = null;
-        resolve(tokens);
-      } catch (err) {
-        if (!settled) {
-          settled = true;
-          for (const conn of _callbackConnections) conn.destroy();
-          _callbackConnections.clear();
-          server.close();
-          _callbackServer = null;
-          reject(err);
-        }
+        rejectTokens(err);
       }
-    });
+    }
+  });
 
-    // Track server and connections for cleanup on re-login
-    _callbackServer = server;
-    server.on('connection', (conn) => {
-      _callbackConnections.add(conn);
-      conn.on('close', () => _callbackConnections.delete(conn));
-    });
+  // Track server and connections for cleanup on re-login
+  _callbackServer = server;
+  server.on('connection', (conn) => {
+    _callbackConnections.add(conn);
+    conn.on('close', () => _callbackConnections.delete(conn));
+  });
 
-    // Listen on a fixed port so the redirect URI matches what's registered in Pocket ID
-    const CLI_AUTH_PORT = 18192;
+  // Timeout
+  const timer = setTimeout(() => {
+    if (!settled) {
+      settled = true;
+      for (const conn of _callbackConnections) conn.destroy();
+      _callbackConnections.clear();
+      server.close();
+      _callbackServer = null;
+      rejectTokens(new Error('Login timed out after 5 minutes'));
+    }
+  }, LOGIN_TIMEOUT_MS);
+  timer.unref?.();
+
+  const CLI_AUTH_PORT = 18192;
+
+  // Return a promise that resolves with { authorizeUrl, tokenPromise }
+  // once the server is listening.
+  const ready = new Promise((resolveReady, rejectReady) => {
     server.on('error', (err) => {
       if (!settled) {
         settled = true;
         _callbackServer = null;
-        reject(err);
+        rejectTokens(err);
       }
+      rejectReady(err);
     });
+
     server.listen(CLI_AUTH_PORT, '127.0.0.1', () => {
       const port = server.address().port;
       const redirectUri = `http://localhost:${port}/callback`;
@@ -302,26 +333,34 @@ export async function loginWithBrowser({ authority, clientId, authFile = DEFAULT
       authorizeUrl.searchParams.set('state', state);
       authorizeUrl.searchParams.set('scope', 'openid profile email');
 
-      console.log(`\nOpening browser for authentication...\n`);
-      console.log(`If the browser doesn't open, visit:\n${authorizeUrl.toString()}\n`);
-      openBrowser(authorizeUrl.toString());
+      resolveReady({ authorizeUrl: authorizeUrl.toString(), tokenPromise });
     });
-
-    // Timeout
-    const timer = setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        for (const conn of _callbackConnections) conn.destroy();
-        _callbackConnections.clear();
-        server.close();
-        _callbackServer = null;
-        reject(new Error('Login timed out after 5 minutes'));
-      }
-    }, LOGIN_TIMEOUT_MS);
-
-    // Don't let the timer keep the process alive if resolved early
-    timer.unref?.();
   });
+
+  return ready;
+}
+
+/**
+ * Start the login flow and return the authorize URL without opening a browser.
+ * The caller (e.g. editor frontend) is responsible for opening the URL.
+ * Returns { authorizeUrl: string, tokenPromise: Promise<tokens> }.
+ */
+export async function startLoginFlow({ authority, clientId, authFile = DEFAULT_AUTH_FILE }) {
+  return _startCallbackServer({ authority, clientId, authFile });
+}
+
+/**
+ * Full browser login — starts callback server, opens browser, waits for tokens.
+ * Used by CLI deploys where there's no frontend to open the popup.
+ */
+export async function loginWithBrowser({ authority, clientId, authFile = DEFAULT_AUTH_FILE }) {
+  const { authorizeUrl, tokenPromise } = await _startCallbackServer({ authority, clientId, authFile });
+
+  console.log(`\nOpening browser for authentication...\n`);
+  console.log(`If the browser doesn't open, visit:\n${authorizeUrl}\n`);
+  openBrowser(authorizeUrl);
+
+  return tokenPromise;
 }
 
 // ---------------------------------------------------------------------------
