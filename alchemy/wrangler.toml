@@ -19,5 +19,7 @@ new_sqlite_classes = ["PocketIdContainer"]
 
 [vars]
 POCKET_ID_APP_URL = "https://pocket-id.marcus-e.workers.dev"
-POCKET_ID_ENCRYPTION_KEY = "yjfKnxrgD0WHj5OfVpMO9LTp9txwogqztQVQ7XkCdY8="
-POCKET_ID_STATIC_API_KEY = "536c92459e65ce61911813d5cf1871bcebc93253b64b318dd1b9e0157aefcb34"
+
+# POCKET_ID_ENCRYPTION_KEY and POCKET_ID_STATIC_API_KEY must be set via:
+#   npx wrangler secret put POCKET_ID_ENCRYPTION_KEY
+#   npx wrangler secret put POCKET_ID_STATIC_API_KEY

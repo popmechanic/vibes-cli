@@ -579,7 +579,7 @@ https://{domain}?subdomain=admin → Admin dashboard
 
 ## Import Map
 
-The unified template uses React 19 with `@necrodome/fireproof-clerk` (backward-compat package name):
+The unified template uses React 19 with the OIDC bridge for auth and Fireproof sync:
 
 ```json
 {
@@ -589,8 +589,9 @@ The unified template uses React 19 with `@necrodome/fireproof-clerk` (backward-c
     "react/jsx-dev-runtime": "https://esm.sh/stable/react@19.2.4/jsx-dev-runtime",
     "react-dom": "https://esm.sh/stable/react-dom@19.2.4",
     "react-dom/client": "https://esm.sh/stable/react-dom@19.2.4/client",
-    "use-fireproof": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom",
-    "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom"
+    "@fireproof/core": "https://esm.sh/stable/use-fireproof@0.24.12?external=react,react-dom",
+    "oauth4webapi": "https://esm.sh/stable/oauth4webapi@3.3.0",
+    "use-fireproof": "/fireproof-oidc-bridge.js"
   }
 }
 ```

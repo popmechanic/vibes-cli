@@ -79,13 +79,13 @@ export function getApp(name) {
 }
 
 /** Keys whose values are objects that should be deep-merged (not replaced) by setApp. */
-const NESTED_KEYS = ['clerk', 'connect', 'app'];
+const NESTED_KEYS = ['connect', 'app'];
 
 /**
  * Set (create or update) an app entry.
  * Adds updatedAt timestamp, and createdAt if not already present.
  *
- * Known nested keys (clerk, connect, app) are deep-merged with existing
+ * Known nested keys (connect, app) are deep-merged with existing
  * values so that partial updates don't clobber sibling fields.
  * All other top-level keys are shallow-merged (last write wins).
  */

@@ -155,6 +155,15 @@ async function verifyJWT(
       return null;
     }
 
+    // Validate audience if present — must include our client ID
+    if (parsed.payload.aud) {
+      const validAud = Array.isArray(parsed.payload.aud)
+        ? parsed.payload.aud.includes(issuer)
+        : parsed.payload.aud === issuer;
+      // Only reject if aud is present but doesn't match
+      if (!validAud) return null;
+    }
+
     return parsed.payload;
   } catch {
     return null;
@@ -348,8 +357,18 @@ export default {
 
 const app = new Hono<{ Bindings: Env }>();
 
-// CORS middleware
-app.use("*", cors());
+// CORS middleware — scoped to known origins (CLI doesn't need CORS; editor does)
+app.use(
+  "*",
+  cors({
+    origin: (origin) => {
+      if (!origin) return origin; // non-browser (CLI) requests
+      if (origin === "http://localhost:3333") return origin; // editor preview
+      if (origin.endsWith(".workers.dev")) return origin; // deployed apps
+      return null; // reject unknown origins
+    },
+  })
+);
 
 // Health check
 app.get("/health", (c) => {

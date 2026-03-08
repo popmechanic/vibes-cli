@@ -363,26 +363,12 @@ STEP 1: DEPLOY TO CLOUDFLARE WORKERS
   Run /vibes:cloudflare to deploy, or manually:
 
   node "\${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \\
-    --name ${appName} --file index.html \\
-    --oidc-authority https://your-oidc-provider.example.com
+    --name ${appName} --file index.html
 
-STEP 2: SET UP OIDC AUTHENTICATION (REQUIRED BEFORE TESTING)
-─────────────────────────────────────────────────────────────
+  Auth is automatic — a browser window opens for Pocket ID login
+  on first deploy. Tokens are cached at ~/.vibes/auth.json.
 
-  Your OIDC provider handles authentication (e.g., Pocket ID).
-  Ensure your .env has:
-
-    VITE_OIDC_AUTHORITY=https://your-oidc-provider.example.com
-    VITE_OIDC_CLIENT_ID=your-client-id
-
-  Re-run assembly with OIDC credentials:
-
-     node assemble-sell.js app.jsx index.html \\
-       --oidc-authority https://your-oidc-provider.example.com \\
-       --app-name ${appName} \\
-       --domain ${domain}
-
-STEP 3: SET UP DNS (Required for custom domains)
+STEP 2: SET UP DNS (Required for custom domains)
 ─────────────────────────────────────────────────
 
   The app is immediately available at the Workers URL.
@@ -395,7 +381,7 @@ STEP 3: SET UP DNS (Required for custom domains)
   Note: Until a custom domain with wildcard SSL is configured,
   use ?subdomain= query parameters for tenant routing.
 
-STEP 4: CONFIGURE BILLING (if --billing-mode required)
+STEP 3: CONFIGURE BILLING (if --billing-mode required)
 ───────────────────────────────────────────────────────
 
   Billing integration with Stripe is planned for phase 2.
