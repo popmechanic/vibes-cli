@@ -16,7 +16,7 @@ import { getAccessToken } from './lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from './lib/auth-constants.js';
 import { PLUGIN_ROOT } from './lib/paths.js';
 
-const DEPLOY_API_URL = 'https://vibes-deploy-api.vibes.diy';
+const DEPLOY_API_URL = 'https://vibes-deploy-api.marcus-e.workers.dev';
 
 async function deployViaAPI(name, files, accessToken, options = {}) {
   console.log(`Deploying ${name} (${Object.keys(files).length} file(s))...`);
@@ -70,6 +70,31 @@ async function main() {
   const bridgePath = resolve(PLUGIN_ROOT, 'bundles/fireproof-oidc-bridge.js');
   if (existsSync(bridgePath)) {
     files['fireproof-oidc-bridge.js'] = readFileSync(bridgePath, 'utf8');
+  }
+
+  // Include auth card SVGs
+  const authCardsDir = resolve(PLUGIN_ROOT, 'assets/auth-cards');
+  if (existsSync(authCardsDir)) {
+    for (let i = 1; i <= 4; i++) {
+      const p = resolve(authCardsDir, `card-${i}.svg`);
+      if (existsSync(p)) files[`assets/auth-cards/card-${i}.svg`] = readFileSync(p, 'utf8');
+    }
+  }
+
+  // Include favicon assets
+  const faviconDir = resolve(PLUGIN_ROOT, 'assets/vibes-favicon');
+  if (existsSync(faviconDir)) {
+    const textAssets = ['favicon.svg', 'site.webmanifest'];
+    const binaryAssets = ['favicon-96x96.png', 'favicon.ico', 'apple-touch-icon.png',
+                          'web-app-manifest-192x192.png', 'web-app-manifest-512x512.png'];
+    for (const n of textAssets) {
+      const p = resolve(faviconDir, n);
+      if (existsSync(p)) files[`assets/vibes-favicon/${n}`] = readFileSync(p, 'utf8');
+    }
+    for (const n of binaryAssets) {
+      const p = resolve(faviconDir, n);
+      if (existsSync(p)) files[`assets/vibes-favicon/${n}`] = 'base64:' + readFileSync(p).toString('base64');
+    }
   }
 
   console.log(`Deploying ${name} to Cloudflare Workers via Deploy API...`);

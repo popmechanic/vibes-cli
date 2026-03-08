@@ -239,11 +239,20 @@ const MIME_TYPES = {
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json',
 };
 
 function getMime(path) {
   const ext = path.substring(path.lastIndexOf('.'));
   return MIME_TYPES[ext] || 'text/plain';
+}
+
+function base64ToArrayBuffer(b64) {
+  const bin = atob(b64);
+  const buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  return buf.buffer;
 }
 
 export default {
@@ -256,7 +265,14 @@ export default {
     let path = url.pathname === '/' ? '/index.html' : url.pathname;
     const key = path.startsWith('/') ? path.slice(1) : path;
     if (key in FILES) {
-      return new Response(FILES[key], {
+      const content = FILES[key];
+      // base64-encoded binary files (prefixed with "base64:")
+      if (typeof content === 'string' && content.startsWith('base64:')) {
+        return new Response(base64ToArrayBuffer(content.slice(7)), {
+          headers: { 'Content-Type': getMime(key) },
+        });
+      }
+      return new Response(content, {
         headers: { 'Content-Type': getMime(key) },
       });
     }
