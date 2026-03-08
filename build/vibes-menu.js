@@ -1,7 +1,7 @@
 // Auto-generated vibes menu components
 // Run: node scripts/build-components.js --force to regenerate
 // Source: components/
-// Generated: 2026-03-07T11:10:48.018Z
+// Generated: 2026-03-08T03:49:09.839Z
 // Components: 26/26
 
 // === useMobile ===
@@ -780,10 +780,10 @@ const getAnimationStyles = () => `
 
 // === AuthScreen ===
 const CARD_URLS = [
-  "/assets/auth-cards/card-1.png",
-  "/assets/auth-cards/card-2.png",
-  "/assets/auth-cards/card-3.png",
-  "/assets/auth-cards/card-4.png"
+  "/assets/auth-cards/card-1.svg",
+  "/assets/auth-cards/card-2.svg",
+  "/assets/auth-cards/card-3.svg",
+  "/assets/auth-cards/card-4.svg"
 ];
 const AuthScreen = ({
   children,
@@ -814,7 +814,46 @@ const AuthScreen = ({
       onLoad: () => setCardLoaded(true),
       onError: () => setCardError(true)
     }
-  )), /* @__PURE__ */ React.createElement("div", { style: getAuthContentStyle() }, title && /* @__PURE__ */ React.createElement("h1", { style: getTitleStyle(isError) }, title), message && /* @__PURE__ */ React.createElement("p", { style: getMessageStyle(isError) }, message), errorDetails && /* @__PURE__ */ React.createElement("details", { style: { width: "100%" } }, /* @__PURE__ */ React.createElement("summary", { style: { cursor: "pointer", fontSize: "0.875rem", color: "#7f1d1d" } }, "Technical details"), /* @__PURE__ */ React.createElement("pre", { style: getErrorDetailsStyle() }, errorDetails))), /* @__PURE__ */ React.createElement("div", { style: getButtonsContainerStyle() }, children)))));
+  )), /* @__PURE__ */ React.createElement("div", { style: getAuthContentStyle() }, title && /* @__PURE__ */ React.createElement("h1", { style: getTitleStyle(isError) }, title), message && /* @__PURE__ */ React.createElement("p", { style: getMessageStyle(isError) }, message), errorDetails && /* @__PURE__ */ React.createElement("details", { style: { width: "100%" } }, /* @__PURE__ */ React.createElement("summary", { style: { cursor: "pointer", fontSize: "0.875rem", color: "#7f1d1d" } }, "Technical details"), /* @__PURE__ */ React.createElement("pre", { style: getErrorDetailsStyle() }, errorDetails))), /* @__PURE__ */ React.createElement("div", { style: getButtonsContainerStyle() }, children, /* @__PURE__ */ React.createElement(
+    "a",
+    {
+      href: `${window.__VIBES_CONFIG__?.oidcAuthority || ""}/signup`,
+      target: "_blank",
+      rel: "noopener noreferrer",
+      style: {
+        display: "block",
+        width: "100%",
+        padding: "3px",
+        backgroundColor: "transparent",
+        border: "1px solid var(--vibes-button-border, #1a1a1a)",
+        color: "#1a1a1a",
+        fontSize: "24px",
+        fontWeight: "bold",
+        letterSpacing: "2px",
+        cursor: "pointer",
+        transition: "0.2s",
+        borderRadius: "20px",
+        textDecoration: "none",
+        textAlign: "center",
+        boxSizing: "border-box"
+      },
+      onClick: () => {
+        sessionStorage.setItem("vibes-signup-pending", "1");
+      },
+      onMouseEnter: (e) => {
+        e.currentTarget.style.backgroundColor = "rgba(0,0,0,0.05)";
+      },
+      onMouseLeave: (e) => {
+        e.currentTarget.style.backgroundColor = "transparent";
+      }
+    },
+    "Create Account"
+  ), /* @__PURE__ */ React.createElement("p", { style: {
+    fontSize: "0.75rem",
+    color: "#666",
+    margin: "0.25rem 0 0",
+    textAlign: "center"
+  } }, "You'll be signed in automatically when you return"))))));
 };
 
 

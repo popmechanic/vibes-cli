@@ -258,6 +258,18 @@
         const { SignInButton } = window.OIDCComponents || {};
         const appDisplayName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
+        React.useEffect(() => {
+          const handler = () => {
+            if (document.visibilityState === 'visible' && sessionStorage.getItem('vibes-signup-pending')) {
+              sessionStorage.removeItem('vibes-signup-pending');
+              const btn = document.querySelector('[data-vibes-signin]');
+              if (btn) btn.click();
+            }
+          };
+          document.addEventListener('visibilitychange', handler);
+          return () => document.removeEventListener('visibilitychange', handler);
+        }, []);
+
         // Guard against undefined components
         if (!SignInButton) {
           return <LoadingError error="Auth components not loaded. Please refresh." />;
@@ -270,7 +282,7 @@
             showCard={true}
           >
             <SignInButton>
-              <VibesButton variant={RED} buttonType="form">
+              <VibesButton data-vibes-signin variant={RED} buttonType="form">
                 Sign In
               </VibesButton>
             </SignInButton>
