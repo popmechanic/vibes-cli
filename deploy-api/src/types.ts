@@ -2,10 +2,11 @@ export interface Env {
   // Secrets
   CF_API_TOKEN: string;
   CF_ACCOUNT_ID: string;
-  OIDC_PEM_PUBLIC_KEY: string;
-
   // Vars
   OIDC_ISSUER: string;
+
+  // Service Bindings
+  POCKET_ID: Fetcher;
 
   // KV
   REGISTRY_KV: KVNamespace;

@@ -2,7 +2,7 @@
  * Vibes Deploy API Worker
  *
  * Accepts assembled HTML + OIDC token and deploys to Cloudflare Workers.
- * JWT verification uses RS256 with PEM public key from Pocket ID.
+ * JWT verification uses RS256 with dynamic JWKS fetching from Pocket ID.
  */
 
 import { Hono } from "hono";
@@ -10,24 +10,32 @@ import { cors } from "hono/cors";
 import type { Env, DeployRequest, DeployResponse, JWTPayload, SubdomainRecord } from "./types";
 
 // ---------------------------------------------------------------------------
-// JWT Verification (adapted from skills/cloudflare/worker/src/lib/crypto-jwt.ts)
+// JWT Verification — Dynamic JWKS
 // ---------------------------------------------------------------------------
 
-/**
- * Convert PEM-encoded public key to ArrayBuffer for Web Crypto API
- */
-function pemToArrayBuffer(pem: string): ArrayBuffer {
-  const base64 = pem
-    .replace(/-----BEGIN PUBLIC KEY-----/, "")
-    .replace(/-----END PUBLIC KEY-----/, "")
-    .replace(/\s/g, "");
+let cachedJwks: { keys: JsonWebKey[]; fetchedAt: number } | null = null;
+const JWKS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
+async function fetchJwks(fetcher: Fetcher): Promise<JsonWebKey[]> {
+  if (cachedJwks && Date.now() - cachedJwks.fetchedAt < JWKS_CACHE_TTL_MS) {
+    return cachedJwks.keys;
   }
-  return bytes.buffer;
+  // Use Service Binding to avoid Worker-to-Worker .workers.dev routing issue
+  const res = await fetcher.fetch("https://pocket-id/.well-known/jwks.json");
+  if (!res.ok) throw new Error(`JWKS fetch failed: ${res.status}`);
+  const data = (await res.json()) as { keys: JsonWebKey[] };
+  cachedJwks = { keys: data.keys, fetchedAt: Date.now() };
+  return data.keys;
+}
+
+async function importJwk(jwk: JsonWebKey): Promise<CryptoKey> {
+  return crypto.subtle.importKey(
+    "jwk",
+    jwk,
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["verify"]
+  );
 }
 
 /**
@@ -43,7 +51,7 @@ function base64UrlDecode(str: string): string {
  * Parse JWT without verification (extract header, payload, signature, signed data)
  */
 function parseJwt(token: string): {
-  header: { alg: string; typ?: string };
+  header: { alg: string; typ?: string; kid?: string };
   payload: JWTPayload;
   signature: Uint8Array;
   signedData: Uint8Array;
@@ -74,13 +82,36 @@ function parseJwt(token: string): {
 }
 
 /**
- * Verify an RS256 JWT against a PEM public key.
+ * Find the matching JWK from the JWKS endpoint, with cache-bust retry on miss.
+ */
+async function findKey(kid: string | undefined, fetcher: Fetcher): Promise<JsonWebKey | null> {
+  let keys = await fetchJwks(fetcher);
+
+  // Match by kid if present, otherwise use first RS256 key
+  let match = kid
+    ? keys.find((k) => (k as Record<string, unknown>).kid === kid)
+    : keys.find((k) => (k as Record<string, unknown>).kty === "RSA");
+
+  if (!match) {
+    // Cache bust and retry once (handles key rotation mid-cache)
+    cachedJwks = null;
+    keys = await fetchJwks(fetcher);
+    match = kid
+      ? keys.find((k) => (k as Record<string, unknown>).kid === kid)
+      : keys.find((k) => (k as Record<string, unknown>).kty === "RSA");
+  }
+
+  return match ?? null;
+}
+
+/**
+ * Verify an RS256 JWT by fetching JWKS from the issuer's discovery endpoint.
  * Validates signature, expiry, iat, and issuer claims.
  */
 async function verifyJWT(
   token: string,
-  pemKey: string,
-  issuer: string
+  issuer: string,
+  fetcher: Fetcher
 ): Promise<JWTPayload | null> {
   const parsed = parseJwt(token);
   if (!parsed) return null;
@@ -88,14 +119,10 @@ async function verifyJWT(
   if (parsed.header.alg !== "RS256") return null;
 
   try {
-    const keyData = pemToArrayBuffer(pemKey);
-    const cryptoKey = await crypto.subtle.importKey(
-      "spki",
-      keyData,
-      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-      false,
-      ["verify"]
-    );
+    const jwk = await findKey(parsed.header.kid, fetcher);
+    if (!jwk) return null;
+
+    const cryptoKey = await importJwk(jwk);
 
     const isValid = await crypto.subtle.verify(
       "RSASSA-PKCS1-v1_5",
@@ -298,7 +325,7 @@ app.post("/deploy", async (c) => {
   }
 
   const token = authHeader.slice(7);
-  const payload = await verifyJWT(token, c.env.OIDC_PEM_PUBLIC_KEY, c.env.OIDC_ISSUER);
+  const payload = await verifyJWT(token, c.env.OIDC_ISSUER, c.env.POCKET_ID);
   if (!payload) {
     return c.json({ ok: false, error: "Invalid or expired token" }, 401);
   }
