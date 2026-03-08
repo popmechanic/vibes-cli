@@ -66,6 +66,100 @@ export class PocketIdContainer extends Container {
 }
 
 let appConfigEnsured = false;
+let oidcClientsEnsured = false;
+
+// ---------------------------------------------------------------------------
+// OIDC Client Registration
+// ---------------------------------------------------------------------------
+// The shared Vibes OIDC client must exist in Pocket ID's SQLite DB for auth
+// to work. On container restart, all client registrations are lost. This
+// function re-creates the client via the admin API on first request.
+// ---------------------------------------------------------------------------
+
+const VIBES_OIDC_CLIENT = {
+  id: "6c154be6-e6fa-47f3-ad2b-31740cedc1f1",
+  name: "vibes-cli",
+  callbackURLs: [
+    "http://localhost/callback",
+    "http://127.0.0.1/callback",
+    "http://localhost:18192/callback",
+    "http://127.0.0.1:18192/callback",
+    "https://*.marcus-e.workers.dev/*",
+  ],
+  isPublic: true,
+};
+
+async function ensureOIDCClients(
+  container: ReturnType<typeof getContainer>,
+  apiKey: string,
+): Promise<void> {
+  if (oidcClientsEnsured) return;
+  oidcClientsEnsured = true; // Prevent re-entry
+
+  try {
+    // Check if client already exists
+    const getRes = await container.fetch(
+      `http://internal/api/oidc/clients/${VIBES_OIDC_CLIENT.id}`,
+      {
+        headers: { "X-API-Key": apiKey, Accept: "application/json" },
+      },
+    );
+
+    if (getRes.ok) {
+      // Client exists — update callback URLs in case they changed
+      const updateRes = await container.fetch(
+        `http://internal/api/oidc/clients/${VIBES_OIDC_CLIENT.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "X-API-Key": apiKey,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(VIBES_OIDC_CLIENT),
+        },
+      );
+      if (updateRes.ok) {
+        console.log("[pocket-id] OIDC client updated with current callback URLs");
+      } else {
+        console.warn("[pocket-id] OIDC client update failed:", updateRes.status);
+      }
+      return;
+    }
+
+    // Client doesn't exist — create it
+    console.log("[pocket-id] Registering OIDC client:", VIBES_OIDC_CLIENT.name);
+    const createRes = await container.fetch("http://internal/api/oidc/clients", {
+      method: "POST",
+      headers: {
+        "X-API-Key": apiKey,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(VIBES_OIDC_CLIENT),
+    });
+
+    if (createRes.ok) {
+      const created = await createRes.json() as Record<string, unknown>;
+      console.log("[pocket-id] OIDC client registered, id:", created.id || VIBES_OIDC_CLIENT.id);
+      // If Pocket ID assigned a different ID, log it prominently
+      if (created.id && created.id !== VIBES_OIDC_CLIENT.id) {
+        console.warn(
+          `[pocket-id] WARNING: Pocket ID assigned client ID "${created.id}" ` +
+          `instead of requested "${VIBES_OIDC_CLIENT.id}". ` +
+          `Update auth-constants.js to match!`,
+        );
+      }
+    } else {
+      const errText = await createRes.text();
+      console.error("[pocket-id] Failed to register OIDC client:", createRes.status, errText);
+      oidcClientsEnsured = false;
+    }
+  } catch (err) {
+    console.error("[pocket-id] ensureOIDCClients error:", err);
+    oidcClientsEnsured = false;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Application Configuration
@@ -176,16 +270,26 @@ const app = new Hono<{ Bindings: Env }>();
 // Middleware: ensure app config is correct on first request after container start.
 // Uses waitUntil so it doesn't block non-config requests.
 app.use("*", async (c, next) => {
-  if (!appConfigEnsured) {
+  const needsConfig = !appConfigEnsured;
+  const needsClients = !oidcClientsEnsured;
+
+  if (needsConfig || needsClients) {
     const apiKey = c.env.POCKET_ID_STATIC_API_KEY;
 
     if (apiKey) {
       const container = getContainer(c.env.POCKET_ID);
-      // Run config setup in background so it doesn't block requests
-      c.executionCtx.waitUntil(ensureAppConfig(container, apiKey));
+      // OIDC client must exist before /authorize can work — await it.
+      // App config can run in background (env vars provide defaults).
+      if (needsClients) {
+        await ensureOIDCClients(container, apiKey);
+      }
+      if (needsConfig) {
+        c.executionCtx.waitUntil(ensureAppConfig(container, apiKey));
+      }
     } else {
       // No API key — skip future checks
       appConfigEnsured = true;
+      oidcClientsEnsured = true;
     }
   }
   return next();
