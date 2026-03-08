@@ -196,6 +196,29 @@ function userOwnsOrCanCreate(record: SubdomainRecord | null, userId: string): bo
 // Cloudflare Workers API Deploy
 // ---------------------------------------------------------------------------
 
+// Cache the account's workers.dev subdomain (never changes for an account)
+let cachedWorkersSubdomain: string | null = null;
+
+async function getWorkersSubdomain(accountId: string, apiToken: string): Promise<string | null> {
+  if (cachedWorkersSubdomain) return cachedWorkersSubdomain;
+
+  try {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/subdomain`,
+      { headers: { Authorization: `Bearer ${apiToken}` } }
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { result?: { subdomain?: string } };
+    if (data.result?.subdomain) {
+      cachedWorkersSubdomain = data.result.subdomain;
+      return cachedWorkersSubdomain;
+    }
+  } catch {
+    // Fall through to null
+  }
+  return null;
+}
+
 /**
  * Deploy a multi-file app as a CF Worker that serves static files.
  */
@@ -294,10 +317,11 @@ export default {
     console.error(`Subdomain enable failed (${subdomainRes.status}): ${await subdomainRes.text()}`);
   }
 
-  // Get the account's workers.dev subdomain for the URL
-  // Convention: <script-name>.<account-subdomain>.workers.dev
-  // We don't know the account subdomain here, so return a pattern
-  const url = `https://${appName}.workers.dev`;
+  // Get the account's workers.dev subdomain for the correct URL
+  const subdomain = await getWorkersSubdomain(accountId, apiToken);
+  const url = subdomain
+    ? `https://${appName}.${subdomain}.workers.dev`
+    : `https://${appName}.workers.dev`;
 
   return { ok: true, url };
 }
