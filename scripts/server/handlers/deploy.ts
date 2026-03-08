@@ -125,10 +125,22 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
   if (isFirstDeploy(appName)) {
     onEvent({ type: 'progress', progress: 15, stage: 'Setting up real-time sync...', elapsed: getElapsed() });
     try {
+      // Check for saved alchemy password from a previous partial deploy.
+      // Alchemy encrypts state with this password — losing it breaks re-deploys.
+      const partialEntry = getApp(appName);
+      let alchemyPassword = partialEntry?.connect?.alchemyPassword || null;
+      if (!alchemyPassword) {
+        const { randomBytes } = await import('crypto');
+        alchemyPassword = randomBytes(32).toString('hex');
+        // Pre-save so the password survives crashes
+        setApp(appName, { ...(partialEntry || { name: appName }), name: appName, connect: { alchemyPassword } });
+      }
+
       connectInfo = await deployConnect({
         appName,
         oidcAuthority: OIDC_AUTHORITY,
         oidcServiceWorkerName: 'pocket-id',
+        alchemyPassword,
       });
       // Save Connect info to registry
       setApp(appName, {
@@ -140,7 +152,7 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
         },
       });
       console.log(`[Deploy] Connect provisioned for ${appName}: ${connectInfo.apiUrl}`);
-    } catch (err) {
+    } catch (err: any) {
       onEvent({ type: 'error', message: `Connect provisioning failed: ${err.message}` });
       return;
     }
@@ -167,7 +179,7 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
   onEvent({ type: 'progress', progress: 30, stage: 'Deploying...', elapsed: getElapsed() });
 
   // Build the files map for the Deploy API
-  const files = {
+  const files: Record<string, string> = {
     'index.html': readFileSync(indexHtmlPath, 'utf8'),
   };
 
@@ -228,9 +240,9 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
       return;
     }
 
-    const result = await response.json();
+    const result: any = await response.json();
     deployUrl = result.url || '';
-  } catch (err) {
+  } catch (err: any) {
     onEvent({ type: 'error', message: `Deploy failed: ${err.message}` });
     return;
   }
@@ -248,7 +260,7 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
       app: { workerName: appName, url: deployUrl },
       updatedAt: new Date().toISOString(),
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error('[Deploy] Failed to save app metadata:', e.message);
   }
 

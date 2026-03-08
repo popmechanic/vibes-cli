@@ -12,6 +12,8 @@ import { getRecommendedThemeIds, loadOpenRouterKey } from './config.ts';
 import { assembleAppFrame } from './handlers/generate.ts';
 import { loadEnvFile, writeEnvFile } from '../lib/env-utils.js';
 import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp } from '../lib/registry.js';
+import { readCachedTokens, isTokenExpired, getAccessToken, startLoginFlow, removeCachedTokens } from '../lib/cli-auth.js';
+import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../lib/auth-constants.js';
 import { validateClerkKey, validateClerkSecretKey, validateClerkCredentials, validateCloudflareCredentials } from './validation.ts';
 
 // --- Body parsing helpers ---
@@ -259,11 +261,84 @@ function serveAppFrame(ctx: ServerContext): Response {
   return new Response(assembled, { headers: { 'Content-Type': 'text/html', ...corsHeaders() } });
 }
 
+// --- Auth helpers ---
+
+function parseUserFromIdToken(idToken: string | undefined): any {
+  if (!idToken) return null;
+  try {
+    const payload = idToken.split('.')[1];
+    const decoded = JSON.parse(atob(payload));
+    return {
+      name: decoded.name || decoded.preferred_username || null,
+      email: decoded.email || null,
+      picture: decoded.picture || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function checkAuthStatus(): Promise<any> {
+  const cached = readCachedTokens();
+  if (!cached) return { auth: { state: 'none', user: null } };
+  if (!isTokenExpired(cached.expiresAt)) {
+    return { auth: { state: 'valid', user: parseUserFromIdToken(cached.idToken) } };
+  }
+  try {
+    const refreshed = await getAccessToken({ authority: OIDC_AUTHORITY, clientId: OIDC_CLIENT_ID, silent: true });
+    if (refreshed) return { auth: { state: 'valid', user: parseUserFromIdToken(refreshed.idToken) } };
+  } catch {}
+  return { auth: { state: 'expired', user: parseUserFromIdToken(cached.idToken) } };
+}
+
 // --- Editor API route handlers ---
 
 async function editorStatus(ctx: ServerContext): Promise<Response> {
-  const result = await checkEditorDeps(ctx);
+  const result = await checkAuthStatus();
   return json(result);
+}
+
+async function editorAuthLogin(ctx: ServerContext): Promise<Response> {
+  try {
+    const { authorizeUrl, tokenPromise } = await startLoginFlow({
+      authority: OIDC_AUTHORITY,
+      clientId: OIDC_CLIENT_ID,
+    });
+
+    // Wait for callback in the background, then broadcast via WebSocket
+    tokenPromise.then((tokens: any) => {
+      const user = parseUserFromIdToken(tokens.idToken);
+      const message = JSON.stringify({ type: 'auth_complete', user });
+      if ((ctx as any).wss) {
+        for (const client of (ctx as any).wss.clients) {
+          if (client.readyState === 1) {
+            try { client.send(message); } catch {}
+          }
+        }
+      }
+    }).catch((err: any) => {
+      console.error('[Auth] Login failed:', err.message);
+      const message = JSON.stringify({ type: 'auth_error', error: err.message });
+      if ((ctx as any).wss) {
+        for (const client of (ctx as any).wss.clients) {
+          if (client.readyState === 1) {
+            try { client.send(message); } catch {}
+          }
+        }
+      }
+    });
+
+    // Return the authorize URL immediately so frontend can window.open() it
+    return json({ ok: true, authorizeUrl });
+  } catch (err: any) {
+    console.error('[Auth] Could not start login flow:', err.message);
+    return json({ ok: false, error: err.message }, 500);
+  }
+}
+
+function editorAuthLogout(): Response {
+  removeCachedTokens();
+  return json({ ok: true });
 }
 
 function editorInitialPrompt(ctx: ServerContext): Response {
@@ -491,6 +566,8 @@ export function createRouter(ctx: ServerContext) {
       case 'GET /skills':                    return serveSkills(ctx);
       case 'GET /app-frame':                return serveAppFrame(ctx);
       case 'GET /editor/status':            return editorStatus(ctx);
+      case 'POST /editor/auth/login':       return editorAuthLogin(ctx);
+      case 'POST /editor/auth/logout':      return editorAuthLogout();
       case 'GET /editor/initial-prompt':    return editorInitialPrompt(ctx);
       case 'GET /editor/app-exists':        return editorAppExists(ctx);
       case 'GET /editor/apps':              return editorListApps(ctx);

@@ -2,12 +2,11 @@
  * Editor API handlers — credentials, app CRUD, screenshots, status.
  */
 
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, renameSync, rmSync } from 'fs';
-import { join, resolve } from 'path';
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync } from 'fs';
+import { join } from 'path';
 import { loadRegistry } from '../../lib/registry.js';
-import { readCachedTokens, isTokenExpired, getAccessToken, loginWithBrowser, removeCachedTokens } from '../../lib/cli-auth.js';
+import { readCachedTokens, isTokenExpired, getAccessToken, startLoginFlow, removeCachedTokens } from '../../lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../../lib/auth-constants.js';
-import { currentAppDir, throttledBackup } from '../app-context.js';
 
 const MAX_BODY_SIZE = 1024 * 1024; // 1MB
 
@@ -96,30 +95,41 @@ export async function checkAuthStatus() {
 }
 
 /**
- * Trigger browser-based Pocket ID login.
- * On success, broadcasts auth_complete to all WebSocket clients.
+ * Start Pocket ID login — returns the authorize URL for the frontend to open
+ * as a JS popup (so window.close() works on the callback page).
+ * Waits for the callback in the background and broadcasts auth_complete via WS.
  */
 export async function handleAuthLogin(ctx, req, res) {
   try {
-    const tokens = await loginWithBrowser({
+    const { authorizeUrl, tokenPromise } = await startLoginFlow({
       authority: OIDC_AUTHORITY,
       clientId: OIDC_CLIENT_ID,
     });
 
-    const user = parseUserFromIdToken(tokens.idToken);
-
-    // Broadcast to all connected WebSocket clients
-    const message = JSON.stringify({ type: 'auth_complete', user });
-    for (const client of ctx.wss.clients) {
-      if (client.readyState === 1) {
-        try { client.send(message); } catch { /* client may have disconnected */ }
-      }
-    }
-
+    // Return the URL immediately so the frontend can window.open() it
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, user }));
+    res.end(JSON.stringify({ ok: true, authorizeUrl }));
+
+    // Wait for the callback in the background, then broadcast
+    tokenPromise.then((tokens) => {
+      const user = parseUserFromIdToken(tokens.idToken);
+      const message = JSON.stringify({ type: 'auth_complete', user });
+      for (const client of ctx.wss.clients) {
+        if (client.readyState === 1) {
+          try { client.send(message); } catch { /* client may have disconnected */ }
+        }
+      }
+    }).catch((err) => {
+      console.error('[Auth] Login failed:', err.message);
+      const message = JSON.stringify({ type: 'auth_error', error: err.message });
+      for (const client of ctx.wss.clients) {
+        if (client.readyState === 1) {
+          try { client.send(message); } catch { /* ignore */ }
+        }
+      }
+    });
   } catch (err) {
-    console.error('[Auth] Login failed:', err.message);
+    console.error('[Auth] Could not start login flow:', err.message);
     res.writeHead(500, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: false, error: err.message }));
   }
@@ -145,10 +155,9 @@ export function initialPrompt(ctx, req, res) {
 }
 
 export function appExists(ctx, req, res) {
-  const appDir = currentAppDir(ctx);
-  const exists = appDir ? existsSync(join(appDir, 'app.jsx')) : false;
+  const exists = existsSync(join(ctx.projectRoot, 'app.jsx'));
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  return res.end(JSON.stringify({ exists, currentApp: ctx.currentApp }));
+  return res.end(JSON.stringify({ exists }));
 }
 
 export function listApps(ctx, req, res) {
@@ -188,47 +197,26 @@ function sanitizeAppName(name) {
   return name.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/^-+|-+$/g, '').slice(0, 63);
 }
 
-export async function loadApp(ctx, req, res, url) {
+export function loadApp(ctx, req, res, url) {
   const params = url.searchParams;
   const name = sanitizeAppName(params.get('name'));
   if (!name) { res.writeHead(400); return res.end('Missing name'); }
   const src = join(ctx.appsDir, name, 'app.jsx');
   if (!existsSync(src)) { res.writeHead(404); return res.end('App not found'); }
-
-  // Auto-save current app before switching
-  if (ctx.currentApp) {
-    try {
-      const { assembleAppFrame } = await import('./generate.js');
-      const html = assembleAppFrame(ctx);
-      writeFileSync(join(currentAppDir(ctx), 'index.html'), html);
-    } catch (e) {
-      console.warn(`[LoadApp] Auto-save failed for "${ctx.currentApp}": ${e.message}`);
-    }
-  }
-
-  ctx.currentApp = name;
+  copyFileSync(src, join(ctx.projectRoot, 'app.jsx'));
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  return res.end(JSON.stringify({ ok: true, currentApp: name }));
+  return res.end(JSON.stringify({ ok: true }));
 }
 
 export function saveApp(ctx, req, res, url) {
   const params = url.searchParams;
   const name = sanitizeAppName(params.get('name'));
   if (!name) { res.writeHead(400); return res.end('Missing name'); }
-  const appDir = currentAppDir(ctx);
-  if (!appDir || !existsSync(join(appDir, 'app.jsx'))) {
-    res.writeHead(404); return res.end('No active app to save');
-  }
-  if (name === ctx.currentApp) {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ ok: true }));
-  }
+  const appSrc = join(ctx.projectRoot, 'app.jsx');
+  if (!existsSync(appSrc)) { res.writeHead(404); return res.end('No app.jsx to save'); }
   const dest = join(ctx.appsDir, name);
   mkdirSync(dest, { recursive: true });
-  copyFileSync(join(appDir, 'app.jsx'), join(dest, 'app.jsx'));
-  if (existsSync(join(appDir, 'index.html'))) {
-    copyFileSync(join(appDir, 'index.html'), join(dest, 'index.html'));
-  }
+  copyFileSync(appSrc, join(dest, 'app.jsx'));
   res.writeHead(200, { 'Content-Type': 'application/json' });
   return res.end(JSON.stringify({ ok: true }));
 }
@@ -296,47 +284,11 @@ export function listDeployments(ctx, req, res) {
 }
 
 export function writeApp(ctx, req, res) {
-  const appDir = currentAppDir(ctx);
-  if (!appDir) {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ error: 'No active app' }));
-  }
   const chunks = [];
   req.on('data', c => chunks.push(c));
   req.on('end', () => {
-    const appPath = join(appDir, 'app.jsx');
-    throttledBackup(appPath, ctx.currentApp, ctx.backupTimestamps);
-    writeFileSync(appPath, Buffer.concat(chunks).toString('utf-8'));
+    writeFileSync(join(ctx.projectRoot, 'app.jsx'), Buffer.concat(chunks).toString('utf-8'));
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true }));
   });
-}
-
-export function renameApp(ctx, req, res, url) {
-  const params = url.searchParams;
-  const from = sanitizeAppName(params.get('from'));
-  const to = sanitizeAppName(params.get('to'));
-  if (!from || !to) { res.writeHead(400); return res.end('Missing from or to'); }
-  const srcDir = resolve(ctx.appsDir, from);
-  const destDir = resolve(ctx.appsDir, to);
-  if (!srcDir.startsWith(ctx.appsDir) || !destDir.startsWith(ctx.appsDir)) { res.writeHead(400); return res.end('Invalid path'); }
-  if (!existsSync(srcDir)) { res.writeHead(404); return res.end('Source app not found'); }
-  if (existsSync(destDir)) { res.writeHead(409); return res.end('Destination name already exists'); }
-  renameSync(srcDir, destDir);
-  if (ctx.currentApp === from) ctx.currentApp = to;
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  return res.end(JSON.stringify({ ok: true, name: to }));
-}
-
-export function deleteApp(ctx, req, res, url) {
-  const params = url.searchParams;
-  const name = sanitizeAppName(params.get('name'));
-  if (!name) { res.writeHead(400); return res.end('Missing name'); }
-  const dir = resolve(ctx.appsDir, name);
-  if (!dir.startsWith(ctx.appsDir)) { res.writeHead(400); return res.end('Invalid path'); }
-  if (!existsSync(dir)) { res.writeHead(404); return res.end('App not found'); }
-  rmSync(dir, { recursive: true, force: true });
-  if (ctx.currentApp === name) ctx.currentApp = null;
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  return res.end(JSON.stringify({ ok: true }));
 }
