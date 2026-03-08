@@ -11,7 +11,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync, unlinkSy
 import { join, dirname } from 'path';
 import { homedir } from 'os';
 import { randomBytes, createHash } from 'crypto';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
 const DEFAULT_AUTH_FILE = join(homedir(), '.vibes', 'auth.json');
 const LOGIN_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
@@ -145,11 +145,11 @@ function openBrowser(url) {
   const platform = process.platform;
   try {
     if (platform === 'darwin') {
-      execSync(`/usr/bin/open "${url}"`);
+      execFileSync('/usr/bin/open', [url]);
     } else if (platform === 'win32') {
-      execSync(`start "" "${url}"`);
+      execFileSync('cmd', ['/c', 'start', '', url]);
     } else {
-      execSync(`xdg-open "${url}"`);
+      execFileSync('xdg-open', [url]);
     }
   } catch {
     console.error(`Could not open browser automatically. Please visit:\n${url}`);

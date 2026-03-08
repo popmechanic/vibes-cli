@@ -323,7 +323,8 @@ export default {
 
   if (!uploadRes.ok) {
     const body = await uploadRes.text();
-    return { ok: false, url: "", error: `Upload failed (${uploadRes.status}): ${body}` };
+    console.error(`Upload failed (${uploadRes.status}): ${body}`);
+    return { ok: false, url: "", error: `Deploy failed (${uploadRes.status}). Please try again.` };
   }
 
   // Enable workers.dev subdomain

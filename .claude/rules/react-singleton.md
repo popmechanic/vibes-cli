@@ -31,4 +31,4 @@ This tells esm.sh to keep React as bare specifiers so our import map intercepts 
 | `?alias=` | Rewrites import specifiers at build time (less reliable) |
 | `*` prefix | Marks ALL deps as external |
 
-After editing the import map in `source-templates/base/template.html`, run `node scripts/merge-templates.js --force` to regenerate templates.
+After editing the import map in `source-templates/base/template.html`, run `bun scripts/merge-templates.js --force` to regenerate templates.

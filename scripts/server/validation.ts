@@ -38,8 +38,6 @@ function extractClerkDomain(key: string): string | null {
 }
 
 // --- SSRF guard patterns ---
-// TODO: Add IPv6 loopback (::1) and link-local (fe80::) guards.
-// Currently only checks IPv4 private ranges and hostnames.
 
 export const PRIVATE_PATTERNS = /^(localhost|127\.|10\.|169\.254\.|192\.168\.|0\.)/;
 export const PRIVATE_172 = /^172\.(1[6-9]|2\d|3[01])\./;
@@ -48,12 +46,25 @@ export const IS_IP = /^\d+\.\d+\.\d+\.\d+$/;
 /**
  * Check if a hostname resolves to a private/reserved network address.
  * Used by Clerk and Cloudflare credential validators to prevent SSRF.
+ * Covers IPv4 private ranges, IPv6 loopback/link-local, and IPv4-mapped IPv6.
  */
 export function isPrivateHostname(hostname: string): boolean {
+  // Strip brackets from IPv6 literals
+  const h = hostname.startsWith('[') ? hostname.slice(1, -1) : hostname;
+
   return IS_IP.test(hostname) ||
     hostname.startsWith('[') ||
     PRIVATE_PATTERNS.test(hostname) ||
-    PRIVATE_172.test(hostname);
+    PRIVATE_172.test(hostname) ||
+    // IPv6 loopback and link-local
+    h === '::1' ||
+    h.startsWith('fe80:') ||
+    h.startsWith('fe80%') ||
+    // IPv4-mapped IPv6 (::ffff:127.x, ::ffff:10.x, ::ffff:192.168.x)
+    h.startsWith('::ffff:127.') ||
+    h.startsWith('::ffff:10.') ||
+    h.startsWith('::ffff:192.168.') ||
+    h.startsWith('::ffff:169.254.');
 }
 
 // --- Credential validation ---

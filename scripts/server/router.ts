@@ -89,12 +89,17 @@ export async function readBodyWithLimit(req: Request, maxSize: number): Promise<
 }
 
 // --- CORS helper ---
+// Restrict to localhost origins to prevent drive-by attacks from external websites.
+// _corsPort is set once when createRouter() is called.
+
+let _corsPort = 3333;
 
 function corsHeaders(): Record<string, string> {
   return {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': `http://localhost:${_corsPort}`,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
   };
 }
 
@@ -521,6 +526,7 @@ function editorListDeployments(ctx: ServerContext): Response {
 // --- Create Router ---
 
 export function createRouter(ctx: ServerContext) {
+  _corsPort = ctx.port;
   const MIME: Record<string, string> = {
     '.html': 'text/html',
     '.js': 'text/javascript',

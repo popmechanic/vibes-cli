@@ -73,9 +73,10 @@ async function main() {
   let output = template.replace(APP_PLACEHOLDER, cleanedAppCode);
   output = populateConnectConfig(output, envVars);
 
-  // Inject hardcoded OIDC constants (same for every app)
-  output = output.replace('__VITE_OIDC_AUTHORITY__', OIDC_AUTHORITY);
-  output = output.replace('__VITE_OIDC_CLIENT_ID__', OIDC_CLIENT_ID);
+  // Inject hardcoded OIDC constants (same for every app) — replaceAll for templates
+  // with multiple occurrences of the same placeholder
+  output = output.replaceAll('__VITE_OIDC_AUTHORITY__', OIDC_AUTHORITY);
+  output = output.replaceAll('__VITE_OIDC_CLIENT_ID__', OIDC_CLIENT_ID);
 
   // Validate output
   const validationErrors = validateAssembly(output, appCode);

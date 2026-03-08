@@ -1,6 +1,6 @@
 ---
 name: cloudflare
-description: Self-contained deploy automation — invoke directly, do not decompose. Deploys a Vibes app to Cloudflare Workers via the Deploy API. Authenticates with Pocket ID.
+description: Self-contained deploy automation — invoke directly, do not decompose. Deploys a Vibes app to Cloudflare Workers via the Deploy API. Use when deploying, publishing, going live, pushing to production, or hosting on the edge. Authenticates with Pocket ID.
 license: MIT
 allowed-tools: Bash, Read, Glob, AskUserQuestion, Write
 metadata:
@@ -30,7 +30,8 @@ No Cloudflare account or wrangler CLI needed — the Deploy API handles infrastr
 ### Quick Deploy
 
 ```bash
-bun scripts/deploy-cloudflare.js --name myapp --file index.html
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+bun "$VIBES_ROOT/scripts/deploy-cloudflare.js" --name myapp --file index.html
 ```
 
 On first run, a browser window opens for Pocket ID authentication. Tokens are cached for subsequent deploys.
@@ -38,7 +39,8 @@ On first run, a browser window opens for Pocket ID authentication. Tokens are ca
 ### Deploy with AI enabled
 
 ```bash
-bun scripts/deploy-cloudflare.js --name myapp --file index.html --ai-key "sk-or-v1-your-key"
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+bun "$VIBES_ROOT/scripts/deploy-cloudflare.js" --name myapp --file index.html --ai-key "sk-or-v1-your-key"
 ```
 
 The `--ai-key` flag configures the OpenRouter API key for the `useAI()` hook. Without it, `/api/ai/chat` returns `{"error": "AI not configured"}`.

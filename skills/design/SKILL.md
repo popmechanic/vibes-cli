@@ -160,7 +160,8 @@ But defense-in-depth is better—scope your CSS to avoid conflicts.
 ### Step 5: Assemble and Test
 
 ```bash
-bun "/path/to/vibes-skill/scripts/assemble.js" app.jsx index.html
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+bun "$VIBES_ROOT/scripts/assemble.js" app.jsx index.html
 ```
 
 Open in browser and **visually diff against the design reference**. They should be pixel-identical except for dynamic content.
@@ -273,14 +274,15 @@ This skill produces an `app.jsx` that works with the standard Vibes assembly:
 
 ```bash
 # In the working directory
-bun "/path/to/vibes-skill/scripts/assemble.js" app.jsx index.html
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
+bun "$VIBES_ROOT/scripts/assemble.js" app.jsx index.html
 ```
 
 The assembly script:
 - Inserts your JSX into the Vibes template
 - Handles OIDC authentication wrapper (via Pocket ID)
 - Sets up import maps for React and Fireproof
-- Configures Connect if `.env` is present
+- Configures Connect URLs if present (auth is automatic via Pocket ID)
 
 ---
 

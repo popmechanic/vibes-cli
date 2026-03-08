@@ -90,8 +90,8 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
       if (bodyBgMatch) bgColor = bodyBgMatch[1].trim();
     }
 
-    // Sanitize bgColor — reject characters that could break out of CSS value context
-    if (bgColor && /[;{}]/.test(bgColor)) {
+    // Sanitize bgColor — reject characters that could break out of CSS value or HTML context
+    if (bgColor && /[;{}<>"']/.test(bgColor)) {
       console.warn(`[Deploy] Rejected suspicious bgColor value: ${bgColor.slice(0, 50)}`);
       bgColor = '';
     }
