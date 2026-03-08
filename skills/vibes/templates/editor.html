@@ -137,6 +137,23 @@
       75% { transform: rotate(5deg); }
     }
 
+    /* Staggered entrance for navbar buttons */
+    @keyframes navbar-stagger-in {
+      from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .header-right.stagger-in > .navbar-button-wrapper {
+      animation: navbar-stagger-in 250ms cubic-bezier(0.23, 1, 0.32, 1) both;
+      will-change: opacity, transform;
+    }
+    .header-right.stagger-in > .navbar-button-wrapper:nth-child(1) { animation-delay: 0ms; }
+    .header-right.stagger-in > .navbar-button-wrapper:nth-child(2) { animation-delay: 60ms; }
+    .header-right.stagger-in > .navbar-button-wrapper:nth-child(3) { animation-delay: 120ms; }
+    .header-right.stagger-in > .navbar-button-wrapper:nth-child(4) { animation-delay: 180ms; }
+    @media (prefers-reduced-motion: reduce) {
+      .header-right.stagger-in > .navbar-button-wrapper { animation: none !important; }
+    }
+
     /* === VIBES AUDIO TOGGLE === */
     .vibes-audio-toggle {
       display: flex;
@@ -2938,6 +2955,7 @@
           </div>`;
       }
       headerRight.innerHTML = generateButtons;
+      triggerNavStagger(headerRight);
     } else if (phase === 'edit') {
       headerRight.innerHTML = settingsButtonHtml + `
         <div class="navbar-button-wrapper">
@@ -3000,9 +3018,18 @@
           </div>
         </div>`;
       updateDeployButtons();
+      triggerNavStagger(headerRight);
     } else {
       headerRight.innerHTML = '';
     }
+  }
+
+  function triggerNavStagger(el) {
+    el.classList.remove('stagger-in');
+    void el.offsetWidth; // force reflow to restart animation
+    el.classList.add('stagger-in');
+    // Remove class after animations finish so transform doesn't trap position:fixed children
+    setTimeout(() => el.classList.remove('stagger-in'), 500);
   }
 
   // === WebSocket ===
