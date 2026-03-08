@@ -1,7 +1,7 @@
 // Admin Dashboard Components (Client-Side Only)
 // Injected into unified.html by assemble-sell.js
 // Uses CONFIG object and CSS variables for theming
-// NOTE: No backend API calls - uses Clerk metadata as source of truth
+// NOTE: No backend API calls - uses OIDC user metadata as source of truth
 
 // === Subscription Badge Component ===
 function SubscriptionBadge({ status }) {
@@ -53,8 +53,8 @@ function AdminDashboard() {
         <div className="mb-6 p-4 bg-blue-100 border-4 border-blue-500 text-blue-700">
           <p className="font-bold mb-1">Client-Side Admin Dashboard</p>
           <p className="text-sm">
-            This admin dashboard runs without a backend server. Tenant data is stored in Clerk user metadata.
-            For full analytics, use Clerk's dashboard.
+            This admin dashboard runs without a backend server. Tenant data is stored in user metadata.
+            For full analytics, use the Pocket ID admin panel.
           </p>
         </div>
 
@@ -90,8 +90,8 @@ function AdminDashboard() {
               </div>
               <div className="p-6 bg-[var(--admin-card-bg)] border-4 border-[var(--admin-border)] shadow-[6px_6px_0px_var(--admin-accent)]">
                 <h3 className="text-sm font-bold text-[var(--admin-text-muted)] mb-2">AUTH PROVIDER</h3>
-                <p className="text-2xl font-bold text-green-600">Clerk</p>
-                <p className="text-sm text-[var(--admin-text-muted)] mt-1">With Billing</p>
+                <p className="text-2xl font-bold text-green-600">Pocket ID</p>
+                <p className="text-sm text-[var(--admin-text-muted)] mt-1">OIDC + Passkeys</p>
               </div>
             </div>
 
@@ -100,30 +100,25 @@ function AdminDashboard() {
               <div className="bg-[var(--admin-card-bg)] border-4 border-[var(--admin-border)] shadow-[6px_6px_0px_var(--admin-shadow)] p-6">
                 <h3 className="font-bold mb-4 text-[var(--admin-text)]">Manage Users</h3>
                 <p className="text-sm text-[var(--admin-text-muted)] mb-4">
-                  View and manage all users, subscriptions, and tenant data in the Clerk dashboard.
+                  View and manage all users, subscriptions, and tenant data in the Pocket ID admin panel.
                 </p>
                 <a
-                  href="https://dashboard.clerk.com"
+                  href={`${CONFIG.oidcAuthority || '#'}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-block px-4 py-2 bg-[var(--admin-border)] text-[var(--admin-card-bg)] font-bold border-4 border-[var(--admin-border)] hover:opacity-90 transition-opacity"
                 >
-                  Open Clerk Dashboard →
+                  Open Pocket ID Admin →
                 </a>
               </div>
               <div className="bg-[var(--admin-card-bg)] border-4 border-[var(--admin-border)] shadow-[6px_6px_0px_var(--admin-shadow)] p-6">
                 <h3 className="font-bold mb-4 text-[var(--admin-text)]">Billing & Revenue</h3>
                 <p className="text-sm text-[var(--admin-text-muted)] mb-4">
-                  Configure pricing plans and view revenue analytics in Clerk Billing.
+                  Subscription billing integration is phase 2. Billing mode gates access but Stripe checkout is not yet wired up.
                 </p>
-                <a
-                  href="https://dashboard.clerk.com/last-active?path=billing"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block px-4 py-2 bg-[var(--admin-border)] text-[var(--admin-card-bg)] font-bold border-4 border-[var(--admin-border)] hover:opacity-90 transition-opacity"
-                >
-                  Open Billing Dashboard →
-                </a>
+                <span className="inline-block px-4 py-2 bg-[var(--admin-border)] text-[var(--admin-card-bg)] font-bold border-4 border-[var(--admin-border)] opacity-50">
+                  Coming Soon
+                </span>
               </div>
             </div>
 
@@ -178,20 +173,12 @@ function AdminDashboard() {
                 <p className="text-xl font-bold text-[var(--admin-text)] capitalize">{CONFIG.billingMode || 'off'}</p>
                 <p className="text-sm text-[var(--admin-text-muted)] mt-2">
                   {CONFIG.billingMode === 'required'
-                    ? 'Users must subscribe via Clerk Billing to access the app.'
+                    ? 'Users must subscribe to access the app. (Stripe billing is phase 2.)'
                     : 'All users have free access after signing in.'}
                 </p>
               </div>
               <p className="text-sm text-[var(--admin-text-muted)] mt-4">
-                Manage subscription plans in{' '}
-                <a
-                  href="https://dashboard.clerk.com/last-active?path=billing"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  Clerk Billing Dashboard
-                </a>.
+                Stripe billing integration is phase 2. For now, billing mode gates access.
               </p>
             </div>
 
@@ -236,7 +223,7 @@ function AdminDashboard() {
 // === Admin App Wrapper ===
 function AdminApp() {
   return (
-    <ClerkProvider publishableKey={CONFIG.clerkPublishableKey} afterSignOutUrl={`https://${CONFIG.domain}`}>
+    <OIDCProvider authority={CONFIG.oidcAuthority} clientId={CONFIG.oidcClientId} afterSignOutUrl={`https://${CONFIG.domain}`}>
       <SignedIn>
         <AdminDashboard />
       </SignedIn>
@@ -245,7 +232,7 @@ function AdminApp() {
           <div className="max-w-md text-center p-8 bg-[var(--admin-card-bg)] border-4 border-[var(--admin-border)] shadow-[8px_8px_0px_var(--admin-shadow)]">
             <h2 className="text-2xl font-bold mb-4 text-[var(--admin-text)]">Admin Login</h2>
             <p className="mb-6 text-[var(--admin-text-muted)]">Sign in to access the admin dashboard.</p>
-            <SignInButton mode="modal">
+            <SignInButton>
               <button className="px-6 py-3 bg-[var(--admin-border)] text-[var(--admin-card-bg)] font-bold border-4 border-[var(--admin-border)] hover:opacity-90 transition-opacity">
                 Sign In
               </button>
@@ -253,6 +240,6 @@ function AdminApp() {
           </div>
         </div>
       </SignedOut>
-    </ClerkProvider>
+    </OIDCProvider>
   );
 }

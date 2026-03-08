@@ -1,0 +1,20 @@
+name = "vibes-deploy-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+account_id = "e33948793047032de7f5e18ec342a7d1"
+
+[vars]
+OIDC_ISSUER = "https://pocket-id.marcus-e.workers.dev"
+
+# Secrets (set via `wrangler secret put`):
+# CF_API_TOKEN - scoped to Workers deploys on our account
+# CF_ACCOUNT_ID - our Cloudflare account ID
+
+# Service Binding to Pocket ID Worker (avoids .workers.dev routing issue)
+[[services]]
+binding = "POCKET_ID"
+service = "pocket-id"
+
+[[kv_namespaces]]
+binding = "REGISTRY_KV"
+id = "215847e525304ab29b9127c70672fc86"

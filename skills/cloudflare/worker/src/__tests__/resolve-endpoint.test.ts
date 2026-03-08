@@ -29,8 +29,8 @@ let mockKV: ReturnType<typeof createMockKV>;
 
 const makeMockEnv = () => ({
   REGISTRY_KV: mockKV,
-  CLERK_PEM_PUBLIC_KEY: "test-key",
-  CLERK_WEBHOOK_SECRET: "whsec_test",
+  OIDC_PEM_PUBLIC_KEY: "test-key",
+  OIDC_ISSUER: "",
   PERMITTED_ORIGINS: "",
   RESERVED_SUBDOMAINS: "admin,api,www",
 });

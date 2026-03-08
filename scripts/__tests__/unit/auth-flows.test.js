@@ -33,7 +33,7 @@ describe('PasskeySignupFlow state transitions', () => {
     });
 
     it('transitions to passkey when status is missing_requirements', () => {
-      // Clerk returns this when passkeys are Optional
+      // Auth provider returns this when passkeys are Optional
       const next = getNextSignupState(SIGNUP_STATES.VERIFY, { status: 'missing_requirements' });
       expect(next).toBe(SIGNUP_STATES.PASSKEY);
     });

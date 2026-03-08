@@ -1,8 +1,7 @@
 export interface Env {
   REGISTRY_KV: KVNamespace;
-  CLERK_PEM_PUBLIC_KEY: string;
-  CLERK_WEBHOOK_SECRET: string;
-  CLERK_SECRET_KEY?: string;
+  OIDC_PEM_PUBLIC_KEY: string;
+  OIDC_ISSUER?: string;  // Expected issuer for token validation
   PERMITTED_ORIGINS?: string;
   RESERVED_SUBDOMAINS?: string;
   OPENROUTER_API_KEY?: string;

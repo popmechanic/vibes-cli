@@ -1,6 +1,6 @@
 /**
  * JWT verification using Web Crypto API (SubtleCrypto)
- * Replaces jsonwebtoken for Cloudflare Workers compatibility.
+ * Validates OIDC-compliant RS256 tokens (works with any OIDC provider).
  */
 
 import { matchAzp, validateJwtTiming } from "./jwt-validation";
@@ -71,13 +71,14 @@ function parseJwt(token: string): {
 }
 
 /**
- * Verify Clerk JWT from Authorization header using Web Crypto API
+ * Verify OIDC JWT from Authorization header using Web Crypto API.
+ * Debug version that returns failure reason.
  */
-// Debug version that returns failure reason
-export async function verifyClerkJWTDebug(
+export async function verifyOIDCJWTDebug(
   authHeader: string | null,
   pemPublicKey: string,
-  permittedOrigins: string[]
+  permittedOrigins: string[],
+  expectedIssuer?: string
 ): Promise<{ userId: string; plan?: string } | { error: string }> {
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return { error: "no_auth_header" };
@@ -120,6 +121,14 @@ export async function verifyClerkJWTDebug(
       return { error: `timing:${timingResult.reason}` };
     }
 
+    // Validate issuer claim if expected issuer is configured
+    if (expectedIssuer) {
+      const tokenIssuer = parsed.payload.iss as string | undefined;
+      if (!tokenIssuer || tokenIssuer !== expectedIssuer) {
+        return { error: `iss_mismatch:expected=${expectedIssuer},got=${tokenIssuer}` };
+      }
+    }
+
     if (!matchAzp(parsed.payload.azp as string | undefined, permittedOrigins)) {
       return { error: `azp_mismatch:${parsed.payload.azp}` };
     }
@@ -138,12 +147,13 @@ export async function verifyClerkJWTDebug(
   }
 }
 
-export async function verifyClerkJWT(
+export async function verifyOIDCJWT(
   authHeader: string | null,
   pemPublicKey: string,
-  permittedOrigins: string[]
+  permittedOrigins: string[],
+  expectedIssuer?: string
 ): Promise<{ userId: string; plan?: string } | null> {
-  const result = await verifyClerkJWTDebug(authHeader, pemPublicKey, permittedOrigins);
+  const result = await verifyOIDCJWTDebug(authHeader, pemPublicKey, permittedOrigins, expectedIssuer);
   if ('error' in result) {
     console.error("JWT verification failed:", result.error);
     return null;

@@ -1,6 +1,10 @@
 <script type="text/babel" data-type="module">
+      import React, { useState, useEffect, useRef, useCallback, useMemo, useContext, Fragment } from "react";
       import ReactDOMClient from "react-dom/client";
-      import { useFireproofClerk } from "use-fireproof";
+      import { useFireproof, useFireproofClerk } from "use-fireproof";
+
+      // Always export useFireproofClerk so app code works in both local-only and deployed modes
+      window.useFireproofClerk = useFireproofClerk;
 
       // __VIBES_APP_CODE__
 
@@ -8,33 +12,43 @@
       const ConfigError = window.ConfigError;
       const LoadingError = window.LoadingError;
 
-      // App wrapper with Clerk auth gate (always required)
+      // App wrapper — full OIDC auth when Connect is configured, local-only otherwise
       function AppWrapper() {
         const config = window.__VIBES_CONFIG__;
 
         // Hook must be called unconditionally at top of component (Rules of Hooks)
         window.useVibesPanelEvents('Vibes');
 
-        // Check for configuration errors
-        if (!config?.clerkPublishableKey || config.clerkPublishableKey.startsWith('__')) {
-          return <ConfigError message="Missing Clerk publishable key. Apps require authentication." />;
+        const hasConnect = !!(config?.tokenApiUri && config?.cloudBackendUrl &&
+          !config.tokenApiUri.startsWith('__') && !config.cloudBackendUrl.startsWith('__'));
+        const hasOidc = !!(config?.oidcAuthority && !config.oidcAuthority.startsWith('__') &&
+          config?.oidcClientId && !config.oidcClientId.startsWith('__'));
+
+        // No Connect URLs — run local-only (no auth, no sync)
+        if (!hasConnect) {
+          if (!hasOidc) {
+            console.info('[vibes] No credentials configured — running local-only.');
+          } else {
+            console.info('[vibes] Sync will be configured on first deploy. Running local-only preview.');
+          }
+          return (
+            <HiddenMenuWrapper menuContent={<VibesPanel />}>
+              <App />
+            </HiddenMenuWrapper>
+          );
         }
 
-        // Warn if Connect URLs are unreplaced placeholders (assembly bug)
-        // Empty URLs are expected pre-deploy — sync configures on first deploy via alchemy
-        if (config?.tokenApiUri?.startsWith('__') || config?.cloudBackendUrl?.startsWith('__')) {
-          console.warn('[vibes] Connect URL placeholders not replaced — check assembly.',
-            'tokenApiUri:', config?.tokenApiUri, 'cloudBackendUrl:', config?.cloudBackendUrl);
-        } else if (!config?.tokenApiUri || !config?.cloudBackendUrl) {
-          console.info('[vibes] Sync will be configured on first deploy.');
+        // Full mode — Connect configured, OIDC required
+        if (!hasOidc) {
+          return <ConfigError message="Missing OIDC configuration. Apps require authentication." />;
         }
 
-        // Check if Clerk components loaded
-        if (!window.ClerkFireproofProvider) {
-          return <LoadingError error={window.__CLERK_LOAD_ERROR__ || 'Clerk components not available'} />;
+        // Check if OIDC bridge loaded
+        if (!window.OIDCProvider) {
+          return <LoadingError error={window.__OIDC_LOAD_ERROR__ || 'OIDC components not available'} />;
         }
 
-        const { ClerkFireproofProvider, SignedIn, SignedOut, SignInButton } = window.ClerkComponents;
+        const { OIDCProvider, SignedIn, SignedOut, SignInButton } = window.OIDCComponents;
 
         // Use shared components from window
         const AuthScreen = window.AuthScreen;
@@ -42,29 +56,44 @@
         const RED = window.RED;
 
         // AuthGate shown when user is not signed in
-        const AuthGate = () => (
-          <AuthScreen
-            title="Sign in to continue"
-            message="This app uses cloud sync and requires authentication."
-            showCard={true}
-          >
-            <SignInButton mode="modal">
-              <VibesButton variant={RED} buttonType="form">
-                Sign In
-              </VibesButton>
-            </SignInButton>
-          </AuthScreen>
-        );
+        const AuthGate = () => {
+          React.useEffect(() => {
+            const handler = () => {
+              if (document.visibilityState === 'visible' && sessionStorage.getItem('vibes-signup-pending')) {
+                sessionStorage.removeItem('vibes-signup-pending');
+                const btn = document.querySelector('[data-vibes-signin]');
+                if (btn) btn.click();
+              }
+            };
+            document.addEventListener('visibilitychange', handler);
+            return () => document.removeEventListener('visibilitychange', handler);
+          }, []);
+
+          return (
+            <AuthScreen
+              title="Sign in to continue"
+              message="This app uses cloud sync and requires authentication."
+              showCard={true}
+            >
+              <SignInButton>
+                <VibesButton data-vibes-signin variant={RED} buttonType="form">
+                  Sign In
+                </VibesButton>
+              </SignInButton>
+            </AuthScreen>
+          );
+        };
 
         return (
           <>
             <SyncStatusDot />
-            <ClerkFireproofProvider
-              publishableKey={config.clerkPublishableKey}
-              config={config.tokenApiUri && config.cloudBackendUrl ? {
+            <OIDCProvider
+              authority={config.oidcAuthority}
+              clientId={config.oidcClientId}
+              config={{
                 apiUrl: config.tokenApiUri,
                 cloudUrl: config.cloudBackendUrl
-              } : undefined}
+              }}
             >
               <SignedOut>
                 <AuthGate />
@@ -75,39 +104,41 @@
                   <App />
                 </HiddenMenuWrapper>
               </SignedIn>
-            </ClerkFireproofProvider>
+            </OIDCProvider>
           </>
         );
       }
 
-      // Load Clerk components (required for all apps)
+      // Load OIDC bridge components when Connect is configured, otherwise local-only
       async function initApp() {
-        try {
-          // Dynamic import of @fireproof/clerk package
-          const clerkModule = await import("@fireproof/clerk");
-          window.ClerkFireproofProvider = clerkModule.ClerkFireproofProvider;
-          window.ClerkComponents = {
-            ClerkFireproofProvider: clerkModule.ClerkFireproofProvider,
-            SignedIn: clerkModule.SignedIn,
-            SignedOut: clerkModule.SignedOut,
-            SignInButton: clerkModule.SignInButton,
-            UserButton: clerkModule.UserButton
-          };
-          // Export for user's App code
-          window.SignedIn = clerkModule.SignedIn;
-          window.SignedOut = clerkModule.SignedOut;
-          window.SignInButton = clerkModule.SignInButton;
-          window.UserButton = clerkModule.UserButton;
-          window.useUser = clerkModule.useUser;
-          // Export sharing APIs for user's App code and SharingBridge
-          window.useClerkFireproofContext = clerkModule.useClerkFireproofContext;
-          if (clerkModule.useSharing) window.useSharing = clerkModule.useSharing;
+        const config = window.__VIBES_CONFIG__;
+        const hasConnect = !!(config?.tokenApiUri && config?.cloudBackendUrl &&
+          !config.tokenApiUri.startsWith('__') && !config.cloudBackendUrl.startsWith('__'));
 
-          // Export Fireproof hook for user's App code (bridge module provides sync + onTock wrapping)
-          window.useFireproofClerk = clerkModule.useFireproofClerk;
-        } catch (err) {
-          console.error('Failed to load Clerk components:', err);
-          window.__CLERK_LOAD_ERROR__ = err.message || String(err);
+        if (hasConnect) {
+          try {
+            // Dynamic import of OIDC bridge (mapped via import map to fireproof-oidc-bridge.js)
+            const oidcModule = await import("use-fireproof");
+            window.OIDCProvider = oidcModule.OIDCProvider;
+            window.OIDCComponents = {
+              OIDCProvider: oidcModule.OIDCProvider,
+              SignedIn: oidcModule.SignedIn,
+              SignedOut: oidcModule.SignedOut,
+              SignInButton: oidcModule.SignInButton,
+              UserButton: oidcModule.UserButton
+            };
+            // Export for user's App code
+            window.SignedIn = oidcModule.SignedIn;
+            window.SignedOut = oidcModule.SignedOut;
+            window.SignInButton = oidcModule.SignInButton;
+            window.UserButton = oidcModule.UserButton;
+            window.useUser = oidcModule.useUser;
+            // Export OIDC context for SharingBridge and user code
+            window.useOIDCContext = oidcModule.useOIDCContext;
+          } catch (err) {
+            console.error('Failed to load OIDC components:', err);
+            window.__OIDC_LOAD_ERROR__ = err.message || String(err);
+          }
         }
 
         const rootElement = document.getElementById("container");

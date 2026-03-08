@@ -15,21 +15,14 @@ context_content=$(cat "${SCRIPT_DIR}/session-context.md" 2>&1 || echo "Error rea
 state_hints=""
 
 REGISTRY="$HOME/.vibes/deployments.json"
+AUTH_CACHE="$HOME/.vibes/auth.json"
 if [ -f "$REGISTRY" ]; then
     app_count=$(grep -c '"name"' "$REGISTRY" 2>/dev/null || echo "0")
     state_hints=$'\n\n## Project State\nVibes registry found with '"$app_count"' app(s). Deploy with /vibes:cloudflare.'
-elif [ -f "${PWD}/.env" ]; then
-    has_clerk_keys=false
-    if grep -q "VITE_CLERK_PUBLISHABLE_KEY=pk_" "${PWD}/.env" 2>/dev/null; then
-        has_clerk_keys=true
-    fi
-    if [ "$has_clerk_keys" = true ]; then
-        state_hints=$'\n\n## Project State\nLegacy .env found with Clerk keys. Deploy with /vibes:cloudflare to auto-configure Connect.'
-    else
-        state_hints=$'\n\n## Project State\n.env found but missing Clerk keys. Add VITE_CLERK_PUBLISHABLE_KEY before deploying.'
-    fi
+elif [ -f "$AUTH_CACHE" ]; then
+    state_hints=$'\n\n## Project State\nPocket ID authenticated (cached at ~/.vibes/auth.json). Deploy with /vibes:cloudflare.'
 else
-    state_hints=$'\n\n## Project State\nNo registry or .env found. Provide Clerk keys when deploying your first app.'
+    state_hints=$'\n\n## Project State\nNo auth cache found. Auth is automatic — browser login on first deploy, cached at ~/.vibes/auth.json.'
 fi
 
 if [ -f "${PWD}/app.jsx" ]; then

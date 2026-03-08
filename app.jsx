@@ -1,7 +1,7 @@
-window.__VIBES_THEMES__ = [{ id: "orbit", name: "Orbit Dashboard" }];
+window.__VIBES_THEMES__ = [{ id: "industrial", name: "Industrial HUD" }];
 
 function useVibesTheme() {
-  const [theme, setTheme] = React.useState(() => localStorage.getItem("vibes-theme") || "orbit");
+  const [theme, setTheme] = React.useState(() => localStorage.getItem("vibes-theme") || "industrial");
   React.useEffect(() => {
     const handler = (e) => { const t = e.detail?.theme; if (t) { setTheme(t); localStorage.setItem("vibes-theme", t); } };
     document.addEventListener("vibes-design-request", handler);
@@ -10,737 +10,1251 @@ function useVibesTheme() {
   return theme;
 }
 
-/* ─── SVG Doodle Icons ─── */
+/* ─── SVG ICON COMPONENTS ─── */
 
-function HeartDoodle({ size = 28, color = "var(--scrap-red)", style = {} }) {
+function FlameIcon({ size = 24, color = "var(--comp-accent)" }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: "inline-block", ...style }}>
-      <path
-        d="M50 88C50 88 10 60 10 35C10 18 25 8 38 15C44 18 48 24 50 28C52 24 56 18 62 15C75 8 90 18 90 35C90 60 50 88 50 88Z"
-        fill={color} stroke="var(--comp-border)" strokeWidth="3" strokeLinejoin="round"
-      />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke={color}>
+      <path d="M12 22c-4-2-7-5.5-7-10 0-3 2-5 4-6.5 0 3 1.5 4.5 3 5.5 0-4 2-8 4-10 1 3 2 6 2 9 0 5.5-2 9-6 12z" fill={color} fillOpacity="0.15" />
+      <path d="M12 22c-4-2-7-5.5-7-10 0-3 2-5 4-6.5 0 3 1.5 4.5 3 5.5 0-4 2-8 4-10 1 3 2 6 2 9 0 5.5-2 9-6 12z" />
     </svg>
   );
 }
 
-function CartDoodle({ size = 48 }) {
+function ClockIcon({ size = 24, color = "var(--comp-accent)" }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: "inline-block" }}>
-      <path d="M15 20 L25 20 L38 70 L80 70 L90 30 L30 30" fill="none" stroke="var(--comp-border)" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="45" cy="82" r="7" fill="var(--scrap-red)" stroke="var(--comp-border)" strokeWidth="2.5" />
-      <circle cx="72" cy="82" r="7" fill="var(--scrap-red)" stroke="var(--comp-border)" strokeWidth="2.5" />
-      <path d="M42 45 L75 45" stroke="var(--comp-border)" strokeWidth="2" strokeDasharray="4 3" />
-      <path d="M40 55 L78 55" stroke="var(--comp-border)" strokeWidth="2" strokeDasharray="4 3" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke={color}>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
     </svg>
   );
 }
 
-function AppleDoodle({ size = 32, style = {} }) {
+function CameraIcon({ size = 24, color = "var(--comp-text)" }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: "inline-block", ...style }}>
-      <path d="M50 25C50 25 55 8 65 10" fill="none" stroke="oklch(0.4 0.12 145)" strokeWidth="3" strokeLinecap="round" />
-      <ellipse cx="50" cy="60" rx="30" ry="32" fill="var(--scrap-red)" stroke="var(--comp-border)" strokeWidth="2.5" />
-      <path d="M50 28C40 28 25 35 25 60" fill="none" stroke="var(--comp-border)" strokeWidth="1.5" opacity="0.3" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke={color}>
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="13" r="4" />
     </svg>
   );
 }
 
-function CarrotDoodle({ size = 30, style = {} }) {
+function CrosshairIcon({ size = 20, color = "var(--comp-accent)" }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: "inline-block", ...style }}>
-      <path d="M50 95L30 40C30 40 50 25 70 40Z" fill="oklch(0.72 0.15 55)" stroke="var(--comp-border)" strokeWidth="2.5" />
-      <path d="M40 30C42 15 48 5 50 5C52 5 55 10 53 25" fill="oklch(0.55 0.15 145)" stroke="var(--comp-border)" strokeWidth="2" />
-      <path d="M55 32C58 18 62 10 60 8" fill="none" stroke="oklch(0.55 0.15 145)" strokeWidth="2" strokeLinecap="round" />
-      <line x1="38" y1="55" x2="62" y2="55" stroke="var(--comp-border)" strokeWidth="1.5" opacity="0.3" />
-      <line x1="40" y1="70" x2="58" y2="70" stroke="var(--comp-border)" strokeWidth="1.5" opacity="0.3" />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke={color}>
+      <circle cx="12" cy="12" r="8" />
+      <line x1="12" y1="2" x2="12" y2="6" />
+      <line x1="12" y1="18" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="6" y2="12" />
+      <line x1="18" y1="12" x2="22" y2="12" />
     </svg>
   );
 }
 
-function StarDoodle({ size = 22, style = {} }) {
+function StarIcon({ filled = false, size = 22, onClick }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" style={{ display: "inline-block", ...style }}>
-      <path d="M50 5L61 38L95 38L68 60L78 95L50 73L22 95L32 60L5 38L39 38Z" fill="var(--comp-accent)" stroke="var(--comp-border)" strokeWidth="2.5" strokeLinejoin="round" />
+    <svg
+      width={size} height={size} viewBox="0 0 24 24"
+      fill={filled ? "var(--comp-accent)" : "none"}
+      stroke={filled ? "var(--comp-accent)" : "var(--comp-muted)"}
+      strokeWidth="2"
+      style={{ cursor: onClick ? "pointer" : "default", transition: "all 0.15s linear" }}
+      onClick={onClick}
+    >
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
     </svg>
   );
 }
 
-function EmptyBagDoodle() {
+function TargetDecoration() {
   return (
-    <svg width="120" height="140" viewBox="0 0 120 140" className="empty-bag-float">
-      <rect x="20" y="50" width="80" height="80" rx="5" fill="oklch(0.97 0.01 90)" stroke="var(--comp-border)" strokeWidth="3" />
-      <path d="M40 50C40 50 40 25 60 25C80 25 80 50 80 50" fill="none" stroke="var(--comp-border)" strokeWidth="3" strokeLinecap="round" />
-      <text x="60" y="98" textAnchor="middle" fontFamily="'Caveat', cursive" fontSize="18" fill="var(--comp-muted)">empty!</text>
-      <circle cx="45" cy="80" r="3" fill="var(--scrap-red)" opacity="0.5">
-        <animate attributeName="r" values="3;4;3" dur="2s" repeatCount="indefinite" />
-      </circle>
-      <circle cx="75" cy="85" r="2.5" fill="var(--comp-accent)" opacity="0.5">
-        <animate attributeName="r" values="2.5;3.5;2.5" dur="2.5s" repeatCount="indefinite" />
-      </circle>
+    <svg className="target-deco" width="60" height="60" viewBox="0 0 60 60" fill="none" stroke="var(--comp-accent)" strokeWidth="1" opacity="0.3">
+      <circle cx="30" cy="30" r="28" />
+      <circle cx="30" cy="30" r="18" />
+      <circle cx="30" cy="30" r="8" />
+      <line x1="30" y1="0" x2="30" y2="14" />
+      <line x1="30" y1="46" x2="30" y2="60" />
+      <line x1="0" y1="30" x2="14" y2="30" />
+      <line x1="46" y1="30" x2="60" y2="30" />
     </svg>
   );
 }
 
-/* ─── Family Members ─── */
-const FAMILY_MEMBERS = [
-  { name: "Mom", color: "oklch(0.65 0.2 350)" },
-  { name: "Dad", color: "oklch(0.5 0.15 250)" },
-  { name: "Kid 1", color: "oklch(0.6 0.18 145)" },
-  { name: "Kid 2", color: "oklch(0.7 0.15 55)" },
-];
-
-function App() {
-  const theme = useVibesTheme();
-  const { database, useLiveQuery, useDocument } = useFireproofClerk("family-grocery");
-
-  const [newItem, setNewItem] = React.useState("");
-  const [currentMember, setCurrentMember] = React.useState("Mom");
-  const [category, setCategory] = React.useState("general");
-  const listRef = React.useRef(null);
-
-  const groceries = useLiveQuery("type", { key: "grocery" });
-  const items = groceries?.rows?.map(r => r.doc) || [];
-
-  const uncheckedItems = items.filter(i => !i.checked).sort((a, b) => (b.created || 0) - (a.created || 0));
-  const checkedItems = items.filter(i => i.checked).sort((a, b) => (b.created || 0) - (a.created || 0));
-
-  const categories = [
-    { id: "produce", label: "Produce", icon: "🥬" },
-    { id: "dairy", label: "Dairy", icon: "🥛" },
-    { id: "meat", label: "Meat", icon: "🍗" },
-    { id: "bakery", label: "Bakery", icon: "🍞" },
-    { id: "frozen", label: "Frozen", icon: "🧊" },
-    { id: "general", label: "Other", icon: "📦" },
-  ];
-
-  const handleAdd = async (e) => {
-    e.preventDefault();
-    if (!newItem.trim()) return;
-    await database.put({
-      type: "grocery",
-      text: newItem.trim(),
-      addedBy: currentMember,
-      category,
-      checked: false,
-      created: Date.now(),
-    });
-    setNewItem("");
-    setTimeout(() => {
-      if (listRef.current) listRef.current.scrollTop = 0;
-    }, 100);
-  };
-
-  const toggleItem = async (doc) => {
-    await database.put({ ...doc, checked: !doc.checked });
-  };
-
-  const deleteItem = async (doc) => {
-    await database.del(doc);
-  };
-
-  const clearChecked = async () => {
-    for (const item of checkedItems) {
-      await database.del(item);
-    }
-  };
-
-  const getMemberColor = (name) => {
-    const m = FAMILY_MEMBERS.find(f => f.name === name);
-    return m ? m.color : "var(--comp-muted)";
-  };
-
-  const getCategoryIcon = (catId) => {
-    const c = categories.find(ct => ct.id === catId);
-    return c ? c.icon : "📦";
-  };
-
+function EmptyState() {
   return (
-    <div className="desk-surface">
-      {/* @theme:decoration */}
-      <div className="desk-texture" />
-      <svg style={{ position: "fixed", top: "10%", left: "8%", opacity: 0.08, pointerEvents: "none" }} width="80" height="80" viewBox="0 0 80 80">
-        <circle cx="40" cy="40" r="36" fill="none" stroke="var(--accent-green)" strokeWidth="1.5" />
-        <circle cx="40" cy="40" r="24" fill="none" stroke="var(--accent-blue)" strokeWidth="1" />
-        <circle cx="40" cy="40" r="12" fill="none" stroke="var(--accent-yellow)" strokeWidth="0.8" />
-        <circle cx="40" cy="8" r="3" fill="var(--accent-green)" />
-        <circle cx="68" cy="40" r="3" fill="var(--accent-blue)" />
-        <circle cx="40" cy="64" r="2.5" fill="var(--accent-orange)" />
+    <div className="empty-state">
+      <svg width="180" height="180" viewBox="0 0 180 180" fill="none">
+        <circle cx="90" cy="90" r="70" stroke="var(--comp-border)" strokeWidth="2" strokeDasharray="8 4" opacity="0.3">
+          <animateTransform attributeName="transform" type="rotate" from="0 90 90" to="360 90 90" dur="30s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="90" cy="90" r="45" stroke="var(--comp-accent)" strokeWidth="2" opacity="0.5">
+          <animateTransform attributeName="transform" type="rotate" from="360 90 90" to="0 90 90" dur="20s" repeatCount="indefinite" />
+        </circle>
+        <line x1="90" y1="30" x2="90" y2="55" stroke="var(--comp-accent)" strokeWidth="2" opacity="0.6">
+          <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2s" repeatCount="indefinite" />
+        </line>
+        <line x1="90" y1="125" x2="90" y2="150" stroke="var(--comp-accent)" strokeWidth="2" opacity="0.6">
+          <animate attributeName="opacity" values="0.2;0.6;0.2" dur="2s" repeatCount="indefinite" />
+        </line>
+        <line x1="30" y1="90" x2="55" y2="90" stroke="var(--comp-accent)" strokeWidth="2" opacity="0.6">
+          <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2.5s" repeatCount="indefinite" />
+        </line>
+        <line x1="125" y1="90" x2="150" y2="90" stroke="var(--comp-accent)" strokeWidth="2" opacity="0.6">
+          <animate attributeName="opacity" values="0.2;0.6;0.2" dur="2.5s" repeatCount="indefinite" />
+        </line>
+        <circle cx="90" cy="90" r="4" fill="var(--comp-accent)">
+          <animate attributeName="r" values="3;6;3" dur="3s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="1;0.5;1" dur="3s" repeatCount="indefinite" />
+        </circle>
+        <text x="90" y="100" textAnchor="middle" fill="var(--comp-muted)" fontFamily="'Space Mono', monospace" fontSize="8" letterSpacing="2" dy="30">
+          SCANNING FOR RECIPES
+        </text>
       </svg>
-      <svg style={{ position: "fixed", bottom: "15%", right: "5%", opacity: 0.06, pointerEvents: "none" }} width="60" height="60" viewBox="0 0 60 60">
-        <circle cx="30" cy="30" r="26" fill="none" stroke="var(--accent-blue)" strokeWidth="1" />
-        <circle cx="30" cy="30" r="14" fill="none" stroke="var(--accent-orange)" strokeWidth="0.8" />
-        <circle cx="30" cy="6" r="2.5" fill="var(--accent-yellow)" />
-        <circle cx="54" cy="30" r="2.5" fill="var(--accent-green)" />
-      </svg>
-      <svg style={{ position: "fixed", top: "50%", left: "3%", opacity: 0.05, pointerEvents: "none" }} width="40" height="40" viewBox="0 0 40 40">
-        <circle cx="20" cy="20" r="16" fill="none" stroke="var(--accent-orange)" strokeWidth="1" />
-        <circle cx="20" cy="6" r="2" fill="var(--accent-blue)" />
-      </svg>
-      {/* @theme:decoration:end */}
-
-      <div className="app-frame">
-        {/* Header / Awning */}
-        <header className="awning">
-          <div className="heart-decor heart-left">
-            <HeartDoodle size={26} />
-          </div>
-          <div className="heart-decor heart-right">
-            <HeartDoodle size={26} />
-          </div>
-          <div className="awning-cart"><CartDoodle size={42} /></div>
-          <h1 className="awning-title">
-            the family <span className="highlight">pantry</span>
-          </h1>
-          <p className="awning-sub">what do we need today?</p>
-        </header>
-
-        {/* Member Selector */}
-        <div className="member-bar">
-          <span className="member-label">shopping as:</span>
-          <div className="member-chips">
-            {FAMILY_MEMBERS.map(m => (
-              <button
-                key={m.name}
-                className={`member-chip ${currentMember === m.name ? "active" : ""}`}
-                onClick={() => setCurrentMember(m.name)}
-                style={{ "--chip-color": m.color }}
-              >
-                {m.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Scrollable List */}
-        <main className="window-display" ref={listRef}>
-          {items.length === 0 && (
-            <div className="empty-state">
-              <EmptyBagDoodle />
-              <p className="empty-text">the list is empty!</p>
-              <p className="empty-hint">add something below</p>
-            </div>
-          )}
-
-          {uncheckedItems.map((item, i) => (
-            <label
-              key={item._id}
-              className="list-item"
-              style={{ animationDelay: `${i * 0.04}s`, "--tilt": `${(i % 3 - 1) * 0.6}deg` }}
-            >
-              <input
-                type="checkbox"
-                className="scrap-checkbox"
-                checked={false}
-                onChange={() => toggleItem(item)}
-              />
-              <div className="item-content">
-                <span className="item-text">{getCategoryIcon(item.category)} {item.text}</span>
-                <span className="item-meta" style={{ color: getMemberColor(item.addedBy) }}>
-                  added by {item.addedBy}
-                </span>
-              </div>
-              <button className="delete-btn" onClick={(e) => { e.preventDefault(); deleteItem(item); }}>×</button>
-            </label>
-          ))}
-
-          {checkedItems.length > 0 && (
-            <>
-              <div className="checked-divider">
-                <svg width="100%" height="16" viewBox="0 0 400 16" preserveAspectRatio="none">
-                  <path d="M0 8C50 4 100 12 150 8C200 4 250 12 300 8C350 4 400 12 400 8" fill="none" stroke="var(--comp-border)" strokeWidth="2" strokeDasharray="6 4" opacity="0.3" />
-                </svg>
-                <span className="checked-label">got it!</span>
-                <button className="clear-btn" onClick={clearChecked}>clear all</button>
-              </div>
-              {checkedItems.map((item, i) => (
-                <label
-                  key={item._id}
-                  className="list-item checked"
-                  style={{ "--tilt": `${(i % 3 - 1) * 0.4}deg` }}
-                >
-                  <input
-                    type="checkbox"
-                    className="scrap-checkbox"
-                    checked={true}
-                    onChange={() => toggleItem(item)}
-                  />
-                  <div className="item-content">
-                    <span className="item-text struck">{getCategoryIcon(item.category)} {item.text}</span>
-                    <span className="item-meta" style={{ color: getMemberColor(item.addedBy), opacity: 0.5 }}>
-                      added by {item.addedBy}
-                    </span>
-                  </div>
-                  <button className="delete-btn" onClick={(e) => { e.preventDefault(); deleteItem(item); }}>×</button>
-                </label>
-              ))}
-            </>
-          )}
-        </main>
-
-        {/* Input Footer */}
-        <footer className="input-area">
-          <div className="category-row">
-            {categories.map(c => (
-              <button
-                key={c.id}
-                className={`cat-chip ${category === c.id ? "active" : ""}`}
-                onClick={() => setCategory(c.id)}
-                title={c.label}
-              >
-                {c.icon}
-              </button>
-            ))}
-          </div>
-          <form className="input-wrapper" onSubmit={handleAdd}>
-            <input
-              type="text"
-              value={newItem}
-              onChange={e => setNewItem(e.target.value)}
-              placeholder="we need..."
-              className="scrap-input"
-            />
-            <button type="submit" className="add-btn">add</button>
-          </form>
-        </footer>
-      </div>
+      <p className="empty-label">Add your first recipe to begin cataloging</p>
     </div>
   );
 }
 
-/* ─── Styles ─── */
-const styleTag = document.createElement("style");
-styleTag.textContent = `
-
-/* @theme:typography */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
-/* @theme:typography:end */
-
-/* @theme:tokens */
-:root {
-  --bg-gradient-from: oklch(0.56 0.29 302)   /* purple-600 body gradient start */;
-  --bg-gradient-to:   oklch(0.44 0.22 304)   /* purple-800 body gradient end */;
-  --surface:     oklch(0.00 0.000 0)          /* main container black */;
-  --card:        oklch(0.18 0.000 0 / 0.8)    /* stat card glass rgba(30,30,30,0.8) */;
-  --card-solid:  oklch(0.28 0.03 257)         /* match items gray-800 */;
-  --border:      oklch(0.37 0.03 260)         /* concentric rings gray-700 */;
-  --fg:          oklch(1.00 0.000 0)          /* primary text white */;
-  --fg-muted:    oklch(0.71 0.02 261)         /* labels gray-400 */;
-  --fg-dim:      oklch(0.55 0.03 264)         /* inactive nav gray-500 */;
-  --accent-green:  oklch(0.79 0.21 152)       /* green-400 */;
-  --accent-blue:   oklch(0.71 0.17 255)       /* blue-400 */;
-  --accent-yellow: oklch(0.85 0.20 92)        /* yellow-400 */;
-  --accent-orange: oklch(0.75 0.18 56)        /* orange-400 */;
-
-  /* comp-* token bridge */
-  --comp-bg: var(--surface);
-  --comp-text: var(--fg);
-  --comp-accent: var(--accent-green);
-  --comp-accent-text: oklch(1.00 0 0);
-  --comp-muted: var(--fg-muted);
-  --comp-border: var(--border);
-  --color-background: var(--surface);
-  --grid-color: transparent;
-}
-/* @theme:tokens:end */
-
-/* @theme:motion */
-@keyframes fadeSlideIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes gentleFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
-}
-@keyframes checkPop {
-  0% { transform: scale(0); }
-  60% { transform: scale(1.2); }
-  100% { transform: scale(1); }
-}
-@keyframes progressFill {
-  from { width: 0; }
-}
-/* @theme:motion:end */
-
-/* @theme:surfaces */
-.desk-surface {
-  min-height: 100vh;
-  background-color: var(--color-background);
-  font-family: 'Patrick Hand', cursive;
-  color: var(--comp-text);
+/* ─── STAR RATING COMPONENT ─── */
+function StarRating({ rating = 0, onChange, size = 22 }) {
+  const [hover, setHover] = React.useState(0);
+  return (
+    <div className="star-rating" onMouseLeave={() => setHover(0)}>
+      {[1, 2, 3, 4, 5].map(i => (
+        <span key={i} onMouseEnter={() => onChange && setHover(i)}>
+          <StarIcon
+            filled={i <= (hover || rating)}
+            size={size}
+            onClick={onChange ? () => onChange(i) : undefined}
+          />
+        </span>
+      ))}
+    </div>
+  );
 }
 
-.desk-texture {
-  position: fixed;
-  inset: 0;
-  background-image:
-    radial-gradient(circle at 20% 30%, oklch(0.91 0.04 135 / 0.5) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, oklch(0.91 0.05 100 / 0.3) 0%, transparent 40%);
-  pointer-events: none;
-  z-index: 0;
+/* ─── IMAGE HANDLER ─── */
+function fileToImageData(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const arr = new Uint8Array(reader.result);
+      resolve({ data: arr, type: file.type });
+    };
+    reader.readAsArrayBuffer(file);
+  });
 }
 
-.app-frame {
-  background-color: var(--scrap-paper);
-  border: 3.5px solid var(--comp-border);
-  box-shadow: 6px 6px 0 var(--scrap-shadow);
-  position: relative;
-  overflow: hidden;
-  transform: rotate(-0.3deg);
+function imageDataToUrl(imgData) {
+  if (!imgData || !imgData.data) return null;
+  const arr = imgData.data instanceof Uint8Array ? imgData.data : new Uint8Array(Object.values(imgData.data));
+  const blob = new Blob([arr], { type: imgData.type || "image/jpeg" });
+  return URL.createObjectURL(blob);
 }
 
-.awning {
-  background-color: var(--scrap-paper);
-  border-bottom: 3.5px solid var(--comp-border);
-  text-align: center;
-  position: relative;
-  z-index: 10;
-  background-image:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 28px,
-      oklch(0.8 0.03 220 / 0.12) 28px,
-      oklch(0.8 0.03 220 / 0.12) 29px
-    );
-}
+/* ─── MAIN APP ─── */
+function App() {
+  const theme = useVibesTheme();
+  const { database, useLiveQuery, useDocument } = useFireproofClerk("recipe-box-v2");
 
-.awning-title {
-  font-family: 'Caveat', cursive;
-  font-size: clamp(2rem, 6vw, 2.8rem);
-  font-weight: 700;
-  line-height: 1.1;
-  color: var(--comp-text);
-  text-transform: lowercase;
-  letter-spacing: -0.5px;
-}
+  const recipes = useLiveQuery("type", { key: "recipe" });
+  const [selectedId, setSelectedId] = React.useState(null);
+  const [view, setView] = React.useState("list"); // list | add | detail
+  const [photoPreview, setPhotoPreview] = React.useState(null);
+  const [imageUrls, setImageUrls] = React.useState({});
 
-.highlight {
-  background: linear-gradient(170deg, transparent 40%, var(--comp-accent) 40%, var(--comp-accent) 85%, transparent 85%);
-  padding: 0 0.3rem;
-}
+  const [doc, setDoc, saveDoc] = useDocument(
+    selectedId
+      ? { _id: selectedId }
+      : { type: "recipe", title: "", category: "", prepTime: "", servings: "", rating: 0, ingredients: "", instructions: "", imageData: null }
+  );
 
-.awning-sub {
-  font-family: 'Architects Daughter', cursive;
-  font-size: 1rem;
-  color: var(--comp-muted);
-}
+  // Build image URLs for recipe list
+  React.useEffect(() => {
+    const urls = {};
+    recipes.rows.forEach(row => {
+      if (row.doc?.imageData) {
+        const url = imageDataToUrl(row.doc.imageData);
+        if (url) urls[row.doc._id] = url;
+      }
+    });
+    setImageUrls(prev => {
+      Object.values(prev).forEach(u => URL.revokeObjectURL(u));
+      return urls;
+    });
+  }, [recipes.rows]);
 
-.awning-cart {
-  opacity: 0.15;
-  position: absolute;
-  top: 8px;
-  right: 12px;
-}
+  // Preview URL for selected recipe
+  const selectedImageUrl = React.useMemo(() => {
+    if (photoPreview) return photoPreview;
+    if (doc?.imageData) return imageDataToUrl(doc.imageData);
+    return null;
+  }, [doc?.imageData, photoPreview]);
 
-.heart-decor {
-  position: absolute;
-  z-index: 20;
-  pointer-events: none;
-}
-.heart-left { top: -4px; left: 10px; transform: rotate(-15deg); }
-.heart-right { top: -4px; right: 10px; transform: rotate(15deg); }
+  const handlePhotoChange = React.useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const imgData = await fileToImageData(file);
+    setDoc({ imageData: imgData });
+    setPhotoPreview(URL.createObjectURL(file));
+  }, [setDoc]);
 
-.member-bar {
-  border-bottom: 2px dashed var(--comp-border);
-  background: oklch(0.96 0.02 120 / 0.6);
-  font-family: 'Architects Daughter', cursive;
-  font-size: 0.9rem;
-  color: var(--comp-muted);
-}
+  const handleSave = React.useCallback(async () => {
+    if (!doc.title?.trim()) return;
+    const toSave = { ...doc, type: "recipe" };
+    delete toSave._id;
+    delete toSave._rev;
+    if (selectedId) {
+      toSave._id = selectedId;
+      if (doc._rev) toSave._rev = doc._rev;
+    }
+    await database.put(toSave);
+    setPhotoPreview(null);
+    setSelectedId(null);
+    setView("list");
+  }, [doc, selectedId, database]);
 
-.member-chip {
-  font-family: 'Caveat', cursive;
-  font-size: 1rem;
-  font-weight: 600;
-  background: var(--scrap-paper);
-  border: 2px solid var(--comp-border);
-  color: var(--comp-text);
-  cursor: pointer;
-  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
-  transition: transform 0.15s, background-color 0.15s, box-shadow 0.15s;
-}
-.member-chip:hover {
-  transform: translateY(-1px) rotate(-1deg);
-  box-shadow: 2px 2px 0 var(--scrap-shadow);
-}
-.member-chip.active {
-  background: var(--chip-color, var(--comp-accent));
-  color: var(--scrap-paper);
-  box-shadow: 3px 3px 0 var(--scrap-shadow);
-  transform: rotate(-1.5deg);
-}
+  const handleDelete = React.useCallback(async () => {
+    if (selectedId && doc._id) {
+      await database.del(doc._id);
+      setSelectedId(null);
+      setView("list");
+    }
+  }, [selectedId, doc, database]);
 
-.window-display {
-  background-color: var(--scrap-paper);
-  background-image:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 38px,
-      oklch(0.8 0.03 220 / 0.1) 38px,
-      oklch(0.8 0.03 220 / 0.1) 39px
-    );
-}
+  const openRecipe = React.useCallback((id) => {
+    setSelectedId(id);
+    setPhotoPreview(null);
+    setView("detail");
+  }, []);
 
-.window-display::-webkit-scrollbar { width: 10px; }
-.window-display::-webkit-scrollbar-track { background: var(--scrap-paper); border-left: 2px solid var(--comp-border); }
-.window-display::-webkit-scrollbar-thumb { background-color: var(--comp-border); border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px; }
+  const startNew = React.useCallback(() => {
+    setSelectedId(null);
+    setPhotoPreview(null);
+    setView("add");
+  }, []);
 
-.list-item {
-  background-color: var(--scrap-paper);
-  border: 2.5px solid var(--comp-border);
-  cursor: pointer;
-  transform: rotate(var(--tilt, 0deg));
-  box-shadow: 3px 3px 0 oklch(0.12 0.01 0 / 0.15);
-  animation: fadeSlideIn 0.3s ease both;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-.list-item:hover {
-  transform: translateY(-2px) rotate(-1deg);
-  box-shadow: 5px 5px 0 oklch(0.12 0.01 0 / 0.2);
-}
-.list-item.checked {
-  opacity: 0.55;
-  background: oklch(0.96 0.01 90 / 0.7);
-}
+  const editRecipe = React.useCallback(() => {
+    setView("add");
+  }, []);
 
-.scrap-checkbox {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 26px;
-  height: 26px;
-  border: 2.5px solid var(--comp-border);
-  border-radius: 50%;
-  background-color: var(--scrap-paper);
-  cursor: pointer;
-  flex-shrink: 0;
-  position: relative;
-  display: grid;
-  place-content: center;
-}
-.scrap-checkbox::before {
-  content: "";
-  width: 15px;
-  height: 15px;
-  background-color: var(--scrap-red);
-  border-radius: 50%;
-  transform: scale(0);
-  transition: transform 0.15s ease;
-}
-.scrap-checkbox:checked::before {
-  transform: scale(1);
-  animation: checkPop 0.25s ease;
-}
+  const goBack = React.useCallback(() => {
+    setSelectedId(null);
+    setPhotoPreview(null);
+    setView("list");
+  }, []);
 
-.item-text {
-  font-family: 'Patrick Hand', cursive;
-  font-size: 1.15rem;
-  font-weight: 400;
-  color: var(--comp-text);
-  line-height: 1.2;
-  word-break: break-word;
-}
-.item-text.struck {
-  text-decoration: line-through;
-  text-decoration-thickness: 2.5px;
-  text-decoration-color: var(--scrap-red);
-  color: var(--comp-muted);
-}
-.item-meta {
-  font-family: 'Architects Daughter', cursive;
-  font-size: 0.78rem;
-  display: block;
-  margin-top: 0.15rem;
-  opacity: 0.7;
-}
+  const handleHeroMouse = React.useCallback((e) => {
+    const visual = document.getElementById("heroVisual");
+    if (!visual) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 20;
+    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 20;
+    visual.style.transform = `translate(-50%, -50%) rotateX(${-y * 0.4}deg) rotateY(${x * 0.4}deg)`;
+  }, []);
 
-.delete-btn {
-  background: none;
-  border: none;
-  color: var(--scrap-red);
-  font-family: 'Caveat', cursive;
-  font-size: 1.6rem;
-  cursor: pointer;
-  line-height: 1;
-  opacity: 0;
-  transition: opacity 0.2s, transform 0.15s;
-}
-.list-item:hover .delete-btn { opacity: 1; }
-.delete-btn:hover { transform: scale(1.2) rotate(10deg); }
+  const sortedRecipes = React.useMemo(() => {
+    return [...recipes.rows].sort((a, b) => (b.doc?.rating || 0) - (a.doc?.rating || 0));
+  }, [recipes.rows]);
 
-.checked-divider {
-  font-family: 'Caveat', cursive;
-  color: var(--comp-muted);
-}
-.checked-label {
-  font-size: 1rem;
-  font-style: italic;
-}
-.clear-btn {
-  font-family: 'Caveat', cursive;
-  font-size: 0.85rem;
-  background: none;
-  border: 1.5px dashed var(--scrap-red);
-  color: var(--scrap-red);
-  cursor: pointer;
-  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
-  transition: background 0.15s, color 0.15s;
-}
-.clear-btn:hover {
-  background: var(--scrap-red);
-  color: var(--scrap-paper);
-}
+  const avgRating = React.useMemo(() => {
+    if (!recipes.rows.length) return 0;
+    const sum = recipes.rows.reduce((s, r) => s + (r.doc?.rating || 0), 0);
+    return (sum / recipes.rows.length).toFixed(1);
+  }, [recipes.rows]);
 
-.empty-state {
-  font-family: 'Caveat', cursive;
-  color: var(--comp-muted);
-  text-align: center;
-}
-.empty-text { font-size: 1.4rem; font-weight: 600; }
-.empty-hint { font-size: 1rem; font-family: 'Architects Daughter', cursive; }
-.empty-bag-float { animation: gentleFloat 4s ease-in-out infinite; }
+  const categories = ["Breakfast", "Lunch", "Dinner", "Dessert", "Snack", "Drink"];
 
-.cat-chip {
-  background: var(--scrap-paper);
-  border: 2px solid var(--comp-border);
-  font-size: 1.1rem;
-  cursor: pointer;
-  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
-  transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
-  line-height: 1;
-}
-.cat-chip:hover { transform: translateY(-1px); box-shadow: 2px 2px 0 var(--scrap-shadow); }
-.cat-chip.active {
-  background: var(--comp-accent);
-  box-shadow: 2px 2px 0 var(--scrap-shadow);
-  transform: scale(1.1) rotate(-2deg);
-}
+  return (
+    <div className="app-root">
+      <style>{`
+        /* @theme:tokens */
+        :root {
+          --comp-bg: oklch(0.88 0.01 90);
+          --comp-text: oklch(0.05 0.01 0);
+          --comp-border: oklch(0.05 0.01 0);
+          --comp-accent: oklch(0.90 0.20 110);
+          --comp-accent-text: oklch(0.05 0.01 0);
+          --comp-muted: oklch(0.40 0.01 0);
+          --color-background: oklch(0.85 0.01 90);
+          --grid-color: oklch(0.05 0.01 0 / 0.05);
+        }
+        /* @theme:tokens:end */
 
-.input-area {
-  border-top: 3.5px solid var(--comp-border);
-  background: var(--scrap-paper);
-  z-index: 10;
-  position: relative;
-}
-.input-wrapper {
-  border: 3px solid var(--comp-border);
-  background: var(--scrap-paper);
-}
-.scrap-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  font-family: 'Patrick Hand', cursive;
-  font-size: 1.15rem;
-  color: var(--comp-text);
-  outline: none;
-}
-.scrap-input::placeholder {
-  color: var(--comp-muted);
-  font-style: italic;
-}
-.add-btn {
-  background-color: var(--scrap-red);
-  color: var(--scrap-paper);
-  border: 2.5px solid var(--comp-border);
-  font-family: 'Caveat', cursive;
-  font-weight: 700;
-  font-size: 1.3rem;
-  cursor: pointer;
-  text-transform: lowercase;
-  transition: transform 0.1s, background-color 0.15s;
-  box-shadow: 2px 2px 0 var(--scrap-shadow);
-}
-.add-btn:hover { transform: translateY(-1px); box-shadow: 3px 3px 0 var(--scrap-shadow); }
-.add-btn:active { transform: translateY(1px); box-shadow: 1px 1px 0 var(--scrap-shadow); background-color: var(--comp-border); }
-/* @theme:surfaces:end */
+        /* @theme:typography */
+        @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;700;900&display=swap');
+        /* @theme:typography:end */
 
-/* ─── Pure Layout (outside theme markers) ─── */
-.desk-surface {
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 2vmin;
-}
-.app-frame {
-  width: 100%;
-  max-width: 580px;
-  height: 92vh;
-  max-height: 900px;
-  display: flex;
-  flex-direction: column;
-}
-.awning {
-  padding: 1.25rem 1rem 1.5rem;
-  position: relative;
-}
-.member-bar {
-  padding: 0.6rem 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.member-label { flex-shrink: 0; }
-.member-chips { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-.member-chip { padding: 0.2rem 0.7rem; }
-.window-display {
-  flex: 1;
-  padding: 1rem 1rem;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-.list-item {
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 0.85rem;
-  gap: 0.7rem;
-}
-.item-content { flex: 1; min-width: 0; }
-.delete-btn { padding: 0 0.4rem; }
-.checked-divider {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.3rem 0;
-}
-.checked-divider svg { flex: 1; }
-.clear-btn { padding: 0.15rem 0.6rem; flex-shrink: 0; }
-.empty-state {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-.category-row {
-  display: flex;
-  gap: 0.35rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.5rem;
-}
-.cat-chip { padding: 0.25rem 0.5rem; }
-.input-area { padding: 0.8rem 1rem 1rem; }
-.input-wrapper {
-  display: flex;
-  gap: 0.6rem;
-  padding: 0.4rem;
-}
-.scrap-input { padding: 0.4rem; }
-.add-btn { padding: 0.35rem 1.2rem; }
+        /* @theme:surfaces */
+        .app-root {
+          font-family: 'Inter', sans-serif;
+          color: var(--comp-text);
+          background: var(--color-background);
+          background-image:
+            linear-gradient(var(--grid-color) 1px, transparent 1px),
+            linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+          background-size: 40px 40px;
+        }
 
-@media (max-width: 480px) {
-  .app-frame { height: 100vh; max-height: none; border: none; box-shadow: none; transform: none; }
-  .awning { padding: 1rem 0.75rem 1.1rem; }
-  .window-display { padding: 0.75rem 0.75rem; }
-  .input-area { padding: 0.6rem 0.75rem 0.8rem; }
+        .hud-header {
+          background: var(--comp-text);
+          color: var(--comp-accent);
+          font-family: 'Space Mono', monospace;
+          font-size: 0.7rem;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
+          border-bottom: 3px solid var(--comp-accent);
+        }
+
+        .hud-title {
+          font-weight: 700;
+          font-size: 0.85rem;
+        }
+
+        .hud-status {
+          color: var(--comp-accent);
+          opacity: 0.7;
+          font-size: 0.65rem;
+        }
+
+        .hud-btn {
+          background: var(--comp-accent);
+          color: var(--comp-accent-text);
+          font-family: 'Space Mono', monospace;
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          border: 2px solid var(--comp-text);
+          box-shadow: 3px 3px 0 var(--comp-text);
+          transition: all 0.1s linear;
+        }
+
+        .hud-btn:hover {
+          box-shadow: 1px 1px 0 var(--comp-text);
+        }
+
+        .hud-btn:active {
+          box-shadow: 0 0 0 var(--comp-text);
+        }
+
+        .hud-btn-ghost {
+          background: transparent;
+          color: var(--comp-accent);
+          border: 2px solid var(--comp-accent);
+          font-family: 'Space Mono', monospace;
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          transition: all 0.1s linear;
+        }
+
+        .hud-btn-ghost:hover {
+          background: var(--comp-accent);
+          color: var(--comp-accent-text);
+        }
+
+        .hud-btn-danger {
+          background: transparent;
+          color: oklch(0.65 0.25 25);
+          border: 2px solid oklch(0.65 0.25 25);
+          font-family: 'Space Mono', monospace;
+          font-size: 0.65rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          transition: all 0.1s linear;
+        }
+
+        .hud-btn-danger:hover {
+          background: oklch(0.65 0.25 25);
+          color: white;
+        }
+
+        .stats-bar {
+          background: var(--comp-text);
+          color: var(--comp-accent);
+          font-family: 'Space Mono', monospace;
+          font-size: 0.65rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          border-bottom: 1px solid oklch(0.2 0.01 0);
+        }
+
+        .stat-item span:first-child {
+          color: var(--comp-muted);
+        }
+
+        .recipe-card {
+          background: var(--comp-bg);
+          border: 2px solid var(--comp-border);
+          transition: all 0.12s linear;
+        }
+
+        .recipe-card:hover {
+          background: var(--comp-accent);
+          border-color: var(--comp-text);
+          padding-left: 1.5rem;
+        }
+
+        .recipe-card-active {
+          background: var(--comp-accent);
+          border-color: var(--comp-text);
+        }
+
+        .recipe-thumb {
+          border: 2px solid var(--comp-border);
+          background: oklch(0.75 0.01 90);
+        }
+
+        .recipe-card-title {
+          font-weight: 900;
+          font-size: 0.95rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .recipe-card-meta {
+          font-family: 'Space Mono', monospace;
+          font-size: 0.6rem;
+          color: var(--comp-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+        }
+
+        .recipe-card:hover .recipe-card-meta {
+          color: var(--comp-accent-text);
+          opacity: 0.7;
+        }
+
+        .category-badge {
+          font-family: 'Space Mono', monospace;
+          font-size: 0.55rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.15em;
+          background: var(--comp-text);
+          color: var(--comp-accent);
+          border: 1px solid var(--comp-text);
+        }
+
+        .detail-hero {
+          background: var(--comp-text);
+          color: var(--comp-accent);
+        }
+
+        .detail-title {
+          font-weight: 900;
+          font-size: clamp(2rem, 6vw, 4rem);
+          text-transform: uppercase;
+          letter-spacing: -0.02em;
+          line-height: 0.95;
+          color: var(--comp-bg);
+        }
+
+        .detail-label {
+          font-family: 'Space Mono', monospace;
+          font-size: 0.6rem;
+          text-transform: uppercase;
+          letter-spacing: 0.2em;
+          color: var(--comp-accent);
+          opacity: 0.7;
+        }
+
+        .detail-value {
+          font-family: 'Space Mono', monospace;
+          font-size: 0.85rem;
+          color: var(--comp-accent);
+          font-weight: 700;
+        }
+
+        .dish-visual-container {
+          border: 3px solid var(--comp-accent);
+          background: oklch(0.15 0.01 0);
+          box-shadow: 0 0 40px oklch(0.90 0.20 110 / 0.15);
+        }
+
+        .section-heading {
+          font-family: 'Space Mono', monospace;
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.2em;
+          color: var(--comp-text);
+          border-bottom: 2px solid var(--comp-text);
+        }
+
+        .ingredient-item {
+          font-size: 0.9rem;
+          border-bottom: 1px solid oklch(0.05 0.01 0 / 0.1);
+        }
+
+        .instruction-step {
+          border-left: 3px solid var(--comp-accent);
+          font-size: 0.9rem;
+        }
+
+        .step-num {
+          font-family: 'Space Mono', monospace;
+          font-weight: 700;
+          font-size: 0.7rem;
+          color: var(--comp-accent-text);
+          background: var(--comp-accent);
+          border: 2px solid var(--comp-text);
+        }
+
+        .form-panel {
+          background: var(--comp-bg);
+          border: 2px solid var(--comp-border);
+        }
+
+        .form-label {
+          font-family: 'Space Mono', monospace;
+          font-size: 0.65rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.15em;
+          color: var(--comp-text);
+        }
+
+        .form-input {
+          background: white;
+          border: 2px solid var(--comp-border);
+          font-family: 'Inter', sans-serif;
+          font-size: 0.9rem;
+          color: var(--comp-text);
+          transition: border-color 0.1s linear;
+        }
+
+        .form-input:focus {
+          border-color: var(--comp-accent);
+          outline: none;
+          box-shadow: 3px 3px 0 var(--comp-accent);
+        }
+
+        .form-select {
+          background: white;
+          border: 2px solid var(--comp-border);
+          font-family: 'Space Mono', monospace;
+          font-size: 0.8rem;
+          color: var(--comp-text);
+          transition: border-color 0.1s linear;
+        }
+
+        .form-select:focus {
+          border-color: var(--comp-accent);
+          outline: none;
+        }
+
+        .form-textarea {
+          background: white;
+          border: 2px solid var(--comp-border);
+          font-family: 'Inter', sans-serif;
+          font-size: 0.85rem;
+          color: var(--comp-text);
+          transition: border-color 0.1s linear;
+        }
+
+        .form-textarea:focus {
+          border-color: var(--comp-accent);
+          outline: none;
+          box-shadow: 3px 3px 0 var(--comp-accent);
+        }
+
+        .photo-upload-zone {
+          border: 2px dashed var(--comp-border);
+          background: oklch(0.92 0.01 90);
+          color: var(--comp-muted);
+          font-family: 'Space Mono', monospace;
+          font-size: 0.7rem;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          transition: all 0.12s linear;
+        }
+
+        .photo-upload-zone:hover {
+          border-color: var(--comp-accent);
+          background: oklch(0.95 0.05 110 / 0.3);
+        }
+
+        .photo-preview {
+          border: 2px solid var(--comp-border);
+        }
+
+        .empty-state {
+          color: var(--comp-muted);
+        }
+
+        .empty-label {
+          font-family: 'Space Mono', monospace;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: var(--comp-muted);
+        }
+
+        .scan-line {
+          background: linear-gradient(transparent, var(--comp-accent), transparent);
+          opacity: 0.03;
+        }
+
+        .corner-bracket::before,
+        .corner-bracket::after {
+          border-color: var(--comp-accent);
+        }
+        /* @theme:surfaces:end */
+
+        /* @theme:motion */
+        @keyframes scanDown {
+          0% { top: -10%; }
+          100% { top: 110%; }
+        }
+
+        @keyframes fadeSlideIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulseGlow {
+          0%, 100% { opacity: 0.5; }
+          50% { opacity: 1; }
+        }
+        /* @theme:motion:end */
+
+        /* Pure layout */
+        .app-root {
+          min-height: 100vh;
+          overflow-x: hidden;
+          position: relative;
+        }
+
+        .hud-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.6rem 1rem;
+          position: sticky;
+          top: 0;
+          z-index: 100;
+        }
+
+        .hud-left {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .hud-right {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .hud-btn, .hud-btn-ghost, .hud-btn-danger {
+          padding: 0.4rem 1rem;
+          cursor: pointer;
+        }
+
+        .stats-bar {
+          display: flex;
+          align-items: center;
+          gap: 2rem;
+          padding: 0.4rem 1rem;
+        }
+
+        .stat-item {
+          display: flex;
+          gap: 0.4rem;
+        }
+
+        .main-content {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 1.5rem 1rem;
+        }
+
+        /* Recipe List */
+        .recipe-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .recipe-card {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          padding: 0.75rem 1rem;
+          cursor: pointer;
+          animation: fadeSlideIn 0.2s linear both;
+        }
+
+        .recipe-thumb {
+          width: 56px;
+          height: 56px;
+          object-fit: cover;
+          flex-shrink: 0;
+        }
+
+        .recipe-thumb-placeholder {
+          width: 56px;
+          height: 56px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .recipe-info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .recipe-card-title {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .recipe-card-bottom {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-top: 0.25rem;
+        }
+
+        .category-badge {
+          padding: 0.1rem 0.5rem;
+        }
+
+        .recipe-card-stars {
+          display: flex;
+          align-items: center;
+          margin-left: auto;
+          flex-shrink: 0;
+        }
+
+        .star-rating {
+          display: flex;
+          gap: 2px;
+          align-items: center;
+        }
+
+        /* Detail View */
+        .detail-hero {
+          padding: 2rem 1.5rem;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .detail-hero-inner {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        @media (min-width: 768px) {
+          .detail-hero-inner {
+            flex-direction: row;
+            align-items: center;
+          }
+        }
+
+        .detail-text {
+          flex: 1;
+        }
+
+        .detail-meta-row {
+          display: flex;
+          gap: 1.5rem;
+          margin-top: 1rem;
+        }
+
+        .detail-meta-item {
+          display: flex;
+          flex-direction: column;
+          gap: 0.2rem;
+        }
+
+        .dish-visual-container {
+          width: 200px;
+          height: 200px;
+          overflow: hidden;
+          flex-shrink: 0;
+          position: relative;
+          perspective: 600px;
+        }
+
+        .dish-visual-container img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .detail-body {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 1.5rem 1rem;
+          display: grid;
+          gap: 2rem;
+        }
+
+        @media (min-width: 768px) {
+          .detail-body {
+            grid-template-columns: 1fr 1.5fr;
+          }
+        }
+
+        .section-heading {
+          padding-bottom: 0.5rem;
+          margin-bottom: 1rem;
+        }
+
+        .ingredients-list {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .ingredient-item {
+          padding: 0.5rem 0;
+        }
+
+        .instructions-list {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        .instruction-step {
+          padding: 0.75rem 1rem;
+          display: flex;
+          gap: 0.75rem;
+          align-items: flex-start;
+        }
+
+        .step-num {
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+
+        .detail-actions {
+          display: flex;
+          gap: 0.75rem;
+          padding: 1rem;
+          max-width: 1200px;
+          margin: 0 auto;
+        }
+
+        /* Form */
+        .form-panel {
+          padding: 1.5rem;
+          max-width: 700px;
+          margin: 0 auto;
+        }
+
+        .form-grid {
+          display: grid;
+          gap: 1.25rem;
+        }
+
+        .form-row {
+          display: grid;
+          gap: 1rem;
+        }
+
+        @media (min-width: 640px) {
+          .form-row-2 {
+            grid-template-columns: 1fr 1fr;
+          }
+          .form-row-3 {
+            grid-template-columns: 1fr 1fr 1fr;
+          }
+        }
+
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+
+        .form-label {
+          display: block;
+        }
+
+        .form-input, .form-select, .form-textarea {
+          width: 100%;
+          padding: 0.6rem 0.75rem;
+          box-sizing: border-box;
+        }
+
+        .form-textarea {
+          min-height: 100px;
+          resize: vertical;
+        }
+
+        .photo-upload-zone {
+          padding: 2rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+          position: relative;
+        }
+
+        .photo-upload-zone input {
+          position: absolute;
+          inset: 0;
+          opacity: 0;
+          cursor: pointer;
+        }
+
+        .photo-preview {
+          max-width: 100%;
+          max-height: 200px;
+          object-fit: cover;
+        }
+
+        .form-actions {
+          display: flex;
+          gap: 0.75rem;
+          margin-top: 0.5rem;
+        }
+
+        .empty-state {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 4rem 1rem;
+          gap: 1rem;
+        }
+
+        .scan-line {
+          position: fixed;
+          left: 0;
+          width: 100%;
+          height: 80px;
+          pointer-events: none;
+          z-index: 1000;
+          animation: scanDown 8s linear infinite;
+        }
+
+        .target-deco {
+          position: absolute;
+        }
+
+        .corner-bracket {
+          position: relative;
+        }
+
+        .corner-bracket::before {
+          content: '';
+          position: absolute;
+          top: -4px;
+          left: -4px;
+          width: 12px;
+          height: 12px;
+          border-top: 2px solid;
+          border-left: 2px solid;
+        }
+
+        .corner-bracket::after {
+          content: '';
+          position: absolute;
+          bottom: -4px;
+          right: -4px;
+          width: 12px;
+          height: 12px;
+          border-bottom: 2px solid;
+          border-right: 2px solid;
+        }
+      `}</style>
+
+      {/* @theme:decoration */}
+      <div className="scan-line" />
+      {/* @theme:decoration:end */}
+
+      {/* HUD HEADER */}
+      <header className="hud-header">
+        <div className="hud-left">
+          <CrosshairIcon size={16} />
+          <span className="hud-title">Recipe Box</span>
+          <span className="hud-status">[ HUD v1.0 ]</span>
+        </div>
+        <div className="hud-right">
+          {view !== "list" && (
+            <button className="hud-btn-ghost" onClick={goBack}>← Back</button>
+          )}
+          {view === "list" && (
+            <button className="hud-btn" onClick={startNew}>+ New Recipe</button>
+          )}
+        </div>
+      </header>
+
+      {/* STATS BAR */}
+      <div className="stats-bar">
+        <div className="stat-item">
+          <span>Catalog:</span>
+          <strong>{recipes.rows.length}</strong>
+        </div>
+        <div className="stat-item">
+          <span>Avg Rating:</span>
+          <strong>{avgRating} / 5</strong>
+        </div>
+        <div className="stat-item">
+          <span>Status:</span>
+          <strong style={{ animation: "pulseGlow 3s linear infinite" }}>● Online</strong>
+        </div>
+      </div>
+
+      {/* MAIN CONTENT */}
+      {view === "list" && (
+        <div className="main-content">
+          {sortedRecipes.length === 0 ? (
+            <EmptyState />
+          ) : (
+            <div className="recipe-list">
+              {sortedRecipes.map((row, i) => (
+                <div
+                  key={row.doc._id}
+                  className="recipe-card"
+                  onClick={() => openRecipe(row.doc._id)}
+                  style={{ animationDelay: `${i * 0.05}s` }}
+                >
+                  {imageUrls[row.doc._id] ? (
+                    <img src={imageUrls[row.doc._id]} alt="" className="recipe-thumb" />
+                  ) : (
+                    <div className="recipe-thumb recipe-thumb-placeholder">
+                      <FlameIcon size={20} color="var(--comp-muted)" />
+                    </div>
+                  )}
+                  <div className="recipe-info">
+                    <div className="recipe-card-title">{row.doc.title}</div>
+                    <div className="recipe-card-bottom">
+                      {row.doc.category && (
+                        <span className="category-badge">{row.doc.category}</span>
+                      )}
+                      <span className="recipe-card-meta">
+                        {row.doc.prepTime && `[${row.doc.prepTime}]`}
+                        {row.doc.servings && ` — ${row.doc.servings} srv`}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="recipe-card-stars">
+                    <StarRating rating={row.doc.rating || 0} size={16} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {view === "detail" && doc?.title && (
+        <div>
+          <section className="detail-hero" onMouseMove={handleHeroMouse}>
+            <div className="detail-hero-inner">
+              <div className="detail-text">
+                <div className="detail-title corner-bracket">{doc.title}</div>
+                <div className="detail-meta-row">
+                  {doc.category && (
+                    <div className="detail-meta-item">
+                      <span className="detail-label">Category</span>
+                      <span className="detail-value">{doc.category}</span>
+                    </div>
+                  )}
+                  {doc.prepTime && (
+                    <div className="detail-meta-item">
+                      <span className="detail-label">Prep Time</span>
+                      <span className="detail-value">{doc.prepTime}</span>
+                    </div>
+                  )}
+                  {doc.servings && (
+                    <div className="detail-meta-item">
+                      <span className="detail-label">Servings</span>
+                      <span className="detail-value">{doc.servings}</span>
+                    </div>
+                  )}
+                  <div className="detail-meta-item">
+                    <span className="detail-label">Rating</span>
+                    <StarRating rating={doc.rating || 0} size={18} />
+                  </div>
+                </div>
+              </div>
+              {selectedImageUrl && (
+                <div className="dish-visual-container" id="heroVisual">
+                  <img src={selectedImageUrl} alt={doc.title} />
+                </div>
+              )}
+            </div>
+            <div style={{ position: "absolute", top: 16, right: 16, opacity: 0.15 }}>
+              <TargetDecoration />
+            </div>
+          </section>
+
+          <div className="detail-actions">
+            <button className="hud-btn" onClick={editRecipe}>Edit Recipe</button>
+            <button className="hud-btn-danger" onClick={handleDelete}>Delete</button>
+          </div>
+
+          <div className="detail-body">
+            {doc.ingredients && (
+              <div>
+                <div className="section-heading">
+                  <FlameIcon size={14} /> Ingredients
+                </div>
+                <div className="ingredients-list">
+                  {doc.ingredients.split("\n").filter(Boolean).map((ing, i) => (
+                    <div key={i} className="ingredient-item">→ {ing.trim()}</div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {doc.instructions && (
+              <div>
+                <div className="section-heading">
+                  <ClockIcon size={14} /> Instructions
+                </div>
+                <div className="instructions-list">
+                  {doc.instructions.split("\n").filter(Boolean).map((step, i) => (
+                    <div key={i} className="instruction-step">
+                      <span className="step-num">{String(i + 1).padStart(2, "0")}</span>
+                      <span>{step.trim()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {view === "add" && (
+        <div className="main-content">
+          <div className="form-panel">
+            <div className="section-heading" style={{ marginBottom: "1.5rem" }}>
+              {selectedId ? "Edit Recipe" : "New Recipe Entry"}
+            </div>
+            <div className="form-grid">
+              <div className="form-group">
+                <label className="form-label">Recipe Title</label>
+                <input
+                  className="form-input"
+                  type="text"
+                  placeholder="Enter recipe name..."
+                  value={doc.title || ""}
+                  onChange={e => setDoc({ title: e.target.value })}
+                />
+              </div>
+
+              <div className="form-row form-row-3">
+                <div className="form-group">
+                  <label className="form-label">Category</label>
+                  <select
+                    className="form-select"
+                    value={doc.category || ""}
+                    onChange={e => setDoc({ category: e.target.value })}
+                  >
+                    <option value="">Select...</option>
+                    {categories.map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Prep Time</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    placeholder="e.g. 30 min"
+                    value={doc.prepTime || ""}
+                    onChange={e => setDoc({ prepTime: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Servings</label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    placeholder="e.g. 4"
+                    value={doc.servings || ""}
+                    onChange={e => setDoc({ servings: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Rating</label>
+                <StarRating
+                  rating={doc.rating || 0}
+                  onChange={r => setDoc({ rating: r })}
+                  size={28}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Photo</label>
+                {(selectedImageUrl) ? (
+                  <div>
+                    <img src={selectedImageUrl} alt="Preview" className="photo-preview" />
+                    <div style={{ marginTop: "0.5rem" }}>
+                      <label className="photo-upload-zone" style={{ padding: "0.75rem" }}>
+                        <CameraIcon size={16} />
+                        <span>Change Photo</span>
+                        <input type="file" accept="image/*" onChange={handlePhotoChange} />
+                      </label>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="photo-upload-zone">
+                    <CameraIcon size={28} color="var(--comp-muted)" />
+                    <span>Click to upload photo</span>
+                    <input type="file" accept="image/*" onChange={handlePhotoChange} />
+                  </label>
+                )}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Ingredients (one per line)</label>
+                <textarea
+                  className="form-textarea"
+                  placeholder={"2 cups flour\n1 cup sugar\n3 eggs"}
+                  value={doc.ingredients || ""}
+                  onChange={e => setDoc({ ingredients: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Instructions (one step per line)</label>
+                <textarea
+                  className="form-textarea"
+                  style={{ minHeight: "140px" }}
+                  placeholder={"Preheat oven to 350°F\nMix dry ingredients\nAdd wet ingredients"}
+                  value={doc.instructions || ""}
+                  onChange={e => setDoc({ instructions: e.target.value })}
+                />
+              </div>
+
+              <div className="form-actions">
+                <button className="hud-btn" onClick={handleSave}>
+                  {selectedId ? "Update Recipe" : "Save Recipe"}
+                </button>
+                <button className="hud-btn-ghost" onClick={goBack}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
-`;
-document.head.appendChild(styleTag);
 
 export default App;

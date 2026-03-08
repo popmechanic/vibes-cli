@@ -126,9 +126,13 @@ export function VibesPanel({
         label="Launcher"
         disappear
       >
-        <div style={getButtonContainerStyle(isMobile)}>
+        <div
+          key={mode}
+          className={mode === "default" ? "vibes-panel-stagger" : undefined}
+          style={getButtonContainerStyle(isMobile)}
+        >
           {mode === "invite" ? (
-            <div style={getInviteRowStyle(isMobile)}>
+            <div className="vibes-panel-stagger" style={getInviteRowStyle(isMobile)}>
               <VibesButton
                 variant={YELLOW}
                 onClick={() => {}}

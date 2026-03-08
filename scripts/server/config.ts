@@ -2,76 +2,21 @@
  * Server configuration — CLI args, .env, theme/animation catalogs.
  *
  * Exports loadConfig() which returns a mutable ctx object shared by all modules.
- * Uses import.meta.dir (Bun) with fileURLToPath fallback (Node/vitest).
  */
 
-import { readFileSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { homedir } from 'os';
-
-// Bun provides import.meta.dir; Node.js needs fileURLToPath fallback
-const __dirname = (import.meta as any).dir ?? dirname(fileURLToPath(import.meta.url));
 import { parseThemeCatalog } from '../lib/parse-theme-catalog.js';
 import { parseAnimationCatalog } from '../lib/parse-animation-catalog.js';
-
-export interface ServerContext {
-  projectRoot: string;
-  port: number;
-  mode: string;
-  initialPrompt: string;
-  themes: any[];
-  animations: any[];
-  themeColors: Record<string, any>;
-  themeRootCss: Record<string, string>;
-  openRouterKey: string | null;
-  appsDir: string;
-  themeDir: string;
-  animationDir: string;
-}
-
-/**
- * Build :root CSS fallback blocks for themes missing explicit :root in their files.
- * Shared by loadConfig() and reloadThemes() to avoid duplication.
- */
-function buildThemeRootCss(
-  themes: any[],
-  themeDir: string,
-  themeColors: Record<string, any>,
-): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const t of themes) {
-    const txtFile = join(themeDir, `${t.id}.txt`);
-    const mdFile = join(themeDir, `${t.id}.md`);
-    const filePath = existsSync(txtFile) ? txtFile : existsSync(mdFile) ? mdFile : null;
-    if (!filePath) continue;
-    const content = readFileSync(filePath, 'utf-8');
-    const rootMatch = content.match(/:root\s*\{[\s\S]*?\}/);
-    if (rootMatch) {
-      result[t.id] = rootMatch[0];
-    } else {
-      const c = themeColors[t.id];
-      if (c) {
-        const lines: string[] = [];
-        if (c.bg) lines.push(`  --comp-bg: ${c.bg};`);
-        if (c.text) lines.push(`  --comp-text: ${c.text};`);
-        if (c.border) lines.push(`  --comp-border: ${c.border};`);
-        if (c.accent) lines.push(`  --comp-accent: ${c.accent};`);
-        if (c.text) lines.push(`  --comp-accent-text: ${c.bg || 'oklch(1.00 0 0)'};`);
-        if (c.muted) lines.push(`  --comp-muted: ${c.muted};`);
-        if (c.bg) lines.push(`  --color-background: ${c.bg};`);
-        lines.push(`  --grid-color: transparent;`);
-        if (lines.length > 1) result[t.id] = ':root {\n' + lines.join('\n') + '\n}';
-      }
-    }
-  }
-  return result;
-}
+import { currentAppDir } from './app-context.js';
 
 /**
  * Build the ctx object from CLI args, .env, and catalogs.
  */
-export function loadConfig(): ServerContext {
+export function loadConfig() {
+  const __dirname = dirname(fileURLToPath(import.meta.url));
   const projectRoot = join(__dirname, '../..');
   const parsedPort = parseInt(
     process.argv.find((_, i, a) => a[i - 1] === '--port') ||
@@ -93,7 +38,7 @@ export function loadConfig(): ServerContext {
 
   // Load theme catalog
   const catalogPath = join(projectRoot, 'skills/vibes/themes/catalog.txt');
-  let themes: any[] = [];
+  let themes = [];
   if (existsSync(catalogPath)) {
     themes = parseThemeCatalog(readFileSync(catalogPath, 'utf-8'));
     console.log(`Loaded ${themes.length} themes from catalog`);
@@ -101,14 +46,14 @@ export function loadConfig(): ServerContext {
 
   // Load animation catalog
   const animCatalogPath = join(projectRoot, 'skills/vibes/animations/catalog.txt');
-  let animations: any[] = [];
+  let animations = [];
   if (existsSync(animCatalogPath)) {
     animations = parseAnimationCatalog(readFileSync(animCatalogPath, 'utf-8'));
     console.log(`Loaded ${animations.length} animations from catalog`);
   }
 
   // Pre-parse theme colors
-  const themeColors: Record<string, any> = {};
+  const themeColors = {};
   for (const t of themes) {
     const colors = parseThemeColors(themeDir, t.id);
     if (colors) themeColors[t.id] = colors;
@@ -116,8 +61,37 @@ export function loadConfig(): ServerContext {
   console.log(`Parsed colors for ${Object.keys(themeColors).length} themes`);
 
   // Extract :root CSS blocks
-  const themeRootCss = buildThemeRootCss(themes, themeDir, themeColors);
+  const themeRootCss = {};
+  for (const t of themes) {
+    const txtFile = join(themeDir, `${t.id}.txt`);
+    const mdFile = join(themeDir, `${t.id}.md`);
+    const filePath = existsSync(txtFile) ? txtFile : existsSync(mdFile) ? mdFile : null;
+    if (!filePath) continue;
+    const content = readFileSync(filePath, 'utf-8');
+    const rootMatch = content.match(/:root\s*\{[\s\S]*?\}/);
+    if (rootMatch) {
+      themeRootCss[t.id] = rootMatch[0];
+    } else {
+      const c = themeColors[t.id];
+      if (c) {
+        const lines = [];
+        if (c.bg) lines.push(`  --comp-bg: ${c.bg};`);
+        if (c.text) lines.push(`  --comp-text: ${c.text};`);
+        if (c.border) lines.push(`  --comp-border: ${c.border};`);
+        if (c.accent) lines.push(`  --comp-accent: ${c.accent};`);
+        if (c.text) lines.push(`  --comp-accent-text: ${c.bg || 'oklch(1.00 0 0)'};`);
+        if (c.muted) lines.push(`  --comp-muted: ${c.muted};`);
+        if (c.bg) lines.push(`  --color-background: ${c.bg};`);
+        lines.push(`  --grid-color: transparent;`);
+        if (lines.length > 1) themeRootCss[t.id] = ':root {\n' + lines.join('\n') + '\n}';
+      }
+    }
+  }
   console.log(`Extracted :root CSS for ${Object.keys(themeRootCss).length} themes`);
+
+  // Discover plugin skills
+  const pluginSkills = discoverPluginSkills();
+  console.log(`Skills: ${pluginSkills.length} discovered`);
 
   return {
     projectRoot,
@@ -132,13 +106,16 @@ export function loadConfig(): ServerContext {
     appsDir,
     themeDir,
     animationDir,
+    pluginSkills,
+    currentApp: null,
+    backupTimestamps: {},
   };
 }
 
 /**
  * Reload themes, colors, and :root CSS from disk (after theme creation).
  */
-export function reloadThemes(ctx: ServerContext): void {
+export function reloadThemes(ctx) {
   const catalogPath = join(ctx.projectRoot, 'skills/vibes/themes/catalog.txt');
   if (!existsSync(catalogPath)) return;
 
@@ -152,14 +129,39 @@ export function reloadThemes(ctx: ServerContext): void {
   }
 
   // Rebuild :root CSS blocks
-  ctx.themeRootCss = buildThemeRootCss(ctx.themes, ctx.themeDir, ctx.themeColors);
+  ctx.themeRootCss = {};
+  for (const t of ctx.themes) {
+    const txtFile = join(ctx.themeDir, `${t.id}.txt`);
+    const mdFile = join(ctx.themeDir, `${t.id}.md`);
+    const filePath = existsSync(txtFile) ? txtFile : existsSync(mdFile) ? mdFile : null;
+    if (!filePath) continue;
+    const content = readFileSync(filePath, 'utf-8');
+    const rootMatch = content.match(/:root\s*\{[\s\S]*?\}/);
+    if (rootMatch) {
+      ctx.themeRootCss[t.id] = rootMatch[0];
+    } else {
+      const c = ctx.themeColors[t.id];
+      if (c) {
+        const lines = [];
+        if (c.bg) lines.push(`  --comp-bg: ${c.bg};`);
+        if (c.text) lines.push(`  --comp-text: ${c.text};`);
+        if (c.border) lines.push(`  --comp-border: ${c.border};`);
+        if (c.accent) lines.push(`  --comp-accent: ${c.accent};`);
+        if (c.text) lines.push(`  --comp-accent-text: ${c.bg || 'oklch(1.00 0 0)'};`);
+        if (c.muted) lines.push(`  --comp-muted: ${c.muted};`);
+        if (c.bg) lines.push(`  --color-background: ${c.bg};`);
+        lines.push(`  --grid-color: transparent;`);
+        if (lines.length > 1) ctx.themeRootCss[t.id] = ':root {\n' + lines.join('\n') + '\n}';
+      }
+    }
+  }
 
   console.log(`Reloaded ${ctx.themes.length} themes (${Object.keys(ctx.themeColors).length} with colors)`);
 }
 
-// --- Internal helpers (re-exported for backward compat) ---
+// --- Internal helpers ---
 
-export function loadOpenRouterKey(projectRoot: string): string | null {
+export function loadOpenRouterKey(projectRoot) {
   const candidates = [
     join(projectRoot, '.env'),
     join(homedir(), '.vibes', '.env'),
@@ -191,7 +193,7 @@ export function loadOpenRouterKey(projectRoot: string): string | null {
 /**
  * Get animation instructions text for a given animation ID.
  */
-export function getAnimationInstructions(ctx: ServerContext, animationId: string): string | null {
+export function getAnimationInstructions(ctx, animationId) {
   const filePath = join(ctx.animationDir, `${animationId}.txt`);
   if (existsSync(filePath)) return readFileSync(filePath, 'utf-8');
   return null;
@@ -200,14 +202,16 @@ export function getAnimationInstructions(ctx: ServerContext, animationId: string
 /**
  * Recommend themes based on app.jsx content keywords.
  */
-export function getRecommendedThemeIds(ctx: ServerContext): Set<string> {
-  const appPath = join(ctx.projectRoot, 'app.jsx');
+export function getRecommendedThemeIds(ctx) {
+  const appDir = currentAppDir(ctx);
+  if (!appDir) return new Set();
+  const appPath = join(appDir, 'app.jsx');
   if (!existsSync(appPath)) return new Set();
 
   const code = readFileSync(appPath, 'utf-8').toLowerCase();
-  const keywords = new Set<string>();
+  const keywords = new Set();
 
-  const patterns: [RegExp, string[]][] = [
+  const patterns = [
     [/anime|manga|otaku|episode|series|watchlist/g, ['anime', 'media', 'tracker', 'entertainment', 'catalog']],
     [/blog|article|post|editor|publish|writing/g, ['blog', 'editorial', 'writing', 'content', 'publishing']],
     [/task|todo|project|kanban|board|sprint/g, ['productivity', 'project', 'task', 'management', 'tool']],
@@ -249,15 +253,15 @@ export function getRecommendedThemeIds(ctx: ServerContext): Set<string> {
 /**
  * Bridge theme-specific variable names to --comp-* namespace.
  */
-export function buildCompTokenMapping(varLines: string[]): string[] {
-  const vars: Record<string, string> = {};
+export function buildCompTokenMapping(varLines) {
+  const vars = {};
   for (const line of varLines) {
     const m = line.match(/^\s*(--[\w-]+)\s*:\s*(.+?)\s*(?:\/\*.*)?;?\s*$/);
     if (m) vars[m[1]] = m[2].replace(/;$/, '').trim();
   }
 
   const names = Object.keys(vars);
-  const find = (patterns: (string | RegExp)[]): string | null => {
+  const find = (patterns) => {
     for (const p of patterns) {
       if (typeof p === 'string') {
         const exact = names.find(n => n === p);
@@ -285,7 +289,7 @@ export function buildCompTokenMapping(varLines: string[]): string[] {
     }
   }
 
-  const lines: string[] = [];
+  const lines = [];
   if (compBg) lines.push(`  --comp-bg: ${compBg};`);
   if (compText) lines.push(`  --comp-text: ${compText};`);
   if (compAccent) lines.push(`  --comp-accent: ${compAccent};`);
@@ -301,7 +305,7 @@ export function buildCompTokenMapping(varLines: string[]): string[] {
 /**
  * Parse color tokens from a theme file.
  */
-export function parseThemeColors(themeDir: string, themeId: string): any {
+export function parseThemeColors(themeDir, themeId) {
   const txtFile = join(themeDir, `${themeId}.txt`);
   const mdFile = join(themeDir, `${themeId}.md`);
   const filePath = existsSync(txtFile) ? txtFile : existsSync(mdFile) ? mdFile : null;
@@ -313,9 +317,9 @@ export function parseThemeColors(themeDir: string, themeId: string): any {
   if (!colorSection) return null;
 
   const section = colorSection[0];
-  const result: any = { bg: null, text: null, accent: null, muted: null, border: null };
+  const result = { bg: null, text: null, accent: null, muted: null, border: null };
 
-  const stdMatch = (name: string) => {
+  const stdMatch = (name) => {
     const re = new RegExp(`--comp-${name}[^:]*:\\s*([^;\\n/*]+)`);
     const m = section.match(re);
     return m ? m[1].trim() : null;
@@ -348,7 +352,7 @@ export function parseThemeColors(themeDir: string, themeId: string): any {
   const rootMatch = content.match(/:root\s*\{[\s\S]*?\}/);
   const allVarLines = content.match(/^\s*--[\w-]+:\s*(?:oklch\([^)]+\)|#[0-9a-fA-F]{3,8}).*$/gm);
   if (rootMatch) {
-    if (!rootMatch[0].includes('--comp-bg') && allVarLines?.length && allVarLines.length > 0) {
+    if (!rootMatch[0].includes('--comp-bg') && allVarLines?.length > 0) {
       const compLines = buildCompTokenMapping(allVarLines);
       if (compLines.length > 0) {
         result.rootBlock = rootMatch[0].replace(/\}$/, '\n\n  /* comp-* token bridge */\n' + compLines.join('\n') + '\n}');
@@ -381,11 +385,11 @@ export function parseThemeColors(themeDir: string, themeId: string): any {
 /**
  * Extract targeted theme context for Pass 2 creative prompts.
  */
-export function extractPass2ThemeContext(themeContent: string, maxBytes = 12000): string {
-  const sections: string[] = [];
+export function extractPass2ThemeContext(themeContent, maxBytes = 12000) {
+  const sections = [];
   let total = 0;
 
-  const extractSection = (name: string) => {
+  const extractSection = (name) => {
     const re = new RegExp(`${name}[:\\s]*\\n([\\s\\S]*?)(?=\\n[A-Z]{2,}[A-Z ]*[:\\n]|$)`);
     const m = themeContent.match(re);
     return m ? m[1].trim() : '';
@@ -419,7 +423,7 @@ export function extractPass2ThemeContext(themeContent: string, maxBytes = 12000)
   if (refStyles) {
     const creativePatterns = /@keyframes|box-shadow|backdrop-filter|linear-gradient|radial-gradient|conic-gradient|::before|::after|animation:|filter:|clip-path:|mask:|text-shadow:/;
     const cssBlocks = refStyles.split(/\n\s*\/\* ----/);
-    const creativeBlocks: string[] = [];
+    const creativeBlocks = [];
     for (const block of cssBlocks) {
       if (creativePatterns.test(block)) {
         const fullBlock = block.startsWith(' ') ? '  /* ----' + block : block;
@@ -448,7 +452,7 @@ export function extractPass2ThemeContext(themeContent: string, maxBytes = 12000)
 /**
  * Auto-select theme based on user prompt keywords.
  */
-export function autoSelectTheme(ctx: ServerContext, userPrompt: string): string {
+export function autoSelectTheme(ctx, userPrompt) {
   const catalogPath = join(ctx.projectRoot, 'skills/vibes/themes/catalog.txt');
   if (!existsSync(catalogPath)) return 'default';
 
@@ -456,11 +460,11 @@ export function autoSelectTheme(ctx: ServerContext, userPrompt: string): string 
   const promptLower = userPrompt.toLowerCase();
 
   const signalRegex = /^(\w+)\s+signals:\s*([\s\S]*?)(?=\n\n|\n\w+\s+signals:)/gm;
-  const scores: Record<string, number> = {};
+  const scores = {};
   let match;
   while ((match = signalRegex.exec(catalog)) !== null) {
     const themeId = match[1];
-    const keywords = match[2].match(/"([^"]+)"/g)?.map((k: string) => k.replace(/"/g, '').toLowerCase()) || [];
+    const keywords = match[2].match(/"([^"]+)"/g)?.map(k => k.replace(/"/g, '').toLowerCase()) || [];
     let score = 0;
     for (const kw of keywords) {
       if (promptLower.includes(kw)) score += kw.split(' ').length;
@@ -470,4 +474,166 @@ export function autoSelectTheme(ctx: ServerContext, userPrompt: string): string 
 
   const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
   return sorted.length > 0 ? sorted[0][0] : 'default';
+}
+
+/**
+ * Resolve the skills directory for a plugin by reading its plugin.json.
+ */
+export function resolveSkillsDir(installPath) {
+  const pluginJsonPath = join(installPath, '.claude-plugin', 'plugin.json');
+  if (existsSync(pluginJsonPath)) {
+    try {
+      const pluginJson = JSON.parse(readFileSync(pluginJsonPath, 'utf-8'));
+      if (pluginJson.skills) {
+        return join(installPath, pluginJson.skills);
+      }
+    } catch { /* fall through to default */ }
+  }
+  return join(installPath, 'skills');
+}
+
+/**
+ * Parse YAML frontmatter from SKILL.md content.
+ * Handles single-line values, quoted values, and multiline values using
+ * YAML block scalars (> or |) or indented continuation lines.
+ */
+export function parseSkillFrontmatter(content) {
+  content = content.replace(/\r\n/g, '\n');
+  const fm = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!fm) return {};
+  const block = fm[1];
+  const result = {};
+
+  for (const field of ['name', 'description']) {
+    const value = extractYamlField(block, field);
+    if (value !== null) {
+      result[field] = value;
+    }
+  }
+  return result;
+}
+
+/**
+ * Extract a single YAML field value, handling:
+ * - Simple: `key: value`
+ * - Quoted: `key: "value"` or `key: 'value'`
+ * - Block scalar: `key: >` or `key: |` followed by indented lines
+ * - Continuation: `key: first line\n  continued line`
+ */
+function extractYamlField(block, fieldName) {
+  const re = new RegExp(`^${fieldName}:\\s*(.*)$`, 'm');
+  const m = block.match(re);
+  if (!m) return null;
+
+  let firstLine = m[1].trim();
+
+  // Block scalar indicators (> or |, optionally with chomping indicator like >-, |+)
+  if (/^[>|][-+]?\s*$/.test(firstLine)) {
+    const isFolded = firstLine.startsWith('>');
+    const lines = block.slice(m.index + m[0].length).split('\n');
+    const indentedLines = [];
+    for (const line of lines) {
+      if (line === '' || /^\s+/.test(line)) {
+        indentedLines.push(line.replace(/^\s+/, ''));
+      } else {
+        break; // Hit a non-indented line (next field)
+      }
+    }
+    const joined = isFolded
+      ? indentedLines.join(' ').replace(/\s+/g, ' ').trim()
+      : indentedLines.join('\n').trim();
+    return joined || null;
+  }
+
+  // Quoted value
+  if ((firstLine.startsWith('"') && firstLine.endsWith('"')) ||
+      (firstLine.startsWith("'") && firstLine.endsWith("'"))) {
+    return firstLine.slice(1, -1) || null;
+  }
+
+  // Plain value — may have indented continuation lines
+  const rest = block.slice(m.index + m[0].length).replace(/^\n/, '');
+  const lines = rest.split('\n');
+  const parts = [firstLine];
+  for (const line of lines) {
+    if (/^\s+\S/.test(line)) {
+      parts.push(line.trim());
+    } else {
+      break;
+    }
+  }
+  const value = parts.join(' ').trim();
+  return value || null;
+}
+
+/**
+ * Discover all installed plugin skills, excluding vibes plugin skills.
+ *
+ * TODO: Skills are discovered once at startup. If plugins are installed/removed
+ * while the server is running, the catalog will be stale. A future enhancement
+ * could add a refresh endpoint or file watcher, but this is acceptable for now
+ * since the editor server is typically short-lived.
+ */
+export function discoverPluginSkills(homeDir = null) {
+  const installedPath = join(homeDir || homedir(), '.claude', 'plugins', 'installed_plugins.json');
+  if (!existsSync(installedPath)) return [];
+
+  let installed;
+  try {
+    const raw = JSON.parse(readFileSync(installedPath, 'utf-8'));
+    // Handle version 2 format: { version: 2, plugins: { ... } }
+    installed = raw.plugins || raw;
+  } catch {
+    return [];
+  }
+
+  const skills = [];
+  for (const [pluginKey, pluginData] of Object.entries(installed)) {
+    // Skip vibes plugin
+    if (pluginKey.startsWith('vibes@')) continue;
+
+    // Safe split: plugin names could theoretically contain @, so split on first @
+    const atIdx = pluginKey.indexOf('@');
+    const pluginName = atIdx >= 0 ? pluginKey.slice(0, atIdx) : pluginKey;
+    const marketplace = atIdx >= 0 ? pluginKey.slice(atIdx + 1) : '';
+    // pluginData can be an array (v2) or an object (v1)
+    const pluginEntry = Array.isArray(pluginData) ? pluginData[0] : pluginData;
+    const installPath = pluginEntry?.installPath;
+    if (!installPath || !existsSync(installPath)) continue;
+
+    const skillsDir = resolveSkillsDir(installPath);
+    if (!existsSync(skillsDir)) continue;
+
+    let dirEntries;
+    try {
+      dirEntries = readdirSync(skillsDir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const dirEntry of dirEntries) {
+      if (!dirEntry.isDirectory()) continue;
+      const skillMdPath = join(skillsDir, dirEntry.name, 'SKILL.md');
+      if (!existsSync(skillMdPath)) continue;
+
+      let content;
+      try {
+        content = readFileSync(skillMdPath, 'utf-8');
+      } catch {
+        continue;
+      }
+
+      const frontmatter = parseSkillFrontmatter(content);
+      skills.push({
+        id: `${pluginName}/${dirEntry.name}`,
+        name: frontmatter.name || dirEntry.name,
+        description: frontmatter.description || '',
+        pluginName,
+        marketplace,
+        skillMdPath,
+      });
+    }
+  }
+
+  return skills;
 }

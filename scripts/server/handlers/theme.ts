@@ -1,20 +1,22 @@
 /**
  * Theme switch handlers — multi-pass (markers) and legacy (full-file) modes.
- * Uses one-shot spawn for Claude creative restyle.
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
-import { runOneShot, acquireLock, releaseLock, type EventCallback } from '../claude-bridge.ts';
-import { sanitizeAppJsx } from '../post-process.ts';
-import { parseThemeColors, extractPass2ThemeContext } from '../config.ts';
-import type { ServerContext } from '../config.ts';
+import { runOneShot } from '../claude-bridge.js';
+import { sanitizeAppJsx } from '../post-process.js';
+import { parseThemeColors, extractPass2ThemeContext } from '../config.js';
 import { hasThemeMarkers, replaceThemeSection, extractNonThemeSections, moveVisualCSSToSurfaces } from '../../lib/theme-sections.js';
 import { createBackup, restoreFromBackup } from '../../lib/backup.js';
+import { currentAppDir } from '../app-context.js';
 
-function extractDataSchema(appCode: string): string {
+/**
+ * Extract Fireproof data schema from app.jsx for prompt context.
+ */
+function extractDataSchema(appCode) {
   if (!appCode) return '';
-  const schemas: string[] = [];
+  const schemas = [];
 
   const queryMatches = appCode.matchAll(/useLiveQuery\s*\(\s*(['"`])([^'"`]*)\1[^)]*(?:,\s*\{[^}]*type:\s*(['"`])([^'"`]*)\3)?/g);
   for (const m of queryMatches) {
@@ -23,17 +25,24 @@ function extractDataSchema(appCode: string): string {
   }
 
   const putMatches = appCode.matchAll(/(?:database|db)\.put\s*\(\s*\{[^}]*type:\s*(['"`])([^'"`]*)\1/g);
-  for (const m of putMatches) schemas.push(`  - database.put() creates documents with type: "${m[2]}"`);
+  for (const m of putMatches) {
+    schemas.push(`  - database.put() creates documents with type: "${m[2]}"`);
+  }
 
   const typeMatches = appCode.matchAll(/(?:doc|item|row|entry|record)\.type\s*===?\s*(['"`])([^'"`]*)\1/g);
-  for (const m of typeMatches) schemas.push(`  - Documents filtered by type: "${m[2]}"`);
+  for (const m of typeMatches) {
+    schemas.push(`  - Documents filtered by type: "${m[2]}"`);
+  }
 
   const unique = [...new Set(schemas)];
   if (unique.length === 0) return '';
-  return `\nDATA SCHEMA (these document types have user data — do NOT rename or change them):\n${unique.join('\n')}\n`;
+  return `\nDATA SCHEMA (these document types have user data in IndexedDB — do NOT rename or change them):\n${unique.join('\n')}\n`;
 }
 
-function updateThemeMeta(code: string, themeId: string, themeName: string): string {
+/**
+ * Replace __VIBES_THEMES__ array and useVibesTheme default in app code.
+ */
+function updateThemeMeta(code, themeId, themeName) {
   let result = code.replace(
     /window\.__VIBES_THEMES__\s*=\s*\[[\s\S]*?\]/,
     () => `window.__VIBES_THEMES__ = [{ id: "${themeId}", name: "${themeName}" }]`
@@ -45,12 +54,10 @@ function updateThemeMeta(code: string, themeId: string, themeName: string): stri
   return result;
 }
 
-export async function handleThemeSwitch(
-  ctx: ServerContext,
-  onEvent: EventCallback,
-  themeId: string,
-  model: string | undefined,
-): Promise<void> {
+/**
+ * Handle theme switch — dispatches to multi-pass or legacy based on markers.
+ */
+export async function handleThemeSwitch(ctx, onEvent, themeId, model) {
   const txtFile = join(ctx.themeDir, `${themeId}.txt`);
   const mdFile = join(ctx.themeDir, `${themeId}.md`);
   let themeContent = '';
@@ -62,69 +69,75 @@ export async function handleThemeSwitch(
     return;
   }
 
-  const themeMeta = ctx.themes.find((t: any) => t.id === themeId);
+  const themeMeta = ctx.themes.find(t => t.id === themeId);
   const themeName = themeMeta ? themeMeta.name : themeId;
 
   onEvent({ type: 'theme_selected', themeId, themeName });
 
-  const appJsxPath = join(ctx.projectRoot, 'app.jsx');
-  if (!existsSync(appJsxPath)) {
-    onEvent({ type: 'error', message: 'No app.jsx found.' });
+  const appDir = currentAppDir(ctx);
+  if (!appDir) {
+    onEvent({ type: 'error', message: 'No app active.' });
     return;
   }
-
-  let cancelFn = () => {};
-  if (!acquireLock('theme', () => cancelFn())) {
-    onEvent({ type: 'error', message: 'Another request is in progress. Please wait.' });
+  const appJsxPath = join(appDir, 'app.jsx');
+  if (!existsSync(appJsxPath)) {
+    onEvent({ type: 'error', message: 'No app.jsx found.' });
     return;
   }
 
   const appCode = readFileSync(appJsxPath, 'utf-8');
   const colors = parseThemeColors(ctx.themeDir, themeId);
 
-  try {
-    const onCancel = (fn: () => void) => { cancelFn = fn; };
-    if (hasThemeMarkers(appCode)) {
-      await handleThemeSwitchMultiPass(ctx, onEvent, themeId, themeName, themeContent, appCode, appJsxPath, colors, model, onCancel);
-    } else {
-      await handleThemeSwitchLegacy(ctx, onEvent, themeId, themeName, themeContent, colors, model, onCancel);
-    }
-  } finally {
-    releaseLock();
+  if (hasThemeMarkers(appCode)) {
+    await handleThemeSwitchMultiPass(ctx, onEvent, themeId, themeName, themeContent, appCode, appJsxPath, colors, model);
+  } else {
+    await handleThemeSwitchLegacy(ctx, onEvent, themeId, themeName, themeContent, colors, model);
   }
 }
 
-async function handleThemeSwitchMultiPass(
-  ctx: ServerContext,
-  onEvent: EventCallback,
-  themeId: string,
-  themeName: string,
-  themeContent: string,
-  appCode: string,
-  appJsxPath: string,
-  colors: any,
-  model: string | undefined,
-  onCancel?: (fn: () => void) => void,
-): Promise<void> {
+/**
+ * Multi-pass theme switch: instant tokens/typography (Pass 1) + Claude creative (Pass 2).
+ */
+async function handleThemeSwitchMultiPass(ctx, onEvent, themeId, themeName, themeContent, appCode, appJsxPath, colors, model) {
   console.log(`[ThemeSwitch] Multi-pass for "${themeName}" (${themeId})`);
 
+  // === Pass 1: Mechanical token + typography replacement (instant) ===
   let updatedCode = appCode;
+
   if (colors?.rootBlock) {
     updatedCode = replaceThemeSection(updatedCode, 'tokens', colors.rootBlock);
+    console.log(`[ThemeSwitch] Pass 1: replaced tokens (${colors.rootBlock.split('\n').length} lines)`);
   }
+
   if (colors?.fontImports?.length > 0) {
     updatedCode = replaceThemeSection(updatedCode, 'typography', colors.fontImports.join('\n'));
+    console.log(`[ThemeSwitch] Pass 1: replaced typography (${colors.fontImports.length} fonts)`);
   }
+
   updatedCode = updateThemeMeta(updatedCode, themeId, themeName);
+
+  // Move orphaned visual CSS into @theme:surfaces before Pass 2
   updatedCode = moveVisualCSSToSurfaces(updatedCode);
 
   createBackup(appJsxPath);
   writeFileSync(appJsxPath, updatedCode, 'utf-8');
 
-  onEvent({ type: 'theme_pass1_complete', themeId, themeName, rootCss: colors?.rootBlock || null, fontImports: colors?.fontImports || [] });
+  onEvent({
+    type: 'theme_pass1_complete',
+    themeId,
+    themeName,
+    rootCss: colors?.rootBlock || null,
+    fontImports: colors?.fontImports || []
+  });
   console.log(`[ThemeSwitch] Pass 1 complete — tokens + typography applied`);
 
-  onEvent({ type: 'progress', progress: 40, stage: `Enhancing ${themeName} surfaces, motion, decoration...`, elapsed: 0 });
+  // === Pass 2: Claude creative restyle ===
+  onEvent({
+    type: 'progress',
+    progress: 40,
+    stage: `Enhancing ${themeName} surfaces, motion, decoration...`,
+    elapsed: 0
+  });
 
   const pass1Code = readFileSync(appJsxPath, 'utf-8');
   const beforeNonTheme = extractNonThemeSections(pass1Code);
@@ -140,9 +153,9 @@ ${pass1Code}
 === WHAT TO EDIT ===
 
 You MUST only edit content between these marker pairs in app.jsx:
-- \`/* @theme:surfaces */\` ... \`/* @theme:surfaces:end */\`
-- \`/* @theme:motion */\` ... \`/* @theme:motion:end */\`
-- \`{/* @theme:decoration */}\` ... \`{/* @theme:decoration:end */}\`
+- \`/* @theme:surfaces */\` ... \`/* @theme:surfaces:end */\` — CSS classes for shadows, borders, backgrounds, glass effects
+- \`/* @theme:motion */\` ... \`/* @theme:motion:end */\` — @keyframes and animation definitions
+- \`{/* @theme:decoration */}\` ... \`{/* @theme:decoration:end */}\` — SVG elements and atmospheric backgrounds
 
 === THEME PERSONALITY ===
 
@@ -150,27 +163,24 @@ ${extractPass2ThemeContext(themeContent, 12000)}
 
 === RULES ===
 
-- Replace content BETWEEN markers. Keep markers themselves.
-- Match the theme's personality.
-- Do NOT modify anything outside the markers.
-- No imports, no TypeScript, keep export default App.
-- Never use CSS unicode escapes.
+- Replace the content BETWEEN each marker pair. Keep the markers themselves.
+- Match the theme's personality: shadows, glass effects, gradients, animations, SVG decorations.
+- Do NOT modify anything outside the markers — no layout, no logic, no tokens, no typography.
+- If you need to change anything outside a marker, STOP and explain why instead of editing.
+- No import statements, no TypeScript, keep export default App.
+- Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
 ${extractDataSchema(pass1Code)}`;
 
-  const claudeResult = await runOneShot(prompt, {
-    skipChat: true,
-    maxTurns: 5,
-    model,
-    cwd: ctx.projectRoot,
-    tools: 'Read,Edit',
-    onCancel,
-  }, onEvent, ctx.projectRoot);
+  console.log(`[ThemeSwitch] Pass 2: Claude creative restyle, prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
+
+  // Use skipChat in onEvent — the wsAdapter will check event.skipChat
+  const claudeResult = await runOneShot(prompt, { skipChat: true, maxTurns: 5, model, cwd: currentAppDir(ctx), tools: 'Read,Edit' }, onEvent, ctx.projectRoot);
 
   if (claudeResult === null) {
     onEvent({ type: 'app_updated' });
   }
 
-  // Post-edit validation
+  // === Post-edit validation (Layer 2 guardrail) ===
   const afterCode = readFileSync(appJsxPath, 'utf-8');
   const afterNonTheme = extractNonThemeSections(afterCode);
 
@@ -185,30 +195,32 @@ ${extractDataSchema(pass1Code)}`;
       restoredCode = updateThemeMeta(restoredCode, themeId, themeName);
       writeFileSync(appJsxPath, restoredCode, 'utf-8');
     }
-    onEvent({ type: 'theme_validation_failed', message: `Theme "${themeName}" creative pass modified app logic — reverted.` });
+    onEvent({
+      type: 'theme_validation_failed',
+      message: `Theme "${themeName}" creative pass modified app logic — reverted to safe version with new colors/fonts only.`
+    });
   } else {
     console.log(`[ThemeSwitch] Pass 2 validated — non-theme content unchanged`);
-    sanitizeAppJsx(ctx.projectRoot);
+    sanitizeAppJsx(currentAppDir(ctx) || ctx.projectRoot);
   }
 }
 
-async function handleThemeSwitchLegacy(
-  ctx: ServerContext,
-  onEvent: EventCallback,
-  themeId: string,
-  themeName: string,
-  themeContent: string,
-  colors: any,
-  model: string | undefined,
-  onCancel?: (fn: () => void) => void,
-): Promise<void> {
+/**
+ * Legacy theme switch: full-file Claude restyle (no markers).
+ */
+async function handleThemeSwitchLegacy(ctx, onEvent, themeId, themeName, themeContent, colors, model) {
   let rootCss = colors?.rootBlock || '';
   if (!rootCss) {
     const rootMatch = themeContent.match(/:root\s*\{[\s\S]*?\}/);
     if (rootMatch) rootCss = rootMatch[0];
   }
 
-  const appJsxPath = join(ctx.projectRoot, 'app.jsx');
+  const appDir = currentAppDir(ctx);
+  if (!appDir) {
+    onEvent({ type: 'error', message: 'No app active.' });
+    return;
+  }
+  const appJsxPath = join(appDir, 'app.jsx');
   const appCode = readFileSync(appJsxPath, 'utf-8');
 
   const prompt = `Restyle app.jsx to the "${themeName}" (${themeId}) theme.
@@ -221,7 +233,7 @@ ${appCode}
 
 === MANDATORY CSS CHANGES ===
 
-Replace the ENTIRE :root block with:
+Replace the ENTIRE :root block in the <style> tag with this EXACT CSS:
 
 \`\`\`css
 ${rootCss || `/* Build :root with oklch colors matching "${themeName}" */`}
@@ -232,40 +244,46 @@ Replace useVibesTheme default with: "${themeId}"
 
 === THEME PERSONALITY ===
 
+Study this theme to update backgrounds, shadows, borders, fonts, animations, SVGs:
+
 ${extractPass2ThemeContext(themeContent, 14000)}
 
 === RULES ===
 
-CHANGE: :root CSS variables, backgrounds, shadows, borders, fonts, animations, SVGs, __VIBES_THEMES__
-KEEP UNCHANGED: All components, hooks, functions, state, data models, Fireproof calls
-- No imports, no TypeScript, keep export default App
-- Never use CSS unicode escapes.`;
+CHANGE (visual only):
+- :root CSS variables → use the EXACT block above
+- Backgrounds, shadows, borders, fonts → match theme's design principles
+- Animations, SVG elements → match theme's mood
+- __VIBES_THEMES__ and useVibesTheme default → "${themeId}"
+- Create a fresh creative layout that matches the theme personality
 
-  console.log(`[ThemeSwitch] Legacy mode for "${themeName}" (${themeId})`);
-  await runOneShot(prompt, {
-    skipChat: true,
-    maxTurns: 8,
-    model,
-    cwd: ctx.projectRoot,
-    tools: 'Read,Edit',
-    onCancel,
-  }, onEvent, ctx.projectRoot);
+KEEP UNCHANGED:
+- All components, hooks, functions, state, data models, layout structure
+- All Fireproof database calls, document types, query filters
+- No import statements, no TypeScript, keep export default App
+- Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.`;
+
+  console.log(`[ThemeSwitch] Legacy mode for "${themeName}" (${themeId}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
+  await runOneShot(prompt, { skipChat: true, maxTurns: 8, model, cwd: currentAppDir(ctx), tools: 'Read,Edit' }, onEvent, ctx.projectRoot);
+
+  sanitizeAppJsx(currentAppDir(ctx) || ctx.projectRoot);
 }
 
 /**
- * Apply a custom color palette to app.jsx.
+ * Apply a custom color palette to app.jsx by replacing :root block.
  */
-export async function handlePaletteTheme(
-  ctx: ServerContext,
-  onEvent: EventCallback,
-  colors: Record<string, string>,
-): Promise<void> {
+export async function handlePaletteTheme(ctx, onEvent, colors) {
   if (!colors || typeof colors !== 'object' || Object.keys(colors).length === 0) {
     onEvent({ type: 'error', message: 'Invalid palette colors' });
     return;
   }
 
-  const appJsxPath = join(ctx.projectRoot, 'app.jsx');
+  const appDir = currentAppDir(ctx);
+  if (!appDir) {
+    onEvent({ type: 'error', message: 'No app active.' });
+    return;
+  }
+  const appJsxPath = join(appDir, 'app.jsx');
   if (!existsSync(appJsxPath)) {
     onEvent({ type: 'error', message: 'No app.jsx found.' });
     return;
@@ -285,7 +303,7 @@ export async function handlePaletteTheme(
       appCode = appCode.replace(rootRegex, rootBlock);
       console.log('[Palette] Replaced :root block in app code');
     } else {
-      console.log('[Palette] No :root block found');
+      console.log('[Palette] No :root block found, cannot apply palette');
       onEvent({ type: 'error', message: 'No :root token block found in app.jsx' });
       return;
     }

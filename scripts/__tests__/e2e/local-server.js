@@ -19,7 +19,7 @@
  *    - http://admin.test-app.local:3000 → Admin dashboard
  *
  * 4. Test webhooks:
- *    curl -X POST http://test-app.local:3000/webhooks/clerk \
+ *    curl -X POST http://test-app.local:3000/webhooks/auth \
  *      -H "Content-Type: application/json" \
  *      -d '{"type": "user.created", "data": {"id": "test_user"}}'
  */
@@ -263,7 +263,7 @@ function getLandingPage() {
     <li><code>GET /api/tenants</code> - List all tenants</li>
     <li><code>GET /api/stats</code> - Get stats</li>
     <li><code>POST /api/tenants/register</code> - Register tenant</li>
-    <li><code>POST /webhooks/clerk</code> - Webhook endpoint</li>
+    <li><code>POST /webhooks/auth</code> - Webhook endpoint</li>
   </ul>
 
   <h2>Debug Endpoints</h2>
@@ -399,7 +399,7 @@ async function handleRequest(req, res) {
     }
 
     // Webhook
-    if (pathname === '/webhooks/clerk' && req.method === 'POST') {
+    if (pathname === '/webhooks/auth' && req.method === 'POST') {
       return handleWebhook(req, res);
     }
 

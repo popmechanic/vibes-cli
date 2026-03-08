@@ -1,5 +1,47 @@
 import type React from "react";
 
+// Inject panel transition keyframes
+if (typeof document !== "undefined") {
+  const styleId = "vibes-panel-transition-keyframes";
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = `
+      @keyframes vibes-stagger-in {
+        from {
+          opacity: 0;
+          transform: translateY(8px) scale(0.97);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      .vibes-panel-stagger > * {
+        animation: vibes-stagger-in 250ms cubic-bezier(0.23, 1, 0.32, 1) both;
+        will-change: opacity, transform;
+      }
+
+      .vibes-panel-stagger > *:nth-child(1) { animation-delay: 0ms; }
+      .vibes-panel-stagger > *:nth-child(2) { animation-delay: 60ms; }
+      .vibes-panel-stagger > *:nth-child(3) { animation-delay: 120ms; }
+      .vibes-panel-stagger > *:nth-child(4) { animation-delay: 180ms; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .vibes-panel-stagger > * {
+          animation: none !important;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+export function getPanelEnterStyle(): React.CSSProperties {
+  return {};
+}
+
 export function getOuterContainerStyle(
   customStyle?: React.CSSProperties,
 ): React.CSSProperties {

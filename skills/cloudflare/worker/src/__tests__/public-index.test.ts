@@ -16,10 +16,6 @@ describe("public index billing gates", () => {
     expect(html).not.toContain("jwtQuota");
   });
 
-  it("uses has() for plan check instead of session claims", () => {
-    expect(html).toContain("has({ plan:");
-  });
-
   it("contains quota_exceeded error handling", () => {
     expect(html).toContain("quota_exceeded");
   });

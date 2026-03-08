@@ -137,6 +137,23 @@
       75% { transform: rotate(5deg); }
     }
 
+    /* Staggered entrance for navbar buttons */
+    @keyframes navbar-stagger-in {
+      from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .header-right.stagger-in > .navbar-button-wrapper {
+      animation: navbar-stagger-in 250ms cubic-bezier(0.23, 1, 0.32, 1) both;
+      will-change: opacity, transform;
+    }
+    .header-right.stagger-in > .navbar-button-wrapper:nth-child(1) { animation-delay: 0ms; }
+    .header-right.stagger-in > .navbar-button-wrapper:nth-child(2) { animation-delay: 60ms; }
+    .header-right.stagger-in > .navbar-button-wrapper:nth-child(3) { animation-delay: 120ms; }
+    .header-right.stagger-in > .navbar-button-wrapper:nth-child(4) { animation-delay: 180ms; }
+    @media (prefers-reduced-motion: reduce) {
+      .header-right.stagger-in > .navbar-button-wrapper { animation: none !important; }
+    }
+
     /* === VIBES AUDIO TOGGLE === */
     .vibes-audio-toggle {
       display: flex;
@@ -268,208 +285,72 @@
       50% { opacity: 1; transform: scale(1.05); }
     }
 
-    /* === PHASE 1: SETUP === */
-    .setup-phase {
-      align-items: center;
-      justify-content: center;
+    /* === PHASE 1: WELCOME === */
+    .welcome-phase {
+      align-items: center; justify-content: center;
+      min-height: 80vh;
       background: var(--vibes-menu-bg);
       background-image:
         linear-gradient(var(--grid-color) 1px, transparent 1px),
         linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
       background-size: var(--grid-size) var(--grid-size);
     }
-    .setup-card {
-      background: var(--vibes-cream);
-      border: 3px solid var(--vibes-near-black);
-      border-radius: 12px;
-      padding: 2rem;
-      max-width: 520px;
-      width: 100%;
-      max-height: 85vh;
-      overflow-y: auto;
-      box-shadow: 8px 10px 0px 0px var(--vibes-blue), 8px 10px 0px 3px var(--vibes-near-black);
+    .welcome-card {
+      background: white; border-radius: 16px; padding: 3rem 2.5rem;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08); text-align: center;
+      max-width: 420px; width: 100%;
     }
-    .setup-title {
-      font-size: 1.25rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .setup-item {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem 0;
-      border-bottom: 1px solid rgba(0,0,0,0.1);
-    }
-    .setup-item:last-of-type { border-bottom: none; }
-    .setup-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      font-weight: 800;
-      flex-shrink: 0;
-    }
-    .setup-icon.pass { background: var(--vibes-green); color: white; }
-    .setup-icon.fail { background: var(--vibes-red); color: white; }
-    .setup-icon.checking { background: var(--vibes-yellow); color: var(--vibes-near-black); }
-    .setup-icon.optional { background: #999; color: white; }
-    .setup-label {
-      flex: 1;
-      font-size: 0.875rem;
-      font-weight: 600;
-    }
-    .setup-detail {
-      font-size: 0.75rem;
-      color: #555;
-    }
-    /* Wizard */
-    .wizard-progress {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
-    }
-    .wizard-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: rgba(0,0,0,0.15);
-      transition: background 0.2s;
-    }
-    .wizard-dot.active { background: var(--vibes-blue); }
-    .wizard-dot.done { background: var(--vibes-green); }
-    .wizard-dot-line {
-      width: 24px;
-      height: 2px;
-      background: rgba(0,0,0,0.15);
-    }
-    .wizard-step { display: none; }
-    .wizard-step.active { display: block; }
-    .wizard-input {
-      width: 100%;
-      background: white;
-      border: 2px solid var(--vibes-near-black);
+    .welcome-title {
+      font-size: 1.75rem; font-weight: 800; margin-bottom: 0.75rem;
       color: var(--vibes-near-black);
-      padding: 0.6rem 0.75rem;
-      border-radius: 10px;
-      font-size: 0.8125rem;
-      outline: none;
-      font-family: inherit;
-      margin-bottom: 0.5rem;
-      box-sizing: border-box;
     }
-    .wizard-input:focus { border-color: var(--vibes-blue); box-shadow: 0 0 0 2px rgba(0,154,206,0.25); }
-    .wizard-input.valid { border-color: var(--vibes-green); }
-    .wizard-input.invalid { border-color: var(--vibes-red); }
-    .wizard-help {
-      font-size: 0.75rem;
-      color: #666;
-      margin-bottom: 0.75rem;
-      line-height: 1.4;
+    .welcome-subtitle {
+      font-size: 1rem; line-height: 1.5; color: #555; margin-bottom: 2rem;
     }
-    .wizard-link {
-      color: var(--vibes-blue);
-      text-decoration: none;
-      font-weight: 600;
+    .welcome-btn {
+      display: inline-block; padding: 0.875rem 2rem; font-size: 1rem;
+      font-weight: 700; border: none; border-radius: 10px; cursor: pointer;
+      background: var(--vibes-blue); color: white;
+      min-height: 48px; /* 44px+ tap target */
+      transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
     }
-    .wizard-link:hover { text-decoration: underline; }
-    .wizard-link::after { content: ' →'; }
-    .wizard-summary-table {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin: 1rem 0;
+    @media (hover: hover) {
+      .welcome-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,154,206,0.3);
+      }
     }
-    .wizard-summary-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.5rem 0.75rem;
-      background: rgba(0,0,0,0.03);
-      border-radius: 6px;
-      font-size: 0.8125rem;
+    .welcome-btn:active { transform: translateY(0); }
+    .welcome-spinner {
+      display: inline-block; width: 20px; height: 20px;
+      border: 2.5px solid #ccc; border-top-color: var(--vibes-blue);
+      border-radius: 50%; animation: welcome-spin 0.8s linear infinite;
+      vertical-align: middle; margin-right: 0.5rem;
     }
-    .wizard-summary-key {
-      font-weight: 700;
+    @keyframes welcome-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+      .welcome-spinner { animation: none; border-top-color: var(--vibes-blue); opacity: 0.7; }
     }
-    .wizard-summary-value {
-      color: #666;
-      font-family: monospace;
-      font-size: 0.75rem;
-      max-width: 60%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    .welcome-greeting {
+      font-size: 1.5rem; font-weight: 700; color: var(--vibes-near-black);
+      animation: welcome-fade-in 0.25s ease-out both;
     }
-    .wizard-terminal {
-      background: var(--vibes-near-black);
-      color: var(--vibes-green);
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 0.75rem;
-      padding: 0.75rem;
-      border-radius: 8px;
-      max-height: 160px;
-      overflow-y: auto;
-      margin-bottom: 0.75rem;
-      line-height: 1.5;
-      white-space: pre-wrap;
+    @keyframes welcome-fade-in {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
     }
-    .wizard-radio-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      margin-bottom: 0.75rem;
+    @media (prefers-reduced-motion: reduce) {
+      .welcome-greeting { animation: none; }
     }
-    .wizard-radio {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.6rem 0.75rem;
-      background: white;
-      border: 2px solid var(--vibes-near-black);
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 0.8125rem;
-      font-weight: 600;
-      transition: all 0.15s;
+    .welcome-check {
+      color: var(--vibes-green); margin-left: 0.5rem;
     }
-    .wizard-radio:hover { border-color: var(--vibes-blue); }
-    .wizard-radio.selected { border-color: var(--vibes-blue); background: rgba(0,154,206,0.05); }
-    .wizard-radio.disabled { opacity: 0.5; cursor: not-allowed; }
-    .wizard-checking {
-      display: inline-block;
-      width: 14px;
-      height: 14px;
-      border: 2px solid rgba(0,0,0,0.1);
-      border-top-color: var(--vibes-blue);
-      border-radius: 50%;
-      animation: wizardSpin 0.8s linear infinite;
+    /* Shared state containers — consistent card dimensions, no layout shift */
+    #welcomeDefault, #welcomeWaiting, #welcomeGreeting, #welcomeError {
+      min-height: 120px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
     }
-    @keyframes wizardSpin {
-      to { transform: rotate(360deg); }
-    }
-    .wizard-radio input[type="radio"] { accent-color: var(--vibes-blue); }
-    .wizard-section-title {
-      font-size: 0.875rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-    }
-    .setup-actions {
-      display: flex;
-      gap: 0.75rem;
-      margin-top: 1.5rem;
-      justify-content: flex-end;
-    }
+    #welcomeWaiting, #welcomeGreeting, #welcomeError { display: none; }
     .btn {
       background: var(--vibes-cream);
       border: 2px solid var(--vibes-near-black);
@@ -608,10 +489,61 @@
       border-top: 1px dashed #555;
       margin: 0.5rem 0 1rem;
     }
+    /* Account panel — slides in from right, below navbar */
+    .account-overlay {
+      display: none; position: fixed; top: 64px; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); z-index: 900;
+    }
+    .account-overlay.active { display: block; }
+    .account-panel {
+      position: fixed; top: 64px; right: 0; bottom: 0; width: 380px; max-width: 90vw;
+      background: #1a1a1a; box-shadow: -4px 0 24px rgba(0,0,0,0.5); z-index: 901;
+      overflow-y: auto; padding: 2rem;
+      transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+    }
+    .account-overlay.active .account-panel { transform: translateX(0); }
+    .account-header {
+      display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+      padding-bottom: 1.5rem; border-bottom: 1px dashed #555;
+    }
+    .account-avatar {
+      width: 48px; height: 48px; border-radius: 50%; background: #333;
+      border: 2px solid #555; object-fit: cover; flex-shrink: 0;
+    }
+    .account-name { font-weight: 700; font-size: 1rem; color: #f0f0f0; }
+    .account-email { font-size: 0.8125rem; color: #999; margin-top: 0.125rem; }
+    .account-signout {
+      font-size: 0.75rem; color: var(--vibes-variant-red, #DA291C); cursor: pointer;
+      margin-top: 0.25rem; background: none; border: none; padding: 0; text-align: left;
+    }
+    .account-signout:hover { text-decoration: underline; }
+    .deploy-card {
+      background: #2a2a2a; border: 2px solid #444; border-radius: 10px;
+      padding: 0.75rem 1rem; margin-bottom: 0.75rem;
+      transition: box-shadow 0.15s, transform 0.15s;
+    }
+    .deploy-card:hover {
+      box-shadow: 4px 4px 0 0 rgba(255,255,255,0.15); transform: translate(-2px,-2px);
+    }
+    .deploy-card-name { font-weight: 700; font-size: 0.875rem; color: #f0f0f0; }
+    .deploy-card-url {
+      font-size: 0.75rem; color: var(--vibes-variant-blue, #009ACE);
+      text-decoration: none; display: block; margin-top: 0.25rem;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .deploy-card-url:hover { text-decoration: underline; }
+    .deploy-card-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    .deploy-card-btn {
+      font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.05em; padding: 0.25rem 0.75rem; border-radius: 4px;
+      border: 1px solid #555; background: transparent; color: #ccc; cursor: pointer;
+    }
+    .deploy-card-btn:hover { background: #333; color: #fff; }
     @media (max-width: 768px) {
       .generate-phase { flex-direction: column; }
       .generate-left { flex: none; width: 100%; }
       .generate-right { border-top: 2px solid #333; }
+      .account-panel { width: 100%; }
     }
     .generate-card {
       width: 600px;
@@ -2125,34 +2057,31 @@
       border-color: var(--vibes-blue);
       box-shadow: 0 0 0 2px rgba(83,152,201,0.15);
     }
-    .deploy-option {
+    .deploy-publish-btn {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem 1rem;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1rem;
       cursor: pointer;
       font-size: 0.875rem;
-      font-weight: 600;
-      transition: background 0.15s;
-      border: none;
-      background: none;
-      width: 100%;
-      text-align: left;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      transition: background 0.15s, transform 0.1s;
+      border: 2px solid var(--vibes-near-black);
+      background: var(--vibes-green);
+      width: calc(100% - 1.7rem);
+      margin: 0 0.85rem 0.75rem;
+      text-align: center;
       font-family: inherit;
       color: var(--vibes-near-black);
+      border-radius: 8px;
+      box-shadow: 2px 2px 0px 0px var(--vibes-near-black);
     }
-    .deploy-option:hover { background: rgba(0,154,206,0.08); }
-    .deploy-option:last-child { border-radius: 0 0 8px 8px; }
-    .deploy-option:not(:last-child) { border-bottom: 1px solid rgba(0,0,0,0.06); }
-    .deploy-option:disabled { color: #aaa; cursor: not-allowed; }
-    .deploy-option:disabled:hover { background: none; }
-    .deploy-option-icon { font-size: 1.1rem; width: 1.5rem; text-align: center; }
-    .deploy-option-detail {
-      font-size: 0.6875rem;
-      color: #888;
-      font-weight: 400;
-    }
-    .deploy-option-detail.ready { color: var(--vibes-green); }
+    .deploy-publish-btn:hover { background: #6dbf5c; transform: translate(-1px, -1px); box-shadow: 3px 3px 0px 0px var(--vibes-near-black); }
+    .deploy-publish-btn:active { transform: translate(1px, 1px); box-shadow: 0px 0px 0px 0px var(--vibes-near-black); }
+    .deploy-publish-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: 2px 2px 0px 0px var(--vibes-near-black); }
+    .deploy-publish-btn:disabled:hover { background: var(--vibes-green); transform: none; }
     .deploy-section-divider {
       border: none;
       border-top: 1.5px solid rgba(0,0,0,0.1);
@@ -2323,7 +2252,7 @@
   <!-- Header -->
   <div class="header">
     <div class="header-left">
-      <div class="vibes-pill-wrap" onclick="goToGenerate()" title="Back to prompt">
+      <div class="vibes-pill-wrap" onclick="setPhase('generate')" title="Back to prompt">
         <svg class="vibes-pill" xmlns="http://www.w3.org/2000/svg" viewBox="0 118 600 185" fill="currentColor">
           <path fill-rule="evenodd" clip-rule="evenodd" fill="#000" d="M293.353,298.09c-41.038,0-82.078,0.125-123.115-0.077c-11.993-0.06-24.011-0.701-35.964-1.703c-15.871-1.331-29.73-7.937-41.948-17.946c-16.769-13.736-27.207-31.417-30.983-52.7c-4.424-24.93,1.404-47.685,16.506-67.913c11.502-15.407,26.564-26.1,45.258-30.884c7.615-1.949,15.631-2.91,23.501-3.165c20.08-0.652,40.179-0.853,60.271-0.879c69.503-0.094,139.007-0.106,208.51,0.02c14.765,0.026,29.583,0.097,44.28,1.313c36.984,3.059,61.78,23.095,74.653,57.301c17.011,45.199-8.414,96.835-54.29,111.864c-7.919,2.595-16.165,3.721-24.434,3.871c-25.614,0.467-51.234,0.742-76.853,0.867C350.282,298.197,321.817,298.09,293.353,298.09z"/>
           <path fill="#fff" fill-rule="evenodd" clip-rule="evenodd" d="M165.866,285.985c-7.999-0.416-19.597-0.733-31.141-1.687c-15.692-1.297-28.809-8.481-40.105-19.104c-12.77-12.008-20.478-26.828-22.714-44.177c-3.048-23.644,3.384-44.558,19.646-62.143c9.174-9.92,20.248-17.25,33.444-20.363c7.786-1.837,15.944-2.399,23.973-2.828c9.988-0.535,121.023-0.666,131.021-0.371c10.191,0.301,20.433,0.806,30.521,2.175c12.493,1.696,23.132,7.919,32.552,16.091c14.221,12.337,22.777,27.953,25.184,46.594c2.822,21.859-2.605,41.617-16.777,58.695c-9.494,11.441-21.349,19.648-35.722,23.502c-6.656,1.785-13.724,2.278-20.647,2.77C286.914,285.721,177.682,285.667,165.866,285.985z"/>
@@ -2358,6 +2287,22 @@
     </div>
   </div>
 
+  <!-- Account Panel (overlay) -->
+  <div class="account-overlay" id="accountOverlay" onclick="if(event.target===this)closeAccountPanel()">
+    <div class="account-panel" id="accountPanel">
+      <div class="account-header">
+        <img class="account-avatar" id="accountAvatar" src="" alt="">
+        <div>
+          <div class="account-name" id="accountName"></div>
+          <div class="account-email" id="accountEmail"></div>
+          <button class="account-signout" onclick="signOut()">Sign out</button>
+        </div>
+      </div>
+      <div class="gallery-title">Deployed Apps</div>
+      <div id="accountDeployments"><div style="color:#888;font-size:0.875rem;">Loading...</div></div>
+    </div>
+  </div>
+
   <!-- Loading Screen -->
   <div class="phase loading-phase active" id="phaseLoading">
     <svg class="loading-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 118 600 185" fill="currentColor" style="width:200px;">
@@ -2376,195 +2321,37 @@
     </svg>
   </div>
 
-  <!-- Phase 1: Setup -->
-  <div class="phase setup-phase" id="phaseSetup">
-    <div class="setup-card">
-      <div class="setup-title">
-        <span>&#9889;</span> Setup Wizard
-      </div>
-      <div class="wizard-progress" id="wizardProgress">
-        <div class="wizard-dot active" data-step="1"></div>
-        <div class="wizard-dot-line"></div>
-        <div class="wizard-dot" data-step="2"></div>
-        <div class="wizard-dot-line"></div>
-        <div class="wizard-dot" data-step="3"></div>
-        <div class="wizard-dot-line"></div>
-        <div class="wizard-dot" data-step="4"></div>
-      </div>
-
-      <!-- Step 1: Welcome -->
-      <div class="wizard-step active" id="wizardStep1">
-        <div class="wizard-section-title">Welcome to Vibes</div>
-        <div class="wizard-help">
-          Let's get you set up! Vibes uses two free services to build and deploy your apps. We'll walk you through creating accounts and getting the API keys you need.
+  <!-- Phase 1: Welcome -->
+  <div class="phase welcome-phase" id="phaseSetup">
+    <div class="welcome-card" id="welcomeCard">
+      <div id="welcomeDefault">
+        <div class="welcome-title">Welcome to Vibes</div>
+        <div class="welcome-subtitle">
+          Describe an app and we'll build it.<br>
+          Sign in to save and share your apps.
         </div>
-        <div style="margin: 1rem 0;">
-          <div class="setup-item">
-            <div class="setup-icon" id="welcomeClerkIcon" style="background:#999;color:white;">1</div>
-            <div>
-              <div class="setup-label">Clerk <span style="font-size:0.7rem;color:#888;">(authentication)</span></div>
-              <div class="setup-detail">Handles user sign-in for your apps &mdash; you'll need a publishable key and secret key</div>
-            </div>
-          </div>
-          <div class="setup-item">
-            <div class="setup-icon" id="welcomeCfIcon" style="background:#999;color:white;">2</div>
-            <div>
-              <div class="setup-label">Cloudflare <span style="font-size:0.7rem;color:#888;">(hosting &amp; sync)</span></div>
-              <div class="setup-detail">Deploys your apps globally &mdash; you'll need an API token</div>
-            </div>
-          </div>
-        </div>
-        <div class="wizard-help" style="font-size:0.75rem;color:#666;">
-          Both services have generous free tiers. Setup takes about 5 minutes. We'll verify each key as you go.
-        </div>
-        <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-primary" id="wizardStartBtn" onclick="setWizardStep(2)">Get started</button>
+        <button class="welcome-btn" id="welcomeBtn" onclick="startAuth()">
+          Sign in with Pocket ID
+        </button>
+        <div style="margin-top:0.75rem;font-size:0.8rem;color:#888;">
+          Don't have an account? You'll be able to create one.
         </div>
       </div>
-
-      <!-- Step 2: Clerk Keys -->
-      <div class="wizard-step" id="wizardStep2">
-        <div class="wizard-section-title">Clerk Authentication</div>
-        <div class="wizard-help">
-          Clerk handles user sign-in for your apps. You'll need a free Clerk account with an application set up.
-        </div>
-
-        <!-- Expandable: "I don't have a Clerk account yet" -->
-        <details style="margin-bottom:1rem;">
-          <summary style="cursor:pointer;font-size:0.8125rem;font-weight:700;color:var(--vibes-blue);user-select:none;">
-            I don't have a Clerk account yet
-          </summary>
-          <div style="background:rgba(0,154,206,0.06);border-radius:0 0 8px 8px;padding:0.75rem 1rem;font-size:0.8125rem;line-height:1.6;">
-            <ol style="margin:0.25rem 0 0 1.25rem;padding:0;">
-              <li>Go to <a class="wizard-link" href="https://clerk.com/sign-up" target="_blank">clerk.com/sign-up</a> and create a free account</li>
-              <li>When prompted, create a new application &mdash; name it anything (e.g. "My Vibes Apps")</li>
-              <li>For sign-in options, keep the defaults (Email + Google is fine)</li>
-              <li>Once created, you'll land on the dashboard &mdash; continue below to find your keys</li>
-            </ol>
-          </div>
-        </details>
-
-        <div style="background:rgba(0,154,206,0.06);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.8125rem;line-height:1.5;">
-          <strong>Finding your API keys:</strong>
-          <ol style="margin:0.5rem 0 0 1.25rem;padding:0;">
-            <li>Open <a class="wizard-link" href="https://dashboard.clerk.com" target="_blank">dashboard.clerk.com</a></li>
-            <li>Select your application (or create one if you haven't)</li>
-            <li>Click <strong>Configure</strong> in the left sidebar, then <strong>API Keys</strong></li>
-            <li>Copy the <strong>Publishable key</strong> (starts with <code style="background:rgba(0,0,0,0.06);padding:0.1rem 0.3rem;border-radius:3px;font-size:0.75rem;">pk_test_</code>)</li>
-            <li>Click <strong>Show</strong> next to <strong>Secret key</strong> and copy it (starts with <code style="background:rgba(0,0,0,0.06);padding:0.1rem 0.3rem;border-radius:3px;font-size:0.75rem;">sk_test_</code>)</li>
-          </ol>
-        </div>
-
-        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Publishable Key</label>
-        <input class="wizard-input" id="wizardClerkKey" type="text" placeholder="pk_test_..." oninput="validateWizardClerkInputs()" autocomplete="off" />
-        <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;margin-top:0.5rem;">Secret Key</label>
-        <input class="wizard-input" id="wizardClerkSecret" type="password" placeholder="sk_test_..." oninput="validateWizardClerkInputs()" autocomplete="off" />
-        <div style="font-size:0.7rem;color:#888;margin-top:0.25rem;">The publishable key is verified now. The secret key will be validated during deployment.</div>
-        <div class="wizard-help" id="wizardClerkHint" style="color:var(--vibes-red);display:none;"></div>
-        <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-secondary" onclick="setWizardStep(1)">Back</button>
-          <button class="btn btn-primary" id="wizardClerkNext" onclick="saveClerkAndAdvance()" disabled>Next</button>
+      <div id="welcomeWaiting">
+        <div class="welcome-title">Welcome to Vibes</div>
+        <div style="margin-top:1.5rem;color:#555;">
+          <span class="welcome-spinner"></span> Waiting for sign in...
         </div>
       </div>
-
-      <!-- Step 3: Cloudflare -->
-      <div class="wizard-step" id="wizardStep3">
-        <div class="wizard-section-title">Cloudflare Deployment</div>
-        <div class="wizard-help">
-          Cloudflare Workers hosts your apps globally for free. You'll need a Cloudflare account and an API token.
-        </div>
-
-        <!-- Expandable: "I don't have a Cloudflare account yet" -->
-        <details style="margin-bottom:1rem;">
-          <summary style="cursor:pointer;font-size:0.8125rem;font-weight:700;color:var(--vibes-blue);user-select:none;">
-            I don't have a Cloudflare account yet
-          </summary>
-          <div style="background:rgba(0,154,206,0.06);border-radius:0 0 8px 8px;padding:0.75rem 1rem;font-size:0.8125rem;line-height:1.6;">
-            <ol style="margin:0.25rem 0 0 1.25rem;padding:0;">
-              <li>Go to <a class="wizard-link" href="https://dash.cloudflare.com/sign-up" target="_blank">dash.cloudflare.com/sign-up</a> and create a free account</li>
-              <li>Verify your email address</li>
-              <li>You don't need to add a domain &mdash; Workers works without one</li>
-              <li>Once your account is created, continue below to create an API token</li>
-            </ol>
-          </div>
-        </details>
-
-        <!-- Auth mode tabs -->
-        <div style="display:flex;gap:0;margin-bottom:1rem;border-bottom:2px solid rgba(0,0,0,0.1);">
-          <button id="cfTabToken" class="btn" onclick="setCfAuthMode('token')" style="border:none;border-bottom:2px solid var(--vibes-blue);margin-bottom:-2px;border-radius:0;padding:0.5rem 1rem;font-weight:700;font-size:0.8125rem;background:none;color:var(--vibes-blue);cursor:pointer;box-shadow:none;">API Token (recommended)</button>
-          <button id="cfTabGlobal" class="btn" onclick="setCfAuthMode('global')" style="border:none;border-bottom:2px solid transparent;margin-bottom:-2px;border-radius:0;padding:0.5rem 1rem;font-weight:700;font-size:0.8125rem;background:none;color:#888;cursor:pointer;box-shadow:none;">Global API Key</button>
-        </div>
-
-        <!-- API Token panel -->
-        <div id="cfPanelToken">
-          <div style="background:rgba(0,154,206,0.06);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.8125rem;line-height:1.5;">
-            <strong>Create an API Token:</strong>
-            <ol style="margin:0.5rem 0 0 1.25rem;padding:0;">
-              <li>Go to <a class="wizard-link" href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare API Tokens</a></li>
-              <li>Click <strong>Create Token</strong></li>
-              <li>Find <strong>"Edit Cloudflare Workers"</strong> and click <strong>Use template</strong></li>
-              <li>Under <strong>Account Resources</strong>, select your account</li>
-              <li>Under <strong>Zone Resources</strong>, select <strong>All zones</strong> (or a specific zone)</li>
-              <li>Click <strong>Continue to summary</strong>, then <strong>Create Token</strong></li>
-              <li>Copy the token &mdash; <em>you won't be able to see it again</em></li>
-            </ol>
-          </div>
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">API Token</label>
-          <input class="wizard-input" id="wizardCfApiToken" type="password" placeholder="Paste your API Token..." oninput="validateWizardCfInputs()" autocomplete="off" />
-        </div>
-
-        <!-- Global API Key panel (hidden by default) -->
-        <div id="cfPanelGlobal" style="display:none;">
-          <div style="background:rgba(0,154,206,0.06);border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.8125rem;line-height:1.5;">
-            <strong>Find your Global API Key:</strong>
-            <ol style="margin:0.5rem 0 0 1.25rem;padding:0;">
-              <li>Go to <a class="wizard-link" href="https://dash.cloudflare.com/profile/api-tokens" target="_blank">Cloudflare API Tokens</a></li>
-              <li>Scroll down to the <strong>API Keys</strong> section</li>
-              <li>Next to <strong>Global API Key</strong>, click <strong>View</strong></li>
-              <li>Complete the verification and copy the key</li>
-            </ol>
-            <div style="margin-top:0.5rem;padding:0.5rem;background:rgba(218,41,28,0.06);border-radius:4px;font-size:0.75rem;color:#666;">
-              <strong>Note:</strong> Global API Key grants full account access. API Token (above) is recommended for better security.
-            </div>
-          </div>
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;">Account Email</label>
-          <input class="wizard-input" id="wizardCfEmail" type="email" placeholder="you@example.com" oninput="validateWizardCfInputs()" autocomplete="off" />
-          <label style="font-size:0.75rem;font-weight:700;display:block;margin-bottom:0.25rem;margin-top:0.5rem;">Global API Key</label>
-          <input class="wizard-input" id="wizardCfKey" type="password" placeholder="Paste your Global API Key..." oninput="validateWizardCfInputs()" autocomplete="off" />
-        </div>
-
-        <div class="wizard-help" id="wizardCfHint" style="display:none;"></div>
-        <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-secondary" onclick="setWizardStep(2)">Back</button>
-          <!-- &amp; is correct here (HTML source); JS restores via textContent which handles & natively -->
-          <button class="btn btn-primary" id="wizardCfNext" onclick="validateAndAdvanceCf()" disabled>Verify &amp; Continue</button>
+      <div id="welcomeGreeting">
+        <div class="welcome-greeting">
+          Welcome, <span id="welcomeUserName"></span>! <span class="welcome-check">&#10003;</span>
         </div>
       </div>
-
-      <!-- Step 4: Verification & Save -->
-      <div class="wizard-step" id="wizardStep4">
-        <div class="wizard-section-title" style="color:var(--vibes-green);">&#10003; Ready to Build!</div>
-        <div class="wizard-help">Your credentials have been verified and saved. You're all set to create and deploy apps.</div>
-        <div class="wizard-summary-table" id="wizardSummary"></div>
-
-        <!-- Optional: OpenRouter -->
-        <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid rgba(0,0,0,0.1);">
-          <div style="font-size:0.75rem;font-weight:700;margin-bottom:0.25rem;">
-            OpenRouter API Key <span style="font-weight:400;color:#888;">(optional -- enables AI themes)</span>
-          </div>
-          <div style="display:flex;gap:0.5rem;">
-            <input class="wizard-input" id="wizardOpenRouterKey" type="password" placeholder="sk-or-..." oninput="validateOpenRouterKey()" style="flex:1;" />
-            <button class="btn btn-secondary" id="wizardOrSaveBtn" onclick="saveOpenRouterKey()" disabled style="white-space:nowrap;">Save Key</button>
-          </div>
-          <div class="wizard-help" id="wizardOpenRouterHint" style="display:none;"></div>
-          <div style="font-size:0.7rem;color:#888;margin-top:0.25rem;">
-            <a class="wizard-link" href="https://openrouter.ai/keys" target="_blank" style="font-size:0.7rem;">Get a key at openrouter.ai</a>
-          </div>
-        </div>
-
-        <div class="setup-actions" style="margin-top:1.5rem;">
-          <button class="btn btn-primary" id="wizardFinishBtn" onclick="wizardFinish()" style="width:100%;">Start Building</button>
-        </div>
+      <div id="welcomeError">
+        <div class="welcome-title">Welcome to Vibes</div>
+        <div style="margin-top:1rem;color:var(--vibes-red);" id="welcomeErrorMsg"></div>
+        <button class="welcome-btn" style="margin-top:1.5rem;" onclick="startAuth()">Try again</button>
       </div>
     </div>
   </div>
@@ -2925,26 +2712,10 @@
   let isThinking = false;
   let themes = [];
   let currentPhase = 'loading';
-  let cloudflareReady = false;
-  let cfAuthMode = 'token'; // 'token' or 'global'
-  let wizardData = {
-    clerkKey: '',
-    clerkSecret: '',
-    cfApiToken: '',
-    cfEmail: '',
-    cfApiKey: '',
-    cfAccountId: '',
-    openRouterKey: '',
-  };
-  let wizardValidation = {
-    clerk: 'unchecked',       // unchecked | checking | valid | invalid
-    cloudflare: 'unchecked',  // unchecked | checking | valid | invalid
-  };
+  let deployTargets = { cloudflare: false };
   let pendingThemeId = null;
   let currentThemeId = null;
   let currentAppName = null;
-  let wizardStep = 1;
-
   // === Vibes Audio Toggle ===
   let vibesAudio = null;
   let vibesPlaying = false;
@@ -3017,6 +2788,70 @@
   let versionIndex = -1;
   let isVersionNav = false; // true when navigating via undo/redo (skip pushing to history)
 
+  // === Account state ===
+  let currentUser = null; // { name, email, picture }
+
+  function openAccountPanel() {
+    const overlay = document.getElementById('accountOverlay');
+    if (!currentUser) return;
+    document.getElementById('accountName').textContent = currentUser.name || 'User';
+    document.getElementById('accountEmail').textContent = currentUser.email || '';
+    const avatar = document.getElementById('accountAvatar');
+    if (currentUser.picture) {
+      avatar.src = currentUser.picture;
+      avatar.style.display = '';
+    } else {
+      avatar.style.display = 'none';
+    }
+    overlay.classList.add('active');
+    // Fetch deployments
+    fetch('/editor/deployments').then(r => r.json()).then(deps => {
+      const container = document.getElementById('accountDeployments');
+      if (!deps.length) {
+        container.innerHTML = '<div style="color:#888;font-size:0.875rem;">No deployed apps yet.</div>';
+        return;
+      }
+      container.innerHTML = deps.map(d => `
+        <div class="deploy-card">
+          <div class="deploy-card-name">${d.name}</div>
+          <a class="deploy-card-url" href="${d.url}" target="_blank" rel="noopener">${d.url}</a>
+          <div class="deploy-card-actions">
+            <button class="deploy-card-btn" onclick="window.open('${d.url}','_blank')">Open</button>
+            <button class="deploy-card-btn" onclick="loadAndRedeploy('${d.name}')">Redeploy</button>
+          </div>
+        </div>
+      `).join('');
+    }).catch(() => {
+      document.getElementById('accountDeployments').innerHTML =
+        '<div style="color:#888;font-size:0.875rem;">Could not load deployments.</div>';
+    });
+  }
+
+  function closeAccountPanel() {
+    document.getElementById('accountOverlay').classList.remove('active');
+  }
+
+  async function signOut() {
+    closeAccountPanel();
+    await fetch('/editor/auth/logout', { method: 'POST' });
+    location.reload();
+  }
+
+  function loadAndRedeploy(name) {
+    closeAccountPanel();
+    // Load the app, then trigger deploy
+    fetch('/editor/apps/load', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          currentAppName = name;
+          if (ws && ws.readyState === 1) {
+            ws.send(JSON.stringify({ type: 'save_app', name }));
+          }
+        }
+      }).catch(() => {});
+  }
+
   // === Apps Panel Toggle ===
   let appsPanelVisible = false;
   function toggleAppsPanel() {
@@ -3058,6 +2893,22 @@
           </button>
         </div>`;
 
+  async function openSettings() {
+    if (currentUser) {
+      const overlay = document.getElementById('accountOverlay');
+      if (overlay.classList.contains('active')) { closeAccountPanel(); return; }
+      openAccountPanel();
+    } else {
+      setPhase('setup');
+      const btn = document.getElementById('welcomeBtn');
+      btn.textContent = 'Sign in with Pocket ID';
+      document.getElementById('welcomeDefault').style.display = 'flex';
+      document.getElementById('welcomeWaiting').style.display = 'none';
+      document.getElementById('welcomeGreeting').style.display = 'none';
+      document.getElementById('welcomeError').style.display = 'none';
+    }
+  }
+
   function setPhase(phase) {
     currentPhase = phase;
     document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
@@ -3083,10 +2934,11 @@
 
     const headerRight = document.getElementById('headerRight');
     if (phase === 'generate') {
+      // Show apps button only if there are apps to show
       const appsGrid = document.getElementById('appGalleryGrid');
-      let buttons = '';
+      let generateButtons = settingsButtonHtml;
       if (appsGrid && appsGrid.innerHTML.trim()) {
-        buttons += `
+        generateButtons += `
           <div class="navbar-button-wrapper">
             <button style="background:var(--vibes-yellow)" onclick="toggleAppsPanel()">
               <div class="navbar-button-icon">
@@ -3102,7 +2954,8 @@
             </button>
           </div>`;
       }
-      headerRight.innerHTML = settingsButtonHtml + buttons;
+      headerRight.innerHTML = generateButtons;
+      triggerNavStagger(headerRight);
     } else if (phase === 'edit') {
       headerRight.innerHTML = settingsButtonHtml + `
         <div class="navbar-button-wrapper">
@@ -3150,12 +3003,12 @@
               <input type="text" id="deployNameInput" placeholder="my-app"
                 onclick="event.stopPropagation()" />
             </div>
-            <button class="deploy-option" id="deployCf" onclick="startDeploy('cloudflare')" disabled>
-              <span class="deploy-option-icon">&#9729;</span>
-              <div>
-                <div>Cloudflare Workers</div>
-                <div class="deploy-option-detail" id="deployCfDetail">Checking...</div>
-              </div>
+            <button class="deploy-publish-btn" id="deployCf" onclick="startDeploy('cloudflare')">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+                <path d="M8 1l5 5h-3.25v5h-3.5V6H3L8 1z" fill="currentColor"/>
+                <rect x="3" y="13" width="10" height="1.5" rx="0.75" fill="currentColor"/>
+              </svg>
+              Publish to Web
             </button>
             <div id="deployHistorySection" style="display:none">
               <hr class="deploy-section-divider">
@@ -3165,9 +3018,18 @@
           </div>
         </div>`;
       updateDeployButtons();
+      triggerNavStagger(headerRight);
     } else {
       headerRight.innerHTML = '';
     }
+  }
+
+  function triggerNavStagger(el) {
+    el.classList.remove('stagger-in');
+    void el.offsetWidth; // force reflow to restart animation
+    el.classList.add('stagger-in');
+    // Remove class after animations finish so transform doesn't trap position:fixed children
+    setTimeout(() => el.classList.remove('stagger-in'), 500);
   }
 
   // === WebSocket ===
@@ -3203,24 +3065,13 @@
       } else if (msg.type === 'app_updated') {
         console.log('[app_updated] phase:', currentPhase, 'pendingTheme:', pendingThemeId);
         setThinking(false);
+        if (!isVersionNav) versionPush();
         if (currentPhase === 'generate') {
-          fetch('/editor/app-exists').then(r => r.json()).then(d => {
-            if (d.exists) {
-              if (!isVersionNav) versionPush();
-              setPhase('edit');
-              loadPreview();
-              autoSaveApp();
-            } else {
-              document.getElementById('generateProgress').classList.remove('active');
-              document.getElementById('generateActions').style.display = '';
-              document.getElementById('generateBtn').disabled = false;
-              const errEl = document.getElementById('generateError');
-              errEl.textContent = 'Generation completed but no app was created. Try again.';
-              errEl.style.display = '';
-            }
-          });
+          setPhase('edit');
+          loadPreview();
+          // Auto-save only on initial generate to set the app name
+          autoSaveApp();
         } else {
-          if (!isVersionNav) versionPush();
           reloadPreview();
         }
       } else if (msg.type === 'error') {
@@ -3251,6 +3102,18 @@
         const select = document.getElementById('themeSelect');
         if (select && msg.themeId) select.value = msg.themeId;
         console.log('[Theme] Selected:', msg.themeId, name);
+      } else if (msg.type === 'auth_complete') {
+        handleAuthComplete(msg.user);
+        return;
+      } else if (msg.type === 'auth_required') {
+        setPhase('setup');
+        const btn = document.getElementById('welcomeBtn');
+        btn.textContent = 'Sign in with Pocket ID';
+        document.getElementById('welcomeDefault').style.display = 'flex';
+        document.getElementById('welcomeWaiting').style.display = 'none';
+        document.getElementById('welcomeGreeting').style.display = 'none';
+        document.getElementById('welcomeError').style.display = 'none';
+        return;
       } else if (msg.type === 'deploy_complete') {
         setThinking(false);
         if (msg.name) currentAppName = msg.name;
@@ -3290,527 +3153,49 @@
     };
   }
 
-  // === Phase 1: Setup ===
+  // === Phase 1: Welcome / Auth ===
+  async function startAuth() {
+    // Show waiting state
+    document.getElementById('welcomeDefault').style.display = 'none';
+    document.getElementById('welcomeError').style.display = 'none';
+    document.getElementById('welcomeWaiting').style.display = 'flex';
 
-  // Helper: update welcome step icons without the auto-redirect in renderChecklist
-  function updateWelcomeIcons(status) {
-    const clerkIcon = document.getElementById('welcomeClerkIcon');
-    const cfIcon = document.getElementById('welcomeCfIcon');
-    if (clerkIcon) {
-      clerkIcon.style.background = status.clerk?.ok ? 'var(--vibes-green)' : '#999';
-      clerkIcon.innerHTML = status.clerk?.ok ? '&#10003;' : '1';
-    }
-    if (cfIcon) {
-      cfIcon.style.background = status.cloudflare?.ok ? 'var(--vibes-green)' : '#999';
-      cfIcon.innerHTML = status.cloudflare?.ok ? '&#10003;' : '2';
-    }
-  }
-
-  function renderChecklist(status) {
-    const items = [
-      { key: 'clerk', label: 'Clerk keys', detail: status.clerk?.detail || '', required: true },
-      { key: 'cloudflare', label: 'Cloudflare', detail: status.cloudflare?.detail || '', required: true },
-      { key: 'openrouter', label: 'OpenRouter API key', detail: status.openrouter?.detail || '', required: false },
-    ];
-
-    cloudflareReady = status.cloudflare?.ok || false;
-
-    const requiredOk = items.filter(i => i.required).every(i => status[i.key]?.ok);
-
-    updateWelcomeIcons(status);
-
-    const startBtn = document.getElementById('wizardStartBtn');
-    if (startBtn && requiredOk) {
-      setTimeout(() => goToGenerate(), 800);
-    }
-  }
-
-  function openSettings() {
-    // Re-fetch status and show the wizard — do NOT call renderChecklist()
-    // because it auto-redirects to generate when all creds are present.
-    // prefillFromStatus() handles smart step-skipping without the redirect.
-    // updateWelcomeIcons() updates the step 1 icons (extracted from renderChecklist).
-    //
-    // Reset stale wizardData and validation state so prefillFromStatus starts clean
-    wizardData.clerkKey = '';
-    wizardData.clerkSecret = '';
-    wizardData.cfApiToken = '';
-    wizardData.cfApiKey = '';
-    wizardData.cfEmail = '';
-    wizardData.cfAccountId = '';
-    wizardValidation.clerk = 'unchecked';
-    wizardValidation.cloudflare = 'unchecked';
-    // Clear all wizard input fields to prevent desync between wizardData and DOM
-    ['wizardClerkKey', 'wizardClerkSecret', 'wizardCfApiToken', 'wizardCfEmail', 'wizardCfKey', 'wizardOpenRouterKey'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) { el.value = ''; el.classList.remove('valid', 'invalid'); }
-    });
-    //
-    // ORDER MATTERS:
-    // 1. setPhase('setup') — switch DOM to wizard view FIRST so elements exist
-    // 2. setWizardStep(1) — reset to step 1 baseline (prefillFromStatus may skip forward)
-    // 3. updateWelcomeIcons — update step 1 icons (needs step 1 DOM)
-    // 4. prefillFromStatus — populate fields + smart-skip to correct step
-    fetch('/editor/status').then(r => r.json()).then(status => {
-      cloudflareReady = status.cloudflare?.ok || false;
-      setPhase('setup');
-      setWizardStep(1);
-      updateWelcomeIcons(status);
-      prefillFromStatus(status);
-    }).catch(() => {
-      setPhase('setup');
-      setWizardStep(1);
-    });
-  }
-
-  function goToGenerate() {
-    setPhase('generate');
-    checkExistingApps();
-    const promptEl = document.getElementById('generatePrompt');
-    if (promptEl) promptEl.focus();
-  }
-
-  function setWizardStep(n) {
-    wizardStep = n;
-    // Clear CF wizard data and input fields on re-entry to step 3 unless already validated
-    if (n === 3 && wizardValidation.cloudflare !== 'valid') {
-      wizardData.cfApiToken = '';
-      wizardData.cfApiKey = '';
-      wizardData.cfEmail = '';
-      wizardData.cfAccountId = '';
-      const tokenInput = document.getElementById('wizardCfApiToken');
-      const emailInput = document.getElementById('wizardCfEmail');
-      const keyInput = document.getElementById('wizardCfKey');
-      if (tokenInput) { tokenInput.value = ''; tokenInput.classList.remove('valid', 'invalid'); }
-      if (emailInput) { emailInput.value = ''; emailInput.classList.remove('valid', 'invalid'); }
-      if (keyInput) { keyInput.value = ''; keyInput.classList.remove('valid', 'invalid'); }
-    }
-    document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
-    const step = document.getElementById('wizardStep' + n);
-    if (step) step.classList.add('active');
-    document.querySelectorAll('.wizard-dot').forEach(dot => {
-      const s = parseInt(dot.dataset.step);
-      dot.classList.toggle('active', s === n);
-      dot.classList.toggle('done', s < n);
-    });
-    if (n === 4) renderWizardSummary();
-  }
-
-  function validateWizardClerkInputs() {
-    const keyInput = document.getElementById('wizardClerkKey');
-    const secretInput = document.getElementById('wizardClerkSecret');
-    const hint = document.getElementById('wizardClerkHint');
-    const nextBtn = document.getElementById('wizardClerkNext');
-
-    const key = keyInput.value.trim();
-    const secret = secretInput.value.trim();
-
-    // If keys are already validated and user hasn't typed anything new, allow advancing
-    if (!key && !secret && wizardValidation.clerk === 'valid') {
-      keyInput.classList.remove('valid', 'invalid');
-      secretInput.classList.remove('valid', 'invalid');
-      hint.style.display = 'none';
-      nextBtn.disabled = false;
-      return;
-    }
-
-    const keyValid = key.startsWith('pk_test_') || key.startsWith('pk_live_');
-    const secretValid = secret.startsWith('sk_test_') || secret.startsWith('sk_live_');
-
-    keyInput.classList.toggle('valid', key && keyValid);
-    keyInput.classList.toggle('invalid', key && !keyValid);
-    secretInput.classList.toggle('valid', secret && secretValid);
-    secretInput.classList.toggle('invalid', secret && !secretValid);
-
-    // Swap detection hints
-    if (key && !keyValid) {
-      if (key.startsWith('sk_test_') || key.startsWith('sk_live_')) {
-        hint.textContent = 'This looks like a secret key — it goes in the field below. The publishable key starts with pk_test_ or pk_live_.';
-      } else {
-        hint.textContent = 'Publishable key must start with pk_test_ or pk_live_. Find it in Clerk Dashboard > Configure > API Keys.';
-      }
-      hint.style.color = 'var(--vibes-red)';
-      hint.style.display = '';
-    } else if (secret && !secretValid) {
-      if (secret.startsWith('pk_test_') || secret.startsWith('pk_live_')) {
-        hint.textContent = 'This looks like a publishable key — it goes in the field above. The secret key starts with sk_test_ or sk_live_.';
-      } else {
-        hint.textContent = 'Secret key must start with sk_test_ or sk_live_. In the Clerk Dashboard, click "Show" next to the secret key to reveal it.';
-      }
-      hint.style.color = 'var(--vibes-red)';
-      hint.style.display = '';
-    } else {
-      hint.style.display = 'none';
-    }
-
-    const valid = keyValid && secretValid;
-    nextBtn.disabled = !valid;
-    if (valid) {
-      wizardData.clerkKey = key;
-      wizardData.clerkSecret = secret;
-    }
-  }
-
-  async function saveClerkAndAdvance() {
-    // If no new keys entered and existing validation is good, just advance
-    const keyInput = document.getElementById('wizardClerkKey');
-    const secretInput = document.getElementById('wizardClerkSecret');
-    if (!keyInput.value.trim() && !secretInput.value.trim() && wizardValidation.clerk === 'valid') {
-      setWizardStep(3);
-      return;
-    }
-
-    const btn = document.getElementById('wizardClerkNext');
-    const hint = document.getElementById('wizardClerkHint');
-    hint.style.display = 'none';
-    btn.disabled = true;
-    btn.innerHTML = '<span class="wizard-checking"></span> Verifying...';
-    wizardValidation.clerk = 'checking';
     try {
-      // Validate the publishable key against Clerk's API
-      const valRes = await fetch('/editor/credentials/validate-clerk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ publishableKey: wizardData.clerkKey }),
-      });
-      const valData = await valRes.json();
-      if (!valData.valid) {
-        throw new Error(valData.error || 'Clerk key validation failed');
-      }
-
-      // Save both keys
-      const res = await fetch('/editor/credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clerkPublishableKey: wizardData.clerkKey,
-          clerkSecretKey: wizardData.clerkSecret,
-        }),
-      });
+      const res = await fetch('/editor/auth/login', { method: 'POST' });
       const data = await res.json();
-      if (!res.ok) {
-        const errMsg = data.errors ? Object.values(data.errors).join('; ') : 'Failed to save';
-        throw new Error(errMsg);
+      if (!data.ok) {
+        showWelcomeError(data.error || 'Sign in failed');
       }
-      wizardValidation.clerk = 'valid';
-      setWizardStep(3);
+      // Success is handled by the WebSocket auth_complete message
     } catch (err) {
-      wizardValidation.clerk = 'invalid';
-      hint.textContent = err.message;
-      hint.style.color = 'var(--vibes-red)';
-      hint.style.display = '';
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = 'Next';
-      validateWizardClerkInputs(); // re-check to reset disabled state
+      showWelcomeError(err.message || 'Could not reach the server');
     }
   }
 
-  function setCfAuthMode(mode) {
-    cfAuthMode = mode;
-    wizardValidation.cloudflare = 'unchecked';
-    // Clear the other mode's stale data to prevent saving wrong credentials
-    if (mode === 'token') {
-      wizardData.cfApiKey = '';
-      wizardData.cfEmail = '';
-    } else {
-      wizardData.cfApiToken = '';
-    }
-    const tokenPanel = document.getElementById('cfPanelToken');
-    const globalPanel = document.getElementById('cfPanelGlobal');
-    const tokenTab = document.getElementById('cfTabToken');
-    const globalTab = document.getElementById('cfTabGlobal');
-    if (mode === 'token') {
-      tokenPanel.style.display = '';
-      globalPanel.style.display = 'none';
-      tokenTab.style.borderBottomColor = 'var(--vibes-blue)';
-      tokenTab.style.color = 'var(--vibes-blue)';
-      globalTab.style.borderBottomColor = 'transparent';
-      globalTab.style.color = '#888';
-    } else {
-      tokenPanel.style.display = 'none';
-      globalPanel.style.display = '';
-      globalTab.style.borderBottomColor = 'var(--vibes-blue)';
-      globalTab.style.color = 'var(--vibes-blue)';
-      tokenTab.style.borderBottomColor = 'transparent';
-      tokenTab.style.color = '#888';
-    }
-    validateWizardCfInputs();
+  function showWelcomeError(msg) {
+    document.getElementById('welcomeWaiting').style.display = 'none';
+    document.getElementById('welcomeDefault').style.display = 'none';
+    document.getElementById('welcomeErrorMsg').textContent = msg;
+    document.getElementById('welcomeError').style.display = 'flex';
   }
 
-  function validateWizardCfInputs() {
-    const nextBtn = document.getElementById('wizardCfNext');
+  function handleAuthComplete(user) {
+    currentUser = user || { name: 'friend' };
+    // Show greeting
+    document.getElementById('welcomeWaiting').style.display = 'none';
+    document.getElementById('welcomeDefault').style.display = 'none';
+    document.getElementById('welcomeError').style.display = 'none';
+    document.getElementById('welcomeUserName').textContent = currentUser.name || 'friend';
+    document.getElementById('welcomeGreeting').style.display = 'flex';
 
-    // If already validated and no new input, allow advancing
-    if (wizardValidation.cloudflare === 'valid') {
-      if (cfAuthMode === 'token') {
-        const tokenInput = document.getElementById('wizardCfApiToken');
-        if (!tokenInput.value.trim()) { nextBtn.disabled = false; return; }
-      } else {
-        const emailInput = document.getElementById('wizardCfEmail');
-        const keyInput = document.getElementById('wizardCfKey');
-        if (!emailInput.value.trim() && !keyInput.value.trim()) { nextBtn.disabled = false; return; }
-      }
-    }
-
-    if (cfAuthMode === 'token') {
-      const tokenInput = document.getElementById('wizardCfApiToken');
-      const token = tokenInput.value.trim();
-      const tokenValid = token.length >= 40;
-      tokenInput.classList.toggle('valid', token && tokenValid);
-      tokenInput.classList.toggle('invalid', token && !tokenValid);
-      nextBtn.disabled = !tokenValid;
-      wizardData.cfApiToken = tokenValid ? token : '';
-    } else {
-      const emailInput = document.getElementById('wizardCfEmail');
-      const keyInput = document.getElementById('wizardCfKey');
-
-      const email = emailInput.value.trim();
-      const key = keyInput.value.trim();
-
-      const emailValid = email.includes('@') && email.includes('.');
-      const keyValid = key.length >= 20;
-
-      emailInput.classList.toggle('valid', email && emailValid);
-      emailInput.classList.toggle('invalid', email && !emailValid);
-      keyInput.classList.toggle('valid', key && keyValid);
-      keyInput.classList.toggle('invalid', key && !keyValid);
-
-      nextBtn.disabled = !(emailValid && keyValid);
-
-      if (emailValid && keyValid) {
-        wizardData.cfEmail = email;
-        wizardData.cfApiKey = key;
-      }
-    }
-  }
-
-  async function validateAndAdvanceCf() {
-    // If no new input and already validated, just advance
-    if (wizardValidation.cloudflare === 'valid') {
-      const hasNewInput = cfAuthMode === 'token'
-        ? document.getElementById('wizardCfApiToken').value.trim()
-        : (document.getElementById('wizardCfEmail').value.trim() || document.getElementById('wizardCfKey').value.trim());
-      if (!hasNewInput) {
-        setWizardStep(4);
-        return;
-      }
-    }
-
-    const btn = document.getElementById('wizardCfNext');
-    const hint = document.getElementById('wizardCfHint');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="wizard-checking"></span> Verifying...';
-    hint.style.display = 'none';
-    wizardValidation.cloudflare = 'checking';
-
-    try {
-      // Build validation payload based on auth mode
-      const valPayload = cfAuthMode === 'token'
-        ? { apiToken: wizardData.cfApiToken }
-        : { apiKey: wizardData.cfApiKey, email: wizardData.cfEmail };
-
-      // Validate credentials via server-side Cloudflare API call
-      const valRes = await fetch('/editor/credentials/validate-cloudflare', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(valPayload),
-      });
-      const valData = await valRes.json();
-      if (!valData.valid) {
-        throw new Error(valData.error || 'Cloudflare validation failed');
-      }
-
-      wizardData.cfAccountId = valData.accountId || '';
-
-      // Build save payload based on auth mode
-      const savePayload = cfAuthMode === 'token'
-        ? { cloudflareApiToken: wizardData.cfApiToken, cloudflareAccountId: wizardData.cfAccountId }
-        : { cloudflareApiKey: wizardData.cfApiKey, cloudflareEmail: wizardData.cfEmail, cloudflareAccountId: wizardData.cfAccountId };
-
-      // Save to registry
-      const saveRes = await fetch('/editor/credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(savePayload),
-      });
-      const saveData = await saveRes.json();
-      if (!saveRes.ok) {
-        const errMsg = saveData.errors ? Object.values(saveData.errors).join('; ') : 'Failed to save';
-        throw new Error(errMsg);
-      }
-
-      wizardValidation.cloudflare = 'valid';
-      cloudflareReady = true;
-      setWizardStep(4);
-    } catch (err) {
-      wizardValidation.cloudflare = 'invalid';
-      let msg = err.message;
-      // Add remediation hints for common errors
-      if (msg.includes('Token verification failed') || msg.includes('Authentication failed')) {
-        msg += ' Double-check that you copied the full token with no extra spaces.';
-      } else if (msg.includes('timed out')) {
-        msg += ' Try again — this is usually a temporary network issue.';
-      } else if (msg.includes('no accounts accessible') || msg.includes('No accounts found')) {
-        msg += ' The token might not have the right permissions. Try creating a new token with the "Edit Cloudflare Workers" template.';
-      }
-      hint.textContent = msg;
-      hint.style.color = 'var(--vibes-red)';
-      hint.style.display = '';
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = 'Verify &amp; Continue';
-      validateWizardCfInputs(); // re-check to reset disabled state
-    }
-  }
-
-  function renderWizardSummary() {
-    const table = document.getElementById('wizardSummary');
-    const rows = [
-      {
-        key: 'Clerk',
-        value: wizardData.clerkKey ? wizardData.clerkKey.slice(0, 12) + '...' : 'Configured',
-        ok: wizardValidation.clerk === 'valid',
-        editStep: 2,
-      },
-      {
-        key: 'Cloudflare',
-        value: wizardData.cfApiToken
-          ? (wizardData.cfApiToken === 'configured' ? 'API Token configured' : 'API Token')
-          : (wizardData.cfEmail || 'Configured'),
-        ok: wizardValidation.cloudflare === 'valid',
-        editStep: 3,
-      },
-    ];
-    table.innerHTML = rows.map(r =>
-      `<div class="wizard-summary-row">
-        <span class="wizard-summary-key">${r.ok ? '<span style="color:var(--vibes-green);">&#10003;</span> ' : '<span style="color:var(--vibes-red);">&#10007;</span> '}${escapeHtml(r.key)}</span>
-        <span style="display:flex;align-items:center;gap:0.5rem;">
-          <span class="wizard-summary-value">${escapeHtml(r.value)}</span>
-          <button onclick="setWizardStep(${r.editStep})" style="background:none;border:none;color:var(--vibes-blue);cursor:pointer;font-size:0.75rem;font-weight:700;padding:0;">Edit</button>
-        </span>
-      </div>`
-    ).join('');
-  }
-
-  function validateOpenRouterKey() {
-    const input = document.getElementById('wizardOpenRouterKey');
-    const hint = document.getElementById('wizardOpenRouterHint');
-    const saveBtn = document.getElementById('wizardOrSaveBtn');
-
-    const key = input.value.trim();
-
-    if (!key) {
-      input.classList.remove('valid', 'invalid');
-      hint.style.display = 'none';
-      saveBtn.disabled = true;
-      wizardData.openRouterKey = '';
-      return;
-    }
-
-    const valid = key.startsWith('sk-or-');
-    input.classList.toggle('valid', valid);
-    input.classList.toggle('invalid', !valid);
-
-    if (!valid) {
-      hint.textContent = 'OpenRouter keys start with sk-or-';
-      hint.style.color = 'var(--vibes-red)';
-      hint.style.display = '';
-      wizardData.openRouterKey = '';
-    } else {
-      hint.style.display = 'none';
-      wizardData.openRouterKey = key;
-    }
-
-    saveBtn.disabled = !valid;
-  }
-
-  async function saveOpenRouterKey() {
-    const input = document.getElementById('wizardOpenRouterKey');
-    const hint = document.getElementById('wizardOpenRouterHint');
-    const saveBtn = document.getElementById('wizardOrSaveBtn');
-    const key = input.value.trim();
-    if (!key.startsWith('sk-or-')) return;
-
-    saveBtn.disabled = true;
-    saveBtn.textContent = 'Saving...';
-
-    try {
-      const res = await fetch('/editor/credentials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ openRouterKey: key }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.errors ? Object.values(data.errors).join('; ') : 'Failed to save');
-      }
-      hasOpenRouterKey = true;
-      wizardData.openRouterKey = key;
-      hint.textContent = 'Saved!';
-      hint.style.color = 'var(--vibes-green)';
-      hint.style.display = '';
-      saveBtn.textContent = 'Saved';
-    } catch (err) {
-      hint.textContent = err.message;
-      hint.style.color = 'var(--vibes-red)';
-      hint.style.display = '';
-      saveBtn.disabled = false;
-      saveBtn.textContent = 'Save Key';
-    }
-  }
-
-  function wizardFinish() {
-    goToGenerate();
-  }
-
-  function prefillFromStatus(status) {
-    if (status.clerk?.ok) {
-      wizardValidation.clerk = 'valid';
-      const pkInput = document.getElementById('wizardClerkKey');
-      const skInput = document.getElementById('wizardClerkSecret');
-      if (pkInput && status.maskedKeys?.clerkPublishableKey) {
-        pkInput.placeholder = status.maskedKeys.clerkPublishableKey;
-      }
-      if (skInput) {
-        skInput.placeholder = status.maskedKeys?.clerkSecretKey || 'Already configured';
-      }
-    }
-    if (status.cloudflare?.ok) {
-      wizardValidation.cloudflare = 'valid';
-      cloudflareReady = true;
-      const cfDetail = status.cloudflare.detail || 'Configured';
-      if (cfDetail === 'API Token configured') {
-        wizardData.cfApiToken = 'configured';
-        const tokenInput = document.getElementById('wizardCfApiToken');
-        if (tokenInput && status.maskedKeys?.cloudflareApiToken) {
-          tokenInput.placeholder = status.maskedKeys.cloudflareApiToken;
-        }
-      } else {
-        wizardData.cfEmail = cfDetail;
-        const emailInput = document.getElementById('wizardCfEmail');
-        if (emailInput && status.maskedKeys?.cloudflareEmail) {
-          emailInput.placeholder = status.maskedKeys.cloudflareEmail;
-        }
-      }
-    }
-
-    // Pre-populate OpenRouter if available (independent of Clerk/Cloudflare status)
-    if (status.openrouter?.ok) {
-      const orInput = document.getElementById('wizardOpenRouterKey');
-      if (orInput && status.maskedKeys?.openRouterKey) {
-        orInput.placeholder = status.maskedKeys.openRouterKey;
-      }
-    }
-
-    // Smart skip: jump to the first incomplete step
-    if (status.clerk?.ok && status.cloudflare?.ok) {
-      setWizardStep(4);
-    } else if (status.clerk?.ok && !status.cloudflare?.ok) {
-      setWizardStep(3);
-    } else if (!status.clerk?.ok && status.cloudflare?.ok) {
-      setWizardStep(2);
-    }
+    // Transition to prompt after 1.5s
+    setTimeout(() => {
+      setPhase('generate');
+      fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
+        if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;
+      }).catch(() => {});
+      document.getElementById('generatePrompt').focus();
+    }, 1500);
   }
 
   // === Phase 2: Generate ===
@@ -4265,13 +3650,9 @@
   }
 
   function updateDeployButtons() {
+    // Deploy is always available — auth happens automatically via Pocket ID
     const cfBtn = document.getElementById('deployCf');
-    if (cfBtn) {
-      cfBtn.disabled = !cloudflareReady;
-      const cfDetail = document.getElementById('deployCfDetail');
-      cfDetail.textContent = cloudflareReady ? 'Ready' : 'Run setup wizard first';
-      cfDetail.classList.toggle('ready', cloudflareReady);
-    }
+    if (cfBtn) cfBtn.disabled = false;
   }
 
   function toggleDeployMenu() {
@@ -4280,22 +3661,24 @@
     menu.classList.toggle('open');
     if (opening) {
       deployMenuOpenTime = Date.now();
+      // Position below the deploy button
       const btn = document.querySelector('#deployDropdown button');
       const rect = btn.getBoundingClientRect();
       menu.style.top = (rect.bottom + 6) + 'px';
       menu.style.right = (window.innerWidth - rect.right + 4) + 'px';
-      fetch('/editor/status').then(r => r.json()).then(status => {
-        cloudflareReady = status.cloudflare?.ok || false;
-        updateDeployButtons();
-      }).catch(() => {});
+      // Load previous deployments
       loadDeployHistory();
     }
   }
 
   function loadDeployHistory() {
-    fetch('/editor/deployments').then(r => r.json()).then(deployments => {
+    fetch('/editor/deployments').then(r => r.json()).then(allDeployments => {
       const section = document.getElementById('deployHistorySection');
       const list = document.getElementById('deployHistoryList');
+      // Filter to only show deployments for the current app
+      const deployments = currentAppName
+        ? allDeployments.filter(d => d.name === currentAppName)
+        : allDeployments;
       if (!deployments.length) { section.style.display = 'none'; return; }
       section.style.display = 'block';
       list.replaceChildren();
@@ -4353,7 +3736,7 @@
   function updateDeploy(appName) {
     if (isThinking || !ws || ws.readyState !== WebSocket.OPEN) return;
     document.getElementById('deployMenu').classList.remove('open');
-    addMessage('user', 'Update "' + appName + '" on Cloudflare Workers');
+    addMessage('user', 'Publishing update to "' + appName + '"');
     ws.send(JSON.stringify({ type: 'deploy', target: 'cloudflare', name: appName }));
   }
 
@@ -4368,8 +3751,8 @@
     }
     nameInput.style.borderColor = 'var(--vibes-near-black)';
     document.getElementById('deployMenu').classList.remove('open');
-    addMessage('user', 'Deploy "' + name + '" to Cloudflare Workers');
-    ws.send(JSON.stringify({ type: 'deploy', target: 'cloudflare', name }));
+    addMessage('user', 'Publishing "' + name + '" to the web');
+    ws.send(JSON.stringify({ type: 'deploy', target, name }));
   }
 
   // Close deploy menu on outside click, Escape key, or scroll
@@ -5674,43 +5057,31 @@
     });
   }
 
-  setPhase('generate');
   connectWs();
-
-  // App gallery only needs filesystem data — load immediately, don't wait for wrangler/ssh
   checkExistingApps();
 
-  // Check status → decide setup wizard vs generate
+  // Check auth → decide welcome vs generate/edit
   fetch('/editor/status').then(r => r.json()).then(status => {
-    cloudflareReady = status.cloudflare?.ok || false;
-
-    if (status.clerk?.ok && status.cloudflare?.ok) {
-      // Always land on generate — user can access existing apps via the gallery
+    if (status.auth?.state === 'valid') {
+      currentUser = status.auth.user;
+      // Authenticated — always start at the prompt
+      setPhase('generate');
       fetch('/editor/initial-prompt').then(r => r.json()).then(data => {
         if (data.prompt) document.getElementById('generatePrompt').value = data.prompt;
       }).catch(() => {});
       document.getElementById('generatePrompt').focus();
     } else {
-      // Missing credentials → show wizard
+      // Not authenticated — show welcome
       setPhase('setup');
-      renderChecklist(status);
-      prefillFromStatus(status);
+      // Smart button label: returning users see "Sign in", not "create" hint
+      if (status.auth?.state === 'expired') {
+        const btn = document.getElementById('welcomeBtn');
+        btn.textContent = 'Sign in with Pocket ID';
+      }
     }
-  }).catch(err => {
-    // Server unreachable — show wizard with error instead of silently skipping
+  }).catch(() => {
+    // Network error — show welcome anyway
     setPhase('setup');
-    const step1 = document.getElementById('wizardStep1');
-    if (step1) {
-      step1.innerHTML = `
-        <div class="wizard-section-title">Cannot reach editor server</div>
-        <div class="wizard-help" style="color:var(--vibes-red);">
-          The editor API is not responding. This usually means the server process
-          has stopped or hasn't finished starting.
-        </div>
-        <div class="setup-actions" style="margin-top:1rem;">
-          <button class="btn btn-primary" onclick="location.reload()">Retry</button>
-        </div>`;
-    }
   });
 
   populateThemeSelect();

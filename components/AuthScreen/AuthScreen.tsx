@@ -16,10 +16,10 @@ import {
 
 // Card images served from deployed assets
 const CARD_URLS = [
-  "/assets/auth-cards/card-1.png",
-  "/assets/auth-cards/card-2.png",
-  "/assets/auth-cards/card-3.png",
-  "/assets/auth-cards/card-4.png",
+  "/assets/auth-cards/card-1.svg",
+  "/assets/auth-cards/card-2.svg",
+  "/assets/auth-cards/card-3.svg",
+  "/assets/auth-cards/card-4.svg",
 ];
 
 export interface AuthScreenProps {
@@ -101,6 +101,49 @@ export const AuthScreen = ({
             {/* Buttons/actions */}
             <div style={getButtonsContainerStyle()}>
               {children}
+
+              {/* Create account button for new users */}
+              <a
+                href={`${(window as any).__VIBES_CONFIG__?.oidcAuthority || ''}/signup`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '3px',
+                  backgroundColor: 'transparent',
+                  border: '1px solid var(--vibes-button-border, #1a1a1a)',
+                  color: '#1a1a1a',
+                  fontSize: '24px',
+                  fontWeight: 'bold',
+                  letterSpacing: '2px',
+                  cursor: 'pointer',
+                  transition: '0.2s',
+                  borderRadius: '20px',
+                  textDecoration: 'none',
+                  textAlign: 'center' as const,
+                  boxSizing: 'border-box' as const,
+                }}
+                onClick={() => {
+                  sessionStorage.setItem('vibes-signup-pending', '1');
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(0,0,0,0.05)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                }}
+              >
+                Create Account
+              </a>
+              <p style={{
+                fontSize: '0.75rem',
+                color: '#666',
+                margin: '0.25rem 0 0',
+                textAlign: 'center' as const,
+              }}>
+                You'll be signed in automatically when you return
+              </p>
             </div>
           </div>
         </div>

@@ -65,8 +65,7 @@ export function ensureSparseCheckout(cacheDir) {
  * Build environment variables for alchemy.run.ts
  *
  * @param {Object} params
- * @param {string} params.clerkPublishableKey - Clerk publishable key
- * @param {string} params.clerkSecretKey - Clerk secret key
+ * @param {string} params.oidcAuthority - OIDC authority URL (e.g., https://pocket-id.example.com)
  * @param {string} params.sessionTokenPublic - Session token (public, base58-encoded JWK)
  * @param {string} params.sessionTokenSecret - Session token (secret, base58-encoded JWK)
  * @param {string} params.deviceCaPrivKey - Device CA private key (base58-encoded JWK)
@@ -75,22 +74,16 @@ export function ensureSparseCheckout(cacheDir) {
  * @returns {Object} Environment variable key-value pairs
  */
 export function buildAlchemyEnv({
-  clerkPublishableKey,
-  clerkSecretKey,
+  oidcAuthority,
   sessionTokenPublic,
   sessionTokenSecret,
   deviceCaPrivKey,
   deviceCaCert,
-  alchemyPassword
+  alchemyPassword,
+  oidcServiceWorkerName
 }) {
-  // Derive OIDC_AUTHORITY from publishable key
-  // pk_test_<base64(domain$)> or pk_live_<base64(domain$)>
-  const base64Part = clerkPublishableKey.replace(/^pk_(test|live)_/, '');
-  const clerkDomain = Buffer.from(base64Part, 'base64').toString('utf8').replace(/\$+$/, '');
-
-  return {
-    CLERK_PUBLISHABLE_KEY: clerkPublishableKey,
-    OIDC_AUTHORITY: `https://${clerkDomain}`,
+  const env = {
+    OIDC_AUTHORITY: oidcAuthority,
     CLOUD_SESSION_TOKEN_PUBLIC: sessionTokenPublic,
     CLOUD_SESSION_TOKEN_SECRET: sessionTokenSecret,
     DEVICE_ID_CA_PRIV_KEY: deviceCaPrivKey,
@@ -103,6 +96,11 @@ export function buildAlchemyEnv({
     MAX_INVITES: '100',
     MAX_LEDGERS: '50'
   };
+  // Service binding to OIDC identity provider worker — bypasses CF Error 1042
+  if (oidcServiceWorkerName) {
+    env.OIDC_SERVICE_WORKER_NAME = oidcServiceWorkerName;
+  }
+  return env;
 }
 
 /**
@@ -141,16 +139,15 @@ export function parseAlchemyOutput(stdout) {
  *
  * @param {Object} params
  * @param {string} params.appName - App name (used as alchemy --stage)
- * @param {string} params.clerkPublishableKey - Clerk publishable key
- * @param {string} params.clerkSecretKey - Clerk secret key
+ * @param {string} params.oidcAuthority - OIDC authority URL
  * @param {string} [params.cacheDir] - Override cache directory for upstream repo
  * @param {boolean} [params.dryRun=false] - Skip actual deployment
  * @returns {Promise<Object>} Deployment result with URLs and resource names
  */
 export async function deployConnect({
   appName,
-  clerkPublishableKey,
-  clerkSecretKey,
+  oidcAuthority,
+  oidcServiceWorkerName,
   cacheDir,
   dryRun = false,
   alchemyPassword: existingPassword
@@ -168,13 +165,13 @@ export async function deployConnect({
 
   // Build alchemy environment
   const alchemyEnv = buildAlchemyEnv({
-    clerkPublishableKey,
-    clerkSecretKey,
+    oidcAuthority,
     sessionTokenPublic,
     sessionTokenSecret,
     deviceCaPrivKey,
     deviceCaCert,
-    alchemyPassword
+    alchemyPassword,
+    oidcServiceWorkerName
   });
 
   // Merge with current process env (for Cloudflare credentials)

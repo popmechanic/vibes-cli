@@ -7,7 +7,7 @@
 
 /**
  * Per-task default configurations.
- * All tasks get unrestricted tool access (no --allowedTools flag).
+ * All tasks get unrestricted tool access (no --tools flag).
  */
 export const TASK_PROFILES = {
   chatEdit:         { outputFormat: 'stream-json', maxTurns: 8 },
@@ -33,7 +33,7 @@ export const TASK_PROFILES = {
  * @param {number} [config.maxTurns] - --max-turns value
  * @param {string} [config.model] - --model value (e.g. 'haiku', 'sonnet')
  * @param {string[]} [config.addDirs] - additional --add-dir paths
- * @param {string} [config.tools] - --allowedTools value (omit for unrestricted)
+ * @param {string} [config.tools] - --tools value restricting available built-in tools (omit for all)
  * @param {boolean} [config.sessionPersistence=false] - set true to allow session persistence
  * @param {string|false} [config.permissionMode='dontAsk'] - permission mode string, or false to omit flag
  * @param {boolean} [config.bypassPermissions] - deprecated: use permissionMode instead
@@ -46,12 +46,16 @@ export function buildClaudeArgs(config = {}) {
   args.push('--output-format', format);
 
   // --verbose is required when using stream-json output
+  // --include-partial-messages gives granular events during thinking
   if (format === 'stream-json') {
-    args.push('--verbose');
+    args.push('--verbose', '--include-partial-messages');
   }
 
   if (config.tools) {
-    args.push('--allowedTools', config.tools);
+    args.push('--tools', config.tools);
+    // When restricting built-in tools, also block plugin tools from hijacking
+    args.push('--disable-slash-commands');
+    args.push('--disallowed-tools', 'ToolSearch,Skill');
   }
 
   if (config.maxTurns) {
@@ -72,14 +76,15 @@ export function buildClaudeArgs(config = {}) {
     args.push('--no-session-persistence');
   }
 
-  // Permission mode: default to dontAsk (auto-deny unallowed tools).
-  // Pass permissionMode: 'bypassPermissions' to skip all checks.
+  // Permission mode: when --tools restricts available tools, default to
+  // bypassPermissions since the tool set is already explicitly scoped.
+  // Otherwise default to dontAsk (auto-deny unallowed tools).
   // Pass permissionMode: false to omit the flag entirely.
-  // Backward compat: bypassPermissions boolean still works.
   const mode = config.permissionMode !== undefined
     ? config.permissionMode
     : (config.bypassPermissions === true ? 'bypassPermissions'
        : config.bypassPermissions === false ? false
+       : config.tools ? 'bypassPermissions'
        : 'dontAsk');
   if (mode) {
     args.push('--permission-mode', mode);
