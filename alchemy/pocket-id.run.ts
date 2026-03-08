@@ -26,7 +26,7 @@ const appUrl = process.env.POCKET_ID_APP_URL || "";
 
 const container = await Container<PocketIdContainer>("pocket-id", {
   className: "PocketIdContainer",
-  image: "ghcr.io/pocket-id/pocket-id:v2",
+  image: "./Dockerfile",
   maxInstances: 1,
   instanceType: "basic",
   adopt: true,

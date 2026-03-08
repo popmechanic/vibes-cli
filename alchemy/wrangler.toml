@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 [[containers]]
 class_name = "PocketIdContainer"
-image = "registry.cloudflare.com/e33948793047032de7f5e18ec342a7d1/pocket-id:v2"
+image = "./Dockerfile"
 max_instances = 1
 instance_type = "basic"
 
@@ -17,9 +17,19 @@ class_name = "PocketIdContainer"
 tag = "v1"
 new_sqlite_classes = ["PocketIdContainer"]
 
+[[r2_buckets]]
+binding = "BACKUP_BUCKET"
+bucket_name = "pocket-id-backups"
+
 [vars]
 POCKET_ID_APP_URL = "https://pocket-id.marcus-e.workers.dev"
+R2_BUCKET_NAME = "pocket-id-backups"
+R2_ACCOUNT_ID = "e33948793047032de7f5e18ec342a7d1"
 
 # POCKET_ID_ENCRYPTION_KEY and POCKET_ID_STATIC_API_KEY must be set via:
 #   npx wrangler secret put POCKET_ID_ENCRYPTION_KEY
 #   npx wrangler secret put POCKET_ID_STATIC_API_KEY
+#
+# R2 credentials for FUSE mount inside container:
+#   npx wrangler secret put R2_ACCESS_KEY_ID
+#   npx wrangler secret put R2_SECRET_ACCESS_KEY
