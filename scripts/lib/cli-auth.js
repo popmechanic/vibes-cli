@@ -17,6 +17,10 @@ const DEFAULT_AUTH_FILE = join(homedir(), '.vibes', 'auth.json');
 const LOGIN_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const EARLY_EXPIRY_BUFFER_S = 60; // refresh 60s before actual expiry
 
+// Track active callback server so re-login can close the previous one
+let _callbackServer = null;
+let _callbackConnections = new Set();
+
 // ---------------------------------------------------------------------------
 // Callback page renderer — matches AuthScreen visual language
 // ---------------------------------------------------------------------------
@@ -157,6 +161,16 @@ function openBrowser(url) {
 // ---------------------------------------------------------------------------
 
 export async function loginWithBrowser({ authority, clientId, authFile = DEFAULT_AUTH_FILE }) {
+  // Close any stale callback server from a previous login attempt
+  if (_callbackServer) {
+    try {
+      for (const conn of _callbackConnections) conn.destroy();
+      _callbackConnections.clear();
+      _callbackServer.close();
+    } catch { /* already closed */ }
+    _callbackServer = null;
+  }
+
   const codeVerifier = generateCodeVerifier();
   const codeChallenge = generateCodeChallenge(codeVerifier);
   const state = randomBytes(16).toString('hex');
@@ -242,19 +256,39 @@ export async function loginWithBrowser({ authority, clientId, authFile = DEFAULT
         res.end(callbackPage('Authenticated', 'This tab will close automatically\u2026', { ok: true, autoClose: true }));
 
         settled = true;
+        for (const conn of _callbackConnections) conn.destroy();
+        _callbackConnections.clear();
         server.close();
+        _callbackServer = null;
         resolve(tokens);
       } catch (err) {
         if (!settled) {
           settled = true;
+          for (const conn of _callbackConnections) conn.destroy();
+          _callbackConnections.clear();
           server.close();
+          _callbackServer = null;
           reject(err);
         }
       }
     });
 
+    // Track server and connections for cleanup on re-login
+    _callbackServer = server;
+    server.on('connection', (conn) => {
+      _callbackConnections.add(conn);
+      conn.on('close', () => _callbackConnections.delete(conn));
+    });
+
     // Listen on a fixed port so the redirect URI matches what's registered in Pocket ID
     const CLI_AUTH_PORT = 18192;
+    server.on('error', (err) => {
+      if (!settled) {
+        settled = true;
+        _callbackServer = null;
+        reject(err);
+      }
+    });
     server.listen(CLI_AUTH_PORT, '127.0.0.1', () => {
       const port = server.address().port;
       const redirectUri = `http://localhost:${port}/callback`;
@@ -277,7 +311,10 @@ export async function loginWithBrowser({ authority, clientId, authFile = DEFAULT
     const timer = setTimeout(() => {
       if (!settled) {
         settled = true;
+        for (const conn of _callbackConnections) conn.destroy();
+        _callbackConnections.clear();
         server.close();
+        _callbackServer = null;
         reject(new Error('Login timed out after 5 minutes'));
       }
     }, LOGIN_TIMEOUT_MS);
