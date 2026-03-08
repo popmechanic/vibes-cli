@@ -160,7 +160,7 @@ But defense-in-depth is better—scope your CSS to avoid conflicts.
 ### Step 5: Assemble and Test
 
 ```bash
-node "/path/to/vibes-skill/scripts/assemble.js" app.jsx index.html
+bun "/path/to/vibes-skill/scripts/assemble.js" app.jsx index.html
 ```
 
 Open in browser and **visually diff against the design reference**. They should be pixel-identical except for dynamic content.
@@ -273,7 +273,7 @@ This skill produces an `app.jsx` that works with the standard Vibes assembly:
 
 ```bash
 # In the working directory
-node "/path/to/vibes-skill/scripts/assemble.js" app.jsx index.html
+bun "/path/to/vibes-skill/scripts/assemble.js" app.jsx index.html
 ```
 
 The assembly script:

@@ -47,7 +47,7 @@ Before asking Terminal or Editor, check for cached auth:
 
 ```bash
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-node --input-type=module -e "
+bun --input-type=module -e "
 import { readCachedTokens, isTokenExpired } from '$VIBES_ROOT/scripts/lib/cli-auth.js';
 const tokens = readCachedTokens();
 if (tokens && !isTokenExpired(tokens.expiresAt)) {
@@ -63,7 +63,7 @@ if (tokens && !isTokenExpired(tokens.expiresAt)) {
   - If yes:
     ```bash
     VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-    node --input-type=module -e "
+    bun --input-type=module -e "
     import { getAccessToken } from '$VIBES_ROOT/scripts/lib/cli-auth.js';
     import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '$VIBES_ROOT/scripts/lib/auth-constants.js';
     const tokens = await getAccessToken({ authority: OIDC_AUTHORITY, clientId: OIDC_CLIENT_ID });
@@ -333,7 +333,7 @@ const { attach } = useFireproof("db", { attach: toCloud() });  // WRONG - old pa
 4. Run assembly:
    ```bash
    VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-   node "$VIBES_ROOT/scripts/assemble.js" app.jsx index.html
+   bun "$VIBES_ROOT/scripts/assemble.js" app.jsx index.html
    ```
 5. Deploy the app so the user can see it. Auto-invoke /vibes:cloudflare to deploy, then present the live URL.
 
@@ -689,7 +689,7 @@ When deploying AI-enabled apps, include the OpenRouter key:
 
 ```bash
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
+bun "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
   --name myapp \
   --file index.html \
   --ai-key "sk-or-v1-your-key"

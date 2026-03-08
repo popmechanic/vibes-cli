@@ -5,7 +5,7 @@
  * Assembles multiple riff apps in parallel.
  *
  * Usage:
- *   node scripts/assemble-all.js riff-1 riff-2 riff-3 ...
+ *   bun scripts/assemble-all.js riff-1 riff-2 riff-3 ...
  *
  * Each directory should contain app.jsx, output goes to index.html in same dir.
  */
@@ -32,7 +32,7 @@ const envVars = loadEnvFile(process.cwd());
 const riffDirs = process.argv.slice(2);
 
 if (riffDirs.length === 0) {
-  console.error('Usage: node scripts/assemble-all.js riff-1 riff-2 ...');
+  console.error('Usage: bun scripts/assemble-all.js riff-1 riff-2 ...');
   process.exit(1);
 }
 

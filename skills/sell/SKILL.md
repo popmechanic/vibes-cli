@@ -50,8 +50,8 @@ metadata:
 **Script location:**
 ```bash
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-node "$VIBES_ROOT/scripts/assemble-sell.js" ...
-node "$VIBES_ROOT/scripts/deploy-cloudflare.js" ...
+bun "$VIBES_ROOT/scripts/assemble-sell.js" ...
+bun "$VIBES_ROOT/scripts/deploy-cloudflare.js" ...
 ```
 
 **NEVER do these manually:**
@@ -154,7 +154,7 @@ Store as `appName` (URL-safe slug: lowercase, hyphens, no special chars).
 Now resolve the Cloudflare Workers URL:
 
 ```bash
-node "{pluginRoot}/scripts/lib/resolve-workers-url.js" --name "{appName}"
+bun "{pluginRoot}/scripts/lib/resolve-workers-url.js" --name "{appName}"
 ```
 
 The script outputs the full URL, e.g., `wedding-photos.marcus-e.workers.dev`. Store this as `domain`.
@@ -162,7 +162,7 @@ The script outputs the full URL, e.g., `wedding-photos.marcus-e.workers.dev`. St
 **Fallback**: If the script fails (e.g., wrangler not authenticated), ask the user:
 
 ```
-Question: "What's your Cloudflare Workers subdomain? (Run `npx wrangler whoami` to find your account name)"
+Question: "What's your Cloudflare Workers subdomain? (Run `bunx wrangler whoami` to find your account name)"
 Header: "CF subdomain"
 Options:
 - Label: "Let me check"
@@ -314,7 +314,7 @@ Run the assembly script with all collected values:
 
 ```bash
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-node "$VIBES_ROOT/scripts/assemble-sell.js" app.jsx index.html \
+bun "$VIBES_ROOT/scripts/assemble-sell.js" app.jsx index.html \
   --app-name "wedding-photos" \
   --app-title "Wedding Photos" \
   --domain "{domain}" \
@@ -361,7 +361,7 @@ The template uses neutral colors by default. To match the user's brand:
 
 ```bash
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
+bun "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
   --name wedding-photos \
   --file index.html
 ```
@@ -382,7 +382,7 @@ The app is immediately available at `{appName}.{subdomain}.workers.dev`. For a c
 
 ```bash
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
+bun "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
   --name wedding-photos \
   --file index.html \
   --ai-key "sk-or-v1-your-provisioning-key"
@@ -400,7 +400,7 @@ curl -s https://{domain}/registry.json | head -c 100
 
 **If you see HTML instead of JSON:**
 - The Worker may not have deployed correctly
-- Check `npx wrangler tail --name {appName}` for errors
+- Check `bunx wrangler tail --name {appName}` for errors
 
 ---
 
@@ -456,7 +456,7 @@ Guide the user through admin setup:
 >
 > ```bash
 > VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-> node "$VIBES_ROOT/scripts/assemble-sell.js" app.jsx index.html \
+> bun "$VIBES_ROOT/scripts/assemble-sell.js" app.jsx index.html \
 >   --app-name "{appName}" \
 >   --app-title "{appTitle}" \
 >   --domain "{domain}" \
@@ -467,7 +467,7 @@ Guide the user through admin setup:
 > 5. Re-deploy:
 > ```bash
 > VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-> node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
+> bun "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
 >   --name {appName} \
 >   --file index.html
 > ```

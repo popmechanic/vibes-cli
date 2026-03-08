@@ -6,8 +6,8 @@
  * and outputs bundled JavaScript to build/vibes-menu.js
  *
  * Usage:
- *   node scripts/build-components.js
- *   node scripts/build-components.js --force  # Rebuild even if build output exists
+ *   bun scripts/build-components.js
+ *   bun scripts/build-components.js --force  # Rebuild even if build output exists
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
@@ -153,7 +153,7 @@ async function buildComponents(force) {
 
   // Combine all transpiled code
   let combinedOutput = `// Auto-generated vibes menu components
-// Run: node scripts/build-components.js --force to regenerate
+// Run: bun scripts/build-components.js --force to regenerate
 // Source: components/
 // Generated: ${new Date().toISOString()}
 // Components: ${successful.length}/${results.length}

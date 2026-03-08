@@ -67,7 +67,7 @@ Generate riffs in parallel based on user's count:
 ```bash
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
 # For each N from 1 to ${count}:
-node "$VIBES_ROOT/scripts/generate-riff.js" "${prompt}" N riff-N/app.jsx "${visual}" &
+bun "$VIBES_ROOT/scripts/generate-riff.js" "${prompt}" N riff-N/app.jsx "${visual}" &
 
 # Then wait for all
 wait
@@ -77,9 +77,9 @@ echo "All ${count} riffs generated!"
 Example for count=3:
 ```bash
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-node "$VIBES_ROOT/scripts/generate-riff.js" "productivity apps" 1 riff-1/app.jsx "warm sunset oranges and soft creams" &
-node "$VIBES_ROOT/scripts/generate-riff.js" "productivity apps" 2 riff-2/app.jsx "warm sunset oranges and soft creams" &
-node "$VIBES_ROOT/scripts/generate-riff.js" "productivity apps" 3 riff-3/app.jsx "warm sunset oranges and soft creams" &
+bun "$VIBES_ROOT/scripts/generate-riff.js" "productivity apps" 1 riff-1/app.jsx "warm sunset oranges and soft creams" &
+bun "$VIBES_ROOT/scripts/generate-riff.js" "productivity apps" 2 riff-2/app.jsx "warm sunset oranges and soft creams" &
+bun "$VIBES_ROOT/scripts/generate-riff.js" "productivity apps" 3 riff-3/app.jsx "warm sunset oranges and soft creams" &
 wait
 ```
 
@@ -95,7 +95,7 @@ Convert each app.jsx to a complete index.html:
 
 ```bash
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-node "$VIBES_ROOT/scripts/assemble-all.js" riff-1 riff-2 riff-3 ...
+bun "$VIBES_ROOT/scripts/assemble-all.js" riff-1 riff-2 riff-3 ...
 ```
 
 ### Step 5: Evaluate & Rank

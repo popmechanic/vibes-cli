@@ -3,7 +3,7 @@
  * Resolve the full Cloudflare Workers URL for an app.
  *
  * Usage:
- *   node scripts/lib/resolve-workers-url.js --name my-app
+ *   bun scripts/lib/resolve-workers-url.js --name my-app
  *
  * Output (stdout):
  *   my-app.marcus-e.workers.dev
@@ -19,7 +19,7 @@ import { homedir, platform } from "os";
 import { join } from "path";
 
 /**
- * Parse the 32-char hex account ID from `npx wrangler whoami` table output.
+ * Parse the 32-char hex account ID from `bunx wrangler whoami` table output.
  * Looks for a row with a 32-character hex string.
  */
 export function parseAccountId(whoamiOutput) {
@@ -72,7 +72,7 @@ export async function resolveSubdomain(accountId, oauthToken) {
  */
 export async function resolveWorkersUrl(appName) {
   // 1. Get account ID from wrangler whoami
-  const whoami = execSync("npx wrangler whoami 2>&1", { encoding: "utf8" });
+  const whoami = execSync("bunx wrangler whoami 2>&1", { encoding: "utf8" });
   const accountId = parseAccountId(whoami);
   if (!accountId) {
     throw new Error("Could not parse account ID from wrangler whoami");

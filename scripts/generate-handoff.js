@@ -197,7 +197,7 @@ export function extractContextFromEnv() {
   };
 }
 
-// CLI usage: node generate-handoff.js [--output path]
+// CLI usage: bun generate-handoff.js [--output path]
 if (import.meta.url === `file://${process.argv[1]}`) {
   const args = process.argv.slice(2);
   const outputIndex = args.indexOf('--output');

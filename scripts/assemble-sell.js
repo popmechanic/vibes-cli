@@ -9,7 +9,7 @@
  *   - index.html - Unified app handling landing, tenant, and admin routes
  *
  * Usage:
- *   node scripts/assemble-sell.js <app.jsx> [output.html] [options]
+ *   bun scripts/assemble-sell.js <app.jsx> [output.html] [options]
  *
  * Options:
  *   --app-name <name>     App name for database naming (e.g., "wedding-photos")
@@ -23,7 +23,7 @@
  *   --reserved <csv>      Comma-separated reserved subdomain names
  *
  * Example:
- *   node scripts/assemble-sell.js app.jsx index.html \
+ *   bun scripts/assemble-sell.js app.jsx index.html \
  *     --app-name wedding-photos \
  *     --app-title "Wedding Photos" \
  *     --domain myapp.exe.xyz \
@@ -59,9 +59,9 @@ const assembleSellSchema = [
 const assembleSellMeta = {
   name: 'Sell App Assembler',
   description: 'Assembles a SaaS app from the sell template and user\'s app code.',
-  usage: 'node scripts/assemble-sell.js <app.jsx> [output.html] [options]',
+  usage: 'bun scripts/assemble-sell.js <app.jsx> [output.html] [options]',
   examples: [
-    'node scripts/assemble-sell.js app.jsx index.html \\',
+    'bun scripts/assemble-sell.js app.jsx index.html \\',
     '  --app-name wedding-photos \\',
     '  --app-title "Wedding Photos" \\',
     '  --domain myapp.exe.xyz \\',
@@ -96,7 +96,7 @@ const { appJsxPath, outputPath, options } = parseSellArgs(process.argv);
 
 // Validate app.jsx path
 if (!appJsxPath) {
-  console.error('Usage: node scripts/assemble-sell.js <app.jsx> [output.html] [options]');
+  console.error('Usage: bun scripts/assemble-sell.js <app.jsx> [output.html] [options]');
   console.error('\nProvide the path to your app.jsx file.');
   console.error('Run with --help for full usage.');
   process.exit(1);
@@ -362,7 +362,7 @@ STEP 1: DEPLOY TO CLOUDFLARE WORKERS
 
   Run /vibes:cloudflare to deploy, or manually:
 
-  node "\${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \\
+  bun "\${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \\
     --name ${appName} --file index.html
 
   Auth is automatic — a browser window opens for Pocket ID login

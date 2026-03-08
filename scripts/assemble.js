@@ -5,10 +5,10 @@
  * Inserts JSX app code into the template to create a complete HTML file.
  *
  * Usage:
- *   node scripts/assemble.js <app.jsx> [output.html]
+ *   bun scripts/assemble.js <app.jsx> [output.html]
  *
  * Example:
- *   node scripts/assemble.js app.jsx index.html
+ *   bun scripts/assemble.js app.jsx index.html
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
@@ -27,7 +27,7 @@ async function main() {
   const outputPath = process.argv[3] || 'index.html';
 
   if (!appPath) {
-    throw new Error('Usage: node scripts/assemble.js <app.jsx> [output.html]');
+    throw new Error('Usage: bun scripts/assemble.js <app.jsx> [output.html]');
   }
 
   // Resolve paths
@@ -85,7 +85,7 @@ async function main() {
     // Provide specific guidance based on error type
     const fixes = validationErrors.map(e => {
       if (e.includes('empty')) return 'Ensure app.jsx has content';
-      if (e.includes('Placeholder')) return 'Template may be corrupted - rebuild with: node scripts/merge-templates.js --force';
+      if (e.includes('Placeholder')) return 'Template may be corrupted - rebuild with: bun scripts/merge-templates.js --force';
       if (e.includes('App component')) return 'Add "export default function App()" or "function App()"';
       if (e.includes('script tags')) return 'Check for unclosed <script> tags in template';
       return null;

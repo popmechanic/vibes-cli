@@ -5,8 +5,8 @@
  * Calls `claude -p` to generate a Vibes app using subscription tokens,
  * then writes directly to disk. Main agent only sees "✓ filename".
  *
- * Usage: node generate-riff.js <theme> <lens> <output-path> <visual>
- * Example: node generate-riff.js "productivity apps" 1 riff-1/app.jsx "warm sunset tones"
+ * Usage: bun generate-riff.js <theme> <lens> <output-path> <visual>
+ * Example: bun generate-riff.js "productivity apps" 1 riff-1/app.jsx "warm sunset tones"
  */
 
 import { spawnSync } from 'child_process';
@@ -17,7 +17,7 @@ import { buildClaudeArgs, TASK_PROFILES, cleanEnv } from './lib/claude-subproces
 const [,, theme, lens, outputPath, visual] = process.argv;
 
 if (!theme || !lens || !outputPath) {
-  console.error('Usage: node generate-riff.js <theme> <lens> <output-path> <visual>');
+  console.error('Usage: bun generate-riff.js <theme> <lens> <output-path> <visual>');
   process.exit(1);
 }
 

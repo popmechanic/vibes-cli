@@ -3,7 +3,7 @@
  * Deploy Vibes app to Cloudflare Workers via Deploy API
  *
  * Usage:
- *   node scripts/deploy-cloudflare.js --name myapp --file index.html [--ai-key <openrouter-key>]
+ *   bun scripts/deploy-cloudflare.js --name myapp --file index.html [--ai-key <openrouter-key>]
  *
  * Authenticates via OIDC (Pocket ID) and POSTs the assembled HTML to the
  * Deploy API Worker, which handles Cloudflare deployment, KV, secrets, and assets.

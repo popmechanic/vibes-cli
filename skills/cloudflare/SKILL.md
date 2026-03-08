@@ -30,7 +30,7 @@ No Cloudflare account or wrangler CLI needed — the Deploy API handles infrastr
 ### Quick Deploy
 
 ```bash
-node scripts/deploy-cloudflare.js --name myapp --file index.html
+bun scripts/deploy-cloudflare.js --name myapp --file index.html
 ```
 
 On first run, a browser window opens for Pocket ID authentication. Tokens are cached for subsequent deploys.
@@ -38,7 +38,7 @@ On first run, a browser window opens for Pocket ID authentication. Tokens are ca
 ### Deploy with AI enabled
 
 ```bash
-node scripts/deploy-cloudflare.js --name myapp --file index.html --ai-key "sk-or-v1-your-key"
+bun scripts/deploy-cloudflare.js --name myapp --file index.html --ai-key "sk-or-v1-your-key"
 ```
 
 The `--ai-key` flag configures the OpenRouter API key for the `useAI()` hook. Without it, `/api/ai/chat` returns `{"error": "AI not configured"}`.

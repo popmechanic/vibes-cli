@@ -52,7 +52,7 @@ describe('Assembly Pipeline', () => {
       const output = join(workDir, 'index.html');
 
       copyFileSync(fixture, appJsx);
-      execSync(`node ${join(SCRIPTS_DIR, 'assemble.js')} "${appJsx}" "${output}"`, {
+      execSync(`bun ${join(SCRIPTS_DIR, 'assemble.js')} "${appJsx}" "${output}"`, {
         stdio: 'pipe',
         cwd: workDir,
       });
@@ -66,7 +66,7 @@ describe('Assembly Pipeline', () => {
       const output = join(workDir, 'index.html');
 
       copyFileSync(fixture, appJsx);
-      execSync(`node ${join(SCRIPTS_DIR, 'assemble.js')} "${appJsx}" "${output}"`, {
+      execSync(`bun ${join(SCRIPTS_DIR, 'assemble.js')} "${appJsx}" "${output}"`, {
         stdio: 'pipe',
         cwd: workDir,
       });
@@ -81,7 +81,7 @@ describe('Assembly Pipeline', () => {
       const output = join(workDir, 'index.html');
 
       copyFileSync(fixture, appJsx);
-      execSync(`node ${join(SCRIPTS_DIR, 'assemble.js')} "${appJsx}" "${output}"`, {
+      execSync(`bun ${join(SCRIPTS_DIR, 'assemble.js')} "${appJsx}" "${output}"`, {
         stdio: 'pipe',
         cwd: workDir,
       });
@@ -99,7 +99,7 @@ describe('Assembly Pipeline', () => {
       const output = join(workDir, 'index.html');
 
       copyFileSync(fixture, appJsx);
-      execSync(`node ${join(SCRIPTS_DIR, 'assemble.js')} "${appJsx}" "${output}"`, {
+      execSync(`bun ${join(SCRIPTS_DIR, 'assemble.js')} "${appJsx}" "${output}"`, {
         stdio: 'pipe',
         cwd: workDir,
       });
@@ -119,7 +119,7 @@ describe('Assembly Pipeline', () => {
       copyFileSync(fixture, appJsx);
 
       const cmd = [
-        `node ${join(SCRIPTS_DIR, 'assemble-sell.js')}`,
+        `bun ${join(SCRIPTS_DIR, 'assemble-sell.js')}`,
         `"${appJsx}" "${output}"`,
         `--app-name test-app`,
         `--app-title "Test App"`,
@@ -140,7 +140,7 @@ describe('Assembly Pipeline', () => {
       copyFileSync(fixture, appJsx);
 
       const cmd = [
-        `node ${join(SCRIPTS_DIR, 'assemble-sell.js')}`,
+        `bun ${join(SCRIPTS_DIR, 'assemble-sell.js')}`,
         `"${appJsx}" "${output}"`,
         `--app-name test-app`,
         `--app-title "Test App"`,
@@ -162,7 +162,7 @@ describe('Assembly Pipeline', () => {
       copyFileSync(fixture, appJsx);
 
       const cmd = [
-        `node ${join(SCRIPTS_DIR, 'assemble-sell.js')}`,
+        `bun ${join(SCRIPTS_DIR, 'assemble-sell.js')}`,
         `"${appJsx}" "${output}"`,
         `--app-name test-app`,
         `--app-title "Test App"`,
@@ -186,7 +186,7 @@ describe('Assembly Pipeline', () => {
       copyFileSync(fixture, appJsx);
 
       const cmd = [
-        `node ${join(SCRIPTS_DIR, 'assemble-sell.js')}`,
+        `bun ${join(SCRIPTS_DIR, 'assemble-sell.js')}`,
         `"${appJsx}" "${output}"`,
         `--app-name test-app`,
         `--app-title "Test App"`,

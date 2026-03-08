@@ -220,7 +220,7 @@ export async function deployConnect({
   // Run alchemy deploy with --stage
   console.log(`\nDeploying Connect (stage: ${appName})...`);
   const stdout = execSync(
-    `npx alchemy deploy alchemy/alchemy.run.ts --stage ${appName}`,
+    `bunx alchemy deploy alchemy/alchemy.run.ts --stage ${appName}`,
     { cwd: repoDir, env, encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'] }
   );
   // Alchemy output contains Connect infrastructure URLs — log with debug prefix
@@ -236,7 +236,7 @@ export async function deployConnect({
   console.log('\nVerifying Connect deployment...');
   try {
     execSync(
-      `npx tsx alchemy/alchemy.verify.ts ${cloudBackendUrl} ${dashboardUrl}`,
+      `bunx tsx alchemy/alchemy.verify.ts ${cloudBackendUrl} ${dashboardUrl}`,
       { cwd: repoDir, env, stdio: 'inherit' }
     );
   } catch (e) {
