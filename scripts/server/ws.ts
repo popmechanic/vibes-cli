@@ -110,7 +110,7 @@ export function createWsHandler(ctx: ServerContext) {
       try {
         switch (msg.type) {
           case 'chat':
-            await handleChat(ctx, onEvent, msg.message, msg.effects || [], msg.animationId || null, msg.model, msg.reference || null);
+            await handleChat(ctx, onEvent, msg.message, msg.effects || [], msg.animationId || null, msg.model, msg.reference || null, msg.skillId || null);
             break;
 
           case 'generate':
