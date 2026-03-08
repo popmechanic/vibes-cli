@@ -260,7 +260,7 @@ DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}),
 }
 
 /**
- * Assemble app.jsx into the vibes template with Fireproof bundle + Clerk auth.
+ * Assemble app.jsx into the vibes template with Fireproof bundle + OIDC auth.
  * Used by the /app-frame route.
  */
 export function assembleAppFrame(ctx) {

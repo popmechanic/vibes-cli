@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../lib/crypto-jwt", () => ({
-  verifyClerkJWT: vi.fn(),
-  verifyClerkJWTDebug: vi.fn(),
+  verifyOIDCJWT: vi.fn(),
+  verifyOIDCJWTDebug: vi.fn(),
 }));
 
-const { verifyClerkJWTDebug } = await import("../lib/crypto-jwt");
+const { verifyOIDCJWTDebug } = await import("../lib/crypto-jwt");
 const { default: app } = await import("../index");
 
 // Full mock KV namespace with in-memory store
@@ -36,8 +36,8 @@ let mockKV: ReturnType<typeof createMockKV>;
 
 const makeBaseEnv = () => ({
   REGISTRY_KV: mockKV,
-  CLERK_PEM_PUBLIC_KEY: "test-key",
-  CLERK_WEBHOOK_SECRET: "whsec_test",
+  OIDC_PEM_PUBLIC_KEY: "test-key",
+  OIDC_ISSUER: "",
   PERMITTED_ORIGINS: "",
   RESERVED_SUBDOMAINS: "",
   BILLING_MODE: "required",
@@ -60,7 +60,7 @@ function claimRequest(subdomain: string, env?: Record<string, any>) {
 }
 
 describe("POST /claim quota enforcement", () => {
-  const verifyClerkJWTDebugMock = vi.mocked(verifyClerkJWTDebug);
+  const verifyOIDCJWTDebugMock = vi.mocked(verifyOIDCJWTDebug);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -68,7 +68,7 @@ describe("POST /claim quota enforcement", () => {
   });
 
   it("rejects claim at quota (1/1 starter)", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_1",
       plan: "u:starter",
     } as any);
@@ -92,7 +92,7 @@ describe("POST /claim quota enforcement", () => {
   });
 
   it("allows claim below quota (0/1 starter)", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_1",
       plan: "u:starter",
     } as any);
@@ -103,7 +103,7 @@ describe("POST /claim quota enforcement", () => {
   });
 
   it("allows claim below quota (2/3 growth)", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_1",
       plan: "u:growth",
     } as any);
@@ -127,7 +127,7 @@ describe("POST /claim quota enforcement", () => {
   });
 
   it("admin bypasses quota", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_admin",
       plan: "u:starter",
     } as any);
@@ -150,7 +150,7 @@ describe("POST /claim quota enforcement", () => {
   });
 
   it("no PLAN_QUOTAS env var = unlimited (backward compat)", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_1",
       plan: "u:starter",
     } as any);
@@ -169,7 +169,7 @@ describe("POST /claim quota enforcement", () => {
   });
 
   it("unknown plan slug = unlimited", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_1",
       plan: "u:enterprise",
     } as any);
@@ -185,7 +185,7 @@ describe("POST /claim quota enforcement", () => {
   });
 
   it("frozen subdomains count against quota", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_1",
       plan: "u:starter",
     } as any);
@@ -213,7 +213,7 @@ describe("POST /claim quota enforcement", () => {
   });
 
   it("collaborated subdomains do NOT count against quota", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_1",
       plan: "u:starter",
     } as any);
@@ -240,7 +240,7 @@ describe("POST /claim quota enforcement", () => {
   });
 
   it("returns current/limit in 403 response body", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_1",
       plan: "u:growth",
     } as any);
@@ -265,7 +265,7 @@ describe("POST /claim quota enforcement", () => {
   });
 
   it("lazy-migrates ownedSubdomains from subdomains list", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_1",
       plan: "u:growth",
     } as any);
@@ -302,7 +302,7 @@ describe("POST /claim quota enforcement", () => {
   });
 
   it("maintains ownedSubdomains on successful claim", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_1",
       plan: "u:growth",
     } as any);

@@ -1,15 +1,13 @@
 /**
- * Unit tests for Clerk webhook signature verification
+ * Unit tests for Svix webhook signature verification
  *
- * Clerk uses Svix for webhook delivery. Webhooks include these headers:
+ * Svix webhook delivery includes these headers:
  * - svix-id: Unique message ID
  * - svix-timestamp: Unix timestamp when sent
  * - svix-signature: HMAC-SHA256 signature
  *
  * The signature is computed as:
  * HMAC-SHA256(webhook_secret, `${svix_id}.${svix_timestamp}.${body}`)
- *
- * See: https://clerk.com/docs/webhooks/sync-data#verify-the-webhook-signature
  */
 
 import { describe, it, expect } from 'vitest';
@@ -18,15 +16,15 @@ import { createHmac } from 'crypto';
 // ============== Signature Verification (to be extracted to worker) ==============
 
 /**
- * Verify Clerk webhook signature
+ * Verify Svix webhook signature
  *
  * @param {string} payload - Raw request body
  * @param {object} headers - Request headers (svix-id, svix-timestamp, svix-signature)
- * @param {string} secret - Clerk webhook signing secret (starts with whsec_)
+ * @param {string} secret - Webhook signing secret (starts with whsec_)
  * @param {number} [toleranceSeconds=300] - Max age of timestamp in seconds
  * @returns {{ valid: boolean, error?: string }}
  */
-function verifyClerkSignature(payload, headers, secret, toleranceSeconds = 300) {
+function verifySvixSignature(payload, headers, secret, toleranceSeconds = 300) {
   const svixId = headers['svix-id'];
   const svixTimestamp = headers['svix-timestamp'];
   const svixSignature = headers['svix-signature'];
@@ -91,14 +89,14 @@ function generateTestSignature(payload, svixId, svixTimestamp, secret) {
 
 // ============== Tests ==============
 
-describe('verifyClerkSignature', () => {
+describe('verifySvixSignature', () => {
   // Test secret (base64 encoded)
   const testSecret = 'whsec_' + Buffer.from('test-secret-key-for-testing').toString('base64');
   const testSecretRaw = Buffer.from('test-secret-key-for-testing').toString('base64');
 
   describe('header validation', () => {
     it('rejects missing svix-id', () => {
-      const result = verifyClerkSignature(
+      const result = verifySvixSignature(
         '{"test": true}',
         { 'svix-timestamp': '1234567890', 'svix-signature': 'v1,abc' },
         testSecret
@@ -109,7 +107,7 @@ describe('verifyClerkSignature', () => {
     });
 
     it('rejects missing svix-timestamp', () => {
-      const result = verifyClerkSignature(
+      const result = verifySvixSignature(
         '{"test": true}',
         { 'svix-id': 'msg_123', 'svix-signature': 'v1,abc' },
         testSecret
@@ -120,7 +118,7 @@ describe('verifyClerkSignature', () => {
     });
 
     it('rejects missing svix-signature', () => {
-      const result = verifyClerkSignature(
+      const result = verifySvixSignature(
         '{"test": true}',
         { 'svix-id': 'msg_123', 'svix-timestamp': '1234567890' },
         testSecret
@@ -131,7 +129,7 @@ describe('verifyClerkSignature', () => {
     });
 
     it('rejects invalid timestamp format', () => {
-      const result = verifyClerkSignature(
+      const result = verifySvixSignature(
         '{"test": true}',
         { 'svix-id': 'msg_123', 'svix-timestamp': 'not-a-number', 'svix-signature': 'v1,abc' },
         testSecret
@@ -149,7 +147,7 @@ describe('verifyClerkSignature', () => {
       const svixId = 'msg_old';
       const signature = generateTestSignature(payload, svixId, String(oldTimestamp), testSecret);
 
-      const result = verifyClerkSignature(
+      const result = verifySvixSignature(
         payload,
         {
           'svix-id': svixId,
@@ -170,7 +168,7 @@ describe('verifyClerkSignature', () => {
       const svixId = 'msg_future';
       const signature = generateTestSignature(payload, svixId, String(futureTimestamp), testSecret);
 
-      const result = verifyClerkSignature(
+      const result = verifySvixSignature(
         payload,
         {
           'svix-id': svixId,
@@ -191,7 +189,7 @@ describe('verifyClerkSignature', () => {
       const svixId = 'msg_recent';
       const signature = generateTestSignature(payload, svixId, String(recentTimestamp), testSecret);
 
-      const result = verifyClerkSignature(
+      const result = verifySvixSignature(
         payload,
         {
           'svix-id': svixId,
@@ -213,7 +211,7 @@ describe('verifyClerkSignature', () => {
       const svixId = 'msg_valid';
       const signature = generateTestSignature(payload, svixId, String(timestamp), testSecret);
 
-      const result = verifyClerkSignature(
+      const result = verifySvixSignature(
         payload,
         {
           'svix-id': svixId,
@@ -232,7 +230,7 @@ describe('verifyClerkSignature', () => {
       const svixId = 'msg_noprefix';
       const signature = generateTestSignature(payload, svixId, String(timestamp), testSecret);
 
-      const result = verifyClerkSignature(
+      const result = verifySvixSignature(
         payload,
         {
           'svix-id': svixId,
@@ -251,7 +249,7 @@ describe('verifyClerkSignature', () => {
       const svixId = 'msg_rawsecret';
       const signature = generateTestSignature(payload, svixId, String(timestamp), testSecretRaw);
 
-      const result = verifyClerkSignature(
+      const result = verifySvixSignature(
         payload,
         {
           'svix-id': svixId,
@@ -273,7 +271,7 @@ describe('verifyClerkSignature', () => {
       // Attacker modifies payload
       const tamperedPayload = '{"amount":1000000}';
 
-      const result = verifyClerkSignature(
+      const result = verifySvixSignature(
         tamperedPayload,
         {
           'svix-id': svixId,
@@ -295,7 +293,7 @@ describe('verifyClerkSignature', () => {
 
       const wrongSecret = 'whsec_' + Buffer.from('wrong-secret').toString('base64');
 
-      const result = verifyClerkSignature(
+      const result = verifySvixSignature(
         payload,
         {
           'svix-id': svixId,
@@ -316,7 +314,7 @@ describe('verifyClerkSignature', () => {
       const signature = generateTestSignature(payload, originalId, String(timestamp), testSecret);
 
       // Attacker tries to replay with different ID
-      const result = verifyClerkSignature(
+      const result = verifySvixSignature(
         payload,
         {
           'svix-id': 'msg_replayed',
@@ -339,7 +337,7 @@ describe('verifyClerkSignature', () => {
       const validSignature = generateTestSignature(payload, svixId, String(timestamp), testSecret);
 
       // Multiple signatures (old rotation + new)
-      const result = verifyClerkSignature(
+      const result = verifySvixSignature(
         payload,
         {
           'svix-id': svixId,
@@ -355,4 +353,4 @@ describe('verifyClerkSignature', () => {
 });
 
 // Export for use in integration tests
-export { verifyClerkSignature, generateTestSignature };
+export { verifySvixSignature, generateTestSignature };

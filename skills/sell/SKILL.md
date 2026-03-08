@@ -1,7 +1,7 @@
 ---
 name: sell
 argument-hint: "[app-name]"
-description: Self-contained SaaS automation — invoke directly, do not decompose. Transforms a Vibes app into a multi-tenant SaaS with subdomain-based tenancy. Adds Clerk authentication, subscription gating, and generates a unified app with landing page, tenant routing, and admin dashboard.
+description: Self-contained SaaS automation — invoke directly, do not decompose. Transforms a Vibes app into a multi-tenant SaaS with subdomain-based tenancy. Adds Pocket ID authentication, subscription gating, and generates a unified app with landing page, tenant routing, and admin dashboard.
 license: MIT
 allowed-tools: Read, Write, Bash, Glob, AskUserQuestion
 metadata:
@@ -26,7 +26,7 @@ metadata:
 
 - [Critical Rules](#-critical-rules---read-first-) - Read this first
 - [Step 1: Pre-Flight Checks](#step-1-pre-flight-checks) - Verify prerequisites
-- [Step 2: Clerk Configuration](#step-2-clerk-configuration-required) - Set up authentication (REQUIRED)
+- [Step 2: App Identity](#step-2-app-identity) - Set up app name and deploy URL
 - [Step 3: App Configuration](#step-3-app-configuration) - Collect app settings
 - [Step 4: Assembly](#step-4-assembly) - Build the unified app
 - [Step 5: Deployment](#step-5-deployment) - Deploy to Cloudflare Workers
@@ -57,24 +57,22 @@ node "$VIBES_ROOT/scripts/deploy-cloudflare.js" ...
 **NEVER do these manually:**
 - ❌ Write HTML/JSX for landing page, tenant app, or admin dashboard
 - ❌ Generate routing logic or authentication code
-- ❌ Deploy without `--clerk-key`
 
 **ALWAYS do these:**
 - ✅ Complete pre-flight checks before starting
-- ✅ Collect ALL Clerk credentials BEFORE app configuration
 - ✅ Run `assemble-sell.js` to generate the unified app
-- ✅ Deploy with ALL required flags
+- ✅ Deploy with `deploy-cloudflare.js`
 
 ---
 
 # Sell - Transform Vibes to SaaS
 
-This skill uses `assemble-sell.js` to inject the user's app into a pre-built template. The template contains security checks, proper Clerk integration, and Fireproof patterns.
+This skill uses `assemble-sell.js` to inject the user's app into a pre-built template. The template contains security checks, Pocket ID auth integration, and Fireproof patterns.
 
 Convert your Vibes app into a multi-tenant SaaS product with:
 - Subdomain-based tenancy (alice.yourdomain.com)
-- Clerk authentication with passkeys
-- Subscription gating via Clerk Billing
+- Pocket ID authentication (with passkeys, automatic on deploy)
+- Subscription gating (Stripe billing is phase 2)
 - Per-tenant Fireproof database isolation
 - Marketing landing page
 - Admin dashboard
@@ -101,14 +99,9 @@ Detect whether you're running in a terminal (Claude Code CLI) or an editor (Curs
 
 **Before starting, verify these prerequisites. STOP if any check fails.**
 
-### 1.1 Check for Clerk Credentials
+### 1.1 Auth Check
 
-```bash
-grep -q "VITE_CLERK_PUBLISHABLE_KEY=pk_" .env 2>/dev/null && echo "FOUND" || echo "NOT_FOUND"
-```
-
-**If `NOT_FOUND`:** Clerk credentials are required. Ask the user for their Clerk Publishable Key.
-Connect is auto-provisioned on first deploy -- no manual setup needed.
+Auth is automatic — on first deploy, a browser window opens for Pocket ID login. Tokens are cached at `~/.vibes/auth.json` for subsequent deploys. No `.env` credential setup is needed.
 
 ### 1.2 Detect Existing App
 
@@ -132,38 +125,20 @@ ls -d riff-* 2>/dev/null
 
 ### 1.3 Pre-Flight Summary
 
-After both checks pass, confirm:
+After checks pass, confirm:
 > "Pre-flight checks passed:
-> - ✓ Fireproof Connect configured (.env found)
 > - ✓ App found (app.jsx)
+> - ✓ Auth is automatic via Pocket ID (browser login on first deploy)
 >
-> Now let's configure Clerk authentication. This is required for multi-tenant SaaS."
+> Now let's configure your app settings."
 
 ---
 
-## Step 2: Clerk Configuration (REQUIRED)
+## Step 2: App Identity
 
-**These credentials are REQUIRED. Do not proceed without them.**
+### 2.1 Collect App Name (Needed for Deploy URL)
 
-### 2.1 Clerk Dashboard Setup Instructions
-
-Before collecting credentials, the user must set up Clerk. Present these instructions:
-
-> **Clerk Setup Required**
->
-> Before we continue, you need to configure Clerk authentication:
->
-> 1. **Create a Clerk Application** at [clerk.com](https://clerk.com) — choose "Email + Passkey" authentication
-> 2. **Configure Email Settings** — enable email signup with verification, and **set "Require email address" to OFF** (signup fails otherwise)
-> 3. **Configure Passkey Settings** — enable sign-in with passkey, autofill, passkey button, and add-passkey-to-account
->
-> See [CLERK-SETUP.md](./CLERK-SETUP.md) for the complete settings tables and step-by-step instructions.
->
-> **When you're ready, I'll collect your Clerk credentials.**
-
-### 2.2 Collect App Name (Needed for Webhook URL)
-
-The webhook endpoint URL requires the app name. Collect it now so we can give the user the exact URL.
+Collect the app name for deployment.
 
 Use AskUserQuestion:
 ```
@@ -176,7 +151,7 @@ multiSelect: false
 
 Store as `appName` (URL-safe slug: lowercase, hyphens, no special chars).
 
-Now resolve the Cloudflare Workers URL so the webhook step has the real domain:
+Now resolve the Cloudflare Workers URL:
 
 ```bash
 node "{pluginRoot}/scripts/lib/resolve-workers-url.js" --name "{appName}"
@@ -201,58 +176,6 @@ Then construct: `{appName}.{subdomain}.workers.dev` and store as `domain`.
 
 The user can configure a custom domain later (see Step 5.2).
 
-### 2.3 Create Webhook
-
-Use AskUserQuestion:
-```
-Question: "Create a webhook in Clerk: Go to Webhooks > Add Endpoint. Set the URL to: https://{domain}/webhook — Subscribe to these events: user.created, user.deleted, subscription.deleted"
-Header: "Webhook"
-Options:
-- Label: "Webhook created"
-  Description: "I've added the endpoint and subscribed to the events"
-- Label: "I need help"
-  Description: "I'm having trouble finding the webhooks page"
-multiSelect: false
-```
-
-If "I need help": walk them through navigating Clerk dashboard > Configure > Webhooks > Add Endpoint, making sure to repeat the URL `https://{domain}/webhook`.
-
-### 2.4 Collect Clerk Credentials
-
-Use AskUserQuestion with these 2 questions:
-
-```
-Question 1: "What's your Clerk Publishable Key?"
-Header: "Clerk Key"
-Options: User enters via "Other"
-Description: "From Clerk Dashboard → API Keys. Starts with pk_test_ or pk_live_"
-
-Question 2: "What's your Clerk Webhook Secret?"
-Header: "Webhook"
-Options: User enters via "Other"
-Description: "From the webhook you just created — click the endpoint, copy the Signing Secret. Starts with whsec_"
-```
-
-### 2.5 Validation Gate
-
-**Before proceeding, validate ALL credentials:**
-
-| Credential | Valid Format | If Invalid |
-|------------|--------------|------------|
-| Publishable Key | Starts with `pk_test_` or `pk_live_` | Stop, ask for correct key |
-| Webhook Secret | Starts with `whsec_` | Stop, guide to webhook creation |
-
-**If ANY validation fails:** Stop and help user get the correct credential. Do not proceed to Step 3.
-
-### 2.6 Clerk Configuration Complete
-
-Confirm to the user:
-> "Clerk credentials validated and saved:
-> - ✓ Publishable Key: pk_test_... (saved for assembly and deployment)
-> - ✓ Webhook Secret: whsec_... (saved for deployment)
->
-> Now let's configure your app settings."
-
 ---
 
 ## Step 3: App Configuration
@@ -269,7 +192,7 @@ Use the AskUserQuestion tool with these 2 questions:
 Question 1: "Do you want to require paid subscriptions?"
 Header: "Billing"
 Options: ["No - free access for all", "Yes - subscription required"]
-Description: "Billing is configured in Clerk Dashboard → Billing"
+Description: "Billing via Stripe is planned for phase 2. Choose 'No' for now unless you have a custom Stripe integration."
 
 Question 2: "Display title for your app?"
 Header: "Title"
@@ -313,7 +236,6 @@ Description: "Comma-separated list (e.g., 'Photo sharing, Guest uploads, Live ga
 | App Name | `--app-name` | `wedding-photos` |
 | Domain | `--domain` | `myapp.marcus-e.workers.dev` |
 | Billing | `--billing-mode` | `off` or `required` |
-| Clerk Publishable Key | `--clerk-key` | `pk_test_xxx` |
 | Title | `--app-title` | `Wedding Photos` |
 | Tagline | `--tagline` | `SHARE YOUR DAY.<br>MAKE IT SPECIAL.` |
 | Subtitle | `--subtitle` | `The easiest way to share wedding photos with guests.` |
@@ -326,15 +248,9 @@ Description: "Comma-separated list (e.g., 'Photo sharing, Guest uploads, Live ga
 
 **CRITICAL**: You MUST use the assembly script. Do NOT generate your own HTML/JSX code.
 
-### 4.1 Verify .env Exists
+### 4.1 Auth Note
 
-Before running assembly, verify the .env file exists:
-
-```bash
-test -f .env && echo "OK" || echo "MISSING"
-```
-
-**If MISSING:** Ensure Clerk keys are configured. Connect is auto-deployed with the app.
+Auth is automatic via Pocket ID — no `.env` credential setup is needed. On first deploy, a browser window opens for login. Tokens are cached at `~/.vibes/auth.json`.
 
 ### 4.2 Update App for Tenant Context
 
@@ -372,7 +288,7 @@ Do NOT destructure from React (e.g., `const { useState } = React;`) or import Re
 Before running assembly, check the project `.env` for a cached admin user ID:
 
 ```bash
-grep CLERK_ADMIN_USER_ID .env 2>/dev/null
+grep ADMIN_USER_ID .env 2>/dev/null
 ```
 
 **If found**, offer to include it (mask the middle, e.g., `user_37ici...ohcY`):
@@ -399,7 +315,6 @@ Run the assembly script with all collected values:
 ```bash
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
 node "$VIBES_ROOT/scripts/assemble-sell.js" app.jsx index.html \
-  --clerk-key "pk_test_xxx" \
   --app-name "wedding-photos" \
   --app-title "Wedding Photos" \
   --domain "{domain}" \
@@ -418,11 +333,7 @@ After assembly, verify no config placeholders remain:
 grep -o '__VITE_[A-Z_]*__' index.html | sort -u || echo "NO_PLACEHOLDERS"
 ```
 
-**If any placeholders found:** The .env file is missing required values. Check:
-- `VITE_CLERK_PUBLISHABLE_KEY` - must be set
-- `VITE_API_URL` / `VITE_CLOUD_URL` - auto-provisioned on first deploy; if missing, deploy with `/vibes:cloudflare` first
-
-Fix the .env file and re-run assembly.
+**If any placeholders found:** Re-run assembly with the correct flags. Auth credentials are managed automatically — no `.env` setup needed.
 
 ### 4.5 Customize Landing Page Theme (Optional)
 
@@ -446,26 +357,16 @@ The template uses neutral colors by default. To match the user's brand:
 
 **Deploy Target: Cloudflare Workers.** SaaS apps always deploy to Cloudflare Workers. The KV registry and subdomain routing require the CF Worker runtime.
 
-**Registry server credentials are REQUIRED for SaaS apps.**
-
 ### 5.1 Deploy to Cloudflare Workers
 
 ```bash
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
 node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
   --name wedding-photos \
-  --file index.html \
-  --clerk-key "pk_test_xxx" \
-  --webhook-secret "whsec_xxx"
+  --file index.html
 ```
 
-**Required Flags for SaaS:**
-| Flag | Source | Purpose |
-|------|--------|---------|
-| `--clerk-key` | Clerk publishable key (pk_test_/pk_live_) | deploy-cloudflare.js auto-fetches PEM from JWKS endpoint |
-| `--webhook-secret` | Clerk webhook signing secret | deploy-cloudflare.js sets it as a Wrangler secret |
-
-**Without `--clerk-key`, the Worker won't be able to verify JWTs for subdomain claiming.**
+On first deploy, a browser window opens for Pocket ID authentication. Tokens are cached at `~/.vibes/auth.json` for subsequent deploys.
 
 ### 5.2 DNS Configuration (For Custom Domains)
 
@@ -484,7 +385,6 @@ VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}
 node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
   --name wedding-photos \
   --file index.html \
-  --clerk-key "pk_test_xxx" \
   --ai-key "sk-or-v1-your-provisioning-key"
 ```
 
@@ -501,7 +401,6 @@ curl -s https://{domain}/registry.json | head -c 100
 **If you see HTML instead of JSON:**
 - The Worker may not have deployed correctly
 - Check `npx wrangler tail --name {appName}` for errors
-- Verify `--clerk-key` was provided during deploy
 
 ---
 
@@ -521,37 +420,28 @@ Open in browser: `https://{domain}?subdomain=test`
 
 Should show the tenant app (may require sign-in).
 
-### 6.3 Clerk Dashboard Checklist
+### 6.3 Auth Verification Checklist
 
 Present this checklist to the user:
 
-> **Clerk Dashboard Settings Checklist**
+> **Authentication Checklist**
 >
-> Verify these settings in your Clerk Dashboard:
+> Verify these for your deployment:
 >
-> **Domains** (Dashboard → Domains):
-> - [ ] Add your deployment domain (e.g., `{domain}`)
-> - [ ] If using custom domain, add that too
+> **Pocket ID Auth**:
+> - [ ] Auth token cached at `~/.vibes/auth.json` (created on first deploy)
+> - [ ] Sign-in flow works on the deployed URL
 >
-> **Webhook** (Dashboard → Configure → Webhooks):
-> - [ ] Endpoint URL matches your deployment: `https://{domain}/webhook`
-> - [ ] Events selected: `user.created`, `user.deleted`, `subscription.deleted`
->
-> **If using billing** (Dashboard → Billing):
-> - [ ] Stripe connected
-> - [ ] Plans created with matching names: `pro`, `basic`, `monthly`, `yearly`, `starter`, or `free`
+> **If using custom domain**:
+> - [ ] Add the custom domain as an allowed origin in Pocket ID
 
 ### 6.4 Billing Verification (if `--billing-mode required`)
 
-If billing mode is "required", verify the billing flow works:
+Note: Stripe billing integration is planned for phase 2. For now, billing mode "required" gates access but Stripe checkout is not yet wired up. Verify the paywall UI appears correctly:
 
-1. **Check landing page pricing**: Open `https://{domain}` and confirm the PricingTable is visible
-2. **Test paywall**: Open `https://{domain}?subdomain=test`, sign in, and confirm non-subscribed users see the SubscriptionPaywall
-3. **Test checkout**: Click a plan in the paywall, use test card `4242 4242 4242 4242` with any future expiry and any CVC
-4. **Verify access**: After subscribing, confirm the user can access the tenant app
-5. **Check webhook**: Cancel the subscription in Clerk Dashboard, then verify the subdomain is released in `/registry.json`
-
-If any step fails, check the Troubleshooting section for billing-specific issues.
+1. **Check landing page**: Open `https://{domain}` and confirm the landing page is visible
+2. **Test auth gate**: Open `https://{domain}?subdomain=test`, and confirm unauthenticated users see the auth screen
+3. **Verify access**: After signing in, confirm the user can access the tenant app
 
 ### 6.5 Admin Setup (After First Signup)
 
@@ -560,14 +450,13 @@ Guide the user through admin setup:
 > **Set Up Admin Access**
 >
 > 1. Visit your app and sign up: `https://{domain}`
-> 2. Complete the signup flow (email → verify → passkey)
-> 3. Go to Clerk Dashboard → Users → click your user → copy User ID
+> 2. Complete the signup flow (email or passkey via Pocket ID)
+> 3. Find your User ID from the Pocket ID admin panel or application logs
 > 4. Re-run assembly with admin access:
 >
 > ```bash
 > VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
 > node "$VIBES_ROOT/scripts/assemble-sell.js" app.jsx index.html \
->   --clerk-key "pk_test_xxx" \
 >   --app-name "{appName}" \
 >   --app-title "{appTitle}" \
 >   --domain "{domain}" \
@@ -580,16 +469,14 @@ Guide the user through admin setup:
 > VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
 > node "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
 >   --name {appName} \
->   --file index.html \
->   --clerk-key "pk_test_xxx" \
->   --webhook-secret "whsec_xxx"
+>   --file index.html
 > ```
 
-After collecting the user ID, save it to the project `.env`:
+After collecting the user ID, save it to the project `.env` for reference:
 ```bash
-grep -q CLERK_ADMIN_USER_ID .env 2>/dev/null && \
-  sed -i '' 's/^CLERK_ADMIN_USER_ID=.*/CLERK_ADMIN_USER_ID=<new>/' .env || \
-  echo "CLERK_ADMIN_USER_ID=<new>" >> .env
+grep -q ADMIN_USER_ID .env 2>/dev/null && \
+  sed -i '' 's/^ADMIN_USER_ID=.*/ADMIN_USER_ID=<new>/' .env || \
+  echo "ADMIN_USER_ID=<new>" >> .env
 ```
 
 ---
@@ -654,7 +541,7 @@ function TenantProvider({ children, subdomain }) {
 Wraps tenant content and enforces billing mode:
 
 - **`off`**: Everyone gets free access after signing in
-- **`required`**: Users must subscribe via Clerk Billing before accessing tenant content
+- **`required`**: Users must subscribe before accessing tenant content (Stripe integration planned for phase 2)
 
 Admins always bypass the subscription check.
 
@@ -662,11 +549,11 @@ Admins always bypass the subscription check.
 
 ### SubscriptionPaywall
 
-Shown to authenticated users who do not have an active subscription (when `billingMode === "required"`). Displays a pricing table via Clerk's `<PricingTable />` component so users can subscribe without leaving the app.
+Shown to authenticated users who do not have an active subscription (when `billingMode === "required"`). Stripe billing integration is planned for phase 2. Currently displays a placeholder paywall.
 
 ### UpgradePrompt
 
-Optional component shown inside the tenant app when a user's plan has limited features. Use this for soft upsell messaging (e.g., "Upgrade to Pro for unlimited exports"). Not shown when `billingMode === "off"`.
+Optional component shown inside the tenant app when a user's plan has limited features. Use this for soft upsell messaging (e.g., "Upgrade to Pro for unlimited exports"). Not shown when `billingMode === "off"`. Full Stripe integration is planned for phase 2.
 
 ---
 
@@ -692,7 +579,7 @@ https://{domain}?subdomain=admin → Admin dashboard
 
 ## Import Map
 
-The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk integration:
+The unified template uses React 19 with the OIDC bridge for auth and Fireproof sync:
 
 ```json
 {
@@ -702,8 +589,9 @@ The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk i
     "react/jsx-dev-runtime": "https://esm.sh/stable/react@19.2.4/jsx-dev-runtime",
     "react-dom": "https://esm.sh/stable/react-dom@19.2.4",
     "react-dom/client": "https://esm.sh/stable/react-dom@19.2.4/client",
-    "use-fireproof": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom",
-    "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom"
+    "@fireproof/core": "https://esm.sh/stable/use-fireproof@0.24.12?external=react,react-dom",
+    "oauth4webapi": "https://esm.sh/stable/oauth4webapi@3.3.0",
+    "use-fireproof": "/fireproof-oidc-bridge.js"
   }
 }
 ```
@@ -718,19 +606,20 @@ The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk i
 
 ### "Cannot read properties of null (reading 'useEffect')"
 - React version mismatch between packages
-- Ensure fireproof-clerk imports have `?external=react,react-dom`
+- Ensure Fireproof imports have `?external=react,react-dom`
 
 ### "Subscription Required" loop
 - Check that admin user ID is correct and in the `ADMIN_USER_IDS` array
-- Verify Clerk Billing is set up with matching plan names
+- Stripe billing integration is phase 2 — set `--billing-mode off` if not needed
 
-### Clerk not loading / Passkey fails / "Verification incomplete" error
-- See [CLERK-SETUP.md Troubleshooting](./CLERK-SETUP.md#troubleshooting) for detailed Clerk auth fixes
-- Most common fix: set "Require email address" to **OFF** in Clerk Dashboard → Email settings
+### Auth not loading / Passkey fails
+- Verify Pocket ID login completed successfully (check `~/.vibes/auth.json` exists)
+- Delete `~/.vibes/auth.json` and retry to force re-authentication
+- Check that your deployment domain is registered as an allowed redirect URI in Pocket ID
 
 ### Admin shows "Access Denied"
 - User ID not in --admin-ids array
-- Check Clerk Dashboard → Users → click user → copy User ID
+- Check Pocket ID admin panel for the correct user ID
 - Re-run assembly with correct --admin-ids
 
 ### Database not isolated
@@ -738,34 +627,19 @@ The unified template uses React 19 with `@necrodome/fireproof-clerk` for Clerk i
 - Check `useFireproofClerk(dbName)` uses the tenant database name
 
 ### Registry returns HTML instead of JSON
-- Deploy was run without `--clerk-key` — re-deploy with it
-- See also [CLERK-SETUP.md Troubleshooting](./CLERK-SETUP.md#troubleshooting) for registry fetch errors
+- The Worker may not have deployed correctly — redeploy with `deploy-cloudflare.js`
 
-### Assembly fails with ".env file not found"
-- Fireproof Connect is not configured
-- Connect is auto-deployed when you first deploy to Cloudflare
-- Then return to `/vibes:sell`
+### Assembly fails
+- Check that `app.jsx` exists in the working directory
+- Auth is automatic — no `.env` credential setup needed
 
 ### PricingTable not showing on landing page
 - Verify `--billing-mode required` was passed during assembly
-- Check browser console for Clerk Billing errors
-- Ensure at least one plan exists in Clerk Dashboard > Billing > Plans
+- Stripe billing integration is phase 2 — pricing table may show a placeholder
 
-### Paywall shows but checkout fails
-- In dev mode, Clerk auto-connects to Stripe sandbox — no Stripe account needed
-- Use test card `4242 4242 4242 4242` with any future expiry date and any 3-digit CVC
-- If using production keys, ensure Stripe is connected in Clerk Dashboard > Billing > Stripe
-
-### User subscribed but still sees paywall
-- Clerk subscription webhooks may be delayed — wait 10-15 seconds and refresh
-- Verify webhook endpoint URL matches: `https://{domain}/webhook`
-- Subscription status is checked via JWT claims, not webhooks — verify Clerk Billing plan exists
-- Check Worker logs: `npx wrangler tail --name {appName}`
-
-### Subscription canceled but subdomain not released
-- Verify webhook events include `subscription.deleted`
-- Check webhook secret is set: `npx wrangler secret list --name {appName}`
-- View Worker logs for webhook processing errors: `npx wrangler tail --name {appName}`
+### User authenticated but still sees paywall
+- If billing mode is "required", subscription checks may not be fully wired up yet (phase 2)
+- Set `--billing-mode off` for immediate access after authentication
 
 ---
 

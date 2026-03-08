@@ -48,34 +48,14 @@ Full first-time setup. Run all steps in order.
 4. Push to GitHub: `git push`
 5. Print target: VM name and URL (`https://<vmname>.exe.xyz/`)
 
-#### Clerk Pre-flight
+#### OIDC Pre-flight
 
-Read the local `.env` file and check for `VITE_CLERK_PUBLISHABLE_KEY`:
+Read the local `.env` file and check for `VITE_OIDC_AUTHORITY`:
 
-- **If present** (matches `pk_(test|live)_*`): Extract the value for later. Proceed.
+- **If present** (HTTPS URL): Extract the value for later. Proceed.
 - **If missing or invalid**: STOP and guide the user:
-  - Option A: Run `/vibes:connect` to set up Clerk + Connect end-to-end
-  - Option B: Manually add `VITE_CLERK_PUBLISHABLE_KEY=pk_test_...` to `.env`
-  - Remind them to create the `with-email` JWT template in Clerk Dashboard:
-    1. Go to Clerk Dashboard → Configure → JWT Templates
-    2. Create a new template named **`with-email`**
-    3. Set custom claims JSON (the `|| ''` fallbacks are required — Fireproof Studio rejects null names):
-       ```json
-       {
-         "params": {
-           "email": "{{user.primary_email_address}}",
-           "email_verified": "{{user.email_verified}}",
-           "external_id": "{{user.external_id}}",
-           "first": "{{user.first_name || ''}}",
-           "last": "{{user.last_name || ''}}",
-           "name": "{{user.full_name || ''}}",
-           "image_url": "{{user.image_url}}",
-           "public_meta": "{{user.public_metadata}}"
-         },
-         "role": "authenticated",
-         "userId": "{{user.id}}"
-       }
-       ```
+  - Option A: Run `/vibes:connect` to set up Connect + Pocket ID end-to-end
+  - Option B: Manually add `VITE_OIDC_AUTHORITY=https://studio.exe.xyz/auth` and `VITE_OIDC_CLIENT_ID=<id>` to `.env`
 
 ### Step P1: Create VM
 
@@ -156,11 +136,12 @@ ssh -o StrictHostKeyChecking=accept-new <vmname>.exe.xyz "cd /opt/julian && /hom
 
 ### Step P6: Create .env
 
-Use the `VITE_CLERK_PUBLISHABLE_KEY` from pre-flight (do NOT hardcode):
+Use the `VITE_OIDC_AUTHORITY` and `VITE_OIDC_CLIENT_ID` from pre-flight (do NOT hardcode):
 
 ```bash
 ssh -o StrictHostKeyChecking=accept-new <vmname>.exe.xyz "cat > /opt/julian/.env << 'ENVEOF'
-VITE_CLERK_PUBLISHABLE_KEY=<value from local .env>
+VITE_OIDC_AUTHORITY=<value from local .env>
+VITE_OIDC_CLIENT_ID=<value from local .env>
 ALLOWED_ORIGIN=https://<vmname>.exe.xyz
 ENVEOF"
 ```
@@ -320,5 +301,5 @@ Confirm the `version` field in the health response matches the current git hash.
 - **git pull/push auth error**: Deploy key issue. Check `ssh <vmname>.exe.xyz "ssh -T git@github.com"`. Re-run Step P4 if needed.
 - **git pull merge conflict**: Julian has uncommitted changes. Stash first (see Step U1).
 - **Instance in registry but VM gone**: Remove the entry from `deploy/instances.json` and re-run — it will take the Provision path.
-- **401 on `/tokens/with-email`**: Missing Clerk JWT template. Create `with-email` in Clerk Dashboard → Configure → JWT Templates with the claims JSON from the Clerk Pre-flight section.
+- **401 on `/tokens/with-email`**: Missing OIDC JWT configuration. Check Pocket ID admin panel for proper token template setup.
 - **VM creation fails**: Check exe.dev status, retry once.

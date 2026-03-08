@@ -53,6 +53,7 @@ export const getContainerStyle = (): CSSProperties => ({
   gap: "2rem",
   padding: "3rem 0rem",
   position: "relative",
+  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
 });
 
 // Gray background panel behind content (collapses on shred)

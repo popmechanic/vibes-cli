@@ -93,7 +93,7 @@ Each variation is a genuinely different concept - not just styling changes. You'
 
 ### `sell`
 
-Ready to monetize? Sell transforms your app into a multi-tenant SaaS with Clerk authentication, subscription billing, and isolated databases per customer.
+Ready to monetize? Sell transforms your app into a multi-tenant SaaS with Pocket ID authentication, subscription billing, and isolated databases per customer.
 
 Each user gets their own subdomain (alice.yourapp.com) with their own data. Includes a marketing landing page, admin dashboard, and subscription gating - everything you need to start charging.
 
@@ -111,12 +111,12 @@ admin.yourdomain.com    → Admin dashboard
 **Example flow:**
 1. Build an app with `/vibes`
 2. Run `/sell` to transform it
-3. Configure Clerk keys and pricing
+3. Configure pricing
 4. Deploy with `/cloudflare`
 
 ### `test`
 
-End-to-end integration test for plugin developers. Assembles a pre-written fixture with real Clerk credentials, deploys to Cloudflare Workers (Connect auto-provisioned), and presents a live URL for browser verification.
+End-to-end integration test for plugin developers. Assembles a pre-written fixture, deploys to Cloudflare Workers (Connect auto-provisioned), and presents a live URL for browser verification.
 
 Walks you through each step interactively: credentials, fixture selection, assembly, deploy, and verification.
 
@@ -129,7 +129,7 @@ Commands are **user-invoked** — run them explicitly when you want a specific s
 | Command | What it does |
 |---------|-------------|
 | `/vibes` | Generate a React web app with Fireproof database |
-| `/sell` | Transform an app into multi-tenant SaaS with Clerk auth and billing |
+| `/sell` | Transform an app into multi-tenant SaaS with Pocket ID auth and billing |
 | `/cloudflare` | Deploy a Vibes app to Cloudflare Workers (auto-configures Connect) |
 | `/launch` | Build and deploy a SaaS app end-to-end using Agent Teams |
 | `/test` | Run end-to-end integration test with real deployment |
@@ -169,10 +169,12 @@ The implementation:
 
 ```javascript
 const subdomain = window.location.hostname.split('.')[0];
-const { database } = useFireproofClerk(`app-${subdomain}`);
+const { database } = useFireproofOIDC(`app-${subdomain}`);
 ```
 
 Three lines. No backend. No database configuration. No tenant middleware.
+
+> **Note:** Auth credentials are managed automatically. No user-provided OIDC configuration needed.
 
 ### What This Enables
 

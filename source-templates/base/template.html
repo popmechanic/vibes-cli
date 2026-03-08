@@ -109,10 +109,9 @@
           "multiformats/": "https://esm.sh/stable/multiformats@13.3.1/",
           "@ipld/dag-cbor": "https://esm.sh/stable/@ipld/dag-cbor@9.2.2?external=multiformats",
           "@ipld/dag-json": "https://esm.sh/stable/@ipld/dag-json@10.2.3?external=multiformats",
-          "@clerk/clerk-react": "https://esm.sh/stable/@clerk/clerk-react@5.59.2?external=react,react-dom",
-          "use-fireproof": "/fireproof-vibes-bridge.js",
-          "@fireproof/clerk": "https://esm.sh/stable/@necrodome/fireproof-clerk@0.0.7?external=react,react-dom",
-          "use-fireproof-core": "https://esm.sh/stable/use-fireproof@0.24.12?external=react,react-dom"
+          "oauth4webapi": "https://esm.sh/stable/oauth4webapi@3.3.0",
+          "@fireproof/core": "https://esm.sh/stable/use-fireproof@0.24.12?external=react,react-dom",
+          "use-fireproof": "/fireproof-oidc-bridge.js"
         }
       }
     </script>
@@ -121,7 +120,8 @@
       window.__VIBES_CONFIG__ = {
         tokenApiUri: "__VITE_API_URL__",
         cloudBackendUrl: "__VITE_CLOUD_URL__",
-        clerkPublishableKey: "__VITE_CLERK_PUBLISHABLE_KEY__"
+        oidcAuthority: "__VITE_OIDC_AUTHORITY__",
+        oidcClientId: "__VITE_OIDC_CLIENT_ID__"
       };
       // Default: single theme hides the Design button in VibesPanel.
       // Apps with multiple themes override this before menu loads.
@@ -145,13 +145,11 @@
           setError(null);
 
           try {
-            // Get auth token if Clerk is available (sell apps)
+            // Get auth token if OIDC session is available
             let authHeader = {};
-            if (typeof window !== 'undefined' && window.Clerk?.session) {
-              const token = await window.Clerk.session.getToken();
-              if (token) {
-                authHeader = { 'Authorization': 'Bearer ' + token };
-              }
+            const oidcToken = window.__VIBES_OIDC_TOKEN__;
+            if (oidcToken) {
+              authHeader = { 'Authorization': 'Bearer ' + oidcToken };
             }
 
             const response = await fetch('/api/ai/chat', {
@@ -205,10 +203,10 @@
             message: message,
             showCard: false,
             isError: true,
-            errorDetails: 'Run Connect setup to configure Clerk credentials.'
+            errorDetails: 'Run Connect setup to configure OIDC credentials.'
           },
             React.createElement('p', { style: { color: 'var(--comp-accent-red, #7f1d1d)', fontSize: '0.875rem' } },
-              'Check your .env file for missing credentials.'
+              'Check your .env file for missing OIDC credentials.'
             )
           );
         }
@@ -218,7 +216,7 @@
             React.createElement('div', { className: 'text-red-500 text-4xl mb-4' }, '⚠️'),
             React.createElement('h1', { className: 'text-xl font-bold text-red-700 mb-4' }, 'Configuration Error'),
             React.createElement('p', { className: 'text-gray-600 mb-4' }, message),
-            React.createElement('p', { className: 'text-sm text-gray-500' }, 'Run Connect setup to configure Clerk credentials.')
+            React.createElement('p', { className: 'text-sm text-gray-500' }, 'Run Connect setup to configure OIDC credentials.')
           )
         );
       }
@@ -391,10 +389,10 @@
       window.SyncStatusDot = SyncStatusDot;
 
       // === SharingBridge ===
-      // Must be rendered inside ClerkFireproofProvider > SignedIn.
+      // Must be rendered inside OIDCProvider > SignedIn.
       // Bridges vibes-share-request DOM events to the dashApi.
       function SharingBridge() {
-        var ctx = window.useClerkFireproofContext();
+        var ctx = window.useOIDCContext ? window.useOIDCContext() : {};
         var dashApi = ctx.dashApi;
         var dashApiRef = React.useRef(null);
         var ledgerCacheRef = React.useRef(null);
@@ -498,7 +496,7 @@
                 try {
                   var kvRegistryUrl = window.__VIBES_REGISTRY_URL__;
                   if (kvRegistryUrl && !kvRegistryUrl.startsWith('__')) {
-                    var token = await window.Clerk?.session?.getToken();
+                    var token = window.__VIBES_OIDC_TOKEN__;
                     if (token) {
                       var hostname = window.location.hostname;
                       var parts = hostname.split('.');
@@ -515,7 +513,7 @@
                         console.log('[vibes-sharing] KV invite written successfully for', email, 'on', kvSubdomain);
                       }
                     } else {
-                      console.warn('[vibes-sharing] KV invite skipped: no Clerk session token available');
+                      console.warn('[vibes-sharing] KV invite skipped: no OIDC token available');
                     }
                   }
                 } catch (kvErr) {
@@ -551,7 +549,7 @@
       function useVibesPanelEvents(logPrefix) {
         React.useEffect(() => {
           const handleLogout = () => {
-            if (window.Clerk) window.Clerk.signOut();
+            if (window.__vibes_oidc_signOut) window.__vibes_oidc_signOut();
           };
           const handleSyncDisable = () => {
             console.log('[' + logPrefix + '] Sync disabled');

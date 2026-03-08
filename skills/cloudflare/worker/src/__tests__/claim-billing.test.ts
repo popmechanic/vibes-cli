@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../lib/crypto-jwt", () => ({
-  verifyClerkJWT: vi.fn(),
-  verifyClerkJWTDebug: vi.fn(),
+  verifyOIDCJWT: vi.fn(),
+  verifyOIDCJWTDebug: vi.fn(),
 }));
 
-const { verifyClerkJWTDebug } = await import("../lib/crypto-jwt");
+const { verifyOIDCJWTDebug } = await import("../lib/crypto-jwt");
 const { default: app } = await import("../index");
 
 // Full mock KV namespace with in-memory store
@@ -36,15 +36,15 @@ let mockKV: ReturnType<typeof createMockKV>;
 
 const makeBaseEnv = () => ({
   REGISTRY_KV: mockKV,
-  CLERK_PEM_PUBLIC_KEY: "test-key",
-  CLERK_WEBHOOK_SECRET: "whsec_test",
+  OIDC_PEM_PUBLIC_KEY: "test-key",
+  OIDC_ISSUER: "",
   PERMITTED_ORIGINS: "",
   RESERVED_SUBDOMAINS: "",
   BILLING_MODE: "required",
 });
 
 describe("POST /claim billing gate", () => {
-  const verifyClerkJWTDebugMock = vi.mocked(verifyClerkJWTDebug);
+  const verifyOIDCJWTDebugMock = vi.mocked(verifyOIDCJWTDebug);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -52,7 +52,7 @@ describe("POST /claim billing gate", () => {
   });
 
   it("rejects claim when user has no plan (missing pla)", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_1",
     } as any);
 
@@ -75,7 +75,7 @@ describe("POST /claim billing gate", () => {
   });
 
   it("rejects claim when user has free plan", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_1",
       plan: "u:free",
     } as any);
@@ -97,7 +97,7 @@ describe("POST /claim billing gate", () => {
   });
 
   it("allows claim when user has paid plan (starter)", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_1",
       plan: "u:starter",
     } as any);
@@ -120,7 +120,7 @@ describe("POST /claim billing gate", () => {
   });
 
   it("allows claim when billing mode is off (no plan needed)", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_1",
     } as any);
 
@@ -141,7 +141,7 @@ describe("POST /claim billing gate", () => {
   });
 
   it("allows admin to claim without plan", async () => {
-    verifyClerkJWTDebugMock.mockResolvedValue({
+    verifyOIDCJWTDebugMock.mockResolvedValue({
       userId: "user_admin",
     } as any);
 

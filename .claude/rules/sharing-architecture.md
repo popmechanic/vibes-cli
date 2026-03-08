@@ -4,7 +4,7 @@ globs:
   - "**/sharing*"
   - "**/invite*"
   - skills/*/template.delta.html
-  - bundles/fireproof-vibes-bridge.js
+  - bundles/fireproof-oidc-bridge.js
 description: Sharing and invite architecture for Fireproof collaboration
 ---
 
@@ -14,16 +14,16 @@ Users invite collaborators via the VibesPanel invite UI. The architecture uses a
 
 ## DOM Event Bridge
 
-VibesPanel (inside HiddenMenuWrapper) dispatches DOM events. SharingBridge (inside `ClerkFireproofProvider > SignedIn`) listens and calls `dashApi`:
+VibesPanel (inside HiddenMenuWrapper) dispatches DOM events. SharingBridge (inside `OIDCProvider > SignedIn`) listens and calls `dashApi`:
 
 ```
 VibesPanel → dispatches 'vibes-share-request' {email, right}
-SharingBridge → calls dashApi.inviteUser() via useClerkFireproofContext()
+SharingBridge → calls dashApi.inviteUser() via useOIDCContext()
 SharingBridge → dispatches 'vibes-share-success' or 'vibes-share-error'
 VibesPanel → listens for result events, shows BrutalistCard feedback
 ```
 
-**Why a bridge?** `useVibesPanelEvents()` runs outside `ClerkFireproofProvider` (called at AppWrapper top level), so it can't access `dashApi`. SharingBridge lives inside the provider tree.
+**Why a bridge?** `useVibesPanelEvents()` runs outside `OIDCProvider` (called at AppWrapper top level), so it can't access `dashApi`. SharingBridge lives inside the provider tree.
 
 ## Ledger Discovery
 

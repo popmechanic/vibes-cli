@@ -26,8 +26,8 @@ if (!OPENROUTER_KEY) {
   process.exit(1);
 }
 
-if (IS_MULTI_TENANT && !process.env.CLERK_PEM_PUBLIC_KEY) {
-  console.error("ERROR: CLERK_PEM_PUBLIC_KEY is required in multi-tenant mode (JWT signatures cannot be verified without it)");
+if (IS_MULTI_TENANT && !process.env.OIDC_PEM_PUBLIC_KEY) {
+  console.error("ERROR: OIDC_PEM_PUBLIC_KEY is required in multi-tenant mode (JWT signatures cannot be verified without it)");
   process.exit(1);
 }
 
@@ -44,11 +44,11 @@ if (IS_MULTI_TENANT) {
   `);
 }
 
-// Clerk PEM public key for JWT verification (same as registry server)
-const CLERK_PEM_PUBLIC_KEY = (process.env.CLERK_PEM_PUBLIC_KEY || "").replace(/\\n/g, "\n");
+// OIDC PEM public key for JWT verification (same as registry server)
+const OIDC_PEM_PUBLIC_KEY = (process.env.OIDC_PEM_PUBLIC_KEY || "").replace(/\\n/g, "\n");
 
 /**
- * Verify and extract tenant ID from Clerk JWT
+ * Verify and extract tenant ID from OIDC JWT
  * In sell apps, the JWT contains the subdomain as custom claim
  */
 async function extractTenant(req) {
@@ -65,7 +65,7 @@ async function extractTenant(req) {
     if (parts.length !== 3) return null;
 
     // Verify signature if PEM key is configured
-    if (CLERK_PEM_PUBLIC_KEY) {
+    if (OIDC_PEM_PUBLIC_KEY) {
       const crypto = await import("crypto");
       const header = JSON.parse(
         Buffer.from(parts[0].replace(/-/g, "+").replace(/_/g, "/"), "base64").toString()
@@ -76,14 +76,14 @@ async function extractTenant(req) {
       const signature = Buffer.from(parts[2].replace(/-/g, "+").replace(/_/g, "/"), "base64");
       const isValid = crypto.default.createVerify("RSA-SHA256")
         .update(signatureInput)
-        .verify(CLERK_PEM_PUBLIC_KEY, signature);
+        .verify(OIDC_PEM_PUBLIC_KEY, signature);
 
       if (!isValid) {
         console.error("JWT signature verification failed");
         return null;
       }
     } else {
-      console.warn("CLERK_PEM_PUBLIC_KEY not set — JWT signature not verified");
+      console.warn("OIDC_PEM_PUBLIC_KEY not set — JWT signature not verified");
     }
 
     const payload = JSON.parse(

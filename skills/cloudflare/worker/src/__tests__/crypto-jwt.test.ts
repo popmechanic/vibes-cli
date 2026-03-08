@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { verifyClerkJWT, pemToArrayBuffer } from "../lib/crypto-jwt";
+import { verifyOIDCJWT, pemToArrayBuffer } from "../lib/crypto-jwt";
 
 // Test PEM key (DO NOT USE IN PRODUCTION - this is for testing only)
 const TEST_PEM = `-----BEGIN PUBLIC KEY-----
@@ -18,29 +18,29 @@ describe("pemToArrayBuffer", () => {
   });
 });
 
-describe("verifyClerkJWT", () => {
+describe("verifyOIDCJWT", () => {
   it("returns null for missing Authorization header", async () => {
-    const result = await verifyClerkJWT(null, TEST_PEM, []);
+    const result = await verifyOIDCJWT(null, TEST_PEM, []);
     expect(result).toBeNull();
   });
 
   it("returns null for non-Bearer token", async () => {
-    const result = await verifyClerkJWT("Basic abc123", TEST_PEM, []);
+    const result = await verifyOIDCJWT("Basic abc123", TEST_PEM, []);
     expect(result).toBeNull();
   });
 
   it("returns null for malformed JWT", async () => {
-    const result = await verifyClerkJWT("Bearer not-a-jwt", TEST_PEM, []);
+    const result = await verifyOIDCJWT("Bearer not-a-jwt", TEST_PEM, []);
     expect(result).toBeNull();
   });
 
   it("returns null for JWT with wrong number of parts", async () => {
-    const result = await verifyClerkJWT("Bearer only.two", TEST_PEM, []);
+    const result = await verifyOIDCJWT("Bearer only.two", TEST_PEM, []);
     expect(result).toBeNull();
   });
 
   it("returns null for empty bearer token", async () => {
-    const result = await verifyClerkJWT("Bearer ", TEST_PEM, []);
+    const result = await verifyOIDCJWT("Bearer ", TEST_PEM, []);
     expect(result).toBeNull();
   });
 });

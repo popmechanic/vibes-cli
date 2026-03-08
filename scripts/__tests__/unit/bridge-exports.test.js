@@ -1,5 +1,5 @@
 /**
- * Structural tests for the fireproof-vibes-bridge module.
+ * Structural tests for the fireproof-oidc-bridge module.
  *
  * Validates that the bridge exports the required symbols and that
  * generated templates contain the supporting import map entries.
@@ -10,41 +10,73 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 const ROOT = resolve(__dirname, '../../..');
-const BRIDGE_PATH = resolve(ROOT, 'bundles/fireproof-vibes-bridge.js');
+const BRIDGE_PATH = resolve(ROOT, 'bundles/fireproof-oidc-bridge.js');
 const BASE_TEMPLATE_PATH = resolve(ROOT, 'source-templates/base/template.html');
 
 const bridgeSource = readFileSync(BRIDGE_PATH, 'utf8');
 const baseTemplate = readFileSync(BASE_TEMPLATE_PATH, 'utf8');
 
-describe('fireproof-vibes-bridge exports', () => {
-  it('exports useFireproofClerk function', () => {
-    expect(bridgeSource).toContain('export function useFireproofClerk');
+describe('fireproof-oidc-bridge exports', () => {
+  it('exports useFireproofOIDC function', () => {
+    expect(bridgeSource).toContain('export function useFireproofOIDC');
   });
 
-  it('exports useFireproof function (local-only fallback)', () => {
-    expect(bridgeSource).toContain('export function useFireproof');
+  it('exports useFireproofClerk as backward-compat alias', () => {
+    expect(bridgeSource).toContain('useFireproofOIDC as useFireproofClerk');
   });
 
-  it('imports from use-fireproof-core to avoid circular resolution', () => {
-    expect(bridgeSource).toContain('from "use-fireproof-core"');
+  it('exports useFireproof (re-exported from @fireproof/core)', () => {
+    expect(bridgeSource).toMatch(/export\s*\{.*useFireproof.*\}\s*from\s*"@fireproof\/core"/);
   });
 
-  it('re-exports all @fireproof/clerk symbols', () => {
-    expect(bridgeSource).toContain('export * from "@fireproof/clerk"');
+  it('exports OIDCProvider component', () => {
+    expect(bridgeSource).toContain('export function OIDCProvider');
+  });
+
+  it('exports SignedIn component', () => {
+    expect(bridgeSource).toContain('export function SignedIn');
+  });
+
+  it('exports SignedOut component', () => {
+    expect(bridgeSource).toContain('export function SignedOut');
+  });
+
+  it('exports SignInButton component', () => {
+    expect(bridgeSource).toContain('export function SignInButton');
+  });
+
+  it('exports UserButton component', () => {
+    expect(bridgeSource).toContain('export function UserButton');
+  });
+
+  it('exports useUser hook', () => {
+    expect(bridgeSource).toContain('export function useUser');
+  });
+
+  it('exports useOIDCContext hook', () => {
+    expect(bridgeSource).toContain('export function useOIDCContext');
+  });
+
+  it('imports from @fireproof/core (not use-fireproof-core)', () => {
+    expect(bridgeSource).toContain('from "@fireproof/core"');
+  });
+
+  it('does not re-export from @fireproof/clerk (legacy)', () => {
+    expect(bridgeSource).not.toContain('from "@fireproof/clerk"');
   });
 });
 
 describe('import map entries', () => {
-  it('maps use-fireproof to the bridge module', () => {
-    expect(baseTemplate).toContain('"use-fireproof": "/fireproof-vibes-bridge.js"');
+  it('maps use-fireproof to the OIDC bridge module', () => {
+    expect(baseTemplate).toContain('"use-fireproof": "/fireproof-oidc-bridge.js"');
   });
 
-  it('has use-fireproof-core entry pointing to esm.sh', () => {
-    expect(baseTemplate).toMatch(/"use-fireproof-core":\s*"https:\/\/esm\.sh\/stable\/use-fireproof@/);
+  it('has @fireproof/core entry pointing to esm.sh', () => {
+    expect(baseTemplate).toMatch(/"@fireproof\/core":\s*"https:\/\/esm\.sh\/stable\/use-fireproof@/);
   });
 
-  it('uses ?external=react,react-dom on use-fireproof-core', () => {
-    const match = baseTemplate.match(/"use-fireproof-core":\s*"([^"]+)"/);
+  it('uses ?external=react,react-dom on @fireproof/core', () => {
+    const match = baseTemplate.match(/"@fireproof\/core":\s*"([^"]+)"/);
     expect(match).toBeTruthy();
     expect(match[1]).toContain('?external=react,react-dom');
   });
@@ -60,26 +92,14 @@ describe('generated templates contain import map entries', () => {
   for (const relPath of templatePaths) {
     const name = relPath.split('/')[1]; // vibes, riff, sell
 
-    it(`${name} template has use-fireproof-core entry`, () => {
+    it(`${name} template has @fireproof/core entry`, () => {
       const html = readFileSync(resolve(ROOT, relPath), 'utf8');
-      expect(html).toContain('use-fireproof-core');
+      expect(html).toContain('@fireproof/core');
     });
 
-    it(`${name} template maps use-fireproof to bridge`, () => {
+    it(`${name} template maps use-fireproof to OIDC bridge`, () => {
       const html = readFileSync(resolve(ROOT, relPath), 'utf8');
-      expect(html).toContain('"use-fireproof": "/fireproof-vibes-bridge.js"');
-    });
-
-    it(`${name} template initApp imports through bridge, not raw @fireproof/clerk`, () => {
-      const html = readFileSync(resolve(ROOT, relPath), 'utf8');
-      expect(html).toContain('await import("use-fireproof")');
-      expect(html).not.toContain('await import("@fireproof/clerk")');
-    });
-
-    it(`${name} template does not contain duplicate sync wrapper code`, () => {
-      const html = readFileSync(resolve(ROOT, relPath), 'utf8');
-      // The bridge handles onTock kick — templates should not duplicate it
-      expect(html).not.toContain('noPayloadWatchers');
+      expect(html).toContain('"use-fireproof": "/fireproof-oidc-bridge.js"');
     });
   }
 });
