@@ -11,18 +11,20 @@ mkdir -p "$R2_MOUNT" "$DATA_DIR"
 
 # ---- MOUNT R2 ----
 S3_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
-AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
-AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \
-tigrisfs "$R2_BUCKET_NAME" "$R2_MOUNT" \
-    --endpoint "$S3_ENDPOINT" \
-    -o allow_other \
-    --log-level error &
+echo "${R2_ACCESS_KEY_ID}:${R2_SECRET_ACCESS_KEY}" > /etc/passwd-s3fs
+chmod 600 /etc/passwd-s3fs
+s3fs "$R2_BUCKET_NAME" "$R2_MOUNT" \
+    -o url="$S3_ENDPOINT" \
+    -o passwd_file=/etc/passwd-s3fs \
+    -o use_path_request_style \
+    -o allow_other &
 
 # Wait for mount (up to 10 seconds)
 for i in $(seq 1 10); do
     mountpoint -q "$R2_MOUNT" 2>/dev/null && break
     sleep 1
 done
+rm -f /etc/passwd-s3fs
 
 # ---- RESTORE ----
 if mountpoint -q "$R2_MOUNT" && [ -f "$BACKUP_PATH" ]; then
