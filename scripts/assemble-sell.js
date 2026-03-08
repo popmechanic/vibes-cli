@@ -295,7 +295,7 @@ const templateConstants = ['OIDC_AUTHORITY', 'OIDC_CLIENT_ID', 'APP_NAME', 'APP_
 let appCode = stripForTemplate(readFileSync(resolvedAppPath, 'utf8'), templateConstants);
 
 // Check if app uses hardcoded database name
-const firepoolMatch = appCode.match(/useFireproof\s*\(\s*["']([^"']+)["']\s*\)/);
+const firepoolMatch = appCode.match(/useFireproof(?:Clerk)?\s*\(\s*["']([^"']+)["']\s*\)/)
 if (firepoolMatch) {
   const originalDbName = firepoolMatch[1];
   console.log(`Note: Found hardcoded database name "${originalDbName}".`);

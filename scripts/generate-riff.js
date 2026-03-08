@@ -65,10 +65,10 @@ customer: [Target user persona]
 revenue: [Pricing/monetization model]
 */
 import React, { useState } from "react";
-import { useFireproof } from "use-fireproof";
+import { useFireproofClerk } from "use-fireproof";
 
 export default function App() {
-  const { useLiveQuery, useDocument } = useFireproof("riff-db");
+  const { useLiveQuery, useDocument } = useFireproofClerk("riff-db");
   // Your implementation
   return (
     <div className="min-h-screen [background from visual direction] p-4">
@@ -83,7 +83,7 @@ Requirements:
 - Use OKLCH colors for vibrant results: bg-[oklch(L_C_H)]
 - Use OKLCH gradients: bg-[linear-gradient(in_oklch,oklch(...),oklch(...))]
 - Use Tailwind CSS for styling
-- Use useFireproof for all data persistence
+- Use useFireproofClerk for all data persistence (provides sync when Clerk is configured)
 - Use useLiveQuery for real-time data
 - Use useDocument for form state (NOT useState for form data)
 - Include meaningful CRUD operations
