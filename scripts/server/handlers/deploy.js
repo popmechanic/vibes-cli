@@ -129,7 +129,7 @@ export async function handleDeploy(ctx, onEvent, target, name, token) {
   const existingApp = getApp(appName);
 
   if (isFirstDeploy(appName)) {
-    onEvent({ type: 'progress', progress: 15, stage: 'Provisioning sync backend...', elapsed: getElapsed() });
+    onEvent({ type: 'progress', progress: 15, stage: 'Setting up real-time sync...', elapsed: getElapsed() });
     try {
       connectInfo = await deployConnect({
         appName,
@@ -181,6 +181,15 @@ export async function handleDeploy(ctx, onEvent, target, name, token) {
   const bridgePath = join(ctx.projectRoot, 'bundles/fireproof-oidc-bridge.js');
   if (existsSync(bridgePath)) {
     files['fireproof-oidc-bridge.js'] = readFileSync(bridgePath, 'utf8');
+  }
+
+  // Include auth card SVG assets for deployed apps
+  const authCardsDir = join(ctx.projectRoot, 'assets/auth-cards');
+  if (existsSync(authCardsDir)) {
+    for (const name of ['card-1.svg', 'card-2.svg', 'card-3.svg', 'card-4.svg']) {
+      const p = join(authCardsDir, name);
+      if (existsSync(p)) files[`assets/auth-cards/${name}`] = readFileSync(p, 'utf8');
+    }
   }
 
   // Include favicon assets for deployed apps
@@ -251,7 +260,6 @@ export async function handleDeploy(ctx, onEvent, target, name, token) {
 
   onEvent({ type: 'progress', progress: 100, stage: 'Done!', elapsed: getElapsed() });
   onEvent({ type: 'deploy_complete', url: deployUrl, name: appName });
-  onEvent({ type: 'chat', role: 'assistant', content: deployUrl ? `Deployed to ${deployUrl}` : 'Deployment complete!' });
 
   console.log(`[Deploy] cloudflare deploy "${appName}" complete${deployUrl ? `: ${deployUrl}` : ''}`);
 }
