@@ -1,7 +1,7 @@
 // Auto-generated vibes menu components
 // Run: node scripts/build-components.js --force to regenerate
 // Source: components/
-// Generated: 2026-03-08T03:49:09.839Z
+// Generated: 2026-03-08T05:06:30.888Z
 // Components: 26/26
 
 // === useMobile ===
@@ -656,7 +656,8 @@ const getContainerStyle = () => ({
   width: "100%",
   gap: "2rem",
   padding: "3rem 0rem",
-  position: "relative"
+  position: "relative",
+  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
 });
 const getBackgroundStyle = (isShredding, isError) => ({
   position: "absolute",
