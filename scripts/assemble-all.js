@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { TEMPLATES } from './lib/paths.js';
-import { loadEnvFile, populateConnectConfig } from './lib/env-utils.js';
+import { populateConnectConfig } from './lib/env-utils.js';
 import { APP_PLACEHOLDER, loadAndValidateTemplate } from './lib/assembly-utils.js';
 
 const templatePath = TEMPLATES.vibesBasic;
@@ -26,7 +26,7 @@ try {
   console.error(err.message);
   process.exit(1);
 }
-const envVars = loadEnvFile(process.cwd());
+const envVars = {};
 
 // Get riff directories from args
 const riffDirs = process.argv.slice(2);

@@ -12,10 +12,9 @@
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { resolve } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { createBackup } from './lib/backup.js';
-import { loadEnvFile, populateConnectConfig } from './lib/env-utils.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from './lib/auth-constants.js';
 import { APP_PLACEHOLDER, validateAssembly, loadAndValidateTemplate } from './lib/assembly-utils.js';
 import { stripForTemplate } from './lib/strip-code.js';
@@ -44,34 +43,15 @@ async function main() {
   const template = loadAndValidateTemplate(templatePath, readFileSync);
   const appCode = readFileSync(resolvedAppPath, 'utf8').trim();
 
-  // Load env vars from .env — check output directory first, fall back to cwd.
-  // The editor saves Connect URLs to the project root .env, but the assembler
-  // outputs to an app subdirectory (e.g. ~/.vibes/apps/my-app/index.html).
-  // Auth constants (OIDC authority/client ID) are hardcoded — no env validation needed.
-  const outputDir = dirname(resolvedOutputPath);
-  let envVars = loadEnvFile(outputDir);
-  if (resolve(outputDir) !== resolve(process.cwd())) {
-    const cwdEnv = loadEnvFile(process.cwd());
-    envVars = { ...cwdEnv, ...envVars };
-  }
-
-  // Connect URLs are optional at assembly time — they'll be populated
-  // by deploy-cloudflare.js on first deploy (alchemy + auto-reassembly).
-  // If present, they'll be substituted; if absent, placeholders become empty strings.
-  if (envVars.VITE_API_URL) {
-    console.log('Connect mode: OIDC auth + cloud sync enabled');
-  } else {
-    console.log('Connect mode: OIDC auth enabled (Connect URLs will be set at deploy time)');
-  }
+  console.log('Assembling (Connect URLs will be injected at deploy time)');
 
   // Strip imports/exports/destructuring that conflict with the template.
   // Keep React destructuring — vibes template provides React as a global,
   // so app code needs `const { useState } = React;` to access hooks.
   const cleanedAppCode = stripForTemplate(appCode, { stripReactHooks: false });
 
-  // Assemble: insert app code at placeholder, then populate Connect config
+  // Assemble: insert app code at placeholder
   let output = template.replace(APP_PLACEHOLDER, cleanedAppCode);
-  output = populateConnectConfig(output, envVars);
 
   // Inject hardcoded OIDC constants (same for every app) — replaceAll for templates
   // with multiple occurrences of the same placeholder

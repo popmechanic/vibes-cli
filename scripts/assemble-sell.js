@@ -31,12 +31,12 @@
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { resolve } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { stripForTemplate, stripImports } from './lib/strip-code.js';
 import { createBackup } from './lib/backup.js';
 import { prompt } from './lib/prompt.js';
-import { loadEnvFile, populateConnectConfig } from './lib/env-utils.js';
+import { populateConnectConfig } from './lib/env-utils.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from './lib/auth-constants.js';
 import { APP_PLACEHOLDER } from './lib/assembly-utils.js';
 import { parseArgs as parseCliArgs, formatHelp } from './lib/cli-utils.js';
@@ -150,28 +150,20 @@ if (!domain) {
 }
 const appName = options.appName || 'my-app';
 
-// Load env vars from .env BEFORE replacements (so we can use as fallback for OIDC config)
-const outputDir = dirname(resolve(outputPath || 'index.html'));
-const envVars = loadEnvFile(outputDir);
-
-// If .env lacks Connect URLs, try global registry
-if (!envVars.VITE_API_URL) {
-  const registryAppName = options.appName || null;
-  if (registryAppName) {
-    const { getApp } = await import('./lib/registry.js');
-    const app = getApp(registryAppName);
-    if (app) {
-      envVars.VITE_API_URL = envVars.VITE_API_URL || app.connect?.apiUrl;
-      envVars.VITE_CLOUD_URL = envVars.VITE_CLOUD_URL || app.connect?.cloudUrl;
-      console.log(`Connect config: from registry (app: ${registryAppName})`);
-    }
+// Connect URLs from registry (if available) — injected at deploy time
+let envVars = {};
+const registryAppName = options.appName || null;
+if (registryAppName) {
+  const { getApp } = await import('./lib/registry.js');
+  const app = getApp(registryAppName);
+  if (app?.connect) {
+    envVars.VITE_API_URL = app.connect.apiUrl;
+    envVars.VITE_CLOUD_URL = app.connect.cloudUrl;
+    console.log(`Connect config: from registry (app: ${registryAppName})`);
   }
 }
-
-// Connect URLs are optional at assembly time — they'll be populated
-// by deploy-cloudflare.js on first deploy (alchemy + auto-reassembly).
 if (!envVars.VITE_API_URL) {
-  console.log('Note: No VITE_API_URL — Connect URLs will be set at deploy time');
+  console.log('Note: No Connect URLs — will be set at deploy time');
 }
 
 // Configuration replacements
