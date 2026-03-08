@@ -131,10 +131,22 @@ export async function handleDeploy(ctx, onEvent, target, name, token) {
   if (isFirstDeploy(appName)) {
     onEvent({ type: 'progress', progress: 15, stage: 'Setting up real-time sync...', elapsed: getElapsed() });
     try {
+      // Check for saved alchemy password from a previous partial deploy.
+      // Alchemy encrypts state with this password — losing it breaks re-deploys.
+      const partialEntry = getApp(appName);
+      let alchemyPassword = partialEntry?.connect?.alchemyPassword || null;
+      if (!alchemyPassword) {
+        const { randomBytes } = await import('crypto');
+        alchemyPassword = randomBytes(32).toString('hex');
+        // Pre-save so the password survives crashes
+        setApp(appName, { ...(partialEntry || { name: appName }), name: appName, connect: { alchemyPassword } });
+      }
+
       connectInfo = await deployConnect({
         appName,
         oidcAuthority: OIDC_AUTHORITY,
         oidcServiceWorkerName: 'pocket-id',
+        alchemyPassword,
       });
       // Save Connect info to registry
       setApp(appName, {
