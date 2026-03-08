@@ -18,6 +18,43 @@ const LOGIN_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 const EARLY_EXPIRY_BUFFER_S = 60; // refresh 60s before actual expiry
 
 // ---------------------------------------------------------------------------
+// Callback page renderer — matches AuthScreen visual language
+// ---------------------------------------------------------------------------
+
+function callbackPage(title, message, { ok = false, autoClose = false } = {}) {
+  const color = ok ? '#22c55e' : '#ef4444';
+  const icon = ok
+    ? '<svg class="icon" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30"/><path d="M20 33l8 8 16-16"/></svg>'
+    : '<svg class="icon" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30"/><path d="M22 22l20 20M42 22l-20 20"/></svg>';
+  const safeMsg = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${ok ? 'Authenticated' : 'Error'}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{min-height:100vh;display:flex;justify-content:center;align-items:center;background:#0f172a;font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif}
+.card{position:relative;width:90%;max-width:450px;background-color:#e8e4df;background-image:linear-gradient(to right,rgba(0,0,0,.1) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,.1) 1px,transparent 1px);background-size:40px 40px;border:3px solid #1a1a1a;border-radius:12px;overflow:hidden;animation:fadeIn .4s ease}
+.inner{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 2rem;gap:1.5rem;min-height:280px}
+.bg{position:absolute;top:1.5rem;left:1.5rem;right:1.5rem;bottom:1.5rem;background:${color};border:1px solid black;border-radius:8px;z-index:0;opacity:.35}
+h1{font-size:1.75rem;font-weight:bold;color:#1a1a1a;position:relative;z-index:1}
+p{font-size:1rem;color:#555;position:relative;z-index:1;max-width:360px;text-align:center;line-height:1.5;word-break:break-word}
+.icon{width:64px;height:64px;position:relative;z-index:1}
+.icon circle{fill:${color}}
+.icon path{stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;fill:none;stroke-dasharray:30;stroke-dashoffset:30;animation:draw .5s .3s ease forwards}
+@keyframes fadeIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+@keyframes draw{to{stroke-dashoffset:0}}
+</style></head><body>
+<div class="card"><div class="inner">
+<div class="bg"></div>
+${icon}
+<h1>${title}</h1>
+<p>${safeMsg}</p>
+</div></div>
+${autoClose ? '<script>setTimeout(()=>window.close(),1500)</script>' : ''}
+</body></html>`;
+}
+
+// ---------------------------------------------------------------------------
 // PKCE helpers
 // ---------------------------------------------------------------------------
 
@@ -143,7 +180,7 @@ export async function loginWithBrowser({ authority, clientId, authFile = DEFAULT
         if (error) {
           const desc = reqUrl.searchParams.get('error_description') || error;
           res.writeHead(400, { 'Content-Type': 'text/html' });
-          res.end(`<h1>Authentication failed</h1><p>${desc}</p>`);
+          res.end(callbackPage('Authentication Failed', desc));
           settled = true;
           server.close();
           reject(new Error(`OIDC error: ${desc}`));
@@ -152,7 +189,7 @@ export async function loginWithBrowser({ authority, clientId, authFile = DEFAULT
 
         if (!code || returnedState !== state) {
           res.writeHead(400, { 'Content-Type': 'text/html' });
-          res.end('<h1>Invalid callback</h1><p>Missing code or state mismatch.</p>');
+          res.end(callbackPage('Invalid Callback', 'Missing code or state mismatch.'));
           settled = true;
           server.close();
           reject(new Error('Invalid callback: missing code or state mismatch'));
@@ -178,7 +215,7 @@ export async function loginWithBrowser({ authority, clientId, authFile = DEFAULT
         if (!tokenRes.ok) {
           const text = await tokenRes.text();
           res.writeHead(500, { 'Content-Type': 'text/html' });
-          res.end(`<h1>Token exchange failed</h1><p>${text}</p>`);
+          res.end(callbackPage('Token Exchange Failed', text));
           settled = true;
           server.close();
           reject(new Error(`Token exchange failed (${tokenRes.status}): ${text}`));
@@ -196,7 +233,7 @@ export async function loginWithBrowser({ authority, clientId, authFile = DEFAULT
         writeCachedTokens(authFile, tokens);
 
         res.writeHead(200, { 'Content-Type': 'text/html' });
-        res.end('<h1>Authenticated!</h1><p>You can close this tab and return to the terminal.</p>');
+        res.end(callbackPage('Authenticated', 'This tab will close automatically\u2026', { ok: true, autoClose: true }));
 
         settled = true;
         server.close();
