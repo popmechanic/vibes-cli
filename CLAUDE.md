@@ -80,6 +80,24 @@ claude --plugin .                        # From the plugin directory
 claude --plugin /path/to/vibes-skill     # Or with absolute path
 ```
 
+## Restarting the Preview Server
+
+After editing server code, handlers, or templates (e.g. `scripts/server/`, `skills/vibes/templates/editor.html`), the running server must be restarted to pick up changes. The server auto-kills any existing process on the same port — just re-run the start command:
+
+```bash
+VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(pwd)}"
+node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor
+```
+
+Run in background if you need to continue working:
+```bash
+node "$VIBES_ROOT/scripts/preview-server.js" --mode=editor &
+```
+
+**Do NOT use `pkill -f preview-server.js`** — the server handles takeover automatically via `killProcessOnPort()`. Re-running the command is the only correct restart method.
+
+The `--mode=editor` flag is required for the editor UI. Omit it for preview-only mode. Optional flags: `--port 3333` (default), `--prompt "..."`.
+
 ## Testing
 
 ```bash
