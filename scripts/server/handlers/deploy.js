@@ -1,5 +1,9 @@
 /**
  * Deploy handlers — assemble + deploy via the Deploy API.
+ *
+ * On first deploy, provisions a Fireproof Connect instance (dashboard +
+ * cloud workers, R2, D1) for the app via alchemy. Connect URLs are injected
+ * into the assembled HTML before sending to the Deploy API.
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
@@ -7,8 +11,10 @@ import { join } from 'path';
 import { spawn } from 'child_process';
 import { getAccessToken } from '../../lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../../lib/auth-constants.js';
+import { isFirstDeploy, getApp, setApp } from '../../lib/registry.js';
+import { deployConnect } from '../../lib/alchemy-deploy.js';
 
-const DEPLOY_API_URL = 'https://vibes-deploy-api.vibes.diy';
+const DEPLOY_API_URL = 'https://vibes-deploy-api.marcus-e.workers.dev';
 
 /**
  * Assemble and deploy an app via the Deploy API.
@@ -117,6 +123,53 @@ export async function handleDeploy(ctx, onEvent, target, name, token) {
     console.error('[Deploy] Patch failed:', e.message);
   }
 
+  // --- Connect provisioning ---
+  // Check if this app already has a Connect instance or needs one provisioned.
+  let connectInfo = null;
+  const existingApp = getApp(appName);
+
+  if (isFirstDeploy(appName)) {
+    onEvent({ type: 'progress', progress: 15, stage: 'Provisioning sync backend...', elapsed: getElapsed() });
+    try {
+      connectInfo = await deployConnect({
+        appName,
+        oidcAuthority: OIDC_AUTHORITY,
+        oidcServiceWorkerName: 'pocket-id',
+      });
+      // Save Connect info to registry
+      setApp(appName, {
+        ...(existingApp || { name: appName }),
+        name: appName,
+        connect: {
+          ...connectInfo,
+          deployedAt: new Date().toISOString(),
+        },
+      });
+      console.log(`[Deploy] Connect provisioned for ${appName}: ${connectInfo.apiUrl}`);
+    } catch (err) {
+      onEvent({ type: 'error', message: `Connect provisioning failed: ${err.message}` });
+      return;
+    }
+  } else {
+    connectInfo = existingApp.connect;
+    console.log(`[Deploy] Reusing existing Connect for ${appName}: ${connectInfo.apiUrl}`);
+  }
+
+  // Inject Connect URLs into the assembled HTML
+  if (connectInfo?.apiUrl && connectInfo?.cloudUrl) {
+    let html = readFileSync(indexHtmlPath, 'utf8');
+    html = html.replace(
+      /tokenApiUri:\s*"[^"]*"/,
+      `tokenApiUri: "${connectInfo.apiUrl}"`
+    );
+    html = html.replace(
+      /cloudBackendUrl:\s*"[^"]*"/,
+      `cloudBackendUrl: "${connectInfo.cloudUrl}"`
+    );
+    writeFileSync(indexHtmlPath, html);
+    console.log(`[Deploy] Injected Connect URLs into index.html`);
+  }
+
   onEvent({ type: 'progress', progress: 30, stage: 'Deploying...', elapsed: getElapsed() });
 
   // Build the files map for the Deploy API
@@ -128,6 +181,22 @@ export async function handleDeploy(ctx, onEvent, target, name, token) {
   const bridgePath = join(ctx.projectRoot, 'bundles/fireproof-oidc-bridge.js');
   if (existsSync(bridgePath)) {
     files['fireproof-oidc-bridge.js'] = readFileSync(bridgePath, 'utf8');
+  }
+
+  // Include favicon assets for deployed apps
+  const faviconDir = join(ctx.projectRoot, 'assets/vibes-favicon');
+  if (existsSync(faviconDir)) {
+    const textAssets = ['favicon.svg', 'site.webmanifest'];
+    const binaryAssets = ['favicon-96x96.png', 'favicon.ico', 'apple-touch-icon.png',
+                          'web-app-manifest-192x192.png', 'web-app-manifest-512x512.png'];
+    for (const name of textAssets) {
+      const p = join(faviconDir, name);
+      if (existsSync(p)) files[`assets/vibes-favicon/${name}`] = readFileSync(p, 'utf8');
+    }
+    for (const name of binaryAssets) {
+      const p = join(faviconDir, name);
+      if (existsSync(p)) files[`assets/vibes-favicon/${name}`] = 'base64:' + readFileSync(p).toString('base64');
+    }
   }
 
   // Deploy via the Deploy API
@@ -163,14 +232,21 @@ export async function handleDeploy(ctx, onEvent, target, name, token) {
     return;
   }
 
-  // Save the deployed version to ~/.vibes/apps/
+  // Save deployed app.jsx and update registry with app metadata
   try {
     const saveDest = join(ctx.appsDir, appName);
     mkdirSync(saveDest, { recursive: true });
     copyFileSync(appJsxPath, join(saveDest, 'app.jsx'));
     console.log(`[Deploy] Saved deployed app.jsx to ${saveDest}`);
+
+    const appEntry = getApp(appName) || { name: appName };
+    setApp(appName, {
+      ...appEntry,
+      app: { workerName: appName, url: deployUrl },
+      updatedAt: new Date().toISOString(),
+    });
   } catch (e) {
-    console.error('[Deploy] Failed to save app.jsx:', e.message);
+    console.error('[Deploy] Failed to save app metadata:', e.message);
   }
 
   onEvent({ type: 'progress', progress: 100, stage: 'Done!', elapsed: getElapsed() });
