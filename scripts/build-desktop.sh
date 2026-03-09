@@ -8,11 +8,15 @@ DYLIB_SRC="$DESKTOP_DIR/native/macos/window-controls.mm"
 DYLIB_OUT="$DESKTOP_DIR/native/macos/build/libWindowControls.dylib"
 PLUGIN_JSON="$REPO_ROOT/.claude-plugin/plugin.json"
 
+APP_NAME="VibesOS"
+
 echo "=== Vibes Desktop Build ==="
 
 BUILD_DIR="$DESKTOP_DIR/build/stable-macos-arm64"
 ARTIFACTS_DIR="$DESKTOP_DIR/artifacts"
-ICNS="$BUILD_DIR/Vibes Editor.app/Contents/Resources/AppIcon.icns"
+ICNS="$BUILD_DIR/$APP_NAME.app/Contents/Resources/AppIcon.icns"
+DMG_BG="$DESKTOP_DIR/dmg-background.png"
+INSTALL_CMD="$REPO_ROOT/scripts/install-vibes.command"
 
 # 1. Sync version from plugin.json → electrobun.config.ts
 PLUGIN_VERSION=$(grep '"version"' "$PLUGIN_JSON" | head -1 | sed 's/.*"version": *"\([^"]*\)".*/\1/')
@@ -40,52 +44,57 @@ echo "[3/4] Building ElectroBun app..."
 cd "$DESKTOP_DIR"
 bunx electrobun build --env=stable
 
-# 4. Rebuild DMG with volume icon and drag-to-Applications layout
-echo "[4/4] Customizing DMG..."
-ORIG_DMG="$ARTIFACTS_DIR/stable-macos-arm64-VibesEditor.dmg"
-TMP_DMG="/tmp/VibesEditor-rw.dmg"
+# 4. Create polished DMG with create-dmg
+echo "[4/4] Creating DMG..."
+ORIG_DMG="$ARTIFACTS_DIR/stable-macos-arm64-VibesOS.dmg"
+rm -f "$ORIG_DMG"
 
-if [ -f "$ORIG_DMG" ] && [ -f "$ICNS" ]; then
-  # Create writable DMG
-  hdiutil create -size 400m -fs HFS+ -volname "Vibes Editor" "$TMP_DMG" -ov -quiet
-  hdiutil attach "$TMP_DMG" -readwrite -noverify -noautoopen -quiet
+if [ -f "$ICNS" ]; then
+  # Stage files for create-dmg
+  STAGE_DIR="/tmp/vibes-dmg-stage"
+  rm -rf "$STAGE_DIR"
+  mkdir -p "$STAGE_DIR"
+  cp -R "$BUILD_DIR/$APP_NAME.app" "$STAGE_DIR/"
+  cp "$INSTALL_CMD" "$STAGE_DIR/Install Vibes CLI.command"
+  chmod +x "$STAGE_DIR/Install Vibes CLI.command"
+  ln -s /Applications "$STAGE_DIR/Applications"
 
-  # Copy app and Applications symlink
-  cp -R "$BUILD_DIR/Vibes Editor.app" "/Volumes/Vibes Editor/"
-  ln -s /Applications "/Volumes/Vibes Editor/Applications"
+  # Set custom icon on Applications symlink
+  APPS_ICON="/tmp/applications-icon.png"
+  swift -e '
+import AppKit
+let ws = NSWorkspace.shared
+let icon = ws.icon(forFile: "/Applications")
+icon.size = NSSize(width: 512, height: 512)
+let tiff = icon.tiffRepresentation!
+let rep = NSBitmapImageRep(data: tiff)!
+let png = rep.representation(using: .png, properties: [:])!
+try! png.write(to: URL(fileURLWithPath: "/tmp/applications-icon.png"))
+  ' 2>/dev/null
+  if [ -f "$APPS_ICON" ]; then
+    fileicon set "$STAGE_DIR/Applications" "$APPS_ICON" 2>/dev/null || true
+  fi
 
-  # Set volume icon
-  cp "$ICNS" "/Volumes/Vibes Editor/.VolumeIcon.icns"
-  SetFile -a C "/Volumes/Vibes Editor"
+  # Layout: .command (left) → VibesOS (center) → Applications (right)
+  create-dmg \
+    --volname "$APP_NAME" \
+    --volicon "$ICNS" \
+    --background "$DMG_BG" \
+    --window-pos 200 100 \
+    --window-size 1024 576 \
+    --icon-size 120 \
+    --icon "Install Vibes CLI.command" 200 340 \
+    --icon "$APP_NAME.app" 512 340 \
+    --icon "Applications" 824 340 \
+    --no-internet-enable \
+    "$ORIG_DMG" \
+    "$STAGE_DIR" \
+    2>&1
 
-  # Configure Finder window layout
-  osascript <<'APPLESCRIPT'
-tell application "Finder"
-    tell disk "Vibes Editor"
-        open
-        set current view of container window to icon view
-        set toolbar visible of container window to false
-        set statusbar visible of container window to false
-        set bounds of container window to {400, 100, 920, 440}
-        set theViewOptions to icon view options of container window
-        set arrangement of theViewOptions to not arranged
-        set icon size of theViewOptions to 80
-        set position of item "Vibes Editor.app" of container window to {130, 180}
-        set position of item "Applications" of container window to {390, 180}
-        close
-    end tell
-end tell
-APPLESCRIPT
-
-  # Convert to compressed read-only DMG
-  sync
-  hdiutil detach /dev/disk4 2>/dev/null || hdiutil detach "/Volumes/Vibes Editor" 2>/dev/null || true
-  sleep 1
-  hdiutil convert "$TMP_DMG" -format UDZO -o "$ORIG_DMG" -ov -quiet
-  rm -f "$TMP_DMG"
-  echo "  DMG customized with volume icon and layout."
+  rm -rf "$STAGE_DIR"
+  echo "  DMG created: $ORIG_DMG"
 else
-  echo "  Skipping DMG customization (missing DMG or icon)."
+  echo "  Skipping DMG (missing app icon)."
 fi
 
 echo ""

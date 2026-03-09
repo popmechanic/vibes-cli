@@ -2,8 +2,8 @@ import type { ElectrobunConfig } from "electrobun";
 
 export default {
 	app: {
-		name: "Vibes Editor",
-		identifier: "com.vibes.desktop-editor",
+		name: "VibesOS",
+		identifier: "com.vibes.os",
 		version: "0.1.79",
 	},
 	build: {
