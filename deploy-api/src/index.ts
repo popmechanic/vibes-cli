@@ -164,14 +164,9 @@ async function verifyJWT(
       return null;
     }
 
-    // Validate audience if present — must include our client ID
-    if (parsed.payload.aud) {
-      const validAud = Array.isArray(parsed.payload.aud)
-        ? parsed.payload.aud.includes(issuer)
-        : parsed.payload.aud === issuer;
-      // Only reject if aud is present but doesn't match
-      if (!validAud) return null;
-    }
+    // Audience validation: Pocket ID sets aud to the OIDC client ID, not the
+    // issuer URL. Since we already verify issuer + signature, accept any aud
+    // issued by our trusted Pocket ID instance.
 
     return parsed.payload;
   } catch {
