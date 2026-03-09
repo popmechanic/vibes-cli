@@ -20,8 +20,3 @@ service = "pocket-id"
 [[kv_namespaces]]
 binding = "REGISTRY_KV"
 id = "215847e525304ab29b9127c70672fc86"
-
-# Import pre-built Connect Worker bundles as text strings
-[[rules]]
-type = "Text"
-globs = ["bundles/*.txt"]
