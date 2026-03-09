@@ -15,7 +15,7 @@ const SCRIPTS_DIR = resolve(__dirname, '../..');
 const FIXTURES_DIR = resolve(__dirname, '../fixtures');
 
 // Safe placeholder patterns used by sell templates
-const SAFE_PLACEHOLDERS = ['__PURE__', '__esModule', '__VIBES_CONFIG__', '__OIDC_LOAD_ERROR__', '__VIBES_OIDC_TOKEN__', '__VIBES_SYNC_STATUS__', '__VIBES_SYNC_ERROR__', '__VIBES_SHARED_LEDGER__', '__VIBES_LEDGER_MAP__', '__VIBES_INVITE_ID__', '__VIBES_REGISTRY_URL__', '__VIBES_THEMES__', '__VIBES_THEME_PRESETS__', '__VITE_API_URL__', '__VITE_CLOUD_URL__'];
+const SAFE_PLACEHOLDERS = ['__PURE__', '__esModule', '__VIBES_CONFIG__', '__OIDC_LOAD_ERROR__', '__VIBES_OIDC_TOKEN__', '__VIBES_SYNC_STATUS__', '__VIBES_SYNC_ERROR__', '__VIBES_SHARED_LEDGER__', '__VIBES_LEDGER_MAP__', '__VIBES_INVITE_ID__', '__VIBES_REGISTRY_URL__', '__VIBES_THEMES__', '__VIBES_THEME_PRESETS__', '__VITE_API_URL__', '__VITE_CLOUD_URL__', '__VITE_AI_PROXY_URL__'];
 
 function createWorkDir() {
   const dir = join(tmpdir(), `vibes-assembly-test-${Date.now()}`);

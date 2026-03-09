@@ -257,7 +257,8 @@ const SAFE_PLACEHOLDER_PATTERNS = [
   '__VIBES_THEME_PRESETS__',
   '__VIBES_APP_CODE__',
   '__ADMIN_CODE__',
-  '__VIBES_REGISTRY_URL__'
+  '__VIBES_REGISTRY_URL__',
+  '__VITE_AI_PROXY_URL__'
 ];
 
 // Validate template BEFORE injecting app/admin code
