@@ -35,6 +35,16 @@ else
     echo "[vibes] No backup found, starting fresh"
 fi
 
+# ---- PERSIST UPLOADS TO R2 ----
+# Pocket ID stores uploaded files (logos, backgrounds) in /app/data/uploads.
+# Symlink to R2 so they survive container restarts.
+if mountpoint -q "$R2_MOUNT"; then
+    mkdir -p "$R2_MOUNT/uploads"
+    rm -rf "$DATA_DIR/uploads"
+    ln -s "$R2_MOUNT/uploads" "$DATA_DIR/uploads"
+    echo "[vibes] Uploads directory linked to R2"
+fi
+
 # ---- PERIODIC BACKUP ----
 periodic_backup() {
     while true; do
