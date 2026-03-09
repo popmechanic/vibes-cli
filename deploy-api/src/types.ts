@@ -12,6 +12,9 @@ export interface Env {
 
   // KV
   REGISTRY_KV: KVNamespace;
+
+  // Optional vars for join flow
+  SERVICE_API_KEY?: string;
 }
 
 export interface DeployRequest {
@@ -43,6 +46,8 @@ export interface SubdomainRecord {
   connectProvisioned?: boolean;
   oidcClientId?: string;
   userGroupId?: string;
+  publicInvite?: { token: string; right: string; createdAt: string };
+  connect?: { apiUrl?: string; cloudBackendUrl?: string; dashboardUrl?: string; ledgerId?: string };
   createdAt?: string;
   updatedAt?: string;
 }
