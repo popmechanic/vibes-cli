@@ -24,16 +24,15 @@ describe('provisionConnect', () => {
 
     // Mock responses in order:
     // 1. R2 bucket creation
-    // 2. AccountApiToken creation
-    // 3. D1 backend creation
-    // 4. D1 backend migration query (single statement, no breakpoints)
-    // 5. D1 dashboard creation
-    // 6-19. D1 dashboard migration queries (14 statements split by breakpoints)
-    // 20. Cloud-backend Worker upload
-    // 21. Cloud-backend subdomain enable
-    // 22. Dashboard Worker upload
-    // 23. Dashboard subdomain enable
-    // 24. Workers subdomain lookup
+    // 2. D1 backend creation
+    // 3+. D1 backend migration queries
+    // N. D1 dashboard creation
+    // N+. D1 dashboard migration queries
+    // Cloud-backend Worker upload
+    // Cloud-backend subdomain enable
+    // Dashboard Worker upload
+    // Dashboard subdomain enable
+    // Workers subdomain lookup
 
     // Count dashboard migration statements
     const dashboardStatements = DASHBOARD_MIGRATION_SQL
@@ -49,14 +48,7 @@ describe('provisionConnect', () => {
 
     mockFetch
       // R2 bucket creation
-      .mockResolvedValueOnce(cfResponse({ name: `fp-storage-${stage}` }))
-      // AccountApiToken creation
-      .mockResolvedValueOnce(
-        cfResponse({
-          id: 'token-id',
-          value: 'secret-token-value',
-        }),
-      );
+      .mockResolvedValueOnce(cfResponse({ name: `fp-storage-${stage}` }));
 
     // D1 backend creation + migration statements
     mockFetch.mockResolvedValueOnce(cfResponse({ uuid: 'd1-backend-uuid' }));
@@ -92,6 +84,8 @@ describe('provisionConnect', () => {
         'export default { fetch() { return new Response("ok"); } }',
       dashboardBundle:
         'export default { fetch() { return new Response("ok"); } }',
+      r2AccessKeyId: 'test-r2-key-id',
+      r2SecretAccessKey: 'test-r2-secret',
     });
 
     expect(result.cloudBackendUrl).toContain(`fireproof-cloud-${stage}`);

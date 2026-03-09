@@ -639,6 +639,8 @@ app.post("/deploy", async (c) => {
         oidcServiceWorkerName: "pocket-id",
         cloudBackendBundle: CLOUD_BACKEND_BUNDLE,
         dashboardBundle: DASHBOARD_BUNDLE,
+        r2AccessKeyId: c.env.R2_ACCESS_KEY_ID,
+        r2SecretAccessKey: c.env.R2_SECRET_ACCESS_KEY,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Connect provisioning failed";

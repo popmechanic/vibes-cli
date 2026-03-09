@@ -4,6 +4,8 @@ export interface Env {
   CF_ACCOUNT_ID: string;
   CF_ZONE_ID: string;
   POCKET_ID_API_KEY: string;
+  R2_ACCESS_KEY_ID: string;
+  R2_SECRET_ACCESS_KEY: string;
   // Vars
   OIDC_ISSUER: string;
 

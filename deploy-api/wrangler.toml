@@ -11,6 +11,8 @@ OIDC_ISSUER = "https://vibesos.com"
 # CF_ACCOUNT_ID - our Cloudflare account ID
 # CF_ZONE_ID - vibesos.com zone ID for custom domain routing
 # POCKET_ID_API_KEY - Pocket ID admin API key for per-app registration
+# R2_ACCESS_KEY_ID - R2 S3-compatible API token (shared across all apps)
+# R2_SECRET_ACCESS_KEY - R2 S3-compatible secret key
 
 # Service Binding to Pocket ID Worker (avoids .workers.dev routing issue)
 [[services]]

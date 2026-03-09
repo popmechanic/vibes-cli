@@ -17,6 +17,9 @@ interface ProvisionParams {
   oidcServiceWorkerName: string;
   cloudBackendBundle: string;
   dashboardBundle: string;
+  /** Pre-created R2 S3-compatible credentials (shared across all apps) */
+  r2AccessKeyId: string;
+  r2SecretAccessKey: string;
 }
 
 interface CFApiResponse<T = unknown> {
@@ -240,35 +243,11 @@ async function createR2Bucket(accountId: string, apiToken: string, name: string)
     method: 'POST',
     body: JSON.stringify({ name }),
   });
-  // 409 = already exists, that's fine
-  if (!res.success && res.errors?.[0]?.code !== 409) {
+  // 10004 = "bucket already exists and you own it" — idempotent
+  if (!res.success && res.errors?.[0]?.code !== 10004) {
     throw new Error(`R2 bucket creation failed: ${JSON.stringify(res.errors)}`);
   }
   return name;
-}
-
-async function createAccountApiToken(
-  apiToken: string,
-  name: string,
-  accountId: string,
-): Promise<{ id: string; value: string }> {
-  const res = await cfApi<{ id: string; value: string }>('/user/tokens', apiToken, {
-    method: 'POST',
-    body: JSON.stringify({
-      name,
-      policies: [
-        {
-          effect: 'allow',
-          permission_groups: [{ id: 'Workers R2 Storage Write' }],
-          resources: { [`com.cloudflare.api.account.${accountId}`]: '*' },
-        },
-      ],
-    }),
-  });
-  if (!res.success) {
-    throw new Error(`AccountApiToken creation failed: ${JSON.stringify(res.errors)}`);
-  }
-  return res.result;
 }
 
 async function createD1Database(
@@ -281,6 +260,15 @@ async function createD1Database(
     body: JSON.stringify({ name }),
   });
   if (!res.success) {
+    // 7502 = database already exists — look up by name
+    if (res.errors?.[0]?.code === 7502) {
+      const listRes = await cfApi<Array<{ uuid: string; name: string }>>(
+        `/accounts/${accountId}/d1/database?name=${encodeURIComponent(name)}`,
+        apiToken,
+      );
+      const existing = listRes.result?.find((db) => db.name === name);
+      if (existing) return existing.uuid;
+    }
     throw new Error(`D1 database creation failed for ${name}: ${JSON.stringify(res.errors)}`);
   }
   return res.result.uuid;
@@ -296,7 +284,13 @@ async function runD1Migration(
   const statements = sql
     .split('--> statement-breakpoint')
     .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+    .filter((s) => s.length > 0)
+    // Make idempotent: add IF NOT EXISTS to CREATE TABLE/INDEX
+    .map((s) => s
+      .replace(/CREATE TABLE(?!\s+IF\s+NOT\s+EXISTS)/gi, 'CREATE TABLE IF NOT EXISTS')
+      .replace(/CREATE UNIQUE INDEX(?!\s+IF\s+NOT\s+EXISTS)/gi, 'CREATE UNIQUE INDEX IF NOT EXISTS')
+      .replace(/CREATE INDEX(?!\s+IF\s+NOT\s+EXISTS)/gi, 'CREATE INDEX IF NOT EXISTS'),
+    );
 
   for (const statement of statements) {
     const res = await cfApi(`/accounts/${accountId}/d1/database/${databaseId}/query`, apiToken, {
@@ -338,6 +332,13 @@ async function uploadWorker(
   );
   const json = (await res.json()) as CFApiResponse;
   if (!json.success) {
+    // 10079 = DO migration tag precondition failed (Worker already exists with DO)
+    // Retry without migrations block for re-uploads
+    if (json.errors?.[0]?.code === 10079 && metadata.migrations) {
+      const retryMeta = { ...metadata };
+      delete retryMeta.migrations;
+      return uploadWorker(accountId, apiToken, scriptName, scriptContent, retryMeta);
+    }
     throw new Error(`Worker upload failed for ${scriptName}: ${JSON.stringify(json.errors)}`);
   }
 }
@@ -386,6 +387,8 @@ export async function provisionConnect(params: ProvisionParams): Promise<Connect
     oidcServiceWorkerName,
     cloudBackendBundle,
     dashboardBundle,
+    r2AccessKeyId,
+    r2SecretAccessKey,
   } = params;
 
   const cloudBackendName = `fireproof-cloud-${stage}`;
@@ -397,10 +400,7 @@ export async function provisionConnect(params: ProvisionParams): Promise<Connect
   // 1. Create R2 bucket
   await createR2Bucket(accountId, apiToken, r2BucketName);
 
-  // 2. Create R2 S3 API token for pre-signed URLs
-  const r2Token = await createAccountApiToken(apiToken, `fp-r2-s3-${stage}`, accountId);
-
-  // 3. Create D1 databases and run migrations
+  // 2. Create D1 databases and run migrations
   const d1BackendId = await createD1Database(accountId, apiToken, backendD1Name);
   await runD1Migration(accountId, apiToken, d1BackendId, BACKEND_MIGRATION_SQL);
 
@@ -430,8 +430,8 @@ export async function provisionConnect(params: ProvisionParams): Promise<Connect
       { type: 'plain_text', name: 'MAX_IDLE_TIME', text: '300' },
       { type: 'secret_text', name: 'CLOUD_SESSION_TOKEN_PUBLIC', text: sessionTokens.publicEnv },
       { type: 'plain_text', name: 'STORAGE_URL', text: storageUrl },
-      { type: 'secret_text', name: 'ACCESS_KEY_ID', text: r2Token.id },
-      { type: 'secret_text', name: 'SECRET_ACCESS_KEY', text: r2Token.value },
+      { type: 'secret_text', name: 'ACCESS_KEY_ID', text: r2AccessKeyId },
+      { type: 'secret_text', name: 'SECRET_ACCESS_KEY', text: r2SecretAccessKey },
       { type: 'plain_text', name: 'REGION', text: 'auto' },
     ],
     migrations: {

@@ -63,8 +63,14 @@ console.log(`Embedded ${assetCount} assets (skipped ${skipped} excluded files)`)
 
 const coreCode = readFileSync(coreBundle, 'utf-8');
 
-// Rename the core bundle's `export default` to a known variable
-const wrappedCore = coreCode.replace(/export\s+default\s+/, 'const __dashboard_core__ = ');
+// Rename the core bundle's default export to a known variable.
+// Handles both `export default X` and `export{X as default}` patterns.
+let wrappedCore = coreCode.replace(/export\s+default\s+/, 'const __dashboard_core__ = ');
+// esbuild often emits `export{Foo as default}` — rewrite to a const assignment
+wrappedCore = wrappedCore.replace(
+  /export\s*\{\s*(\w+)\s+as\s+default\s*\}/,
+  'const __dashboard_core__ = $1',
+);
 
 const output = `// Auto-generated: dashboard Worker with embedded frontend assets
 // === Embedded Dashboard Frontend Assets ===
