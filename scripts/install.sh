@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Vibes installer — installs Claude Code, the Vibes marketplace, and the Vibes plugin
+# Vibes installer — installs Bun, Claude Code, the Vibes marketplace, and the Vibes plugin
 # Usage: curl -sSL https://install.vibesos.com | bash
 
 REPO="popmechanic/vibes-cli"
@@ -46,31 +46,7 @@ else
   fi
 fi
 
-# ── Step 2: Node.js ──────────────────────────────────────────────────
-
-step "Checking for Node.js..."
-
-if command -v node &>/dev/null; then
-  NODE_VERSION=$(node --version 2>/dev/null || echo "unknown")
-  info "Node.js is installed (${NODE_VERSION})"
-else
-  warn "Node.js not found — installing via Bun..."
-  # Bun can bootstrap npm packages without Node, but Claude Code
-  # currently requires Node at runtime. Install via Bun's node shim
-  # or prompt the user.
-  if command -v brew &>/dev/null; then
-    brew install node
-    if command -v node &>/dev/null; then
-      info "Node.js installed via Homebrew"
-    else
-      fail "Node.js installation failed. Install manually: https://nodejs.org"
-    fi
-  else
-    fail "Node.js is required for Claude Code. Install from https://nodejs.org"
-  fi
-fi
-
-# ── Step 3: Claude Code ──────────────────────────────────────────────
+# ── Step 2: Claude Code ──────────────────────────────────────────────
 
 step "Checking for Claude Code..."
 
@@ -80,20 +56,16 @@ if command -v claude &>/dev/null; then
 else
   warn "Claude Code not found — installing..."
 
-  if ! command -v npm &>/dev/null; then
-    fail "npm is required to install Claude Code. Install Node.js first: https://nodejs.org"
-  fi
-
-  npm install -g @anthropic-ai/claude-code
+  bun install -g @anthropic-ai/claude-code
 
   if command -v claude &>/dev/null; then
     info "Claude Code installed successfully"
   else
-    fail "Installation failed. Try: npm install -g @anthropic-ai/claude-code"
+    fail "Installation failed. Try: bun install -g @anthropic-ai/claude-code"
   fi
 fi
 
-# ── Step 4: Vibes marketplace ───────────────────────────────────────
+# ── Step 3: Vibes marketplace ───────────────────────────────────────
 
 step "Adding Vibes marketplace..."
 
@@ -109,7 +81,7 @@ else
   info "Vibes marketplace added"
 fi
 
-# ── Step 5: Vibes plugin ────────────────────────────────────────────
+# ── Step 4: Vibes plugin ────────────────────────────────────────────
 
 step "Installing Vibes plugin..."
 
