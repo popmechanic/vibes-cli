@@ -2920,11 +2920,7 @@
   }
 
   function openDeployUrl(url) {
-    if (window.__VIBES_DESKTOP__ && ws && ws.readyState === 1) {
-      ws.send(JSON.stringify({ type: 'open_external', url }));
-    } else {
-      window.open(url, '_blank');
-    }
+    window.open(url, '_blank');
   }
 
   function loadAndRedeploy(name) {
@@ -3263,17 +3259,15 @@
         showWelcomeError(data.error || 'Sign in failed');
         return;
       }
-      // Open the authorize URL — desktop uses system browser, web uses popup
+      // Open the authorize URL in a popup window.
+      // On desktop, ElectroBun's new-window-open event intercepts this
+      // and opens a native BrowserWindow for the auth flow.
       if (data.authorizeUrl) {
-        if (window.__VIBES_DESKTOP__ && ws && ws.readyState === 1) {
-          ws.send(JSON.stringify({ type: 'open_external', url: data.authorizeUrl }));
-        } else {
-          const w = 500, h = 650;
-          const left = window.screenX + (window.outerWidth - w) / 2;
-          const top = window.screenY + (window.outerHeight - h) / 2;
-          window.open(data.authorizeUrl, 'vibes_auth',
-            `width=${w},height=${h},left=${left},top=${top},popup=yes`);
-        }
+        const w = 500, h = 650;
+        const left = window.screenX + (window.outerWidth - w) / 2;
+        const top = window.screenY + (window.outerHeight - h) / 2;
+        window.open(data.authorizeUrl, 'vibes_auth',
+          `width=${w},height=${h},left=${left},top=${top},popup=yes`);
       }
       // Success is handled by the WebSocket auth_complete message
     } catch (err) {
@@ -3828,10 +3822,6 @@
         nameLink.textContent = d.name;
         nameLink.addEventListener('click', e => {
           e.stopPropagation();
-          if (window.__VIBES_DESKTOP__ && ws && ws.readyState === 1) {
-            e.preventDefault();
-            ws.send(JSON.stringify({ type: 'open_external', url: d.url }));
-          }
         });
 
         const time = document.createElement('span');
@@ -3853,10 +3843,6 @@
         arrow.textContent = '↗';
         arrow.addEventListener('click', e => {
           e.stopPropagation();
-          if (window.__VIBES_DESKTOP__ && ws && ws.readyState === 1) {
-            e.preventDefault();
-            ws.send(JSON.stringify({ type: 'open_external', url: d.url }));
-          }
         });
 
         row.append(nameLink, time, btn, arrow);
@@ -4688,12 +4674,7 @@
         link.textContent = url;
         link.style.color = 'var(--vibes-blue)';
         link.style.textDecoration = 'underline';
-        link.addEventListener('click', e => {
-          if (window.__VIBES_DESKTOP__ && ws && ws.readyState === 1) {
-            e.preventDefault();
-            ws.send(JSON.stringify({ type: 'open_external', url }));
-          }
-        });
+        // External links handled natively by ElectroBun navigation rules
         bubble.appendChild(link);
       } else {
         bubble.textContent = content;
@@ -5328,37 +5309,8 @@
   }
   if (window.__VIBES_DESKTOP__) {
     document.getElementById('windowControls').classList.add('visible');
-
-    // Intercept external link clicks and route through native openExternal
-    function interceptExternalLinks(doc) {
-      doc.addEventListener('click', (e) => {
-        const a = e.target.closest('a[href]');
-        if (!a) return;
-        const href = a.href;
-        if (!href || href.startsWith('javascript:')) return;
-        // Allow local navigation within the editor
-        if (new URL(href, location.origin).origin === location.origin) return;
-        e.preventDefault();
-        e.stopPropagation();
-        if (ws && ws.readyState === 1) {
-          ws.send(JSON.stringify({ type: 'open_external', url: href }));
-        }
-      }, true);
-    }
-    interceptExternalLinks(document);
-
-    // Also intercept links inside the preview iframe
-    const previewFrame = document.getElementById('previewFrame');
-    if (previewFrame) {
-      const hookIframe = () => {
-        try {
-          if (previewFrame.contentDocument) {
-            interceptExternalLinks(previewFrame.contentDocument);
-          }
-        } catch {}
-      };
-      previewFrame.addEventListener('load', hookIframe);
-    }
+    // External links are handled natively by ElectroBun's navigation rules
+    // and will-navigate/new-window-open events in the Bun process.
   }
 
   // === Init ===

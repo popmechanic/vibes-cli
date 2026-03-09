@@ -80,22 +80,31 @@ async function main() {
 		frame: { width: 1280, height: 820 },
 	});
 
-	// 4b. Open external links in the system browser
-	// Block navigation away from the local server; open external URLs in default browser
+	// 4b. Navigation rules — allow local server + auth provider, block the rest
 	mainWindow.webview.setNavigationRules([
 		"^*",                        // Block everything by default
-		`*://localhost:${PORT}/*`,   // Allow local server (last match wins)
+		`*://localhost:${PORT}/*`,   // Allow local server
 		`*://localhost:${PORT}`,
+		"*://vibesos.com/*",         // Allow Pocket ID auth (renders inline)
+		"*://vibesos.com",
 	]);
+
+	// Blocked navigations → open in system browser
 	mainWindow.webview.on("will-navigate", (event) => {
 		if (!event.data.allowed && event.data.url) {
 			Utils.openExternal(event.data.url);
 		}
 	});
-	// Catch window.open() calls (auth popups, target="_blank" links)
+
+	// window.open() calls — auth renders inline, everything else opens externally
 	mainWindow.webview.on("new-window-open", (event) => {
 		const url = typeof event.detail === "object" ? event.detail.url : event.detail;
-		if (url) {
+		if (!url) return;
+
+		if (url.startsWith("https://vibesos.com")) {
+			// Auth: navigate the main window inline (allowed by navigation rules)
+			mainWindow.webview.loadURL(url);
+		} else {
 			Utils.openExternal(url);
 		}
 	});
@@ -122,11 +131,6 @@ async function main() {
 				}
 				break;
 		}
-	};
-
-	// 4e. Open external URLs from the web UI
-	ctx.onOpenExternal = (url: string) => {
-		Utils.openExternal(url);
 	};
 
 	// 5. Native menu
@@ -201,7 +205,8 @@ async function main() {
 function checkClaude(): boolean {
 	try {
 		const result = Bun.spawnSync([CLAUDE_BIN, "--version"], { timeout: 5000 });
-		return result.exitCode === 0 && result.stdout.toString().trim().length > 0;
+		const ok = result.exitCode === 0 || result.exitCode === undefined;
+		return ok && result.stdout.toString().trim().length > 0;
 	} catch {
 		return false;
 	}

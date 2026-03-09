@@ -9,7 +9,7 @@ function inheritShellPath(): void {
 			timeout: 5000,
 		});
 		const shellPath = result.stdout.toString().trim();
-		if (result.exitCode === 0 && shellPath && shellPath.includes("/")) {
+		if ((result.exitCode === 0 || result.exitCode === undefined) && shellPath && shellPath.includes("/")) {
 			process.env.PATH = shellPath;
 			return;
 		}
@@ -41,7 +41,7 @@ export function resolveClaudePath(): string {
 			const resolved = result.stdout.toString().trim();
 			if (
 				resolved &&
-				result.exitCode === 0 &&
+				(result.exitCode === 0 || result.exitCode === undefined) &&
 				!resolved.includes("not found")
 			) {
 				return resolved;

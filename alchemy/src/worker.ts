@@ -427,8 +427,10 @@ app.on(["PUT", "POST"], "/api/application-images/:key", async (c) => {
 
 app.get("/api/application-images/:key", async (c) => {
   const key = c.req.param("key");
-  const obj = await c.env.BACKUP_BUCKET.get(`${IMAGE_PREFIX}${key}`);
+  const r2Key = `${IMAGE_PREFIX}${key}`;
 
+  // 1. Try R2
+  const obj = await c.env.BACKUP_BUCKET.get(r2Key);
   if (obj) {
     return new Response(obj.body, {
       headers: {
@@ -438,7 +440,94 @@ app.get("/api/application-images/:key", async (c) => {
     });
   }
 
-  // No image in R2 — return transparent pixel instead of 404/500
+  // 2. Try container and cache to R2
+  try {
+    const container = getContainer(c.env.POCKET_ID);
+    const containerRes = await container.fetch(
+      `http://internal/api/application-images/${key}`,
+    );
+    if (containerRes.ok) {
+      const body = await containerRes.arrayBuffer();
+      const contentType = containerRes.headers.get("Content-Type") || "image/png";
+      c.executionCtx.waitUntil(
+        c.env.BACKUP_BUCKET.put(r2Key, body, {
+          httpMetadata: { contentType },
+        }).then(() => console.log(`[pocket-id] Cached image "${key}" to R2`))
+      );
+      return new Response(body, {
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": "public, max-age=3600",
+        },
+      });
+    }
+  } catch (err) {
+    console.error(`[pocket-id] Failed to fetch image "${key}" from container:`, err);
+  }
+
+  // 3. Transparent pixel fallback
+  return new Response(TRANSPARENT_PIXEL, {
+    headers: {
+      "Content-Type": "image/png",
+      "Cache-Control": "public, max-age=300",
+    },
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Logo Route
+// ---------------------------------------------------------------------------
+// Pocket ID's UI requests logos at /logo?light=true|false. The container
+// serves these from its uploads directory, but crashes (500) when images
+// are missing or uploads aren't persisted. Strategy:
+//   1. Try R2 (fast, persistent)
+//   2. Fall back to container's /api/application-images/:key and cache to R2
+//   3. Transparent pixel if both fail (no console errors)
+// ---------------------------------------------------------------------------
+
+app.get("/logo", async (c) => {
+  const light = c.req.query("light");
+  const key = light === "true" ? "logo-light" : "logo-dark";
+  const r2Key = `${IMAGE_PREFIX}${key}`;
+
+  // 1. Try R2
+  const obj = await c.env.BACKUP_BUCKET.get(r2Key);
+  if (obj) {
+    return new Response(obj.body, {
+      headers: {
+        "Content-Type": obj.httpMetadata?.contentType || "image/png",
+        "Cache-Control": "public, max-age=3600",
+      },
+    });
+  }
+
+  // 2. Try fetching from the container and cache to R2
+  try {
+    const container = getContainer(c.env.POCKET_ID);
+    const containerRes = await container.fetch(
+      `http://internal/api/application-images/${key}`,
+    );
+    if (containerRes.ok) {
+      const body = await containerRes.arrayBuffer();
+      const contentType = containerRes.headers.get("Content-Type") || "image/png";
+      // Cache to R2 in the background
+      c.executionCtx.waitUntil(
+        c.env.BACKUP_BUCKET.put(r2Key, body, {
+          httpMetadata: { contentType },
+        }).then(() => console.log(`[pocket-id] Cached logo "${key}" to R2`))
+      );
+      return new Response(body, {
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": "public, max-age=3600",
+        },
+      });
+    }
+  } catch (err) {
+    console.error(`[pocket-id] Failed to fetch logo "${key}" from container:`, err);
+  }
+
+  // 3. Transparent pixel fallback
   return new Response(TRANSPARENT_PIXEL, {
     headers: {
       "Content-Type": "image/png",
