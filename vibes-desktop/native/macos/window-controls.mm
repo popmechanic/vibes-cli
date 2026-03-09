@@ -14,7 +14,9 @@ void hideZoomButton(void) {
         if (!window) return;
 
         [[window standardWindowButton:NSWindowZoomButton] setHidden:YES];
+        [[window standardWindowButton:NSWindowMiniaturizeButton] setHidden:YES];
     });
 }
+
 
 } // extern "C"

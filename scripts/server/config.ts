@@ -30,6 +30,8 @@ export interface ServerContext {
   pluginSkills: any[];
   currentApp: string | null;
   backupTimestamps: Record<string, number>;
+  managed?: boolean;
+  onWindowControl?: (action: string) => void;
 }
 
 /**

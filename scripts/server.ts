@@ -50,6 +50,7 @@ export async function startServer(options?: StartServerOptions): Promise<StartSe
   }
 
   const ctx = loadConfig();
+  if (options?.managed) ctx.managed = true;
 
   // Restore original argv
   process.argv = origArgv;

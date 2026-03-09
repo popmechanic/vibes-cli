@@ -69,7 +69,7 @@ async function main() {
 			FullSizeContentView: true,
 			Resizable: true,
 			Closable: false,
-			Miniaturizable: false,
+			Miniaturizable: true,
 		},
 		url: SERVER_URL,
 		frame: { width: 1280, height: 820 },
@@ -78,6 +78,26 @@ async function main() {
 	// 4b. Hide zoom button via native dylib (dispatch_async to main thread)
 	// Close and minimize are already hidden by styleMask above
 	setTimeout(() => hideZoomButton(), 200);
+
+	// 4c. Wire up window control callbacks from the web UI
+	ctx.onWindowControl = (action: string) => {
+		switch (action) {
+			case "close":
+				shutdown();
+				mainWindow.close();
+				break;
+			case "minimize":
+				mainWindow.minimize();
+				break;
+			case "zoom":
+				if (mainWindow.isMaximized()) {
+					mainWindow.unmaximize();
+				} else {
+					mainWindow.maximize();
+				}
+				break;
+		}
+	};
 
 	// 5. Native menu
 	ApplicationMenu.setApplicationMenu([

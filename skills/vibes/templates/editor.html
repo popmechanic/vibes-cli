@@ -66,6 +66,31 @@
     .header-left { display: flex; align-items: center; height: 100%; }
     .header-drag { flex: 1; height: 100%; cursor: default; }
     .header-right { display: flex; align-items: center; height: 100%; }
+
+    /* Desktop window controls (traffic lights) */
+    .window-controls {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 0 14px 0 16px;
+      height: 100%;
+      -webkit-app-region: no-drag;
+    }
+    .window-controls.visible { display: flex; }
+    .window-dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      transition: filter 0.15s ease;
+    }
+    .window-dot:hover { filter: brightness(1.15); }
+    .window-dot:active { filter: brightness(0.85); }
+    .window-dot--close { background: #ED6A5E; }
+    .window-dot--minimize { background: #F5BF4F; }
+    .window-dot--zoom { background: #62C554; }
     .vibes-pill-wrap {
       display: flex;
       align-items: center;
@@ -2277,6 +2302,11 @@
   <!-- Header -->
   <div class="header">
     <div class="header-left">
+      <div class="window-controls" id="windowControls">
+        <button class="window-dot window-dot--close" onclick="windowControl('close')" title="Close"></button>
+        <button class="window-dot window-dot--minimize" onclick="windowControl('minimize')" title="Minimize"></button>
+        <button class="window-dot window-dot--zoom" onclick="windowControl('zoom')" title="Zoom"></button>
+      </div>
       <div class="vibes-pill-wrap" onclick="setPhase('generate')" title="Back to prompt">
         <svg class="vibes-pill" xmlns="http://www.w3.org/2000/svg" viewBox="0 118 600 185" fill="currentColor">
           <path fill-rule="evenodd" clip-rule="evenodd" fill="#000" d="M293.353,298.09c-41.038,0-82.078,0.125-123.115-0.077c-11.993-0.06-24.011-0.701-35.964-1.703c-15.871-1.331-29.73-7.937-41.948-17.946c-16.769-13.736-27.207-31.417-30.983-52.7c-4.424-24.93,1.404-47.685,16.506-67.913c11.502-15.407,26.564-26.1,45.258-30.884c7.615-1.949,15.631-2.91,23.501-3.165c20.08-0.652,40.179-0.853,60.271-0.879c69.503-0.094,139.007-0.106,208.51,0.02c14.765,0.026,29.583,0.097,44.28,1.313c36.984,3.059,61.78,23.095,74.653,57.301c17.011,45.199-8.414,96.835-54.29,111.864c-7.919,2.595-16.165,3.721-24.434,3.871c-25.614,0.467-51.234,0.742-76.853,0.867C350.282,298.197,321.817,298.09,293.353,298.09z"/>
@@ -5259,6 +5289,16 @@
     this.style.height = 'auto';
     this.style.height = Math.min(this.scrollHeight, 120) + 'px';
   });
+
+  // === Desktop window controls ===
+  function windowControl(action) {
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: 'window_control', action }));
+    }
+  }
+  if (window.__VIBES_DESKTOP__) {
+    document.getElementById('windowControls').classList.add('visible');
+  }
 
   // === Init ===
 
