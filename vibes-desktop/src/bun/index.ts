@@ -20,6 +20,46 @@ import { hideZoomButton } from "./window-controls.ts";
 const PORT = 3333;
 const SERVER_URL = `http://localhost:${PORT}`;
 
+// Inline preload — runs after ElectroBun's built-in preload, has access to event bridge
+const LINK_PRELOAD = `
+(function() {
+  function emitNewWindow(url) {
+    var bridge = window.__electrobunEventBridge || window.__electrobunInternalBridge;
+    if (!bridge) return;
+    bridge.postMessage(JSON.stringify({
+      id: "webviewEvent",
+      type: "message",
+      payload: {
+        id: window.__electrobunWebviewId,
+        eventName: "new-window-open",
+        detail: JSON.stringify({ url: url, isCmdClick: false })
+      }
+    }));
+  }
+
+  // Intercept external link clicks
+  document.addEventListener('click', function(e) {
+    var a = e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a) return;
+    var href = a.href;
+    if (!href || href.startsWith('javascript:')) return;
+    try {
+      if (new URL(href, location.origin).origin === location.origin) return;
+    } catch(e) { return; }
+    e.preventDefault();
+    e.stopPropagation();
+    emitNewWindow(href);
+  }, true);
+
+  // Override window.open to emit events
+  var originalOpen = window.open;
+  window.open = function(url) {
+    if (url) { emitNewWindow(String(url)); }
+    return null;
+  };
+})();
+`;
+
 // --- Startup ---
 async function main() {
 	// 1. Check Claude CLI (retry loop — user may install between attempts)
@@ -78,6 +118,7 @@ async function main() {
 		},
 		url: SERVER_URL,
 		frame: { width: 1280, height: 820 },
+		preload: LINK_PRELOAD,
 	});
 
 	// 4b. Navigation rules — allow local server + auth provider, block the rest
