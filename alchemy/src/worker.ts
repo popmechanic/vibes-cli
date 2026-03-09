@@ -6,6 +6,11 @@ interface Env {
   POCKET_ID_APP_URL: string;
   POCKET_ID_ENCRYPTION_KEY: string;
   POCKET_ID_STATIC_API_KEY: string;
+  BACKUP_BUCKET: R2Bucket;
+  R2_BUCKET_NAME: string;
+  R2_ACCOUNT_ID: string;
+  R2_ACCESS_KEY_ID: string;
+  R2_SECRET_ACCESS_KEY: string;
 }
 
 /**
@@ -44,6 +49,11 @@ export class PocketIdContainer extends Container {
     if (env.POCKET_ID_STATIC_API_KEY) {
       this.envVars.STATIC_API_KEY = env.POCKET_ID_STATIC_API_KEY;
     }
+    // R2 credentials for FUSE mount inside container
+    if (env.R2_ACCESS_KEY_ID) this.envVars.R2_ACCESS_KEY_ID = env.R2_ACCESS_KEY_ID;
+    if (env.R2_SECRET_ACCESS_KEY) this.envVars.R2_SECRET_ACCESS_KEY = env.R2_SECRET_ACCESS_KEY;
+    if (env.R2_BUCKET_NAME) this.envVars.R2_BUCKET_NAME = env.R2_BUCKET_NAME;
+    if (env.R2_ACCOUNT_ID) this.envVars.R2_ACCOUNT_ID = env.R2_ACCOUNT_ID;
     // Bootstrap-friendly defaults: open signups, email login codes enabled.
     // These env vars seed Pocket ID's SQLite config on first boot.
     this.envVars.ALLOW_USER_SIGNUPS = "open";
@@ -84,7 +94,8 @@ const VIBES_OIDC_CLIENT = {
     "http://127.0.0.1/callback",
     "http://localhost:18192/callback",
     "http://127.0.0.1:18192/callback",
-    "https://*.marcus-e.workers.dev/*",
+    "https://*.vibesos.com/**",
+    "https://*.marcus-e.workers.dev/**",  // legacy — remove after migration
   ],
   isPublic: true,
 };
@@ -293,6 +304,57 @@ app.use("*", async (c, next) => {
     }
   }
   return next();
+});
+
+// ---------------------------------------------------------------------------
+// Backup Admin Routes
+// ---------------------------------------------------------------------------
+// Authenticated endpoints for managing the R2 database backup.
+// All require X-API-Key header matching POCKET_ID_STATIC_API_KEY.
+// ---------------------------------------------------------------------------
+
+const BACKUP_KEY = "pocket-id.db";
+
+function requireApiKey(c: any): boolean {
+  const apiKey = c.req.header("X-API-Key");
+  return apiKey === c.env.POCKET_ID_STATIC_API_KEY;
+}
+
+app.get("/__internal/backup/status", async (c) => {
+  if (!requireApiKey(c)) return c.json({ error: "Unauthorized" }, 401);
+
+  const obj = await c.env.BACKUP_BUCKET.head(BACKUP_KEY);
+  if (!obj) {
+    return c.json({ hasBackup: false });
+  }
+  return c.json({
+    hasBackup: true,
+    size: obj.size,
+    lastModified: obj.uploaded?.toISOString() ?? null,
+  });
+});
+
+app.get("/__internal/backup/download", async (c) => {
+  if (!requireApiKey(c)) return c.json({ error: "Unauthorized" }, 401);
+
+  const obj = await c.env.BACKUP_BUCKET.get(BACKUP_KEY);
+  if (!obj) {
+    return c.json({ error: "No backup found" }, 404);
+  }
+  return new Response(obj.body, {
+    headers: {
+      "Content-Type": "application/octet-stream",
+      "Content-Disposition": `attachment; filename="${BACKUP_KEY}"`,
+      "Content-Length": obj.size.toString(),
+    },
+  });
+});
+
+app.delete("/__internal/backup", async (c) => {
+  if (!requireApiKey(c)) return c.json({ error: "Unauthorized" }, 401);
+
+  await c.env.BACKUP_BUCKET.delete(BACKUP_KEY);
+  return c.json({ deleted: true });
 });
 
 // Route all requests to the singleton Pocket ID instance.

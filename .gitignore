@@ -64,3 +64,10 @@ index.html
 .dev.vars*
 !.dev.vars.example
 !.env.example
+
+# Backup and temp artifacts
+.env.backup
+.git-backup/
+.vibes-tmp/
+dist/
+package-lock.json

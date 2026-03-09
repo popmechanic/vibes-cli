@@ -6,8 +6,8 @@
  * to generate final templates for each skill.
  *
  * Usage:
- *   node scripts/merge-templates.js
- *   node scripts/merge-templates.js --force  # Rebuild even if templates exist
+ *   bun scripts/merge-templates.js
+ *   bun scripts/merge-templates.js --force  # Rebuild even if templates exist
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
@@ -125,7 +125,7 @@ function main() {
   const components = readFileSafe(COMPONENTS_FILE);
   if (!components) {
     console.error(`Error: Components not found: ${COMPONENTS_FILE}`);
-    console.error("  Run: node scripts/build-components.js --force");
+    console.error("  Run: bun scripts/build-components.js --force");
     process.exit(1);
   }
   console.log(`  Components: ${COMPONENTS_FILE} (${components.length} bytes)`);
@@ -134,7 +134,7 @@ function main() {
   const designTokensCSS = readFileSafe(DESIGN_TOKENS_FILE);
   if (!designTokensCSS) {
     console.error(`Error: Design tokens not found: ${DESIGN_TOKENS_FILE}`);
-    console.error("  Run: node scripts/build-design-tokens.js --force");
+    console.error("  Run: bun scripts/build-design-tokens.js --force");
     process.exit(1);
   }
   console.log(`  Design tokens: ${DESIGN_TOKENS_FILE} (${designTokensCSS.length} bytes)`);

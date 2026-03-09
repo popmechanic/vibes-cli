@@ -8,7 +8,7 @@
  * R2, D1, Workers, and Durable Object resources.
  */
 
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import { resolve, join } from 'path';
 import { homedir } from 'os';
@@ -48,13 +48,15 @@ export function ensureSparseCheckout(cacheDir) {
   const parentDir = resolve(repoDir, '..');
   mkdirSync(parentDir, { recursive: true });
 
-  execSync(
-    `git clone --depth 1 --sparse --filter=blob:none --branch ${UPSTREAM_BRANCH} ${UPSTREAM_REPO} ${repoDir}`,
+  execFileSync(
+    'git',
+    ['clone', '--depth', '1', '--sparse', '--filter=blob:none', '--branch', UPSTREAM_BRANCH, UPSTREAM_REPO, repoDir],
     { stdio: 'inherit' }
   );
 
-  execSync(
-    `git sparse-checkout set ${SPARSE_DIRS.join(' ')}`,
+  execFileSync(
+    'git',
+    ['sparse-checkout', 'set', ...SPARSE_DIRS],
     { cwd: repoDir, stdio: 'inherit' }
   );
 
@@ -219,8 +221,9 @@ export async function deployConnect({
 
   // Run alchemy deploy with --stage
   console.log(`\nDeploying Connect (stage: ${appName})...`);
-  const stdout = execSync(
-    `npx alchemy deploy alchemy/alchemy.run.ts --stage ${appName}`,
+  const stdout = execFileSync(
+    'bunx',
+    ['alchemy', 'deploy', 'alchemy/alchemy.run.ts', '--stage', appName],
     { cwd: repoDir, env, encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'] }
   );
   // Alchemy output contains Connect infrastructure URLs — log with debug prefix
@@ -235,8 +238,9 @@ export async function deployConnect({
   // Verify deployment
   console.log('\nVerifying Connect deployment...');
   try {
-    execSync(
-      `npx tsx alchemy/alchemy.verify.ts ${cloudBackendUrl} ${dashboardUrl}`,
+    execFileSync(
+      'bunx',
+      ['tsx', 'alchemy/alchemy.verify.ts', cloudBackendUrl, dashboardUrl],
       { cwd: repoDir, env, stdio: 'inherit' }
     );
   } catch (e) {

@@ -188,6 +188,11 @@ If the skill instructions below reference bash commands, spawning agents, runnin
 or using tools you don't have, adapt the guidance to what you CAN do — focus on the
 conceptual approach and any code patterns the skill recommends.
 
+ACTION REQUIREMENT: You MUST edit app.jsx. Read app.jsx once to understand its structure,
+then immediately start making Edit calls. Do NOT spend multiple turns analyzing or exploring
+the codebase — your turns are limited. Prioritize making changes over planning. Brief
+commentary is fine but the bulk of your work must be Edit tool calls.
+
 ${skillContent}
 
 `;
@@ -206,7 +211,7 @@ RULES:
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
 - Never change Fireproof document types or query filters`;
 
-  const maxTurns = (animationId || effects.length > 0 || reference || skillId) ? 12 : 8;
+  const maxTurns = skillId ? 16 : (animationId || effects.length > 0 || reference) ? 12 : 8;
   await runOneShot(prompt, { maxTurns, model, cwd: currentAppDir(ctx) || ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent, ctx.projectRoot);
 
   sanitizeAppJsx(currentAppDir(ctx) || ctx.projectRoot);

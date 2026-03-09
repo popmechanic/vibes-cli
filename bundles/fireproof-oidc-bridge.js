@@ -22,8 +22,7 @@
 import React from "react";
 import * as oauth from "oauth4webapi";
 
-// Re-export base Fireproof for user app code
-export { useFireproof } from "@fireproof/core";
+// Import base Fireproof (local-only) — used internally by useFireproofOIDC
 import { useFireproof as _baseUseFireproof, toCloud as _toCloud } from "@fireproof/core";
 
 // ─── OIDC Token Management ───────────────────────────────────────────────
@@ -278,8 +277,34 @@ export function OIDCProvider(props) {
     var redirectUri = window.location.origin + window.location.pathname;
 
     async function init() {
-      // Step 1: Check for callback code
+      // Step 0: Check for OTA (one-time-access-token) from invite link
       var params = new URLSearchParams(window.location.search);
+      if (params.has("ota")) {
+        var otaToken = params.get("ota");
+        try {
+          // Exchange OTA token with Pocket ID — this sets up the user's session
+          var otaRes = await fetch(authority + "/api/one-time-access-token/" + encodeURIComponent(otaToken), {
+            method: "POST",
+            headers: { "Accept": "application/json" }
+          });
+          if (otaRes.ok) {
+            console.debug("[vibes-oidc] OTA token redeemed, starting login flow");
+          } else {
+            console.warn("[vibes-oidc] OTA token redemption failed:", otaRes.status);
+          }
+        } catch (otaErr) {
+          console.warn("[vibes-oidc] OTA token exchange error:", otaErr);
+        }
+        // Clean the OTA param from URL regardless of outcome
+        params.delete("ota");
+        var cleanOtaUrl = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
+        window.history.replaceState({}, "", cleanOtaUrl);
+        // After OTA redemption, start normal OIDC login to get tokens
+        startLogin(authority, clientId, redirectUri);
+        return;
+      }
+
+      // Step 1: Check for callback code
       if (params.has("code")) {
         var tokens = await handleCallback(authority, clientId, redirectUri);
         if (tokens && !cancelled) {
@@ -430,27 +455,44 @@ export function SignedOut(props) {
 
 export function SignInButton(props) {
   var config = window.__VIBES_CONFIG__ || {};
+  var _s = React.useState(false);
+  var isLoading = _s[0];
+  var setIsLoading = _s[1];
 
   function handleClick() {
+    if (isLoading) return;
     var authority = config.oidcAuthority;
     var clientId = config.oidcClientId;
     if (!authority || !clientId) {
       console.error("[vibes-oidc] Missing oidcAuthority or oidcClientId in config");
       return;
     }
-    startLogin(authority, clientId, window.location.origin + window.location.pathname);
+    setIsLoading(true);
+    startLogin(authority, clientId, window.location.origin + window.location.pathname)
+      .catch(function (err) {
+        console.error("[vibes-oidc] Login failed:", err);
+        setIsLoading(false);
+      });
   }
 
-  // If children are provided (e.g., wrapping a button), clone with onClick
+  // If children are provided (e.g., wrapping a button), clone with onClick + disabled state
   if (props.children) {
     return React.cloneElement(
       React.Children.only(props.children),
-      { onClick: handleClick }
+      {
+        onClick: handleClick,
+        disabled: isLoading,
+        children: isLoading ? "Connecting…" : props.children.props.children
+      }
     );
   }
 
   // Default button
-  return React.createElement("button", { onClick: handleClick }, "Sign In");
+  return React.createElement(
+    "button",
+    { onClick: handleClick, disabled: isLoading },
+    isLoading ? "Connecting…" : "Sign In"
+  );
 }
 
 // ─── UserButton ──────────────────────────────────────────────────────────
@@ -683,7 +725,6 @@ export function useFireproofOIDC(name, opts) {
     if (_isPreviewMode) return;
     if (!dashApi || !config.cloudBackendUrl || attachingRef.current) return;
     if (attachStatus !== "detached") return;
-
     attachingRef.current = true;
     setSyncStatus("connecting");
     setAttachStatus("attaching");
@@ -853,3 +894,8 @@ export function useFireproofOIDC(name, opts) {
 
 // Backward-compat alias: templates may use useFireproofClerk
 export { useFireproofOIDC as useFireproofClerk };
+
+// Export OIDC-enhanced hook as useFireproof so all apps get cloud sync automatically.
+// When no OIDCProvider is present (local-only mode), dashApi is null and cloud attach
+// is gracefully skipped — behaves identically to the base useFireproof.
+export { useFireproofOIDC as useFireproof };

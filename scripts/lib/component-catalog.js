@@ -6,7 +6,7 @@
  * as-is or override styles with design tokens for custom themes.
  *
  * To update: edit here, then run:
- *   node scripts/build-design-tokens.js --force
+ *   bun scripts/build-design-tokens.js --force
  */
 
 export const COMPONENT_CATALOG = {

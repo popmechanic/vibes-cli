@@ -29,11 +29,15 @@ export function validateJwtTiming(
   decoded: { exp?: number; nbf?: number },
   currentTime: number = Math.floor(Date.now() / 1000)
 ): { valid: boolean; reason?: string } {
-  if (decoded.exp && decoded.exp <= currentTime) {
+  // Require exp claim — tokens without expiry should not be accepted
+  if (typeof decoded.exp !== "number") {
+    return { valid: false, reason: "missing_exp" };
+  }
+  if (decoded.exp <= currentTime) {
     return { valid: false, reason: "expired" };
   }
 
-  if (decoded.nbf && decoded.nbf > currentTime) {
+  if (typeof decoded.nbf === "number" && decoded.nbf > currentTime) {
     return { valid: false, reason: "not_yet_valid" };
   }
 

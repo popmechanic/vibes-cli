@@ -465,10 +465,6 @@
       height: 100%;
       object-fit: cover;
     }
-    .app-card-placeholder {
-      font-size: 2rem;
-      opacity: 0.3;
-    }
     .app-card-info {
       padding: 0.5rem 0.75rem;
     }
@@ -1519,6 +1515,15 @@
       font-weight: 800;
     }
     .animation-active-badge .clear-btn:hover { color: var(--vibes-red); }
+
+    .skill-active-badge {
+      background: var(--vibes-blue);
+      color: white;
+    }
+    .skill-active-badge .clear-btn {
+      color: white;
+    }
+    .skill-active-badge .clear-btn:hover { color: var(--vibes-red); }
 
     /* Animation modal */
     .anim-modal-overlay {
@@ -2573,6 +2578,10 @@
           <span id="animBadgeName"></span>
           <button class="clear-btn" onclick="clearAnimation()" title="Clear animation">&times;</button>
         </span>
+        <span class="skill-active-badge animation-active-badge" id="skillBadge">
+          <span id="skillBadgeName"></span>
+          <button class="clear-btn" onclick="clearSkill()" title="Clear skill">&times;</button>
+        </span>
       </div>
       <div class="chat-composer">
         <div class="chat-composer-box">
@@ -2627,6 +2636,11 @@
                 </div>
               </div>
             </div>
+            <button class="composer-btn" id="skillsBtn" onclick="toggleSkillsModal()" title="Add skill context" style="display:none">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </button>
             <textarea class="chat-input" id="chatInput" placeholder="Describe changes to your app..." rows="1"
               onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
             <div class="chat-btn-spacer"></div>
@@ -2706,6 +2720,20 @@
       <div class="anim-category-tabs" id="animCategoryTabs"></div>
       <div class="anim-modal-body">
         <div class="anim-grid" id="animGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Skills Modal -->
+  <div class="anim-modal-overlay" id="skillsModal">
+    <div class="anim-modal">
+      <div class="anim-modal-header">
+        <h2>Choose a Skill</h2>
+        <button class="modal-close" onclick="closeSkillsModal()">&times;</button>
+      </div>
+      <div class="anim-category-tabs" id="skillPluginTabs"></div>
+      <div class="anim-modal-body">
+        <div class="anim-grid" id="skillGrid"></div>
       </div>
     </div>
   </div>
@@ -3136,6 +3164,9 @@
         document.getElementById('welcomeGreeting').style.display = 'none';
         document.getElementById('welcomeError').style.display = 'none';
         return;
+      } else if (msg.type === 'app_saved') {
+        if (msg.name) currentAppName = msg.name;
+        if (_appSavedResolve) { _appSavedResolve(); _appSavedResolve = null; }
       } else if (msg.type === 'deploy_complete') {
         setThinking(false);
         if (msg.name) currentAppName = msg.name;
@@ -3313,26 +3344,36 @@
       let listHtml = '';
 
       // "Continue current app" always goes first as a card
+      // If the current working app matches a saved app, show its name and screenshot
+      let currentMatchName = null;
       if (hasCurrentApp) {
+        const matchedApp = currentAppName ? savedApps.find(a => a.name === currentAppName) : null;
+        if (matchedApp) currentMatchName = matchedApp.name;
+        const cardName = matchedApp ? matchedApp.name : 'Continue current app';
+        const cardThumb = matchedApp && matchedApp.hasScreenshot
+          ? `<img src="/editor/apps/screenshot?name=${encodeURIComponent(matchedApp.name)}" alt="${escapeHtml(matchedApp.name)}" loading="lazy">`
+          : `<img src="/editor/assets/screen-saver.png" alt="App preview" loading="lazy">`;
         gridHtml += `<div class="app-card" onclick="useExistingApp()">
-          <div class="app-card-thumb"><span class="app-card-placeholder">&#9998;</span></div>
+          <div class="app-card-thumb">${cardThumb}</div>
           <div class="app-card-info">
-            <div class="app-card-name">Continue current app</div>
+            <div class="app-card-name">${escapeHtml(cardName)}</div>
             <div class="app-card-meta">app.jsx in working directory</div>
           </div>
         </div>`;
       }
 
       // Top 8 recent apps get cards with screenshots
-      const recentApps = savedApps.slice(0, 8);
-      const olderApps = savedApps.slice(8);
+      // Filter out the matched "current" app to avoid duplicate cards
+      const filteredApps = currentMatchName ? savedApps.filter(a => a.name !== currentMatchName) : savedApps;
+      const recentApps = filteredApps.slice(0, 8);
+      const olderApps = filteredApps.slice(8);
 
       for (const app of recentApps) {
         const ago = timeAgo(new Date(app.modified));
         const themeLabel = app.themeName ? ' \u00b7 ' + escapeHtml(app.themeName) : '';
         const thumbContent = app.hasScreenshot
           ? `<img src="/editor/apps/screenshot?name=${encodeURIComponent(app.name)}" alt="${escapeHtml(app.name)}" loading="lazy">`
-          : `<span class="app-card-placeholder">&#9670;</span>`;
+          : `<img src="/editor/assets/screen-saver.png" alt="App preview" loading="lazy">`;
         gridHtml += `<div class="app-card" onclick="loadSavedApp('${escapeHtml(app.name)}')">
           <div class="app-card-thumb">${thumbContent}</div>
           <div class="app-card-info">
@@ -3383,6 +3424,7 @@
       const res = await fetch('/editor/apps/load?name=' + encodeURIComponent(name), { method: 'POST' });
       if (!res.ok) throw new Error('Failed to load app');
       currentAppName = name;
+      document.getElementById('chatMessages').innerHTML = '';
       setPhase('edit');
       loadPreview();
       versionHistory = [];
@@ -3402,9 +3444,11 @@
       }
       return;
     }
-    // Derive name from prompt: take first 3 words, slugify
+    // Derive name from prompt: strip filler words, take first 4 meaningful words
+    const FILLER = new Set(['build','me','a','an','the','my','for','make','create','app','that','with','i','want','need','please','can','you','some','this','it','of','to','and','in','on','is']);
     const prompt = document.getElementById('generatePrompt')?.value || '';
-    const slug = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+    const words = prompt.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w && !FILLER.has(w));
+    const slug = (words.length ? words.slice(0, 4).join('-') : '').slice(0, 63);
     if (slug && ws && ws.readyState === WebSocket.OPEN) {
       currentAppName = slug;
       ws.send(JSON.stringify({ type: 'save_app', name: slug }));
@@ -3414,25 +3458,31 @@
     }
   }
 
+  // Resolves when the server confirms save — used by saveApp to sequence screenshot after save
+  let _appSavedResolve = null;
+
   function saveApp() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    if (currentAppName) {
-      ws.send(JSON.stringify({ type: 'save_app', name: currentAppName }));
-      addMessage('system', 'Saved.');
-      captureScreenshot();
-    } else {
-      // No name yet — derive from prompt
+    let name = currentAppName;
+    if (!name) {
+      // No name yet — derive from prompt (strip filler, first 4 words)
+      const FILLER = new Set(['build','me','a','an','the','my','for','make','create','app','that','with','i','want','need','please','can','you','some','this','it','of','to','and','in','on','is']);
       const prompt = document.getElementById('generatePrompt')?.value || '';
-      const slug = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
-      if (slug) {
-        currentAppName = slug;
-        ws.send(JSON.stringify({ type: 'save_app', name: slug }));
-        addMessage('system', 'Saved as "' + slug + '".');
-        captureScreenshot();
-      } else {
+      const words = prompt.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w && !FILLER.has(w));
+      name = (words.length ? words.slice(0, 4).join('-') : '').slice(0, 63);
+      if (!name) {
         addMessage('system', 'Generate an app first before saving.');
+        return;
       }
+      currentAppName = name;
     }
+    // Send save, wait for confirmation, then capture screenshot
+    const savedPromise = new Promise(resolve => { _appSavedResolve = resolve; });
+    ws.send(JSON.stringify({ type: 'save_app', name }));
+    addMessage('system', 'Saved as "' + name + '".');
+    savedPromise.then(() => captureScreenshot());
+    // Timeout fallback — capture anyway if server doesn't respond in 2s
+    setTimeout(() => { if (_appSavedResolve) { _appSavedResolve(); _appSavedResolve = null; } }, 2000);
   }
 
   async function captureScreenshot() {
@@ -3532,6 +3582,8 @@
   }
 
   function startGenerate() {
+    // Clear stale app name so auto-save creates a new entry from the prompt
+    currentAppName = null;
     const prompt = document.getElementById('generatePrompt').value.trim();
     if (!prompt) {
       const errEl = document.getElementById('generateError');
@@ -3567,6 +3619,7 @@
   }
 
   function useExistingApp() {
+    document.getElementById('chatMessages').innerHTML = '';
     setPhase('edit');
     loadPreview();
     versionPush();
@@ -3924,6 +3977,114 @@
     badge.classList.remove('visible');
     document.getElementById('chatInput').placeholder = 'Describe changes to your app...';
   }
+
+  // === Skills ===
+  let allSkills = [];
+  let activeSkillId = null;
+  let activeSkillPlugin = 'All';
+
+  async function loadSkills() {
+    try {
+      const res = await fetch('/skills');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      allSkills = await res.json();
+      console.log(`Loaded ${allSkills.length} skills`);
+      document.getElementById('skillsBtn').style.display = allSkills.length > 0 ? '' : 'none';
+    } catch (err) {
+      console.error('Failed to load skills:', err);
+      document.getElementById('skillsBtn').style.display = 'none';
+    }
+  }
+
+  loadSkills();
+
+  function toggleSkillsModal() {
+    const modal = document.getElementById('skillsModal');
+    if (modal.classList.contains('open')) {
+      closeSkillsModal();
+    } else {
+      openSkillsModal();
+    }
+  }
+
+  function openSkillsModal() {
+    activeSkillPlugin = 'All';
+    document.getElementById('skillsModal').classList.add('open');
+    renderSkillPluginTabs();
+    renderSkillGrid();
+  }
+
+  function closeSkillsModal() {
+    document.getElementById('skillsModal').classList.remove('open');
+  }
+
+  function renderSkillPluginTabs() {
+    const tabs = document.getElementById('skillPluginTabs');
+    const plugins = ['All', ...new Set(allSkills.map(s => s.pluginName))];
+    tabs.innerHTML = plugins.map(p =>
+      `<button class="anim-category-tab${p === activeSkillPlugin ? ' active' : ''}" data-plugin="${escapeHtml(p)}">${escapeHtml(p)}</button>`
+    ).join('');
+    tabs.querySelectorAll('[data-plugin]').forEach(btn => {
+      btn.addEventListener('click', () => filterSkillsByPlugin(btn.dataset.plugin));
+    });
+  }
+
+  function filterSkillsByPlugin(plugin) {
+    activeSkillPlugin = plugin;
+    renderSkillPluginTabs();
+    renderSkillGrid();
+  }
+
+  function renderSkillGrid() {
+    const grid = document.getElementById('skillGrid');
+    const filtered = activeSkillPlugin === 'All'
+      ? allSkills
+      : allSkills.filter(s => s.pluginName === activeSkillPlugin);
+
+    if (filtered.length === 0) {
+      grid.innerHTML = '<div style="text-align:center;color:#555;padding:2rem;grid-column:1/-1;">No skills available</div>';
+      return;
+    }
+
+    grid.innerHTML = filtered.map(s => {
+      const isActive = activeSkillId === s.id;
+      const activeStyle = isActive ? 'border-color:var(--vibes-blue);box-shadow:4px 4px 0px 0px var(--vibes-blue), 4px 4px 0px 2px var(--vibes-near-black);' : '';
+      return `<div class="anim-card" style="${activeStyle}" data-skill-id="${escapeHtml(s.id)}">
+        <div class="anim-card-info" style="padding:0.75rem;">
+          <div class="anim-card-name">${escapeHtml(s.name)}</div>
+          <div class="anim-card-desc">${escapeHtml(s.description || '')}</div>
+          <div style="font-size:0.6rem;color:#888;margin-top:0.25rem;">${escapeHtml(s.pluginName)}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    grid.querySelectorAll('[data-skill-id]').forEach(card => {
+      card.addEventListener('click', () => selectSkill(card.dataset.skillId));
+    });
+  }
+
+  function selectSkill(id) {
+    activeSkillId = id;
+    const skill = allSkills.find(s => s.id === id);
+    const badge = document.getElementById('skillBadge');
+    const badgeName = document.getElementById('skillBadgeName');
+    if (skill) {
+      badgeName.textContent = skill.name;
+      badge.classList.add('visible');
+      document.getElementById('skillsBtn').classList.add('active');
+    }
+    closeSkillsModal();
+  }
+
+  function clearSkill() {
+    activeSkillId = null;
+    document.getElementById('skillBadge').classList.remove('visible');
+    document.getElementById('skillsBtn').classList.remove('active');
+  }
+
+  document.getElementById('skillsModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('skillsModal')) closeSkillsModal();
+  });
 
   // === Model picker ===
   let selectedModel = '';
@@ -4416,17 +4577,20 @@
     if ((!text && !referenceFile) || isThinking || !ws || ws.readyState !== WebSocket.OPEN) return;
 
     const animLabel = activeAnimationId ? allAnimations.find(a => a.id === activeAnimationId)?.name : null;
+    const skillLabel = activeSkillId ? allSkills.find(s => s.id === activeSkillId)?.name : null;
     const refLabel = referenceFile ? referenceFile.name : null;
     const intentLabels = { none: '', mood: ' (Mood)', match: ' (Match)' };
     const refIntent = referenceFile ? (referenceFile.intent || 'match') : null;
     let displayText = text || (refLabel ? 'Style the app using this reference' : '');
     if (animLabel) displayText += '  [' + animLabel + ']';
+    if (skillLabel) displayText += '  [skill: ' + skillLabel + ']';
     if (refLabel) displayText += '  [ref: ' + refLabel + (intentLabels[refIntent] || '') + ']';
     addMessage('user', displayText);
 
     const defaultMsg = refIntent === 'none' ? '' : 'Style the app to match the attached reference';
     const payload = { type: 'chat', message: text || defaultMsg, model: getModel() };
     if (activeAnimationId) payload.animationId = activeAnimationId;
+    if (activeSkillId) payload.skillId = activeSkillId;
     if (referenceFile) {
       payload.reference = {
         name: referenceFile.name,
@@ -4441,6 +4605,7 @@
     input.value = '';
     input.style.height = 'auto';
     if (activeAnimationId) clearAnimation();
+    if (activeSkillId) clearSkill();
     if (referenceFile) clearReference();
   }
 

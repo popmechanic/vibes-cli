@@ -24,8 +24,22 @@ const parseAdminIds = (value?: string): string[] =>
     .map((id) => id.trim())
     .filter(Boolean);
 
-// CORS middleware
-app.use("*", cors());
+// CORS middleware — scoped to known origins
+app.use(
+  "*",
+  cors({
+    origin: (origin, c) => {
+      if (!origin) return origin; // non-browser (CLI) requests
+      if (origin === "http://localhost:3333") return origin; // editor preview
+      if (origin.endsWith(".workers.dev")) return origin; // deployed apps
+      if (origin.endsWith(".vibes.diy")) return origin; // custom domain (legacy)
+      if (origin.endsWith(".vibesos.com")) return origin; // custom domain
+      const permitted = parsePermittedOrigins((c.env as Env).PERMITTED_ORIGINS);
+      if (permitted.some((p) => p === origin)) return origin;
+      return null; // reject unknown origins
+    },
+  })
+);
 
 // One-time migration middleware: check for legacy blob and decompose
 app.use("*", async (c, next) => {
@@ -361,8 +375,16 @@ app.post("/webhook", async (c) => {
   return c.json({ error: "Webhook handler not yet implemented" }, 501);
 });
 
-// POST /api/ai/chat - AI proxy to OpenRouter
+// POST /api/ai/chat - AI proxy to OpenRouter (authenticated)
 app.post("/api/ai/chat", async (c) => {
+  // Require authentication to prevent API key abuse
+  const authHeader = c.req.header("Authorization");
+  const permittedOrigins = parsePermittedOrigins(c.env.PERMITTED_ORIGINS);
+  const authResult = await verifyOIDCJWTDebug(authHeader, c.env.OIDC_PEM_PUBLIC_KEY, permittedOrigins, c.env.OIDC_ISSUER);
+  if ('error' in authResult) {
+    return c.json({ error: "Unauthorized" }, 401);
+  }
+
   const apiKey = c.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     return c.json({ error: "AI not configured" }, 501);

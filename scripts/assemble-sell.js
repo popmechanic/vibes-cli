@@ -9,7 +9,7 @@
  *   - index.html - Unified app handling landing, tenant, and admin routes
  *
  * Usage:
- *   node scripts/assemble-sell.js <app.jsx> [output.html] [options]
+ *   bun scripts/assemble-sell.js <app.jsx> [output.html] [options]
  *
  * Options:
  *   --app-name <name>     App name for database naming (e.g., "wedding-photos")
@@ -23,7 +23,7 @@
  *   --reserved <csv>      Comma-separated reserved subdomain names
  *
  * Example:
- *   node scripts/assemble-sell.js app.jsx index.html \
+ *   bun scripts/assemble-sell.js app.jsx index.html \
  *     --app-name wedding-photos \
  *     --app-title "Wedding Photos" \
  *     --domain myapp.exe.xyz \
@@ -31,13 +31,13 @@
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { resolve } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { stripForTemplate, stripImports } from './lib/strip-code.js';
 import { createBackup } from './lib/backup.js';
 import { prompt } from './lib/prompt.js';
-import { loadEnvFile, populateConnectConfig } from './lib/env-utils.js';
-import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from './lib/auth-constants.js';
+import { populateConnectConfig } from './lib/env-utils.js';
+import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL } from './lib/auth-constants.js';
 import { APP_PLACEHOLDER } from './lib/assembly-utils.js';
 import { parseArgs as parseCliArgs, formatHelp } from './lib/cli-utils.js';
 
@@ -59,9 +59,9 @@ const assembleSellSchema = [
 const assembleSellMeta = {
   name: 'Sell App Assembler',
   description: 'Assembles a SaaS app from the sell template and user\'s app code.',
-  usage: 'node scripts/assemble-sell.js <app.jsx> [output.html] [options]',
+  usage: 'bun scripts/assemble-sell.js <app.jsx> [output.html] [options]',
   examples: [
-    'node scripts/assemble-sell.js app.jsx index.html \\',
+    'bun scripts/assemble-sell.js app.jsx index.html \\',
     '  --app-name wedding-photos \\',
     '  --app-title "Wedding Photos" \\',
     '  --domain myapp.exe.xyz \\',
@@ -96,7 +96,7 @@ const { appJsxPath, outputPath, options } = parseSellArgs(process.argv);
 
 // Validate app.jsx path
 if (!appJsxPath) {
-  console.error('Usage: node scripts/assemble-sell.js <app.jsx> [output.html] [options]');
+  console.error('Usage: bun scripts/assemble-sell.js <app.jsx> [output.html] [options]');
   console.error('\nProvide the path to your app.jsx file.');
   console.error('Run with --help for full usage.');
   process.exit(1);
@@ -150,32 +150,23 @@ if (!domain) {
 }
 const appName = options.appName || 'my-app';
 
-// Load env vars from .env BEFORE replacements (so we can use as fallback for OIDC config)
-const outputDir = dirname(resolve(outputPath || 'index.html'));
-const envVars = loadEnvFile(outputDir);
-
-// If .env lacks Connect URLs, try global registry
-if (!envVars.VITE_API_URL) {
-  const registryAppName = options.appName || null;
-  if (registryAppName) {
-    const { getApp } = await import('./lib/registry.js');
-    const app = getApp(registryAppName);
-    if (app) {
-      envVars.VITE_API_URL = envVars.VITE_API_URL || app.connect?.apiUrl;
-      envVars.VITE_CLOUD_URL = envVars.VITE_CLOUD_URL || app.connect?.cloudUrl;
-      console.log(`Connect config: from registry (app: ${registryAppName})`);
-    }
+// Connect URLs from registry (if available) — injected at deploy time
+let envVars = {};
+const registryAppName = options.appName || null;
+if (registryAppName) {
+  const { getApp } = await import('./lib/registry.js');
+  const app = getApp(registryAppName);
+  if (app?.connect) {
+    envVars.VITE_API_URL = app.connect.apiUrl;
+    envVars.VITE_CLOUD_URL = app.connect.cloudUrl;
+    console.log(`Connect config: from registry (app: ${registryAppName})`);
   }
 }
-
-// Connect URLs are optional at assembly time — they'll be populated
-// by deploy-cloudflare.js on first deploy (alchemy + auto-reassembly).
 if (!envVars.VITE_API_URL) {
-  console.log('Note: No VITE_API_URL — Connect URLs will be set at deploy time');
+  console.log('Note: No Connect URLs — will be set at deploy time');
 }
 
 // Configuration replacements
-// Use CLI flags if provided, otherwise fall back to .env values (validated above)
 const replacements = {
   '__OIDC_AUTHORITY__': OIDC_AUTHORITY,
   '__OIDC_CLIENT_ID__': OIDC_CLIENT_ID,
@@ -228,7 +219,7 @@ for (const [placeholder, value] of Object.entries(replacements)) {
   output = output.split(placeholder).join(value);
 }
 
-// Populate Connect config placeholders from .env (envVars loaded earlier)
+// Populate Connect config placeholders (from registry if available)
 // Must run before placeholder validation so Connect placeholders are replaced
 console.log('Connect mode: OIDC auth + cloud sync enabled');
 output = populateConnectConfig(output, envVars, true);
@@ -236,6 +227,7 @@ output = populateConnectConfig(output, envVars, true);
 // Inject hardcoded OIDC constants (same for every app)
 output = output.split('__VITE_OIDC_AUTHORITY__').join(OIDC_AUTHORITY);
 output = output.split('__VITE_OIDC_CLIENT_ID__').join(OIDC_CLIENT_ID);
+output = output.split('__VITE_DEPLOY_API_URL__').join(DEPLOY_API_URL);
 
 // Known safe patterns that aren't config placeholders
 // __PURE__ is a tree-shaking comment used by bundlers
@@ -286,7 +278,7 @@ const templateErrors = validateSellTemplate(output);
 if (templateErrors.length > 0) {
   console.error('Sell assembly failed (template validation):');
   templateErrors.forEach(e => console.error(`  - ${e}`));
-  console.error('\nFix: Check your config options and .env file');
+  console.error('\nFix: Check your config options');
   process.exit(1);
 }
 
@@ -362,7 +354,7 @@ STEP 1: DEPLOY TO CLOUDFLARE WORKERS
 
   Run /vibes:cloudflare to deploy, or manually:
 
-  node "\${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \\
+  bun "\${CLAUDE_PLUGIN_ROOT}/scripts/deploy-cloudflare.js" \\
     --name ${appName} --file index.html
 
   Auth is automatic — a browser window opens for Pocket ID login

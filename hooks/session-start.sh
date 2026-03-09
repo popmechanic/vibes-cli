@@ -14,15 +14,20 @@ context_content=$(cat "${SCRIPT_DIR}/session-context.md" 2>&1 || echo "Error rea
 # Detect project state and build dynamic hints
 state_hints=""
 
+# Check for Bun runtime
+if ! command -v bun &>/dev/null; then
+    state_hints=$'\n\n## ⚠️ Bun Required\nBun runtime is not installed. Install it before running any Vibes commands:\n```bash\ncurl -fsSL https://bun.sh/install | bash\n```\nThen restart your terminal. Bun is required for all Vibes assembly, preview, and deploy scripts.'
+fi
+
 REGISTRY="$HOME/.vibes/deployments.json"
 AUTH_CACHE="$HOME/.vibes/auth.json"
 if [ -f "$REGISTRY" ]; then
     app_count=$(grep -c '"name"' "$REGISTRY" 2>/dev/null || echo "0")
-    state_hints=$'\n\n## Project State\nVibes registry found with '"$app_count"' app(s). Deploy with /vibes:cloudflare.'
+    state_hints+=$'\n\n## Project State\nVibes registry found with '"$app_count"' app(s). Deploy with /vibes:cloudflare.'
 elif [ -f "$AUTH_CACHE" ]; then
-    state_hints=$'\n\n## Project State\nPocket ID authenticated (cached at ~/.vibes/auth.json). Deploy with /vibes:cloudflare.'
+    state_hints+=$'\n\n## Project State\nPocket ID authenticated (cached at ~/.vibes/auth.json). Deploy with /vibes:cloudflare.'
 else
-    state_hints=$'\n\n## Project State\nNo auth cache found. Auth is automatic — browser login on first deploy, cached at ~/.vibes/auth.json.'
+    state_hints+=$'\n\n## Project State\nNo auth cache found. Auth is automatic — browser login on first deploy, cached at ~/.vibes/auth.json.'
 fi
 
 if [ -f "${PWD}/app.jsx" ]; then

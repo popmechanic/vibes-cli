@@ -10,8 +10,8 @@
  *   build/design-tokens.txt — AI-readable documentation (read at generation time)
  *
  * Usage:
- *   node scripts/build-design-tokens.js
- *   node scripts/build-design-tokens.js --force  # Rebuild even if output exists
+ *   bun scripts/build-design-tokens.js
+ *   bun scripts/build-design-tokens.js --force  # Rebuild even if output exists
  */
 
 import { writeFileSync, existsSync, mkdirSync } from "fs";

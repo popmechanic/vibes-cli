@@ -26,6 +26,7 @@ vi.mock('fs', async () => {
 describe('alchemy-deploy', () => {
   let alchemyDeploy;
   let execSync;
+  let execFileSync;
   let existsSync;
 
   beforeEach(async () => {
@@ -33,6 +34,7 @@ describe('alchemy-deploy', () => {
     vi.clearAllMocks();
     const cp = await import('child_process');
     execSync = cp.execSync;
+    execFileSync = cp.execFileSync;
     const fs = await import('fs');
     existsSync = fs.existsSync;
     alchemyDeploy = await import('../../lib/alchemy-deploy.js');
@@ -41,26 +43,26 @@ describe('alchemy-deploy', () => {
   describe('ensureSparseCheckout', () => {
     it('clones repo when cache dir does not exist', () => {
       existsSync.mockReturnValue(false);
-      execSync.mockReturnValue('');
+      execFileSync.mockReturnValue('');
 
       alchemyDeploy.ensureSparseCheckout('/tmp/test-cache');
 
-      const cloneCall = execSync.mock.calls.find(c => c[0].includes('git clone'));
+      const cloneCall = execFileSync.mock.calls.find(c => c[0] === 'git' && c[1].includes('clone'));
       expect(cloneCall).toBeTruthy();
-      expect(cloneCall[0]).toContain('--depth 1');
-      expect(cloneCall[0]).toContain('--sparse');
-      expect(cloneCall[0]).toContain('--filter=blob:none');
+      expect(cloneCall[1]).toContain('--depth');
+      expect(cloneCall[1]).toContain('--sparse');
+      expect(cloneCall[1]).toContain('--filter=blob:none');
     });
 
     it('sets up sparse-checkout after cloning', () => {
       existsSync.mockReturnValue(false);
-      execSync.mockReturnValue('');
+      execFileSync.mockReturnValue('');
 
       alchemyDeploy.ensureSparseCheckout('/tmp/test-cache');
 
-      const sparseCall = execSync.mock.calls.find(c => c[0].includes('sparse-checkout'));
+      const sparseCall = execFileSync.mock.calls.find(c => c[0] === 'git' && c[1].includes('sparse-checkout'));
       expect(sparseCall).toBeTruthy();
-      expect(sparseCall[0]).toContain('alchemy/');
+      expect(sparseCall[1]).toContain('alchemy/');
     });
 
     it('does git pull when cache exists', () => {
@@ -94,12 +96,13 @@ describe('alchemy-deploy', () => {
 
     it('clones from the correct upstream repo', () => {
       existsSync.mockReturnValue(false);
-      execSync.mockReturnValue('');
+      execFileSync.mockReturnValue('');
 
       alchemyDeploy.ensureSparseCheckout('/tmp/test-cache');
 
-      const cloneCall = execSync.mock.calls.find(c => c[0].includes('git clone'));
-      expect(cloneCall[0]).toContain('fireproof-storage/fireproof.git');
+      const cloneCall = execFileSync.mock.calls.find(c => c[0] === 'git' && c[1].includes('clone'));
+      const repoArg = cloneCall[1].find(a => a.includes('fireproof-storage/fireproof.git'));
+      expect(repoArg).toBeTruthy();
     });
   });
 

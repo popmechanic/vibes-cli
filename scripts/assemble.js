@@ -5,18 +5,17 @@
  * Inserts JSX app code into the template to create a complete HTML file.
  *
  * Usage:
- *   node scripts/assemble.js <app.jsx> [output.html]
+ *   bun scripts/assemble.js <app.jsx> [output.html]
  *
  * Example:
- *   node scripts/assemble.js app.jsx index.html
+ *   bun scripts/assemble.js app.jsx index.html
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { resolve } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { createBackup } from './lib/backup.js';
-import { loadEnvFile, populateConnectConfig } from './lib/env-utils.js';
-import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from './lib/auth-constants.js';
+import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL } from './lib/auth-constants.js';
 import { APP_PLACEHOLDER, validateAssembly, loadAndValidateTemplate } from './lib/assembly-utils.js';
 import { stripForTemplate } from './lib/strip-code.js';
 
@@ -27,7 +26,7 @@ async function main() {
   const outputPath = process.argv[3] || 'index.html';
 
   if (!appPath) {
-    throw new Error('Usage: node scripts/assemble.js <app.jsx> [output.html]');
+    throw new Error('Usage: bun scripts/assemble.js <app.jsx> [output.html]');
   }
 
   // Resolve paths
@@ -44,38 +43,21 @@ async function main() {
   const template = loadAndValidateTemplate(templatePath, readFileSync);
   const appCode = readFileSync(resolvedAppPath, 'utf8').trim();
 
-  // Load env vars from .env — check output directory first, fall back to cwd.
-  // The editor saves Connect URLs to the project root .env, but the assembler
-  // outputs to an app subdirectory (e.g. ~/.vibes/apps/my-app/index.html).
-  // Auth constants (OIDC authority/client ID) are hardcoded — no env validation needed.
-  const outputDir = dirname(resolvedOutputPath);
-  let envVars = loadEnvFile(outputDir);
-  if (resolve(outputDir) !== resolve(process.cwd())) {
-    const cwdEnv = loadEnvFile(process.cwd());
-    envVars = { ...cwdEnv, ...envVars };
-  }
-
-  // Connect URLs are optional at assembly time — they'll be populated
-  // by deploy-cloudflare.js on first deploy (alchemy + auto-reassembly).
-  // If present, they'll be substituted; if absent, placeholders become empty strings.
-  if (envVars.VITE_API_URL) {
-    console.log('Connect mode: OIDC auth + cloud sync enabled');
-  } else {
-    console.log('Connect mode: OIDC auth enabled (Connect URLs will be set at deploy time)');
-  }
+  console.log('Assembling (Connect URLs will be injected at deploy time)');
 
   // Strip imports/exports/destructuring that conflict with the template.
   // Keep React destructuring — vibes template provides React as a global,
   // so app code needs `const { useState } = React;` to access hooks.
   const cleanedAppCode = stripForTemplate(appCode, { stripReactHooks: false });
 
-  // Assemble: insert app code at placeholder, then populate Connect config
+  // Assemble: insert app code at placeholder
   let output = template.replace(APP_PLACEHOLDER, cleanedAppCode);
-  output = populateConnectConfig(output, envVars);
 
-  // Inject hardcoded OIDC constants (same for every app)
-  output = output.replace('__VITE_OIDC_AUTHORITY__', OIDC_AUTHORITY);
-  output = output.replace('__VITE_OIDC_CLIENT_ID__', OIDC_CLIENT_ID);
+  // Inject hardcoded OIDC constants (same for every app) — replaceAll for templates
+  // with multiple occurrences of the same placeholder
+  output = output.replaceAll('__VITE_OIDC_AUTHORITY__', OIDC_AUTHORITY);
+  output = output.replaceAll('__VITE_OIDC_CLIENT_ID__', OIDC_CLIENT_ID);
+  output = output.replaceAll('__VITE_DEPLOY_API_URL__', DEPLOY_API_URL);
 
   // Validate output
   const validationErrors = validateAssembly(output, appCode);
@@ -85,7 +67,7 @@ async function main() {
     // Provide specific guidance based on error type
     const fixes = validationErrors.map(e => {
       if (e.includes('empty')) return 'Ensure app.jsx has content';
-      if (e.includes('Placeholder')) return 'Template may be corrupted - rebuild with: node scripts/merge-templates.js --force';
+      if (e.includes('Placeholder')) return 'Template may be corrupted - rebuild with: bun scripts/merge-templates.js --force';
       if (e.includes('App component')) return 'Add "export default function App()" or "function App()"';
       if (e.includes('script tags')) return 'Check for unclosed <script> tags in template';
       return null;

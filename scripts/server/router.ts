@@ -10,7 +10,6 @@ import { join, extname, resolve } from 'path';
 import type { ServerContext } from './config.ts';
 import { getRecommendedThemeIds, loadOpenRouterKey } from './config.ts';
 import { assembleAppFrame } from './handlers/generate.ts';
-import { loadEnvFile, writeEnvFile } from '../lib/env-utils.js';
 import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp } from '../lib/registry.js';
 import { readCachedTokens, isTokenExpired, getAccessToken, startLoginFlow, removeCachedTokens } from '../lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../lib/auth-constants.js';
@@ -89,12 +88,17 @@ export async function readBodyWithLimit(req: Request, maxSize: number): Promise<
 }
 
 // --- CORS helper ---
+// Restrict to localhost origins to prevent drive-by attacks from external websites.
+// _corsPort is set once when createRouter() is called.
+
+let _corsPort = 3333;
 
 function corsHeaders(): Record<string, string> {
   return {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': `http://localhost:${_corsPort}`,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
+    'Vary': 'Origin',
   };
 }
 
@@ -109,7 +113,7 @@ function json(data: any, status = 200, extraHeaders: Record<string, string> = {}
 
 function sanitizeAppName(name: string): string {
   if (!name) return '';
-  return name.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/^-+|-+$/g, '').slice(0, 63);
+  return name.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 63);
 }
 
 // --- Editor API helpers ---
@@ -143,18 +147,6 @@ async function checkEditorDeps(ctx: ServerContext) {
         const sk = apps[0].clerk?.secretKey || '';
         if (sk.startsWith('sk_test_') || sk.startsWith('sk_live_')) validatedSk = sk;
       }
-    }
-  }
-
-  if (!clerkOk) {
-    const env = loadEnvFile(ctx.projectRoot);
-    const envKey = env.VITE_CLERK_PUBLISHABLE_KEY || '';
-    if (validateClerkKey(envKey)) {
-      clerkOk = true;
-      clerkDetail = `${envKey.slice(0, 12)}... (from .env)`;
-      validatedPk = envKey;
-      const envSk = env.CLERK_SECRET_KEY || '';
-      if (envSk.startsWith('sk_test_') || envSk.startsWith('sk_live_')) validatedSk = envSk;
     }
   }
 
@@ -377,10 +369,6 @@ async function editorSaveCredentials(ctx: ServerContext, req: Request): Promise<
         name: '_default',
         clerk: { publishableKey: pk || existingClerk.publishableKey || '', secretKey: sk || existingClerk.secretKey || '' },
       });
-      const envVars: Record<string, string> = {};
-      if (pk) envVars.VITE_CLERK_PUBLISHABLE_KEY = pk;
-      if (sk) { envVars.CLERK_SECRET_KEY = sk; envVars.VITE_CLERK_SECRET_KEY = sk; }
-      writeEnvFile(ctx.projectRoot, envVars);
     }
 
     if (hasCf) {
@@ -392,7 +380,6 @@ async function editorSaveCredentials(ctx: ServerContext, req: Request): Promise<
     }
 
     if (hasOpenRouter) {
-      writeEnvFile(ctx.projectRoot, { OPENROUTER_API_KEY: body.openRouterKey });
       ctx.openRouterKey = body.openRouterKey;
     }
 
@@ -460,11 +447,18 @@ async function editorGetScreenshot(ctx: ServerContext, url: URL): Promise<Respon
   return new Response(file, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'no-cache', ...corsHeaders() } });
 }
 
+function serveScreenSaver(ctx: ServerContext): Response {
+  const file = Bun.file(join(ctx.projectRoot, 'assets', 'screen-saver.png'));
+  return new Response(file, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600', ...corsHeaders() } });
+}
+
 function editorLoadApp(ctx: ServerContext, url: URL): Response {
   const name = sanitizeAppName(url.searchParams.get('name') || '');
   if (!name) return new Response('Missing name', { status: 400, headers: corsHeaders() });
   const src = join(ctx.appsDir, name, 'app.jsx');
   if (!existsSync(src)) return new Response('App not found', { status: 404, headers: corsHeaders() });
+  // Copy saved app into working directory so the preview serves the correct file
+  copyFileSync(src, join(ctx.projectRoot, 'app.jsx'));
   ctx.currentApp = name;
   return json({ ok: true, currentApp: name });
 }
@@ -521,6 +515,7 @@ function editorListDeployments(ctx: ServerContext): Response {
 // --- Create Router ---
 
 export function createRouter(ctx: ServerContext) {
+  _corsPort = ctx.port;
   const MIME: Record<string, string> = {
     '.html': 'text/html',
     '.js': 'text/javascript',
@@ -559,6 +554,7 @@ export function createRouter(ctx: ServerContext) {
       case 'GET /editor/app-exists':        return editorAppExists(ctx);
       case 'GET /editor/apps':              return editorListApps(ctx);
       case 'GET /editor/apps/screenshot':   return editorGetScreenshot(ctx, url);
+      case 'GET /editor/assets/screen-saver.png': return serveScreenSaver(ctx);
       case 'POST /editor/credentials':      return editorSaveCredentials(ctx, req);
       case 'POST /editor/credentials/validate-cloudflare': return editorValidateCloudflare(ctx, req);
       case 'POST /editor/credentials/validate-clerk': return editorValidateClerk(ctx, req);
@@ -570,7 +566,7 @@ export function createRouter(ctx: ServerContext) {
     }
 
     // Bundle files
-    if (url.pathname === '/fireproof-vibes-bridge.js' || url.pathname === '/fireproof-clerk-bundle.js') {
+    if (url.pathname === '/fireproof-oidc-bridge.js' || url.pathname === '/fireproof-vibes-bridge.js' || url.pathname === '/fireproof-clerk-bundle.js') {
       const bundlePath = join(ctx.projectRoot, 'bundles', url.pathname.slice(1));
       const file = Bun.file(bundlePath);
       if (await file.exists()) {

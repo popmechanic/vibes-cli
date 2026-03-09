@@ -24,9 +24,9 @@ source-templates/base/template.html + skills/*/template.delta.html
 ## Build Commands
 
 ```bash
-node scripts/build-components.js --force     # Components → build/vibes-menu.js
-node scripts/build-design-tokens.js --force  # Tokens → build/design-tokens.css + .txt
-node scripts/merge-templates.js --force      # Base + tokens + deltas → final templates
+bun scripts/build-components.js --force     # Components → build/vibes-menu.js
+bun scripts/build-design-tokens.js --force  # Tokens → build/design-tokens.css + .txt
+bun scripts/merge-templates.js --force      # Base + tokens + deltas → final templates
 ```
 
 ## Key Rules

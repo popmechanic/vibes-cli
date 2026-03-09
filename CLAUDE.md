@@ -49,7 +49,7 @@ Any esm.sh package that depends on React MUST use `?external=react,react-dom`. D
 
 ### Import Map Lives in Base Template
 
-The authoritative import map is in `source-templates/base/template.html`. After editing, run `node scripts/merge-templates.js --force`.
+The authoritative import map is in `source-templates/base/template.html`. After editing, run `bun scripts/merge-templates.js --force`.
 
 ### Skills Are Atomic
 
@@ -64,7 +64,7 @@ The import map in `source-templates/base/template.html` is the authoritative sou
 Apps deploy to Cloudflare Workers via the shared Deploy API Worker. No wrangler installation or user Cloudflare tokens required.
 
 ```bash
-node scripts/deploy-cloudflare.js --name <app> --file index.html
+bun scripts/deploy-cloudflare.js --name <app> --file index.html
 ```
 
 Auth happens automatically: the CLI opens a browser for Pocket ID login and caches credentials at `~/.vibes/auth.json`. The Deploy API accepts the assembled HTML plus an OIDC token and handles Cloudflare API calls server-side.

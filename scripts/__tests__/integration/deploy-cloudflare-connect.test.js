@@ -104,13 +104,13 @@ describe('deploy-cloudflare connect integration', () => {
         ...appEntry,
         app: {
           workerName: 'my-app',
-          url: 'https://my-app.vibes.diy'
+          url: 'https://my-app.vibesos.com'
         }
       });
 
       const loaded = registry.getApp('my-app');
       expect(loaded.app.workerName).toBe('my-app');
-      expect(loaded.app.url).toBe('https://my-app.vibes.diy');
+      expect(loaded.app.url).toBe('https://my-app.vibesos.com');
       // Connect metadata should still be present
       expect(loaded.connect.apiUrl).toBe('https://dash.workers.dev');
     });

@@ -151,7 +151,7 @@ set -a && source test-vibes/.env && set +a
 
 **For sell-ready fixture:**
 ```bash
-node scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html \
+bun scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html \
   --domain vibes-test.<account>.workers.dev \
   --admin-ids '["<admin-user-id>"]'  # read OIDC_ADMIN_USER_ID from test-vibes/.env
 ```
@@ -159,7 +159,7 @@ If admin was skipped, omit `--admin-ids`. The `--domain` flag is always required
 
 **For all other fixtures:**
 ```bash
-node scripts/assemble.js test-vibes/app.jsx test-vibes/index.html
+bun scripts/assemble.js test-vibes/app.jsx test-vibes/index.html
 ```
 
 **Validate the output** (same checks as the vitest suite):
@@ -245,12 +245,12 @@ grep -q OPENROUTER_API_KEY ~/.vibes/.env 2>/dev/null && \
 Run the deploy:
 
 ```bash
-node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html
+bun scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html
 ```
 
 **For sell-ready fixture:** Pass `--env-dir` to auto-detect OIDC config, and pass billing mode from `test-vibes/.env`:
 ```bash
-node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html \
+bun scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html \
   --env-dir test-vibes \
   --billing-mode $BILLING_MODE
 ```
@@ -258,7 +258,7 @@ Read `BILLING_MODE` from `test-vibes/.env`. The `--env-dir` flag auto-detects `V
 
 **For ai-proxy with key:**
 ```bash
-node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html --ai-key <key>
+bun scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html --ai-key <key>
 ```
 
 ### Phase 5.5: Admin Setup (sell-ready only)
@@ -327,7 +327,7 @@ grep -q OIDC_ADMIN_USER_ID test-vibes/.env 2>/dev/null && \
 ```bash
 set -a && source test-vibes/.env && set +a
 
-node scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html \
+bun scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html \
   --domain vibes-test.<account>.workers.dev \
   --admin-ids '["<userId>"]'
 ```
@@ -335,7 +335,7 @@ node scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html \
 7. Re-deploy:
 
 ```bash
-node scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html \
+bun scripts/deploy-cloudflare.js --name vibes-test --file test-vibes/index.html \
   --env-dir test-vibes \
   --billing-mode $BILLING_MODE
 ```
@@ -497,8 +497,8 @@ If "Wrong diagnosis": ask what they think and re-diagnose.
 1. Apply the fix to the identified source file
 2. If the fix touched templates or components, regenerate:
    ```bash
-   node scripts/merge-templates.js --force   # If template.html or delta changed
-   node scripts/build-components.js --force  # If components/ changed
+   bun scripts/merge-templates.js --force   # If template.html or delta changed
+   bun scripts/build-components.js --force  # If components/ changed
    ```
 3. Re-run from the appropriate phase:
 

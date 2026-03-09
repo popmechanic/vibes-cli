@@ -11,7 +11,7 @@ import { autoSelectTheme, parseThemeColors, extractPass2ThemeContext } from '../
 import type { ServerContext } from '../config.ts';
 import { stripForTemplate } from '../../lib/strip-code.js';
 import { APP_PLACEHOLDER } from '../../lib/assembly-utils.js';
-import { loadEnvFile, populateConnectConfig } from '../../lib/env-utils.js';
+import { populateConnectConfig } from '../../lib/env-utils.js';
 import { TEMPLATES } from '../../lib/paths.js';
 import { currentAppDir, slugifyPrompt, resolveAppName } from '../app-context.js';
 

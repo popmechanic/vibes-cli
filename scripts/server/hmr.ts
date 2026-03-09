@@ -72,7 +72,7 @@ export function createHmrWatcher(
 
   function onToolResult(event: { _toolName?: string; _filePath?: string }): void {
     if (!active) return;
-    if (event._toolName !== 'Write') return;
+    if (event._toolName !== 'Write' && event._toolName !== 'Edit') return;
     if (event._filePath && !event._filePath.endsWith('app.jsx')) return;
     scheduleCheck();
   }

@@ -36,8 +36,9 @@ export function translateEvent(event: any): object[] {
     return [{ type: 'status', status: 'thinking', progress: event.progress, stage: event.stage, elapsed: event.elapsed }];
   }
   if (event.type === 'complete') {
+    const stage = event.hasEdited ? 'App updated!' : 'Done — no code changes made';
     const msgs: object[] = [
-      { type: 'status', status: 'thinking', progress: 100, stage: 'Done!', elapsed: event.elapsed },
+      { type: 'status', status: event.hasEdited ? 'updated' : 'idle', progress: 100, stage, elapsed: event.elapsed },
     ];
     if (!event.skipChat) {
       msgs.push({ type: 'chat', role: 'assistant', content: event.text });
@@ -110,7 +111,7 @@ export function createWsHandler(ctx: ServerContext) {
       try {
         switch (msg.type) {
           case 'chat':
-            await handleChat(ctx, onEvent, msg.message, msg.effects || [], msg.animationId || null, msg.model, msg.reference || null);
+            await handleChat(ctx, onEvent, msg.message, msg.effects || [], msg.animationId || null, msg.model, msg.reference || null, msg.skillId || null);
             break;
 
           case 'generate':

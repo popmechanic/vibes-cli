@@ -7,8 +7,8 @@
  *   - build-design-tokens.js → build/design-tokens.txt (AI documentation)
  *
  * To add/change tokens: edit here, then run:
- *   node scripts/build-design-tokens.js --force
- *   node scripts/merge-templates.js --force
+ *   bun scripts/build-design-tokens.js --force
+ *   bun scripts/merge-templates.js --force
  */
 
 /**
