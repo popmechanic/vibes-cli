@@ -25,6 +25,7 @@ export interface ServerContext {
   themeRootCss: Record<string, string>;
   openRouterKey: string | null;
   appsDir: string;
+  examplesDir: string;
   themeDir: string;
   animationDir: string;
   pluginSkills: any[];
@@ -55,6 +56,7 @@ export function loadConfig(): ServerContext {
   const animationDir = join(projectRoot, 'skills/vibes/animations');
   const appsDir = join(homedir(), '.vibes', 'apps');
   if (!existsSync(appsDir)) mkdirSync(appsDir, { recursive: true });
+  const examplesDir = join(projectRoot, 'examples');
 
   // Load OpenRouter API key
   const openRouterKey = loadOpenRouterKey(projectRoot);
@@ -127,6 +129,7 @@ export function loadConfig(): ServerContext {
     themeRootCss,
     openRouterKey,
     appsDir,
+    examplesDir,
     themeDir,
     animationDir,
     pluginSkills,

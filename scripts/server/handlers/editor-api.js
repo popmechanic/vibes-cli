@@ -164,6 +164,7 @@ export function appExists(ctx, req, res) {
 export function listApps(ctx, req, res) {
   try {
     const apps = [];
+    const userAppNames = new Set();
     for (const name of readdirSync(ctx.appsDir)) {
       const dir = join(ctx.appsDir, name);
       const appFile = join(dir, 'app.jsx');
@@ -171,6 +172,7 @@ export function listApps(ctx, req, res) {
       const st = statSync(appFile);
       const firstLine = readFileSync(appFile, 'utf-8').split('\n')[0] || '';
       const themeMatch = firstLine.match(/id:\s*"([^"]+)".*?name:\s*"([^"]+)"/);
+      userAppNames.add(name);
       apps.push({
         name,
         modified: st.mtime.toISOString(),
@@ -181,6 +183,28 @@ export function listApps(ctx, req, res) {
       });
     }
     apps.sort((a, b) => new Date(b.modified) - new Date(a.modified));
+
+    // Append bundled examples (skip if user already has an app with the same name)
+    if (ctx.examplesDir && existsSync(ctx.examplesDir)) {
+      for (const name of readdirSync(ctx.examplesDir)) {
+        if (userAppNames.has(name)) continue;
+        const dir = join(ctx.examplesDir, name);
+        const appFile = join(dir, 'app.jsx');
+        if (!existsSync(appFile)) continue;
+        const firstLine = readFileSync(appFile, 'utf-8').split('\n')[0] || '';
+        const themeMatch = firstLine.match(/id:\s*"([^"]+)".*?name:\s*"([^"]+)"/);
+        apps.push({
+          name,
+          example: true,
+          modified: new Date(0).toISOString(),
+          themeId: themeMatch ? themeMatch[1] : null,
+          themeName: themeMatch ? themeMatch[2] : null,
+          size: statSync(appFile).size,
+          hasScreenshot: existsSync(join(dir, 'screenshot.png')),
+        });
+      }
+    }
+
     res.writeHead(200, { 'Content-Type': 'application/json' });
     return res.end(JSON.stringify(apps));
   } catch (err) {
@@ -203,7 +227,18 @@ export function loadApp(ctx, req, res, url) {
   const name = sanitizeAppName(params.get('name'));
   if (!name) { res.writeHead(400); return res.end('Missing name'); }
   const src = join(ctx.appsDir, name, 'app.jsx');
-  if (!existsSync(src)) { res.writeHead(404); return res.end('App not found'); }
+  if (!existsSync(src)) {
+    // Copy-on-write: if it's a bundled example, copy to user's appsDir
+    const exampleSrc = ctx.examplesDir ? join(ctx.examplesDir, name, 'app.jsx') : null;
+    if (!exampleSrc || !existsSync(exampleSrc)) { res.writeHead(404); return res.end('App not found'); }
+    const dest = join(ctx.appsDir, name);
+    mkdirSync(dest, { recursive: true });
+    copyFileSync(exampleSrc, join(dest, 'app.jsx'));
+    const exampleScreenshot = join(ctx.examplesDir, name, 'screenshot.png');
+    if (existsSync(exampleScreenshot)) {
+      copyFileSync(exampleScreenshot, join(dest, 'screenshot.png'));
+    }
+  }
   ctx.currentApp = name;
   res.writeHead(200, { 'Content-Type': 'application/json' });
   return res.end(JSON.stringify({ ok: true, currentApp: name }));

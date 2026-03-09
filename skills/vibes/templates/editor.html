@@ -2481,7 +2481,7 @@
 
         <!-- Gallery -->
         <div class="generate-gallery-box">
-          <div class="generate-gallery-label">Gallery</div>
+          <div class="generate-gallery-label">Ideas</div>
           <div class="generate-gallery-content">
             <!-- Textured pattern definition (reused by all cards) -->
             <svg style="position:absolute;width:0;height:0" aria-hidden="true"><defs><pattern id="vibe-texture" x="0" y="0" width="9" height="9" patternTransform="scale(.8)" patternUnits="userSpaceOnUse"><rect fill="#fff" width="9" height="9"/><rect fill="#231f20" x="0" y="0" width="1.12" height="1.12"/><rect fill="#231f20" x="1.13" y="1.13" width="1.12" height="1.12"/><rect fill="#231f20" x="2.25" y="0" width="1.12" height="1.12"/><rect fill="#231f20" x="3.38" y="1.13" width="1.12" height="1.12"/><rect fill="#231f20" x="4.5" y="0" width="1.12" height="1.12"/><rect fill="#231f20" x="5.63" y="1.13" width="1.12" height="1.12"/><rect fill="#231f20" x="6.75" y="0" width="1.12" height="1.12"/><rect fill="#231f20" x="7.88" y="1.13" width="1.12" height="1.12"/><rect fill="#231f20" x="0" y="2.25" width="1.12" height="1.12"/><rect fill="#231f20" x="1.13" y="3.38" width="1.12" height="1.12"/><rect fill="#231f20" x="2.25" y="2.25" width="1.12" height="1.12"/><rect fill="#231f20" x="3.38" y="3.38" width="1.12" height="1.12"/><rect fill="#231f20" x="4.5" y="2.25" width="1.12" height="1.12"/><rect fill="#231f20" x="5.63" y="3.38" width="1.12" height="1.12"/><rect fill="#231f20" x="6.75" y="2.25" width="1.12" height="1.12"/><rect fill="#231f20" x="7.88" y="3.38" width="1.12" height="1.12"/><rect fill="#231f20" x="0" y="4.5" width="1.12" height="1.12"/><rect fill="#231f20" x="1.13" y="5.63" width="1.12" height="1.12"/><rect fill="#231f20" x="2.25" y="4.5" width="1.12" height="1.12"/><rect fill="#231f20" x="3.38" y="5.63" width="1.12" height="1.12"/><rect fill="#231f20" x="4.5" y="4.5" width="1.12" height="1.12"/><rect fill="#231f20" x="5.63" y="5.63" width="1.12" height="1.12"/><rect fill="#231f20" x="6.75" y="4.5" width="1.12" height="1.12"/><rect fill="#231f20" x="7.88" y="5.63" width="1.12" height="1.12"/><rect fill="#231f20" x="0" y="6.75" width="1.12" height="1.12"/><rect fill="#231f20" x="1.13" y="7.88" width="1.12" height="1.12"/><rect fill="#231f20" x="2.25" y="6.75" width="1.12" height="1.12"/><rect fill="#231f20" x="3.38" y="7.88" width="1.12" height="1.12"/><rect fill="#231f20" x="4.5" y="6.75" width="1.12" height="1.12"/><rect fill="#231f20" x="5.63" y="7.88" width="1.12" height="1.12"/><rect fill="#231f20" x="6.75" y="6.75" width="1.12" height="1.12"/><rect fill="#231f20" x="7.88" y="7.88" width="1.12" height="1.12"/></pattern></defs></svg>
@@ -3408,7 +3408,7 @@
       const olderApps = filteredApps.slice(8);
 
       for (const app of recentApps) {
-        const ago = timeAgo(new Date(app.modified));
+        const meta = app.example ? 'Example' : timeAgo(new Date(app.modified));
         const themeLabel = app.themeName ? ' \u00b7 ' + escapeHtml(app.themeName) : '';
         const thumbContent = app.hasScreenshot
           ? `<img src="/editor/apps/screenshot?name=${encodeURIComponent(app.name)}" alt="${escapeHtml(app.name)}" loading="lazy">`
@@ -3417,19 +3417,19 @@
           <div class="app-card-thumb">${thumbContent}</div>
           <div class="app-card-info">
             <div class="app-card-name">${escapeHtml(app.name)}</div>
-            <div class="app-card-meta">${ago}${themeLabel}</div>
+            <div class="app-card-meta">${meta}${themeLabel}</div>
           </div>
         </div>`;
       }
 
       // Older apps get compact list items
       for (const app of olderApps) {
-        const ago = timeAgo(new Date(app.modified));
+        const meta = app.example ? 'Example' : timeAgo(new Date(app.modified));
         const themeLabel = app.themeName ? ' \u00b7 ' + escapeHtml(app.themeName) : '';
         listHtml += `<button class="app-item" onclick="loadSavedApp('${escapeHtml(app.name)}')">
           <div>
             <div class="app-item-name">${escapeHtml(app.name)}</div>
-            <div class="app-item-meta">${ago}${themeLabel}</div>
+            <div class="app-item-meta">${meta}${themeLabel}</div>
           </div>
           <span style="font-size:1.2rem">&#8594;</span>
         </button>`;

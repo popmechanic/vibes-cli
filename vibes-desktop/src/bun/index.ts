@@ -13,7 +13,7 @@ import Electrobun, {
 } from "electrobun/bun";
 import { join } from "path";
 import { discoverVibesPlugin } from "./plugin-discovery.ts";
-import { CLAUDE_BIN } from "./auth.ts";
+import { CLAUDE_BIN, refreshClaudePath } from "./auth.ts";
 import { hideZoomButton } from "./window-controls.ts";
 
 // --- Constants ---
@@ -22,18 +22,20 @@ const SERVER_URL = `http://localhost:${PORT}`;
 
 // --- Startup ---
 async function main() {
-	// 1. Check Claude CLI
-	const claudeOk = checkClaude();
-	if (!claudeOk) {
-		await Utils.showMessageBox({
-			type: "error",
+	// 1. Check Claude CLI (retry loop — user may install between attempts)
+	while (!checkClaude()) {
+		const result = await Utils.showMessageBox({
+			type: "warning",
 			title: "Claude CLI Not Found",
 			message: "Vibes Editor requires the Claude CLI.",
-			detail: "Install it with: npm install -g @anthropic-ai/claude-code\n\nThen relaunch the app.",
-			buttons: ["Quit"],
+			detail: "Install it with:\n  npm install -g @anthropic-ai/claude-code\n\nThen click Retry.",
+			buttons: ["Retry", "Quit"],
 		});
-		Utils.quit();
-		return;
+		if (result !== 0) {
+			Utils.quit();
+			return;
+		}
+		refreshClaudePath();
 	}
 
 	// 2. Find plugin

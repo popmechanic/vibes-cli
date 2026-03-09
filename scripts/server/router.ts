@@ -421,6 +421,7 @@ async function editorValidateCloudflare(ctx: ServerContext, req: Request): Promi
 function editorListApps(ctx: ServerContext): Response {
   try {
     const apps: any[] = [];
+    const userAppNames = new Set<string>();
     for (const name of readdirSync(ctx.appsDir)) {
       const dir = join(ctx.appsDir, name);
       const appFile = join(dir, 'app.jsx');
@@ -428,6 +429,7 @@ function editorListApps(ctx: ServerContext): Response {
       const st = statSync(appFile);
       const firstLine = readFileSync(appFile, 'utf-8').split('\n')[0] || '';
       const themeMatch = firstLine.match(/id:\s*"([^"]+)".*?name:\s*"([^"]+)"/);
+      userAppNames.add(name);
       apps.push({
         name,
         modified: st.mtime.toISOString(),
@@ -438,6 +440,28 @@ function editorListApps(ctx: ServerContext): Response {
       });
     }
     apps.sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime());
+
+    // Append bundled examples (skip if user already has an app with the same name)
+    if (existsSync(ctx.examplesDir)) {
+      for (const name of readdirSync(ctx.examplesDir)) {
+        if (userAppNames.has(name)) continue;
+        const dir = join(ctx.examplesDir, name);
+        const appFile = join(dir, 'app.jsx');
+        if (!existsSync(appFile)) continue;
+        const firstLine = readFileSync(appFile, 'utf-8').split('\n')[0] || '';
+        const themeMatch = firstLine.match(/id:\s*"([^"]+)".*?name:\s*"([^"]+)"/);
+        apps.push({
+          name,
+          example: true,
+          modified: new Date(0).toISOString(),
+          themeId: themeMatch ? themeMatch[1] : null,
+          themeName: themeMatch ? themeMatch[2] : null,
+          size: statSync(appFile).size,
+          hasScreenshot: existsSync(join(dir, 'screenshot.png')),
+        });
+      }
+    }
+
     return json(apps);
   } catch (err: any) {
     return json({ error: err.message }, 500);
@@ -447,8 +471,13 @@ function editorListApps(ctx: ServerContext): Response {
 async function editorGetScreenshot(ctx: ServerContext, url: URL): Promise<Response> {
   const name = sanitizeAppName(url.searchParams.get('name') || '');
   if (!name) return new Response('Missing name', { status: 400, headers: corsHeaders() });
-  const imgPath = join(ctx.appsDir, name, 'screenshot.png');
-  const file = Bun.file(imgPath);
+  // Check user apps first, then examples
+  let imgPath = join(ctx.appsDir, name, 'screenshot.png');
+  let file = Bun.file(imgPath);
+  if (!(await file.exists())) {
+    imgPath = join(ctx.examplesDir, name, 'screenshot.png');
+    file = Bun.file(imgPath);
+  }
   if (!(await file.exists())) return new Response('No screenshot', { status: 404, headers: corsHeaders() });
   return new Response(file, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'no-cache', ...corsHeaders() } });
 }
@@ -462,8 +491,19 @@ function editorLoadApp(ctx: ServerContext, url: URL): Response {
   const name = sanitizeAppName(url.searchParams.get('name') || '');
   if (!name) return new Response('Missing name', { status: 400, headers: corsHeaders() });
   const src = join(ctx.appsDir, name, 'app.jsx');
-  if (!existsSync(src)) return new Response('App not found', { status: 404, headers: corsHeaders() });
-  // Set currentApp — the app directory IS the saved directory, no copy needed
+  if (!existsSync(src)) {
+    // Copy-on-write: if it's a bundled example, copy to user's appsDir
+    const exampleSrc = join(ctx.examplesDir, name, 'app.jsx');
+    if (!existsSync(exampleSrc)) return new Response('App not found', { status: 404, headers: corsHeaders() });
+    const dest = join(ctx.appsDir, name);
+    mkdirSync(dest, { recursive: true });
+    copyFileSync(exampleSrc, join(dest, 'app.jsx'));
+    // Also copy screenshot if available
+    const exampleScreenshot = join(ctx.examplesDir, name, 'screenshot.png');
+    if (existsSync(exampleScreenshot)) {
+      copyFileSync(exampleScreenshot, join(dest, 'screenshot.png'));
+    }
+  }
   ctx.currentApp = name;
   return json({ ok: true, currentApp: name });
 }
