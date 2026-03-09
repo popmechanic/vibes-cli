@@ -110,7 +110,7 @@ Enabled when server runs with `managed: true`:
 - Custom traffic light buttons (red/yellow/green) in the editor header via `window.__VIBES_DESKTOP__`
 - External links open in system browser via `Utils.openExternal()`
 - Auth popup opens in system browser instead of `window.open()`
-- Window controls routed through WebSocket → `ctx.onWindowControl` / `ctx.onOpenExternal`
+- Window controls routed through WebSocket → `ctx.onWindowControl`
 
 ### External Link Handling (Preload → Host Message)
 

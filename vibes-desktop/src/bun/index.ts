@@ -122,15 +122,6 @@ async function main() {
 	log(`[vibes-desktop] Plugin root: ${pluginPaths.root}`);
 	log(`[vibes-desktop] Server started at ${SERVER_URL}`);
 
-	// Check if auth callback port is available
-	try {
-		const testServer = Bun.serve({ port: 18192, fetch: () => new Response("ok") });
-		testServer.stop();
-		log("[vibes-desktop] Auth callback port 18192 is available");
-	} catch (e: any) {
-		log(`[vibes-desktop] WARNING: Auth callback port 18192 is OCCUPIED: ${e.message}`);
-	}
-
 	// 4. Create window pointing to the server
 	const mainWindow = new BrowserWindow({
 		title: "Vibes Editor",
@@ -148,8 +139,6 @@ async function main() {
 
 	// Inject preload via executeJavascript on dom-ready (preload option doesn't work)
 	mainWindow.webview.on("dom-ready", () => {
-		log("[dom-ready] Testing executeJavascript...");
-		mainWindow.webview.executeJavascript('document.title = "EXEC_JS_WORKS"');
 		log("[dom-ready] Injecting link preload script");
 		mainWindow.webview.executeJavascript(LINK_PRELOAD);
 	});
@@ -161,9 +150,19 @@ async function main() {
 		`*://localhost:${PORT}`,
 	]);
 
-	// Safety net: blocked navigations (navigation rules handle most blocking)
+	// Safety net: open blocked navigations (location.href, form submits, meta refresh) in system browser
 	mainWindow.webview.on("will-navigate", (event) => {
-		log(`[will-navigate] detail:`, JSON.stringify(event.data?.detail));
+		const detail = event.data?.detail;
+		log(`[will-navigate] detail:`, JSON.stringify(detail));
+		// detail is a string (URL) for will-navigate events; parse if JSON
+		let url: string | undefined;
+		if (typeof detail === "string") {
+			try { url = JSON.parse(detail)?.url || detail; } catch { url = detail; }
+		}
+		if (url && !url.startsWith(`http://localhost:${PORT}`)) {
+			log(`[will-navigate] Opening externally: ${url}`);
+			Utils.openExternal(url);
+		}
 	});
 
 	// Host messages from preload — open-external requests
