@@ -2898,7 +2898,7 @@
           <div class="deploy-card-name">${d.name}</div>
           <a class="deploy-card-url" href="${d.url}" target="_blank" rel="noopener">${d.url}</a>
           <div class="deploy-card-actions">
-            <button class="deploy-card-btn" onclick="window.open('${d.url}','_blank')">Open</button>
+            <button class="deploy-card-btn" onclick="openDeployUrl('${d.url}')">Open</button>
             <button class="deploy-card-btn" onclick="loadAndRedeploy('${d.name}')">Redeploy</button>
           </div>
         </div>
@@ -2917,6 +2917,14 @@
     closeAccountPanel();
     await fetch('/editor/auth/logout', { method: 'POST' });
     location.reload();
+  }
+
+  function openDeployUrl(url) {
+    if (window.__VIBES_DESKTOP__ && ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: 'open_external', url }));
+    } else {
+      window.open(url, '_blank');
+    }
   }
 
   function loadAndRedeploy(name) {
@@ -3818,7 +3826,13 @@
         nameLink.rel = 'noopener';
         nameLink.title = d.url;
         nameLink.textContent = d.name;
-        nameLink.addEventListener('click', e => e.stopPropagation());
+        nameLink.addEventListener('click', e => {
+          e.stopPropagation();
+          if (window.__VIBES_DESKTOP__ && ws && ws.readyState === 1) {
+            e.preventDefault();
+            ws.send(JSON.stringify({ type: 'open_external', url: d.url }));
+          }
+        });
 
         const time = document.createElement('span');
         time.style.cssText = 'font-size:0.625rem;color:#999';
@@ -3837,7 +3851,13 @@
         arrow.rel = 'noopener';
         arrow.title = d.url;
         arrow.textContent = '↗';
-        arrow.addEventListener('click', e => e.stopPropagation());
+        arrow.addEventListener('click', e => {
+          e.stopPropagation();
+          if (window.__VIBES_DESKTOP__ && ws && ws.readyState === 1) {
+            e.preventDefault();
+            ws.send(JSON.stringify({ type: 'open_external', url: d.url }));
+          }
+        });
 
         row.append(nameLink, time, btn, arrow);
         list.appendChild(row);
@@ -4668,6 +4688,12 @@
         link.textContent = url;
         link.style.color = 'var(--vibes-blue)';
         link.style.textDecoration = 'underline';
+        link.addEventListener('click', e => {
+          if (window.__VIBES_DESKTOP__ && ws && ws.readyState === 1) {
+            e.preventDefault();
+            ws.send(JSON.stringify({ type: 'open_external', url }));
+          }
+        });
         bubble.appendChild(link);
       } else {
         bubble.textContent = content;
