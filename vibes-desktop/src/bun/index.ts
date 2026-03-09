@@ -75,7 +75,27 @@ async function main() {
 		frame: { width: 1280, height: 820 },
 	});
 
-	// 4b. Hide zoom button via native dylib (dispatch_async to main thread)
+	// 4b. Open external links in the system browser
+	// Block navigation away from the local server; open external URLs in default browser
+	mainWindow.webview.setNavigationRules([
+		"^*",                        // Block everything by default
+		`*://localhost:${PORT}/*`,   // Allow local server (last match wins)
+		`*://localhost:${PORT}`,
+	]);
+	mainWindow.webview.on("will-navigate", (event) => {
+		if (!event.data.allowed && event.data.url) {
+			Utils.openExternal(event.data.url);
+		}
+	});
+	// Catch window.open() calls (auth popups, target="_blank" links)
+	mainWindow.webview.on("new-window-open", (event) => {
+		const url = typeof event.detail === "object" ? event.detail.url : event.detail;
+		if (url) {
+			Utils.openExternal(url);
+		}
+	});
+
+	// 4c. Hide zoom button via native dylib (dispatch_async to main thread)
 	// Close and minimize are already hidden by styleMask above
 	setTimeout(() => hideZoomButton(), 200);
 
@@ -99,6 +119,11 @@ async function main() {
 		}
 	};
 
+	// 4e. Open external URLs from the web UI
+	ctx.onOpenExternal = (url: string) => {
+		Utils.openExternal(url);
+	};
+
 	// 5. Native menu
 	ApplicationMenu.setApplicationMenu([
 		{
@@ -106,7 +131,7 @@ async function main() {
 			submenu: [
 				{ label: "About Vibes Editor", role: "about" },
 				{ type: "separator" },
-				{ label: "Quit", role: "quit" },
+				{ label: "Quit", role: "quit", accelerator: "Command+q" },
 			],
 		},
 		{

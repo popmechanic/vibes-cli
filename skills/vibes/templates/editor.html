@@ -3255,13 +3255,17 @@
         showWelcomeError(data.error || 'Sign in failed');
         return;
       }
-      // Open the authorize URL as a JS popup so window.close() works on callback
+      // Open the authorize URL — desktop uses system browser, web uses popup
       if (data.authorizeUrl) {
-        const w = 500, h = 650;
-        const left = window.screenX + (window.outerWidth - w) / 2;
-        const top = window.screenY + (window.outerHeight - h) / 2;
-        window.open(data.authorizeUrl, 'vibes_auth',
-          `width=${w},height=${h},left=${left},top=${top},popup=yes`);
+        if (window.__VIBES_DESKTOP__ && ws && ws.readyState === 1) {
+          ws.send(JSON.stringify({ type: 'open_external', url: data.authorizeUrl }));
+        } else {
+          const w = 500, h = 650;
+          const left = window.screenX + (window.outerWidth - w) / 2;
+          const top = window.screenY + (window.outerHeight - h) / 2;
+          window.open(data.authorizeUrl, 'vibes_auth',
+            `width=${w},height=${h},left=${left},top=${top},popup=yes`);
+        }
       }
       // Success is handled by the WebSocket auth_complete message
     } catch (err) {

@@ -69,6 +69,28 @@ bun scripts/deploy-cloudflare.js --name <app> --file index.html
 
 Auth happens automatically: the CLI opens a browser for Pocket ID login and caches credentials at `~/.vibes/auth.json`. The Deploy API accepts the assembled HTML plus an OIDC token and handles Cloudflare API calls server-side.
 
+## Desktop App
+
+The desktop app lives in `vibes-desktop/` — a thin ElectroBun shell that embeds the web editor in a native window. One command builds everything:
+
+```bash
+bash scripts/build-desktop.sh
+```
+
+This syncs the version from `plugin.json`, compiles the native dylib (ObjC++ for hiding macOS traffic lights), and runs `bunx electrobun build`. Output: `vibes-desktop/build/stable-macos-arm64/Vibes Editor.app`.
+
+Key files:
+- `vibes-desktop/src/bun/index.ts` — window creation, menu, tray, external link handling
+- `vibes-desktop/native/macos/window-controls.mm` — native dylib for hiding standard window buttons
+- `vibes-desktop/electrobun.config.ts` — app metadata (name, identifier, version)
+- `scripts/build-desktop.sh` — one-command build script
+
+Desktop-specific behavior (enabled when server runs with `managed: true`):
+- Custom traffic light buttons (red/yellow/green) in the editor header via `window.__VIBES_DESKTOP__`
+- External links open in system browser via `Utils.openExternal()`
+- Auth popup opens in system browser instead of `window.open()`
+- Window controls routed through WebSocket → `ctx.onWindowControl` / `ctx.onOpenExternal`
+
 ## Architecture: JSX + Babel
 
 The plugin uses JSX with Babel runtime transpilation. See `source-templates/base/template.html` for the `<script type="text/babel">` pattern.

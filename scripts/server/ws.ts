@@ -157,6 +157,12 @@ export function createWsHandler(ctx: ServerContext) {
             }
             break;
 
+          case 'open_external':
+            if (ctx.onOpenExternal && msg.url) {
+              ctx.onOpenExternal(msg.url);
+            }
+            break;
+
           case 'delete_theme': {
             const themeId = String(msg.themeId || '').replace(/[^a-z0-9-]/gi, '').slice(0, 60);
             if (!themeId) {

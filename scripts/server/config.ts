@@ -32,6 +32,7 @@ export interface ServerContext {
   backupTimestamps: Record<string, number>;
   managed?: boolean;
   onWindowControl?: (action: string) => void;
+  onOpenExternal?: (url: string) => void;
 }
 
 /**
