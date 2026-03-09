@@ -9,60 +9,60 @@
  *   --mode=editor   Serves editor.html with setup wizard, generation, and deploy
  *
  * Usage: bun scripts/server.ts [--port 3333] [--mode=editor]
+ *
+ * Programmatic: import { startServer } from './server.ts';
+ *               const { server, ctx } = await startServer({ mode: 'editor', port: 3333 });
  */
 
 if (typeof Bun === 'undefined') { console.error('This server requires Bun. Install from https://bun.sh'); process.exit(1); }
 
-import { loadConfig } from './server/config.ts';
+import { loadConfig, type ServerContext } from './server/config.ts';
 import { createRouter } from './server/router.ts';
 import { createWsHandler, type WsData } from './server/ws.ts';
 import { killProcessOnPort, waitForPort } from './server/lifecycle.ts';
 import { cancelCurrent } from './server/claude-bridge.ts';
 
-// --- Process-level safety nets ---
-process.on('uncaughtException', (err) => {
-  console.error('[Process] Uncaught exception:', err);
-  process.exit(1);
-});
-
-process.on('unhandledRejection', (reason) => {
-  console.error('[Process] Unhandled rejection:', reason);
-});
-
-// --- Build context ---
-const ctx = loadConfig();
-const router = createRouter(ctx);
-const wsHandler = createWsHandler(ctx);
-
-// Module-scope server reference for graceful shutdown
-let server: ReturnType<typeof Bun.serve> | null = null;
-
-// --- Graceful shutdown ---
-let shuttingDown = false;
-function shutdown(signal: string) {
-  if (shuttingDown) return;
-  shuttingDown = true;
-  console.log(`\n[Server] ${signal} received — shutting down...`);
-  cancelCurrent(); // Kill any active Claude subprocesses (sends SIGTERM)
-  if (server) {
-    server.stop(true); // true = close existing connections
-    server = null;
-  }
-  // Brief delay to let SIGTERM propagate to child processes before exiting
-  setTimeout(() => process.exit(0), 1000);
+export interface StartServerOptions {
+  port?: number;
+  mode?: 'preview' | 'editor';
+  prompt?: string;
+  /** If true, skip process-level signal handlers (caller manages lifecycle) */
+  managed?: boolean;
 }
 
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
+export interface StartServerResult {
+  server: ReturnType<typeof Bun.serve>;
+  ctx: ServerContext;
+  shutdown: () => void;
+}
 
-// --- Port takeover ---
-async function start() {
+export async function startServer(options?: StartServerOptions): Promise<StartServerResult> {
+  // Inject options into process.argv so loadConfig() picks them up
+  const origArgv = [...process.argv];
+  if (options?.port) {
+    process.argv.push('--port', String(options.port));
+  }
+  if (options?.mode) {
+    process.argv.push(`--mode=${options.mode}`);
+  }
+  if (options?.prompt) {
+    process.argv.push('--prompt', options.prompt);
+  }
+
+  const ctx = loadConfig();
+
+  // Restore original argv
+  process.argv = origArgv;
+
+  const router = createRouter(ctx);
+  const wsHandler = createWsHandler(ctx);
+
   if (await killProcessOnPort(ctx.port)) {
     console.log(`Port ${ctx.port} in use — taking over from previous server...`);
     await waitForPort(ctx.port);
   }
 
-  server = Bun.serve<WsData>({
+  const server = Bun.serve<WsData>({
     port: ctx.port,
     idleTimeout: 255,
 
@@ -84,14 +84,39 @@ async function start() {
     websocket: wsHandler,
   });
 
+  let shuttingDown = false;
+  const shutdownFn = () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    cancelCurrent();
+    server.stop(true);
+  };
+
+  // Only install signal handlers if not managed by caller
+  if (!options?.managed) {
+    process.on('uncaughtException', (err) => {
+      console.error('[Process] Uncaught exception:', err);
+      process.exit(1);
+    });
+    process.on('unhandledRejection', (reason) => {
+      console.error('[Process] Unhandled rejection:', reason);
+    });
+    process.on('SIGINT', () => { shutdownFn(); setTimeout(() => process.exit(0), 1000); });
+    process.on('SIGTERM', () => { shutdownFn(); setTimeout(() => process.exit(0), 1000); });
+  }
+
   const modeLabel = ctx.mode === 'editor' ? 'Editor' : 'Preview';
-  const url = `http://localhost:${ctx.port}`;
   console.log(`\nVibes ${modeLabel} Server`);
-  console.log(`  Open:   ${url}`);
+  console.log(`  Open:   http://localhost:${ctx.port}`);
   console.log(`  Mode:   ${modeLabel}`);
   console.log(`  Themes: ${ctx.themes.length} loaded`);
   console.log(`  Anims:  ${ctx.animations.length} loaded`);
-  console.log(`  Press Ctrl+C to stop\n`);
+  if (!options?.managed) console.log(`  Press Ctrl+C to stop\n`);
+
+  return { server, ctx, shutdown: shutdownFn };
 }
 
-start();
+// --- CLI entry point ---
+if (import.meta.main) {
+  startServer();
+}
