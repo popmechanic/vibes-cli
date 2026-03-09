@@ -465,10 +465,6 @@
       height: 100%;
       object-fit: cover;
     }
-    .app-card-placeholder {
-      font-size: 2rem;
-      opacity: 0.3;
-    }
     .app-card-info {
       padding: 0.5rem 0.75rem;
     }
@@ -3356,7 +3352,7 @@
         const cardName = matchedApp ? matchedApp.name : 'Continue current app';
         const cardThumb = matchedApp && matchedApp.hasScreenshot
           ? `<img src="/editor/apps/screenshot?name=${encodeURIComponent(matchedApp.name)}" alt="${escapeHtml(matchedApp.name)}" loading="lazy">`
-          : `<span class="app-card-placeholder">&#9998;</span>`;
+          : `<img src="/editor/assets/screen-saver.png" alt="App preview" loading="lazy">`;
         gridHtml += `<div class="app-card" onclick="useExistingApp()">
           <div class="app-card-thumb">${cardThumb}</div>
           <div class="app-card-info">
@@ -3377,7 +3373,7 @@
         const themeLabel = app.themeName ? ' \u00b7 ' + escapeHtml(app.themeName) : '';
         const thumbContent = app.hasScreenshot
           ? `<img src="/editor/apps/screenshot?name=${encodeURIComponent(app.name)}" alt="${escapeHtml(app.name)}" loading="lazy">`
-          : `<span class="app-card-placeholder">&#9670;</span>`;
+          : `<img src="/editor/assets/screen-saver.png" alt="App preview" loading="lazy">`;
         gridHtml += `<div class="app-card" onclick="loadSavedApp('${escapeHtml(app.name)}')">
           <div class="app-card-thumb">${thumbContent}</div>
           <div class="app-card-info">
@@ -3448,9 +3444,11 @@
       }
       return;
     }
-    // Derive name from prompt: take first 3 words, slugify
+    // Derive name from prompt: strip filler words, take first 4 meaningful words
+    const FILLER = new Set(['build','me','a','an','the','my','for','make','create','app','that','with','i','want','need','please','can','you','some','this','it','of','to','and','in','on','is']);
     const prompt = document.getElementById('generatePrompt')?.value || '';
-    const slug = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+    const words = prompt.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w && !FILLER.has(w));
+    const slug = (words.length ? words.slice(0, 4).join('-') : '').slice(0, 63);
     if (slug && ws && ws.readyState === WebSocket.OPEN) {
       currentAppName = slug;
       ws.send(JSON.stringify({ type: 'save_app', name: slug }));
@@ -3467,9 +3465,11 @@
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
     let name = currentAppName;
     if (!name) {
-      // No name yet — derive from prompt
+      // No name yet — derive from prompt (strip filler, first 4 words)
+      const FILLER = new Set(['build','me','a','an','the','my','for','make','create','app','that','with','i','want','need','please','can','you','some','this','it','of','to','and','in','on','is']);
       const prompt = document.getElementById('generatePrompt')?.value || '';
-      name = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+      const words = prompt.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w && !FILLER.has(w));
+      name = (words.length ? words.slice(0, 4).join('-') : '').slice(0, 63);
       if (!name) {
         addMessage('system', 'Generate an app first before saving.');
         return;
@@ -3582,6 +3582,8 @@
   }
 
   function startGenerate() {
+    // Clear stale app name so auto-save creates a new entry from the prompt
+    currentAppName = null;
     const prompt = document.getElementById('generatePrompt').value.trim();
     if (!prompt) {
       const errEl = document.getElementById('generateError');

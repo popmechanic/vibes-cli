@@ -113,7 +113,7 @@ function json(data: any, status = 200, extraHeaders: Record<string, string> = {}
 
 function sanitizeAppName(name: string): string {
   if (!name) return '';
-  return name.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/^-+|-+$/g, '').slice(0, 63);
+  return name.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 63);
 }
 
 // --- Editor API helpers ---
@@ -447,6 +447,11 @@ async function editorGetScreenshot(ctx: ServerContext, url: URL): Promise<Respon
   return new Response(file, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'no-cache', ...corsHeaders() } });
 }
 
+function serveScreenSaver(ctx: ServerContext): Response {
+  const file = Bun.file(join(ctx.projectRoot, 'assets', 'screen-saver.png'));
+  return new Response(file, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=3600', ...corsHeaders() } });
+}
+
 function editorLoadApp(ctx: ServerContext, url: URL): Response {
   const name = sanitizeAppName(url.searchParams.get('name') || '');
   if (!name) return new Response('Missing name', { status: 400, headers: corsHeaders() });
@@ -549,6 +554,7 @@ export function createRouter(ctx: ServerContext) {
       case 'GET /editor/app-exists':        return editorAppExists(ctx);
       case 'GET /editor/apps':              return editorListApps(ctx);
       case 'GET /editor/apps/screenshot':   return editorGetScreenshot(ctx, url);
+      case 'GET /editor/assets/screen-saver.png': return serveScreenSaver(ctx);
       case 'POST /editor/credentials':      return editorSaveCredentials(ctx, req);
       case 'POST /editor/credentials/validate-cloudflare': return editorValidateCloudflare(ctx, req);
       case 'POST /editor/credentials/validate-clerk': return editorValidateClerk(ctx, req);
