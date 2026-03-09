@@ -4,7 +4,7 @@ export default {
 	app: {
 		name: "Vibes Editor",
 		identifier: "com.vibes.desktop-editor",
-		version: "0.1.0",
+		version: "0.1.79",
 	},
 	build: {
 		mac: { bundleCEF: false },
