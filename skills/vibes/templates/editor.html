@@ -2751,6 +2751,9 @@
   }
 
   // === State ===
+  // Desktop mode: detect ElectroBun webview
+  const IS_DESKTOP = typeof window.__electrobun !== 'undefined';
+
   let ws = null;
   let wsRetries = 0;
   const WS_MAX_RETRIES = 20;
