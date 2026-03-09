@@ -7,7 +7,6 @@
  */
 import Electrobun, {
 	BrowserWindow,
-	BrowserView,
 	ApplicationMenu,
 	Tray,
 	Utils,
@@ -15,6 +14,7 @@ import Electrobun, {
 import { join } from "path";
 import { discoverVibesPlugin } from "./plugin-discovery.ts";
 import { resolveClaudePath, CLAUDE_BIN } from "./auth.ts";
+import { hideZoomButton } from "./window-controls.ts";
 
 // --- Constants ---
 const PORT = 3333;
@@ -63,9 +63,21 @@ async function main() {
 	// 4. Create window pointing to the server
 	const mainWindow = new BrowserWindow({
 		title: "Vibes Editor",
+		titleBarStyle: "hiddenInset",
+		styleMask: {
+			Titled: true,
+			FullSizeContentView: true,
+			Resizable: true,
+			Closable: false,
+			Miniaturizable: false,
+		},
 		url: SERVER_URL,
 		frame: { width: 1280, height: 820 },
 	});
+
+	// 4b. Hide zoom button via native dylib (dispatch_async to main thread)
+	// Close and minimize are already hidden by styleMask above
+	setTimeout(() => hideZoomButton(), 200);
 
 	// 5. Native menu
 	ApplicationMenu.setApplicationMenu([
@@ -128,7 +140,32 @@ async function main() {
 		}
 	});
 
-	// 8. Graceful shutdown
+	// 8. Native command channel — WebSocket for low-latency window ops
+	const NATIVE_PORT = PORT + 1;
+	Bun.serve({
+		port: NATIVE_PORT,
+		fetch(req, srv) {
+			if (req.headers.get("upgrade")?.toLowerCase() === "websocket") {
+				srv.upgrade(req);
+				return undefined as any;
+			}
+			return new Response("", { status: 404 });
+		},
+		websocket: {
+			message(_ws, msg) {
+				try {
+					const data = JSON.parse(String(msg));
+					if (data.type === "move") {
+						const pos = mainWindow.getPosition();
+						mainWindow.setPosition(pos.x + data.dx, pos.y + data.dy);
+					}
+				} catch {}
+			},
+		},
+	});
+	console.log(`[vibes-desktop] Native command channel on port ${NATIVE_PORT}`);
+
+	// 9. Graceful shutdown
 	Electrobun.events.on("before-quit", () => {
 		shutdown();
 	});
