@@ -5302,6 +5302,37 @@
   }
   if (window.__VIBES_DESKTOP__) {
     document.getElementById('windowControls').classList.add('visible');
+
+    // Intercept external link clicks and route through native openExternal
+    function interceptExternalLinks(doc) {
+      doc.addEventListener('click', (e) => {
+        const a = e.target.closest('a[href]');
+        if (!a) return;
+        const href = a.href;
+        if (!href || href.startsWith('javascript:')) return;
+        // Allow local navigation within the editor
+        if (new URL(href, location.origin).origin === location.origin) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (ws && ws.readyState === 1) {
+          ws.send(JSON.stringify({ type: 'open_external', url: href }));
+        }
+      }, true);
+    }
+    interceptExternalLinks(document);
+
+    // Also intercept links inside the preview iframe
+    const previewFrame = document.getElementById('previewFrame');
+    if (previewFrame) {
+      const hookIframe = () => {
+        try {
+          if (previewFrame.contentDocument) {
+            interceptExternalLinks(previewFrame.contentDocument);
+          }
+        } catch {}
+      };
+      previewFrame.addEventListener('load', hookIframe);
+    }
   }
 
   // === Init ===
