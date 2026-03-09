@@ -277,8 +277,34 @@ export function OIDCProvider(props) {
     var redirectUri = window.location.origin + window.location.pathname;
 
     async function init() {
-      // Step 1: Check for callback code
+      // Step 0: Check for OTA (one-time-access-token) from invite link
       var params = new URLSearchParams(window.location.search);
+      if (params.has("ota")) {
+        var otaToken = params.get("ota");
+        try {
+          // Exchange OTA token with Pocket ID — this sets up the user's session
+          var otaRes = await fetch(authority + "/api/one-time-access-token/" + encodeURIComponent(otaToken), {
+            method: "POST",
+            headers: { "Accept": "application/json" }
+          });
+          if (otaRes.ok) {
+            console.debug("[vibes-oidc] OTA token redeemed, starting login flow");
+          } else {
+            console.warn("[vibes-oidc] OTA token redemption failed:", otaRes.status);
+          }
+        } catch (otaErr) {
+          console.warn("[vibes-oidc] OTA token exchange error:", otaErr);
+        }
+        // Clean the OTA param from URL regardless of outcome
+        params.delete("ota");
+        var cleanOtaUrl = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
+        window.history.replaceState({}, "", cleanOtaUrl);
+        // After OTA redemption, start normal OIDC login to get tokens
+        startLogin(authority, clientId, redirectUri);
+        return;
+      }
+
+      // Step 1: Check for callback code
       if (params.has("code")) {
         var tokens = await handleCallback(authority, clientId, redirectUri);
         if (tokens && !cancelled) {

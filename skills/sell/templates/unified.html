@@ -936,7 +936,8 @@
         tokenApiUri: "__VITE_API_URL__",
         cloudBackendUrl: "__VITE_CLOUD_URL__",
         oidcAuthority: "__VITE_OIDC_AUTHORITY__",
-        oidcClientId: "__VITE_OIDC_CLIENT_ID__"
+        oidcClientId: "__VITE_OIDC_CLIENT_ID__",
+        deployApiUrl: "__VITE_DEPLOY_API_URL__"
       };
       // Default: single theme hides the Design button in VibesPanel.
       // Apps with multiple themes override this before menu loads.
@@ -3256,8 +3257,35 @@ if (typeof window !== 'undefined') {
 
             (async function() {
               try {
-                // Discover ledger for this app — check cached sources first
+                // --- Per-app invite via Deploy API ---
+                var deployApiUrl = window.__VIBES_CONFIG__ && window.__VIBES_CONFIG__.deployApiUrl;
+                var oidcToken = window.__VIBES_OIDC_TOKEN__;
                 var appHost = window.location.hostname;
+                var appName = appHost.split('.')[0]; // e.g. "my-app" from "my-app.marcus-e.workers.dev"
+
+                if (deployApiUrl && oidcToken && appName) {
+                  try {
+                    var inviteRes = await fetch(deployApiUrl.replace(/\/$/, '') + '/apps/' + encodeURIComponent(appName) + '/invite', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + oidcToken
+                      },
+                      body: JSON.stringify({ email: email })
+                    });
+                    var inviteData = await inviteRes.json();
+                    if (inviteRes.ok && inviteData.ok) {
+                      console.debug('[vibes-sharing] Deploy API invite succeeded:', inviteData.inviteUrl);
+                    } else {
+                      console.warn('[vibes-sharing] Deploy API invite failed:', inviteData.error || inviteRes.status);
+                    }
+                  } catch (deployErr) {
+                    console.warn('[vibes-sharing] Deploy API invite error:', deployErr);
+                  }
+                }
+
+                // --- Existing Fireproof Connect invite flow ---
+                // Discover ledger for this app — check cached sources first
                 var qpSub = new URLSearchParams(window.location.search).get('subdomain');
                 var cachedLedgerId = null;
                 var ledgerMap = window.__VIBES_LEDGER_MAP__ || {};

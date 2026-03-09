@@ -9,6 +9,7 @@ OIDC_ISSUER = "https://pocket-id.marcus-e.workers.dev"
 # Secrets (set via `wrangler secret put`):
 # CF_API_TOKEN - scoped to Workers deploys on our account
 # CF_ACCOUNT_ID - our Cloudflare account ID
+# POCKET_ID_API_KEY - Pocket ID admin API key for per-app registration
 
 # Service Binding to Pocket ID Worker (avoids .workers.dev routing issue)
 [[services]]

@@ -8,6 +8,15 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { Env, DeployRequest, DeployResponse, JWTPayload, SubdomainRecord } from "./types";
+import {
+  createApp,
+  getApp,
+  createUserGroup,
+  addUsersToGroup,
+  setAllowedGroups,
+  findOrCreateUser,
+  createOneTimeAccessToken,
+} from "./pocket-id";
 
 // ---------------------------------------------------------------------------
 // JWT Verification — Dynamic JWKS
@@ -353,6 +362,68 @@ export default {
 }
 
 // ---------------------------------------------------------------------------
+// Per-App Pocket ID Registration
+// ---------------------------------------------------------------------------
+
+/**
+ * Register a per-app OIDC client and user group in Pocket ID.
+ * Idempotent: skips if the SubdomainRecord already has oidcClientId.
+ * Returns the oidcClientId (existing or newly created).
+ */
+async function registerAppInPocketId(
+  fetcher: Fetcher,
+  apiKey: string,
+  appName: string,
+  deployUrl: string,
+  userId: string,
+  existing: SubdomainRecord | null
+): Promise<{ oidcClientId: string; userGroupId: string } | null> {
+  // Already registered — return existing IDs
+  if (existing?.oidcClientId && existing?.userGroupId) {
+    return { oidcClientId: existing.oidcClientId, userGroupId: existing.userGroupId };
+  }
+
+  try {
+    // 1. Register app in Pocket ID
+    const appResult = await createApp(fetcher, apiKey, {
+      name: `vibes-${appName}`,
+      callbackURLs: [`${deployUrl}/**`],
+      isPublic: true,
+    });
+    const oidcClientId = appResult.id;
+
+    // 2. Create user group for this app
+    const group = await createUserGroup(fetcher, apiKey, {
+      name: `vibes-${appName}-users`,
+    });
+    const userGroupId = group.id;
+
+    // 3. Add deployer as first member
+    await addUsersToGroup(fetcher, apiKey, userGroupId, [userId]);
+
+    // 4. Restrict app to this group
+    await setAllowedGroups(fetcher, apiKey, oidcClientId, [userGroupId]);
+
+    console.log(`[pocket-id] Registered app vibes-${appName}, client=${oidcClientId}, group=${userGroupId}`);
+    return { oidcClientId, userGroupId };
+  } catch (err) {
+    console.error(`[pocket-id] Failed to register app vibes-${appName}:`, err);
+    return null;
+  }
+}
+
+/**
+ * Inject per-app oidcClientId into assembled HTML.
+ * Replaces the placeholder or shared client ID in window.__VIBES_CONFIG__.
+ */
+function injectClientId(html: string, clientId: string): string {
+  return html.replace(
+    /oidcClientId:\s*"[^"]*"/,
+    `oidcClientId: "${clientId}"`
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Hono App
 // ---------------------------------------------------------------------------
 
@@ -437,6 +508,37 @@ app.post("/deploy", async (c) => {
     return c.json({ ok: false, error: "Subdomain is owned by another user" }, 403);
   }
 
+  // Per-app Pocket ID registration (on first deploy only)
+  let oidcClientId = existing?.oidcClientId;
+  let userGroupId = existing?.userGroupId;
+
+  if (c.env.POCKET_ID_API_KEY) {
+    // Get the deploy URL to build callback URLs
+    const subdomain = await getWorkersSubdomain(c.env.CF_ACCOUNT_ID, c.env.CF_API_TOKEN);
+    const deployUrl = subdomain
+      ? `https://${name}.${subdomain}.workers.dev`
+      : `https://${name}.workers.dev`;
+
+    const registration = await registerAppInPocketId(
+      c.env.POCKET_ID,
+      c.env.POCKET_ID_API_KEY,
+      name,
+      deployUrl,
+      userId,
+      existing
+    );
+
+    if (registration) {
+      oidcClientId = registration.oidcClientId;
+      userGroupId = registration.userGroupId;
+
+      // Inject per-app client ID into HTML before deploy
+      if (files["index.html"]) {
+        files["index.html"] = injectClientId(files["index.html"], oidcClientId);
+      }
+    }
+  }
+
   // Deploy via CF API
   const result = await deployCFWorker(c.env.CF_ACCOUNT_ID, c.env.CF_API_TOKEN, name, files);
   if (!result.ok) {
@@ -446,8 +548,8 @@ app.post("/deploy", async (c) => {
   // Update registry KV
   const now = new Date().toISOString();
   const record: SubdomainRecord = existing
-    ? { ...existing, updatedAt: now }
-    : { owner: userId, collaborators: [], connectProvisioned: false, createdAt: now, updatedAt: now };
+    ? { ...existing, oidcClientId, userGroupId, updatedAt: now }
+    : { owner: userId, collaborators: [], connectProvisioned: false, oidcClientId, userGroupId, createdAt: now, updatedAt: now };
   await setSubdomain(c.env.REGISTRY_KV, name, record);
 
   // Update user mapping (append if new)
@@ -474,6 +576,102 @@ app.get("/status/:name", async (c) => {
     connectProvisioned: record.connectProvisioned ?? false,
     updatedAt: record.updatedAt,
   });
+});
+
+// Invite endpoint — add user to app's Pocket ID group
+app.post("/apps/:name/invite", async (c) => {
+  // Extract Bearer token
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return c.json({ ok: false, error: "Missing or invalid Authorization header" }, 401);
+  }
+
+  const token = authHeader.slice(7);
+  const payload = await verifyJWT(token, c.env.OIDC_ISSUER, c.env.POCKET_ID);
+  if (!payload) {
+    return c.json({ ok: false, error: "Invalid or expired token" }, 401);
+  }
+
+  const ownerUserId = payload.sub;
+  const name = c.req.param("name");
+
+  // Look up SubdomainRecord — verify caller is owner
+  const record = await getSubdomain(c.env.REGISTRY_KV, name);
+  if (!record) {
+    return c.json({ ok: false, error: "App not found" }, 404);
+  }
+  if (record.owner !== ownerUserId) {
+    return c.json({ ok: false, error: "Only the app owner can invite users" }, 403);
+  }
+
+  if (!record.userGroupId) {
+    return c.json({ ok: false, error: "App has no Pocket ID user group" }, 400);
+  }
+
+  if (!c.env.POCKET_ID_API_KEY) {
+    return c.json({ ok: false, error: "Pocket ID API key not configured" }, 500);
+  }
+
+  // Parse request body
+  let body: { email: string };
+  try {
+    body = await c.req.json<{ email: string }>();
+  } catch {
+    return c.json({ ok: false, error: "Invalid JSON body" }, 400);
+  }
+
+  if (!body.email || typeof body.email !== "string") {
+    return c.json({ ok: false, error: "Missing 'email' field" }, 400);
+  }
+
+  try {
+    // Find or create invitee in Pocket ID
+    const invitee = await findOrCreateUser(c.env.POCKET_ID, c.env.POCKET_ID_API_KEY, {
+      email: body.email,
+    });
+
+    // Add invitee to app's user group
+    await addUsersToGroup(
+      c.env.POCKET_ID,
+      c.env.POCKET_ID_API_KEY,
+      record.userGroupId,
+      [invitee.id]
+    );
+
+    // Generate one-time-access-token for passwordless login
+    const ota = await createOneTimeAccessToken(
+      c.env.POCKET_ID,
+      c.env.POCKET_ID_API_KEY,
+      invitee.id
+    );
+
+    // Build the deploy URL
+    const subdomain = await getWorkersSubdomain(c.env.CF_ACCOUNT_ID, c.env.CF_API_TOKEN);
+    const appUrl = subdomain
+      ? `https://${name}.${subdomain}.workers.dev`
+      : `https://${name}.workers.dev`;
+
+    const inviteUrl = `${appUrl}?ota=${encodeURIComponent(ota.token)}`;
+
+    // Add invitee to collaborators in registry
+    const collaborators = record.collaborators || [];
+    if (!collaborators.some((col) => col.userId === invitee.id)) {
+      collaborators.push({ userId: invitee.id, email: body.email, role: "member" });
+      await setSubdomain(c.env.REGISTRY_KV, name, {
+        ...record,
+        collaborators,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    return c.json({ ok: true, inviteUrl, userId: invitee.id });
+  } catch (err) {
+    console.error(`[invite] Failed to invite ${body.email} to ${name}:`, err);
+    return c.json(
+      { ok: false, error: err instanceof Error ? err.message : "Invite failed" },
+      500
+    );
+  }
 });
 
 export default app;
