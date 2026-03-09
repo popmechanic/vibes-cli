@@ -176,7 +176,7 @@ async function main() {
   // Deploy via API
   const result = await deployViaAPI(name, files, tokens.accessToken, { aiKey });
 
-  const deployedUrl = result.url || `https://${name}.vibes.diy`;
+  const deployedUrl = result.url || `https://${name}.vibesos.com`;
 
   // Save app metadata to registry
   setApp(name, {
