@@ -23,15 +23,13 @@
 - Create: `vibes-desktop/src/mainview/index.ts`
 - Create: `vibes-desktop/src/mainview/App.tsx`
 
-**Context:** ElectroBun requires manual `index.html` creation (it does NOT auto-generate it). The `build.copy` config must map it to `views/mainview/index.html`. The project lives as a sibling to vibes-skill, not inside it.
+**Context:** ElectroBun requires manual `index.html` creation (it does NOT auto-generate it). The `build.copy` config must map it to `views/mainview/index.html`. The `vibes-desktop/` directory lives inside the vibes-skill repo as a subdirectory on a feature branch — it is NOT a standalone project.
 
 **Step 1: Scaffold with ElectroBun**
 
 ```bash
-cd /Users/marcusestes/Websites/VibesCLI
 bunx electrobun init react-tailwind-vite vibes-desktop
-cd vibes-desktop
-bun install
+cd vibes-desktop && bun install
 ```
 
 **Step 2: Configure electrobun.config.ts**
@@ -117,9 +115,7 @@ Expected: A 1280x820 window opens with "Vibes Editor" title and "Shell loaded." 
 **Step 7: Commit**
 
 ```bash
-cd vibes-desktop
-git init
-git add .
+git add vibes-desktop/
 git commit -m "scaffold: ElectroBun desktop editor project"
 ```
 
@@ -422,7 +418,7 @@ Expected: App launches, no TypeScript errors. Still shows "Shell loaded." (React
 **Step 5: Commit**
 
 ```bash
-cd vibes-desktop && git add src/shared/ src/bun/index.ts src/mainview/index.ts
+git add vibes-desktop/src/shared/ vibes-desktop/src/bun/index.ts vibes-desktop/src/mainview/index.ts
 git commit -m "feat: define typed RPC schema for Bun↔webview communication"
 ```
 
@@ -585,7 +581,7 @@ Expected: PASS (2 tests).
 **Step 5: Commit**
 
 ```bash
-cd vibes-desktop && git add src/bun/plugin-discovery.ts src/bun/__tests__/
+git add vibes-desktop/src/bun/plugin-discovery.ts vibes-desktop/src/bun/__tests__/
 git commit -m "feat: plugin discovery — find vibes plugin from ~/.claude/plugins/"
 ```
 
@@ -864,7 +860,7 @@ Expected: PASS (3 tests).
 **Step 5: Commit**
 
 ```bash
-cd vibes-desktop && git add src/bun/auth.ts src/bun/__tests__/auth.test.ts
+git add vibes-desktop/src/bun/auth.ts vibes-desktop/src/bun/__tests__/auth.test.ts
 git commit -m "feat: Claude CLI resolution, env cleaning, and auth checking"
 ```
 
@@ -1318,7 +1314,7 @@ Expected: PASS (all tests).
 **Step 5: Commit**
 
 ```bash
-cd vibes-desktop && git add src/bun/claude-manager.ts src/bun/__tests__/claude-manager.test.ts
+git add vibes-desktop/src/bun/claude-manager.ts vibes-desktop/src/bun/__tests__/claude-manager.test.ts
 git commit -m "feat: Claude manager — stream parser, progress tracking, operation lock, subprocess spawn"
 ```
 
@@ -1447,7 +1443,7 @@ Expected: Compiles without errors.
 **Step 3: Commit**
 
 ```bash
-cd vibes-desktop && git add src/bun/preview-server.ts
+git add vibes-desktop/src/bun/preview-server.ts
 git commit -m "feat: preview HTTP server for /app-frame and static assets"
 ```
 
@@ -1787,7 +1783,7 @@ Expected: Compiles without errors.
 **Step 3: Commit**
 
 ```bash
-cd vibes-desktop && git add src/bun/config.ts
+git add vibes-desktop/src/bun/config.ts
 git commit -m "feat: config loader — themes, animations, skills, auto-select, app utils"
 ```
 
@@ -2903,7 +2899,7 @@ export async function handleDeploy(
 **Step 5: Commit**
 
 ```bash
-cd vibes-desktop && git add src/bun/handlers/
+git add vibes-desktop/src/bun/handlers/
 git commit -m "feat: generate, chat, theme, and deploy handlers"
 ```
 
@@ -3338,7 +3334,7 @@ Expected: App launches. RPC handlers are wired. Preview server starts on :3333.
 **Step 3: Commit**
 
 ```bash
-cd vibes-desktop && git add src/bun/index.ts
+git add vibes-desktop/src/bun/index.ts
 git commit -m "feat: wire all Bun-side modules to RPC handlers"
 ```
 
@@ -3680,7 +3676,7 @@ Expected: App launches, shows "Checking setup..." then progresses through setup 
 **Step 5: Commit**
 
 ```bash
-cd vibes-desktop && git add src/mainview/
+git add vibes-desktop/src/mainview/
 git commit -m "feat: React app shell with setup wizard and phase routing"
 ```
 
@@ -3704,7 +3700,7 @@ Move the inline `SetupPhase` from App.tsx into its own component at `src/mainvie
 **Step 2: Commit**
 
 ```bash
-cd vibes-desktop && git add src/mainview/components/SetupWizard.tsx src/mainview/App.tsx
+git add vibes-desktop/src/mainview/components/SetupWizard.tsx vibes-desktop/src/mainview/App.tsx
 git commit -m "feat: polished setup wizard with step indicators and plugin check"
 ```
 
@@ -3754,7 +3750,7 @@ Expected: Generate phase shows prompt, themes, gallery. Entering a prompt and su
 **Step 6: Commit**
 
 ```bash
-cd vibes-desktop && git add src/mainview/components/
+git add vibes-desktop/src/mainview/components/
 git commit -m "feat: generate phase with theme carousel, app gallery, design upload"
 ```
 
@@ -3812,7 +3808,7 @@ Expected: After generating an app, edit phase shows split pane. Preview loads as
 **Step 6: Commit**
 
 ```bash
-cd vibes-desktop && git add src/mainview/components/EditPhase.tsx src/mainview/components/PreviewPane.tsx src/mainview/components/ChatPane.tsx
+git add vibes-desktop/src/mainview/components/EditPhase.tsx vibes-desktop/src/mainview/components/PreviewPane.tsx vibes-desktop/src/mainview/components/ChatPane.tsx
 git commit -m "feat: edit phase with split pane preview and streaming chat"
 ```
 
@@ -3837,7 +3833,7 @@ On theme card click: call `rpc.request.switchTheme({ themeId })`, show progress 
 **Step 3: Commit**
 
 ```bash
-cd vibes-desktop && git add src/mainview/components/
+git add vibes-desktop/src/mainview/components/
 git commit -m "feat: theme switching overlay in edit mode"
 ```
 
@@ -3868,7 +3864,7 @@ Add `onAuthRequired` and `onAuthComplete` handlers to trigger Pocket ID login fl
 **Step 3: Commit**
 
 ```bash
-cd vibes-desktop && git add src/mainview/components/DeployPanel.tsx
+git add vibes-desktop/src/mainview/components/DeployPanel.tsx
 git commit -m "feat: deploy panel with Pocket ID auth gate and progress tracking"
 ```
 
@@ -3897,7 +3893,7 @@ Add "Load App" option in header → shows AppGallery as modal → selecting load
 **Step 4: Commit**
 
 ```bash
-cd vibes-desktop && git add src/mainview/components/
+git add vibes-desktop/src/mainview/components/
 git commit -m "feat: save/load apps with gallery and screenshots"
 ```
 
@@ -3922,7 +3918,7 @@ When an animation is selected and user sends a message, pass `animationId` in th
 **Step 3: Commit**
 
 ```bash
-cd vibes-desktop && git add src/mainview/components/AnimationPicker.tsx
+git add vibes-desktop/src/mainview/components/AnimationPicker.tsx
 git commit -m "feat: animation picker in chat composer"
 ```
 
@@ -3947,7 +3943,7 @@ When a skill is selected, pass `skillId` in chat params. Show chip in composer. 
 **Step 3: Commit**
 
 ```bash
-cd vibes-desktop && git add src/mainview/components/SkillPicker.tsx
+git add vibes-desktop/src/mainview/components/SkillPicker.tsx
 git commit -m "feat: skill picker for plugin skill context injection"
 ```
 
@@ -3980,7 +3976,7 @@ Listen for Claude subprocess events and update tray tooltip. When `done` fires, 
 **Step 3: Commit**
 
 ```bash
-cd vibes-desktop && git add src/bun/index.ts
+git add vibes-desktop/src/bun/index.ts
 git commit -m "feat: system tray with status tooltip and completion notifications"
 ```
 
@@ -4015,6 +4011,6 @@ Verify DMG is created in `artifacts/`. Test launching from DMG on a clean user a
 **Step 4: Final commit**
 
 ```bash
-cd vibes-desktop && git add -A
+git add vibes-desktop/
 git commit -m "polish: integration fixes and build verification"
 ```
