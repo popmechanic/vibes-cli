@@ -516,27 +516,31 @@ export async function discoverVibesPlugin(
   try {
     const data = JSON.parse(await Bun.file(installedPath).text());
 
-    // Find vibes plugin entry
-    const vibesEntry = Array.isArray(data)
-      ? data.find(
-          (p: any) =>
-            p.name === "vibes" ||
-            p.packageName?.includes("vibes") ||
-            p.path?.includes("vibes")
-        )
-      : null;
+    // Handle version 2 format: { version: 2, plugins: { "vibes@marketplace": [...] } }
+    const plugins = data.plugins || data;
+    if (typeof plugins !== "object" || Array.isArray(plugins)) return null;
 
-    if (!vibesEntry?.path) {
+    // Find vibes plugin entry — keys are "pluginName@marketplace"
+    let installPath: string | null = null;
+    for (const [key, value] of Object.entries(plugins)) {
+      if (!key.startsWith("vibes@")) continue;
+      // pluginData is an array in v2 format
+      const pluginEntry = Array.isArray(value) ? (value as any[])[0] : value;
+      if (pluginEntry?.installPath && existsSync(pluginEntry.installPath)) {
+        installPath = pluginEntry.installPath;
+        break;
+      }
+    }
+
+    if (!installPath) {
       // Fallback: scan cache directories
       const cacheDir = join(h, ".claude", "plugins", "cache");
       if (!existsSync(cacheDir)) return null;
 
-      // Look for vibes plugin in any marketplace cache
       const { readdirSync } = await import("fs");
       for (const market of readdirSync(cacheDir)) {
         const vibesDir = join(cacheDir, market, "vibes");
         if (existsSync(vibesDir)) {
-          // Find latest version
           const versions = readdirSync(join(vibesDir)).filter(
             (v) => !v.startsWith(".")
           );
@@ -550,7 +554,7 @@ export async function discoverVibesPlugin(
       return null;
     }
 
-    return validateAndReturn(vibesEntry.path);
+    return validateAndReturn(installPath);
   } catch {
     return null;
   }
@@ -1101,20 +1105,27 @@ export function spawnClaude(
   let floorProgress = 0;
   const startTime = Date.now();
 
-  // Build args
+  // Build args — use `-p -` to read prompt from stdin (prompts can be 5-20KB,
+  // too large for CLI args which hit OS ARG_MAX limits and break on special chars).
   const args = [
-    "-p",
+    "-p", "-",
     "--output-format",
     "stream-json",
     "--verbose",
-    "--permission-mode",
-    opts.permissionMode || "bypassPermissions",
-    "--setting-sources",
-    "",
-    "--model",
-    opts.model || "sonnet",
+    "--include-partial-messages",
     "--no-session-persistence",
   ];
+
+  // Permission mode: default to dontAsk (auto-deny unallowed tools).
+  // When --tools restricts the tool set, use bypassPermissions since
+  // the tool set is already explicitly scoped.
+  const permMode = opts.permissionMode
+    || (opts.tools ? "bypassPermissions" : "dontAsk");
+  args.push("--permission-mode", permMode);
+
+  if (opts.model) {
+    args.push("--model", opts.model);
+  }
 
   if (opts.maxTurns) {
     args.push("--max-turns", String(opts.maxTurns));
@@ -1122,17 +1133,23 @@ export function spawnClaude(
 
   if (opts.tools) {
     args.push("--tools", opts.tools);
+    // When restricting built-in tools, block plugin tools from hijacking
+    args.push("--disable-slash-commands");
+    args.push("--disallowed-tools", "ToolSearch,Skill");
   }
 
-  args.push(prompt);
-
-  // Spawn
+  // Spawn with stdin: 'pipe' — write prompt via stdin, not CLI args
   const proc = Bun.spawn([CLAUDE_BIN, ...args], {
+    stdin: "pipe",
     stdout: "pipe",
     stderr: "pipe",
     env: cleanEnv(),
     cwd: opts.cwd,
   });
+
+  // Write prompt to stdin and close — this is how claude -p - works
+  proc.stdin.write(prompt);
+  proc.stdin.end();
 
   // Heartbeat every 2s
   const heartbeat = setInterval(() => {
@@ -1361,6 +1378,7 @@ const MIME_TYPES: Record<string, string> = {
 export interface PreviewServerContext {
   pluginPaths: PluginPaths;
   getAssembledHtml: () => string | null;
+  getAppJsxPath: () => string | null;
   port: number;
 }
 
@@ -1619,15 +1637,37 @@ function discoverPluginSkills(): SkillEntry[] {
   if (!existsSync(installedPath)) return [];
 
   try {
-    const data = JSON.parse(readFileSync(installedPath, "utf-8"));
-    if (!Array.isArray(data)) return [];
+    const raw = JSON.parse(readFileSync(installedPath, "utf-8"));
+    // Handle version 2 format: { version: 2, plugins: { "name@marketplace": [...] } }
+    const plugins = raw.plugins || raw;
+    if (typeof plugins !== "object" || Array.isArray(plugins)) return [];
 
     const skills: SkillEntry[] = [];
 
-    for (const plugin of data) {
-      if (!plugin.path || plugin.name === "vibes") continue;
+    for (const [pluginKey, pluginData] of Object.entries(plugins)) {
+      // Skip vibes plugin
+      if (pluginKey.startsWith("vibes@")) continue;
 
-      const skillsDir = join(plugin.path, "skills");
+      // Extract plugin name from key (format: "pluginName@marketplace")
+      const atIdx = pluginKey.indexOf("@");
+      const pluginName = atIdx >= 0 ? pluginKey.slice(0, atIdx) : pluginKey;
+
+      // pluginData is an array in v2 format
+      const pluginEntry = Array.isArray(pluginData)
+        ? (pluginData as any[])[0]
+        : pluginData;
+      const installPath = pluginEntry?.installPath;
+      if (!installPath || !existsSync(installPath)) continue;
+
+      // Resolve skills directory from plugin.json
+      const pluginJsonPath = join(installPath, ".claude-plugin", "plugin.json");
+      let skillsDir = join(installPath, "skills");
+      if (existsSync(pluginJsonPath)) {
+        try {
+          const pj = JSON.parse(readFileSync(pluginJsonPath, "utf-8"));
+          if (pj.skills) skillsDir = join(installPath, pj.skills);
+        } catch {}
+      }
       if (!existsSync(skillsDir)) continue;
 
       for (const skillDir of readdirSync(skillsDir)) {
@@ -1638,10 +1678,10 @@ function discoverPluginSkills(): SkillEntry[] {
         const frontmatter = parseYamlFrontmatter(content);
         if (frontmatter.name) {
           skills.push({
-            id: `${plugin.name}:${skillDir}`,
+            id: `${pluginName}:${skillDir}`,
             name: frontmatter.name,
             description: frontmatter.description || "",
-            pluginName: plugin.name,
+            pluginName,
           });
         }
       }
@@ -1836,18 +1876,21 @@ export function handleGenerate(
       params.prompt,
       refContent,
       styleGuide,
-      appDir
     );
     maxTurns = 5;
   } else if (params.designRef?.type === "image") {
+    // Save image to temp file so Claude can Read it
+    const tmpDir = join(appDir, ".vibes-tmp");
+    mkdirSync(tmpDir, { recursive: true });
+    const refPath = join(tmpDir, "design-ref.png");
+    const base64 = params.designRef.content.split(",")[1] || params.designRef.content;
+    writeFileSync(refPath, Buffer.from(base64, "base64"));
+
     prompt = buildImageRefPrompt(
       params.prompt,
-      params.designRef.content,
+      refPath,
       params.designRef.intent || "match",
       styleGuide,
-      themeEssentials,
-      rootCss,
-      appDir
     );
     tools = "Write,Read";
     maxTurns = 8;
@@ -1858,7 +1901,7 @@ export function handleGenerate(
       themeEssentials,
       rootCss,
       theme?.name || themeId,
-      appDir
+      themeId,
     );
   }
 
@@ -1875,84 +1918,254 @@ export function handleGenerate(
   return taskId;
 }
 
+// The generate prompt must match the web editor's handleGenerate in
+// scripts/server/handlers/generate.ts. Key requirements:
+// 1. Mandatory __VIBES_THEMES__ boilerplate + useVibesTheme() function
+// 2. Theme section markers with precise rules for what goes where
+// 3. rootBlock with buildCompTokenMapping() for comp-* token bridge
+// 4. Fireproof useDocument/useLiveQuery/database.put/del patterns
+// 5. No import statements, no TypeScript, CSS unicode escapes forbidden
+
 function buildStandardPrompt(
   userPrompt: string,
   styleGuide: string,
   themeEssentials: string,
   rootCss: string,
   themeName: string,
-  appDir: string
+  themeId: string,
 ): string {
-  return `You are generating a React web application using JSX with Babel runtime transpilation.
+  return `You are an expert React app designer. Generate a beautiful, creative app.
 
-STYLE GUIDE:
+USER REQUEST: "${userPrompt}"
+
+=== MANDATORY THEME: "${themeName}" (id: "${themeId}") ===
+
+Your app.jsx MUST start with these EXACT lines (copy-paste, do not modify):
+
+\`\`\`jsx
+window.__VIBES_THEMES__ = [{ id: "${themeId}", name: "${themeName}" }];
+
+function useVibesTheme() {
+  const [theme, setTheme] = React.useState(() => localStorage.getItem("vibes-theme") || "${themeId}");
+  React.useEffect(() => {
+    const handler = (e) => { const t = e.detail?.theme; if (t) { setTheme(t); localStorage.setItem("vibes-theme", t); } };
+    document.addEventListener("vibes-design-request", handler);
+    return () => document.removeEventListener("vibes-design-request", handler);
+  }, []);
+  return theme;
+}
+\`\`\`
+
+Your <style> tag MUST include these EXACT CSS custom properties from the "${themeName}" theme:
+
+\`\`\`css
+${rootCss || `/* No :root block found — create one with warm oklch colors matching "${themeName}" */`}
+\`\`\`
+
+=== THEME PERSONALITY ===
+
+${themeEssentials || "Bold neo-brutalist: strong typography, hard shadows, playful hover effects."}
+
+=== DESIGN GUIDANCE ===
+
 ${styleGuide}
 
-THEME: ${themeName}
-${themeEssentials}
+=== DESIGN REASONING ===
 
-${rootCss ? `ROOT CSS:\n${rootCss}` : ""}
+Think in a <design> block:
+- How does "${themeName}" personality shape the visual choices?
+- What custom SVG illustrations fit this app?
+- What animations and effects match the theme mood? (Canvas particles, animated SVG, scroll reveals, card tilt, cursor glow)
 
-USER REQUEST: ${userPrompt}
+=== WRITE app.jsx ===
 
-IMPORTANT:
-- Write a complete app.jsx file to ${appDir}/app.jsx
-- Use React hooks (useState, useEffect, useRef, useMemo)
-- Use Fireproof for data: const { useDocument, useLiveQuery, database } = window.useFireproof("app-db")
-- Include theme section markers: /* @theme:tokens */, /* @theme:surfaces */, /* @theme:motion */, /* @theme:decoration */
-- All CSS must be inline in the JSX file (no external stylesheets)
-- Do NOT import React — it's available globally via the import map
-- Export default function App() { ... }`;
+Write the complete app to app.jsx. Rules:
+- FIRST: the exact __VIBES_THEMES__ + useVibesTheme code shown above
+- THEN: <style> tag with theme-sensitive CSS organized into marked sections (see below), plus component styles
+- Add rich visual effects: Canvas 2D backgrounds, animated SVG illustrations, CSS @property animations, hover effects
+- JSX with React hooks (useState, useEffect, useRef, useCallback, useMemo)
+- useFireproofClerk("db-name") for database — returns { database, useLiveQuery, useDocument }
+- NO import statements — runs in Babel script block with globals
+- NO TypeScript. End with: export default App
+- Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
+- Responsive (mobile-first with Tailwind). className="btn" for buttons, "grid-background" on root
+
+=== THEME SECTION MARKERS ===
+
+Organize ALL visual CSS into marked sections. This enables fast theme switching.
+
+In your <style> tag, wrap CSS in comment markers:
+
+\`\`\`css
+/* @theme:tokens */
+:root { --comp-bg: ...; --comp-text: ...; /* all color variables */ }
+/* @theme:tokens:end */
+
+/* @theme:typography */
+@import url('...');  /* Google Fonts or other font imports */
+/* @theme:typography:end */
+
+/* @theme:surfaces */
+.glass-card { backdrop-filter: ...; }
+.nav-button { display: flex; gap: 0.5rem; background: var(--comp-accent); border: 2px solid var(--comp-border); }
+/* @theme:surfaces:end */
+
+/* @theme:motion */
+@keyframes drift { ... } /* all @keyframes and animation definitions */
+/* @theme:motion:end */
+
+/* Pure-layout ONLY — no visual properties */
+.grid-wrapper { display: grid; gap: 1rem; max-width: 800px; margin: 0 auto; }
+\`\`\`
+
+In your JSX, wrap decorative elements:
+
+\`\`\`jsx
+{/* @theme:decoration */}
+<svg className="atmospheric-bg">...</svg>
+<div className="scan-line" />
+{/* @theme:decoration:end */}
+\`\`\`
+
+Rules:
+- EVERY :root block must be inside @theme:tokens markers
+- EVERY @import font URL must be inside @theme:typography markers
+- EVERY @keyframes must be inside @theme:motion markers
+- Decorative SVGs and atmospheric elements go in @theme:decoration
+- ANY class with visual properties (color, background, border, box-shadow, font-family, font-size, font-weight, text-shadow, fill, stroke, opacity, gradients) MUST go inside @theme:surfaces — even if it also has layout properties
+- ONLY pure-layout classes go outside markers: display, grid-template, gap, padding, margin, position, z-index, width, max-width, height, flex-*, align-items, justify-content, overflow, box-sizing
+
+DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}), database.put/del`;
 }
 
 function buildHtmlRefPrompt(
   userPrompt: string,
   htmlContent: string,
   styleGuide: string,
-  appDir: string
 ): string {
-  return `You are generating a React web application that matches this design reference.
+  return `You are an expert React app designer. Generate a beautiful, creative app.
 
-STYLE GUIDE:
+=== DESIGN REFERENCE (HTML) ===
+
+Study this HTML file's design — colors, typography, spacing, layout, surfaces, effects — and use it as your design spec.
+
+\`\`\`html
+${htmlContent}
+\`\`\`
+
+Extract the visual design from this HTML:
+- COLOR PALETTE: map every color to oklch() values for the --comp-* tokens
+- TYPOGRAPHY: font families, weights, sizing hierarchy
+- SURFACES: border styles, shadows, gradients, glass effects
+- LAYOUT PATTERNS: spatial organization, card styles, grid/flex structure
+- MOTION/EFFECTS: animations, transitions, hover states
+- --color-background MUST match the HTML's background. Never transparent.
+
+USER REQUEST: "${userPrompt}"
+
+Your app.jsx MUST start with these EXACT lines (copy-paste, do not modify):
+
+\`\`\`jsx
+window.__VIBES_THEMES__ = [{ id: "custom-ref", name: "Custom Reference" }];
+
+function useVibesTheme() {
+  const [theme, setTheme] = React.useState(() => localStorage.getItem("vibes-theme") || "custom-ref");
+  React.useEffect(() => {
+    const handler = (e) => { const t = e.detail?.theme; if (t) { setTheme(t); localStorage.setItem("vibes-theme", t); } };
+    document.addEventListener("vibes-design-request", handler);
+    return () => document.removeEventListener("vibes-design-request", handler);
+  }, []);
+  return theme;
+}
+\`\`\`
+
+Derive ALL :root CSS tokens from the design reference above — do NOT use any predefined theme.
+
+=== DESIGN GUIDANCE ===
+
 ${styleGuide}
 
-DESIGN REFERENCE HTML:
-${htmlContent}
+=== WRITE app.jsx ===
 
-USER REQUEST: ${userPrompt}
+Write the complete app to app.jsx. Rules:
+- FIRST: the exact __VIBES_THEMES__ + useVibesTheme code shown above
+- THEN: <style> tag with reference-derived CSS organized into marked sections
+- Theme section markers: @theme:tokens, @theme:typography, @theme:surfaces, @theme:motion, @theme:decoration
+- NO import statements — runs in Babel script block with globals
+- NO TypeScript. End with: export default App
+- Never use CSS unicode escapes. Use actual Unicode characters.
+- useFireproofClerk("db-name") for database
 
-Extract the visual design from the reference: colors, typography, spacing, layout, shadows, borders.
-Create @theme:tokens, @theme:surfaces, @theme:motion, @theme:decoration sections.
-
-Write a complete app.jsx file to ${appDir}/app.jsx.`;
+DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}), database.put/del`;
 }
 
 function buildImageRefPrompt(
   userPrompt: string,
-  imageDataUrl: string,
+  imageRefPath: string,
   intent: string,
   styleGuide: string,
-  themeEssentials: string,
-  rootCss: string,
-  appDir: string
 ): string {
-  return `You are generating a React web application inspired by a design image.
+  const analyzeBlock = `MANDATORY FIRST STEP: Read the image at ${imageRefPath} using the Read tool.
 
-STYLE GUIDE:
+ANALYZE the image like a theme designer — before writing any code, identify:
+- MOOD: 3-4 adjectives describing the visual feeling
+- COLOR PALETTE: extract every distinct color as oklch() — background, text, accent, borders, muted tones
+- DESIGN PRINCIPLES: border styles, shadow depth, spacing rhythm
+- TYPOGRAPHY FEEL: weight, style, sizing hierarchy
+- SURFACE TREATMENT: glass/frosted effects, gradients, textures, card styles
+- MOTION ENERGY: calm/lively/dramatic — what kind of transitions and hover effects fit
+- DECORATIVE ELEMENTS: any SVG patterns, background shapes, dividers, icons style
+${intent === "match" ? "- LAYOUT STRUCTURE: how is the space divided? sidebar? header? grid? cards? split-pane?" : ""}
+
+${intent === "mood"
+    ? "Apply the MOOD and COLOR PALETTE from this image to the app you generate."
+    : "Apply BOTH the visual style AND layout structure from this image to the app you generate."
+  }
+Use the extracted oklch() colors for the --comp-* tokens and :root block.
+--color-background MUST match the image's background. Never leave it transparent or unset.
+${intent === "match" ? "The goal: the generated app should look like the image was its design spec." : ""}`;
+
+  return `${analyzeBlock}
+
+You are an expert React app designer. Generate a beautiful, creative app.
+
+USER REQUEST: "${userPrompt}"
+
+Your app.jsx MUST start with these EXACT lines (copy-paste, do not modify):
+
+\`\`\`jsx
+window.__VIBES_THEMES__ = [{ id: "custom-ref", name: "Custom Reference" }];
+
+function useVibesTheme() {
+  const [theme, setTheme] = React.useState(() => localStorage.getItem("vibes-theme") || "custom-ref");
+  React.useEffect(() => {
+    const handler = (e) => { const t = e.detail?.theme; if (t) { setTheme(t); localStorage.setItem("vibes-theme", t); } };
+    document.addEventListener("vibes-design-request", handler);
+    return () => document.removeEventListener("vibes-design-request", handler);
+  }, []);
+  return theme;
+}
+\`\`\`
+
+Derive ALL :root CSS tokens from the design reference above — do NOT use any predefined theme.
+
+=== DESIGN GUIDANCE ===
+
 ${styleGuide}
 
-${themeEssentials ? `THEME:\n${themeEssentials}` : ""}
+=== WRITE app.jsx ===
 
-The user has provided a design reference image. ${
-    intent === "mood"
-      ? "Analyze its color palette and mood — apply colors only, not layout."
-      : "Match the layout, typography, and color scheme as closely as possible."
-  }
+Write the complete app to app.jsx. Rules:
+- FIRST: the exact __VIBES_THEMES__ + useVibesTheme code shown above
+- THEN: <style> tag with image-derived CSS organized into marked sections
+- Theme section markers: @theme:tokens, @theme:typography, @theme:surfaces, @theme:motion, @theme:decoration
+- Add rich visual effects: Canvas 2D backgrounds, animated SVG, CSS @property animations
+- NO import statements — runs in Babel script block with globals
+- NO TypeScript. End with: export default App
+- Never use CSS unicode escapes. Use actual Unicode characters.
+- useFireproofClerk("db-name") for database
 
-USER REQUEST: ${userPrompt}
-
-First, Read the image at the path that will be provided.
-Then write a complete app.jsx file to ${appDir}/app.jsx.`;
+DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}), database.put/del`;
 }
 ```
 
@@ -2090,25 +2303,32 @@ function loadSkillContent(
   const parts = skillId.split(":");
   if (parts.length !== 2) return null;
 
-  // Search installed plugins for matching skill
+  const [targetPlugin, targetSkill] = parts;
   const home = require("os").homedir();
-  const installedPath = join(
-    home,
-    ".claude",
-    "plugins",
-    "installed_plugins.json"
-  );
+  const installedPath = join(home, ".claude", "plugins", "installed_plugins.json");
   if (!existsSync(installedPath)) return null;
 
   try {
-    const plugins = JSON.parse(readFileSync(installedPath, "utf-8"));
-    const plugin = plugins.find((p: any) => p.name === parts[0]);
-    if (!plugin?.path) return null;
+    const raw = JSON.parse(readFileSync(installedPath, "utf-8"));
+    // Handle version 2 format: { version: 2, plugins: { "name@marketplace": [...] } }
+    const plugins = raw.plugins || raw;
+    if (typeof plugins !== "object" || Array.isArray(plugins)) return null;
 
-    const skillMdPath = join(plugin.path, "skills", parts[1], "SKILL.md");
-    if (!existsSync(skillMdPath)) return null;
+    for (const [key, value] of Object.entries(plugins)) {
+      const atIdx = key.indexOf("@");
+      const pluginName = atIdx >= 0 ? key.slice(0, atIdx) : key;
+      if (pluginName !== targetPlugin) continue;
 
-    return readFileSync(skillMdPath, "utf-8");
+      const pluginEntry = Array.isArray(value) ? (value as any[])[0] : value;
+      const installPath = (pluginEntry as any)?.installPath;
+      if (!installPath) continue;
+
+      const skillMdPath = join(installPath, "skills", targetSkill, "SKILL.md");
+      if (!existsSync(skillMdPath)) continue;
+
+      return readFileSync(skillMdPath, "utf-8");
+    }
+    return null;
   } catch {
     return null;
   }
@@ -2220,10 +2440,20 @@ Read app.jsx first, then use Edit to update the styles.`;
 
 Create `src/bun/handlers/deploy.ts`:
 
+The deploy handler must mirror the web editor's `scripts/server/handlers/deploy.ts` which:
+1. Calls `assemble.js` with correct positional args: `bun assemble.js <app.jsx> <output.html>`
+2. Patches background color into assembled HTML
+3. Provisions Connect (real-time sync) on first deploy
+4. Includes OIDC bridge bundle, auth card SVG assets, and favicon assets
+5. Sends all files to the Deploy API with a Pocket ID token
+
 ```typescript
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from "fs";
 import { join } from "path";
+import { homedir } from "os";
 import type { PluginPaths } from "../plugin-discovery.ts";
+
+const DEPLOY_API_URL = "https://vibes-deploy-api.marcus-e.workers.dev";
 
 export interface DeployContext {
   pluginPaths: PluginPaths;
@@ -2237,19 +2467,35 @@ export async function handleDeploy(
   appName: string
 ): Promise<string> {
   const taskId = crypto.randomUUID();
+  const startTime = Date.now();
+  function getElapsed() { return Math.round((Date.now() - startTime) / 1000); }
 
   const appDir = join(ctx.appsDir, appName);
   const appJsxPath = join(appDir, "app.jsx");
+  const indexHtmlPath = join(appDir, "index.html");
 
   if (!existsSync(appJsxPath)) {
     rpc.sendProxy.error({ taskId, message: "No app.jsx found" });
     return taskId;
   }
 
-  // Check Pocket ID auth
-  const { homedir } = await import("os");
+  // Check Pocket ID auth — obtain access token
+  rpc.sendProxy.deployProgress({ stage: "authenticating" });
   const authPath = join(homedir(), ".vibes", "auth.json");
   if (!existsSync(authPath)) {
+    rpc.sendProxy.authRequired({ service: "pocketid" });
+    return taskId;
+  }
+
+  let token: string;
+  try {
+    const authData = JSON.parse(readFileSync(authPath, "utf-8"));
+    if (!authData.access_token || (authData.expires_at && new Date(authData.expires_at).getTime() < Date.now())) {
+      rpc.sendProxy.authRequired({ service: "pocketid" });
+      return taskId;
+    }
+    token = authData.access_token;
+  } catch {
     rpc.sendProxy.authRequired({ service: "pocketid" });
     return taskId;
   }
@@ -2257,72 +2503,113 @@ export async function handleDeploy(
   rpc.sendProxy.deployProgress({ stage: "assembling" });
 
   try {
-    // Run assembly script from plugin
+    // Step 1: Assemble — call assemble.js with correct positional args
+    // Usage: bun scripts/assemble.js <app.jsx> [output.html]
     const assembleResult = Bun.spawnSync(
-      [
-        "bun",
-        ctx.pluginPaths.assembleScript,
-        "--app-jsx",
-        appJsxPath,
-        "--output",
-        join(appDir, "index.html"),
-      ],
-      {
-        cwd: ctx.pluginPaths.root,
-        timeout: 30000,
-      }
+      ["bun", ctx.pluginPaths.assembleScript, appJsxPath, indexHtmlPath],
+      { cwd: ctx.pluginPaths.root, timeout: 30000 }
     );
 
     if (assembleResult.exitCode !== 0) {
       const stderr = assembleResult.stderr.toString();
-      rpc.sendProxy.error({
-        taskId,
-        message: `Assembly failed: ${stderr}`,
-      });
+      rpc.sendProxy.error({ taskId, message: `Assembly failed: ${stderr.slice(0, 2000)}` });
       return taskId;
+    }
+
+    // Step 2: Patch background color so the app's bg shows through the template frame
+    try {
+      const appCode = readFileSync(appJsxPath, "utf8");
+      let html = readFileSync(indexHtmlPath, "utf8");
+
+      const rootMatch = appCode.match(/:root\s*\{([^}]+)\}/);
+      let bgColor = "";
+      if (rootMatch) {
+        const bgMatch = rootMatch[1].match(/--color-background\s*:\s*([^;]+)/);
+        if (bgMatch) bgColor = bgMatch[1].trim();
+      }
+      if (!bgColor) {
+        const bodyBgMatch = appCode.match(/body\s*\{[^}]*background\s*:\s*([^;]+)/);
+        if (bodyBgMatch) bgColor = bodyBgMatch[1].trim();
+      }
+      // Sanitize — reject chars that could break CSS/HTML context
+      if (bgColor && /[;{}<>"']/.test(bgColor)) bgColor = "";
+      const bg = bgColor || "inherit";
+
+      const headPatch = `<style>
+      #container { padding: 10px !important; }
+      body::before { background-color: ${bg} !important; }
+    </style>`;
+      html = html.replace("</head>", headPatch + "\n</head>");
+
+      const bodyPatch = `<style>
+      div[style*="z-index: 10"][style*="position: fixed"] { background: ${bg} !important; }
+    </style>`;
+      html = html.replace("</body>", bodyPatch + "\n</body>");
+
+      writeFileSync(indexHtmlPath, html);
+    } catch (e: any) {
+      console.error("[Deploy] Patch failed:", e.message);
     }
 
     rpc.sendProxy.deployProgress({ stage: "deploying" });
 
-    // Run deploy script from plugin
-    const deployResult = Bun.spawnSync(
-      [
-        "bun",
-        join(ctx.pluginPaths.root, "scripts", "deploy-cloudflare.js"),
-        "--name",
-        appName,
-        "--file",
-        join(appDir, "index.html"),
-      ],
-      {
-        cwd: ctx.pluginPaths.root,
-        timeout: 60000,
-      }
-    );
+    // Step 3: Build the files map for the Deploy API
+    const files: Record<string, string> = {
+      "index.html": readFileSync(indexHtmlPath, "utf8"),
+    };
 
-    if (deployResult.exitCode !== 0) {
-      const stderr = deployResult.stderr.toString();
-      rpc.sendProxy.error({
-        taskId,
-        message: `Deploy failed: ${stderr}`,
-      });
+    // Include the OIDC bridge bundle
+    const bridgePath = join(ctx.pluginPaths.bundlesDir, "fireproof-oidc-bridge.js");
+    if (existsSync(bridgePath)) {
+      files["fireproof-oidc-bridge.js"] = readFileSync(bridgePath, "utf8");
+    }
+
+    // Include auth card SVG assets
+    const authCardsDir = join(ctx.pluginPaths.root, "assets/auth-cards");
+    if (existsSync(authCardsDir)) {
+      for (const name of ["card-1.svg", "card-2.svg", "card-3.svg", "card-4.svg"]) {
+        const p = join(authCardsDir, name);
+        if (existsSync(p)) files[`assets/auth-cards/${name}`] = readFileSync(p, "utf8");
+      }
+    }
+
+    // Include favicon assets
+    const faviconDir = join(ctx.pluginPaths.root, "assets/vibes-favicon");
+    if (existsSync(faviconDir)) {
+      const textAssets = ["favicon.svg", "site.webmanifest"];
+      const binaryAssets = ["favicon-96x96.png", "favicon.ico", "apple-touch-icon.png",
+                            "web-app-manifest-192x192.png", "web-app-manifest-512x512.png"];
+      for (const name of textAssets) {
+        const p = join(faviconDir, name);
+        if (existsSync(p)) files[`assets/vibes-favicon/${name}`] = readFileSync(p, "utf8");
+      }
+      for (const name of binaryAssets) {
+        const p = join(faviconDir, name);
+        if (existsSync(p)) files[`assets/vibes-favicon/${name}`] = "base64:" + readFileSync(p).toString("base64");
+      }
+    }
+
+    // Step 4: Deploy via the Deploy API
+    const response = await fetch(`${DEPLOY_API_URL}/deploy`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({ name: appName, files }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      rpc.sendProxy.error({ taskId, message: `Deploy failed (${response.status}): ${errorText.slice(0, 2000)}` });
       return taskId;
     }
 
-    const stdout = deployResult.stdout.toString();
-    // Extract URL from deploy output
-    const urlMatch = stdout.match(
-      /https?:\/\/[a-z0-9-]+\.(?:marcus-e\.workers\.dev|vibes\.diy)/
-    );
-    const url = urlMatch?.[0] || "";
+    const result: any = await response.json();
+    const url = result.url || "";
 
     rpc.sendProxy.deployProgress({ stage: "complete", url });
-    rpc.sendProxy.done({
-      taskId,
-      text: `Deployed to ${url}`,
-      cost: 0,
-      duration: 0,
-    });
+    rpc.sendProxy.done({ taskId, text: `Deployed to ${url}`, cost: 0, duration: 0 });
   } catch (err) {
     rpc.sendProxy.error({ taskId, message: String(err) });
   }
@@ -2403,6 +2690,9 @@ async function init() {
 init().catch(console.error);
 
 // --- Assembly helper ---
+// Uses inline template substitution (same pattern as the web editor's assembleAppFrame)
+// instead of shelling out to assemble.js. This avoids subprocess overhead for preview
+// and correctly mirrors the web server's behavior (no Connect URLs in preview mode).
 function assembleCurrentApp(): string | null {
   if (!pluginPaths || !config || !currentApp) return null;
   const appDir = join(config.appsDir, currentApp);
@@ -2410,26 +2700,30 @@ function assembleCurrentApp(): string | null {
   if (!existsSync(appJsxPath)) return null;
 
   try {
-    const result = Bun.spawnSync(
-      [
-        "bun",
-        pluginPaths.assembleScript,
-        "--app-jsx",
-        appJsxPath,
-        "--stdout",
-      ],
-      {
-        cwd: pluginPaths.root,
-        timeout: 15000,
-      }
-    );
+    // Load the vibes basic template
+    const templatePath = join(pluginPaths.root, "skills", "vibes", "templates", "index.html");
+    if (!existsSync(templatePath)) return null;
+    let template = readFileSync(templatePath, "utf-8");
 
-    if (result.exitCode === 0) {
-      assembledHtml = result.stdout.toString();
-      return assembledHtml;
-    }
-  } catch {}
-  return null;
+    // Read app code and strip imports/exports for template injection
+    const appCode = readFileSync(appJsxPath, "utf-8");
+    // The placeholder is: /* {{APP_CODE}} */
+    const APP_PLACEHOLDER = "/* {{APP_CODE}} */";
+
+    if (!template.includes(APP_PLACEHOLDER)) return null;
+    template = template.replace(APP_PLACEHOLDER, appCode);
+
+    // Preview mode: leave Connect URLs empty (no auth, no sync)
+    // Same as web editor's assembleAppFrame behavior
+    template = template.replace(/tokenApiUri:\s*"[^"]*"/, 'tokenApiUri: ""');
+    template = template.replace(/cloudBackendUrl:\s*"[^"]*"/, 'cloudBackendUrl: ""');
+
+    assembledHtml = template;
+    return assembledHtml;
+  } catch (e) {
+    console.error("[assembleCurrentApp]", e);
+    return null;
+  }
 }
 
 // --- RPC ---
