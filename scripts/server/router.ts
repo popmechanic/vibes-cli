@@ -298,14 +298,18 @@ async function editorStatus(ctx: ServerContext): Promise<Response> {
 }
 
 async function editorAuthLogin(ctx: ServerContext): Promise<Response> {
+  console.log('[Auth] POST /editor/auth/login received');
   try {
+    console.log('[Auth] Starting login flow...');
     const { authorizeUrl, tokenPromise } = await startLoginFlow({
       authority: OIDC_AUTHORITY,
       clientId: OIDC_CLIENT_ID,
     });
+    console.log('[Auth] Login flow started, authorizeUrl:', authorizeUrl);
 
     // Wait for callback in the background, then broadcast via WebSocket
     tokenPromise.then((tokens: any) => {
+      console.log('[Auth] Token callback received');
       const user = parseUserFromIdToken(tokens.idToken);
       broadcast({ type: 'auth_complete', user });
     }).catch((err: any) => {
@@ -314,6 +318,7 @@ async function editorAuthLogin(ctx: ServerContext): Promise<Response> {
     });
 
     // Return the authorize URL immediately so frontend can window.open() it
+    console.log('[Auth] Returning authorizeUrl to frontend');
     return json({ ok: true, authorizeUrl });
   } catch (err: any) {
     console.error('[Auth] Could not start login flow:', err.message);

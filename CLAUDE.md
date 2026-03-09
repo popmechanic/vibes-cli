@@ -112,6 +112,14 @@ Enabled when server runs with `managed: true`:
 - Auth popup opens in system browser instead of `window.open()`
 - Window controls routed through WebSocket → `ctx.onWindowControl` / `ctx.onOpenExternal`
 
+### External Link Handling (Preload → Host Message)
+
+External links and `window.open()` are intercepted by an inline preload script injected via `executeJavascript()` on `dom-ready`. The preload uses `window.__electrobunSendToHost()` to send `{type: "open-external", url}` messages to the Bun process, which listens on `host-message` events and calls `Utils.openExternal(url)`.
+
+**Do NOT use raw `__electrobunEventBridge.postMessage()` for custom events.** ElectroBun's `emitWebviewEvent` wraps sends in `setTimeout` to avoid an FFI race condition. Sending synchronously via the bridge causes data loss (event fires but payload is empty). Always use `__electrobunSendToHost()` (which calls `emitWebviewEvent` internally) or the `host-message` channel.
+
+**ElectroBun's `preload` BrowserWindow option does NOT work** for custom scripts. Use `mainWindow.webview.executeJavascript(script)` on the `dom-ready` event instead.
+
 ## Architecture: JSX + Babel
 
 The plugin uses JSX with Babel runtime transpilation. See `source-templates/base/template.html` for the `<script type="text/babel">` pattern.

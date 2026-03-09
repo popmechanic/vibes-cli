@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from "fs";
+import { existsSync, readdirSync, readFileSync } from "fs";
 import { join, dirname } from "path";
 import { homedir } from "os";
 
@@ -40,6 +40,21 @@ export function resolvePluginPaths(pluginRoot: string): PluginPaths {
 export async function discoverVibesPlugin(
 	home?: string,
 ): Promise<PluginPaths | null> {
+	// Dev override: env var or ~/.vibes/dev-plugin-root file
+	// File-based override works from Finder (no shell env); can't be overwritten by plugin cache
+	const envRoot = process.env.VIBES_PLUGIN_ROOT;
+	const fileOverridePath = join(home || homedir(), ".vibes", "dev-plugin-root");
+	const devOverride = envRoot || (existsSync(fileOverridePath)
+		? readFileSync(fileOverridePath, "utf-8").trim()
+		: null);
+	if (devOverride && existsSync(devOverride)) {
+		const overrideResult = validateAndReturn(devOverride);
+		if (overrideResult) {
+			console.log(`[plugin-discovery] Dev override: ${devOverride}`);
+			return overrideResult;
+		}
+	}
+
 	// Dev mode: walk up from main script to find plugin root
 	// In dev builds, process.argv[1] is inside vibes-desktop/build/... which is inside vibes-skill/
 	const mainScript = process.argv[1] || "";

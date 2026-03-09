@@ -12,29 +12,45 @@ import Electrobun, {
 	Utils,
 } from "electrobun/bun";
 import { join } from "path";
+import { appendFileSync, mkdirSync } from "fs";
+import { homedir } from "os";
 import { discoverVibesPlugin } from "./plugin-discovery.ts";
 import { CLAUDE_BIN, refreshClaudePath } from "./auth.ts";
 import { hideZoomButton } from "./window-controls.ts";
 
+// --- Debug logging (~/Library/Logs/VibesOS/desktop.log) ---
+const LOG_DIR = join(homedir(), "Library", "Logs", "VibesOS");
+const LOG_FILE = join(LOG_DIR, "desktop.log");
+try { mkdirSync(LOG_DIR, { recursive: true }); } catch {}
+
+const _origLog = console.log;
+const _origErr = console.error;
+
+function log(...args: any[]) {
+	const msg = `[${new Date().toISOString()}] ${args.map(a => typeof a === "string" ? a : JSON.stringify(a)).join(" ")}\n`;
+	try { appendFileSync(LOG_FILE, msg); } catch {}
+	_origLog(...args);
+}
+
+// Capture ALL console output (including server module) to the log file
+console.log = (...args: any[]) => log(...args);
+console.error = (...args: any[]) => log("[ERROR]", ...args);
+
 // --- Constants ---
 const PORT = 3333;
 const SERVER_URL = `http://localhost:${PORT}`;
+const BUILD_ID = "build-2026-03-09-v7";
 
-// Inline preload — runs after ElectroBun's built-in preload, has access to event bridge
+// Inline preload — uses __electrobunSendToHost (host-message channel) for reliable
+// preload→Bun communication. Raw bridge messages have FFI race conditions.
 const LINK_PRELOAD = `
 (function() {
-  function emitNewWindow(url) {
-    var bridge = window.__electrobunEventBridge || window.__electrobunInternalBridge;
-    if (!bridge) return;
-    bridge.postMessage(JSON.stringify({
-      id: "webviewEvent",
-      type: "message",
-      payload: {
-        id: window.__electrobunWebviewId,
-        eventName: "new-window-open",
-        detail: JSON.stringify({ url: url, isCmdClick: false })
-      }
-    }));
+  function openExternal(url) {
+    if (window.__electrobunSendToHost) {
+      window.__electrobunSendToHost({ type: "open-external", url: url });
+    } else {
+      console.warn('[vibes-preload] __electrobunSendToHost not available for:', url);
+    }
   }
 
   // Intercept external link clicks
@@ -45,16 +61,15 @@ const LINK_PRELOAD = `
     if (!href || href.startsWith('javascript:')) return;
     try {
       if (new URL(href, location.origin).origin === location.origin) return;
-    } catch(e) { return; }
+    } catch(ex) { return; }
     e.preventDefault();
     e.stopPropagation();
-    emitNewWindow(href);
+    openExternal(href);
   }, true);
 
-  // Override window.open to emit events
-  var originalOpen = window.open;
+  // Override window.open to route through host-message
   window.open = function(url) {
-    if (url) { emitNewWindow(String(url)); }
+    if (url) { openExternal(String(url)); }
     return null;
   };
 })();
@@ -62,6 +77,7 @@ const LINK_PRELOAD = `
 
 // --- Startup ---
 async function main() {
+	log(`[vibes-desktop] Starting ${BUILD_ID}`);
 	// 1. Check Claude CLI (retry loop — user may install between attempts)
 	while (!checkClaude()) {
 		const result = await Utils.showMessageBox({
@@ -103,7 +119,17 @@ async function main() {
 		managed: true, // We handle lifecycle
 	});
 
-	console.log(`[vibes-desktop] Server started at ${SERVER_URL}`);
+	log(`[vibes-desktop] Plugin root: ${pluginPaths.root}`);
+	log(`[vibes-desktop] Server started at ${SERVER_URL}`);
+
+	// Check if auth callback port is available
+	try {
+		const testServer = Bun.serve({ port: 18192, fetch: () => new Response("ok") });
+		testServer.stop();
+		log("[vibes-desktop] Auth callback port 18192 is available");
+	} catch (e: any) {
+		log(`[vibes-desktop] WARNING: Auth callback port 18192 is OCCUPIED: ${e.message}`);
+	}
 
 	// 4. Create window pointing to the server
 	const mainWindow = new BrowserWindow({
@@ -118,35 +144,35 @@ async function main() {
 		},
 		url: SERVER_URL,
 		frame: { width: 1280, height: 820 },
-		preload: LINK_PRELOAD,
 	});
 
-	// 4b. Navigation rules — allow local server + auth provider, block the rest
+	// Inject preload via executeJavascript on dom-ready (preload option doesn't work)
+	mainWindow.webview.on("dom-ready", () => {
+		log("[dom-ready] Testing executeJavascript...");
+		mainWindow.webview.executeJavascript('document.title = "EXEC_JS_WORKS"');
+		log("[dom-ready] Injecting link preload script");
+		mainWindow.webview.executeJavascript(LINK_PRELOAD);
+	});
+
+	// 4b. Navigation rules — allow local server only, block everything else
 	mainWindow.webview.setNavigationRules([
 		"^*",                        // Block everything by default
 		`*://localhost:${PORT}/*`,   // Allow local server
 		`*://localhost:${PORT}`,
-		"*://vibesos.com/*",         // Allow Pocket ID auth (renders inline)
-		"*://vibesos.com",
 	]);
 
-	// Blocked navigations → open in system browser
+	// Safety net: blocked navigations (navigation rules handle most blocking)
 	mainWindow.webview.on("will-navigate", (event) => {
-		if (!event.data.allowed && event.data.url) {
-			Utils.openExternal(event.data.url);
-		}
+		log(`[will-navigate] detail:`, JSON.stringify(event.data?.detail));
 	});
 
-	// window.open() calls — auth renders inline, everything else opens externally
-	mainWindow.webview.on("new-window-open", (event) => {
-		const url = typeof event.detail === "object" ? event.detail.url : event.detail;
-		if (!url) return;
-
-		if (url.startsWith("https://vibesos.com")) {
-			// Auth: navigate the main window inline (allowed by navigation rules)
-			mainWindow.webview.loadURL(url);
-		} else {
-			Utils.openExternal(url);
+	// Host messages from preload — open-external requests
+	mainWindow.webview.on("host-message", (event) => {
+		const msg = event.data?.detail;
+		log(`[host-message] Received:`, JSON.stringify(msg));
+		if (msg?.type === "open-external" && msg?.url) {
+			log(`[host-message] Opening externally: ${msg.url}`);
+			Utils.openExternal(msg.url);
 		}
 	});
 
@@ -240,7 +266,7 @@ async function main() {
 		shutdown();
 	});
 
-	console.log("[vibes-desktop] App started");
+	log("[vibes-desktop] App started — log file:", LOG_FILE);
 }
 
 function checkClaude(): boolean {
@@ -254,6 +280,6 @@ function checkClaude(): boolean {
 }
 
 main().catch((err) => {
-	console.error("[vibes-desktop] Fatal error:", err);
+	log("[vibes-desktop] Fatal error:", err);
 	process.exit(1);
 });
