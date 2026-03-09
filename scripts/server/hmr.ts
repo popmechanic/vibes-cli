@@ -12,9 +12,8 @@
 // @babel/parser ships its own TypeScript declarations — no @types/ package needed
 import { parse } from '@babel/parser';
 import { watchFile, unwatchFile, readFileSync } from 'fs';
-import { join } from 'path';
 import type { ServerContext } from './config.ts';
-import { currentAppDir } from './app-context.js';
+import { resolveAppJsxPath } from './app-context.js';
 import { assembleAppFrame } from './handlers/generate.ts';
 
 /**
@@ -49,19 +48,13 @@ export function createHmrWatcher(
   let debounceTimer: Timer | null = null;
   let active = false;
 
-  function getAppPath(): string {
-    const appDir = currentAppDir(ctx);
-    return appDir ? join(appDir, 'app.jsx') : join(ctx.projectRoot, 'app.jsx');
-  }
-
   let polling = false;
-
   let watchedPath: string | null = null;
 
   function startPolling(): void {
     if (polling) return;
     polling = true;
-    watchedPath = getAppPath();
+    watchedPath = resolveAppJsxPath(ctx);
     watchFile(watchedPath, { interval: 1000 }, () => {
       scheduleCheck();
     });
@@ -72,6 +65,11 @@ export function createHmrWatcher(
     polling = false;
     if (watchedPath) unwatchFile(watchedPath);
     watchedPath = null;
+  }
+
+  function restartPolling(): void {
+    stopPolling();
+    startPolling();
   }
 
   function scheduleCheck(): void {
@@ -88,7 +86,11 @@ export function createHmrWatcher(
 
   function checkAndPush(): void {
     try {
-      const code = readFileSync(getAppPath(), 'utf-8');
+      const currentPath = resolveAppJsxPath(ctx);
+      if (polling && watchedPath && currentPath !== watchedPath) {
+        restartPolling();
+      }
+      const code = readFileSync(currentPath, 'utf-8');
       if (code === lastSnapshot) return;
       if (!isRenderable(code)) return;
 

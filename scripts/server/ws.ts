@@ -6,11 +6,11 @@
  */
 
 import { existsSync, mkdirSync, copyFileSync, unlinkSync, readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import type { ServerWebSocket } from 'bun';
 import type { ServerContext } from './config.ts';
 import { reloadThemes } from './config.ts';
-import { currentAppDir } from './app-context.js';
+import { resolveAppJsxPath } from './app-context.js';
 import { cancelCurrent, type EventCallback } from './claude-bridge.ts';
 import { handleChat } from './handlers/chat.ts';
 import { handleThemeSwitch, handlePaletteTheme } from './handlers/theme.ts';
@@ -151,6 +151,12 @@ export function createWsHandler(ctx: ServerContext) {
             await handlePaletteTheme(ctx, onEvent, msg.colors);
             break;
 
+          case 'window_control':
+            if (ctx.onWindowControl) {
+              ctx.onWindowControl(msg.action);
+            }
+            break;
+
           case 'delete_theme': {
             const themeId = String(msg.themeId || '').replace(/[^a-z0-9-]/gi, '').slice(0, 60);
             if (!themeId) {
@@ -181,15 +187,14 @@ export function createWsHandler(ctx: ServerContext) {
               onEvent({ type: 'error', message: 'App name is required' });
               break;
             }
-            const appDir = currentAppDir(ctx);
-            const appSrc = appDir ? join(appDir, 'app.jsx') : join(ctx.projectRoot, 'app.jsx');
+            const appSrc = resolveAppJsxPath(ctx);
             if (!existsSync(appSrc)) {
               onEvent({ type: 'error', message: 'No app.jsx to save' });
               break;
             }
             const dest = join(ctx.appsDir, name);
             mkdirSync(dest, { recursive: true });
-            if (appSrc !== join(dest, 'app.jsx')) {
+            if (resolve(appSrc) !== resolve(join(dest, 'app.jsx'))) {
               copyFileSync(appSrc, join(dest, 'app.jsx'));
             }
             ctx.currentApp = name;

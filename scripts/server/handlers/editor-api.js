@@ -3,8 +3,9 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { loadRegistry } from '../../lib/registry.js';
+import { resolveAppJsxPath } from '../app-context.js';
 import { readCachedTokens, isTokenExpired, getAccessToken, startLoginFlow, removeCachedTokens } from '../../lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../../lib/auth-constants.js';
 
@@ -155,7 +156,7 @@ export function initialPrompt(ctx, req, res) {
 }
 
 export function appExists(ctx, req, res) {
-  const exists = existsSync(join(ctx.projectRoot, 'app.jsx'));
+  const exists = existsSync(resolveAppJsxPath(ctx));
   res.writeHead(200, { 'Content-Type': 'application/json' });
   return res.end(JSON.stringify({ exists }));
 }
@@ -203,20 +204,23 @@ export function loadApp(ctx, req, res, url) {
   if (!name) { res.writeHead(400); return res.end('Missing name'); }
   const src = join(ctx.appsDir, name, 'app.jsx');
   if (!existsSync(src)) { res.writeHead(404); return res.end('App not found'); }
-  copyFileSync(src, join(ctx.projectRoot, 'app.jsx'));
+  ctx.currentApp = name;
   res.writeHead(200, { 'Content-Type': 'application/json' });
-  return res.end(JSON.stringify({ ok: true }));
+  return res.end(JSON.stringify({ ok: true, currentApp: name }));
 }
 
 export function saveApp(ctx, req, res, url) {
   const params = url.searchParams;
   const name = sanitizeAppName(params.get('name'));
   if (!name) { res.writeHead(400); return res.end('Missing name'); }
-  const appSrc = join(ctx.projectRoot, 'app.jsx');
+  const appSrc = resolveAppJsxPath(ctx);
   if (!existsSync(appSrc)) { res.writeHead(404); return res.end('No app.jsx to save'); }
   const dest = join(ctx.appsDir, name);
   mkdirSync(dest, { recursive: true });
-  copyFileSync(appSrc, join(dest, 'app.jsx'));
+  if (resolve(appSrc) !== resolve(join(dest, 'app.jsx'))) {
+    copyFileSync(appSrc, join(dest, 'app.jsx'));
+  }
+  ctx.currentApp = name;
   res.writeHead(200, { 'Content-Type': 'application/json' });
   return res.end(JSON.stringify({ ok: true }));
 }
@@ -287,7 +291,7 @@ export function writeApp(ctx, req, res) {
   const chunks = [];
   req.on('data', c => chunks.push(c));
   req.on('end', () => {
-    writeFileSync(join(ctx.projectRoot, 'app.jsx'), Buffer.concat(chunks).toString('utf-8'));
+    writeFileSync(resolveAppJsxPath(ctx), Buffer.concat(chunks).toString('utf-8'));
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true }));
   });

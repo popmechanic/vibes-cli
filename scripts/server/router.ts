@@ -9,7 +9,7 @@ import { readFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSyn
 import { join, extname, resolve } from 'path';
 import type { ServerContext } from './config.ts';
 import { getRecommendedThemeIds, loadOpenRouterKey } from './config.ts';
-import { currentAppDir } from './app-context.js';
+import { currentAppDir, resolveAppJsxPath } from './app-context.js';
 import { assembleAppFrame } from './handlers/generate.ts';
 import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp } from '../lib/registry.js';
 import { readCachedTokens, isTokenExpired, getAccessToken, startLoginFlow, removeCachedTokens } from '../lib/cli-auth.js';
@@ -203,12 +203,16 @@ async function serveHtml(ctx: ServerContext): Promise<Response> {
   const htmlPath = join(ctx.projectRoot, 'skills/vibes/templates', htmlFile);
   const file = Bun.file(htmlPath);
   if (!(await file.exists())) return new Response(`${htmlFile} not found`, { status: 404, headers: corsHeaders() });
+  if (ctx.managed) {
+    let html = await file.text();
+    html = html.replace('<head>', '<head><script>window.__VIBES_DESKTOP__=true</script>');
+    return new Response(html, { headers: { 'Content-Type': 'text/html', ...corsHeaders() } });
+  }
   return new Response(file, { headers: { 'Content-Type': 'text/html', ...corsHeaders() } });
 }
 
 async function serveAppJsx(ctx: ServerContext): Promise<Response> {
-  const appDir = currentAppDir(ctx);
-  const appPath = appDir ? join(appDir, 'app.jsx') : join(ctx.projectRoot, 'app.jsx');
+  const appPath = resolveAppJsxPath(ctx);
   const file = Bun.file(appPath);
   if (!(await file.exists())) return new Response('// app.jsx not yet generated\n', { headers: { 'Content-Type': 'text/javascript', ...corsHeaders() } });
   return new Response(file, { headers: { 'Content-Type': 'text/javascript', ...corsHeaders() } });
@@ -240,7 +244,7 @@ function serveSkills(ctx: ServerContext): Response {
 }
 
 function serveAppFrame(ctx: ServerContext): Response {
-  const appDir = ctx.currentApp ? join(ctx.appsDir, ctx.currentApp) : null;
+  const appDir = currentAppDir(ctx);
   const appPath = appDir ? join(appDir, 'app.jsx') : null;
   if (!appPath || !existsSync(appPath)) {
     return new Response(`<!DOCTYPE html>
@@ -327,9 +331,7 @@ function editorInitialPrompt(ctx: ServerContext): Response {
 }
 
 function editorAppExists(ctx: ServerContext): Response {
-  const appDir = currentAppDir(ctx);
-  const appPath = appDir ? join(appDir, 'app.jsx') : join(ctx.projectRoot, 'app.jsx');
-  return json({ exists: existsSync(appPath) });
+  return json({ exists: existsSync(resolveAppJsxPath(ctx)) });
 }
 
 async function editorSaveCredentials(ctx: ServerContext, req: Request): Promise<Response> {
@@ -469,12 +471,11 @@ function editorLoadApp(ctx: ServerContext, url: URL): Response {
 function editorSaveApp(ctx: ServerContext, url: URL): Response {
   const name = sanitizeAppName(url.searchParams.get('name') || '');
   if (!name) return new Response('Missing name', { status: 400, headers: corsHeaders() });
-  const appDir = currentAppDir(ctx);
-  const appSrc = appDir ? join(appDir, 'app.jsx') : join(ctx.projectRoot, 'app.jsx');
+  const appSrc = resolveAppJsxPath(ctx);
   if (!existsSync(appSrc)) return new Response('No app.jsx to save', { status: 404, headers: corsHeaders() });
   const dest = join(ctx.appsDir, name);
   mkdirSync(dest, { recursive: true });
-  if (appSrc !== join(dest, 'app.jsx')) {
+  if (resolve(appSrc) !== resolve(join(dest, 'app.jsx'))) {
     copyFileSync(appSrc, join(dest, 'app.jsx'));
   }
   ctx.currentApp = name;
@@ -498,8 +499,7 @@ async function editorSaveScreenshot(ctx: ServerContext, req: Request, url: URL):
 
 async function editorWriteApp(ctx: ServerContext, req: Request): Promise<Response> {
   try {
-    const appDir = currentAppDir(ctx);
-    const appPath = appDir ? join(appDir, 'app.jsx') : join(ctx.projectRoot, 'app.jsx');
+    const appPath = resolveAppJsxPath(ctx);
     const body = await readBodyWithLimit(req, MAX_APP_WRITE_SIZE);
     writeFileSync(appPath, body.toString('utf-8'));
     return json({ ok: true });

@@ -13,6 +13,11 @@ export function currentAppDir(ctx) {
   return join(ctx.appsDir, ctx.currentApp);
 }
 
+export function resolveAppJsxPath(ctx) {
+  const dir = currentAppDir(ctx);
+  return join(dir || ctx.projectRoot, 'app.jsx');
+}
+
 export function slugifyPrompt(prompt) {
   const words = prompt
     .toLowerCase()
