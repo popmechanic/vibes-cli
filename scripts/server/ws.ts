@@ -10,6 +10,7 @@ import { join } from 'path';
 import type { ServerWebSocket } from 'bun';
 import type { ServerContext } from './config.ts';
 import { reloadThemes } from './config.ts';
+import { currentAppDir } from './app-context.js';
 import { cancelCurrent, type EventCallback } from './claude-bridge.ts';
 import { handleChat } from './handlers/chat.ts';
 import { handleThemeSwitch, handlePaletteTheme } from './handlers/theme.ts';
@@ -180,14 +181,18 @@ export function createWsHandler(ctx: ServerContext) {
               onEvent({ type: 'error', message: 'App name is required' });
               break;
             }
-            const appSrc = join(ctx.projectRoot, 'app.jsx');
+            const appDir = currentAppDir(ctx);
+            const appSrc = appDir ? join(appDir, 'app.jsx') : join(ctx.projectRoot, 'app.jsx');
             if (!existsSync(appSrc)) {
               onEvent({ type: 'error', message: 'No app.jsx to save' });
               break;
             }
             const dest = join(ctx.appsDir, name);
             mkdirSync(dest, { recursive: true });
-            copyFileSync(appSrc, join(dest, 'app.jsx'));
+            if (appSrc !== join(dest, 'app.jsx')) {
+              copyFileSync(appSrc, join(dest, 'app.jsx'));
+            }
+            ctx.currentApp = name;
             onEvent({ type: 'app_saved', name });
             console.log(`[Save] Saved app to ${dest}`);
             break;

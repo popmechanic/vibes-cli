@@ -7,6 +7,7 @@ import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { reloadThemes } from '../config.ts';
 import type { ServerContext } from '../config.ts';
+import { currentAppDir } from '../app-context.js';
 import { buildClaudeArgs, cleanEnv } from '../../lib/claude-subprocess.js';
 import { createStreamParser } from '../../lib/stream-parser.js';
 import type { EventCallback } from '../claude-bridge.ts';
@@ -154,7 +155,8 @@ export async function handleSaveTheme(
   themeName: string,
   model: string | undefined,
 ): Promise<void> {
-  const appJsxPath = join(ctx.projectRoot, 'app.jsx');
+  const appDir = currentAppDir(ctx);
+  const appJsxPath = appDir ? join(appDir, 'app.jsx') : join(ctx.projectRoot, 'app.jsx');
   if (!existsSync(appJsxPath)) {
     onEvent({ type: 'error', message: 'No app.jsx found — generate an app first.' });
     return;
