@@ -504,9 +504,51 @@
             })();
           }
 
+          function handlePublicLinkRequest(e) {
+            var detail = e.detail || {};
+            var appName = window.location.hostname.split('.')[0];
+            var deployApiUrl = window.__VIBES_CONFIG__ && window.__VIBES_CONFIG__.deployApiUrl;
+            var token = window.__VIBES_OIDC_TOKEN__;
+
+            if (!deployApiUrl || !token) {
+              document.dispatchEvent(new CustomEvent('vibes-public-link-error', {
+                detail: { error: 'Not authenticated or deploy API not configured' }
+              }));
+              return;
+            }
+
+            fetch(deployApiUrl.replace(/\/$/, '') + '/apps/' + appName + '/public-link', {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ right: detail.right || 'write' })
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (data.ok) {
+                document.dispatchEvent(new CustomEvent('vibes-public-link-success', {
+                  detail: { link: data.joinUrl }
+                }));
+              } else {
+                document.dispatchEvent(new CustomEvent('vibes-public-link-error', {
+                  detail: { error: data.error || 'Failed to generate link' }
+                }));
+              }
+            })
+            .catch(function(err) {
+              document.dispatchEvent(new CustomEvent('vibes-public-link-error', {
+                detail: { error: err.message }
+              }));
+            });
+          }
+
           document.addEventListener('vibes-share-request', handleShareRequest);
+          document.addEventListener('vibes-public-link-request', handlePublicLinkRequest);
           return function() {
             document.removeEventListener('vibes-share-request', handleShareRequest);
+            document.removeEventListener('vibes-public-link-request', handlePublicLinkRequest);
           };
         }, []);
 
