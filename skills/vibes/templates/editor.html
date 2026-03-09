@@ -3168,6 +3168,9 @@
         document.getElementById('welcomeGreeting').style.display = 'none';
         document.getElementById('welcomeError').style.display = 'none';
         return;
+      } else if (msg.type === 'app_saved') {
+        if (msg.name) currentAppName = msg.name;
+        if (_appSavedResolve) { _appSavedResolve(); _appSavedResolve = null; }
       } else if (msg.type === 'deploy_complete') {
         setThinking(false);
         if (msg.name) currentAppName = msg.name;
@@ -3345,19 +3348,29 @@
       let listHtml = '';
 
       // "Continue current app" always goes first as a card
+      // If the current working app matches a saved app, show its name and screenshot
+      let currentMatchName = null;
       if (hasCurrentApp) {
+        const matchedApp = currentAppName ? savedApps.find(a => a.name === currentAppName) : null;
+        if (matchedApp) currentMatchName = matchedApp.name;
+        const cardName = matchedApp ? matchedApp.name : 'Continue current app';
+        const cardThumb = matchedApp && matchedApp.hasScreenshot
+          ? `<img src="/editor/apps/screenshot?name=${encodeURIComponent(matchedApp.name)}" alt="${escapeHtml(matchedApp.name)}" loading="lazy">`
+          : `<span class="app-card-placeholder">&#9998;</span>`;
         gridHtml += `<div class="app-card" onclick="useExistingApp()">
-          <div class="app-card-thumb"><span class="app-card-placeholder">&#9998;</span></div>
+          <div class="app-card-thumb">${cardThumb}</div>
           <div class="app-card-info">
-            <div class="app-card-name">Continue current app</div>
+            <div class="app-card-name">${escapeHtml(cardName)}</div>
             <div class="app-card-meta">app.jsx in working directory</div>
           </div>
         </div>`;
       }
 
       // Top 8 recent apps get cards with screenshots
-      const recentApps = savedApps.slice(0, 8);
-      const olderApps = savedApps.slice(8);
+      // Filter out the matched "current" app to avoid duplicate cards
+      const filteredApps = currentMatchName ? savedApps.filter(a => a.name !== currentMatchName) : savedApps;
+      const recentApps = filteredApps.slice(0, 8);
+      const olderApps = filteredApps.slice(8);
 
       for (const app of recentApps) {
         const ago = timeAgo(new Date(app.modified));
@@ -3447,25 +3460,29 @@
     }
   }
 
+  // Resolves when the server confirms save — used by saveApp to sequence screenshot after save
+  let _appSavedResolve = null;
+
   function saveApp() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    if (currentAppName) {
-      ws.send(JSON.stringify({ type: 'save_app', name: currentAppName }));
-      addMessage('system', 'Saved.');
-      captureScreenshot();
-    } else {
+    let name = currentAppName;
+    if (!name) {
       // No name yet — derive from prompt
       const prompt = document.getElementById('generatePrompt')?.value || '';
-      const slug = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
-      if (slug) {
-        currentAppName = slug;
-        ws.send(JSON.stringify({ type: 'save_app', name: slug }));
-        addMessage('system', 'Saved as "' + slug + '".');
-        captureScreenshot();
-      } else {
+      name = prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+      if (!name) {
         addMessage('system', 'Generate an app first before saving.');
+        return;
       }
+      currentAppName = name;
     }
+    // Send save, wait for confirmation, then capture screenshot
+    const savedPromise = new Promise(resolve => { _appSavedResolve = resolve; });
+    ws.send(JSON.stringify({ type: 'save_app', name }));
+    addMessage('system', 'Saved as "' + name + '".');
+    savedPromise.then(() => captureScreenshot());
+    // Timeout fallback — capture anyway if server doesn't respond in 2s
+    setTimeout(() => { if (_appSavedResolve) { _appSavedResolve(); _appSavedResolve = null; } }, 2000);
   }
 
   async function captureScreenshot() {

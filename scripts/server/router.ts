@@ -452,6 +452,8 @@ function editorLoadApp(ctx: ServerContext, url: URL): Response {
   if (!name) return new Response('Missing name', { status: 400, headers: corsHeaders() });
   const src = join(ctx.appsDir, name, 'app.jsx');
   if (!existsSync(src)) return new Response('App not found', { status: 404, headers: corsHeaders() });
+  // Copy saved app into working directory so the preview serves the correct file
+  copyFileSync(src, join(ctx.projectRoot, 'app.jsx'));
   ctx.currentApp = name;
   return json({ ok: true, currentApp: name });
 }
