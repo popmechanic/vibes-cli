@@ -1,0 +1,31 @@
+{
+	"name": "vibes-desktop",
+	"version": "0.1.0",
+	"description": "Vibes Desktop Editor — native macOS app for building web apps with Claude",
+	"scripts": {
+		"start": "vite build && electrobun dev",
+		"dev": "electrobun dev --watch",
+		"dev:hmr": "concurrently \"bun run hmr\" \"bun run start\"",
+		"hmr": "vite --port 5173",
+		"build": "vite build && electrobun build --env=stable",
+		"build:canary": "vite build && electrobun build --env=canary",
+		"test": "bun test src/"
+	},
+	"dependencies": {
+		"electrobun": "1.15.1",
+		"react": "^18.3.1",
+		"react-dom": "^18.3.1"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"@types/react": "^18.3.12",
+		"@types/react-dom": "^18.3.1",
+		"@vitejs/plugin-react": "^4.3.4",
+		"autoprefixer": "^10.4.20",
+		"concurrently": "^9.1.0",
+		"postcss": "^8.4.49",
+		"tailwindcss": "^3.4.16",
+		"typescript": "^5.7.2",
+		"vite": "^6.0.3"
+	}
+}
