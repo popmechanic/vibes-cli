@@ -24,6 +24,22 @@ export interface DeployResponse {
   ok: boolean;
   url: string;
   name: string;
+  connect?: {
+    apiUrl: string;
+    cloudUrl: string;
+  };
+}
+
+export interface ConnectInfo {
+  cloudBackendUrl: string;
+  dashboardUrl: string;
+  apiUrl: string;
+  cloudUrl: string;
+  r2BucketName: string;
+  d1BackendId: string;
+  d1DashboardId: string;
+  sessionTokenPublic: string;
+  deployedAt: string;
 }
 
 export interface JWTPayload {
@@ -41,6 +57,7 @@ export interface SubdomainRecord {
   owner: string;
   collaborators?: Array<{ userId: string; email?: string; role?: string }>;
   connectProvisioned?: boolean;
+  connect?: ConnectInfo;
   oidcClientId?: string;
   userGroupId?: string;
   createdAt?: string;
