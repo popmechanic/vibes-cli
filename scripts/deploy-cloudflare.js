@@ -144,6 +144,12 @@ async function main() {
     files['fireproof-oidc-bridge.js'] = readFileSync(bridgePath, 'utf8');
   }
 
+  // Add AI hook bundle if present
+  const aiBundlePath = resolve(PLUGIN_ROOT, 'bundles/vibes-ai.js');
+  if (existsSync(aiBundlePath)) {
+    files['vibes-ai.js'] = readFileSync(aiBundlePath, 'utf8');
+  }
+
   // Include auth card SVGs
   const authCardsDir = resolve(PLUGIN_ROOT, 'assets/auth-cards');
   if (existsSync(authCardsDir)) {

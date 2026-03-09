@@ -615,7 +615,7 @@ export function createRouter(ctx: ServerContext) {
     }
 
     // Bundle files
-    if (url.pathname === '/fireproof-oidc-bridge.js' || url.pathname === '/fireproof-vibes-bridge.js' || url.pathname === '/fireproof-clerk-bundle.js') {
+    if (url.pathname === '/fireproof-oidc-bridge.js' || url.pathname === '/fireproof-vibes-bridge.js' || url.pathname === '/fireproof-clerk-bundle.js' || url.pathname === '/vibes-ai.js') {
       const bundlePath = join(ctx.projectRoot, 'bundles', url.pathname.slice(1));
       const file = Bun.file(bundlePath);
       if (await file.exists()) {

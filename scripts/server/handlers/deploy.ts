@@ -195,6 +195,12 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
     files['fireproof-oidc-bridge.js'] = readFileSync(bridgePath, 'utf8');
   }
 
+  // Include the AI hook bundle
+  const aiBundlePath = join(ctx.projectRoot, 'bundles/vibes-ai.js');
+  if (existsSync(aiBundlePath)) {
+    files['vibes-ai.js'] = readFileSync(aiBundlePath, 'utf8');
+  }
+
   // Include auth card SVG assets for deployed apps
   const authCardsDir = join(ctx.projectRoot, 'assets/auth-cards');
   if (existsSync(authCardsDir)) {
