@@ -159,7 +159,7 @@ async function main() {
 		if (typeof detail === "string") {
 			try { url = JSON.parse(detail)?.url || detail; } catch { url = detail; }
 		}
-		if (url && !url.startsWith(`http://localhost:${PORT}`)) {
+		if (url && (url.startsWith("http://") || url.startsWith("https://")) && !url.startsWith(`http://localhost:${PORT}`)) {
 			log(`[will-navigate] Opening externally: ${url}`);
 			Utils.openExternal(url);
 		}
