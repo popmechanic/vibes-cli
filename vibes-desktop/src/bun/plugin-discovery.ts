@@ -47,11 +47,17 @@ export async function discoverVibesPlugin(
 	const devOverride = envRoot || (existsSync(fileOverridePath)
 		? readFileSync(fileOverridePath, "utf-8").trim()
 		: null);
-	if (devOverride && existsSync(devOverride)) {
-		const overrideResult = validateAndReturn(devOverride);
-		if (overrideResult) {
-			console.log(`[plugin-discovery] Dev override: ${devOverride}`);
-			return overrideResult;
+	if (devOverride) {
+		if (!devOverride.startsWith("/")) {
+			console.warn(`[plugin-discovery] Dev override path is not absolute, ignoring: ${devOverride}`);
+		} else if (!existsSync(devOverride)) {
+			console.warn(`[plugin-discovery] Dev override path does not exist: ${devOverride}`);
+		} else {
+			const overrideResult = validateAndReturn(devOverride);
+			if (overrideResult) {
+				console.log(`[plugin-discovery] Dev override: ${devOverride}`);
+				return overrideResult;
+			}
 		}
 	}
 
