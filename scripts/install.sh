@@ -24,7 +24,53 @@ warn()  { printf "${BOLD}${YELLOW}!${RESET} %s\n" "$1"; }
 fail()  { printf "${BOLD}${RED}✗${RESET} %s\n" "$1"; exit 1; }
 step()  { printf "\n${BOLD}%s${RESET}\n" "$1"; }
 
-# ── Step 1: Claude Code ─────────────────────────────────────────────
+# ── Step 1: Bun ───────────────────────────────────────────────────────
+
+step "Checking for Bun..."
+
+if command -v bun &>/dev/null; then
+  BUN_VERSION=$(bun --version 2>/dev/null || echo "unknown")
+  info "Bun is installed (${BUN_VERSION})"
+else
+  warn "Bun not found — installing..."
+  curl -fsSL https://bun.sh/install | bash
+
+  # Source the updated profile so bun is available in this session
+  export BUN_INSTALL="${HOME}/.bun"
+  export PATH="${BUN_INSTALL}/bin:${PATH}"
+
+  if command -v bun &>/dev/null; then
+    info "Bun installed successfully"
+  else
+    fail "Bun installation failed. Try manually: https://bun.sh"
+  fi
+fi
+
+# ── Step 2: Node.js ──────────────────────────────────────────────────
+
+step "Checking for Node.js..."
+
+if command -v node &>/dev/null; then
+  NODE_VERSION=$(node --version 2>/dev/null || echo "unknown")
+  info "Node.js is installed (${NODE_VERSION})"
+else
+  warn "Node.js not found — installing via Bun..."
+  # Bun can bootstrap npm packages without Node, but Claude Code
+  # currently requires Node at runtime. Install via Bun's node shim
+  # or prompt the user.
+  if command -v brew &>/dev/null; then
+    brew install node
+    if command -v node &>/dev/null; then
+      info "Node.js installed via Homebrew"
+    else
+      fail "Node.js installation failed. Install manually: https://nodejs.org"
+    fi
+  else
+    fail "Node.js is required for Claude Code. Install from https://nodejs.org"
+  fi
+fi
+
+# ── Step 3: Claude Code ──────────────────────────────────────────────
 
 step "Checking for Claude Code..."
 
@@ -34,7 +80,6 @@ if command -v claude &>/dev/null; then
 else
   warn "Claude Code not found — installing..."
 
-  # Need npm/npx
   if ! command -v npm &>/dev/null; then
     fail "npm is required to install Claude Code. Install Node.js first: https://nodejs.org"
   fi
@@ -48,7 +93,7 @@ else
   fi
 fi
 
-# ── Step 2: Vibes marketplace ───────────────────────────────────────
+# ── Step 4: Vibes marketplace ───────────────────────────────────────
 
 step "Adding Vibes marketplace..."
 
@@ -64,7 +109,7 @@ else
   info "Vibes marketplace added"
 fi
 
-# ── Step 3: Vibes plugin ────────────────────────────────────────────
+# ── Step 5: Vibes plugin ────────────────────────────────────────────
 
 step "Installing Vibes plugin..."
 
