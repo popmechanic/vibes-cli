@@ -656,6 +656,10 @@ Expected: FAIL — module not found.
 Create `src/bun/auth.ts`:
 
 ```typescript
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
+import { homedir } from "os";
+
 export function resolveClaudePath(): string {
   // Try interactive login shell (sources .zprofile AND .zshrc)
   for (const flags of ["-lic", "-lc", "-ic"]) {
@@ -705,6 +709,21 @@ export function cleanEnv(): NodeJS.ProcessEnv {
     delete env.CMUX_WORKSPACE_ID;
     delete env.CMUX_SOCKET_PATH;
   }
+
+  // macOS GUI apps don't inherit shell environment variables.
+  // Source Cloudflare API token from ~/.vibes/cloudflare-api-token if not already
+  // in the environment. This matches the fallback in alchemy-deploy.js (lines 185-199)
+  // but ensures it's present before deployConnect() runs, so the env override
+  // propagates to all child processes (pnpm install, bunx alchemy deploy, etc.).
+  if (!env.CLOUDFLARE_API_TOKEN && !env.CLOUDFLARE_API_KEY) {
+    const tokenPath = join(homedir(), ".vibes", "cloudflare-api-token");
+    try {
+      if (existsSync(tokenPath)) {
+        env.CLOUDFLARE_API_TOKEN = readFileSync(tokenPath, "utf8").trim();
+      }
+    } catch {}
+  }
+
   return env;
 }
 
@@ -2447,6 +2466,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from
 import { join } from "path";
 import { homedir } from "os";
 import type { PluginPaths } from "../plugin-discovery.ts";
+import { cleanEnv } from "../auth.ts";
 
 const DEPLOY_API_URL = "https://vibes-deploy-api.marcus-e.workers.dev";
 
@@ -2474,22 +2494,33 @@ export async function handleDeploy(
     return taskId;
   }
 
-  // Check Pocket ID auth — obtain access token
+  // Check Pocket ID auth — obtain access token via getAccessToken().
+  // Uses the three-stage cascade from cli-auth.js:
+  //   1. Check cached token in ~/.vibes/auth.json
+  //   2. Try refresh via refresh_token (handles normal 1-hour expiry)
+  //   3. Silent mode: return null (no browser popup from desktop app's Bun process)
+  // Reading auth.json directly would skip the refresh step, causing deploy failures
+  // whenever the access token has expired but the refresh token is still valid.
   rpc.sendProxy.deployProgress({ stage: "authenticating" });
-  const authPath = join(homedir(), ".vibes", "auth.json");
-  if (!existsSync(authPath)) {
-    rpc.sendProxy.authRequired({ service: "pocketid" });
-    return taskId;
-  }
+  const { getAccessToken } = await import(
+    join(ctx.pluginPaths.root, "scripts", "lib", "cli-auth.js")
+  );
+  const { OIDC_AUTHORITY, OIDC_CLIENT_ID } = await import(
+    join(ctx.pluginPaths.root, "scripts", "lib", "auth-constants.js")
+  );
 
   let token: string;
   try {
-    const authData = JSON.parse(readFileSync(authPath, "utf-8"));
-    if (!authData.access_token || (authData.expires_at && new Date(authData.expires_at).getTime() < Date.now())) {
+    const tokens = await getAccessToken({
+      authority: OIDC_AUTHORITY,
+      clientId: OIDC_CLIENT_ID,
+      silent: true,
+    });
+    if (!tokens) {
       rpc.sendProxy.authRequired({ service: "pocketid" });
       return taskId;
     }
-    token = authData.access_token;
+    token = tokens.accessToken;
   } catch {
     rpc.sendProxy.authRequired({ service: "pocketid" });
     return taskId;
@@ -2551,54 +2582,67 @@ export async function handleDeploy(
     // for real-time database sync. Without this, Fireproof runs local-only and
     // useFireproofClerk("db-name") in generated apps can't sync across users.
     // This mirrors scripts/server/handlers/deploy.ts lines 120-177.
+    //
+    // Uses registry.js functions (getApp, setApp, isFirstDeploy) instead of raw JSON
+    // read/write. The registry has a versioned schema:
+    //   { version: 1, cloudflare: {}, apps: { "my-app": { connect: {...}, ... } } }
+    // Writing raw JSON without the version/apps wrapper would make entries invisible
+    // to the web server's deploy handler and break isFirstDeploy() checks.
     rpc.sendProxy.deployProgress({ stage: "provisioning sync" });
 
-    const registryPath = join(homedir(), ".vibes", "deployments.json");
-    let registry: Record<string, any> = {};
-    try {
-      if (existsSync(registryPath)) {
-        registry = JSON.parse(readFileSync(registryPath, "utf-8"));
-      }
-    } catch {}
+    const { isFirstDeploy: checkFirstDeploy, getApp, setApp } = await import(
+      join(ctx.pluginPaths.root, "scripts", "lib", "registry.js")
+    );
 
-    let connectInfo = registry[appName]?.connect || null;
-    const isFirstDeploy = !connectInfo?.apiUrl;
+    let connectInfo = getApp(appName)?.connect || null;
 
-    if (isFirstDeploy) {
+    if (checkFirstDeploy(appName)) {
       try {
         // Import alchemy-deploy from the plugin's scripts
         const { deployConnect } = await import(
           join(ctx.pluginPaths.root, "scripts", "lib", "alchemy-deploy.js")
         );
-        const { OIDC_AUTHORITY } = await import(
-          join(ctx.pluginPaths.root, "scripts", "lib", "auth-constants.js")
-        );
 
         // Generate or reuse alchemy password (encrypts alchemy state — losing it breaks re-deploys)
-        let alchemyPassword = registry[appName]?.connect?.alchemyPassword || null;
+        const partialEntry = getApp(appName);
+        let alchemyPassword = partialEntry?.connect?.alchemyPassword || null;
         if (!alchemyPassword) {
           const { randomBytes } = await import("crypto");
           alchemyPassword = randomBytes(32).toString("hex");
           // Pre-save so the password survives crashes
-          registry[appName] = { ...(registry[appName] || {}), name: appName, connect: { alchemyPassword } };
-          mkdirSync(join(homedir(), ".vibes"), { recursive: true });
-          writeFileSync(registryPath, JSON.stringify(registry, null, 2));
+          setApp(appName, { ...(partialEntry || { name: appName }), name: appName, connect: { alchemyPassword } });
         }
 
-        connectInfo = await deployConnect({
-          appName,
-          oidcAuthority: OIDC_AUTHORITY,
-          oidcServiceWorkerName: "pocket-id",
-          alchemyPassword,
-        });
+        // macOS GUI apps don't inherit shell environment variables (Gotcha #13).
+        // deployConnect() inherits process.env for Cloudflare credentials
+        // (CLOUDFLARE_API_TOKEN / CLOUDFLARE_API_KEY). In a GUI app, process.env
+        // won't have these. deployConnect() already checks ~/.vibes/cloudflare-api-token
+        // as a fallback (alchemy-deploy.js lines 185-199), so the file-based credential
+        // path works without changes. But we must ensure process.env is clean of
+        // Claude subprocess variables that could confuse child processes.
+        const savedEnv = { ...process.env };
+        const clean = cleanEnv();
+        Object.keys(process.env).forEach((k) => delete process.env[k]);
+        Object.assign(process.env, clean);
 
-        // Save Connect info to registry
-        registry[appName] = {
-          ...(registry[appName] || {}),
+        try {
+          connectInfo = await deployConnect({
+            appName,
+            oidcAuthority: OIDC_AUTHORITY,
+            oidcServiceWorkerName: "pocket-id",
+            alchemyPassword,
+          });
+        } finally {
+          // Restore original env
+          Object.keys(process.env).forEach((k) => delete process.env[k]);
+          Object.assign(process.env, savedEnv);
+        }
+
+        // Save Connect info to registry via setApp (handles version, timestamps, deep merge)
+        setApp(appName, {
           name: appName,
           connect: { ...connectInfo, deployedAt: new Date().toISOString() },
-        };
-        writeFileSync(registryPath, JSON.stringify(registry, null, 2));
+        });
         console.log(`[Deploy] Connect provisioned for ${appName}: ${connectInfo.apiUrl}`);
       } catch (err: any) {
         rpc.sendProxy.error({ taskId, message: `Connect provisioning failed: ${err.message}` });
@@ -2731,6 +2775,13 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync
 import { join } from "path";
 import { homedir } from "os";
 
+// Assembly utilities — loaded eagerly (not dynamic import) so assembleCurrentApp()
+// stays synchronous, matching the web editor's assembleAppFrame() pattern.
+// The plugin root isn't known at import time, so these are set during init().
+let stripForTemplate: ((code: string, opts?: any) => string) | null = null;
+let APP_PLACEHOLDER: string | null = null;
+let populateConnectConfig: ((html: string, config: Record<string, string>) => string) | null = null;
+
 // --- App State ---
 let pluginPaths: PluginPaths | null = null;
 let config: AppConfig | null = null;
@@ -2747,6 +2798,16 @@ async function init() {
     config = loadConfig(pluginPaths);
     // Ensure apps dir
     mkdirSync(config.appsDir, { recursive: true });
+
+    // Eagerly load assembly utilities so assembleCurrentApp() stays synchronous.
+    // Dynamic import is fine here (init is async); the loaded functions are cached
+    // in module-level variables for synchronous access later.
+    const stripMod = await import(join(pluginPaths.root, "scripts", "lib", "strip-code.js"));
+    stripForTemplate = stripMod.stripForTemplate;
+    const asmMod = await import(join(pluginPaths.root, "scripts", "lib", "assembly-utils.js"));
+    APP_PLACEHOLDER = asmMod.APP_PLACEHOLDER;
+    const envMod = await import(join(pluginPaths.root, "scripts", "lib", "env-utils.js"));
+    populateConnectConfig = envMod.populateConnectConfig;
   }
 
   // Start preview server
@@ -2776,6 +2837,9 @@ init().catch(console.error);
 //    destructuring via `const { useState } = React;`).
 function assembleCurrentApp(): string | null {
   if (!pluginPaths || !config || !currentApp) return null;
+  // Assembly utilities are loaded eagerly in init(). If init() hasn't
+  // completed or plugin discovery failed, these will be null.
+  if (!stripForTemplate || !APP_PLACEHOLDER || !populateConnectConfig) return null;
   const appDir = join(config.appsDir, currentApp);
   const appJsxPath = join(appDir, "app.jsx");
   if (!existsSync(appJsxPath)) return null;
@@ -2789,9 +2853,6 @@ function assembleCurrentApp(): string | null {
     // Read app code and strip imports/exports for template injection
     const appCode = readFileSync(appJsxPath, "utf-8");
 
-    // The authoritative placeholder from scripts/lib/assembly-utils.js
-    const APP_PLACEHOLDER = "// __VIBES_APP_CODE__";
-
     if (!template.includes(APP_PLACEHOLDER)) {
       console.error("[assembleCurrentApp] Template missing placeholder:", APP_PLACEHOLDER);
       return null;
@@ -2801,17 +2862,13 @@ function assembleCurrentApp(): string | null {
     // Keep React destructuring (stripReactHooks: false) because vibes template
     // provides React as a global — app code needs `const { useState } = React;`.
     // This mirrors assembleAppFrame() in scripts/server/handlers/generate.ts line 419.
-    const { stripForTemplate } = await import(
-      join(pluginPaths.root, "scripts", "lib", "strip-code.js")
-    );
     const strippedCode = stripForTemplate(appCode, { stripReactHooks: false });
 
     template = template.replace(APP_PLACEHOLDER, strippedCode);
 
     // Preview mode: leave Connect URLs empty (no auth, no sync)
     // Same as web editor's assembleAppFrame behavior via populateConnectConfig({})
-    template = template.replace(/tokenApiUri:\s*"[^"]*"/, 'tokenApiUri: ""');
-    template = template.replace(/cloudBackendUrl:\s*"[^"]*"/, 'cloudBackendUrl: ""');
+    template = populateConnectConfig(template, {});
 
     assembledHtml = template;
     return assembledHtml;
