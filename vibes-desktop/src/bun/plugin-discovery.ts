@@ -1,5 +1,5 @@
 import { existsSync, readdirSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
 import { homedir } from "os";
 
 export interface PluginPaths {
@@ -40,6 +40,20 @@ export function resolvePluginPaths(pluginRoot: string): PluginPaths {
 export async function discoverVibesPlugin(
 	home?: string,
 ): Promise<PluginPaths | null> {
+	// Dev mode: walk up from main script to find plugin root
+	// In dev builds, process.argv[1] is inside vibes-desktop/build/... which is inside vibes-skill/
+	const mainScript = process.argv[1] || "";
+	if (mainScript) {
+		const devRoot = findPluginRootUpward(dirname(mainScript));
+		if (devRoot) {
+			const devResult = validateAndReturn(devRoot);
+			if (devResult) {
+				console.log(`[plugin-discovery] Dev mode: using ${devRoot}`);
+				return devResult;
+			}
+		}
+	}
+
 	const h = home || homedir();
 	const installedPath = join(h, ".claude", "plugins", "installed_plugins.json");
 
@@ -94,6 +108,19 @@ export async function discoverVibesPlugin(
 	} catch {
 		return null;
 	}
+}
+
+function findPluginRootUpward(startDir: string): string | null {
+	let dir = startDir;
+	for (let i = 0; i < 10; i++) {
+		if (existsSync(join(dir, ".claude-plugin", "plugin.json"))) {
+			return dir;
+		}
+		const parent = dirname(dir);
+		if (parent === dir) break;
+		dir = parent;
+	}
+	return null;
 }
 
 function validateAndReturn(pluginRoot: string): PluginPaths | null {
