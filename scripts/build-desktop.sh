@@ -16,6 +16,7 @@ BUILD_DIR="$DESKTOP_DIR/build/stable-macos-arm64"
 ARTIFACTS_DIR="$DESKTOP_DIR/artifacts"
 ICNS="$BUILD_DIR/$APP_NAME.app/Contents/Resources/AppIcon.icns"
 DMG_BG="$DESKTOP_DIR/dmg-background.png"
+DMG_ICON_PNG="$DESKTOP_DIR/dmg-icon.png"
 INSTALL_CMD="$REPO_ROOT/scripts/install-vibes.command"
 
 # 1. Sync version from plugin.json → electrobun.config.ts
@@ -121,6 +122,35 @@ if let icon = NSImage(contentsOfFile: "/tmp/apps-folder.icns") {
   sleep 1
   hdiutil convert "$RW_DMG" -format UDZO -o "$ORIG_DMG" -ov -quiet
   rm -f "$RW_DMG"
+
+  # Set custom icon on the .dmg file itself (Finder display)
+  if [ -f "$DMG_ICON_PNG" ]; then
+    DMG_ICONSET="/tmp/dmg-icon.iconset"
+    rm -rf "$DMG_ICONSET"
+    mkdir -p "$DMG_ICONSET"
+    sips -z 1024 1024 "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_512x512@2x.png" 2>/dev/null
+    sips -z 512  512  "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_512x512.png"    2>/dev/null
+    sips -z 512  512  "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_256x256@2x.png" 2>/dev/null
+    sips -z 256  256  "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_256x256.png"    2>/dev/null
+    sips -z 256  256  "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_128x128@2x.png" 2>/dev/null
+    sips -z 128  128  "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_128x128.png"    2>/dev/null
+    sips -z 64   64   "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_32x32@2x.png"   2>/dev/null
+    sips -z 32   32   "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_32x32.png"      2>/dev/null
+    sips -z 32   32   "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_16x16@2x.png"   2>/dev/null
+    sips -z 16   16   "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_16x16.png"      2>/dev/null
+    DMG_ICNS="/tmp/dmg-icon.icns"
+    iconutil -c icns "$DMG_ICONSET" -o "$DMG_ICNS"
+    sips -i "$DMG_ICNS" 2>/dev/null || true
+    DeRez -only icns "$DMG_ICNS" > /tmp/dmg-icon.rsrc 2>/dev/null || true
+    if [ -s /tmp/dmg-icon.rsrc ]; then
+      Rez -append /tmp/dmg-icon.rsrc -o "$ORIG_DMG"
+      SetFile -a C "$ORIG_DMG"
+      rm -f /tmp/dmg-icon.rsrc
+      echo "  DMG file icon set from dmg-icon.png"
+    fi
+    rm -rf "$DMG_ICONSET" "$DMG_ICNS"
+  fi
+
   echo "  DMG created: $ORIG_DMG"
 else
   echo "  Skipping DMG (missing app icon)."

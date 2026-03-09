@@ -71,21 +71,42 @@ Auth happens automatically: the CLI opens a browser for Pocket ID login and cach
 
 ## Desktop App
 
-The desktop app lives in `vibes-desktop/` — a thin ElectroBun shell that embeds the web editor in a native window. One command builds everything:
+The desktop app lives in `vibes-desktop/` — a thin ElectroBun shell (VibesOS, `com.vibes.os`) that embeds the web editor in a native window. One command builds everything including a polished DMG:
 
 ```bash
 bash scripts/build-desktop.sh
 ```
 
-This syncs the version from `plugin.json`, compiles the native dylib (ObjC++ for hiding macOS traffic lights), and runs `bunx electrobun build`. Output: `vibes-desktop/build/stable-macos-arm64/Vibes Editor.app`.
+Build steps: (1) sync version from `plugin.json`, (2) compile native dylib, (3) `bunx electrobun build`, (4) create DMG with `create-dmg` + post-process to replace Applications symlink with Finder alias + system icon. Output: `vibes-desktop/artifacts/stable-macos-arm64-VibesOS.dmg`.
 
-Key files:
+### Code Signing & Notarization
+
+ElectroBun handles signing and notarization automatically when `codesign: true, notarize: true` in `electrobun.config.ts`. Required env vars (set in `~/.zshrc`):
+
+- `ELECTROBUN_DEVELOPER_ID` — `Developer ID Application: Chroma Corporation (33S8ZN3JF7)`
+- `ELECTROBUN_TEAMID` — `33S8ZN3JF7`
+- `ELECTROBUN_APPLEID` — Apple ID email
+- `ELECTROBUN_APPLEIDPASS` — app-specific password (generate at account.apple.com → Sign-In and Security → App-Specific Passwords)
+
+### DMG Gotchas
+
+- **Background images must be 1x resolution** matching the window size (1024×576), not 2× retina. Retina images silently fail to display.
+- **Symlinks cannot hold custom icons** — macOS extended attributes don't work on symlinks. The build script replaces the Applications symlink with a Finder alias (bookmark file) created via Swift, then sets the system Applications folder icon on it.
+- **`create-dmg` (Homebrew)** is the reliable DMG creation tool. AppleScript-based approaches have flaky `.DS_Store` behavior.
+
+### Key Files
+
 - `vibes-desktop/src/bun/index.ts` — window creation, menu, tray, external link handling
 - `vibes-desktop/native/macos/window-controls.mm` — native dylib for hiding standard window buttons
-- `vibes-desktop/electrobun.config.ts` — app metadata (name, identifier, version)
-- `scripts/build-desktop.sh` — one-command build script
+- `vibes-desktop/electrobun.config.ts` — app metadata (name: VibesOS, identifier: com.vibes.os, version)
+- `vibes-desktop/icon.iconset/` — app icon PNGs at all required macOS sizes
+- `vibes-desktop/dmg-background.png` — branded DMG background (1024×576, blue grid)
+- `scripts/build-desktop.sh` — one-command build + DMG creation script
+- `scripts/install-vibes.command` — CLI installer included in DMG
 
-Desktop-specific behavior (enabled when server runs with `managed: true`):
+### Desktop-Specific Behavior
+
+Enabled when server runs with `managed: true`:
 - Custom traffic light buttons (red/yellow/green) in the editor header via `window.__VIBES_DESKTOP__`
 - External links open in system browser via `Utils.openExternal()`
 - Auth popup opens in system browser instead of `window.open()`
