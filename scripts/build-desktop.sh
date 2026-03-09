@@ -59,8 +59,31 @@ if [ -f "$ICNS" ]; then
   chmod +x "$STAGE_DIR/Install Vibes CLI.command"
   ln -s /Applications "$STAGE_DIR/Applications"
 
-  # Set custom icon on Applications symlink
-  APPS_ICON="/tmp/applications-icon.png"
+  # Layout: .command (left) → VibesOS (center) → Applications (right)
+  create-dmg \
+    --volname "$APP_NAME" \
+    --volicon "$ICNS" \
+    --background "$DMG_BG" \
+    --window-pos 200 100 \
+    --window-size 1024 576 \
+    --icon-size 120 \
+    --icon "Install Vibes CLI.command" 200 270 \
+    --icon "$APP_NAME.app" 512 270 \
+    --icon "Applications" 824 270 \
+    --no-internet-enable \
+    "$ORIG_DMG" \
+    "$STAGE_DIR" \
+    2>&1
+
+  rm -rf "$STAGE_DIR"
+
+  # Replace Applications symlink with Finder alias + system icon
+  # (symlinks can't hold custom icons, aliases can)
+  RW_DMG="/tmp/VibesOS-rw.dmg"
+  hdiutil convert "$ORIG_DMG" -format UDRW -o "$RW_DMG" -ov -quiet
+  hdiutil attach "$RW_DMG" -readwrite -noverify -noautoopen -quiet
+
+  # Extract system Applications icon and build icns
   swift -e '
 import AppKit
 let ws = NSWorkspace.shared
@@ -70,28 +93,34 @@ let tiff = icon.tiffRepresentation!
 let rep = NSBitmapImageRep(data: tiff)!
 let png = rep.representation(using: .png, properties: [:])!
 try! png.write(to: URL(fileURLWithPath: "/tmp/applications-icon.png"))
-  ' 2>/dev/null
-  if [ -f "$APPS_ICON" ]; then
-    fileicon set "$STAGE_DIR/Applications" "$APPS_ICON" 2>/dev/null || true
-  fi
+  '
+  mkdir -p /tmp/apps-icon.iconset
+  for SIZE in 512 256 128 32 16; do
+    sips -z $SIZE $SIZE /tmp/applications-icon.png --out "/tmp/apps-icon.iconset/icon_${SIZE}x${SIZE}.png" 2>/dev/null
+  done
+  iconutil -c icns /tmp/apps-icon.iconset -o /tmp/apps-folder.icns 2>/dev/null
 
-  # Layout: .command (left) → VibesOS (center) → Applications (right)
-  create-dmg \
-    --volname "$APP_NAME" \
-    --volicon "$ICNS" \
-    --background "$DMG_BG" \
-    --window-pos 200 100 \
-    --window-size 1024 576 \
-    --icon-size 120 \
-    --icon "Install Vibes CLI.command" 200 340 \
-    --icon "$APP_NAME.app" 512 340 \
-    --icon "Applications" 824 340 \
-    --no-internet-enable \
-    "$ORIG_DMG" \
-    "$STAGE_DIR" \
-    2>&1
+  # Replace symlink with alias, set icon
+  swift -e '
+import AppKit
+import Foundation
+let path = "/Volumes/'"$APP_NAME"'/Applications"
+let fm = FileManager.default
+try? fm.removeItem(atPath: path)
+let target = URL(fileURLWithPath: "/Applications")
+let data = try target.bookmarkData(options: .suitableForBookmarkFile,
+    includingResourceValuesForKeys: nil, relativeTo: nil)
+try URL.writeBookmarkData(data, to: URL(fileURLWithPath: path))
+if let icon = NSImage(contentsOfFile: "/tmp/apps-folder.icns") {
+    NSWorkspace.shared.setIcon(icon, forFile: path)
+}
+  '
 
-  rm -rf "$STAGE_DIR"
+  sync
+  hdiutil detach "/Volumes/$APP_NAME" 2>/dev/null || true
+  sleep 1
+  hdiutil convert "$RW_DMG" -format UDZO -o "$ORIG_DMG" -ov -quiet
+  rm -f "$RW_DMG"
   echo "  DMG created: $ORIG_DMG"
 else
   echo "  Skipping DMG (missing app icon)."
