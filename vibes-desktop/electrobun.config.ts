@@ -11,4 +11,8 @@ export default {
 		linux: { bundleCEF: false },
 		win: { bundleCEF: false },
 	},
+	scripts: {
+		postBuild: "scripts/post-build.ts",
+		postWrap: "scripts/post-wrap.ts",
+	},
 } satisfies ElectrobunConfig;

@@ -9,7 +9,7 @@
  * is planned for future persistent session support but not yet implemented.
  */
 
-import { buildClaudeArgs, cleanEnv } from '../lib/claude-subprocess.js';
+import { buildClaudeArgs, cleanEnv, resolveClaudeBin } from '../lib/claude-subprocess.js';
 import { createStreamParser } from '../lib/stream-parser.js';
 import { sanitizeAppJsx } from './post-process.ts';
 import type { ServerContext } from './config.ts';
@@ -115,7 +115,7 @@ export async function runOneShot(
   console.log(`[OneShot] Spawning (prompt: ${(prompt.length / 1024).toFixed(1)}KB)...`);
 
   const proc = Bun.spawn({
-    cmd: ['claude', ...args],
+    cmd: [resolveClaudeBin(), ...args],
     cwd: opts.cwd || process.cwd(),
     env: cleanEnv(),
     stdin: 'pipe',

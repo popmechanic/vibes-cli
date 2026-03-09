@@ -45,6 +45,7 @@ echo "[3/4] Building ElectroBun app..."
 cd "$DESKTOP_DIR"
 bunx electrobun build --env=stable
 
+
 # 4. Create polished DMG with create-dmg
 echo "[4/4] Creating DMG..."
 ORIG_DMG="$ARTIFACTS_DIR/stable-macos-arm64-VibesOS.dmg"
@@ -58,7 +59,32 @@ if [ -f "$ICNS" ]; then
   cp -R "$BUILD_DIR/$APP_NAME.app" "$STAGE_DIR/"
   cp "$INSTALL_CMD" "$STAGE_DIR/Install Vibes CLI.command"
   chmod +x "$STAGE_DIR/Install Vibes CLI.command"
-  ln -s /Applications "$STAGE_DIR/Applications"
+  # Replace symlink with Finder alias + system icon in staging dir
+  # (symlinks can't hold custom icons, aliases can)
+  swift -e '
+import AppKit
+import Foundation
+do {
+    let stagePath = "'"$STAGE_DIR"'/Applications"
+    let fm = FileManager.default
+    try? fm.removeItem(atPath: stagePath)
+    let target = URL(fileURLWithPath: "/Applications")
+    let data = try target.bookmarkData(options: .suitableForBookmarkFile,
+        includingResourceValuesForKeys: nil, relativeTo: nil)
+    try URL.writeBookmarkData(data, to: URL(fileURLWithPath: stagePath))
+
+    let icon = NSWorkspace.shared.icon(forFile: "/Applications")
+    icon.size = NSSize(width: 512, height: 512)
+    NSWorkspace.shared.setIcon(icon, forFile: stagePath)
+    print("Finder alias created with icon")
+} catch {
+    print("Warning: alias failed, falling back to symlink: \(error)")
+}
+  '
+  # Ensure Applications entry exists (symlink fallback if alias failed)
+  if [ ! -e "$STAGE_DIR/Applications" ]; then
+    ln -s /Applications "$STAGE_DIR/Applications"
+  fi
 
   # Layout: .command (left) → VibesOS (center) → Applications (right)
   create-dmg \
@@ -77,51 +103,6 @@ if [ -f "$ICNS" ]; then
     2>&1
 
   rm -rf "$STAGE_DIR"
-
-  # Replace Applications symlink with Finder alias + system icon
-  # (symlinks can't hold custom icons, aliases can)
-  RW_DMG="/tmp/VibesOS-rw.dmg"
-  hdiutil convert "$ORIG_DMG" -format UDRW -o "$RW_DMG" -ov -quiet
-  hdiutil attach "$RW_DMG" -readwrite -noverify -noautoopen -quiet
-
-  # Extract system Applications icon and build icns
-  swift -e '
-import AppKit
-let ws = NSWorkspace.shared
-let icon = ws.icon(forFile: "/Applications")
-icon.size = NSSize(width: 512, height: 512)
-let tiff = icon.tiffRepresentation!
-let rep = NSBitmapImageRep(data: tiff)!
-let png = rep.representation(using: .png, properties: [:])!
-try! png.write(to: URL(fileURLWithPath: "/tmp/applications-icon.png"))
-  '
-  mkdir -p /tmp/apps-icon.iconset
-  for SIZE in 512 256 128 32 16; do
-    sips -z $SIZE $SIZE /tmp/applications-icon.png --out "/tmp/apps-icon.iconset/icon_${SIZE}x${SIZE}.png" 2>/dev/null
-  done
-  iconutil -c icns /tmp/apps-icon.iconset -o /tmp/apps-folder.icns 2>/dev/null
-
-  # Replace symlink with alias, set icon
-  swift -e '
-import AppKit
-import Foundation
-let path = "/Volumes/'"$APP_NAME"'/Applications"
-let fm = FileManager.default
-try? fm.removeItem(atPath: path)
-let target = URL(fileURLWithPath: "/Applications")
-let data = try target.bookmarkData(options: .suitableForBookmarkFile,
-    includingResourceValuesForKeys: nil, relativeTo: nil)
-try URL.writeBookmarkData(data, to: URL(fileURLWithPath: path))
-if let icon = NSImage(contentsOfFile: "/tmp/apps-folder.icns") {
-    NSWorkspace.shared.setIcon(icon, forFile: path)
-}
-  '
-
-  sync
-  hdiutil detach "/Volumes/$APP_NAME" 2>/dev/null || true
-  sleep 1
-  hdiutil convert "$RW_DMG" -format UDZO -o "$ORIG_DMG" -ov -quiet
-  rm -f "$RW_DMG"
 
   # Set custom icon on the .dmg file itself (Finder display)
   if [ -f "$DMG_ICON_PNG" ]; then

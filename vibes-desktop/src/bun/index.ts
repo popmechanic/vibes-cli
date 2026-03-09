@@ -50,7 +50,10 @@ async function main() {
 		return;
 	}
 
-	// 3. Start the existing server
+	// 3. Expose resolved Claude path for server subprocess spawning
+	process.env.CLAUDE_BIN = CLAUDE_BIN;
+
+	// 4. Start the existing server
 	const serverModule = await import(join(pluginPaths.root, "scripts", "server.ts"));
 	const { server, ctx, shutdown } = await serverModule.startServer({
 		mode: "editor",

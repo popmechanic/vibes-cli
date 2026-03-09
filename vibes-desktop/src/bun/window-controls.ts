@@ -3,7 +3,11 @@ import { join, dirname } from "path";
 import { existsSync } from "fs";
 
 function findDylib(): string {
-	// Walk up from this file to find native/macos/build/
+	// Production: same directory as bundled index.js (app/bun/)
+	const localPath = join(import.meta.dir, "libWindowControls.dylib");
+	if (existsSync(localPath)) return localPath;
+
+	// Dev mode: walk up to find native/macos/build/
 	let dir = dirname(import.meta.dir);
 	for (let i = 0; i < 10; i++) {
 		const candidate = join(dir, "native", "macos", "build", "libWindowControls.dylib");

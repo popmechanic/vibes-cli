@@ -8,7 +8,7 @@ import { join } from 'path';
 import { reloadThemes } from '../config.ts';
 import type { ServerContext } from '../config.ts';
 import { resolveAppJsxPath } from '../app-context.js';
-import { buildClaudeArgs, cleanEnv } from '../../lib/claude-subprocess.js';
+import { buildClaudeArgs, cleanEnv, resolveClaudeBin } from '../../lib/claude-subprocess.js';
 import { createStreamParser } from '../../lib/stream-parser.js';
 import type { EventCallback } from '../claude-bridge.ts';
 
@@ -77,7 +77,7 @@ Use oklch() for ALL color values.`;
   console.log(`[SaveTheme] Spawning claude for theme "${themeId}"...`);
 
   const proc = Bun.spawn({
-    cmd: ['claude', ...args],
+    cmd: [resolveClaudeBin(), ...args],
     cwd: projectRoot,
     env: cleanEnv(),
     stdin: 'pipe',

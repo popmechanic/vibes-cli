@@ -93,6 +93,43 @@ export function buildClaudeArgs(config = {}) {
   return args;
 }
 
+import { existsSync } from 'fs';
+import { spawnSync } from 'child_process';
+
+/**
+ * Resolve the full path to the claude binary.
+ * Desktop apps don't inherit the user's shell PATH, so we probe via login shell
+ * and fall back to common install locations.
+ */
+let _cachedClaudeBin;
+export function resolveClaudeBin() {
+  if (_cachedClaudeBin) return _cachedClaudeBin;
+  if (process.env.CLAUDE_BIN) { _cachedClaudeBin = process.env.CLAUDE_BIN; return _cachedClaudeBin; }
+
+  // Try login shell
+  for (const flags of ['-lic', '-lc', '-ic']) {
+    try {
+      const r = spawnSync('zsh', [flags, 'which claude'], { timeout: 5000 });
+      const p = r.stdout?.toString().trim();
+      if (p && r.status === 0 && !p.includes('not found')) { _cachedClaudeBin = p; return p; }
+    } catch {}
+  }
+
+  const home = process.env.HOME || '';
+  for (const p of [
+    `${home}/.claude/local/claude`,
+    '/usr/local/bin/claude',
+    '/opt/homebrew/bin/claude',
+    `${home}/.local/bin/claude`,
+    `${home}/.npm-global/bin/claude`,
+  ]) {
+    if (existsSync(p)) { _cachedClaudeBin = p; return p; }
+  }
+
+  _cachedClaudeBin = 'claude';
+  return _cachedClaudeBin;
+}
+
 /**
  * Clean environment for spawning claude subprocesses.
  * Removes nesting guard variables that prevent claude from running inside itself.
