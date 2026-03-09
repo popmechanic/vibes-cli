@@ -1,0 +1,16 @@
+{
+	"name": "vibes-desktop",
+	"version": "0.1.0",
+	"description": "Vibes Desktop Editor — native macOS app for building web apps with Claude",
+	"scripts": {
+		"dev": "bunx electrobun dev",
+		"build": "bunx electrobun build --env=stable"
+	},
+	"dependencies": {
+		"electrobun": "1.15.1"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"typescript": "^5.7.2"
+	}
+}

@@ -9,6 +9,7 @@ import { readFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSyn
 import { join, extname, resolve } from 'path';
 import type { ServerContext } from './config.ts';
 import { getRecommendedThemeIds, loadOpenRouterKey } from './config.ts';
+import { currentAppDir } from './app-context.js';
 import { assembleAppFrame } from './handlers/generate.ts';
 import { loadRegistry, getCloudflareConfig, setCloudflareConfig, getApp, setApp } from '../lib/registry.js';
 import { readCachedTokens, isTokenExpired, getAccessToken, startLoginFlow, removeCachedTokens } from '../lib/cli-auth.js';
@@ -206,7 +207,8 @@ async function serveHtml(ctx: ServerContext): Promise<Response> {
 }
 
 async function serveAppJsx(ctx: ServerContext): Promise<Response> {
-  const appPath = join(ctx.projectRoot, 'app.jsx');
+  const appDir = currentAppDir(ctx);
+  const appPath = appDir ? join(appDir, 'app.jsx') : join(ctx.projectRoot, 'app.jsx');
   const file = Bun.file(appPath);
   if (!(await file.exists())) return new Response('// app.jsx not yet generated\n', { headers: { 'Content-Type': 'text/javascript', ...corsHeaders() } });
   return new Response(file, { headers: { 'Content-Type': 'text/javascript', ...corsHeaders() } });
@@ -325,7 +327,9 @@ function editorInitialPrompt(ctx: ServerContext): Response {
 }
 
 function editorAppExists(ctx: ServerContext): Response {
-  return json({ exists: existsSync(join(ctx.projectRoot, 'app.jsx')) });
+  const appDir = currentAppDir(ctx);
+  const appPath = appDir ? join(appDir, 'app.jsx') : join(ctx.projectRoot, 'app.jsx');
+  return json({ exists: existsSync(appPath) });
 }
 
 async function editorSaveCredentials(ctx: ServerContext, req: Request): Promise<Response> {
@@ -457,8 +461,7 @@ function editorLoadApp(ctx: ServerContext, url: URL): Response {
   if (!name) return new Response('Missing name', { status: 400, headers: corsHeaders() });
   const src = join(ctx.appsDir, name, 'app.jsx');
   if (!existsSync(src)) return new Response('App not found', { status: 404, headers: corsHeaders() });
-  // Copy saved app into working directory so the preview serves the correct file
-  copyFileSync(src, join(ctx.projectRoot, 'app.jsx'));
+  // Set currentApp — the app directory IS the saved directory, no copy needed
   ctx.currentApp = name;
   return json({ ok: true, currentApp: name });
 }
@@ -466,11 +469,15 @@ function editorLoadApp(ctx: ServerContext, url: URL): Response {
 function editorSaveApp(ctx: ServerContext, url: URL): Response {
   const name = sanitizeAppName(url.searchParams.get('name') || '');
   if (!name) return new Response('Missing name', { status: 400, headers: corsHeaders() });
-  const appSrc = join(ctx.projectRoot, 'app.jsx');
+  const appDir = currentAppDir(ctx);
+  const appSrc = appDir ? join(appDir, 'app.jsx') : join(ctx.projectRoot, 'app.jsx');
   if (!existsSync(appSrc)) return new Response('No app.jsx to save', { status: 404, headers: corsHeaders() });
   const dest = join(ctx.appsDir, name);
   mkdirSync(dest, { recursive: true });
-  copyFileSync(appSrc, join(dest, 'app.jsx'));
+  if (appSrc !== join(dest, 'app.jsx')) {
+    copyFileSync(appSrc, join(dest, 'app.jsx'));
+  }
+  ctx.currentApp = name;
   return json({ ok: true });
 }
 
@@ -491,8 +498,10 @@ async function editorSaveScreenshot(ctx: ServerContext, req: Request, url: URL):
 
 async function editorWriteApp(ctx: ServerContext, req: Request): Promise<Response> {
   try {
+    const appDir = currentAppDir(ctx);
+    const appPath = appDir ? join(appDir, 'app.jsx') : join(ctx.projectRoot, 'app.jsx');
     const body = await readBodyWithLimit(req, MAX_APP_WRITE_SIZE);
-    writeFileSync(join(ctx.projectRoot, 'app.jsx'), body.toString('utf-8'));
+    writeFileSync(appPath, body.toString('utf-8'));
     return json({ ok: true });
   } catch (err: any) {
     return json({ error: err.message }, err.status || 400);

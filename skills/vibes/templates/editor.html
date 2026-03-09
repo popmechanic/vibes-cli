@@ -64,6 +64,7 @@
       border-top-right-radius: 10px;
     }
     .header-left { display: flex; align-items: center; height: 100%; }
+    .header-drag { flex: 1; height: 100%; cursor: default; }
     .header-right { display: flex; align-items: center; height: 100%; }
     .vibes-pill-wrap {
       display: flex;
@@ -2306,6 +2307,7 @@
         </button>
       </div>
     </div>
+    <div class="header-drag" id="headerDrag" style="app-region: drag"></div>
     <div class="header-right" id="headerRight">
       <!-- Phase 3 buttons injected here by JS -->
     </div>
@@ -2751,6 +2753,9 @@
   }
 
   // === State ===
+  // Desktop mode: detect ElectroBun webview
+  const IS_DESKTOP = typeof window.__electrobun !== 'undefined';
+
   let ws = null;
   let wsRetries = 0;
   const WS_MAX_RETRIES = 20;
