@@ -49,10 +49,10 @@ export async function generateSessionTokens(): Promise<{ publicEnv: string; priv
     { name: 'ECDSA', namedCurve: 'P-256' },
     true,
     ['sign', 'verify']
-  );
+  ) as CryptoKeyPair;
 
-  const publicJwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey);
-  const privateJwk = await crypto.subtle.exportKey('jwk', keyPair.privateKey);
+  const publicJwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey) as JsonWebKey;
+  const privateJwk = await crypto.subtle.exportKey('jwk', keyPair.privateKey) as JsonWebKey;
 
   publicJwk.alg = 'ES256';
   privateJwk.alg = 'ES256';
@@ -65,13 +65,13 @@ export async function generateDeviceCAKeys(): Promise<{ privKey: string; cert: s
     { name: 'ECDSA', namedCurve: 'P-256' },
     true,
     ['sign', 'verify']
-  );
+  ) as CryptoKeyPair;
 
-  const privateJwk = await crypto.subtle.exportKey('jwk', keyPair.privateKey);
+  const privateJwk = await crypto.subtle.exportKey('jwk', keyPair.privateKey) as JsonWebKey;
   privateJwk.alg = 'ES256';
   const privKey = jwkToEnv(privateJwk);
 
-  const publicJwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey);
+  const publicJwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey) as JsonWebKey;
 
   const now = Math.floor(Date.now() / 1000);
   const oneYear = 365 * 24 * 60 * 60;
@@ -128,8 +128,8 @@ export async function generateDeviceCAKeys(): Promise<{ privKey: string; cert: s
     },
   };
 
-  const headerB64 = toBase64Url(new TextEncoder().encode(JSON.stringify(header)));
-  const payloadB64 = toBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
+  const headerB64 = toBase64Url(new TextEncoder().encode(JSON.stringify(header)).buffer as ArrayBuffer);
+  const payloadB64 = toBase64Url(new TextEncoder().encode(JSON.stringify(payload)).buffer as ArrayBuffer);
 
   const dataToSign = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
   const signature = await crypto.subtle.sign(

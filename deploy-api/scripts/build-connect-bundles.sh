@@ -26,11 +26,11 @@ npx esbuild cloud/backend/cf-d1/server.ts \
   --conditions=workerd,worker,browser \
   --external:cloudflare:workers \
   --external:node:* \
-  --outfile="$OUT_DIR/cloud-backend.js" \
+  --outfile="$OUT_DIR/cloud-backend.txt" \
   --minify
 
 # Dashboard backend — Worker with static assets
-echo "Building dashboard bundle..."
+echo "Building dashboard backend..."
 npx esbuild dashboard/backend/cf-serve.ts \
   --bundle \
   --format=esm \
@@ -39,8 +39,18 @@ npx esbuild dashboard/backend/cf-serve.ts \
   --external:cloudflare:workers \
   --external:node:* \
   --external:@cloudflare/workers-types \
-  --outfile="$OUT_DIR/dashboard.js" \
+  --outfile="$OUT_DIR/dashboard-core.js" \
   --minify
 
+# Embed dashboard frontend assets into a combined bundle
+echo "Embedding dashboard frontend assets..."
+node "$SCRIPT_DIR/embed-dashboard-assets.js" \
+  "$OUT_DIR/dashboard-core.js" \
+  "$REPO_DIR/dashboard/frontend/dist/static/client" \
+  "$OUT_DIR/dashboard.txt"
+
+# Clean up intermediate file
+rm -f "$OUT_DIR/dashboard-core.js"
+
 echo "Bundles written to $OUT_DIR/"
-ls -la "$OUT_DIR/cloud-backend.js" "$OUT_DIR/dashboard.js"
+ls -la "$OUT_DIR/cloud-backend.txt" "$OUT_DIR/dashboard.txt"
