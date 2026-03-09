@@ -937,7 +937,8 @@
         cloudBackendUrl: "__VITE_CLOUD_URL__",
         oidcAuthority: "__VITE_OIDC_AUTHORITY__",
         oidcClientId: "__VITE_OIDC_CLIENT_ID__",
-        deployApiUrl: "__VITE_DEPLOY_API_URL__"
+        deployApiUrl: "__VITE_DEPLOY_API_URL__",
+        aiProxyUrl: "__VITE_AI_PROXY_URL__"
       };
       // Default: single theme hides the Design button in VibesPanel.
       // Apps with multiple themes override this before menu loads.
@@ -2978,66 +2979,6 @@ if (typeof window !== 'undefined') {
 }
 
 
-      // === useAI Hook ===
-      // AI hook for proxied OpenRouter calls with metering
-      function useAI() {
-        const [loading, setLoading] = React.useState(false);
-        const [error, setError] = React.useState(null);
-
-        const callAI = React.useCallback(async (options) => {
-          setLoading(true);
-          setError(null);
-
-          try {
-            // Get auth token if OIDC session is available
-            let authHeader = {};
-            const oidcToken = window.__VIBES_OIDC_TOKEN__;
-            if (oidcToken) {
-              authHeader = { 'Authorization': 'Bearer ' + oidcToken };
-            }
-
-            const response = await fetch('/api/ai/chat', {
-              method: 'POST',
-              headers: Object.assign({ 'Content-Type': 'application/json' }, authHeader),
-              body: JSON.stringify(Object.assign({
-                model: options.model || (window.__VIBES_CONFIG__ && window.__VIBES_CONFIG__.defaultModel) || 'anthropic/claude-sonnet-4',
-                messages: options.messages
-              }, options))
-            });
-
-            // Handle limit exceeded (402 from OpenRouter)
-            if (response.status === 402) {
-              const err = { code: 'LIMIT_EXCEEDED', message: 'AI usage limit reached for this month.' };
-              setError(err);
-              throw err;
-            }
-
-            // Handle other errors
-            if (!response.ok) {
-              const errorData = await response.json().catch(function() { return {}; });
-              const err = {
-                code: 'API_ERROR',
-                message: (errorData.error && errorData.error.message) || ('API error: ' + response.status),
-                status: response.status
-              };
-              setError(err);
-              throw err;
-            }
-
-            return await response.json();
-
-          } catch (err) {
-            setError({ code: 'NETWORK_ERROR', message: err.message || 'Network error' });
-            throw err;
-          } finally {
-            setLoading(false);
-          }
-        }, []);
-
-        return { callAI: callAI, loading: loading, error: error, clearError: function() { setError(null); } };
-      }
-      window.useAI = useAI;
-
       // === Shared Error Components ===
       function ConfigError({ message }) {
         // Use AuthScreen if available, fallback to simple div
@@ -3500,6 +3441,7 @@ if (typeof window !== 'undefined') {
       window.__VIBES_THEME_PRESETS__ = VIBES_THEME_PRESETS;
       window.applyVibesTheme = applyVibesTheme;
     </script>
+    <script type="module" src="/vibes-ai.js"></script>
     <script type="text/babel" data-type="module">
       import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from "react";
       import ReactDOMClient from "react-dom/client";

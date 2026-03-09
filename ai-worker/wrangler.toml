@@ -1,0 +1,14 @@
+name = "vibes-ai-proxy"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[vars]
+OIDC_ISSUER = "https://vibesos.com"
+
+# Secrets (set via wrangler secret put):
+# OPENROUTER_API_KEY
+
+# Route to ai.vibesos.com (configure after first deploy)
+# [[routes]]
+# pattern = "ai.vibesos.com/*"
+# zone_id = "<CF_ZONE_ID>"
