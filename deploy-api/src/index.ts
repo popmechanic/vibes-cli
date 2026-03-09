@@ -11,7 +11,10 @@ import type { Env, DeployRequest, DeployResponse, JWTPayload, SubdomainRecord } 
 import {
   createApp,
   getApp,
+  updateApp,
+  findAppByName,
   createUserGroup,
+  findUserGroupByName,
   addUsersToGroup,
   setAllowedGroups,
   findOrCreateUser,
@@ -416,31 +419,68 @@ async function registerAppInPocketId(
   userId: string,
   existing: SubdomainRecord | null
 ): Promise<{ oidcClientId: string; userGroupId: string } | null> {
-  // Already registered — return existing IDs
+  // Already registered — verify client still exists in Pocket ID before trusting KV
   if (existing?.oidcClientId && existing?.userGroupId) {
-    return { oidcClientId: existing.oidcClientId, userGroupId: existing.userGroupId };
+    const verified = await getApp(fetcher, apiKey, existing.oidcClientId);
+    if (verified) {
+      // Ensure isGroupRestricted is set (may be missing on clients created by older code)
+      await updateApp(fetcher, apiKey, existing.oidcClientId, { isGroupRestricted: true });
+      console.log(`[pocket-id] Verified existing client=${existing.oidcClientId} (group restriction ensured)`);
+      return { oidcClientId: existing.oidcClientId, userGroupId: existing.userGroupId };
+    }
+    console.warn(`[pocket-id] Stale client=${existing.oidcClientId} not found in Pocket ID, re-registering...`);
   }
 
   try {
-    // 1. Register app in Pocket ID
-    const appResult = await createApp(fetcher, apiKey, {
-      name: `vibes-${appName}`,
-      callbackURLs: [`${deployUrl}/**`],
-      isPublic: true,
-    });
-    const oidcClientId = appResult.id;
+    // 1. Register app in Pocket ID (or find existing)
+    const appNamePocketId = `vibes-${appName}`;
+    console.log(`[pocket-id] Step 1: Looking for existing app ${appNamePocketId}...`);
+    const existingApp = await findAppByName(fetcher, apiKey, appNamePocketId);
+    let oidcClientId: string;
 
-    // 2. Create user group for this app
-    const group = await createUserGroup(fetcher, apiKey, {
-      name: `vibes-${appName}-users`,
-    });
-    const userGroupId = group.id;
+    if (existingApp) {
+      oidcClientId = existingApp.id;
+      console.log(`[pocket-id] Step 1: found existing client=${oidcClientId}, ensuring isGroupRestricted...`);
+      await updateApp(fetcher, apiKey, oidcClientId, { isGroupRestricted: true });
+      console.log(`[pocket-id] Step 1 done: client=${oidcClientId} (group restriction ensured)`);
+    } else {
+      console.log(`[pocket-id] Step 1: Creating app ${appNamePocketId}...`);
+      const appResult = await createApp(fetcher, apiKey, {
+        name: appNamePocketId,
+        callbackURLs: [`${deployUrl}/**`],
+        isPublic: true,
+      });
+      oidcClientId = appResult.id;
+      console.log(`[pocket-id] Step 1 done: created client=${oidcClientId}`);
+    }
+
+    // 2. Create user group for this app (or find existing)
+    const groupName = `vibes-${appName}-users`;
+    console.log(`[pocket-id] Step 2: Looking for existing group ${groupName}...`);
+    const existingGroup = await findUserGroupByName(fetcher, apiKey, groupName);
+    let userGroupId: string;
+
+    if (existingGroup) {
+      userGroupId = existingGroup.id;
+      console.log(`[pocket-id] Step 2 done: found existing group=${userGroupId}`);
+    } else {
+      console.log(`[pocket-id] Step 2: Creating user group ${groupName}...`);
+      const group = await createUserGroup(fetcher, apiKey, {
+        name: groupName,
+      });
+      userGroupId = group.id;
+      console.log(`[pocket-id] Step 2 done: created group=${userGroupId}`);
+    }
 
     // 3. Add deployer as first member
+    console.log(`[pocket-id] Step 3: Adding deployer ${userId} to group...`);
     await addUsersToGroup(fetcher, apiKey, userGroupId, [userId]);
+    console.log(`[pocket-id] Step 3 done`);
 
     // 4. Restrict app to this group
+    console.log(`[pocket-id] Step 4: Setting allowed groups on client...`);
     await setAllowedGroups(fetcher, apiKey, oidcClientId, [userGroupId]);
+    console.log(`[pocket-id] Step 4 done`);
 
     console.log(`[pocket-id] Registered app vibes-${appName}, client=${oidcClientId}, group=${userGroupId}`);
     return { oidcClientId, userGroupId };

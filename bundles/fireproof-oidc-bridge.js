@@ -455,27 +455,44 @@ export function SignedOut(props) {
 
 export function SignInButton(props) {
   var config = window.__VIBES_CONFIG__ || {};
+  var _s = React.useState(false);
+  var isLoading = _s[0];
+  var setIsLoading = _s[1];
 
   function handleClick() {
+    if (isLoading) return;
     var authority = config.oidcAuthority;
     var clientId = config.oidcClientId;
     if (!authority || !clientId) {
       console.error("[vibes-oidc] Missing oidcAuthority or oidcClientId in config");
       return;
     }
-    startLogin(authority, clientId, window.location.origin + window.location.pathname);
+    setIsLoading(true);
+    startLogin(authority, clientId, window.location.origin + window.location.pathname)
+      .catch(function (err) {
+        console.error("[vibes-oidc] Login failed:", err);
+        setIsLoading(false);
+      });
   }
 
-  // If children are provided (e.g., wrapping a button), clone with onClick
+  // If children are provided (e.g., wrapping a button), clone with onClick + disabled state
   if (props.children) {
     return React.cloneElement(
       React.Children.only(props.children),
-      { onClick: handleClick }
+      {
+        onClick: handleClick,
+        disabled: isLoading,
+        children: isLoading ? "Connecting…" : props.children.props.children
+      }
     );
   }
 
   // Default button
-  return React.createElement("button", { onClick: handleClick }, "Sign In");
+  return React.createElement(
+    "button",
+    { onClick: handleClick, disabled: isLoading },
+    isLoading ? "Connecting…" : "Sign In"
+  );
 }
 
 // ─── UserButton ──────────────────────────────────────────────────────────
