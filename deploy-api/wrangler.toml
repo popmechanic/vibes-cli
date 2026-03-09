@@ -4,7 +4,7 @@ compatibility_date = "2025-01-01"
 account_id = "e33948793047032de7f5e18ec342a7d1"
 
 [vars]
-OIDC_ISSUER = "https://pocket-id.marcus-e.workers.dev"
+OIDC_ISSUER = "https://vibesos.com"
 
 # Secrets (set via `wrangler secret put`):
 # CF_API_TOKEN - scoped to Workers deploys on our account

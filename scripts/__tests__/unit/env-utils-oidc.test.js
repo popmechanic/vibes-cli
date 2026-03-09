@@ -8,7 +8,7 @@ import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../../lib/auth-constants.js';
 
 describe('OIDC auth constants', () => {
   it('exports hardcoded OIDC authority URL', () => {
-    expect(OIDC_AUTHORITY).toBe('https://pocket-id.marcus-e.workers.dev');
+    expect(OIDC_AUTHORITY).toBe('https://vibesos.com');
   });
 
   it('exports hardcoded OIDC client ID', () => {

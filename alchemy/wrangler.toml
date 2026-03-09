@@ -22,7 +22,7 @@ binding = "BACKUP_BUCKET"
 bucket_name = "pocket-id-backups"
 
 [vars]
-POCKET_ID_APP_URL = "https://pocket-id.marcus-e.workers.dev"
+POCKET_ID_APP_URL = "https://vibesos.com"
 R2_BUCKET_NAME = "pocket-id-backups"
 R2_ACCOUNT_ID = "e33948793047032de7f5e18ec342a7d1"
 

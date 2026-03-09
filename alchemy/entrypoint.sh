@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+# Domain: vibesos.com (2026-03-08)
 
 R2_MOUNT="/mnt/r2"
 DATA_DIR="/app/data"
