@@ -32,7 +32,8 @@ app.use(
       if (!origin) return origin; // non-browser (CLI) requests
       if (origin === "http://localhost:3333") return origin; // editor preview
       if (origin.endsWith(".workers.dev")) return origin; // deployed apps
-      if (origin.endsWith(".vibes.diy")) return origin; // custom domain
+      if (origin.endsWith(".vibes.diy")) return origin; // custom domain (legacy)
+      if (origin.endsWith(".vibesos.com")) return origin; // custom domain
       const permitted = parsePermittedOrigins((c.env as Env).PERMITTED_ORIGINS);
       if (permitted.some((p) => p === origin)) return origin;
       return null; // reject unknown origins
