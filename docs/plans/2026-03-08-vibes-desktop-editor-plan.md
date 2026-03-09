@@ -87,15 +87,14 @@ import { BrowserWindow } from "electrobun/bun";
 
 const mainWindow = new BrowserWindow({
   title: "Vibes Editor",
-  width: 1280,
-  height: 820,
-  minWidth: 960,
-  minHeight: 600,
-  url: "electrobun://mainview/index.html",
+  frame: { width: 1280, height: 820 },
+  url: "views://mainview/index.html",
 });
 
 console.log("[vibes-desktop] App started");
 ```
+
+> **Note on minWidth/minHeight:** ElectroBun's BrowserWindow constructor uses `frame: { width, height, x, y }` — there is no built-in `minWidth`/`minHeight`. Minimum window size enforcement can be added later via window resize event handlers if needed. The `views://` URL scheme loads bundled webview content.
 
 **Step 5: Create minimal webview entry (src/mainview/index.ts)**
 
@@ -358,11 +357,8 @@ const rpc = BrowserView.defineRPC<VibesDesktopRPC>({
 
 const mainWindow = new BrowserWindow({
   title: "Vibes Editor",
-  width: 1280,
-  height: 820,
-  minWidth: 960,
-  minHeight: 600,
-  url: "electrobun://mainview/index.html",
+  frame: { width: 1280, height: 820 },
+  url: "views://mainview/index.html",
   rpc,
 });
 
@@ -1378,7 +1374,6 @@ const MIME_TYPES: Record<string, string> = {
 export interface PreviewServerContext {
   pluginPaths: PluginPaths;
   getAssembledHtml: () => string | null;
-  getAppJsxPath: () => string | null;
   port: number;
 }
 
@@ -2551,9 +2546,86 @@ export async function handleDeploy(
       console.error("[Deploy] Patch failed:", e.message);
     }
 
+    // Step 3: Fireproof Connect provisioning
+    // On first deploy, provision a Connect instance (dashboard + cloud workers, R2, D1)
+    // for real-time database sync. Without this, Fireproof runs local-only and
+    // useFireproofClerk("db-name") in generated apps can't sync across users.
+    // This mirrors scripts/server/handlers/deploy.ts lines 120-177.
+    rpc.sendProxy.deployProgress({ stage: "provisioning sync" });
+
+    const registryPath = join(homedir(), ".vibes", "deployments.json");
+    let registry: Record<string, any> = {};
+    try {
+      if (existsSync(registryPath)) {
+        registry = JSON.parse(readFileSync(registryPath, "utf-8"));
+      }
+    } catch {}
+
+    let connectInfo = registry[appName]?.connect || null;
+    const isFirstDeploy = !connectInfo?.apiUrl;
+
+    if (isFirstDeploy) {
+      try {
+        // Import alchemy-deploy from the plugin's scripts
+        const { deployConnect } = await import(
+          join(ctx.pluginPaths.root, "scripts", "lib", "alchemy-deploy.js")
+        );
+        const { OIDC_AUTHORITY } = await import(
+          join(ctx.pluginPaths.root, "scripts", "lib", "auth-constants.js")
+        );
+
+        // Generate or reuse alchemy password (encrypts alchemy state — losing it breaks re-deploys)
+        let alchemyPassword = registry[appName]?.connect?.alchemyPassword || null;
+        if (!alchemyPassword) {
+          const { randomBytes } = await import("crypto");
+          alchemyPassword = randomBytes(32).toString("hex");
+          // Pre-save so the password survives crashes
+          registry[appName] = { ...(registry[appName] || {}), name: appName, connect: { alchemyPassword } };
+          mkdirSync(join(homedir(), ".vibes"), { recursive: true });
+          writeFileSync(registryPath, JSON.stringify(registry, null, 2));
+        }
+
+        connectInfo = await deployConnect({
+          appName,
+          oidcAuthority: OIDC_AUTHORITY,
+          oidcServiceWorkerName: "pocket-id",
+          alchemyPassword,
+        });
+
+        // Save Connect info to registry
+        registry[appName] = {
+          ...(registry[appName] || {}),
+          name: appName,
+          connect: { ...connectInfo, deployedAt: new Date().toISOString() },
+        };
+        writeFileSync(registryPath, JSON.stringify(registry, null, 2));
+        console.log(`[Deploy] Connect provisioned for ${appName}: ${connectInfo.apiUrl}`);
+      } catch (err: any) {
+        rpc.sendProxy.error({ taskId, message: `Connect provisioning failed: ${err.message}` });
+        return taskId;
+      }
+    } else {
+      console.log(`[Deploy] Reusing existing Connect for ${appName}: ${connectInfo.apiUrl}`);
+    }
+
+    // Inject Connect URLs into the assembled HTML
+    if (connectInfo?.apiUrl && connectInfo?.cloudUrl) {
+      let html = readFileSync(indexHtmlPath, "utf8");
+      html = html.replace(
+        /tokenApiUri:\s*"[^"]*"/,
+        `tokenApiUri: "${connectInfo.apiUrl}"`
+      );
+      html = html.replace(
+        /cloudBackendUrl:\s*"[^"]*"/,
+        `cloudBackendUrl: "${connectInfo.cloudUrl}"`
+      );
+      writeFileSync(indexHtmlPath, html);
+      console.log("[Deploy] Injected Connect URLs into index.html");
+    }
+
     rpc.sendProxy.deployProgress({ stage: "deploying" });
 
-    // Step 3: Build the files map for the Deploy API
+    // Step 4: Build the files map for the Deploy API (re-read after Connect injection)
     const files: Record<string, string> = {
       "index.html": readFileSync(indexHtmlPath, "utf8"),
     };
@@ -2589,7 +2661,7 @@ export async function handleDeploy(
       }
     }
 
-    // Step 4: Deploy via the Deploy API
+    // Step 5: Deploy via the Deploy API
     const response = await fetch(`${DEPLOY_API_URL}/deploy`, {
       method: "POST",
       headers: {
@@ -2690,9 +2762,18 @@ async function init() {
 init().catch(console.error);
 
 // --- Assembly helper ---
-// Uses inline template substitution (same pattern as the web editor's assembleAppFrame)
-// instead of shelling out to assemble.js. This avoids subprocess overhead for preview
+// Uses inline template substitution (same pattern as the web editor's assembleAppFrame
+// in scripts/server/handlers/generate.ts). This avoids subprocess overhead for preview
 // and correctly mirrors the web server's behavior (no Connect URLs in preview mode).
+//
+// Critical details ported from the web editor:
+// 1. The placeholder is `// __VIBES_APP_CODE__` (defined in scripts/lib/assembly-utils.js)
+//    NOT `/* {{APP_CODE}} */` — using the wrong placeholder causes a silent no-op.
+// 2. App code must be stripped via stripForTemplate() before injection — raw app.jsx
+//    contains import statements, `export default`, and React hook destructuring that
+//    conflict with the template's globals and cause Babel transpilation errors.
+// 3. stripReactHooks must be false for vibes template (React is a global, hooks need
+//    destructuring via `const { useState } = React;`).
 function assembleCurrentApp(): string | null {
   if (!pluginPaths || !config || !currentApp) return null;
   const appDir = join(config.appsDir, currentApp);
@@ -2707,14 +2788,28 @@ function assembleCurrentApp(): string | null {
 
     // Read app code and strip imports/exports for template injection
     const appCode = readFileSync(appJsxPath, "utf-8");
-    // The placeholder is: /* {{APP_CODE}} */
-    const APP_PLACEHOLDER = "/* {{APP_CODE}} */";
 
-    if (!template.includes(APP_PLACEHOLDER)) return null;
-    template = template.replace(APP_PLACEHOLDER, appCode);
+    // The authoritative placeholder from scripts/lib/assembly-utils.js
+    const APP_PLACEHOLDER = "// __VIBES_APP_CODE__";
+
+    if (!template.includes(APP_PLACEHOLDER)) {
+      console.error("[assembleCurrentApp] Template missing placeholder:", APP_PLACEHOLDER);
+      return null;
+    }
+
+    // Strip imports, exports, CONFIG, and window destructuring before injection.
+    // Keep React destructuring (stripReactHooks: false) because vibes template
+    // provides React as a global — app code needs `const { useState } = React;`.
+    // This mirrors assembleAppFrame() in scripts/server/handlers/generate.ts line 419.
+    const { stripForTemplate } = await import(
+      join(pluginPaths.root, "scripts", "lib", "strip-code.js")
+    );
+    const strippedCode = stripForTemplate(appCode, { stripReactHooks: false });
+
+    template = template.replace(APP_PLACEHOLDER, strippedCode);
 
     // Preview mode: leave Connect URLs empty (no auth, no sync)
-    // Same as web editor's assembleAppFrame behavior
+    // Same as web editor's assembleAppFrame behavior via populateConnectConfig({})
     template = template.replace(/tokenApiUri:\s*"[^"]*"/, 'tokenApiUri: ""');
     template = template.replace(/cloudBackendUrl:\s*"[^"]*"/, 'cloudBackendUrl: ""');
 
@@ -2899,31 +2994,30 @@ const rpc = BrowserView.defineRPC<VibesDesktopRPC>({
 // --- Window ---
 const mainWindow = new BrowserWindow({
   title: "Vibes Editor",
-  width: 1280,
-  height: 820,
-  minWidth: 960,
-  minHeight: 600,
-  url: "electrobun://mainview/index.html",
+  frame: { width: 1280, height: 820 },
+  url: "views://mainview/index.html",
   rpc,
 });
 
 // --- Native Menu ---
+// ElectroBun uses `action` for custom menu items, `role` for OS-provided ones.
+// The event handler receives `e.data.action` (not `e.id`).
 ApplicationMenu.setApplicationMenu([
   {
     label: "Vibes Editor",
     submenu: [
       { label: "About Vibes Editor", role: "about" },
       { type: "separator" },
-      { label: "Quit", role: "quit", accelerator: "CmdOrCtrl+Q" },
+      { label: "Quit", role: "quit" },
     ],
   },
   {
     label: "File",
     submenu: [
-      { label: "New App", id: "new-app", accelerator: "CmdOrCtrl+N" },
-      { label: "Save", id: "save-app", accelerator: "CmdOrCtrl+S" },
+      { label: "New App", action: "new-app", accelerator: "n" },
+      { label: "Save", action: "save-app", accelerator: "s" },
       { type: "separator" },
-      { label: "Load App...", id: "load-app", accelerator: "CmdOrCtrl+O" },
+      { label: "Load App...", action: "load-app", accelerator: "o" },
     ],
   },
   {
@@ -2938,22 +3032,12 @@ ApplicationMenu.setApplicationMenu([
       { label: "Select All", role: "selectAll" },
     ],
   },
-  {
-    label: "View",
-    submenu: [
-      { label: "Toggle Developer Tools", role: "toggleDevTools", accelerator: "CmdOrCtrl+Alt+I" },
-      { type: "separator" },
-      { label: "Actual Size", role: "resetZoom" },
-      { label: "Zoom In", role: "zoomIn" },
-      { label: "Zoom Out", role: "zoomOut" },
-    ],
-  },
 ]);
 
-ApplicationMenu.on("application-menu-clicked", (event) => {
-  switch (event.id) {
+ApplicationMenu.on("application-menu-clicked", (e) => {
+  switch (e.data.action) {
     case "new-app":
-      // Send RPC to webview to switch to generate phase
+      // Send RPC message to webview to switch to generate phase
       rpc.sendProxy.appUpdated({ path: "__new__" });
       break;
     case "save-app":
