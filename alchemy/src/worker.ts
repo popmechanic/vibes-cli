@@ -357,6 +357,96 @@ app.delete("/__internal/backup", async (c) => {
   return c.json({ deleted: true });
 });
 
+// ---------------------------------------------------------------------------
+// Application Image Routes
+// ---------------------------------------------------------------------------
+// Pocket ID crashes (500) when serving images that don't exist. We intercept
+// these routes at the Worker level:
+//
+// GET  → serve from R2; return 1x1 transparent PNG if missing (no console errors)
+// PUT  → proxy to container (admin panel uploads via session cookies)
+//        then cache the uploaded image to R2 for persistence
+// POST → same as PUT (admin panel may use either method)
+//
+// CLI upload: curl -X PUT with X-API-Key stores directly to R2.
+// ---------------------------------------------------------------------------
+
+const IMAGE_PREFIX = "images/";
+
+// 1x1 transparent PNG (68 bytes) — prevents console errors for missing images
+const TRANSPARENT_PIXEL = new Uint8Array([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
+  0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+  0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89, 0x00, 0x00, 0x00,
+  0x0a, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9c, 0x62, 0x00, 0x00, 0x00, 0x02,
+  0x00, 0x01, 0xe2, 0x21, 0xbc, 0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45,
+  0x4e, 0x44, 0xae, 0x42, 0x60, 0x82,
+]);
+
+app.on(["PUT", "POST"], "/api/application-images/:key", async (c) => {
+  const key = c.req.param("key");
+  const container = getContainer(c.env.POCKET_ID);
+
+  // If request has X-API-Key, store directly to R2 (CLI upload)
+  if (c.req.header("X-API-Key")) {
+    const contentType = c.req.header("Content-Type") || "image/png";
+    const body = await c.req.arrayBuffer();
+    await c.env.BACKUP_BUCKET.put(`${IMAGE_PREFIX}${key}`, body, {
+      httpMetadata: { contentType },
+    });
+    return c.json({ ok: true, key });
+  }
+
+  // Otherwise proxy to container (admin panel with session cookies)
+  const containerRes = await container.fetch(c.req.raw);
+
+  // If upload succeeded, cache the image to R2
+  if (containerRes.ok) {
+    c.executionCtx.waitUntil((async () => {
+      try {
+        // Fetch the newly uploaded image from the container
+        const imgRes = await container.fetch(
+          `http://internal/api/application-images/${key}`,
+        );
+        if (imgRes.ok) {
+          const body = await imgRes.arrayBuffer();
+          const contentType = imgRes.headers.get("Content-Type") || "image/png";
+          await c.env.BACKUP_BUCKET.put(`${IMAGE_PREFIX}${key}`, body, {
+            httpMetadata: { contentType },
+          });
+          console.log(`[pocket-id] Cached image "${key}" to R2`);
+        }
+      } catch (err) {
+        console.error(`[pocket-id] Failed to cache image "${key}":`, err);
+      }
+    })());
+  }
+
+  return containerRes;
+});
+
+app.get("/api/application-images/:key", async (c) => {
+  const key = c.req.param("key");
+  const obj = await c.env.BACKUP_BUCKET.get(`${IMAGE_PREFIX}${key}`);
+
+  if (obj) {
+    return new Response(obj.body, {
+      headers: {
+        "Content-Type": obj.httpMetadata?.contentType || "image/png",
+        "Cache-Control": "public, max-age=3600",
+      },
+    });
+  }
+
+  // No image in R2 — return transparent pixel instead of 404/500
+  return new Response(TRANSPARENT_PIXEL, {
+    headers: {
+      "Content-Type": "image/png",
+      "Cache-Control": "public, max-age=300",
+    },
+  });
+});
+
 // Route all requests to the singleton Pocket ID instance.
 // getContainer returns a DurableObjectStub; its fetch() auto-starts the container.
 app.all("*", async (c) => {
