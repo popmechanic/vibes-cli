@@ -238,6 +238,49 @@ async function getWorkersSubdomain(accountId: string, apiToken: string): Promise
 }
 
 /**
+ * Assign a custom domain to a deployed worker via the CF Workers Domains API.
+ * Idempotent — re-calling with the same hostname updates the existing mapping.
+ */
+async function assignCustomDomain(
+  accountId: string,
+  apiToken: string,
+  zoneId: string,
+  appName: string,
+  hostname: string
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/domains`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${apiToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          hostname,
+          service: appName,
+          zone_id: zoneId,
+          environment: "production",
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`Custom domain assignment failed (${res.status}): ${body}`);
+      return { ok: false, error: `Custom domain failed (${res.status})` };
+    }
+
+    console.log(`Custom domain assigned: ${hostname} → ${appName}`);
+    return { ok: true };
+  } catch (err) {
+    console.error("Custom domain assignment error:", err);
+    return { ok: false, error: "Custom domain assignment error" };
+  }
+}
+
+/**
  * Deploy a multi-file app as a CF Worker that serves static files.
  */
 async function deployCFWorker(
@@ -436,7 +479,8 @@ app.use(
     origin: (origin) => {
       if (!origin) return origin; // non-browser (CLI) requests
       if (origin === "http://localhost:3333") return origin; // editor preview
-      if (origin.endsWith(".workers.dev")) return origin; // deployed apps
+      if (origin.endsWith(".workers.dev")) return origin; // deployed apps (legacy)
+      if (origin.endsWith(".vibesos.com")) return origin; // deployed apps (custom domain)
       return null; // reject unknown origins
     },
   })
@@ -513,11 +557,15 @@ app.post("/deploy", async (c) => {
   let userGroupId = existing?.userGroupId;
 
   if (c.env.POCKET_ID_API_KEY) {
-    // Get the deploy URL to build callback URLs
-    const subdomain = await getWorkersSubdomain(c.env.CF_ACCOUNT_ID, c.env.CF_API_TOKEN);
-    const deployUrl = subdomain
-      ? `https://${name}.${subdomain}.workers.dev`
-      : `https://${name}.workers.dev`;
+    // Build the canonical deploy URL for OIDC callback registration
+    const deployUrl = c.env.CF_ZONE_ID
+      ? `https://${name}.vibesos.com`
+      : (() => {
+          const subdomain = cachedWorkersSubdomain;
+          return subdomain
+            ? `https://${name}.${subdomain}.workers.dev`
+            : `https://${name}.workers.dev`;
+        })();
 
     const registration = await registerAppInPocketId(
       c.env.POCKET_ID,
@@ -545,6 +593,27 @@ app.post("/deploy", async (c) => {
     return c.json({ ok: false, error: result.error }, 502);
   }
 
+  // Assign custom domain: {name}.vibesos.com
+  const customHostname = `${name}.vibesos.com`;
+  if (c.env.CF_ZONE_ID) {
+    const domainResult = await assignCustomDomain(
+      c.env.CF_ACCOUNT_ID,
+      c.env.CF_API_TOKEN,
+      c.env.CF_ZONE_ID,
+      name,
+      customHostname
+    );
+    if (!domainResult.ok) {
+      // Non-fatal: worker is deployed, custom domain just didn't attach
+      console.error(`Custom domain assignment failed for ${customHostname}: ${domainResult.error}`);
+    }
+  }
+
+  // Canonical URL uses vibesos.com; fall back to workers.dev if zone ID not configured
+  const deployedUrl = c.env.CF_ZONE_ID
+    ? `https://${customHostname}`
+    : result.url;
+
   // Update registry KV
   const now = new Date().toISOString();
   const record: SubdomainRecord = existing
@@ -561,7 +630,7 @@ app.post("/deploy", async (c) => {
     await c.env.REGISTRY_KV.put(userKey, JSON.stringify(userApps));
   }
 
-  const response: DeployResponse = { ok: true, url: result.url, name };
+  const response: DeployResponse = { ok: true, url: deployedUrl, name };
   return c.json(response);
 });
 
@@ -645,11 +714,15 @@ app.post("/apps/:name/invite", async (c) => {
       invitee.id
     );
 
-    // Build the deploy URL
-    const subdomain = await getWorkersSubdomain(c.env.CF_ACCOUNT_ID, c.env.CF_API_TOKEN);
-    const appUrl = subdomain
-      ? `https://${name}.${subdomain}.workers.dev`
-      : `https://${name}.workers.dev`;
+    // Build the app URL
+    const appUrl = c.env.CF_ZONE_ID
+      ? `https://${name}.vibesos.com`
+      : await (async () => {
+          const subdomain = await getWorkersSubdomain(c.env.CF_ACCOUNT_ID, c.env.CF_API_TOKEN);
+          return subdomain
+            ? `https://${name}.${subdomain}.workers.dev`
+            : `https://${name}.workers.dev`;
+        })();
 
     const inviteUrl = `${appUrl}?ota=${encodeURIComponent(ota.token)}`;
 

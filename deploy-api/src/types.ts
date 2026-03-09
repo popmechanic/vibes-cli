@@ -2,6 +2,7 @@ export interface Env {
   // Secrets
   CF_API_TOKEN: string;
   CF_ACCOUNT_ID: string;
+  CF_ZONE_ID: string;
   POCKET_ID_API_KEY: string;
   // Vars
   OIDC_ISSUER: string;

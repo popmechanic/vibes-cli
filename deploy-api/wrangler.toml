@@ -9,6 +9,7 @@ OIDC_ISSUER = "https://vibesos.com"
 # Secrets (set via `wrangler secret put`):
 # CF_API_TOKEN - scoped to Workers deploys on our account
 # CF_ACCOUNT_ID - our Cloudflare account ID
+# CF_ZONE_ID - vibesos.com zone ID for custom domain routing
 # POCKET_ID_API_KEY - Pocket ID admin API key for per-app registration
 
 # Service Binding to Pocket ID Worker (avoids .workers.dev routing issue)
