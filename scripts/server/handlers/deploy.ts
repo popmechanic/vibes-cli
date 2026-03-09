@@ -33,6 +33,12 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
     onEvent({ type: 'error', message: 'App name is required for deployment.' });
     return;
   }
+  // Cloudflare limits worker names with previews to 54 chars.
+  // Longest prefix is "fireproof-dashboard-" (20 chars), so stage name max is 34.
+  if (appName.length > 34) {
+    onEvent({ type: 'error', message: `App name "${appName}" is ${appName.length} chars — max is 34 for Cloudflare worker names. Use a shorter name.` });
+    return;
+  }
 
   // Auto-obtain token via Pocket ID if not provided by client
   if (!token) {

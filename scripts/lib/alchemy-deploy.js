@@ -12,8 +12,24 @@ import { execSync, execFileSync } from 'child_process';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import { resolve, join } from 'path';
 import { homedir } from 'os';
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { generateSessionTokens, generateDeviceCAKeys } from './crypto-utils.js';
+
+// Cloudflare limits worker names with previews to 54 chars.
+// Longest prefix is "fireproof-dashboard-" (20 chars), so stage name max is 34.
+const MAX_STAGE_LENGTH = 34;
+
+/**
+ * Truncate a stage name to fit Cloudflare's worker name limit.
+ * Uses name.slice(0, 28) + '-' + hash(name).slice(0, 5) for uniqueness.
+ */
+function truncateStageName(name) {
+  if (name.length <= MAX_STAGE_LENGTH) return name;
+  const hash = createHash('sha256').update(name).digest('hex').slice(0, 5);
+  const truncated = name.slice(0, MAX_STAGE_LENGTH - 6) + '-' + hash;
+  console.warn(`Stage name "${name}" exceeds ${MAX_STAGE_LENGTH} chars, truncated to "${truncated}"`);
+  return truncated;
+}
 
 const UPSTREAM_REPO = 'https://github.com/fireproof-storage/fireproof.git';
 const UPSTREAM_BRANCH = 'selem/docker-for-all';
@@ -154,6 +170,9 @@ export async function deployConnect({
   dryRun = false,
   alchemyPassword: existingPassword
 }) {
+  // Safety net: truncate long names to avoid CF worker name limit
+  appName = truncateStageName(appName);
+
   const repoDir = ensureSparseCheckout(cacheDir);
 
   // Generate crypto credentials

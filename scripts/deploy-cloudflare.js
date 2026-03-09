@@ -55,6 +55,11 @@ async function main() {
   }
 
   const name = validateName(args[nameIdx + 1]);
+  // Cloudflare limits worker names with previews to 54 chars.
+  // Longest prefix is "fireproof-dashboard-" (20 chars), so stage name max is 34.
+  if (name.length > 34) {
+    throw new Error(`App name "${name}" is ${name.length} chars — max is 34 for Cloudflare worker names. Use a shorter name.`);
+  }
   const aiKey = aiKeyIdx !== -1 ? args[aiKeyIdx + 1] : (process.env.OPENROUTER_API_KEY || null);
 
   // Build HTML content — either assemble from app.jsx or read pre-assembled HTML
