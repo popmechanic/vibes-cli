@@ -1,17 +1,15 @@
 /**
  * Deploy handlers — assemble + deploy via the Deploy API.
  *
- * On first deploy, provisions a Fireproof Connect instance (dashboard +
- * cloud workers, R2, D1) for the app via alchemy. Connect URLs are injected
- * into the assembled HTML before sending to the Deploy API.
+ * Connect provisioning is handled server-side by the Deploy API Worker.
+ * The CLI just sends files and reads back Connect URLs from the response.
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
 import { join } from 'path';
 import { getAccessToken } from '../../lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../../lib/auth-constants.js';
-import { isFirstDeploy, getApp, setApp } from '../../lib/registry.js';
-import { deployConnect } from '../../lib/alchemy-deploy.js';
+import { getApp, setApp } from '../../lib/registry.js';
 import { runBunScript } from '../claude-bridge.ts';
 import type { EventCallback } from '../claude-bridge.ts';
 import type { ServerContext } from '../config.ts';
@@ -123,65 +121,6 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
     console.error('[Deploy] Patch failed:', e.message);
   }
 
-  // --- Connect provisioning ---
-  // Check if this app already has a Connect instance or needs one provisioned.
-  let connectInfo = null;
-  const existingApp = getApp(appName);
-
-  if (isFirstDeploy(appName)) {
-    onEvent({ type: 'progress', progress: 15, stage: 'Setting up real-time sync...', elapsed: getElapsed() });
-    try {
-      // Check for saved alchemy password from a previous partial deploy.
-      // Alchemy encrypts state with this password — losing it breaks re-deploys.
-      const partialEntry = getApp(appName);
-      let alchemyPassword = partialEntry?.connect?.alchemyPassword || null;
-      if (!alchemyPassword) {
-        const { randomBytes } = await import('crypto');
-        alchemyPassword = randomBytes(32).toString('hex');
-        // Pre-save so the password survives crashes
-        setApp(appName, { ...(partialEntry || { name: appName }), name: appName, connect: { alchemyPassword } });
-      }
-
-      connectInfo = await deployConnect({
-        appName,
-        oidcAuthority: OIDC_AUTHORITY,
-        oidcServiceWorkerName: 'pocket-id',
-        alchemyPassword,
-      });
-      // Save Connect info to registry
-      setApp(appName, {
-        ...(existingApp || { name: appName }),
-        name: appName,
-        connect: {
-          ...connectInfo,
-          deployedAt: new Date().toISOString(),
-        },
-      });
-      console.log(`[Deploy] Connect provisioned for ${appName}: ${connectInfo.apiUrl}`);
-    } catch (err: any) {
-      onEvent({ type: 'error', message: `Connect provisioning failed: ${err.message}` });
-      return;
-    }
-  } else {
-    connectInfo = existingApp.connect;
-    console.log(`[Deploy] Reusing existing Connect for ${appName}: ${connectInfo.apiUrl}`);
-  }
-
-  // Inject Connect URLs into the assembled HTML
-  if (connectInfo?.apiUrl && connectInfo?.cloudUrl) {
-    let html = readFileSync(indexHtmlPath, 'utf8');
-    html = html.replace(
-      /tokenApiUri:\s*"[^"]*"/,
-      `tokenApiUri: "${connectInfo.apiUrl}"`
-    );
-    html = html.replace(
-      /cloudBackendUrl:\s*"[^"]*"/,
-      `cloudBackendUrl: "${connectInfo.cloudUrl}"`
-    );
-    writeFileSync(indexHtmlPath, html);
-    console.log(`[Deploy] Injected Connect URLs into index.html`);
-  }
-
   onEvent({ type: 'progress', progress: 30, stage: 'Deploying...', elapsed: getElapsed() });
 
   // Build the files map for the Deploy API
@@ -254,6 +193,21 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
 
     const result: any = await response.json();
     deployUrl = result.url || '';
+
+    // Save Connect info from Deploy API response
+    if (result.connect) {
+      const appEntry = getApp(appName) || { name: appName };
+      setApp(appName, {
+        ...appEntry,
+        name: appName,
+        connect: {
+          apiUrl: result.connect.apiUrl,
+          cloudUrl: result.connect.cloudUrl,
+          deployedAt: new Date().toISOString(),
+        },
+      });
+      console.log(`[Deploy] Connect provisioned: ${result.connect.apiUrl}`);
+    }
   } catch (err: any) {
     onEvent({ type: 'error', message: `Deploy failed: ${err.message}` });
     return;

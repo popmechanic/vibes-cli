@@ -4,6 +4,8 @@ export interface Env {
   CF_ACCOUNT_ID: string;
   CF_ZONE_ID: string;
   POCKET_ID_API_KEY: string;
+  R2_ACCESS_KEY_ID: string;
+  R2_SECRET_ACCESS_KEY: string;
   // Vars
   OIDC_ISSUER: string;
 
@@ -24,6 +26,22 @@ export interface DeployResponse {
   ok: boolean;
   url: string;
   name: string;
+  connect?: {
+    apiUrl: string;
+    cloudUrl: string;
+  };
+}
+
+export interface ConnectInfo {
+  cloudBackendUrl: string;
+  dashboardUrl: string;
+  apiUrl: string;
+  cloudUrl: string;
+  r2BucketName: string;
+  d1BackendId: string;
+  d1DashboardId: string;
+  sessionTokenPublic: string;
+  deployedAt: string;
 }
 
 export interface JWTPayload {
@@ -41,6 +59,7 @@ export interface SubdomainRecord {
   owner: string;
   collaborators?: Array<{ userId: string; email?: string; role?: string }>;
   connectProvisioned?: boolean;
+  connect?: ConnectInfo;
   oidcClientId?: string;
   userGroupId?: string;
   createdAt?: string;

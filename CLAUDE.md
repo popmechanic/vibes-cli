@@ -67,7 +67,13 @@ Apps deploy to Cloudflare Workers via the shared Deploy API Worker. No wrangler 
 bun scripts/deploy-cloudflare.js --name <app> --file index.html
 ```
 
-Auth happens automatically: the CLI opens a browser for Pocket ID login and caches credentials at `~/.vibes/auth.json`. The Deploy API accepts the assembled HTML plus an OIDC token and handles Cloudflare API calls server-side.
+Auth happens automatically: the CLI opens a browser for Pocket ID login and caches credentials at `~/.vibes/auth.json`. The Deploy API accepts the assembled HTML plus an OIDC token and handles all Cloudflare API calls server-side, including:
+
+- **Connect provisioning** (first deploy): Creates per-app R2 bucket, D1 databases, cloud-backend Worker (Durable Objects + WebSocket), and dashboard Worker — all via the CF REST API using the platform's `CF_API_TOKEN`.
+- **Connect URL injection**: The Deploy API injects `tokenApiUri` and `cloudBackendUrl` into the app HTML before deploying.
+- **Subsequent deploys**: Reads existing Connect metadata from KV, skips provisioning.
+
+Pre-built Connect Worker bundles live in `deploy-api/bundles/` (rebuilt via `bash deploy-api/scripts/build-connect-bundles.sh` from upstream Fireproof source at `~/.vibes/upstream/fireproof/`).
 
 ## Desktop App
 
@@ -190,7 +196,10 @@ The `SessionStart` hook injects framework awareness context into every conversat
 | File | Why it matters |
 |------|---------------|
 | `bundles/fireproof-oidc-bridge.js` | ES module bridge wrapping OIDC auth -- sync status, ledger routing, invite redemption |
-| `deploy-api/` | Deploy API Worker — accepts HTML + OIDC token, deploys to CF Workers server-side |
+| `deploy-api/` | Deploy API Worker — accepts HTML + OIDC token, deploys to CF Workers server-side, provisions Connect |
+| `deploy-api/src/connect.ts` | Server-side Connect provisioning via CF REST API (R2, D1, Workers) |
+| `deploy-api/src/crypto.ts` | Web Crypto token generation for Connect (EC P-256, base58, JWT certs) |
+| `deploy-api/bundles/` | Pre-built cloud-backend + dashboard Worker bundles (text modules) |
 | `scripts/lib/cli-auth.js` | CLI OIDC authentication with localhost callback, token caching |
 | `scripts/lib/auth-constants.js` | Hardcoded OIDC authority and client ID (shared Pocket ID instance) |
 | `scripts/lib/env-utils.js` | Shared .env loading, Connect config |
@@ -200,7 +209,7 @@ The `SessionStart` hook injects framework awareness context into every conversat
 
 ## Cloudflare Deployment
 
-All apps deploy to Cloudflare Workers via the shared Deploy API Worker — no wrangler or user CF tokens needed. Connect deploys automatically on first app deploy. App-Connect pairings tracked in `~/.vibes/deployments.json`.
+All apps deploy to Cloudflare Workers via the shared Deploy API Worker — no wrangler or user CF tokens needed. Connect is provisioned server-side on first app deploy. Connect metadata is stored in the Deploy API's KV (`subdomain:{name}` records). Local registry at `~/.vibes/deployments.json` caches Connect URLs from the Deploy API response.
 
 ## Adding or Removing Skills
 

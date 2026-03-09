@@ -7,7 +7,10 @@
 
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import type { Env, DeployRequest, DeployResponse, JWTPayload, SubdomainRecord } from "./types";
+import type { Env, DeployRequest, DeployResponse, JWTPayload, SubdomainRecord, ConnectInfo } from "./types";
+import { provisionConnect } from "./connect";
+import CLOUD_BACKEND_BUNDLE from "../bundles/cloud-backend.txt";
+import DASHBOARD_BUNDLE from "../bundles/dashboard.txt";
 import {
   createApp,
   getApp,
@@ -622,6 +625,39 @@ app.post("/deploy", async (c) => {
     }
   }
 
+  // --- Connect provisioning (first deploy only) ---
+  let connectInfo: ConnectInfo | undefined;
+  const isFirstDeploy = !existing?.connectProvisioned || !existing?.connect?.apiUrl;
+
+  if (isFirstDeploy) {
+    try {
+      connectInfo = await provisionConnect({
+        accountId: c.env.CF_ACCOUNT_ID,
+        apiToken: c.env.CF_API_TOKEN,
+        stage: name,
+        oidcAuthority: c.env.OIDC_ISSUER,
+        oidcServiceWorkerName: "pocket-id",
+        cloudBackendBundle: CLOUD_BACKEND_BUNDLE,
+        dashboardBundle: DASHBOARD_BUNDLE,
+        r2AccessKeyId: c.env.R2_ACCESS_KEY_ID,
+        r2SecretAccessKey: c.env.R2_SECRET_ACCESS_KEY,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Connect provisioning failed";
+      console.error(`[connect] Provisioning failed for ${name}:`, err);
+      return c.json({ ok: false, error: `Connect provisioning failed: ${msg}` }, 502);
+    }
+  } else {
+    connectInfo = existing?.connect;
+  }
+
+  // Inject Connect URLs into HTML
+  if (connectInfo?.apiUrl && connectInfo?.cloudUrl && files["index.html"]) {
+    files["index.html"] = files["index.html"]
+      .replace(/tokenApiUri:\s*"[^"]*"/, `tokenApiUri: "${connectInfo.apiUrl}"`)
+      .replace(/cloudBackendUrl:\s*"[^"]*"/, `cloudBackendUrl: "${connectInfo.cloudUrl}"`);
+  }
+
   // Deploy via CF API
   const result = await deployCFWorker(c.env.CF_ACCOUNT_ID, c.env.CF_API_TOKEN, name, files);
   if (!result.ok) {
@@ -652,8 +688,24 @@ app.post("/deploy", async (c) => {
   // Update registry KV
   const now = new Date().toISOString();
   const record: SubdomainRecord = existing
-    ? { ...existing, oidcClientId, userGroupId, updatedAt: now }
-    : { owner: userId, collaborators: [], connectProvisioned: false, oidcClientId, userGroupId, createdAt: now, updatedAt: now };
+    ? {
+        ...existing,
+        oidcClientId,
+        userGroupId,
+        connectProvisioned: true,
+        connect: connectInfo || existing.connect,
+        updatedAt: now,
+      }
+    : {
+        owner: userId,
+        collaborators: [],
+        connectProvisioned: !!connectInfo,
+        connect: connectInfo,
+        oidcClientId,
+        userGroupId,
+        createdAt: now,
+        updatedAt: now,
+      };
   await setSubdomain(c.env.REGISTRY_KV, name, record);
 
   // Update user mapping (append if new)
@@ -665,7 +717,12 @@ app.post("/deploy", async (c) => {
     await c.env.REGISTRY_KV.put(userKey, JSON.stringify(userApps));
   }
 
-  const response: DeployResponse = { ok: true, url: deployedUrl, name };
+  const response: DeployResponse = {
+    ok: true,
+    url: deployedUrl,
+    name,
+    connect: connectInfo ? { apiUrl: connectInfo.apiUrl, cloudUrl: connectInfo.cloudUrl } : undefined,
+  };
   return c.json(response);
 });
 
@@ -678,6 +735,7 @@ app.get("/status/:name", async (c) => {
     exists: true,
     owner: record.owner,
     connectProvisioned: record.connectProvisioned ?? false,
+    connect: record.connect ? { apiUrl: record.connect.apiUrl, cloudUrl: record.connect.cloudUrl } : undefined,
     updatedAt: record.updatedAt,
   });
 });

@@ -11,11 +11,10 @@
 
 import { readFileSync, existsSync, unlinkSync } from "fs";
 import { resolve, join } from "path";
-import { validateName, getApp, setApp, isFirstDeploy } from './lib/registry.js';
+import { validateName, getApp, setApp } from './lib/registry.js';
 import { getAccessToken } from './lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from './lib/auth-constants.js';
 import { PLUGIN_ROOT } from './lib/paths.js';
-import { deployConnect } from './lib/alchemy-deploy.js';
 
 const DEPLOY_API_URL = 'https://vibes-deploy-api.marcus-e.workers.dev';
 
@@ -90,50 +89,6 @@ async function main() {
     htmlContent = readFileSync(srcFile, 'utf8');
   }
 
-  // --- Connect provisioning (registry is source of truth) ---
-  let connectInfo = null;
-  const existingApp = getApp(name);
-
-  if (isFirstDeploy(name)) {
-    console.log('\nProvisioning real-time sync (first deploy)...');
-    const { randomBytes } = await import('crypto');
-    let alchemyPassword = existingApp?.connect?.alchemyPassword || randomBytes(32).toString('hex');
-
-    // Pre-save password so it survives crashes
-    setApp(name, { name, connect: { alchemyPassword } });
-
-    connectInfo = await deployConnect({
-      appName: name,
-      oidcAuthority: OIDC_AUTHORITY,
-      oidcServiceWorkerName: 'pocket-id',
-      alchemyPassword,
-    });
-
-    setApp(name, {
-      name,
-      connect: { ...connectInfo, deployedAt: new Date().toISOString() },
-    });
-    console.log(`Connect provisioned: ${connectInfo.apiUrl}`);
-  } else {
-    connectInfo = existingApp?.connect;
-    if (connectInfo?.apiUrl) {
-      console.log(`Reusing existing Connect: ${connectInfo.apiUrl}`);
-    }
-  }
-
-  // Inject Connect URLs into HTML
-  if (connectInfo?.apiUrl && connectInfo?.cloudUrl) {
-    htmlContent = htmlContent.replace(
-      /tokenApiUri:\s*"[^"]*"/,
-      `tokenApiUri: "${connectInfo.apiUrl}"`
-    );
-    htmlContent = htmlContent.replace(
-      /cloudBackendUrl:\s*"[^"]*"/,
-      `cloudBackendUrl: "${connectInfo.cloudUrl}"`
-    );
-    console.log('Injected Connect URLs');
-  }
-
   const files = {
     'index.html': htmlContent,
   };
@@ -188,6 +143,19 @@ async function main() {
   const result = await deployViaAPI(name, files, tokens.accessToken, { aiKey });
 
   const deployedUrl = result.url || `https://${name}.vibesos.com`;
+
+  // Save Connect info from Deploy API response
+  if (result.connect) {
+    setApp(name, {
+      name,
+      connect: {
+        apiUrl: result.connect.apiUrl,
+        cloudUrl: result.connect.cloudUrl,
+        deployedAt: new Date().toISOString(),
+      },
+    });
+    console.log(`Connect provisioned: ${result.connect.apiUrl}`);
+  }
 
   // Save app metadata to registry
   setApp(name, {
