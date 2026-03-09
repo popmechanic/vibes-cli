@@ -19,18 +19,33 @@ if (!coreBundle || !assetsDir || !outputFile) {
   process.exit(1);
 }
 
+// Files to exclude from the embedded bundle (source maps, large images)
+const EXCLUDE_PATTERNS = [
+  /\.map$/,            // Source maps — not needed at runtime, saves ~5.2MB
+  /login-bg-.*\.png$/, // Login background images — ~1.7MB raw, ~2.2MB base64
+];
+
+function isExcluded(relativePath) {
+  return EXCLUDE_PATTERNS.some((p) => p.test(relativePath));
+}
+
 // Recursively read all files from assets directory
 function walkDir(dir, prefix = '') {
   const entries = {};
+  let skipped = 0;
   for (const name of readdirSync(dir)) {
     const fullPath = join(dir, name);
     const relativePath = prefix ? `${prefix}/${name}` : name;
     const stat = statSync(fullPath);
     if (stat.isDirectory()) {
-      Object.assign(entries, walkDir(fullPath, relativePath));
-    } else if (!name.startsWith('.')) {
+      const sub = walkDir(fullPath, relativePath);
+      Object.assign(entries, sub.entries);
+      skipped += sub.skipped;
+    } else if (name.startsWith('.') || isExcluded(relativePath)) {
+      skipped++;
+    } else {
       const ext = extname(name).toLowerCase();
-      const textExts = ['.html', '.js', '.css', '.json', '.svg', '.txt', '.map', '.xml', '.webmanifest'];
+      const textExts = ['.html', '.js', '.css', '.json', '.svg', '.txt', '.xml', '.webmanifest'];
       if (textExts.includes(ext)) {
         entries[relativePath] = readFileSync(fullPath, 'utf-8');
       } else {
@@ -38,13 +53,13 @@ function walkDir(dir, prefix = '') {
       }
     }
   }
-  return entries;
+  return { entries, skipped };
 }
 
 console.log(`Reading assets from ${assetsDir}...`);
-const assets = walkDir(assetsDir);
+const { entries: assets, skipped } = walkDir(assetsDir);
 const assetCount = Object.keys(assets).length;
-console.log(`Found ${assetCount} assets`);
+console.log(`Embedded ${assetCount} assets (skipped ${skipped} excluded files)`);
 
 const coreCode = readFileSync(coreBundle, 'utf-8');
 
