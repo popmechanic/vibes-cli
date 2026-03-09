@@ -20,6 +20,7 @@ import {
   findOrCreateUser,
   createOneTimeAccessToken,
 } from "./pocket-id";
+import { generateCodeVerifier, generateCodeChallenge } from "./pkce";
 
 // ---------------------------------------------------------------------------
 // JWT Verification — Dynamic JWKS
@@ -779,6 +780,273 @@ app.post("/apps/:name/invite", async (c) => {
       { ok: false, error: err instanceof Error ? err.message : "Invite failed" },
       500
     );
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Public Link — generate a reusable join URL
+// ---------------------------------------------------------------------------
+
+app.post("/apps/:name/public-link", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return c.json({ ok: false, error: "Missing or invalid Authorization header" }, 401);
+  }
+
+  const token = authHeader.slice(7);
+  const payload = await verifyJWT(token, c.env.OIDC_ISSUER, c.env.POCKET_ID);
+  if (!payload) {
+    return c.json({ ok: false, error: "Invalid or expired token" }, 401);
+  }
+
+  const userId = payload.sub;
+  const name = c.req.param("name");
+
+  const record = await getSubdomain(c.env.REGISTRY_KV, name);
+  if (!record) {
+    return c.json({ ok: false, error: "App not found" }, 404);
+  }
+  if (record.owner !== userId) {
+    return c.json({ ok: false, error: "Only the app owner can generate a public link" }, 403);
+  }
+
+  let body: { right?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    body = {};
+  }
+
+  const inviteToken = crypto.randomUUID();
+  const now = new Date().toISOString();
+  await setSubdomain(c.env.REGISTRY_KV, name, {
+    ...record,
+    publicInvite: {
+      token: inviteToken,
+      right: body.right || "write",
+      createdAt: now,
+    },
+    updatedAt: now,
+  });
+
+  // Build the join URL using the Deploy API's own domain
+  const deployHost = new URL(c.req.url).origin;
+  const joinUrl = `${deployHost}/join/${name}/${inviteToken}`;
+
+  return c.json({ ok: true, joinUrl });
+});
+
+// ---------------------------------------------------------------------------
+// Join Flow — OIDC Authorization Code + PKCE for public link joining
+// ---------------------------------------------------------------------------
+
+let cachedJoinClientId: string | null = null;
+
+/**
+ * Ensure the "vibes-join" OIDC client exists in Pocket ID.
+ * Non-group-restricted so any Pocket ID user can authenticate through it.
+ */
+async function ensureJoinClient(
+  fetcher: Fetcher,
+  apiKey: string,
+  deployOrigin: string
+): Promise<string> {
+  if (cachedJoinClientId) return cachedJoinClientId;
+
+  const existing = await findAppByName(fetcher, apiKey, "vibes-join");
+  if (existing) {
+    cachedJoinClientId = existing.id;
+    return existing.id;
+  }
+
+  const result = await createApp(fetcher, apiKey, {
+    name: "vibes-join",
+    callbackURLs: [`${deployOrigin}/join/callback`],
+    isPublic: true,
+  });
+
+  // Remove group restriction — vibes-join must be open to all
+  await updateApp(fetcher, apiKey, result.id, { isGroupRestricted: false });
+
+  cachedJoinClientId = result.id;
+  return result.id;
+}
+
+// Join start — validates token, redirects to Pocket ID for auth
+app.get("/join/:app/:token", async (c) => {
+  const appName = c.req.param("app");
+  const joinToken = c.req.param("token");
+
+  const record = await getSubdomain(c.env.REGISTRY_KV, appName);
+  if (!record?.publicInvite || record.publicInvite.token !== joinToken) {
+    return c.html("<h1>Invalid or expired invite link</h1>", 404);
+  }
+
+  if (!c.env.POCKET_ID_API_KEY) {
+    return c.html("<h1>Join flow not configured</h1>", 500);
+  }
+
+  const deployOrigin = new URL(c.req.url).origin;
+  const joinClientId = await ensureJoinClient(
+    c.env.POCKET_ID,
+    c.env.POCKET_ID_API_KEY,
+    deployOrigin
+  );
+
+  // PKCE
+  const codeVerifier = await generateCodeVerifier();
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+  // Store state in KV (5 min TTL)
+  const stateKey = `join-state:${crypto.randomUUID()}`;
+  await c.env.REGISTRY_KV.put(
+    stateKey,
+    JSON.stringify({ app: appName, joinToken, codeVerifier }),
+    { expirationTtl: 300 }
+  );
+
+  // Build Pocket ID authorize URL
+  const authorizeUrl = new URL(`${c.env.OIDC_ISSUER}/authorize`);
+  authorizeUrl.searchParams.set("client_id", joinClientId);
+  authorizeUrl.searchParams.set("redirect_uri", `${deployOrigin}/join/callback`);
+  authorizeUrl.searchParams.set("response_type", "code");
+  authorizeUrl.searchParams.set("scope", "openid profile email");
+  authorizeUrl.searchParams.set("state", stateKey);
+  authorizeUrl.searchParams.set("code_challenge", codeChallenge);
+  authorizeUrl.searchParams.set("code_challenge_method", "S256");
+
+  return c.redirect(authorizeUrl.toString(), 302);
+});
+
+// Join callback — exchanges code, provisions access, redirects to app
+app.get("/join/callback", async (c) => {
+  const code = c.req.query("code");
+  const stateKey = c.req.query("state");
+  const error = c.req.query("error");
+
+  if (error) {
+    return c.html(`<h1>Authentication failed: ${error}</h1>`, 400);
+  }
+
+  if (!code || !stateKey) {
+    return c.html("<h1>Missing code or state</h1>", 400);
+  }
+
+  // Retrieve and delete state (single-use)
+  const stateRaw = await c.env.REGISTRY_KV.get(stateKey);
+  if (!stateRaw) {
+    return c.html("<h1>Invalid or expired state</h1>", 400);
+  }
+  await c.env.REGISTRY_KV.delete(stateKey);
+
+  const state = JSON.parse(stateRaw) as {
+    app: string;
+    joinToken: string;
+    codeVerifier: string;
+  };
+
+  // Exchange code for tokens
+  const deployOrigin = new URL(c.req.url).origin;
+  const joinClientId = await ensureJoinClient(
+    c.env.POCKET_ID,
+    c.env.POCKET_ID_API_KEY,
+    deployOrigin
+  );
+
+  const tokenRes = await c.env.POCKET_ID.fetch("https://pocket-id/api/oidc/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: `${deployOrigin}/join/callback`,
+      client_id: joinClientId,
+      code_verifier: state.codeVerifier,
+    }).toString(),
+  });
+
+  if (!tokenRes.ok) {
+    const text = await tokenRes.text();
+    console.error(`[join] Token exchange failed: ${tokenRes.status} ${text}`);
+    return c.html("<h1>Authentication failed</h1>", 500);
+  }
+
+  const tokens = (await tokenRes.json()) as { id_token: string; access_token: string };
+  const idPayload = parseJwt(tokens.id_token);
+  if (!idPayload) {
+    return c.html("<h1>Invalid ID token</h1>", 500);
+  }
+
+  const userId = idPayload.payload.sub;
+  const email = (idPayload.payload as Record<string, unknown>).email as string || "";
+
+  // Look up the app record and validate join token still matches
+  const record = await getSubdomain(c.env.REGISTRY_KV, state.app);
+  if (!record?.publicInvite || record.publicInvite.token !== state.joinToken) {
+    return c.html("<h1>Invite link has been revoked</h1>", 410);
+  }
+
+  try {
+    // 1. Add user to Pocket ID group
+    if (record.userGroupId) {
+      await addUsersToGroup(
+        c.env.POCKET_ID,
+        c.env.POCKET_ID_API_KEY,
+        record.userGroupId,
+        [userId]
+      );
+    }
+
+    // 2. Create Connect invite via dashboard API (service auth)
+    if (record.connect?.apiUrl && c.env.SERVICE_API_KEY) {
+      const serviceToken = `${c.env.SERVICE_API_KEY}|${record.owner}|`;
+      await fetch(record.connect.apiUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "reqInviteUser",
+          auth: { type: "service", token: serviceToken },
+          ticket: {
+            query: { byString: email },
+            invitedParams: {
+              ledger: {
+                id: record.connect.ledgerId,
+                role: "member",
+                right: record.publicInvite.right || "write",
+              },
+            },
+          },
+        }),
+      });
+    }
+
+    // 3. Add collaborator to KV
+    const collaborators = record.collaborators || [];
+    if (!collaborators.some((col) => col.userId === userId)) {
+      collaborators.push({ userId, email, role: "member" });
+      await setSubdomain(c.env.REGISTRY_KV, state.app, {
+        ...record,
+        collaborators,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+
+    // 4. Generate OTA for seamless sign-in to the per-app client
+    const ota = await createOneTimeAccessToken(
+      c.env.POCKET_ID,
+      c.env.POCKET_ID_API_KEY,
+      userId
+    );
+
+    // 5. Redirect to the app
+    const appUrl = c.env.CF_ZONE_ID
+      ? `https://${state.app}.vibesos.com`
+      : `https://${state.app}.workers.dev`;
+
+    return c.redirect(`${appUrl}?ota=${encodeURIComponent(ota.token)}`, 302);
+  } catch (err) {
+    console.error(`[join] Failed to complete join for ${email} to ${state.app}:`, err);
+    return c.html("<h1>Join failed — please try again</h1>", 500);
   }
 });
 
