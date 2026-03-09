@@ -9,3 +9,4 @@
 export const OIDC_AUTHORITY = 'https://vibesos.com';
 export const OIDC_CLIENT_ID = '6c154be6-e6fa-47f3-ad2b-31740cedc1f1';
 export const DEPLOY_API_URL = 'https://vibes-deploy-api.marcus-e.workers.dev';
+export const AI_PROXY_URL = 'https://ai.vibesos.com';
