@@ -13,7 +13,7 @@ import Electrobun, {
 } from "electrobun/bun";
 import { join } from "path";
 import { discoverVibesPlugin } from "./plugin-discovery.ts";
-import { resolveClaudePath, CLAUDE_BIN } from "./auth.ts";
+import { CLAUDE_BIN } from "./auth.ts";
 import { hideZoomButton } from "./window-controls.ts";
 
 // --- Constants ---
@@ -140,32 +140,7 @@ async function main() {
 		}
 	});
 
-	// 8. Native command channel — WebSocket for low-latency window ops
-	const NATIVE_PORT = PORT + 1;
-	Bun.serve({
-		port: NATIVE_PORT,
-		fetch(req, srv) {
-			if (req.headers.get("upgrade")?.toLowerCase() === "websocket") {
-				srv.upgrade(req);
-				return undefined as any;
-			}
-			return new Response("", { status: 404 });
-		},
-		websocket: {
-			message(_ws, msg) {
-				try {
-					const data = JSON.parse(String(msg));
-					if (data.type === "move") {
-						const pos = mainWindow.getPosition();
-						mainWindow.setPosition(pos.x + data.dx, pos.y + data.dy);
-					}
-				} catch {}
-			},
-		},
-	});
-	console.log(`[vibes-desktop] Native command channel on port ${NATIVE_PORT}`);
-
-	// 9. Graceful shutdown
+	// 8. Graceful shutdown
 	Electrobun.events.on("before-quit", () => {
 		shutdown();
 	});

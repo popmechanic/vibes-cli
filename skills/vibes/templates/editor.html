@@ -2756,8 +2756,6 @@
   // Desktop mode: detect ElectroBun webview
   const IS_DESKTOP = typeof window.__electrobun !== 'undefined';
 
-  // Desktop drag: placeholder — custom window move will be injected by Bun process
-
   let ws = null;
   let wsRetries = 0;
   const WS_MAX_RETRIES = 20;
