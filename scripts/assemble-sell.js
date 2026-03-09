@@ -37,7 +37,7 @@ import { stripForTemplate, stripImports } from './lib/strip-code.js';
 import { createBackup } from './lib/backup.js';
 import { prompt } from './lib/prompt.js';
 import { populateConnectConfig } from './lib/env-utils.js';
-import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL } from './lib/auth-constants.js';
+import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL, AI_PROXY_URL } from './lib/auth-constants.js';
 import { APP_PLACEHOLDER } from './lib/assembly-utils.js';
 import { parseArgs as parseCliArgs, formatHelp } from './lib/cli-utils.js';
 
@@ -228,6 +228,7 @@ output = populateConnectConfig(output, envVars, true);
 output = output.split('__VITE_OIDC_AUTHORITY__').join(OIDC_AUTHORITY);
 output = output.split('__VITE_OIDC_CLIENT_ID__').join(OIDC_CLIENT_ID);
 output = output.split('__VITE_DEPLOY_API_URL__').join(DEPLOY_API_URL);
+output = output.split('__VITE_AI_PROXY_URL__').join(AI_PROXY_URL);
 
 // Known safe patterns that aren't config placeholders
 // __PURE__ is a tree-shaking comment used by bundlers

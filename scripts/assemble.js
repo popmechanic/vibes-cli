@@ -15,7 +15,7 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { createBackup } from './lib/backup.js';
-import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL } from './lib/auth-constants.js';
+import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL, AI_PROXY_URL } from './lib/auth-constants.js';
 import { APP_PLACEHOLDER, validateAssembly, loadAndValidateTemplate } from './lib/assembly-utils.js';
 import { stripForTemplate } from './lib/strip-code.js';
 
@@ -58,6 +58,7 @@ async function main() {
   output = output.replaceAll('__VITE_OIDC_AUTHORITY__', OIDC_AUTHORITY);
   output = output.replaceAll('__VITE_OIDC_CLIENT_ID__', OIDC_CLIENT_ID);
   output = output.replaceAll('__VITE_DEPLOY_API_URL__', DEPLOY_API_URL);
+  output = output.replaceAll('__VITE_AI_PROXY_URL__', AI_PROXY_URL);
 
   // Validate output
   const validationErrors = validateAssembly(output, appCode);
