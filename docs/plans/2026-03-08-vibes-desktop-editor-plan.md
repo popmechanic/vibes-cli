@@ -883,45 +883,15 @@ Create `src/bun/__tests__/claude-manager.test.ts`:
 ```typescript
 import { describe, test, expect } from "bun:test";
 import {
-  createStreamParser,
   calcProgressFromCounters,
   acquireLock,
   releaseLock,
   isLocked,
 } from "../claude-manager.ts";
 
-describe("createStreamParser", () => {
-  test("parses complete JSON lines", () => {
-    const events: any[] = [];
-    const parse = createStreamParser((e) => events.push(e));
-
-    parse(Buffer.from('{"type":"system"}\n{"type":"result"}\n'));
-
-    expect(events).toHaveLength(2);
-    expect(events[0].type).toBe("system");
-    expect(events[1].type).toBe("result");
-  });
-
-  test("handles split chunks", () => {
-    const events: any[] = [];
-    const parse = createStreamParser((e) => events.push(e));
-
-    parse(Buffer.from('{"type":"sys'));
-    expect(events).toHaveLength(0);
-
-    parse(Buffer.from('tem"}\n'));
-    expect(events).toHaveLength(1);
-    expect(events[0].type).toBe("system");
-  });
-
-  test("skips empty lines", () => {
-    const events: any[] = [];
-    const parse = createStreamParser((e) => events.push(e));
-
-    parse(Buffer.from('\n\n{"type":"test"}\n\n'));
-    expect(events).toHaveLength(1);
-  });
-});
+// createStreamParser and buildClaudeArgs are tested in the plugin's own test suites
+// (scripts/tests/). We only test desktop-local logic here: progress calculation and
+// operation locking.
 
 describe("calcProgressFromCounters", () => {
   test("starts at 5% minimum", () => {
@@ -987,29 +957,24 @@ Create `src/bun/claude-manager.ts`:
 ```typescript
 import { CLAUDE_BIN, cleanEnv } from "./auth.ts";
 
-// --- Stream Parser ---
+// --- Shared Module Injection ---
+// These are loaded from the plugin's shared modules during init() (index.ts)
+// to avoid reimplementing well-tested utilities:
+//   buildClaudeArgs: scripts/lib/claude-subprocess.js — flag combinations, permission mode logic
+//   createStreamParser: scripts/lib/stream-parser.js — line buffering, multi-byte UTF-8 splits
+//   sanitizeAppJsx: scripts/server/post-process.ts — CSS unicode escape fixes, redeclared global stripping
+let _buildClaudeArgs: ((config?: any) => string[]) | null = null;
+let _createStreamParser: ((onEvent: (event: any) => void) => (chunk: any) => void) | null = null;
+let _sanitizeAppJsx: ((projectRoot: string) => void) | null = null;
 
-export function createStreamParser(onEvent: (event: any) => void) {
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  return (chunk: Buffer | Uint8Array) => {
-    buffer += decoder.decode(chunk, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() || "";
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      try {
-        onEvent(JSON.parse(line));
-      } catch (err) {
-        console.warn(
-          "[claude stdout] JSON parse error:",
-          (err as Error).message,
-          line.slice(0, 200)
-        );
-      }
-    }
-  };
+export function setSharedModules(mods: {
+  buildClaudeArgs: typeof _buildClaudeArgs;
+  createStreamParser: typeof _createStreamParser;
+  sanitizeAppJsx: typeof _sanitizeAppJsx;
+}) {
+  _buildClaudeArgs = mods.buildClaudeArgs;
+  _createStreamParser = mods.createStreamParser;
+  _sanitizeAppJsx = mods.sanitizeAppJsx;
 }
 
 // --- Progress Calculation ---
@@ -1120,38 +1085,24 @@ export function spawnClaude(
   let floorProgress = 0;
   const startTime = Date.now();
 
-  // Build args — use `-p -` to read prompt from stdin (prompts can be 5-20KB,
-  // too large for CLI args which hit OS ARG_MAX limits and break on special chars).
-  const args = [
-    "-p", "-",
-    "--output-format",
-    "stream-json",
-    "--verbose",
-    "--include-partial-messages",
-    "--no-session-persistence",
-  ];
-
-  // Permission mode: default to dontAsk (auto-deny unallowed tools).
-  // When --tools restricts the tool set, use bypassPermissions since
-  // the tool set is already explicitly scoped.
-  const permMode = opts.permissionMode
-    || (opts.tools ? "bypassPermissions" : "dontAsk");
-  args.push("--permission-mode", permMode);
-
-  if (opts.model) {
-    args.push("--model", opts.model);
+  // Build args using the shared buildClaudeArgs utility from the plugin.
+  // This handles: -p - (stdin piping), --verbose + --include-partial-messages
+  // for stream-json, permission mode logic (dontAsk default, bypassPermissions
+  // when --tools is set), --disable-slash-commands + --disallowed-tools when
+  // tools are restricted, and --no-session-persistence.
+  if (!_buildClaudeArgs || !_createStreamParser) {
+    rpc.sendProxy.error({ taskId, message: "Plugin modules not loaded — wait for init to complete" });
+    releaseLock();
+    return null;
   }
 
-  if (opts.maxTurns) {
-    args.push("--max-turns", String(opts.maxTurns));
-  }
-
-  if (opts.tools) {
-    args.push("--tools", opts.tools);
-    // When restricting built-in tools, block plugin tools from hijacking
-    args.push("--disable-slash-commands");
-    args.push("--disallowed-tools", "ToolSearch,Skill");
-  }
+  const args = _buildClaudeArgs({
+    outputFormat: "stream-json",
+    maxTurns: opts.maxTurns,
+    model: opts.model,
+    tools: opts.tools,
+    permissionMode: opts.permissionMode,
+  });
 
   // Spawn with stdin: 'pipe' — write prompt via stdin, not CLI args
   const proc = Bun.spawn([CLAUDE_BIN, ...args], {
@@ -1218,8 +1169,8 @@ export function spawnClaude(
     releaseLock();
   }
 
-  // Parse stdout
-  const parse = createStreamParser((event) => {
+  // Parse stdout using the shared stream parser from the plugin
+  const parse = _createStreamParser!((event) => {
     lastOutputTime = Date.now();
 
     switch (event.type) {
@@ -1290,6 +1241,14 @@ export function spawnClaude(
       }
 
       case "result":
+        // Post-process: fix CSS unicode escapes and strip redeclared globals.
+        // The web editor applies sanitizeAppJsx after every Claude operation
+        // (generate.ts:393, chat.ts:217, theme.ts:206,271, claude-bridge.ts:284).
+        // CSS escapes like \2192 are valid CSS but invalid JS inside template
+        // literals — they break Babel transpilation in the browser.
+        if (hasEdited && _sanitizeAppJsx && opts.cwd) {
+          _sanitizeAppJsx(opts.cwd);
+        }
         rpc.sendProxy.done({
           taskId,
           text: "",
@@ -1590,6 +1549,28 @@ function parseThemeColors(
   return defaults;
 }
 
+// parseThemeColors from the plugin — set during init via setConfigModules()
+let _pluginParseThemeColors: ((themeDir: string, themeId: string) => any) | null = null;
+
+export function setConfigModules(mods: {
+  parseThemeColors: typeof _pluginParseThemeColors;
+}) {
+  _pluginParseThemeColors = mods.parseThemeColors;
+}
+
+/**
+ * Load rootBlock CSS for each theme, including the --comp-* token bridge.
+ *
+ * Uses the plugin's parseThemeColors (scripts/server/config.ts) which calls
+ * buildCompTokenMapping to derive --comp-bg, --comp-text, --comp-accent,
+ * --comp-muted, --comp-border, --comp-accent-text, --color-background,
+ * and --grid-color from the theme's own variable names. These tokens are
+ * required by VibesPanel menu components for consistent styling.
+ *
+ * Without this bridge, a naive :root regex only captures the theme's raw
+ * variables and the --comp-* fallbacks are never injected, causing the
+ * VibesPanel to lose its styled appearance when switching themes.
+ */
 function loadThemeRootCss(
   themeDir: string,
   themes: ThemeEntry[]
@@ -1597,16 +1578,22 @@ function loadThemeRootCss(
   const result: Record<string, string> = {};
 
   for (const theme of themes) {
-    for (const ext of [".txt", ".md"]) {
-      const filePath = join(themeDir, `${theme.id}${ext}`);
-      if (!existsSync(filePath)) continue;
-
-      const content = readFileSync(filePath, "utf-8");
-      const rootMatch = content.match(/:root\s*\{[^}]+\}/s);
-      if (rootMatch) {
-        result[theme.id] = rootMatch[0];
+    if (_pluginParseThemeColors) {
+      // Use the plugin's parseThemeColors which includes buildCompTokenMapping
+      const colors = _pluginParseThemeColors(themeDir, theme.id);
+      if (colors?.rootBlock) {
+        result[theme.id] = colors.rootBlock;
       }
-      break;
+    } else {
+      // Fallback if plugin modules not yet loaded (shouldn't happen in practice)
+      for (const ext of [".txt", ".md"]) {
+        const filePath = join(themeDir, `${theme.id}${ext}`);
+        if (!existsSync(filePath)) continue;
+        const content = readFileSync(filePath, "utf-8");
+        const rootMatch = content.match(/:root\s*\{[^}]+\}/s);
+        if (rootMatch) result[theme.id] = rootMatch[0];
+        break;
+      }
     }
   }
 
@@ -2353,8 +2340,15 @@ function loadSkillContent(
 
 Create `src/bun/handlers/theme.ts`:
 
+The theme handler must implement the web editor's two-pass approach from
+`scripts/server/handlers/theme.ts`. Pass 1 is instant and mechanical (regex
+replacement of `@theme:tokens` and `@theme:typography`). Pass 2 sends Claude
+to creatively restyle surfaces/motion/decoration. Without Pass 1, the
+`--comp-*` token bridge from `buildCompTokenMapping` is never injected,
+causing VibesPanel menu components to lose styling.
+
 ```typescript
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { spawnClaude, type SpawnOpts } from "../claude-manager.ts";
 import type { PluginPaths } from "../plugin-discovery.ts";
@@ -2363,9 +2357,53 @@ import type { ThemeEntry } from "../../shared/rpc-types.ts";
 export interface ThemeContext {
   pluginPaths: PluginPaths;
   themes: ThemeEntry[];
-  themeRootCss: Record<string, string>;
   appsDir: string;
   currentApp: string | null;
+}
+
+// Shared utilities loaded from plugin during init
+let _parseThemeColors: ((themeDir: string, themeId: string) => any) | null = null;
+let _extractPass2ThemeContext: ((content: string, maxBytes?: number) => string) | null = null;
+let _hasThemeMarkers: ((code: string) => boolean) | null = null;
+let _replaceThemeSection: ((code: string, section: string, content: string) => string) | null = null;
+let _extractNonThemeSections: ((code: string) => string) | null = null;
+let _moveVisualCSSToSurfaces: ((code: string) => string) | null = null;
+let _createBackup: ((path: string) => void) | null = null;
+let _restoreFromBackup: ((path: string) => { success: boolean }) | null = null;
+
+export function setThemeModules(mods: {
+  parseThemeColors: typeof _parseThemeColors;
+  extractPass2ThemeContext: typeof _extractPass2ThemeContext;
+  hasThemeMarkers: typeof _hasThemeMarkers;
+  replaceThemeSection: typeof _replaceThemeSection;
+  extractNonThemeSections: typeof _extractNonThemeSections;
+  moveVisualCSSToSurfaces: typeof _moveVisualCSSToSurfaces;
+  createBackup: typeof _createBackup;
+  restoreFromBackup: typeof _restoreFromBackup;
+}) {
+  _parseThemeColors = mods.parseThemeColors;
+  _extractPass2ThemeContext = mods.extractPass2ThemeContext;
+  _hasThemeMarkers = mods.hasThemeMarkers;
+  _replaceThemeSection = mods.replaceThemeSection;
+  _extractNonThemeSections = mods.extractNonThemeSections;
+  _moveVisualCSSToSurfaces = mods.moveVisualCSSToSurfaces;
+  _createBackup = mods.createBackup;
+  _restoreFromBackup = mods.restoreFromBackup;
+}
+
+/**
+ * Replace __VIBES_THEMES__ array and useVibesTheme default in app code.
+ */
+function updateThemeMeta(code: string, themeId: string, themeName: string): string {
+  let result = code.replace(
+    /window\.__VIBES_THEMES__\s*=\s*\[[\s\S]*?\]/,
+    () => `window.__VIBES_THEMES__ = [{ id: "${themeId}", name: "${themeName}" }]`
+  );
+  result = result.replace(
+    /localStorage\.getItem\("vibes-theme"\)\s*\|\|\s*"[^"]*"/,
+    () => `localStorage.getItem("vibes-theme") || "${themeId}"`
+  );
+  return result;
 }
 
 export function handleSwitchTheme(
@@ -2380,6 +2418,11 @@ export function handleSwitchTheme(
     return taskId;
   }
 
+  if (!_parseThemeColors || !_hasThemeMarkers || !_replaceThemeSection) {
+    rpc.sendProxy.error({ taskId, message: "Theme modules not loaded" });
+    return taskId;
+  }
+
   const appDir = join(ctx.appsDir, ctx.currentApp);
   const appJsxPath = join(appDir, "app.jsx");
 
@@ -2388,65 +2431,186 @@ export function handleSwitchTheme(
     return taskId;
   }
 
-  const appJsx = readFileSync(appJsxPath, "utf-8");
-  const hasMarkers = appJsx.includes("@theme:tokens");
+  const appCode = readFileSync(appJsxPath, "utf-8");
+  const theme = ctx.themes.find((t) => t.id === themeId);
+  const themeName = theme?.name || themeId;
 
-  // Load theme content
+  // Load full theme content (for Pass 2 creative context)
   let themeContent = "";
   for (const ext of [".txt", ".md"]) {
     const themePath = join(ctx.pluginPaths.themeDir, `${themeId}${ext}`);
     if (existsSync(themePath)) {
-      themeContent = readFileSync(themePath, "utf-8").slice(0, 4000);
+      themeContent = readFileSync(themePath, "utf-8");
       break;
     }
   }
 
-  const rootCss = ctx.themeRootCss[themeId] || "";
-  const theme = ctx.themes.find((t) => t.id === themeId);
+  // Parse colors with buildCompTokenMapping — this constructs rootBlock
+  // with --comp-* token bridge variables that VibesPanel components depend on
+  const colors = _parseThemeColors(ctx.pluginPaths.themeDir, themeId);
 
-  let prompt: string;
-  let maxTurns: number;
+  rpc.sendProxy.themeSelected({ themeId });
 
-  if (hasMarkers) {
-    // Multi-pass: surgical replacement within markers
-    prompt = `Switch the theme of this app to "${theme?.name || themeId}".
-
-THEME:
-${themeContent}
-
-${rootCss ? `ROOT CSS:\n${rootCss}` : ""}
-
-The app has @theme:tokens, @theme:surfaces, @theme:motion, @theme:decoration markers.
-Replace ONLY the content within these markers. Do NOT change any functional code.
-Read app.jsx first, then use Edit to replace each marker section.`;
-    maxTurns = 5;
+  if (_hasThemeMarkers(appCode)) {
+    // === MULTI-PASS: instant tokens + Claude creative ===
+    handleMultiPassTheme(taskId, ctx, rpc, themeId, themeName, themeContent,
+      appCode, appJsxPath, appDir, colors);
   } else {
-    // Legacy: full CSS rewrite
-    prompt = `Switch the theme of this app to "${theme?.name || themeId}".
-
-THEME:
-${themeContent}
-
-${rootCss ? `ROOT CSS:\n${rootCss}` : ""}
-
-This app doesn't have theme markers. Rewrite all CSS variables and visual styles
-to match the new theme. Do NOT change any functional code or layout.
-Read app.jsx first, then use Edit to update the styles.`;
-    maxTurns = 8;
+    // === LEGACY: full CSS rewrite via Claude ===
+    handleLegacyTheme(taskId, ctx, rpc, themeId, themeName, themeContent,
+      appDir, colors);
   }
 
+  return taskId;
+}
+
+/**
+ * Multi-pass theme switch (mirrors scripts/server/handlers/theme.ts):
+ * Pass 1: Instant mechanical replacement — regex-replace @theme:tokens with rootBlock
+ *   (includes --comp-* bridge tokens from buildCompTokenMapping) and @theme:typography
+ *   with font imports. Write file immediately.
+ * Pass 2: Claude creative restyle of @theme:surfaces, @theme:motion, @theme:decoration.
+ */
+function handleMultiPassTheme(
+  taskId: string, ctx: ThemeContext, rpc: any,
+  themeId: string, themeName: string, themeContent: string,
+  appCode: string, appJsxPath: string, appDir: string, colors: any
+) {
+  // === Pass 1: Mechanical token + typography replacement (instant) ===
+  let updatedCode = appCode;
+
+  if (colors?.rootBlock) {
+    updatedCode = _replaceThemeSection!(updatedCode, "tokens", colors.rootBlock);
+    console.log(`[ThemeSwitch] Pass 1: replaced tokens (${colors.rootBlock.split("\\n").length} lines)`);
+  }
+
+  if (colors?.fontImports?.length > 0) {
+    updatedCode = _replaceThemeSection!(updatedCode, "typography", colors.fontImports.join("\\n"));
+    console.log(`[ThemeSwitch] Pass 1: replaced typography (${colors.fontImports.length} fonts)`);
+  }
+
+  updatedCode = updateThemeMeta(updatedCode, themeId, themeName);
+
+  // Move orphaned visual CSS into @theme:surfaces before Pass 2
+  if (_moveVisualCSSToSurfaces) {
+    updatedCode = _moveVisualCSSToSurfaces(updatedCode);
+  }
+
+  _createBackup?.(appJsxPath);
+  writeFileSync(appJsxPath, updatedCode, "utf-8");
+
+  rpc.sendProxy.themePass1Complete({
+    themeId, themeName,
+    rootCss: colors?.rootBlock || null,
+    fontImports: colors?.fontImports || [],
+  });
+  console.log("[ThemeSwitch] Pass 1 complete — tokens + typography applied");
+
+  // === Pass 2: Claude creative restyle ===
+  const pass1Code = readFileSync(appJsxPath, "utf-8");
+  const beforeNonTheme = _extractNonThemeSections?.(pass1Code) || "";
+
+  const pass2Context = _extractPass2ThemeContext?.(themeContent, 12000) || themeContent.slice(0, 4000);
+
+  const prompt = `Restyle ONLY the marked theme sections in app.jsx for the "${themeName}" theme.
+
+=== CURRENT app.jsx ===
+
+\`\`\`jsx
+${pass1Code}
+\`\`\`
+
+=== WHAT TO EDIT ===
+
+You MUST only edit content between these marker pairs in app.jsx:
+- \`/* @theme:surfaces */\` ... \`/* @theme:surfaces:end */\` — CSS classes for shadows, borders, backgrounds, glass effects
+- \`/* @theme:motion */\` ... \`/* @theme:motion:end */\` — @keyframes and animation definitions
+- \`{/* @theme:decoration */}\` ... \`{/* @theme:decoration:end */}\` — SVG elements and atmospheric backgrounds
+
+=== THEME PERSONALITY ===
+
+${pass2Context}
+
+=== RULES ===
+
+- Replace the content BETWEEN each marker pair. Keep the markers themselves.
+- Match the theme's personality: shadows, glass effects, gradients, animations, SVG decorations.
+- Do NOT modify anything outside the markers — no layout, no logic, no tokens, no typography.
+- No import statements, no TypeScript, keep export default App.
+- Never use CSS unicode escapes (\\\\2192, \\\\2022, \\\\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.`;
+
   const opts: SpawnOpts = {
-    maxTurns,
+    maxTurns: 5,
     tools: "Read,Edit",
     cwd: appDir,
   };
 
   spawnClaude(taskId, prompt, opts, rpc);
+}
 
-  // Notify UI of theme selection
-  rpc.sendProxy.themeSelected({ themeId });
+/**
+ * Legacy theme switch: full-file Claude restyle (no markers).
+ */
+function handleLegacyTheme(
+  taskId: string, ctx: ThemeContext, rpc: any,
+  themeId: string, themeName: string, themeContent: string,
+  appDir: string, colors: any
+) {
+  let rootCss = colors?.rootBlock || "";
+  if (!rootCss) {
+    const rootMatch = themeContent.match(/:root\\s*\\{[\\s\\S]*?\\}/);
+    if (rootMatch) rootCss = rootMatch[0];
+  }
 
-  return taskId;
+  const appJsxPath = join(appDir, "app.jsx");
+  const appCode = readFileSync(appJsxPath, "utf-8");
+
+  const pass2Context = _extractPass2ThemeContext?.(themeContent, 14000) || themeContent.slice(0, 4000);
+
+  const prompt = `Restyle app.jsx to the "${themeName}" (${themeId}) theme.
+
+=== CURRENT app.jsx ===
+
+\`\`\`jsx
+${appCode}
+\`\`\`
+
+=== MANDATORY CSS CHANGES ===
+
+Replace the ENTIRE :root block in the <style> tag with this EXACT CSS:
+
+\`\`\`css
+${rootCss || `/* Build :root with oklch colors matching "${themeName}" */`}
+\`\`\`
+
+Replace __VIBES_THEMES__ with: [{ id: "${themeId}", name: "${themeName}" }]
+Replace useVibesTheme default with: "${themeId}"
+
+=== THEME PERSONALITY ===
+
+${pass2Context}
+
+=== RULES ===
+
+CHANGE (visual only):
+- :root CSS variables → use the EXACT block above
+- Backgrounds, shadows, borders, fonts → match theme's design principles
+- Animations, SVG elements → match theme's mood
+- __VIBES_THEMES__ and useVibesTheme default → "${themeId}"
+
+KEEP UNCHANGED:
+- All components, hooks, functions, state, data models, layout structure
+- All Fireproof database calls, document types, query filters
+- No import statements, no TypeScript, keep export default App
+- Never use CSS unicode escapes (\\\\2192, \\\\2022, \\\\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.`;
+
+  const opts: SpawnOpts = {
+    maxTurns: 8,
+    tools: "Read,Edit",
+    cwd: appDir,
+  };
+
+  spawnClaude(taskId, prompt, opts, rpc);
 }
 ```
 
@@ -2764,23 +2928,24 @@ import {
   checkPocketIdAuth,
 } from "./auth.ts";
 import { discoverVibesPlugin, type PluginPaths } from "./plugin-discovery.ts";
-import { loadConfig, type AppConfig } from "./config.ts";
+import { loadConfig, setConfigModules, type AppConfig } from "./config.ts";
 import { startPreviewServer } from "./preview-server.ts";
-import { abortTask } from "./claude-manager.ts";
+import { abortTask, setSharedModules } from "./claude-manager.ts";
 import { handleGenerate } from "./handlers/generate.ts";
 import { handleChat } from "./handlers/chat.ts";
-import { handleSwitchTheme } from "./handlers/theme.ts";
+import { handleSwitchTheme, setThemeModules } from "./handlers/theme.ts";
 import { handleDeploy } from "./handlers/deploy.ts";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync, cpSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
 
-// Assembly utilities — loaded eagerly (not dynamic import) so assembleCurrentApp()
-// stays synchronous, matching the web editor's assembleAppFrame() pattern.
+// Plugin utilities — loaded eagerly during init() so they're available synchronously.
 // The plugin root isn't known at import time, so these are set during init().
 let stripForTemplate: ((code: string, opts?: any) => string) | null = null;
 let APP_PLACEHOLDER: string | null = null;
 let populateConnectConfig: ((html: string, config: Record<string, string>) => string) | null = null;
+// Post-processing: sanitizeAppJsx fixes CSS unicode escapes and strips redeclared globals
+let sanitizeAppJsx: ((projectRoot: string) => void) | null = null;
 
 // --- App State ---
 let pluginPaths: PluginPaths | null = null;
@@ -2795,6 +2960,12 @@ async function init() {
   // Discover plugin
   pluginPaths = await discoverVibesPlugin();
   if (pluginPaths) {
+    // Load plugin shared modules BEFORE loadConfig, because loadThemeRootCss
+    // needs parseThemeColors (which includes buildCompTokenMapping for the
+    // --comp-* token bridge that VibesPanel depends on).
+    const configMod = await import(join(pluginPaths.root, "scripts", "server", "config.ts"));
+    setConfigModules({ parseThemeColors: configMod.parseThemeColors });
+
     config = loadConfig(pluginPaths);
     // Ensure apps dir
     mkdirSync(config.appsDir, { recursive: true });
@@ -2808,6 +2979,37 @@ async function init() {
     APP_PLACEHOLDER = asmMod.APP_PLACEHOLDER;
     const envMod = await import(join(pluginPaths.root, "scripts", "lib", "env-utils.js"));
     populateConnectConfig = envMod.populateConnectConfig;
+    const postMod = await import(join(pluginPaths.root, "scripts", "server", "post-process.ts"));
+    sanitizeAppJsx = postMod.sanitizeAppJsx;
+
+    // Load shared Claude subprocess utilities from the plugin instead of
+    // reimplementing them. buildClaudeArgs handles flag combinations
+    // (--verbose with stream-json, permission mode logic, --disallowed-tools).
+    // createStreamParser handles line buffering and multi-byte UTF-8 splits.
+    const subprocMod = await import(join(pluginPaths.root, "scripts", "lib", "claude-subprocess.js"));
+    const parserMod = await import(join(pluginPaths.root, "scripts", "lib", "stream-parser.js"));
+    // Inject into claude-manager so spawnClaude can use them
+    setSharedModules({
+      buildClaudeArgs: subprocMod.buildClaudeArgs,
+      createStreamParser: parserMod.createStreamParser,
+      sanitizeAppJsx: postMod.sanitizeAppJsx,
+    });
+
+    // Load theme-related shared modules for two-pass theme switching.
+    // replaceThemeSection does marker-bounded replacement;
+    // extractPass2ThemeContext extracts targeted creative context for Claude.
+    const themeSections = await import(join(pluginPaths.root, "scripts", "lib", "theme-sections.js"));
+    const backupMod = await import(join(pluginPaths.root, "scripts", "lib", "backup.js"));
+    setThemeModules({
+      parseThemeColors: configMod.parseThemeColors,
+      extractPass2ThemeContext: configMod.extractPass2ThemeContext,
+      hasThemeMarkers: themeSections.hasThemeMarkers,
+      replaceThemeSection: themeSections.replaceThemeSection,
+      extractNonThemeSections: themeSections.extractNonThemeSections,
+      moveVisualCSSToSurfaces: themeSections.moveVisualCSSToSurfaces,
+      createBackup: backupMod.createBackup,
+      restoreFromBackup: backupMod.restoreFromBackup,
+    });
   }
 
   // Start preview server
@@ -2945,7 +3147,6 @@ const rpc = BrowserView.defineRPC<VibesDesktopRPC>({
           {
             pluginPaths,
             themes: config.themes,
-            themeRootCss: config.themeRootCss,
             appsDir: config.appsDir,
             currentApp,
           },
