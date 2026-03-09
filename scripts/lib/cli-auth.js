@@ -320,7 +320,7 @@ function _startCallbackServer({ authority, clientId, authFile = DEFAULT_AUTH_FIL
       rejectReady(err);
     });
 
-    server.listen(CLI_AUTH_PORT, '127.0.0.1', () => {
+    server.listen(CLI_AUTH_PORT, 'localhost', () => {
       const port = server.address().port;
       const redirectUri = `http://localhost:${port}/callback`;
 
