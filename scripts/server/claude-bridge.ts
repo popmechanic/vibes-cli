@@ -299,8 +299,26 @@ export async function runOneShot(
 }
 
 // --- Bun script runner (for deploy subprocess spawning) ---
-// Requires `bun` on PATH. This is intentional — the server runs on Bun and all
-// scripts are invoked via `bun run` to drop the Node.js runtime dependency.
+// Resolves bun's full path to avoid PATH issues in desktop app contexts
+// where macOS GUI apps inherit a minimal PATH.
+
+function resolveBunBin(): string {
+  // Bun.which checks PATH
+  const fromPath = Bun.which('bun');
+  if (fromPath) return fromPath;
+  // Common install location
+  const home = process.env.HOME || '';
+  const homeBun = `${home}/.bun/bin/bun`;
+  if (home && require('fs').existsSync(homeBun)) return homeBun;
+  // Last resort — will fail with a clear error if bun truly isn't installed
+  return 'bun';
+}
+
+let _cachedBunBin: string | undefined;
+function getBunBin(): string {
+  if (!_cachedBunBin) _cachedBunBin = resolveBunBin();
+  return _cachedBunBin;
+}
 
 interface SpawnOpts {
   cwd?: string;
@@ -313,7 +331,7 @@ export async function runBunScript(
   opts: SpawnOpts = {}
 ): Promise<{ ok: boolean; stdout: string; stderr: string }> {
   const proc = Bun.spawn({
-    cmd: ['bun', 'run', script, ...args],
+    cmd: [getBunBin(), 'run', script, ...args],
     cwd: opts.cwd,
     env: (opts.env || { ...process.env }) as Record<string, string>,
     stdin: 'pipe',
