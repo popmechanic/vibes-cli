@@ -378,7 +378,7 @@ export function OIDCProvider(props) {
     // Fall back to access token if no ID token is available.
     var idToken = sessionStorage.getItem(STORAGE_KEY_ID);
     var token = idToken || authState.accessToken;
-    var auth = { type: "clerk", token: token };
+    var auth = { type: "oidc", token: token };
 
     function _dashRequest(body) {
       return fetch(apiUrl, {

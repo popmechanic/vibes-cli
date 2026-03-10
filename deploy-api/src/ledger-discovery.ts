@@ -30,17 +30,25 @@ export async function discoverLedgerId(opts: DiscoverOptions): Promise<string | 
       }),
     });
 
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.error(`[ledger-discovery] Dashboard returned ${res.status}: ${errText.slice(0, 500)}`);
+      return null;
+    }
 
     const body = (await res.json()) as { ledgers?: LedgerEntry[] };
     const ledgers = body.ledgers || [];
+    console.log(`[ledger-discovery] Found ${ledgers.length} ledger(s) for ${appName}: ${JSON.stringify(ledgers.map(l => ({ id: l.ledgerId, name: l.name })))}`);
     if (ledgers.length === 0) return null;
 
     // Match by app name in ledger name (OIDC bridge names ledgers after hostname)
     // Use anchored comparison to avoid substring false positives (e.g. "app" matching "my-app")
     const match = ledgers.find((l) => l.name.startsWith(appName + ".") || l.name === appName);
-    return match ? match.ledgerId : ledgers[0].ledgerId;
-  } catch {
+    const result = match ? match.ledgerId : ledgers[0].ledgerId;
+    console.log(`[ledger-discovery] Selected ledger: ${result} (match: ${match?.name || 'fallback to first'})`);
+    return result;
+  } catch (err) {
+    console.error(`[ledger-discovery] Error: ${err instanceof Error ? err.message : String(err)}`);
     return null;
   }
 }

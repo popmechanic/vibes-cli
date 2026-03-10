@@ -249,6 +249,22 @@ async function createR2Bucket(accountId: string, apiToken: string, name: string)
   if (!res.success && res.errors?.[0]?.code !== 10004) {
     throw new Error(`R2 bucket creation failed: ${JSON.stringify(res.errors)}`);
   }
+
+  // Set CORS rules so browsers can read/write via pre-signed URLs
+  await cfApi(`/accounts/${accountId}/r2/buckets/${name}/cors`, apiToken, {
+    method: 'PUT',
+    body: JSON.stringify({
+      rules: [{
+        allowed: {
+          origins: ['*'],
+          methods: ['GET', 'PUT', 'HEAD'],
+          headers: ['*'],
+        },
+        maxAgeSeconds: 3600,
+      }],
+    }),
+  });
+
   return name;
 }
 

@@ -48,7 +48,9 @@ describe('provisionConnect', () => {
 
     mockFetch
       // R2 bucket creation
-      .mockResolvedValueOnce(cfResponse({ name: `fp-storage-${stage}` }));
+      .mockResolvedValueOnce(cfResponse({ name: `fp-storage-${stage}` }))
+      // R2 CORS configuration
+      .mockResolvedValueOnce(cfResponse({}));
 
     // D1 backend creation + migration statements
     mockFetch.mockResolvedValueOnce(cfResponse({ uuid: 'd1-backend-uuid' }));

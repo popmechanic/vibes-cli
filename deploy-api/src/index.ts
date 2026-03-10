@@ -734,13 +734,8 @@ app.get("/status/:name", async (c) => {
   const name = c.req.param("name");
   const record = await getSubdomain(c.env.REGISTRY_KV, name);
   if (!record) return c.json({ exists: false }, 404);
-  return c.json({
-    exists: true,
-    owner: record.owner,
-    connectProvisioned: record.connectProvisioned ?? false,
-    connect: record.connect ? { apiUrl: record.connect.apiUrl, cloudUrl: record.connect.cloudUrl } : undefined,
-    updatedAt: record.updatedAt,
-  });
+  // Full record for debugging — TODO: restrict after share link debugging
+  return c.json({ exists: true, ...record });
 });
 
 // Invite endpoint — add user to app's Pocket ID group
@@ -1147,6 +1142,8 @@ app.get("/join/callback", async (c) => {
       steps.push("OTA failed (non-fatal)");
     }
 
+    // Log steps on success for debugging
+    console.log(`[join] Success for ${email} to ${state.app}: steps=[${steps.join(" → ")}]`);
     return c.redirect(redirectUrl, 302);
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
