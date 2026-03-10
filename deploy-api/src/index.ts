@@ -661,6 +661,25 @@ app.post("/deploy", async (c) => {
       .replace(/cloudBackendUrl:\s*"[^"]*"/, `cloudBackendUrl: "${connectInfo.cloudUrl}"`);
   }
 
+  // Inject shared ledger ID if known (from previous deploys or join discovery)
+  let sharedLedgerId = existing?.connect?.ledgerId;
+  if (!sharedLedgerId && connectInfo?.d1DashboardId) {
+    // Try D1 discovery for apps that have been used but not yet cached
+    sharedLedgerId = await discoverLedgerId({
+      accountId: c.env.CF_ACCOUNT_ID,
+      apiToken: c.env.CF_API_TOKEN,
+      d1DatabaseId: connectInfo.d1DashboardId,
+      appName: name,
+    }) ?? undefined;
+    if (sharedLedgerId) {
+      console.log(`[deploy] Discovered shared ledger for ${name}: ${sharedLedgerId}`);
+    }
+  }
+  if (sharedLedgerId && files["index.html"]) {
+    files["index.html"] = files["index.html"]
+      .replace(/window\.__VIBES_SHARED_LEDGER__\s*=\s*null/, `window.__VIBES_SHARED_LEDGER__ = "${sharedLedgerId}"`);
+  }
+
   // Deploy via CF API
   const result = await deployCFWorker(c.env.CF_ACCOUNT_ID, c.env.CF_API_TOKEN, name, files);
   if (!result.ok) {
@@ -696,14 +715,14 @@ app.post("/deploy", async (c) => {
         oidcClientId,
         userGroupId,
         connectProvisioned: true,
-        connect: connectInfo || existing.connect,
+        connect: { ...(connectInfo || existing.connect), ...(sharedLedgerId ? { ledgerId: sharedLedgerId } : {}) },
         updatedAt: now,
       }
     : {
         owner: userId,
         collaborators: [],
         connectProvisioned: !!connectInfo,
-        connect: connectInfo,
+        connect: { ...connectInfo, ...(sharedLedgerId ? { ledgerId: sharedLedgerId } : {}) },
         oidcClientId,
         userGroupId,
         createdAt: now,

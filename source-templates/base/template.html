@@ -127,6 +127,9 @@
       };
       // Detect ?joined=true param (set by public link join redirect)
       window.__VIBES_JOINED__ = new URLSearchParams(window.location.search).get('joined') === 'true';
+      // Shared ledger ID — injected at deploy time when the app's ledger is known.
+      // When set, all users share this single ledger (no per-user auto-provisioning).
+      window.__VIBES_SHARED_LEDGER__ = null;
       // Default: single theme hides the Design button in VibesPanel.
       // Apps with multiple themes override this before menu loads.
       window.__VIBES_THEMES__ = [{ id: "default", name: "Default" }];
