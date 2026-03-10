@@ -263,46 +263,36 @@ export function VibesPanel({
                   <label style={getInviteLabelStyle()}>
                     Generate public link
                   </label>
-                  {publicLinkStatus === "idle" ? (
-                    <VibesButton
-                      variant={YELLOW}
-                      onClick={handleGeneratePublicLink}
-                    >
-                      Generate Link
-                    </VibesButton>
-                  ) : (
-                    <BrutalistCard
-                      id="public-link-status"
-                      role="status"
-                      aria-live="polite"
-                      size="sm"
-                      variant={
-                        publicLinkStatus === "generating"
-                          ? "default"
-                          : publicLinkStatus === "error"
-                            ? "error"
-                            : "success"
-                      }
-                      style={getInviteStatusStyle()}
-                    >
-                      {publicLinkStatus === "generating" ? "Generating..." : (
-                        <>
-                          <div>{publicLinkMessage}</div>
-                          {publicLink && (
-                            <div style={{ marginTop: '0.5rem' }}>
-                              <button onClick={handleCopyPublicLink} style={{
-                                background: 'none', border: '2px solid currentColor', borderRadius: '6px',
-                                padding: '0.25rem 0.75rem', cursor: 'pointer', color: 'inherit',
-                                fontWeight: 600, fontSize: '0.85em'
-                              }}>
-                                {publicLinkCopied ? 'Copied!' : 'Copy Link'}
-                              </button>
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </BrutalistCard>
-                  )}
+                  <input
+                    type="text"
+                    readOnly
+                    value={publicLink}
+                    placeholder={
+                      publicLinkStatus === "generating"
+                        ? "Generating..."
+                        : publicLinkStatus === "error"
+                          ? publicLinkMessage
+                          : "Click below to generate"
+                    }
+                    onClick={publicLink ? handleCopyPublicLink : undefined}
+                    style={{
+                      ...getInviteInputStyle(),
+                      cursor: publicLink ? "pointer" : "default",
+                    }}
+                  />
+                  <VibesButton
+                    variant={YELLOW}
+                    onClick={publicLink ? handleCopyPublicLink : handleGeneratePublicLink}
+                    disabled={publicLinkStatus === "generating"}
+                  >
+                    {publicLinkStatus === "generating"
+                      ? "Generating..."
+                      : publicLinkCopied
+                        ? "Copied!"
+                        : publicLink
+                          ? "Copy Link"
+                          : "Generate Link"}
+                  </VibesButton>
                 </div>
               </div>
               <VibesButton variant={GRAY} onClick={handleBackClick} icon="back">

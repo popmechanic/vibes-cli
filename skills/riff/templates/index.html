@@ -957,7 +957,7 @@
       // Auto-generated vibes menu components
 // Run: bun scripts/build-components.js --force to regenerate
 // Source: components/
-// Generated: 2026-03-10T07:22:49.893Z
+// Generated: 2026-03-10T08:09:51.719Z
 // Components: 26/26
 
 // === useMobile ===
@@ -2748,6 +2748,7 @@ function getInviteDualFormStyle(isMobile) {
   return {
     display: "flex",
     flexDirection: isMobile ? "column" : "row",
+    alignItems: "stretch",
     gap: "0",
     borderRadius: "20px",
     background: "var(--vibes-button-bg)",
@@ -2991,33 +2992,27 @@ function VibesPanel({
           fontWeight: 600,
           fontSize: "0.85em"
         } }, linkCopied ? "Copied!" : "Copy Invite Link")))
-      )), /* @__PURE__ */ React.createElement("div", { style: getInviteDividerStyle(isMobile) }), /* @__PURE__ */ React.createElement("div", { style: getInviteFormStyle(isMobile) }, /* @__PURE__ */ React.createElement("label", { style: getInviteLabelStyle() }, "Generate public link"), publicLinkStatus === "idle" ? /* @__PURE__ */ React.createElement(
+      )), /* @__PURE__ */ React.createElement("div", { style: getInviteDividerStyle(isMobile) }), /* @__PURE__ */ React.createElement("div", { style: getInviteFormStyle(isMobile) }, /* @__PURE__ */ React.createElement("label", { style: getInviteLabelStyle() }, "Generate public link"), /* @__PURE__ */ React.createElement(
+        "input",
+        {
+          type: "text",
+          readOnly: true,
+          value: publicLink,
+          placeholder: publicLinkStatus === "generating" ? "Generating..." : publicLinkStatus === "error" ? publicLinkMessage : "Click below to generate",
+          onClick: publicLink ? handleCopyPublicLink : void 0,
+          style: {
+            ...getInviteInputStyle(),
+            cursor: publicLink ? "pointer" : "default"
+          }
+        }
+      ), /* @__PURE__ */ React.createElement(
         VibesButton,
         {
           variant: YELLOW,
-          onClick: handleGeneratePublicLink
+          onClick: publicLink ? handleCopyPublicLink : handleGeneratePublicLink,
+          disabled: publicLinkStatus === "generating"
         },
-        "Generate Link"
-      ) : /* @__PURE__ */ React.createElement(
-        BrutalistCard,
-        {
-          id: "public-link-status",
-          role: "status",
-          "aria-live": "polite",
-          size: "sm",
-          variant: publicLinkStatus === "generating" ? "default" : publicLinkStatus === "error" ? "error" : "success",
-          style: getInviteStatusStyle()
-        },
-        publicLinkStatus === "generating" ? "Generating..." : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", null, publicLinkMessage), publicLink && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "0.5rem" } }, /* @__PURE__ */ React.createElement("button", { onClick: handleCopyPublicLink, style: {
-          background: "none",
-          border: "2px solid currentColor",
-          borderRadius: "6px",
-          padding: "0.25rem 0.75rem",
-          cursor: "pointer",
-          color: "inherit",
-          fontWeight: 600,
-          fontSize: "0.85em"
-        } }, publicLinkCopied ? "Copied!" : "Copy Link")))
+        publicLinkStatus === "generating" ? "Generating..." : publicLinkCopied ? "Copied!" : publicLink ? "Copy Link" : "Generate Link"
       ))), /* @__PURE__ */ React.createElement(VibesButton, { variant: GRAY, onClick: handleBackClick, icon: "back" }, "Back")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
         VibesButton,
         {

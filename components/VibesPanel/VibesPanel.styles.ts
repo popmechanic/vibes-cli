@@ -215,6 +215,7 @@ export function getInviteDualFormStyle(isMobile: boolean): React.CSSProperties {
   return {
     display: "flex",
     flexDirection: isMobile ? "column" : "row",
+    alignItems: "stretch",
     gap: "0",
     borderRadius: "20px",
     background: "var(--vibes-button-bg)",
