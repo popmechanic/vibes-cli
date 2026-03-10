@@ -210,7 +210,12 @@ rsync -a \
   --exclude='scripts/__tests__' --exclude='scripts/coverage' \
   --exclude='docs/plans' --exclude='alchemy' \
   --exclude='skills/cloudflare/worker' --exclude='superpowers' \
-  --exclude='.netlify-deploy' --exclude='*.bak.*' --exclude='*.bak.jsx' \
+  --exclude='.netlify-deploy' --exclude='.env' --exclude='.env.*' \
+  --exclude='.connect' --exclude='.wrangler' --exclude='.DS_Store' \
+  --exclude='.vibes-tmp' --exclude='.worktrees' \
+  --exclude='*.bak.*' --exclude='*.bak.html' --exclude='*.bak.jsx' \
+  --exclude='ai-worker' --exclude='designs' --exclude='dist' \
+  --exclude='examples' --exclude='test-vibes' \
   "$REPO_ROOT/" "$PLUGIN_DEST/"
 ```
 
