@@ -40,7 +40,11 @@ Rules: useAI() at component top level, callAI() is async, ask() is fire-and-forg
 Use Fireproof to persist conversations. Show loading state. Handle errors.
 Do NOT use fetch() for AI calls — always useAI(). Do NOT simulate AI responses.`;
 
-export async function handleChat(ctx: ServerContext, onEvent: EventCallback, message: string, effects: string[] = [], animationId: string | null = null, model: string | undefined, reference: any = null, skillId: string | null = null, useAI: boolean = false) {
+export async function handleChat(ctx: ServerContext, onEvent: EventCallback, message: string, effects: string[] = [], animationId: string | null = null, model: string | undefined, reference: any = null, skillId: string | null = null, _useAI: boolean = false) {
+  // Auto-detect useAI from existing app code — no manual toggle needed for chat
+  const appDir = currentAppDir(ctx) || ctx.projectRoot;
+  const appJsxPath = join(appDir, 'app.jsx');
+  const useAI = existsSync(appJsxPath) && readFileSync(appJsxPath, 'utf-8').includes('useAI(');
   let effectBlock = '';
   let referenceBlock = '';
   let skillBlock = '';

@@ -2859,7 +2859,6 @@
                 </div>
               </div>
             </div>
-            <button class="theme-mode-chip" id="chatAiChip" onclick="toggleChatAI()" style="flex-shrink:0;margin-right:0.25rem">Use AI</button>
             <button class="composer-btn" id="skillsBtn" onclick="toggleSkillsModal()" title="Add skill context" style="display:none">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -3486,7 +3485,8 @@
               <label>App Name</label>
               <input type="text" id="deployNameInput" placeholder="my-app"
                 onclick="event.stopPropagation()"
-                oninput="this.value = this.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')" />
+                onkeydown="event.stopPropagation()"
+                oninput="var p=this.selectionStart;var v=this.value.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');if(v!==this.value){var d=this.value.length-v.length;this.value=v;this.setSelectionRange(p-d,p-d);}else{this.value=v;}" />
             </div>
             <button class="deploy-publish-btn" id="deployCf" onclick="startDeploy('cloudflare')">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
@@ -4995,18 +4995,11 @@
 
   let customThemeMode = false;
   let genAIEnabled = false;
-  let chatAIEnabled = false;
 
   function toggleGenAI() {
     genAIEnabled = !genAIEnabled;
     const chip = document.getElementById('genAiChip');
     if (chip) chip.classList.toggle('active', genAIEnabled);
-  }
-
-  function toggleChatAI() {
-    chatAIEnabled = !chatAIEnabled;
-    const chip = document.getElementById('chatAiChip');
-    if (chip) chip.classList.toggle('active', chatAIEnabled);
   }
 
   function setThemeMode(custom) {
@@ -5148,7 +5141,7 @@
     addMessage('user', displayText);
 
     const defaultMsg = refIntent === 'none' ? '' : 'Style the app to match the attached reference';
-    const payload = { type: 'chat', message: text || defaultMsg, model: getModel(), useAI: chatAIEnabled };
+    const payload = { type: 'chat', message: text || defaultMsg, model: getModel() };
     if (activeAnimationId) payload.animationId = activeAnimationId;
     if (activeSkillId) payload.skillId = activeSkillId;
     if (referenceFile) {
