@@ -153,6 +153,10 @@ async function main() {
 		frame: { width: 1280, height: 820 },
 	});
 
+	// Hide native zoom + miniaturize buttons as early as possible.
+	// Called again after editor loads as a belt-and-suspenders fallback.
+	setTimeout(() => hideZoomButton(), 500);
+
 	// Register will-navigate early — active for setup HTML pages AND editor.
 	// Handles vibes://setup/* actions from setup buttons, and opens external
 	// HTTP URLs in the system browser (same mechanism as link preload).
@@ -258,10 +262,6 @@ async function main() {
 			Utils.openExternal(msg.url);
 		}
 	});
-
-	// 4c. Hide zoom button via native dylib (dispatch_async to main thread)
-	// Close and minimize are already hidden by styleMask above
-	setTimeout(() => hideZoomButton(), 500);
 
 	// 4c. Wire up window control callbacks from the web UI
 	ctx.onWindowControl = (action: string) => {
