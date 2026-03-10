@@ -120,9 +120,3 @@ COMPONENT USAGE:
 - Use the pre-styled classes: `card`, `btn`, `input`, `select`, `textarea`, `badge`, `tabs`, `alert`, `separator`, `table`, `accordion`, `dialog`, `progress`, `nav`
 - Variant classes: `btn-red`, `btn-yellow`, `card-red`, `badge-blue`, etc.
 - Components are already styled — focus your CSS on page layout, custom backgrounds, and the `--comp-*` theme
-
-CREATIVE FREEDOM:
-- Choose any color palette that fits the app's subject — dark/moody, pastel/playful, high-contrast/bold, earth tones, neon, monochrome
-- Mix brutalist confidence (thick borders, hard shadows) with the app's personality
-- Create visual hierarchy through size contrast — one hero element, supporting details smaller
-- Use `text-transform: uppercase` and `letter-spacing` for headings that feel authoritative
