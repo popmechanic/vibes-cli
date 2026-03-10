@@ -934,25 +934,16 @@ git commit -m "chore: remove install-vibes.command, replaced by in-app setup"
 
 ---
 
-## Task 9: Auth Flow (PENDING — Loom Skill)
+## Task 9: Auth Flow — Claude CLI OAuth
 
-> **This task is intentionally incomplete.** The authentication step in `setup.ts` is a placeholder. The full OAuth flow will be implemented in collaboration with the Loom skill, which provides an OAuth method for browser-based authentication.
+> **Implemented.** See `docs/superpowers/specs/2026-03-09-desktop-claude-auth-design.md` for the design spec and `docs/superpowers/plans/2026-03-09-desktop-claude-auth.md` for the implementation plan.
 
-**What needs to happen:**
-- Replace the placeholder in `setup.ts` (the `TODO(loom)` block in Step 3) with a real auth check and login flow
-- The setup UI already has the "Sign in with Anthropic" button wired to send `{type:'setup-action', action:'auth'}` via host-message
-- The `waitForRetry` pattern in `setup.ts` shows how to listen for UI actions
-- Auth is a hard gate — the app must not proceed without valid credentials
-
-**What the Loom skill will provide:**
-- A method to check if valid OAuth credentials exist
-- A method to trigger browser-based OAuth login
-- A callback or polling mechanism to detect successful authentication
-
-**Integration points in `setup.ts`:**
-- `runSetup()` Step 3 (search for `TODO(loom)`)
-- The `showAuthButton()` UI function is ready
-- The `host-message` listener pattern is established
+**What was built:**
+- `claude-auth.ts` — checkClaudeAuth, startClaudeLogin, waitForClaudeAuth functions
+- Setup wizard Step 3 gates on `claude auth status`, shows "Login with Anthropic" button, spawns `claude auth login`, polls for completion
+- Normal startup path runs silent auth check, shows login screen if credentials are missing/expired
+- Unified login screen with four states: ready, waiting, success, error
+- Pocket ID auth deferred to first deploy (handled by existing `cli-auth.js`)
 
 ---
 
