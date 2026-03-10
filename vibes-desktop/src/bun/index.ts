@@ -177,7 +177,7 @@ async function main() {
 
 	// 4c. Hide zoom button via native dylib (dispatch_async to main thread)
 	// Close and minimize are already hidden by styleMask above
-	setTimeout(() => hideZoomButton(), 200);
+	setTimeout(() => hideZoomButton(), 500);
 
 	// 4c. Wire up window control callbacks from the web UI
 	ctx.onWindowControl = (action: string) => {
