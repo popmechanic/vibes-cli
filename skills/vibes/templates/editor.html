@@ -3357,7 +3357,8 @@
             <div class="deploy-menu-header">
               <label>App Name</label>
               <input type="text" id="deployNameInput" placeholder="my-app"
-                onclick="event.stopPropagation()" />
+                onclick="event.stopPropagation()"
+                oninput="this.value = this.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')" />
             </div>
             <button class="deploy-publish-btn" id="deployCf" onclick="startDeploy('cloudflare')">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
@@ -3816,7 +3817,8 @@
       <div style="color:#999;font-size:0.875rem;margin-bottom:1rem;">Choose a name to save this app.</div>
       <input type="text" id="appNameInput" value="${suggestion}" placeholder="my-cool-app"
         style="width:100%;padding:0.625rem 0.75rem;background:#2a2a2a;border:2px solid #555;border-radius:8px;color:#f0f0f0;font-size:0.9375rem;font-weight:600;box-sizing:border-box;outline:none;font-family:inherit;"
-        onfocus="this.select()" />
+        onfocus="this.select()"
+        oninput="this.value = this.value.toLowerCase().replace(/\\s+/g, '-').replace(/[^a-z0-9-]/g, '')" />
       <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.25rem;">
         <button id="nameCancel" style="padding:0.625rem 1.25rem;background:#333;color:#ccc;border:2px solid #555;border-radius:8px;font-weight:700;font-size:0.8125rem;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;">Cancel</button>
         <button id="nameSave" style="padding:0.625rem 1.25rem;background:var(--vibes-green);color:white;border:none;border-radius:8px;font-weight:700;font-size:0.8125rem;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;">Save</button>
