@@ -700,6 +700,25 @@ function showLoginScreen(subtitle) {
   document.getElementById('auth-btn').style.display = 'inline-block';
   document.getElementById('auth-hint').style.display = 'inline-block';
 }
+
+function showWelcomeScreen() {
+  // Hide setup steps and banner
+  document.getElementById('step-claude').style.display = 'none';
+  document.getElementById('step-plugin').style.display = 'none';
+  document.getElementById('step-auth').style.display = 'none';
+  var bannerLines = document.querySelectorAll('.term-body > .term-line');
+  for (var i = 0; i < bannerLines.length; i++) bannerLines[i].style.display = 'none';
+  document.querySelector('.ascii-buttons').style.display = 'none';
+
+  // Show the welcome screen
+  document.getElementById('welcome-screen').className = 'welcome-screen visible';
+}
+
+function hideWelcomeScreen() {
+  document.getElementById('welcome-screen').className = 'welcome-screen';
+  // Restore step-auth for the waiting state
+  document.getElementById('step-auth').style.display = '';
+}
 </script>
 </body>
 </html>`;

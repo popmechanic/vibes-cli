@@ -95,6 +95,10 @@ export async function runSetup(
 			mainWindow.webview.executeJavascript(`showAuthSuccess(${jsStr(email)})`),
 		authError: (msg: string) =>
 			mainWindow.webview.executeJavascript(`showAuthError(${jsStr(msg)})`),
+		welcomeScreen: () =>
+			mainWindow.webview.executeJavascript(`showWelcomeScreen()`),
+		hideWelcomeScreen: () =>
+			mainWindow.webview.executeJavascript(`hideWelcomeScreen()`),
 	};
 
 	// Small delay so the UI renders before we start work
@@ -161,15 +165,16 @@ export async function runSetup(
 		log(`[setup] Already authenticated as ${authResult.email}`);
 		ui.step("auth", "done", `Signed in as ${authResult.email || "authenticated"}`);
 	} else {
-		log("[setup] Not authenticated, showing login button");
-		ui.step("auth", "active", "Sign in to continue");
-		ui.showAuth(true);
+		log("[setup] Not authenticated, showing welcome screen");
+		// Transition to welcome screen with VibesOS branding
+		await new Promise(r => setTimeout(r, 400));
+		ui.welcomeScreen();
 
-		// Wait for user to click "Sign in with Anthropic"
+		// Wait for user to click "Sign in"
 		await waitForSetupAction(["auth"]);
 
 		// Start login and poll for completion
-		ui.showAuth(false);
+		ui.hideWelcomeScreen();
 		ui.step("auth", "active", "Waiting for sign-in...");
 		ui.waitingForAuth();
 		log("[setup] Starting Claude auth login...");
