@@ -439,7 +439,7 @@ export const SETUP_HTML = `<!DOCTYPE html>
     text-align: center;
     white-space: pre;
     margin-bottom: 8px;
-    font-family: 'Courier New', 'Courier', monospace;
+    font-family: Menlo, Monaco, 'SF Mono', 'Courier New', monospace;
     background: linear-gradient(to right,
       #009ACE 0% 14.3%,
       #7A7A7A 14.3% 28.6%,
