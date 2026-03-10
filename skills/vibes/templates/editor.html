@@ -370,16 +370,17 @@
     }
     .welcome-card-body {
       padding: 32px 32px 28px;
-      display: flex; flex-direction: column; align-items: center; gap: 16px;
+      display: flex; flex-direction: column; align-items: center; gap: 24px;
     }
     .welcome-ascii-art {
-      color: #5EEAD4; font-size: 11px; line-height: 1.3;
+      color: #5EEAD4; font-size: 11px; line-height: 1.4;
       text-align: center; white-space: pre;
       text-shadow: 0 0 12px rgba(94,234,212,0.3);
+      margin-bottom: 8px;
     }
     .welcome-title {
       font-size: 13px; font-weight: 400; color: #EAE3E0;
-      line-height: 1.6; max-width: 440px;
+      line-height: 1.8; max-width: 440px;
     }
     .welcome-title em {
       font-style: normal; color: #5EEAD4;
@@ -390,8 +391,9 @@
     .welcome-btn {
       font-family: 'SF Mono','JetBrains Mono','Fira Code','Menlo','Consolas',monospace;
       font-size: 13px; background: none; border: none; cursor: pointer;
-      color: #8A7E79; padding: 0; line-height: 1.5;
+      color: #8A7E79; padding: 0; line-height: 1.4;
       transition: color 0.15s, text-shadow 0.15s;
+      white-space: pre; text-align: left;
     }
     .welcome-btn:hover {
       color: #5EEAD4;
@@ -2497,11 +2499,9 @@
             into 100% secure multiplayer and AI apps &mdash;
             without a web server. <em>It's magic.</em>
           </div>
-          <button class="welcome-btn" id="welcomeBtn" onclick="startAuth()">
-            <span class="btn-hl">┌──────────────────────────────┐</span><br>
-            <span class="btn-hl">│</span>&nbsp;&nbsp;▸ Sign in&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="btn-hl">│</span><br>
-            <span class="btn-hl">└──────────────────────────────┘</span>
-          </button>
+          <button class="welcome-btn" id="welcomeBtn" onclick="startAuth()"><span class="btn-hl">┌────────────────────┐</span>
+<span class="btn-hl">│</span>  ▸ Sign in          <span class="btn-hl">│</span>
+<span class="btn-hl">└────────────────────┘</span></button>
           <div class="welcome-hint">Don't have an account? You'll be able to create one.</div>
         </div>
         <div id="welcomeWaiting">

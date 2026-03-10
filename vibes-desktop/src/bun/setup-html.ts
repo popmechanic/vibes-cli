@@ -427,8 +427,8 @@ export const SETUP_HTML = `<!DOCTYPE html>
     display: none;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
-    padding: 8px 0 4px 0;
+    gap: 24px;
+    padding: 12px 0 8px 0;
   }
 
   .welcome-screen.visible { display: flex; }
@@ -436,19 +436,19 @@ export const SETUP_HTML = `<!DOCTYPE html>
   .welcome-ascii {
     color: var(--accent-teal);
     font-size: 11px;
-    line-height: 1.3;
+    line-height: 1.4;
     text-align: center;
     white-space: pre;
     text-shadow: 0 0 12px rgba(94, 234, 212, 0.3);
+    margin-bottom: 8px;
   }
 
   .welcome-tagline {
     color: var(--text-main);
     font-size: 12px;
-    line-height: 1.6;
+    line-height: 1.8;
     text-align: center;
     max-width: 440px;
-    margin-top: 4px;
   }
 
   .welcome-tagline em {
@@ -468,7 +468,12 @@ export const SETUP_HTML = `<!DOCTYPE html>
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    margin-top: 4px;
+  }
+
+  .welcome-buttons .ascii-btn {
+    white-space: pre;
+    text-align: left;
+    line-height: 1.4;
   }
 
   /* Status bar */
@@ -681,13 +686,9 @@ export const SETUP_HTML = `<!DOCTYPE html>
               without a web server. <em>It's magic.</em>
             </div>
             <div class="welcome-buttons">
-              <button class="ascii-btn" id="welcome-auth-btn" onclick="fetch('http://localhost:3335/auth').catch(function(){})" style="display: inline-block;">
-                <span class="btn-highlight">┌──────────────────────────────┐</span>
-                <br>
-                <span class="btn-highlight">│</span>  ▸ Sign in                    <span class="btn-highlight">│</span>
-                <br>
-                <span class="btn-highlight">└──────────────────────────────┘</span>
-              </button>
+              <button class="ascii-btn" id="welcome-auth-btn" onclick="fetch('http://localhost:3335/auth').catch(function(){})" style="display: inline-block;"><span class="btn-highlight">┌────────────────────┐</span>
+<span class="btn-highlight">│</span>  ▸ Sign in          <span class="btn-highlight">│</span>
+<span class="btn-highlight">└────────────────────┘</span></button>
             </div>
             <div class="welcome-hint">Don't have an account? You'll be able to create one.</div>
           </div>
