@@ -240,11 +240,21 @@ describe('cleanEnv', () => {
     else delete process.env.CLAUDE_CODE_ENTRYPOINT;
   });
 
-  it('preserves other environment variables', () => {
+  it('preserves whitelisted environment variables', () => {
+    const original = process.env.HOME;
+    process.env.HOME = '/test/home';
+    const env = cleanEnv();
+    expect(env.HOME).toBe('/test/home');
+    // Restore
+    if (original !== undefined) process.env.HOME = original;
+    else delete process.env.HOME;
+  });
+
+  it('excludes non-whitelisted environment variables', () => {
     const original = process.env.__TEST_PRESERVE_VAR__;
     process.env.__TEST_PRESERVE_VAR__ = 'keep-me';
     const env = cleanEnv();
-    expect(env.__TEST_PRESERVE_VAR__).toBe('keep-me');
+    expect(env).not.toHaveProperty('__TEST_PRESERVE_VAR__');
     // Restore
     if (original !== undefined) process.env.__TEST_PRESERVE_VAR__ = original;
     else delete process.env.__TEST_PRESERVE_VAR__;
@@ -281,11 +291,11 @@ describe('cleanEnv', () => {
     delete process.env.CMUX_SOCKET_PATH;
   });
 
-  it('does not touch CMUX vars when CMUX_SURFACE_ID is absent', () => {
+  it('always removes CMUX vars regardless of CMUX_SURFACE_ID', () => {
     delete process.env.CMUX_SURFACE_ID;
     process.env.CMUX_PANEL_ID = 'panel-stale';
     const env = cleanEnv();
-    expect(env).toHaveProperty('CMUX_PANEL_ID', 'panel-stale');
+    expect(env).not.toHaveProperty('CMUX_PANEL_ID');
     delete process.env.CMUX_PANEL_ID;
   });
 });
