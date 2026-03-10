@@ -26,33 +26,63 @@ let _callbackConnections = new Set();
 // ---------------------------------------------------------------------------
 
 function callbackPage(title, message, { ok = false, autoClose = false } = {}) {
-  const color = ok ? '#22c55e' : '#ef4444';
-  const icon = ok
-    ? '<svg class="icon" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30"/><path d="M20 33l8 8 16-16"/></svg>'
-    : '<svg class="icon" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30"/><path d="M22 22l20 20M42 22l-20 20"/></svg>';
   const safeMsg = message.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const icon = ok ? '✓' : '✗';
+  const iconColor = ok ? '#73D077' : '#FF7B72';
+  const statusColor = ok ? '#73D077' : '#FF7B72';
+  const statusLabel = ok ? 'Complete' : 'Error';
   return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${ok ? 'Authenticated' : 'Error'}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{min-height:100vh;display:flex;justify-content:center;align-items:center;background:#0f172a;font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif}
-.card{position:relative;width:90%;max-width:450px;background-color:#e8e4df;background-image:linear-gradient(to right,rgba(0,0,0,.1) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,.1) 1px,transparent 1px);background-size:40px 40px;border:3px solid #1a1a1a;border-radius:12px;overflow:hidden;animation:fadeIn .4s ease}
-.inner{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 2rem;gap:1.5rem;min-height:280px}
-.bg{position:absolute;top:1.5rem;left:1.5rem;right:1.5rem;bottom:1.5rem;background:${color};border:1px solid black;border-radius:8px;z-index:0;opacity:.35}
-h1{font-size:1.75rem;font-weight:bold;color:#1a1a1a;position:relative;z-index:1}
-p{font-size:1rem;color:#555;position:relative;z-index:1;max-width:360px;text-align:center;line-height:1.5;word-break:break-word}
-.icon{width:64px;height:64px;position:relative;z-index:1}
-.icon circle{fill:${color}}
-.icon path{stroke:#fff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;fill:none;stroke-dasharray:30;stroke-dashoffset:30;animation:draw .5s .3s ease forwards}
+body{min-height:100vh;display:flex;justify-content:center;align-items:center;background-color:#CCCDC8;background-image:linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px);background-size:32px 32px;font-family:'SF Mono','JetBrains Mono','Fira Code','Menlo','Consolas',monospace}
+.terminal-wrapper{width:90%;max-width:520px;animation:float 6s ease-in-out infinite}
+.terminal{background:linear-gradient(145deg,#141211,#0C0B0A);border-radius:24px;border:1px solid #2E2927;box-shadow:inset 0 1px 1px rgba(255,255,255,.06),inset 0 0 0 1px rgba(255,255,255,.02),0 30px 60px rgba(0,0,0,.8),0 0 100px rgba(0,0,0,.5);display:flex;flex-direction:column;overflow:hidden;animation:fadeIn .4s ease}
+.term-header{display:flex;align-items:center;padding:16px 20px;background:rgba(255,255,255,.02);border-bottom:1px solid rgba(0,0,0,.5);box-shadow:0 1px 0 rgba(255,255,255,.02)}
+.term-dots{display:flex;gap:8px;align-items:center}
+.term-dot{width:12px;height:12px;border-radius:50%}
+.term-dot--close{background:#FF7B72}
+.term-dot--min{background:#F2CC60}
+.term-dot--max{background:#73D077}
+.term-title{flex-grow:1;text-align:center;font-size:11px;font-weight:600;letter-spacing:.05em;color:#8A7E79}
+.term-body{padding:24px;font-size:13px;line-height:1.7;display:flex;flex-direction:column;gap:6px;min-height:180px}
+.term-line{display:flex;gap:10px;align-items:flex-start;opacity:0;animation:lineIn .3s ease forwards}
+.line-prefix{font-size:11px;min-width:16px;flex-shrink:0;margin-top:1px}
+.line-content{flex:1}
+.banner{color:#DDBFBF;font-weight:500}
+.divider{opacity:.5;font-size:11px;color:#8A7E79}
+.step{margin-top:8px}
+.step .line-prefix{color:${iconColor}}
+.step .line-content{color:${iconColor}}
+.message{color:#8A7E79;font-size:12px;padding-left:26px;margin-top:4px;opacity:0;animation:lineIn .3s .4s ease forwards}
+.prompt{display:flex;gap:10px;align-items:flex-start;margin-top:12px;opacity:0;animation:lineIn .3s .6s ease forwards}
+.prompt-arrow{color:#5EEAD4;font-weight:700;text-shadow:0 0 8px rgba(94,234,212,.4)}
+.prompt-text{color:#EAE3E0}
+.cursor{display:inline-block;width:8px;height:14px;background:#5EEAD4;margin-left:2px;box-shadow:0 0 8px rgba(94,234,212,.4);animation:blink 1s step-end infinite;vertical-align:text-bottom}
+.cmd{color:#5EEAD4}
+.status-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 24px;background:#1E1B1A;border-top:1px solid #2E2927;font-size:11px;color:#8A7E79;border-bottom-left-radius:23px;border-bottom-right-radius:23px}
+.status-item{display:flex;align-items:center;gap:6px}
+.status-dot{width:6px;height:6px;border-radius:50%;background:${statusColor};box-shadow:0 0 6px ${statusColor}}
 @keyframes fadeIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
-@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes lineIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 </style></head><body>
-<div class="card"><div class="inner">
-<div class="bg"></div>
-${icon}
-<h1>${title}</h1>
-<p>${safeMsg}</p>
+<div class="terminal-wrapper"><div class="terminal">
+<div class="term-header">
+<div class="term-dots"><div class="term-dot term-dot--close"></div><div class="term-dot term-dot--min"></div><div class="term-dot term-dot--max"></div></div>
+<div class="term-title">vibes — auth</div>
+<div style="width:52px"></div>
+</div>
+<div class="term-body">
+<div class="term-line" style="animation-delay:0s"><span class="line-content banner">VibesOS — authentication</span></div>
+<div class="term-line" style="animation-delay:.1s"><span class="line-content divider">─────────────────────────────────────</span></div>
+<div class="term-line step" style="animation-delay:.2s"><span class="line-prefix">${icon}</span><span class="line-content">${title}</span></div>
+<div class="message">${safeMsg}</div>
+<div class="prompt"><span class="prompt-arrow">❯</span><span class="prompt-text"><span class="cmd">vibes</span> ready</span><span class="cursor"></span></div>
+</div>
+<div class="status-bar"><div class="status-item"><div class="status-dot"></div><span>${statusLabel}</span></div><div class="status-item" style="opacity:.5">vibes.diy</div></div>
 </div></div>
 ${autoClose ? '<script>setTimeout(()=>window.close(),1500)</script>' : ''}
 </body></html>`;
@@ -266,7 +296,7 @@ function _startCallbackServer({ authority, clientId, authFile = DEFAULT_AUTH_FIL
       writeCachedTokens(authFile, tokens);
 
       res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(callbackPage('Authenticated', 'This tab will close automatically\u2026', { ok: true, autoClose: true }));
+      res.end(callbackPage('Authenticated', 'You can close this tab.', { ok: true }));
 
       settled = true;
       for (const conn of _callbackConnections) conn.destroy();
