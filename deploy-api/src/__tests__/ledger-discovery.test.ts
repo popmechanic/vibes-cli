@@ -65,6 +65,26 @@ describe("discoverLedgerId", () => {
     expect(result).toBeNull();
   });
 
+  it("does not match partial app names as substring", async () => {
+    const fetchFn = mockFetch({
+      type: "resListLedgersByUser",
+      ledgers: [
+        { ledgerId: "led-wrong", name: "my-app.vibesos.com", role: "admin" },
+        { ledgerId: "led-right", name: "app.vibesos.com", role: "admin" },
+      ],
+    });
+
+    const result = await discoverLedgerId({
+      apiUrl: "https://dashboard.workers.dev/api",
+      serviceToken: "key|owner-1|",
+      appName: "app",
+      fetchFn,
+    });
+
+    // Should match "app.vibesos.com", not "my-app.vibesos.com"
+    expect(result).toBe("led-right");
+  });
+
   it("returns null on fetch error", async () => {
     const fetchFn = vi.fn().mockRejectedValue(new Error("network fail"));
 

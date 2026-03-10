@@ -37,7 +37,8 @@ export async function discoverLedgerId(opts: DiscoverOptions): Promise<string | 
     if (ledgers.length === 0) return null;
 
     // Match by app name in ledger name (OIDC bridge names ledgers after hostname)
-    const match = ledgers.find((l) => l.name.includes(appName));
+    // Use anchored comparison to avoid substring false positives (e.g. "app" matching "my-app")
+    const match = ledgers.find((l) => l.name.startsWith(appName + ".") || l.name === appName);
     return match ? match.ledgerId : ledgers[0].ledgerId;
   } catch {
     return null;

@@ -1047,6 +1047,9 @@ app.get("/join/callback", async (c) => {
   }
 
   const steps: string[] = [];
+  // Clone record for mutations — single KV write at the end
+  const updatedRecord = { ...record };
+
   try {
     // 1. Add user to Pocket ID group
     if (record.userGroupId) {
@@ -1076,12 +1079,8 @@ app.get("/join/callback", async (c) => {
           appName: state.app,
         }) ?? undefined;
         if (ledgerId) {
-          // Cache for future joins
-          await setSubdomain(c.env.REGISTRY_KV, state.app, {
-            ...record,
-            connect: { ...record.connect, ledgerId },
-            updatedAt: new Date().toISOString(),
-          });
+          // Cache for future joins (written in single KV write below)
+          updatedRecord.connect = { ...record.connect, ledgerId };
           steps.push(`ledger discovered: ${ledgerId}`);
         }
       }
@@ -1114,20 +1113,20 @@ app.get("/join/callback", async (c) => {
       steps.push(`no connect (apiUrl=${!!record.connect?.apiUrl}, key=${!!c.env.SERVICE_API_KEY})`);
     }
 
-    // 3. Add collaborator to KV
+    // 3. Add collaborator to record (written in single KV write below)
     steps.push("updating collaborators");
-    const collaborators = record.collaborators || [];
+    const collaborators = updatedRecord.collaborators || [];
     if (!collaborators.some((col) => col.userId === userId)) {
       collaborators.push({ userId, email, role: "member" });
-      await setSubdomain(c.env.REGISTRY_KV, state.app, {
-        ...record,
-        collaborators,
-        updatedAt: new Date().toISOString(),
-      });
+      updatedRecord.collaborators = collaborators;
     }
     steps.push("collaborators OK");
 
-    // 4. Redirect to the app (with OTA for seamless sign-in if available)
+    // 4. Single KV write with all mutations
+    updatedRecord.updatedAt = new Date().toISOString();
+    await setSubdomain(c.env.REGISTRY_KV, state.app, updatedRecord);
+
+    // 5. Redirect to the app (with OTA for seamless sign-in if available)
     const appUrl = c.env.CF_ZONE_ID
       ? `https://${state.app}.vibesos.com`
       : `https://${state.app}.workers.dev`;
@@ -1140,7 +1139,7 @@ app.get("/join/callback", async (c) => {
         c.env.POCKET_ID_API_KEY,
         userId
       );
-      redirectUrl = `${appUrl}?ota=${encodeURIComponent(ota.token)}`;
+      redirectUrl = `${appUrl}?joined=true&ota=${encodeURIComponent(ota.token)}`;
       steps.push("OTA OK");
     } catch (otaErr) {
       // OTA is optional — user can sign in manually on the app
