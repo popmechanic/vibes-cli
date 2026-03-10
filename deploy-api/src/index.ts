@@ -1091,7 +1091,7 @@ app.get("/join/callback", async (c) => {
             type: "reqInviteUser",
             auth: { type: "service", token: serviceToken },
             ticket: {
-              query: { byString: email },
+              query: { byEmail: email },
               invitedParams: {
                 ledger: {
                   id: ledgerId,
@@ -1102,7 +1102,12 @@ app.get("/join/callback", async (c) => {
             },
           }),
         });
-        steps.push(`connect invite ${inviteRes.status}`);
+        if (!inviteRes.ok) {
+          const errBody = await inviteRes.text().catch(() => "");
+          steps.push(`connect invite ${inviteRes.status} error: ${errBody.slice(0, 200)}`);
+        } else {
+          steps.push(`connect invite ${inviteRes.status}`);
+        }
       }
     } else {
       steps.push(`no connect (apiUrl=${!!record.connect?.apiUrl}, key=${!!c.env.SERVICE_API_KEY})`);
