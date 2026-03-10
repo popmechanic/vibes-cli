@@ -8,7 +8,7 @@ import { BrowserWindow } from "electrobun/bun";
 import { SETUP_HTML } from "./setup-html.ts";
 import { CLAUDE_BIN, refreshClaudePath, installClaude } from "./auth.ts";
 import { installPlugin } from "./plugin-installer.ts";
-import { checkClaudeAuth, startClaudeLogin, waitForClaudeAuth } from "./claude-auth.ts";
+import { checkClaudeAuth, startClaudeLogin, waitForClaudeAuth, jsStr } from "./claude-auth.ts";
 
 const VIBES_DIR = join(homedir(), ".vibes");
 
@@ -77,23 +77,23 @@ export async function runSetup(
 	// Helper to push status updates to the UI
 	const ui = {
 		step: (id: string, state: string, label?: string) => {
-			const labelArg = label ? `, "${label.replace(/"/g, '\\"')}"` : "";
-			mainWindow.webview.executeJavascript(`updateStep("${id}", "${state}"${labelArg})`);
+			const labelArg = label ? `, ${jsStr(label)}` : "";
+			mainWindow.webview.executeJavascript(`updateStep(${jsStr(id)}, ${jsStr(state)}${labelArg})`);
 		},
 		showAuth: (show: boolean) =>
 			mainWindow.webview.executeJavascript(`showAuthButton(${show})`),
 		showRetry: (show: boolean) =>
 			mainWindow.webview.executeJavascript(`showRetryButton(${show})`),
 		showError: (msg: string) =>
-			mainWindow.webview.executeJavascript(`showError("${msg.replace(/"/g, '\\"')}")`),
+			mainWindow.webview.executeJavascript(`showError(${jsStr(msg)})`),
 		ready: () =>
 			mainWindow.webview.executeJavascript(`showReady()`),
 		waitingForAuth: () =>
 			mainWindow.webview.executeJavascript(`showWaitingForAuth()`),
 		authSuccess: (email: string) =>
-			mainWindow.webview.executeJavascript(`showAuthSuccess("${email.replace(/"/g, '\\"')}")`),
+			mainWindow.webview.executeJavascript(`showAuthSuccess(${jsStr(email)})`),
 		authError: (msg: string) =>
-			mainWindow.webview.executeJavascript(`showAuthError("${msg.replace(/"/g, '\\"')}")`),
+			mainWindow.webview.executeJavascript(`showAuthError(${jsStr(msg)})`),
 	};
 
 	// Small delay so the UI renders before we start work
@@ -247,7 +247,7 @@ async function waitForRetry<T>(
 			} catch (err: any) {
 				log(`[setup] Retry failed: ${err.message}`);
 				mainWindow.webview.executeJavascript(
-					`showError("${err.message.replace(/"/g, '\\"')}"); showRetryButton(true);`
+					`showError(${jsStr(err.message)}); showRetryButton(true);`
 				);
 			}
 		};

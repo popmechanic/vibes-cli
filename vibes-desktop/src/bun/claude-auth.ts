@@ -10,6 +10,14 @@ export interface ClaudeAuthResult {
 }
 
 /**
+ * Safely escape a string for interpolation into executeJavascript() calls.
+ * JSON.stringify handles backslashes, quotes, newlines, and unicode correctly.
+ */
+export function jsStr(s: string): string {
+	return JSON.stringify(s);
+}
+
+/**
  * Clean environment for spawning Claude subprocesses.
  * Loom gotcha #1: Remove nesting guards but preserve CLAUDE_CODE_OAUTH_TOKEN.
  */
@@ -31,6 +39,10 @@ export function checkClaudeAuth(): ClaudeAuthResult {
 			timeout: 10_000,
 			env: cleanEnv(),
 		});
+
+		if (result.exitCode !== 0 && result.exitCode !== undefined) {
+			return { loggedIn: false };
+		}
 
 		const stdout = result.stdout.toString().trim();
 		if (!stdout) return { loggedIn: false };
@@ -55,7 +67,7 @@ export function startClaudeLogin(): ReturnType<typeof Bun.spawn> {
 	return Bun.spawn([CLAUDE_BIN, "auth", "login"], {
 		env: cleanEnv(),
 		stdout: "ignore",
-		stderr: "pipe",
+		stderr: "ignore",
 	});
 }
 

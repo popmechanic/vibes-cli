@@ -152,7 +152,7 @@ export const SETUP_HTML = `<!DOCTYPE html>
     Retry
   </button>
   <div class="error-detail" id="error-detail"></div>
-  <div style="font-size:11px;color:#555;margin-top:6px;text-align:center" id="auth-hint">Opens your browser</div>
+  <div style="font-size:11px;color:#555;margin-top:6px;text-align:center;display:none" id="auth-hint">Opens your browser</div>
   <div class="auth-waiting" id="auth-waiting">
     Complete sign-in in your browser
     <div class="hint">then return here</div>
@@ -173,6 +173,7 @@ function updateStep(id, state, label) {
 }
 function showAuthButton(show) {
   document.getElementById('auth-btn').style.display = show ? 'block' : 'none';
+  document.getElementById('auth-hint').style.display = show ? 'block' : 'none';
 }
 function showRetryButton(show) {
   document.getElementById('retry-btn').style.display = show ? 'block' : 'none';
@@ -209,6 +210,7 @@ function showLoginScreen(subtitle) {
   document.querySelector('.subtitle').textContent = subtitle || 'Setting up your environment';
   document.querySelector('.steps').style.display = 'none';
   document.getElementById('auth-btn').style.display = 'block';
+  document.getElementById('auth-hint').style.display = 'block';
 }
 </script>
 </body>

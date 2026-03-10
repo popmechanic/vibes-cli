@@ -19,7 +19,7 @@ import { CLAUDE_BIN, refreshClaudePath } from "./auth.ts";
 import { hideZoomButton } from "./window-controls.ts";
 import { isSetupComplete, runSetup, getBundledPluginPath } from "./setup.ts";
 import { SETUP_HTML } from "./setup-html.ts";
-import { checkClaudeAuth, startClaudeLogin, waitForClaudeAuth, type ClaudeAuthResult } from "./claude-auth.ts";
+import { checkClaudeAuth, startClaudeLogin, waitForClaudeAuth, jsStr, type ClaudeAuthResult } from "./claude-auth.ts";
 
 // --- Debug logging (~/Library/Logs/VibesOS/desktop.log) ---
 const LOG_DIR = join(homedir(), "Library", "Logs", "VibesOS");
@@ -68,7 +68,7 @@ async function showLoginAndWait(
 	// Load setup HTML and switch to login-only view
 	mainWindow.webview.loadHTML(SETUP_HTML);
 	await new Promise(r => setTimeout(r, 300));
-	mainWindow.webview.executeJavascript(`showLoginScreen("${subtitle.replace(/"/g, '\\"')}")`);
+	mainWindow.webview.executeJavascript(`showLoginScreen(${jsStr(subtitle)})`);
 
 	while (true) {
 		// Wait for button click (auth or retry)
@@ -89,13 +89,13 @@ async function showLoginAndWait(
 
 		try {
 			const result = await waitForClaudeAuth();
-			mainWindow.webview.executeJavascript(`showAuthSuccess("${(result.email || "").replace(/"/g, '\\"')}")`);
+			mainWindow.webview.executeJavascript(`showAuthSuccess(${jsStr(result.email || "")})`);
 			await new Promise(r => setTimeout(r, 1000));
 			return result;
 		} catch (err: any) {
 			try { loginProc.kill(); } catch {}
 			log(`[vibes-desktop] Auth failed: ${err.message}`);
-			mainWindow.webview.executeJavascript(`showAuthError("${err.message.replace(/"/g, '\\"')}")`);
+			mainWindow.webview.executeJavascript(`showAuthError(${jsStr(err.message)})`);
 			// Loop back — retry button click will re-enter the while loop
 		}
 	}
