@@ -87,7 +87,6 @@ do {
   # Layout: VibesOS (left) → Applications (right)
   create-dmg \
     --volname "$APP_NAME" \
-    --volicon "$ICNS" \
     --background "$DMG_BG" \
     --window-pos 200 100 \
     --window-size 1024 576 \
