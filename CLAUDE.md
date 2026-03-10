@@ -83,12 +83,12 @@ The desktop app lives in `vibes-desktop/` — a thin ElectroBun shell (VibesOS, 
 bash scripts/build-desktop.sh
 ```
 
-Build steps: (1) sync version from `plugin.json`, (2) compile native dylib, (3) `bunx electrobun build`, (4) bundle plugin files into `.app/Contents/Resources/vibes-plugin/` via rsync, (5) create DMG with `create-dmg` (2-icon layout: app + Applications). Output: `vibes-desktop/artifacts/stable-macos-arm64-VibesOS.dmg`.
+Build steps: (1) sync version from `plugin.json`, (2) compile native dylib, (3) clean `build/` dir then `bunx electrobun build` (ElectroBun caches compiled TS — always clean to avoid stale code), (4) bundle plugin files into `.app/Contents/Resources/vibes-plugin/` via rsync, (5) create DMG with `create-dmg` (2-icon layout: app + Applications). Output: `vibes-desktop/artifacts/stable-macos-arm64-VibesOS.dmg`.
 
 ### First-Launch Setup
 
 On first launch (or version upgrade), the app shows a setup UI instead of the editor:
-1. **Claude check/install**: Finds existing Claude binary or installs via `cli.anthropic.com/install.sh`
+1. **Claude check/install**: Finds existing Claude binary or installs via `claude.ai/install.sh`
 2. **Plugin install**: Copies bundled plugin from `.app/Contents/Resources/vibes-plugin/` to `~/.claude/plugins/cache/vibes-bundled/vibes/{version}/`, registers in `installed_plugins.json` and `known_marketplaces.json`
 3. **Auth**: Placeholder — pending Loom skill integration
 

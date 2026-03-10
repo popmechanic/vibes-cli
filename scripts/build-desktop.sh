@@ -39,8 +39,9 @@ else
   echo "  Dylib up to date, skipping."
 fi
 
-# 3. Build ElectroBun app
+# 3. Build ElectroBun app (clean build — ElectroBun caches compiled TS)
 echo "[3/4] Building ElectroBun app (includes plugin bundling)..."
+rm -rf "$DESKTOP_DIR/build"
 cd "$DESKTOP_DIR"
 bunx electrobun build --env=stable
 

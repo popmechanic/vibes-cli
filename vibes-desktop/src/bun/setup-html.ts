@@ -145,10 +145,10 @@ export const SETUP_HTML = `<!DOCTYPE html>
       <span id="label-auth">Authentication</span>
     </div>
   </div>
-  <button class="auth-btn" id="auth-btn" onclick="window.__electrobunSendToHost({type:'setup-action',action:'auth'})">
+  <button class="auth-btn" id="auth-btn" onclick="fetch('http://localhost:3335/auth').catch(function(){})">
     Sign in with Anthropic
   </button>
-  <button class="retry-btn" id="retry-btn" onclick="window.__electrobunSendToHost({type:'setup-action',action:'retry'})">
+  <button class="retry-btn" id="retry-btn" onclick="fetch('http://localhost:3335/retry').catch(function(){})">
     Retry
   </button>
   <div class="error-detail" id="error-detail"></div>

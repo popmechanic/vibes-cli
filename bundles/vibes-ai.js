@@ -88,7 +88,7 @@
             "Authorization": "Bearer " + token,
           },
           body: JSON.stringify({
-            model: options.model || "anthropic/claude-sonnet-4",
+            model: options.model || "anthropic/claude-sonnet-4.6",
             messages: options.messages,
             stream: true,
             ...options.params,
@@ -157,7 +157,7 @@
           method: "POST",
           headers,
           body: JSON.stringify({
-            model: options.model || "anthropic/claude-sonnet-4",
+            model: options.model || "anthropic/claude-sonnet-4.6",
             messages: options.messages,
             ...options,
           }),

@@ -9,6 +9,7 @@ import { SETUP_HTML } from "./setup-html.ts";
 import { CLAUDE_BIN, refreshClaudePath, installClaude } from "./auth.ts";
 import { installPlugin } from "./plugin-installer.ts";
 import { checkClaudeAuth, startClaudeLogin, waitForClaudeAuth, jsStr } from "./claude-auth.ts";
+import { waitForSetupAction } from "./setup-ipc.ts";
 
 const VIBES_DIR = join(homedir(), ".vibes");
 
@@ -165,16 +166,7 @@ export async function runSetup(
 		ui.showAuth(true);
 
 		// Wait for user to click "Sign in with Anthropic"
-		await new Promise<void>((resolve) => {
-			const handler = (event: any) => {
-				const msg = event.data?.detail;
-				if (msg?.type === "setup-action" && msg?.action === "auth") {
-					mainWindow.webview.off("host-message", handler);
-					resolve();
-				}
-			};
-			mainWindow.webview.on("host-message", handler);
-		});
+		await waitForSetupAction(["auth"]);
 
 		// Start login and poll for completion
 		ui.showAuth(false);
@@ -227,30 +219,22 @@ export async function runSetup(
 }
 
 /**
- * Wait for a retry action from the setup UI.
- * Listens for host-message events with type "setup-action" and action "retry".
- * Re-runs the provided action on each retry until it succeeds.
+ * Wait for a retry action from the setup UI, re-running the action until it succeeds.
  */
 async function waitForRetry<T>(
 	mainWindow: BrowserWindow,
 	action: () => Promise<T>,
 	log: (...args: any[]) => void,
 ): Promise<T> {
-	return new Promise((resolve, reject) => {
-		const handler = async (event: any) => {
-			const msg = event.data?.detail;
-			if (msg?.type !== "setup-action" || msg?.action !== "retry") return;
-			try {
-				const result = await action();
-				mainWindow.webview.off("host-message", handler);
-				resolve(result);
-			} catch (err: any) {
-				log(`[setup] Retry failed: ${err.message}`);
-				mainWindow.webview.executeJavascript(
-					`showError(${jsStr(err.message)}); showRetryButton(true);`
-				);
-			}
-		};
-		mainWindow.webview.on("host-message", handler);
-	});
+	while (true) {
+		await waitForSetupAction(["retry"]);
+		try {
+			return await action();
+		} catch (err: any) {
+			log(`[setup] Retry failed: ${err.message}`);
+			mainWindow.webview.executeJavascript(
+				`showError(${jsStr(err.message)}); showRetryButton(true);`
+			);
+		}
+	}
 }

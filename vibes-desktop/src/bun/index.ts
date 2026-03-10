@@ -20,6 +20,7 @@ import { hideZoomButton } from "./window-controls.ts";
 import { isSetupComplete, runSetup, getBundledPluginPath } from "./setup.ts";
 import { SETUP_HTML } from "./setup-html.ts";
 import { checkClaudeAuth, startClaudeLogin, waitForClaudeAuth, jsStr, type ClaudeAuthResult } from "./claude-auth.ts";
+import { waitForSetupAction, stopSetupIpc } from "./setup-ipc.ts";
 
 // --- Debug logging (~/Library/Logs/VibesOS/desktop.log) ---
 const LOG_DIR = join(homedir(), "Library", "Logs", "VibesOS");
@@ -42,7 +43,7 @@ console.error = (...args: any[]) => log("[ERROR]", ...args);
 // --- Constants ---
 const PORT = 3333;
 const SERVER_URL = `http://localhost:${PORT}`;
-const BUILD_ID = "build-2026-03-09-v7";
+const BUILD_ID = "build-2026-03-10-v8-ipc-fix";
 
 // Read app version from plugin.json (synced from .claude-plugin/plugin.json at build time)
 function getAppVersion(): string {
@@ -71,17 +72,8 @@ async function showLoginAndWait(
 	mainWindow.webview.executeJavascript(`showLoginScreen(${jsStr(subtitle)})`);
 
 	while (true) {
-		// Wait for button click (auth or retry)
-		await new Promise<void>((resolve) => {
-			const handler = (event: any) => {
-				const msg = event.data?.detail;
-				if (msg?.type === "setup-action" && (msg?.action === "auth" || msg?.action === "retry")) {
-					mainWindow.webview.off("host-message", handler);
-					resolve();
-				}
-			};
-			mainWindow.webview.on("host-message", handler);
-		});
+		// Wait for button click (auth or retry) via setup IPC server
+		await waitForSetupAction(["auth", "retry"]);
 
 		// Start login and poll
 		mainWindow.webview.executeJavascript(`showWaitingForAuth()`);
@@ -161,6 +153,22 @@ async function main() {
 		frame: { width: 1280, height: 820 },
 	});
 
+	// Register will-navigate early — active for setup HTML pages AND editor.
+	// Handles vibes://setup/* actions from setup buttons, and opens external
+	// HTTP URLs in the system browser (same mechanism as link preload).
+	mainWindow.webview.on("will-navigate", (event) => {
+		const detail = event.data?.detail;
+		log(`[will-navigate] detail:`, JSON.stringify(detail));
+		let url: string | undefined;
+		if (typeof detail === "string") {
+			try { url = JSON.parse(detail)?.url || detail; } catch { url = detail; }
+		}
+		if (url && (url.startsWith("http://") || url.startsWith("https://")) && !url.startsWith(`http://localhost:${PORT}`)) {
+			log(`[will-navigate] Opening externally: ${url}`);
+			Utils.openExternal(url);
+		}
+	});
+
 	let claudeBin: string;
 	let pluginPaths: any;
 
@@ -222,6 +230,9 @@ async function main() {
 	log(`[vibes-desktop] Plugin root: ${pluginPaths.root}`);
 	log(`[vibes-desktop] Server started at ${SERVER_URL}`);
 
+	// Setup is done — shut down the IPC server
+	stopSetupIpc();
+
 	// Load the editor in the window (transition from setup UI or blank page)
 	mainWindow.webview.loadURL(SERVER_URL);
 
@@ -237,21 +248,6 @@ async function main() {
 		`*://localhost:${PORT}/*`,   // Allow local server
 		`*://localhost:${PORT}`,
 	]);
-
-	// Safety net: open blocked navigations (location.href, form submits, meta refresh) in system browser
-	mainWindow.webview.on("will-navigate", (event) => {
-		const detail = event.data?.detail;
-		log(`[will-navigate] detail:`, JSON.stringify(detail));
-		// detail is a string (URL) for will-navigate events; parse if JSON
-		let url: string | undefined;
-		if (typeof detail === "string") {
-			try { url = JSON.parse(detail)?.url || detail; } catch { url = detail; }
-		}
-		if (url && (url.startsWith("http://") || url.startsWith("https://")) && !url.startsWith(`http://localhost:${PORT}`)) {
-			log(`[will-navigate] Opening externally: ${url}`);
-			Utils.openExternal(url);
-		}
-	});
 
 	// Host messages from preload — open-external requests
 	mainWindow.webview.on("host-message", (event) => {
