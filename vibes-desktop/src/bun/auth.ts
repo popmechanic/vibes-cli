@@ -71,3 +71,27 @@ export let CLAUDE_BIN = resolveClaudePath();
 export function refreshClaudePath(): void {
 	CLAUDE_BIN = resolveClaudePath();
 }
+
+/**
+ * Install Claude Code via Anthropic's official installer.
+ * Returns the resolved path to the installed binary.
+ * Throws if installation fails.
+ */
+export async function installClaude(): Promise<string> {
+	const result = Bun.spawnSync(
+		["sh", "-c", "curl -sSL https://cli.anthropic.com/install.sh | sh"],
+		{ timeout: 120_000 }
+	);
+
+	if (result.exitCode !== 0) {
+		const stderr = result.stderr.toString().trim();
+		throw new Error(`Claude installation failed: ${stderr || "unknown error"}`);
+	}
+
+	// Re-resolve — installer puts binary at ~/.claude/local/claude
+	refreshClaudePath();
+	if (CLAUDE_BIN === "claude") {
+		throw new Error("Claude installed but binary not found on PATH");
+	}
+	return CLAUDE_BIN;
+}
