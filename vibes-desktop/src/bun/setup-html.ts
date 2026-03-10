@@ -434,13 +434,24 @@ export const SETUP_HTML = `<!DOCTYPE html>
   .welcome-screen.visible { display: flex; }
 
   .welcome-ascii {
-    color: var(--accent-teal);
     font-size: 11px;
     line-height: 1.4;
     text-align: center;
     white-space: pre;
-    text-shadow: 0 0 12px rgba(94, 234, 212, 0.3);
     margin-bottom: 8px;
+    font-family: 'Courier New', 'Courier', monospace;
+    background: linear-gradient(to right,
+      #231F20 0% 14.3%,
+      #7A7A7A 14.3% 28.6%,
+      #FFFFF0 28.6% 42.9%,
+      #CCCDC8 42.9% 57.2%,
+      #DA291C 57.2% 71.5%,
+      #FEDD00 71.5% 85.8%,
+      #009ACE 85.8% 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   .welcome-tagline {
