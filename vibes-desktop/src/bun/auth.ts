@@ -83,7 +83,7 @@ export async function installClaude(): Promise<string> {
 
 	// Step 1: Download installer script (--fail returns non-zero on HTTP errors)
 	const download = Bun.spawnSync(
-		["curl", "--fail", "-sSL", "https://cli.anthropic.com/install.sh", "-o", tmpScript],
+		["curl", "--fail", "-sSL", "https://claude.ai/install.sh", "-o", tmpScript],
 		{ timeout: 30_000 }
 	);
 
@@ -92,9 +92,9 @@ export async function installClaude(): Promise<string> {
 		throw new Error(`Failed to download installer: ${stderr || "network error"}`);
 	}
 
-	// Step 2: Run the installer
+	// Step 2: Run the installer (official docs use bash, not sh)
 	const install = Bun.spawnSync(
-		["sh", tmpScript],
+		["bash", tmpScript],
 		{ timeout: 120_000, stderr: "pipe", stdout: "pipe" }
 	);
 
