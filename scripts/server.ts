@@ -64,6 +64,7 @@ export async function startServer(options?: StartServerOptions): Promise<StartSe
   }
 
   const server = Bun.serve<WsData>({
+    hostname: '127.0.0.1',
     port: ctx.port,
     idleTimeout: 255,
 
