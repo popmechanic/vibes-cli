@@ -1,7 +1,7 @@
 // vibes-desktop/src/bun/claude-auth.ts
 // Wraps Claude CLI auth commands for desktop app startup.
 
-import { CLAUDE_BIN } from "./auth.ts";
+import { CLAUDE_BIN, VIBES_CONFIG_DIR } from "./auth.ts";
 
 export interface ClaudeAuthResult {
 	loggedIn: boolean;
@@ -26,6 +26,9 @@ function cleanEnv(): Record<string, string | undefined> {
 	delete env.CLAUDECODE;
 	delete env.CLAUDE_CODE_ENTRYPOINT;
 	// Deliberately keep CLAUDE_CODE_OAUTH_TOKEN
+	// Isolate credentials to ~/.vibes/claude-config/ so the vibes-managed
+	// binary never reads/writes the user's own ~/.claude/ config.
+	env.CLAUDE_CONFIG_DIR = VIBES_CONFIG_DIR;
 	return env;
 }
 

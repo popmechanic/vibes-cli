@@ -95,6 +95,8 @@ export function buildClaudeArgs(config = {}) {
 
 import { existsSync } from 'fs';
 import { spawnSync } from 'child_process';
+import { join } from 'path';
+import { homedir } from 'os';
 
 /**
  * Resolve the full path to the claude binary.
@@ -167,5 +169,8 @@ export function cleanEnv() {
   env.CMUX_TAB_ID = '';
   env.CMUX_WORKSPACE_ID = '';
   env.CMUX_SOCKET_PATH = '';
+  // Isolate credentials to ~/.vibes/claude-config/ so the vibes-managed
+  // binary never reads/writes the user's own ~/.claude/ config.
+  env.CLAUDE_CONFIG_DIR = join(homedir(), '.vibes', 'claude-config');
   return env;
 }

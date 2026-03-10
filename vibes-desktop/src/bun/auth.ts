@@ -6,6 +6,9 @@ const GCS_BUCKET = "https://storage.googleapis.com/claude-code-dist-86c565f3-f75
 const VIBES_BIN_DIR = join(homedir(), ".vibes", "bin");
 const VIBES_CLAUDE_BIN = join(VIBES_BIN_DIR, "claude");
 
+/** Isolated config dir so the vibes-managed claude binary has its own credentials. */
+export const VIBES_CONFIG_DIR = join(homedir(), ".vibes", "claude-config");
+
 // macOS GUI apps inherit a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin).
 // We still inherit the shell PATH for other tools (node, bun, etc.)
 function inheritShellPath(): void {

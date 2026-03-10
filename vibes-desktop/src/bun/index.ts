@@ -15,7 +15,7 @@ import { join } from "path";
 import { appendFileSync, mkdirSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { discoverVibesPlugin } from "./plugin-discovery.ts";
-import { CLAUDE_BIN, refreshClaudePath, isClaudeInstalled } from "./auth.ts";
+import { CLAUDE_BIN, refreshClaudePath, isClaudeInstalled, VIBES_CONFIG_DIR } from "./auth.ts";
 import { hideZoomButton } from "./window-controls.ts";
 import { isSetupComplete, runSetup, getBundledPluginPath } from "./setup.ts";
 import { SETUP_HTML } from "./setup-html.ts";
@@ -222,6 +222,8 @@ async function main() {
 
 	// Expose resolved Claude path for server subprocess spawning
 	process.env.CLAUDE_BIN = claudeBin;
+	// Isolate credentials so vibes-managed claude uses its own config store
+	process.env.CLAUDE_CONFIG_DIR = VIBES_CONFIG_DIR;
 
 	// Start the server
 	const serverModule = await import(join(pluginPaths.root, "scripts", "server.ts"));
@@ -356,6 +358,7 @@ function checkClaude(): boolean {
 	console.log(`[vibes-desktop] checkClaude: CLAUDE_BIN=${CLAUDE_BIN}`);
 	// Verify our managed binary exists at ~/.vibes/bin/claude.
 	// Never fall back to bare "claude" — that could hit the user's own installation.
+	// Auth is checked separately after plugin discovery (line ~213).
 	const installed = isClaudeInstalled();
 	console.log(`[vibes-desktop] checkClaude: isClaudeInstalled() = ${installed}`);
 	return installed;

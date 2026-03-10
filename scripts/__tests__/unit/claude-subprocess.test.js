@@ -220,21 +220,21 @@ describe('TASK_PROFILES', () => {
 });
 
 describe('cleanEnv', () => {
-  it('removes CLAUDECODE from environment', () => {
+  it('overrides CLAUDECODE to empty string', () => {
     const original = process.env.CLAUDECODE;
     process.env.CLAUDECODE = 'true';
     const env = cleanEnv();
-    expect(env).not.toHaveProperty('CLAUDECODE');
+    expect(env.CLAUDECODE).toBe('');
     // Restore
     if (original !== undefined) process.env.CLAUDECODE = original;
     else delete process.env.CLAUDECODE;
   });
 
-  it('removes CLAUDE_CODE_ENTRYPOINT from environment', () => {
+  it('overrides CLAUDE_CODE_ENTRYPOINT to empty string', () => {
     const original = process.env.CLAUDE_CODE_ENTRYPOINT;
     process.env.CLAUDE_CODE_ENTRYPOINT = '/some/path';
     const env = cleanEnv();
-    expect(env).not.toHaveProperty('CLAUDE_CODE_ENTRYPOINT');
+    expect(env.CLAUDE_CODE_ENTRYPOINT).toBe('');
     // Restore
     if (original !== undefined) process.env.CLAUDE_CODE_ENTRYPOINT = original;
     else delete process.env.CLAUDE_CODE_ENTRYPOINT;
@@ -261,18 +261,18 @@ describe('cleanEnv', () => {
     delete process.env.CLAUDE_CODE_ENTRYPOINT;
   });
 
-  it('removes CMUX nesting vars when CMUX_SURFACE_ID is present', () => {
+  it('overrides CMUX nesting vars to empty string', () => {
     process.env.CMUX_SURFACE_ID = 'surface-1';
     process.env.CMUX_PANEL_ID = 'panel-1';
     process.env.CMUX_TAB_ID = 'tab-1';
     process.env.CMUX_WORKSPACE_ID = 'ws-1';
     process.env.CMUX_SOCKET_PATH = '/tmp/cmux.sock';
     const env = cleanEnv();
-    expect(env).not.toHaveProperty('CMUX_SURFACE_ID');
-    expect(env).not.toHaveProperty('CMUX_PANEL_ID');
-    expect(env).not.toHaveProperty('CMUX_TAB_ID');
-    expect(env).not.toHaveProperty('CMUX_WORKSPACE_ID');
-    expect(env).not.toHaveProperty('CMUX_SOCKET_PATH');
+    expect(env.CMUX_SURFACE_ID).toBe('');
+    expect(env.CMUX_PANEL_ID).toBe('');
+    expect(env.CMUX_TAB_ID).toBe('');
+    expect(env.CMUX_WORKSPACE_ID).toBe('');
+    expect(env.CMUX_SOCKET_PATH).toBe('');
     // Cleanup
     delete process.env.CMUX_SURFACE_ID;
     delete process.env.CMUX_PANEL_ID;
@@ -281,11 +281,32 @@ describe('cleanEnv', () => {
     delete process.env.CMUX_SOCKET_PATH;
   });
 
-  it('does not touch CMUX vars when CMUX_SURFACE_ID is absent', () => {
-    delete process.env.CMUX_SURFACE_ID;
-    process.env.CMUX_PANEL_ID = 'panel-stale';
+  it('sets CLAUDE_CONFIG_DIR to ~/.vibes/claude-config', () => {
     const env = cleanEnv();
-    expect(env).toHaveProperty('CMUX_PANEL_ID', 'panel-stale');
-    delete process.env.CMUX_PANEL_ID;
+    const { join } = require('path');
+    const { homedir } = require('os');
+    const expected = join(homedir(), '.vibes', 'claude-config');
+    expect(env.CLAUDE_CONFIG_DIR).toBe(expected);
+  });
+
+  it('CLAUDE_CONFIG_DIR is always set regardless of existing value', () => {
+    const original = process.env.CLAUDE_CONFIG_DIR;
+    process.env.CLAUDE_CONFIG_DIR = '/some/other/path';
+    const env = cleanEnv();
+    const { join } = require('path');
+    const { homedir } = require('os');
+    expect(env.CLAUDE_CONFIG_DIR).toBe(join(homedir(), '.vibes', 'claude-config'));
+    // Restore
+    if (original !== undefined) process.env.CLAUDE_CONFIG_DIR = original;
+    else delete process.env.CLAUDE_CONFIG_DIR;
+  });
+
+  it('does not modify process.env.CLAUDE_CONFIG_DIR', () => {
+    const original = process.env.CLAUDE_CONFIG_DIR;
+    delete process.env.CLAUDE_CONFIG_DIR;
+    cleanEnv();
+    expect(process.env.CLAUDE_CONFIG_DIR).toBeUndefined();
+    // Restore
+    if (original !== undefined) process.env.CLAUDE_CONFIG_DIR = original;
   });
 });
