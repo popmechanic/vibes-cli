@@ -555,6 +555,41 @@ export const SETUP_HTML = `<!DOCTYPE html>
     to   { opacity: 1; transform: translateY(0); }
   }
 
+  /* Progress bar */
+  .progress-container {
+    display: none;
+    padding-left: 26px;
+    margin: 4px 0 6px 0;
+    animation: lineIn 0.3s ease forwards;
+  }
+
+  .progress-container.visible { display: block; }
+
+  .progress-track {
+    height: 6px;
+    background: var(--term-border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 4px 0;
+  }
+
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent-teal);
+    border-radius: 3px;
+    box-shadow: 0 0 8px rgba(94, 234, 212, 0.3);
+    transition: width 0.15s ease-out;
+  }
+
+  .progress-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
   /* Syntax colors */
   .cmd { color: var(--accent-teal); }
   .arg { color: #A7C080; }
@@ -637,6 +672,20 @@ export const SETUP_HTML = `<!DOCTYPE html>
           <div class="term-line step-line visible" id="step-claude" style="animation-delay: 0.2s; margin-top: 8px;">
             <span class="line-prefix" id="icon-claude">○</span>
             <span class="line-content" id="label-claude">Checking for Claude Code...</span>
+          </div>
+
+          <!-- Progress bar (shown during Claude download) -->
+          <div class="progress-container" id="progress-container">
+            <div class="progress-stats">
+              <span id="progress-label">Downloading...</span>
+              <span id="progress-pct">0%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <div class="progress-stats">
+              <span id="progress-size"></span>
+            </div>
           </div>
 
           <!-- Step: Plugin -->
@@ -813,6 +862,37 @@ function showAuthError(msg) {
   document.getElementById('auth-btn').style.display = 'none';
   showError(msg);
   showRetryButton(true);
+}
+
+var progressStart = 0;
+function showProgress(show) {
+  var el = document.getElementById('progress-container');
+  if (show) {
+    el.className = 'progress-container visible';
+    progressStart = Date.now();
+    document.getElementById('progress-label').textContent = 'Downloading...';
+    document.getElementById('progress-fill').style.width = '0%';
+    document.getElementById('progress-pct').textContent = '0%';
+    document.getElementById('progress-size').textContent = '';
+    document.getElementById('progress-speed').textContent = '';
+  } else {
+    el.className = 'progress-container';
+  }
+}
+
+function updateProgress(downloaded, total) {
+  var pct = Math.min(Math.round((downloaded / total) * 100), 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+
+  var elapsed = (Date.now() - progressStart) / 1000;
+  if (elapsed > 1) {
+    document.getElementById('progress-size').textContent = Math.round(elapsed) + 's elapsed';
+  }
+
+  if (pct >= 100) {
+    document.getElementById('progress-label').textContent = 'Verifying...';
+  }
 }
 
 function showLoginScreen(subtitle) {

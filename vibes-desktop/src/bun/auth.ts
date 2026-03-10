@@ -103,7 +103,9 @@ function detectPlatform(): string {
  * official install script uses. We're fetching the same binary, just placing it
  * in our own directory.
  */
-export async function installClaude(): Promise<string> {
+export type ProgressCallback = (downloaded: number, total: number) => void;
+
+export async function installClaude(onProgress?: ProgressCallback): Promise<string> {
 	const platform = detectPlatform();
 	console.log(`[auth] Installing Claude for platform: ${platform}`);
 
@@ -143,18 +145,58 @@ export async function installClaude(): Promise<string> {
 	}
 	console.log(`[auth] Expected checksum: ${checksum.slice(0, 16)}...`);
 
-	// Step 3: Download the binary
+	// Step 3: Download the binary with progress via async curl
+	// Uses curl (system TLS, proxy support) with stderr progress parsing.
 	mkdirSync(VIBES_BIN_DIR, { recursive: true });
 	const tmpPath = join(VIBES_BIN_DIR, `claude-downloading-${Date.now()}`);
+	const downloadUrl = `${GCS_BUCKET}/${version}/${platform}/claude`;
 
-	const downloadResult = Bun.spawnSync(
-		["curl", "--fail", "-sSL", "-o", tmpPath, `${GCS_BUCKET}/${version}/${platform}/claude`],
-		{ timeout: 300_000 }
+	// curl -# writes progress to stderr as: "  ## 45.2%"
+	const proc = Bun.spawn(
+		["curl", "--fail", "-L", "-#", "-o", tmpPath, downloadUrl],
+		{ stdout: "ignore", stderr: "pipe" }
 	);
-	if (downloadResult.exitCode !== 0) {
-		try { require("fs").unlinkSync(tmpPath); } catch {}
-		throw new Error(`Failed to download binary: ${downloadResult.stderr.toString().trim() || "network error"}`);
+
+	// Parse curl's progress bar output from stderr
+	if (onProgress) {
+		const stderrReader = proc.stderr.getReader();
+		const decoder = new TextDecoder();
+		let stderrBuf = "";
+		(async () => {
+			try {
+				while (true) {
+					const { done, value } = await stderrReader.read();
+					if (done) break;
+					stderrBuf += decoder.decode(value, { stream: true });
+					// curl -# writes lines like "####                     23.5%"
+					// or segments with "XX.X%" — extract the last percentage seen
+					const matches = stderrBuf.match(/(\d+\.?\d*)\s*%/g);
+					if (matches) {
+						const lastMatch = matches[matches.length - 1];
+						const pct = parseFloat(lastMatch);
+						if (!isNaN(pct)) {
+							// Report as bytes out of 100 — the UI just needs a ratio
+							onProgress(pct, 100);
+						}
+					}
+					// Keep only the tail to avoid unbounded buffer growth
+					if (stderrBuf.length > 2000) {
+						stderrBuf = stderrBuf.slice(-500);
+					}
+				}
+			} catch {}
+		})();
 	}
+
+	const exitCode = await proc.exited;
+	if (exitCode !== 0) {
+		try { require("fs").unlinkSync(tmpPath); } catch {}
+		throw new Error(`Failed to download binary (curl exit ${exitCode})`);
+	}
+
+	const { statSync } = require("fs");
+	const size = statSync(tmpPath).size;
+	console.log(`[auth] Download complete (${(size / 1024 / 1024).toFixed(1)}MB)`);
 
 	// Step 4: Verify checksum
 	const shaResult = Bun.spawnSync(

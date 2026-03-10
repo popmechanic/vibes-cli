@@ -99,6 +99,10 @@ export async function runSetup(
 			mainWindow.webview.executeJavascript(`showWelcomeScreen()`),
 		hideWelcomeScreen: () =>
 			mainWindow.webview.executeJavascript(`hideWelcomeScreen()`),
+		showProgress: (show: boolean) =>
+			mainWindow.webview.executeJavascript(`showProgress(${show})`),
+		updateProgress: (downloaded: number, total: number) =>
+			mainWindow.webview.executeJavascript(`updateProgress(${downloaded}, ${total})`),
 	};
 
 	// Small delay so the UI renders before we start work
@@ -116,13 +120,19 @@ export async function runSetup(
 		log(`[setup] Claude found at ${claudeBin}`);
 		ui.step("claude", "done", "Claude Code found");
 	} else {
-		ui.step("claude", "active", "Installing Claude Code...");
+		ui.step("claude", "active", "Downloading Claude Code...");
+		ui.showProgress(true);
 		log("[setup] Claude not found, installing...");
+		const onProgress = (downloaded: number, total: number) => {
+			ui.updateProgress(downloaded, total);
+		};
 		try {
-			claudeBin = await installClaude();
+			claudeBin = await installClaude(onProgress);
+			ui.showProgress(false);
 			log(`[setup] Claude installed at ${claudeBin}`);
 			ui.step("claude", "done", "Claude Code installed");
 		} catch (err: any) {
+			ui.showProgress(false);
 			log(`[setup] Claude installation failed: ${err.message}`);
 			ui.step("claude", "error", "Installation failed");
 			ui.showError(err.message);
@@ -131,8 +141,16 @@ export async function runSetup(
 			claudeBin = await waitForRetry(mainWindow, async () => {
 				ui.showRetry(false);
 				ui.showError("");
-				ui.step("claude", "active", "Installing Claude Code...");
-				return await installClaude();
+				ui.step("claude", "active", "Downloading Claude Code...");
+				ui.showProgress(true);
+				try {
+					const result = await installClaude(onProgress);
+					ui.showProgress(false);
+					return result;
+				} catch (retryErr) {
+					ui.showProgress(false);
+					throw retryErr;
+				}
 			}, log);
 			ui.step("claude", "done", "Claude Code installed");
 		}
