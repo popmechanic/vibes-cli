@@ -644,6 +644,7 @@ app.post("/deploy", async (c) => {
         r2AccessKeyId: c.env.R2_ACCESS_KEY_ID,
         r2SecretAccessKey: c.env.R2_SECRET_ACCESS_KEY,
         serviceApiKey: c.env.SERVICE_API_KEY,
+        zoneId: c.env.CF_ZONE_ID,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Connect provisioning failed";
@@ -773,16 +774,18 @@ app.get("/debug/discover-ledger/:name", async (c) => {
     return c.json({ error: "missing connect or service key", hasApiUrl: !!record.connect?.apiUrl, hasKey: !!c.env.SERVICE_API_KEY });
   }
 
-  if (!record.connect.d1DashboardId) {
-    return c.json({ error: "no d1DashboardId in connect config" });
-  }
+  const serviceToken = `${c.env.SERVICE_API_KEY}|${record.owner}|`;
   const ledgerId = await discoverLedgerId({
-    accountId: c.env.CF_ACCOUNT_ID,
-    apiToken: c.env.CF_API_TOKEN,
-    d1DatabaseId: record.connect.d1DashboardId,
+    apiUrl: record.connect.apiUrl,
+    serviceToken,
     appName: name,
+    d1Fallback: record.connect.d1DashboardId ? {
+      accountId: c.env.CF_ACCOUNT_ID,
+      apiToken: c.env.CF_API_TOKEN,
+      d1DatabaseId: record.connect.d1DashboardId,
+    } : undefined,
   });
-  return c.json({ ledgerId, owner: record.owner, d1DatabaseId: record.connect.d1DashboardId, cachedLedgerId: record.connect.ledgerId || null });
+  return c.json({ ledgerId, owner: record.owner, apiUrl: record.connect.apiUrl, cachedLedgerId: record.connect.ledgerId || null });
 });
 
 // Invite endpoint — add user to app's Pocket ID group
@@ -1110,19 +1113,23 @@ app.get("/join/callback", async (c) => {
     // 2. Create Connect invite via dashboard API (service auth)
     if (record.connect?.apiUrl && c.env.SERVICE_API_KEY) {
       const serviceToken = `${c.env.SERVICE_API_KEY}|${record.owner}|`;
+      const d1Fallback = record.connect.d1DashboardId ? {
+        accountId: c.env.CF_ACCOUNT_ID,
+        apiToken: c.env.CF_API_TOKEN,
+        d1DatabaseId: record.connect.d1DashboardId,
+      } : undefined;
 
       // Discover ledgerId lazily (created on first app sync, not at deploy time)
       let ledgerId = record.connect.ledgerId;
-      if (!ledgerId && record.connect.d1DashboardId) {
-        steps.push("discovering ledger via D1");
+      if (!ledgerId) {
+        steps.push("discovering ledger");
         ledgerId = await discoverLedgerId({
-          accountId: c.env.CF_ACCOUNT_ID,
-          apiToken: c.env.CF_API_TOKEN,
-          d1DatabaseId: record.connect.d1DashboardId,
+          apiUrl: record.connect.apiUrl,
+          serviceToken,
           appName: state.app,
+          d1Fallback,
         }) ?? undefined;
         if (ledgerId) {
-          // Cache for future joins (written in single KV write below)
           updatedRecord.connect = { ...record.connect, ledgerId };
           steps.push(`ledger discovered: ${ledgerId}`);
         }
@@ -1130,54 +1137,89 @@ app.get("/join/callback", async (c) => {
 
       if (!ledgerId) {
         steps.push("no ledger found — skipping connect invite");
-      } else if (record.connect.d1DashboardId) {
-        // Insert invite directly into D1 (bypasses Worker-to-Worker fetch limitation)
-        steps.push("creating invite via D1");
+      } else {
+        // Try dashboard HTTP API first (works via custom domain), fall back to D1
+        steps.push("creating invite");
+        let inviteCreated = false;
+
+        // Dashboard HTTP attempt
         try {
-          const inviteId = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
-          const now = new Date().toISOString();
-          const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-          const normalizedEmail = email.trim().toLowerCase();
-          // Look up the owner's dashboard userId from UserByProviders
-          const ownerLookup = await fetch(
-            `https://api.cloudflare.com/client/v4/accounts/${c.env.CF_ACCOUNT_ID}/d1/database/${record.connect.d1DashboardId}/query`,
-            {
-              method: "POST",
-              headers: { "Authorization": `Bearer ${c.env.CF_API_TOKEN}`, "Content-Type": "application/json" },
-              body: JSON.stringify({
-                sql: "SELECT userId FROM UserByProviders WHERE providerUserId = ? LIMIT 1",
-                params: [record.owner],
-              }),
-            }
-          );
-          const ownerData = await ownerLookup.json() as { result: Array<{ results: Array<{ userId: string }> }> };
-          const ownerUserId = ownerData.result?.[0]?.results?.[0]?.userId;
-          if (!ownerUserId) {
-            steps.push("owner not found in dashboard DB");
+          const inviteRes = await fetch(record.connect.apiUrl, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "reqInviteUser",
+              auth: { type: "service", token: serviceToken },
+              ticket: {
+                query: { byEmail: email },
+                invitedParams: {
+                  ledger: {
+                    id: ledgerId,
+                    role: "member",
+                    right: record.publicInvite.right || "write",
+                  },
+                },
+              },
+            }),
+          });
+          if (inviteRes.ok) {
+            inviteCreated = true;
+            steps.push(`invite OK (dashboard)`);
           } else {
-            const right = record.publicInvite.right || "write";
-            const invitedParams = JSON.stringify({ ledger: { role: "member", right } });
-            const insertRes = await fetch(
-              `https://api.cloudflare.com/client/v4/accounts/${c.env.CF_ACCOUNT_ID}/d1/database/${record.connect.d1DashboardId}/query`,
+            const errBody = await inviteRes.text().catch(() => "");
+            steps.push(`dashboard invite ${inviteRes.status}, trying D1`);
+          }
+        } catch (e) {
+          steps.push(`dashboard invite failed, trying D1`);
+        }
+
+        // D1 fallback
+        if (!inviteCreated && d1Fallback) {
+          try {
+            const inviteId = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+            const now = new Date().toISOString();
+            const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+            const normalizedEmail = email.trim().toLowerCase();
+            const ownerLookup = await fetch(
+              `https://api.cloudflare.com/client/v4/accounts/${d1Fallback.accountId}/d1/database/${d1Fallback.d1DatabaseId}/query`,
               {
                 method: "POST",
-                headers: { "Authorization": `Bearer ${c.env.CF_API_TOKEN}`, "Content-Type": "application/json" },
+                headers: { "Authorization": `Bearer ${d1Fallback.apiToken}`, "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  sql: `INSERT INTO InviteTickets (inviteId, inviterUserId, status, statusReason, queryEmail, invitedLedgerId, invitedParams, sendEmailCount, expiresAfter, createdAt, updatedAt)
-                        VALUES (?, ?, 'pending', 'join link', ?, ?, ?, 0, ?, ?, ?)`,
-                  params: [inviteId, ownerUserId, normalizedEmail, ledgerId, invitedParams, expires, now, now],
+                  sql: "SELECT userId FROM UserByProviders WHERE providerUserId = ? LIMIT 1",
+                  params: [record.owner],
                 }),
               }
             );
-            if (!insertRes.ok) {
-              const errText = await insertRes.text().catch(() => "");
-              steps.push(`D1 invite insert failed ${insertRes.status}: ${errText.slice(0, 200)}`);
+            const ownerData = await ownerLookup.json() as { result: Array<{ results: Array<{ userId: string }> }> };
+            const ownerUserId = ownerData.result?.[0]?.results?.[0]?.userId;
+            if (!ownerUserId) {
+              steps.push("owner not found in dashboard DB");
             } else {
-              steps.push(`D1 invite created: ${inviteId}`);
+              const right = record.publicInvite.right || "write";
+              const invitedParams = JSON.stringify({ ledger: { role: "member", right } });
+              const insertRes = await fetch(
+                `https://api.cloudflare.com/client/v4/accounts/${d1Fallback.accountId}/d1/database/${d1Fallback.d1DatabaseId}/query`,
+                {
+                  method: "POST",
+                  headers: { "Authorization": `Bearer ${d1Fallback.apiToken}`, "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    sql: `INSERT INTO InviteTickets (inviteId, inviterUserId, status, statusReason, queryEmail, invitedLedgerId, invitedParams, sendEmailCount, expiresAfter, createdAt, updatedAt)
+                          VALUES (?, ?, 'pending', 'join link', ?, ?, ?, 0, ?, ?, ?)`,
+                    params: [inviteId, ownerUserId, normalizedEmail, ledgerId, invitedParams, expires, now, now],
+                  }),
+                }
+              );
+              if (insertRes.ok) {
+                steps.push(`invite OK (D1: ${inviteId})`);
+              } else {
+                const errText = await insertRes.text().catch(() => "");
+                steps.push(`D1 invite failed ${insertRes.status}: ${errText.slice(0, 200)}`);
+              }
             }
+          } catch (inviteErr) {
+            steps.push(`D1 invite error: ${inviteErr instanceof Error ? inviteErr.message : String(inviteErr)}`);
           }
-        } catch (inviteErr) {
-          steps.push(`D1 invite error: ${inviteErr instanceof Error ? inviteErr.message : String(inviteErr)}`);
         }
       }
     } else {

@@ -22,6 +22,8 @@ interface ProvisionParams {
   r2SecretAccessKey: string;
   /** Service API key for machine-to-machine auth (public link join flow) */
   serviceApiKey?: string;
+  /** CF zone ID for custom domain assignment (vibesos.com) */
+  zoneId?: string;
 }
 
 interface CFApiResponse<T = unknown> {
@@ -490,11 +492,39 @@ export async function provisionConnect(params: ProvisionParams): Promise<Connect
   });
   await enableWorkerSubdomain(accountId, apiToken, dashboardName);
 
-  // 7. Get workers.dev subdomain for URL construction
+  // 7. Assign custom domain to dashboard Worker for Worker-to-Worker access
+  // (.workers.dev URLs fail with error 1042 when fetched from another Worker on the same account)
+  const dashboardHostname = `connect-${stage}.vibesos.com`;
+  let dashboardCustomDomain = false;
+  if (params.zoneId) {
+    try {
+      const domainRes = await fetch(`${CF_API}/accounts/${accountId}/workers/domains`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${apiToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          hostname: dashboardHostname,
+          service: dashboardName,
+          zone_id: params.zoneId,
+          environment: "production",
+        }),
+      });
+      dashboardCustomDomain = domainRes.ok;
+      if (!domainRes.ok) {
+        console.error(`[connect] Dashboard custom domain failed for ${dashboardHostname}: ${await domainRes.text().catch(() => "")}`);
+      }
+    } catch (e) {
+      console.error(`[connect] Dashboard custom domain error:`, e);
+    }
+  }
+
+  // 8. Get workers.dev subdomain for URL construction
   const workersSubdomain = await getWorkersSubdomain(accountId, apiToken);
 
   const cloudBackendUrl = `https://${cloudBackendName}.${workersSubdomain}.workers.dev`;
-  const dashboardUrl = `https://${dashboardName}.${workersSubdomain}.workers.dev`;
+  // Use custom domain if available (required for Worker-to-Worker fetch), fall back to .workers.dev
+  const dashboardUrl = dashboardCustomDomain
+    ? `https://${dashboardHostname}`
+    : `https://${dashboardName}.${workersSubdomain}.workers.dev`;
 
   return {
     cloudBackendUrl,
