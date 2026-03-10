@@ -45,6 +45,7 @@ export interface ConnectInfo {
   d1DashboardId: string;
   sessionTokenPublic: string;
   deployedAt: string;
+  ledgerId?: string;
 }
 
 export interface JWTPayload {
@@ -66,7 +67,6 @@ export interface SubdomainRecord {
   oidcClientId?: string;
   userGroupId?: string;
   publicInvite?: { token: string; right: string; createdAt: string };
-  connect?: { apiUrl?: string; cloudBackendUrl?: string; dashboardUrl?: string; ledgerId?: string };
   createdAt?: string;
   updatedAt?: string;
 }
