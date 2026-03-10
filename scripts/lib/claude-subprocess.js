@@ -155,16 +155,17 @@ export function resolveClaudeBin() {
  */
 export function cleanEnv() {
   const env = { ...process.env };
-  delete env.CLAUDECODE;
-  delete env.CLAUDE_CODE_ENTRYPOINT;
+  // Override nesting guard to empty string — delete may not prevent
+  // Bun.spawn() from re-inheriting from the parent process env.
+  // See: https://github.com/anthropics/claude-agent-sdk-python/issues/573
+  env.CLAUDECODE = '';
+  env.CLAUDE_CODE_ENTRYPOINT = '';
   // cmux terminal sets CMUX_* vars that trigger nesting detection.
   // These are terminal-state identifiers, not auth tokens — safe to remove.
-  if (env.CMUX_SURFACE_ID) {
-    delete env.CMUX_SURFACE_ID;
-    delete env.CMUX_PANEL_ID;
-    delete env.CMUX_TAB_ID;
-    delete env.CMUX_WORKSPACE_ID;
-    delete env.CMUX_SOCKET_PATH;
-  }
+  env.CMUX_SURFACE_ID = '';
+  env.CMUX_PANEL_ID = '';
+  env.CMUX_TAB_ID = '';
+  env.CMUX_WORKSPACE_ID = '';
+  env.CMUX_SOCKET_PATH = '';
   return env;
 }
