@@ -1132,7 +1132,7 @@ app.get("/join/callback", async (c) => {
       ? `https://${state.app}.vibesos.com`
       : `https://${state.app}.workers.dev`;
 
-    let redirectUrl = appUrl;
+    let redirectUrl = `${appUrl}?joined=true`;
     try {
       steps.push("generating OTA");
       const ota = await createOneTimeAccessToken(

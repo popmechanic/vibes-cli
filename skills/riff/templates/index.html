@@ -940,6 +940,8 @@
         deployApiUrl: "__VITE_DEPLOY_API_URL__",
         aiProxyUrl: "__VITE_AI_PROXY_URL__"
       };
+      // Detect ?joined=true param (set by public link join redirect)
+      window.__VIBES_JOINED__ = new URLSearchParams(window.location.search).get('joined') === 'true';
       // Default: single theme hides the Design button in VibesPanel.
       // Apps with multiple themes override this before menu loads.
       window.__VIBES_THEMES__ = [{ id: "default", name: "Default" }];
@@ -3608,10 +3610,11 @@ if (typeof window !== 'undefined') {
         const RED = window.RED;
 
         // AuthGate shown when user is not signed in
+        const isJoined = window.__VIBES_JOINED__;
         const AuthGate = () => (
           <AuthScreen
-            title="Sign in to continue"
-            message="This app uses cloud sync and requires authentication."
+            title={isJoined ? "Welcome! You've been invited to collaborate." : "Sign in to continue"}
+            message={isJoined ? "Sign in to get started." : "This app uses cloud sync and requires authentication."}
             showCard={true}
           >
             <SignInButton>

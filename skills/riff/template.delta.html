@@ -44,10 +44,11 @@
         const RED = window.RED;
 
         // AuthGate shown when user is not signed in
+        const isJoined = window.__VIBES_JOINED__;
         const AuthGate = () => (
           <AuthScreen
-            title="Sign in to continue"
-            message="This app uses cloud sync and requires authentication."
+            title={isJoined ? "Welcome! You've been invited to collaborate." : "Sign in to continue"}
+            message={isJoined ? "Sign in to get started." : "This app uses cloud sync and requires authentication."}
             showCard={true}
           >
             <SignInButton>
