@@ -24,6 +24,7 @@ import {
   createOneTimeAccessToken,
 } from "./pocket-id";
 import { generateCodeVerifier, generateCodeChallenge } from "./pkce";
+import { discoverLedgerId } from "./ledger-discovery";
 
 // ---------------------------------------------------------------------------
 // JWT Verification — Dynamic JWKS
@@ -1063,27 +1064,52 @@ app.get("/join/callback", async (c) => {
 
     // 2. Create Connect invite via dashboard API (service auth)
     if (record.connect?.apiUrl && c.env.SERVICE_API_KEY) {
-      steps.push(`connect invite to ${record.connect.apiUrl}`);
       const serviceToken = `${c.env.SERVICE_API_KEY}|${record.owner}|`;
-      const inviteRes = await fetch(record.connect.apiUrl, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "reqInviteUser",
-          auth: { type: "service", token: serviceToken },
-          ticket: {
-            query: { byString: email },
-            invitedParams: {
-              ledger: {
-                id: record.connect.ledgerId,
-                role: "member",
-                right: record.publicInvite.right || "write",
+
+      // Discover ledgerId lazily (created on first app sync, not at deploy time)
+      let ledgerId = record.connect.ledgerId;
+      if (!ledgerId) {
+        steps.push("discovering ledger");
+        ledgerId = await discoverLedgerId({
+          apiUrl: record.connect.apiUrl,
+          serviceToken,
+          appName: state.app,
+        }) ?? undefined;
+        if (ledgerId) {
+          // Cache for future joins
+          await setSubdomain(c.env.REGISTRY_KV, state.app, {
+            ...record,
+            connect: { ...record.connect, ledgerId },
+            updatedAt: new Date().toISOString(),
+          });
+          steps.push(`ledger discovered: ${ledgerId}`);
+        }
+      }
+
+      if (!ledgerId) {
+        steps.push("no ledger found — skipping connect invite");
+      } else {
+        steps.push(`connect invite to ${record.connect.apiUrl}`);
+        const inviteRes = await fetch(record.connect.apiUrl, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "reqInviteUser",
+            auth: { type: "service", token: serviceToken },
+            ticket: {
+              query: { byString: email },
+              invitedParams: {
+                ledger: {
+                  id: ledgerId,
+                  role: "member",
+                  right: record.publicInvite.right || "write",
+                },
               },
             },
-          },
-        }),
-      });
-      steps.push(`connect invite ${inviteRes.status}`);
+          }),
+        });
+        steps.push(`connect invite ${inviteRes.status}`);
+      }
     } else {
       steps.push(`no connect (apiUrl=${!!record.connect?.apiUrl}, key=${!!c.env.SERVICE_API_KEY})`);
     }
