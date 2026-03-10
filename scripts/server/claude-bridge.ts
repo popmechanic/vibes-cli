@@ -173,7 +173,7 @@ export async function runOneShot(
   })();
 
   // Silence timeout
-  const SILENCE_HARD = 300_000;
+  const SILENCE_HARD = 600_000;
   const silenceInterval = setInterval(() => {
     const silentFor = Date.now() - lastStdoutTime;
     if (silentFor >= SILENCE_HARD) {
