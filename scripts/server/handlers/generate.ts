@@ -103,17 +103,26 @@ Extract the visual design from this HTML:
       if (intent === 'mood') {
         referenceBlock = `MANDATORY FIRST STEP: Read the image at ${refPath} using the Read tool.
 
-ANALYZE the image like a theme designer — before writing any code, identify:
-- MOOD: 3-4 adjectives describing the visual feeling
-- COLOR PALETTE: extract every distinct color as oklch() — background, text, accent, borders, muted tones
-- DESIGN PRINCIPLES: border styles, shadow depth, spacing rhythm
-- TYPOGRAPHY FEEL: weight, style, sizing hierarchy
-- SURFACE TREATMENT: glass/frosted effects, gradients, textures, card styles
-- MOTION ENERGY: calm/lively/dramatic — what kind of transitions and hover effects fit
-- DECORATIVE ELEMENTS: any SVG patterns, background shapes, dividers, icons style
+You are extracting a COMPLETE visual theme from this image — as detailed as a professional design system.
+
+In your <design> block, write out ALL of the following before ANY code:
+
+1. MOOD: 3-4 adjectives (e.g. "warm, editorial, refined, tactile")
+2. COLOR PALETTE — extract EVERY distinct color you see, converted to oklch():
+   - Background color(s): main page bg, card bg, surface bg
+   - Text colors: primary, secondary/muted, headings
+   - Accent color(s): buttons, links, highlights
+   - Border/divider colors
+   - Any gradient stops
+   Write them as a complete :root block with --comp-bg, --comp-text, --comp-border, --comp-accent, --comp-accent-text, --comp-muted, --color-background
+3. TYPOGRAPHY: exact font families (find matching Google Fonts), weights, letter-spacing, text-transform patterns
+4. SURFACES: border-radius values, box-shadow patterns, backdrop-filter, gradients, card styles — with exact CSS
+5. SPACING RHYTHM: padding/margin/gap patterns you observe
+6. DECORATIVE ELEMENTS: background patterns, SVG shapes, dividers, icons style
+7. MOTION ENERGY: calm/lively/dramatic — what animations fit this mood
 
 Apply the MOOD and COLOR PALETTE from this image to the app you generate.
-Use the extracted oklch() colors for the --comp-* tokens and :root block.
+Use the extracted oklch() colors EXACTLY in your :root block — do not approximate or simplify.
 --color-background MUST match the image's background. Never leave it transparent or unset.
 
 `;
@@ -121,18 +130,28 @@ Use the extracted oklch() colors for the --comp-* tokens and :root block.
         // intent === 'match'
         referenceBlock = `MANDATORY FIRST STEP: Read the image at ${refPath} using the Read tool.
 
-ANALYZE the image like a theme designer — before writing any code, identify:
-- MOOD: 3-4 adjectives describing the visual feeling
-- COLOR PALETTE: extract every distinct color as oklch() — background, text, accent, borders, muted tones
-- DESIGN PRINCIPLES: border styles, shadow depth, spacing rhythm
-- TYPOGRAPHY FEEL: weight, style, sizing hierarchy
-- SURFACE TREATMENT: glass/frosted effects, gradients, textures, card styles
-- LAYOUT STRUCTURE: how is the space divided? sidebar? header? grid? cards? split-pane?
-- MOTION ENERGY: calm/lively/dramatic
-- DECORATIVE ELEMENTS: any SVG patterns, background shapes, dividers, icons style
+You are extracting a COMPLETE visual theme AND layout from this image — as detailed as a professional design system.
+
+In your <design> block, write out ALL of the following before ANY code:
+
+1. MOOD: 3-4 adjectives (e.g. "warm, editorial, refined, tactile")
+2. COLOR PALETTE — extract EVERY distinct color you see, converted to oklch():
+   - Background color(s): main page bg, card bg, surface bg
+   - Text colors: primary, secondary/muted, headings
+   - Accent color(s): buttons, links, highlights
+   - Border/divider colors
+   - Any gradient stops
+   Write them as a complete :root block with --comp-bg, --comp-text, --comp-border, --comp-accent, --comp-accent-text, --comp-muted, --color-background
+3. TYPOGRAPHY: exact font families (find matching Google Fonts), weights, letter-spacing, text-transform patterns
+4. SURFACES: border-radius values, box-shadow patterns, backdrop-filter, gradients, card styles — with exact CSS
+5. SPACING RHYTHM: padding/margin/gap patterns you observe
+6. LAYOUT STRUCTURE: how is the space divided? sidebar? header? grid? cards? split-pane? List each section with its approximate proportions
+7. COMPONENT ARRANGEMENT: nav position, content hierarchy, card grid, footer placement
+8. DECORATIVE ELEMENTS: background patterns, SVG shapes, dividers, icons style
+9. MOTION ENERGY: calm/lively/dramatic — what animations fit this mood
 
 Apply BOTH the visual style AND layout structure from this image to the app you generate.
-Use the extracted oklch() colors for the --comp-* tokens and :root block.
+Use the extracted oklch() colors EXACTLY in your :root block — do not approximate or simplify.
 Match the layout structure, spatial organization, component arrangement, and visual hierarchy of the image.
 --color-background MUST match the image's background. Never leave it transparent or unset.
 The goal: the generated app should look like the image was its design spec.
