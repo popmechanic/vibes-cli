@@ -642,6 +642,7 @@ app.post("/deploy", async (c) => {
         dashboardBundle: DASHBOARD_BUNDLE,
         r2AccessKeyId: c.env.R2_ACCESS_KEY_ID,
         r2SecretAccessKey: c.env.R2_SECRET_ACCESS_KEY,
+        serviceApiKey: c.env.SERVICE_API_KEY,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Connect provisioning failed";

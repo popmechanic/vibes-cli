@@ -20,6 +20,8 @@ interface ProvisionParams {
   /** Pre-created R2 S3-compatible credentials (shared across all apps) */
   r2AccessKeyId: string;
   r2SecretAccessKey: string;
+  /** Service API key for machine-to-machine auth (public link join flow) */
+  serviceApiKey?: string;
 }
 
 interface CFApiResponse<T = unknown> {
@@ -389,6 +391,7 @@ export async function provisionConnect(params: ProvisionParams): Promise<Connect
     dashboardBundle,
     r2AccessKeyId,
     r2SecretAccessKey,
+    serviceApiKey,
   } = params;
 
   const cloudBackendName = `fireproof-cloud-${stage}`;
@@ -465,6 +468,8 @@ export async function provisionConnect(params: ProvisionParams): Promise<Connect
       { type: 'plain_text', name: 'MAX_MEMBER_USERS', text: '50' },
       { type: 'plain_text', name: 'MAX_INVITES', text: '100' },
       { type: 'plain_text', name: 'MAX_LEDGERS', text: '50' },
+      // Service auth for machine-to-machine API calls (public link join flow)
+      ...(serviceApiKey ? [{ type: 'secret_text' as const, name: 'SERVICE_API_KEY', text: serviceApiKey }] : []),
     ],
   });
   await enableWorkerSubdomain(accountId, apiToken, dashboardName);
