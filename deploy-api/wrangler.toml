@@ -13,6 +13,7 @@ OIDC_ISSUER = "https://vibesos.com"
 # POCKET_ID_API_KEY - Pocket ID admin API key for per-app registration
 # R2_ACCESS_KEY_ID - R2 S3-compatible API token (shared across all apps)
 # R2_SECRET_ACCESS_KEY - R2 S3-compatible secret key
+# SERVICE_API_KEY - shared key for machine-to-machine auth with Connect dashboard (for public link join flow)
 
 # Service Binding to Pocket ID Worker (avoids .workers.dev routing issue)
 [[services]]
