@@ -12,7 +12,7 @@
 import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { buildClaudeArgs, TASK_PROFILES, cleanEnv } from './lib/claude-subprocess.js';
+import { buildClaudeArgs, TASK_PROFILES, cleanEnv, resolveClaudeBin } from './lib/claude-subprocess.js';
 
 const [,, theme, lens, outputPath, visual] = process.argv;
 
@@ -92,7 +92,8 @@ Requirements:
 
 try {
   const args = buildClaudeArgs(TASK_PROFILES.riffGenerate);
-  const result = spawnSync('claude', args, {
+  const claudeBin = resolveClaudeBin();
+  const result = spawnSync(claudeBin, args, {
     input: prompt,
     encoding: 'utf-8',
     maxBuffer: 10 * 1024 * 1024, // 10MB buffer

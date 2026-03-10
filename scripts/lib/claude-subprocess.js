@@ -98,24 +98,39 @@ import { spawnSync } from 'child_process';
 
 /**
  * Resolve the full path to the claude binary.
- * Desktop apps don't inherit the user's shell PATH, so we probe via login shell
- * and fall back to common install locations.
+ *
+ * Priority:
+ * 1. CLAUDE_BIN env var (set by desktop app to ~/.vibes/bin/claude)
+ * 2. ~/.vibes/bin/claude (our managed installation)
+ * 3. Shell/system fallbacks (for CLI-mode development only)
+ *
+ * Never returns bare "claude" — always an explicit path to prevent
+ * accidentally invoking the user's own Claude installation.
  */
 let _cachedClaudeBin;
 export function resolveClaudeBin() {
   if (_cachedClaudeBin) return _cachedClaudeBin;
+
+  // Desktop app sets this to the managed binary path
   if (process.env.CLAUDE_BIN) { _cachedClaudeBin = process.env.CLAUDE_BIN; return _cachedClaudeBin; }
 
-  // Try login shell
+  const home = process.env.HOME || '';
+
+  // Check our managed installation first
+  const vibesBin = `${home}/.vibes/bin/claude`;
+  if (existsSync(vibesBin)) { _cachedClaudeBin = vibesBin; return vibesBin; }
+
+  // Fallback for CLI development (not desktop): try login shell and system paths
   for (const flags of ['-lic', '-lc', '-ic']) {
     try {
       const r = spawnSync('zsh', [flags, 'which claude'], { timeout: 5000 });
       const p = r.stdout?.toString().trim();
-      if (p && r.status === 0 && !p.includes('not found')) { _cachedClaudeBin = p; return p; }
+      if (p && r.status === 0 && !p.includes('not found') && existsSync(p)) {
+        _cachedClaudeBin = p; return p;
+      }
     } catch {}
   }
 
-  const home = process.env.HOME || '';
   for (const p of [
     `${home}/.claude/local/claude`,
     '/usr/local/bin/claude',
@@ -126,8 +141,12 @@ export function resolveClaudeBin() {
     if (existsSync(p)) { _cachedClaudeBin = p; return p; }
   }
 
-  _cachedClaudeBin = 'claude';
-  return _cachedClaudeBin;
+  // Last resort — throw rather than returning bare "claude" which could
+  // resolve to the user's own installation via PATH
+  throw new Error(
+    'Claude binary not found. Expected at ~/.vibes/bin/claude. ' +
+    'Run the VibesOS desktop app to install, or set CLAUDE_BIN env var.'
+  );
 }
 
 /**

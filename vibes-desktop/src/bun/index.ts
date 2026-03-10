@@ -15,7 +15,7 @@ import { join } from "path";
 import { appendFileSync, mkdirSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { discoverVibesPlugin } from "./plugin-discovery.ts";
-import { CLAUDE_BIN, refreshClaudePath } from "./auth.ts";
+import { CLAUDE_BIN, refreshClaudePath, isClaudeInstalled } from "./auth.ts";
 import { hideZoomButton } from "./window-controls.ts";
 import { isSetupComplete, runSetup, getBundledPluginPath } from "./setup.ts";
 import { SETUP_HTML } from "./setup-html.ts";
@@ -354,22 +354,11 @@ async function main() {
 
 function checkClaude(): boolean {
 	console.log(`[vibes-desktop] checkClaude: CLAUDE_BIN=${CLAUDE_BIN}`);
-	// In ElectroBun bundles, spawning claude may fail due to sandboxed PATH/env.
-	// Just verify the binary exists on disk — the server will spawn it with proper env later.
-	if (CLAUDE_BIN === "claude") {
-		// Fallback name means resolveClaudePath found nothing
-		console.log("[vibes-desktop] checkClaude: no resolved path, trying spawn");
-		try {
-			const result = Bun.spawnSync([CLAUDE_BIN, "--version"], { timeout: 5000 });
-			return result.exitCode === 0 && result.stdout.toString().trim().length > 0;
-		} catch {
-			return false;
-		}
-	}
-	const { existsSync } = require("fs");
-	const exists = existsSync(CLAUDE_BIN);
-	console.log(`[vibes-desktop] checkClaude: existsSync(${CLAUDE_BIN}) = ${exists}`);
-	return exists;
+	// Verify our managed binary exists at ~/.vibes/bin/claude.
+	// Never fall back to bare "claude" — that could hit the user's own installation.
+	const installed = isClaudeInstalled();
+	console.log(`[vibes-desktop] checkClaude: isClaudeInstalled() = ${installed}`);
+	return installed;
 }
 
 main().catch((err) => {

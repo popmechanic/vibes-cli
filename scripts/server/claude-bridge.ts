@@ -112,19 +112,24 @@ export async function runOneShot(
     permissionMode: opts.permissionMode,
   });
 
-  console.log(`[OneShot] Spawning (prompt: ${(prompt.length / 1024).toFixed(1)}KB)...`);
+  const claudeBin = resolveClaudeBin();
+  const spawnCwd = opts.cwd || process.cwd();
+  console.log(`[OneShot] Spawning (prompt: ${(prompt.length / 1024).toFixed(1)}KB, bin: ${claudeBin}, cwd: ${spawnCwd})...`);
+  console.log(`[OneShot] Args: ${args.join(' ')}`);
 
   const proc = Bun.spawn({
-    cmd: [resolveClaudeBin(), ...args],
-    cwd: opts.cwd || process.cwd(),
+    cmd: [claudeBin, ...args],
+    cwd: spawnCwd,
     env: cleanEnv(),
     stdin: 'pipe',
     stdout: 'pipe',
     stderr: 'pipe',
   });
 
+  console.log(`[OneShot] PID ${proc.pid} spawned`);
   proc.stdin.write(prompt);
   proc.stdin.end();
+  console.log(`[OneShot] PID ${proc.pid} stdin written and closed`);
 
   // Register cancel callback so the operation lock can kill this subprocess.
   // NOTE: The 5s SIGKILL fallback may not fire if the caller's process.exit()
@@ -167,9 +172,14 @@ export async function runOneShot(
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        stderrBuffer += decoder.decode(value, { stream: true });
+        const chunk = decoder.decode(value, { stream: true });
+        stderrBuffer += chunk;
+        console.log(`[OneShot] PID ${proc.pid} STDERR (${getElapsed()}s): ${chunk.slice(0, 500)}`);
       }
-    } catch {}
+    } catch (e) {
+      console.log(`[OneShot] PID ${proc.pid} stderr reader error: ${e}`);
+    }
+    console.log(`[OneShot] PID ${proc.pid} stderr stream ended (${getElapsed()}s)`);
   })();
 
   // Silence timeout
@@ -247,14 +257,28 @@ export async function runOneShot(
   });
 
   const stdoutReader = proc.stdout.getReader();
+  let stdoutChunks = 0;
+  let stdoutBytes = 0;
+  console.log(`[OneShot] PID ${proc.pid} reading stdout...`);
   try {
     while (true) {
       const { done, value } = await stdoutReader.read();
-      if (done) break;
+      if (done) {
+        console.log(`[OneShot] PID ${proc.pid} stdout DONE (${getElapsed()}s, ${stdoutChunks} chunks, ${stdoutBytes} bytes)`);
+        break;
+      }
+      stdoutChunks++;
+      stdoutBytes += value.length;
+      if (stdoutChunks <= 3 || stdoutChunks % 50 === 0) {
+        const preview = new TextDecoder().decode(value).slice(0, 200);
+        console.log(`[OneShot] PID ${proc.pid} stdout chunk #${stdoutChunks} (${value.length}B, ${getElapsed()}s): ${preview}`);
+      }
       lastStdoutTime = Date.now();
       parse(value);
     }
-  } catch {}
+  } catch (e) {
+    console.log(`[OneShot] PID ${proc.pid} stdout reader error (${getElapsed()}s): ${e}`);
+  }
 
   clearInterval(silenceInterval);
 

@@ -6,7 +6,7 @@ import { join } from "path";
 import { homedir } from "os";
 import { BrowserWindow } from "electrobun/bun";
 import { SETUP_HTML } from "./setup-html.ts";
-import { CLAUDE_BIN, refreshClaudePath, installClaude } from "./auth.ts";
+import { CLAUDE_BIN, refreshClaudePath, installClaude, isClaudeInstalled } from "./auth.ts";
 import { installPlugin } from "./plugin-installer.ts";
 import { checkClaudeAuth, startClaudeLogin, waitForClaudeAuth, jsStr } from "./claude-auth.ts";
 import { waitForSetupAction } from "./setup-ipc.ts";
@@ -111,7 +111,7 @@ export async function runSetup(
 	let claudeBin: string;
 	refreshClaudePath();
 
-	if (CLAUDE_BIN !== "claude" && existsSync(CLAUDE_BIN)) {
+	if (isClaudeInstalled()) {
 		claudeBin = CLAUDE_BIN;
 		log(`[setup] Claude found at ${claudeBin}`);
 		ui.step("claude", "done", "Claude Code found");

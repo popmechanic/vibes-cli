@@ -1,5 +1,9 @@
 // vibes-desktop/src/bun/plugin-installer.ts
-import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, readdirSync, rmSync } from "fs";
+//
+// Installs plugin files into ~/.vibes/plugins/vibes/{version}/.
+// Does NOT touch ~/.claude/plugins/ — avoids corrupting the user's
+// existing Claude plugin registry.
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from "fs";
 import { join, dirname } from "path";
 import { homedir } from "os";
 
@@ -11,32 +15,10 @@ export interface PluginInstallResult {
 }
 
 /**
- * Read a JSON file, returning fallback if missing or malformed.
- */
-function readJsonSafe(path: string, fallback: any): any {
-	try {
-		if (!existsSync(path)) return fallback;
-		return JSON.parse(readFileSync(path, "utf-8"));
-	} catch {
-		return fallback;
-	}
-}
-
-/**
- * Atomic write: write to temp file, then rename.
- * Prevents corruption if process crashes mid-write.
- */
-function atomicWriteJson(path: string, data: any): void {
-	const tmp = path + ".tmp." + Date.now();
-	writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n");
-	renameSync(tmp, path);
-}
-
-/**
- * Copy plugin files from the .app bundle into ~/.claude/plugins/
- * and register in installed_plugins.json + known_marketplaces.json.
+ * Copy plugin files from the .app bundle into ~/.vibes/plugins/vibes/{version}/.
  *
- * Safe for User A (existing plugins) — merges, never overwrites.
+ * This is a self-contained copy — no shared state is modified. The desktop app's
+ * plugin-discovery.ts reads from this directory directly.
  */
 export async function installPlugin(bundledPluginPath: string): Promise<PluginInstallResult> {
 	// Read version from bundled plugin.json
@@ -48,9 +30,8 @@ export async function installPlugin(bundledPluginPath: string): Promise<PluginIn
 	const version: string = pluginJson.version;
 
 	const h = homedir();
-	const pluginsDir = join(h, ".claude", "plugins");
-	const vibesBundledDir = join(pluginsDir, "cache", "vibes-bundled", "vibes");
-	const cacheDir = join(vibesBundledDir, version);
+	const vibesPluginsDir = join(h, ".vibes", "plugins", "vibes");
+	const cacheDir = join(vibesPluginsDir, version);
 
 	// Check if already installed at this version
 	const existingPluginJson = join(cacheDir, ".claude-plugin", "plugin.json");
@@ -64,11 +45,11 @@ export async function installPlugin(bundledPluginPath: string): Promise<PluginIn
 	}
 
 	// Clean up old version directories before installing new one
-	if (existsSync(vibesBundledDir)) {
+	if (existsSync(vibesPluginsDir)) {
 		try {
-			const oldVersions = readdirSync(vibesBundledDir).filter(v => !v.startsWith(".") && v !== version);
+			const oldVersions = readdirSync(vibesPluginsDir).filter(v => !v.startsWith(".") && v !== version);
 			for (const oldVersion of oldVersions) {
-				rmSync(join(vibesBundledDir, oldVersion), { recursive: true, force: true });
+				rmSync(join(vibesPluginsDir, oldVersion), { recursive: true, force: true });
 			}
 		} catch {}
 	}
@@ -86,41 +67,6 @@ export async function installPlugin(bundledPluginPath: string): Promise<PluginIn
 	if (rsync.exitCode !== 0) {
 		throw new Error(`rsync failed: ${rsync.stderr.toString()}`);
 	}
-
-	// Merge into installed_plugins.json
-	const installedPath = join(pluginsDir, "installed_plugins.json");
-	const installed = readJsonSafe(installedPath, { version: 2, plugins: {} });
-
-	// Normalize to v2 format
-	if (!installed.version || !installed.plugins) {
-		const oldPlugins = { ...installed };
-		delete oldPlugins.version;
-		installed.version = 2;
-		installed.plugins = oldPlugins;
-	}
-
-	installed.plugins["vibes@vibes-bundled"] = [{
-		name: "vibes",
-		marketplace: "vibes-bundled",
-		version,
-		installPath: cacheDir,
-		enabled: true,
-	}];
-
-	mkdirSync(pluginsDir, { recursive: true });
-	atomicWriteJson(installedPath, installed);
-
-	// Merge into known_marketplaces.json
-	const marketplacesPath = join(pluginsDir, "known_marketplaces.json");
-	const marketplaces = readJsonSafe(marketplacesPath, {});
-
-	marketplaces["vibes-bundled"] = {
-		name: "vibes-bundled",
-		source: { source: "local", path: "bundled-with-vibes-desktop" },
-		lastUpdated: Date.now(),
-	};
-
-	atomicWriteJson(marketplacesPath, marketplaces);
 
 	return { installed: true, pluginRoot: cacheDir, version };
 }

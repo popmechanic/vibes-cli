@@ -75,19 +75,19 @@ export async function discoverVibesPlugin(
 		}
 	}
 
-	// Desktop-bundled plugin: check vibes-bundled cache before installed_plugins.json
-	const hBundled = home || homedir();
-	const bundledCacheDir = join(hBundled, ".claude", "plugins", "cache", "vibes-bundled", "vibes");
-	if (existsSync(bundledCacheDir)) {
+	// Desktop-installed plugin: check ~/.vibes/plugins/vibes/ (isolated from ~/.claude/)
+	const hVibes = home || homedir();
+	const vibesPluginDir = join(hVibes, ".vibes", "plugins", "vibes");
+	if (existsSync(vibesPluginDir)) {
 		try {
-			const versions = readdirSync(bundledCacheDir).filter(v => !v.startsWith("."));
+			const versions = readdirSync(vibesPluginDir).filter(v => !v.startsWith("."));
 			if (versions.length > 0) {
 				const latestVersion = versions.sort().pop()!;
-				const bundledRoot = join(bundledCacheDir, latestVersion);
-				const bundledResult = validateAndReturn(bundledRoot);
-				if (bundledResult) {
-					console.log(`[plugin-discovery] Desktop-bundled: ${bundledRoot}`);
-					return bundledResult;
+				const vibesRoot = join(vibesPluginDir, latestVersion);
+				const vibesResult = validateAndReturn(vibesRoot);
+				if (vibesResult) {
+					console.log(`[plugin-discovery] Vibes-managed: ${vibesRoot}`);
+					return vibesResult;
 				}
 			}
 		} catch {}
