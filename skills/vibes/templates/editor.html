@@ -3515,6 +3515,8 @@
       } else if (msg.type === 'chat') {
         setThinking(false);
         addMessage(msg.role, msg.content);
+      } else if (msg.type === 'app_created') {
+        currentAppName = msg.name;
       } else if (msg.type === 'app_updated') {
         console.log('[app_updated] phase:', currentPhase, 'pendingTheme:', pendingThemeId);
         setThinking(false);
@@ -4076,6 +4078,12 @@
       errEl.textContent = 'Not connected to server. Reconnecting...';
       errEl.style.display = '';
       return;
+    }
+
+    // If re-generating from edit phase, reset UI state
+    if (currentPhase === 'edit') {
+      document.getElementById('chatMessages').innerHTML = '';
+      setPhase('generate');
     }
 
     const themeId = document.getElementById('themeSelect').value;
