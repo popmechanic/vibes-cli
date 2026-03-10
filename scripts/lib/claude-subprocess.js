@@ -132,20 +132,37 @@ export function resolveClaudeBin() {
 
 /**
  * Clean environment for spawning claude subprocesses.
- * Removes nesting guard variables that prevent claude from running inside itself.
+ *
+ * Uses a WHITELIST approach: only pass through known-safe env vars.
+ * Blacklisting CLAUDE_CODE_* / CLAUDECODE / CMUX is insufficient —
+ * Claude CLI v2.x has additional nesting detection that causes the
+ * subprocess to hang with 0% CPU when spawned from within another
+ * Claude session (even with those vars removed).
  */
 export function cleanEnv() {
-  const env = { ...process.env };
-  delete env.CLAUDECODE;
-  delete env.CLAUDE_CODE_ENTRYPOINT;
-  // cmux terminal sets CMUX_* vars that trigger nesting detection.
-  // These are terminal-state identifiers, not auth tokens — safe to remove.
-  if (env.CMUX_SURFACE_ID) {
-    delete env.CMUX_SURFACE_ID;
-    delete env.CMUX_PANEL_ID;
-    delete env.CMUX_TAB_ID;
-    delete env.CMUX_WORKSPACE_ID;
-    delete env.CMUX_SOCKET_PATH;
+  const env = {};
+  // Whitelist of env var prefixes/names that claude needs
+  const WHITELIST_PREFIXES = [
+    'HOME', 'USER', 'LOGNAME', 'SHELL', 'PATH', 'LANG', 'LC_',
+    'TMPDIR', 'TEMP', 'TMP',
+    'ANTHROPIC_', 'OPENAI_',
+    'HTTP_PROXY', 'HTTPS_PROXY', 'NO_PROXY', 'ALL_PROXY',
+    'http_proxy', 'https_proxy', 'no_proxy', 'all_proxy',
+    'SSH_AUTH_SOCK', 'SSL_CERT_',
+    'XDG_CONFIG_HOME', 'XDG_DATA_HOME', 'XDG_CACHE_HOME',
+    'COLORTERM', 'FORCE_COLOR', 'NO_COLOR',
+    'NVM_', 'BUN_INSTALL',
+  ];
+
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value === undefined) continue;
+    // Skip anything Claude-related
+    if (key.startsWith('CLAUDECODE') || key.startsWith('CLAUDE_CODE') || key.startsWith('CMUX')) continue;
+    // Check whitelist
+    if (WHITELIST_PREFIXES.some(prefix => key === prefix || key.startsWith(prefix))) {
+      env[key] = value;
+    }
   }
+
   return env;
 }

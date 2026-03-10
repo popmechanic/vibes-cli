@@ -12,6 +12,9 @@
 import { buildClaudeArgs, cleanEnv, resolveClaudeBin } from '../lib/claude-subprocess.js';
 import { createStreamParser } from '../lib/stream-parser.js';
 import { sanitizeAppJsx } from './post-process.ts';
+import { writeFileSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import type { ServerContext } from './config.ts';
 
 // --- Types ---
@@ -112,19 +115,27 @@ export async function runOneShot(
     permissionMode: opts.permissionMode,
   });
 
-  console.log(`[OneShot] Spawning (prompt: ${(prompt.length / 1024).toFixed(1)}KB)...`);
+  const claudeBin = resolveClaudeBin();
+  console.log(`[OneShot] Spawning (prompt: ${(prompt.length / 1024).toFixed(1)}KB, bin: ${claudeBin})...`);
+
+  // Write prompt to a temp file and use shell redirection to feed it to claude.
+  // Direct Bun.spawn stdin piping (FileSink write/end) silently drops data,
+  // causing claude to see an empty stdin and exit immediately with code 0.
+  const tmpPromptFile = join(tmpdir(), `vibes-prompt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.txt`);
+  writeFileSync(tmpPromptFile, prompt);
+
+  // Build shell command with proper quoting
+  const quotedArgs = args.map(a => `'${a.replace(/'/g, "'\\''")}'`).join(' ');
+  const shellCmd = `'${claudeBin}' ${quotedArgs} < '${tmpPromptFile}'`;
 
   const proc = Bun.spawn({
-    cmd: [resolveClaudeBin(), ...args],
+    cmd: ['sh', '-c', shellCmd],
     cwd: opts.cwd || process.cwd(),
     env: cleanEnv(),
-    stdin: 'pipe',
+    stdin: 'ignore',
     stdout: 'pipe',
     stderr: 'pipe',
   });
-
-  proc.stdin.write(prompt);
-  proc.stdin.end();
 
   // Register cancel callback so the operation lock can kill this subprocess.
   // NOTE: The 5s SIGKILL fallback may not fire if the caller's process.exit()
@@ -134,6 +145,7 @@ export async function runOneShot(
     opts.onCancel(() => {
       try { proc.kill('SIGTERM'); } catch {}
       setTimeout(() => { try { proc.kill('SIGKILL'); } catch {} }, 5000);
+      try { unlinkSync(tmpPromptFile); } catch {}
     });
   }
 
@@ -246,12 +258,16 @@ export async function runOneShot(
     }
   });
 
+  let rawStdoutLen = 0;
+  let rawStdoutSample = '';
   const stdoutReader = proc.stdout.getReader();
   try {
     while (true) {
       const { done, value } = await stdoutReader.read();
       if (done) break;
       lastStdoutTime = Date.now();
+      rawStdoutLen += value.length;
+      if (!rawStdoutSample) rawStdoutSample = new TextDecoder().decode(value).slice(0, 500);
       parse(value);
     }
   } catch {}
@@ -262,7 +278,16 @@ export async function runOneShot(
   const exitCode = await proc.exited;
   await stderrPromise;
 
-  console.log(`[OneShot] Completed in ${getElapsed()}s (${toolsUsed} tools, code ${exitCode})`);
+  // Clean up temp prompt file
+  try { unlinkSync(tmpPromptFile); } catch {}
+
+  console.log(`[OneShot] Completed in ${getElapsed()}s (${toolsUsed} tools, code ${exitCode}, stdout: ${rawStdoutLen} bytes)`);
+  if (rawStdoutSample) {
+    console.log(`[OneShot] stdout sample: ${rawStdoutSample.slice(0, 300)}`);
+  }
+  if (stderrBuffer.trim()) {
+    console.log(`[OneShot] stderr: ${stderrBuffer.trim().slice(0, 500)}`);
+  }
 
   if (killedByTimeout && !errorSent) {
     onEvent({ type: 'error', message: `Claude stopped responding after ${getElapsed()}s. Try again.` });

@@ -13,7 +13,7 @@ describe('translateEvent', () => {
   it('translates complete to status + chat + app_updated when hasEdited and !skipChat', () => {
     const msgs = translateEvent({ type: 'complete', text: 'Done', toolsUsed: 2, elapsed: 10, hasEdited: true, skipChat: false });
     expect(msgs).toHaveLength(3);
-    expect(msgs[0]).toEqual({ type: 'status', status: 'thinking', progress: 100, stage: 'Done!', elapsed: 10 });
+    expect(msgs[0]).toEqual({ type: 'status', status: 'updated', progress: 100, stage: 'App updated!', elapsed: 10 });
     expect(msgs[1]).toEqual({ type: 'chat', role: 'assistant', content: 'Done' });
     expect(msgs[2]).toEqual({ type: 'app_updated' });
   });
