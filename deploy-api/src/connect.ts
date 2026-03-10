@@ -352,9 +352,10 @@ async function uploadWorker(
   );
   const json = (await res.json()) as CFApiResponse;
   if (!json.success) {
-    // 10079 = DO migration tag precondition failed (Worker already exists with DO)
+    // 10079 = DO migration tag precondition failed
+    // 10074 = Cannot apply new-class migration to existing DO class
     // Retry without migrations block for re-uploads
-    if (json.errors?.[0]?.code === 10079 && metadata.migrations) {
+    if ((json.errors?.[0]?.code === 10079 || json.errors?.[0]?.code === 10074) && metadata.migrations) {
       const retryMeta = { ...metadata };
       delete retryMeta.migrations;
       return uploadWorker(accountId, apiToken, scriptName, scriptContent, retryMeta);

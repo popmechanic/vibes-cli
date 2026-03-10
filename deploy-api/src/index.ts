@@ -788,6 +788,60 @@ app.get("/debug/discover-ledger/:name", async (c) => {
   return c.json({ ledgerId, owner: record.owner, apiUrl: record.connect.apiUrl, cachedLedgerId: record.connect.ledgerId || null });
 });
 
+// Admin: assign custom domains to all existing dashboard Workers (one-time migration)
+app.post("/admin/migrate-dashboard-domains", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return c.json({ error: "auth required" }, 401);
+  const payload = await verifyJWT(authHeader.slice(7), c.env.OIDC_ISSUER, c.env.POCKET_ID);
+  if (!payload) return c.json({ error: "invalid token" }, 401);
+  if (!c.env.CF_ZONE_ID) return c.json({ error: "CF_ZONE_ID not configured" }, 500);
+
+  // List all subdomain: keys from REGISTRY_KV
+  const keys: string[] = [];
+  let cursor: string | undefined;
+  do {
+    const list = await c.env.REGISTRY_KV.list({ prefix: "subdomain:", cursor, limit: 100 });
+    keys.push(...list.keys.map(k => k.name));
+    cursor = list.list_complete ? undefined : list.cursor;
+  } while (cursor);
+
+  const results: Array<{ app: string; status: string }> = [];
+  for (const key of keys) {
+    const appName = key.replace("subdomain:", "");
+    const dashboardName = `fireproof-dashboard-${appName}`;
+    const hostname = `connect-${appName}.vibesos.com`;
+
+    const domainResult = await assignCustomDomain(
+      c.env.CF_ACCOUNT_ID, c.env.CF_API_TOKEN, c.env.CF_ZONE_ID,
+      dashboardName, hostname
+    );
+
+    // Also update the KV record's apiUrl to use the custom domain
+    if (domainResult.ok) {
+      const raw = await c.env.REGISTRY_KV.get(key);
+      if (raw) {
+        try {
+          const record = JSON.parse(raw) as SubdomainRecord;
+          if (record.connect?.apiUrl && !record.connect.apiUrl.includes("connect-")) {
+            record.connect.apiUrl = `https://${hostname}/api`;
+            record.connect.dashboardUrl = `https://${hostname}`;
+            await c.env.REGISTRY_KV.put(key, JSON.stringify(record));
+            results.push({ app: appName, status: `OK — domain + KV updated` });
+          } else {
+            results.push({ app: appName, status: `OK — domain assigned (KV already correct)` });
+          }
+        } catch {
+          results.push({ app: appName, status: `OK — domain assigned (KV parse error)` });
+        }
+      }
+    } else {
+      results.push({ app: appName, status: `FAILED: ${domainResult.error}` });
+    }
+  }
+
+  return c.json({ migrated: results.length, results });
+});
+
 // Invite endpoint — add user to app's Pocket ID group
 app.post("/apps/:name/invite", async (c) => {
   // Extract Bearer token
