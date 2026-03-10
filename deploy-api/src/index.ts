@@ -430,7 +430,20 @@ async function registerAppInPocketId(
     if (verified) {
       // Ensure isGroupRestricted is set (may be missing on clients created by older code)
       await updateApp(fetcher, apiKey, existing.oidcClientId, { isGroupRestricted: true });
-      console.log(`[pocket-id] Verified existing client=${existing.oidcClientId} (group restriction ensured)`);
+      // Re-add deployer to group (idempotent — handles case where group membership was lost)
+      try {
+        await addUsersToGroup(fetcher, apiKey, existing.userGroupId, [userId]);
+        console.log(`[pocket-id] Added deployer ${userId} to group ${existing.userGroupId}`);
+      } catch (e) {
+        console.error(`[pocket-id] addUsersToGroup failed:`, e);
+      }
+      try {
+        await setAllowedGroups(fetcher, apiKey, existing.oidcClientId, [existing.userGroupId]);
+        console.log(`[pocket-id] Set allowed groups on client ${existing.oidcClientId}`);
+      } catch (e) {
+        console.error(`[pocket-id] setAllowedGroups failed:`, e);
+      }
+      console.log(`[pocket-id] Verified existing client=${existing.oidcClientId} (group restriction + membership ensured)`);
       return { oidcClientId: existing.oidcClientId, userGroupId: existing.userGroupId };
     }
     console.warn(`[pocket-id] Stale client=${existing.oidcClientId} not found in Pocket ID, re-registering...`);
@@ -786,6 +799,69 @@ app.get("/debug/discover-ledger/:name", async (c) => {
     } : undefined,
   });
   return c.json({ ledgerId, owner: record.owner, apiUrl: record.connect.apiUrl, cachedLedgerId: record.connect.ledgerId || null });
+});
+
+// Debug: check OIDC client config in Pocket ID
+app.get("/debug/oidc-client/:name", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return c.json({ error: "auth required" }, 401);
+  const payload = await verifyJWT(authHeader.slice(7), c.env.OIDC_ISSUER, c.env.POCKET_ID);
+  if (!payload) return c.json({ error: "invalid token" }, 401);
+
+  const name = c.req.param("name");
+  const record = await getSubdomain(c.env.REGISTRY_KV, name);
+  if (!record?.oidcClientId) return c.json({ error: "no oidcClientId" }, 404);
+
+  const clientRes = await c.env.POCKET_ID.fetch(
+    `https://pocket-id/api/oidc/clients/${record.oidcClientId}`,
+    { headers: { "X-API-Key": c.env.POCKET_ID_API_KEY, Accept: "application/json" } }
+  );
+  const client = await clientRes.json();
+
+  // Also check allowed groups
+  const groupsRes = await c.env.POCKET_ID.fetch(
+    `https://pocket-id/api/oidc/clients/${record.oidcClientId}/allowed-groups`,
+    { headers: { "X-API-Key": c.env.POCKET_ID_API_KEY, Accept: "application/json" } }
+  );
+  const groups = await groupsRes.json();
+
+  return c.json({ client, allowedGroups: groups, userGroupId: record.userGroupId });
+});
+
+// Admin: repair user group membership for all apps (re-adds owner to group)
+app.post("/admin/repair-groups", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return c.json({ error: "auth required" }, 401);
+  const payload = await verifyJWT(authHeader.slice(7), c.env.OIDC_ISSUER, c.env.POCKET_ID);
+  if (!payload) return c.json({ error: "invalid token" }, 401);
+
+  const keys: string[] = [];
+  let cursor: string | undefined;
+  do {
+    const list = await c.env.REGISTRY_KV.list({ prefix: "subdomain:", cursor, limit: 100 });
+    keys.push(...list.keys.map(k => k.name));
+    cursor = list.list_complete ? undefined : list.cursor;
+  } while (cursor);
+
+  const results: Array<{ app: string; status: string }> = [];
+  for (const key of keys) {
+    const appName = key.replace("subdomain:", "");
+    const raw = await c.env.REGISTRY_KV.get(key);
+    if (!raw) { results.push({ app: appName, status: "no record" }); continue; }
+    const record = JSON.parse(raw) as SubdomainRecord;
+    if (!record.oidcClientId || !record.userGroupId || !record.owner) {
+      results.push({ app: appName, status: "missing oidc/group/owner" }); continue;
+    }
+    try {
+      await addUsersToGroup(c.env.POCKET_ID, c.env.POCKET_ID_API_KEY, record.userGroupId, [record.owner]);
+      await setAllowedGroups(c.env.POCKET_ID, c.env.POCKET_ID_API_KEY, record.oidcClientId, [record.userGroupId]);
+      results.push({ app: appName, status: "OK" });
+    } catch (e) {
+      results.push({ app: appName, status: `FAILED: ${e instanceof Error ? e.message : String(e)}` });
+    }
+  }
+
+  return c.json({ repaired: results.filter(r => r.status === "OK").length, total: results.length, results });
 });
 
 // Admin: assign custom domains to all existing dashboard Workers (one-time migration)

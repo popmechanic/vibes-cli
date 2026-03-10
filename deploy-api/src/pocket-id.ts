@@ -84,6 +84,11 @@ export async function updateApp(
 
   const current = await getRes.json() as Record<string, unknown>;
 
+  // Strip allowedUserGroups — PUTting them back causes Pocket ID to reset
+  // group associations, losing all members. Groups are managed via the
+  // separate /allowed-groups endpoint.
+  const { allowedUserGroups, ...clientWithoutGroups } = current;
+
   const res = await fetcher.fetch(
     `https://pocket-id/api/oidc/clients/${clientId}`,
     {
@@ -93,7 +98,7 @@ export async function updateApp(
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify({ ...current, ...updates }),
+      body: JSON.stringify({ ...clientWithoutGroups, ...updates }),
     }
   );
 
@@ -198,10 +203,11 @@ export async function addUsersToGroup(
     }
   );
 
+  const body = await res.text();
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`addUsersToGroup failed (${res.status}): ${text}`);
+    throw new Error(`addUsersToGroup failed (${res.status}): ${body}`);
   }
+  console.log(`[pocket-id] addUsersToGroup response (${res.status}): ${body.slice(0, 300)}`);
 }
 
 export async function setAllowedGroups(
