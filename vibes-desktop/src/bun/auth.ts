@@ -95,11 +95,15 @@ export async function installClaude(): Promise<string> {
 	// Step 2: Run the installer (official docs use bash, not sh)
 	const install = Bun.spawnSync(
 		["bash", tmpScript],
-		{ timeout: 120_000, stderr: "pipe", stdout: "pipe" }
+		{ timeout: 300_000, stderr: "pipe", stdout: "pipe" }
 	);
 
 	const stdout = install.stdout.toString().trim();
 	const stderr = install.stderr.toString().trim();
+
+	if (install.exitCode === null) {
+		throw new Error("Claude installation timed out — please check your internet connection and try again");
+	}
 
 	if (install.exitCode !== 0) {
 		throw new Error(`Claude installation failed (exit ${install.exitCode}): ${stderr || stdout || "unknown error"}`);
