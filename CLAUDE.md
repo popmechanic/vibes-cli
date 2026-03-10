@@ -83,7 +83,16 @@ The desktop app lives in `vibes-desktop/` — a thin ElectroBun shell (VibesOS, 
 bash scripts/build-desktop.sh
 ```
 
-Build steps: (1) sync version from `plugin.json`, (2) compile native dylib, (3) `bunx electrobun build`, (4) create DMG with `create-dmg` + post-process to replace Applications symlink with Finder alias + system icon. Output: `vibes-desktop/artifacts/stable-macos-arm64-VibesOS.dmg`.
+Build steps: (1) sync version from `plugin.json`, (2) compile native dylib, (3) `bunx electrobun build`, (4) bundle plugin files into `.app/Contents/Resources/vibes-plugin/` via rsync, (5) create DMG with `create-dmg` (2-icon layout: app + Applications). Output: `vibes-desktop/artifacts/stable-macos-arm64-VibesOS.dmg`.
+
+### First-Launch Setup
+
+On first launch (or version upgrade), the app shows a setup UI instead of the editor:
+1. **Claude check/install**: Finds existing Claude binary or installs via `cli.anthropic.com/install.sh`
+2. **Plugin install**: Copies bundled plugin from `.app/Contents/Resources/vibes-plugin/` to `~/.claude/plugins/cache/vibes-bundled/vibes/{version}/`, registers in `installed_plugins.json` and `known_marketplaces.json`
+3. **Auth**: Placeholder — pending Loom skill integration
+
+Setup completion is tracked by `~/.vibes/setup-complete-{version}` marker files. Subsequent launches skip setup entirely.
 
 ### Code Signing & Notarization
 
@@ -102,13 +111,16 @@ ElectroBun handles signing and notarization automatically when `codesign: true, 
 
 ### Key Files
 
-- `vibes-desktop/src/bun/index.ts` — window creation, menu, tray, external link handling
+- `vibes-desktop/src/bun/index.ts` — window creation, setup flow, menu, tray, external link handling
+- `vibes-desktop/src/bun/setup.ts` — first-launch setup orchestrator (Claude install, plugin copy, auth placeholder)
+- `vibes-desktop/src/bun/setup-html.ts` — inline HTML for setup screen UI
+- `vibes-desktop/src/bun/plugin-installer.ts` — copy plugin files to `~/.claude/plugins/`, merge JSON registrations
+- `vibes-desktop/src/bun/plugin-discovery.ts` — plugin path resolution (dev override → bundled cache → installed_plugins.json)
 - `vibes-desktop/native/macos/window-controls.mm` — native dylib for hiding standard window buttons
 - `vibes-desktop/electrobun.config.ts` — app metadata (name: VibesOS, identifier: com.vibes.os, version)
 - `vibes-desktop/icon.iconset/` — app icon PNGs at all required macOS sizes
 - `vibes-desktop/dmg-background.png` — branded DMG background (1024×576, blue grid)
-- `scripts/build-desktop.sh` — one-command build + DMG creation script
-- `scripts/install-vibes.command` — CLI installer included in DMG
+- `scripts/build-desktop.sh` — one-command build + plugin bundling + DMG creation script
 
 ### Desktop-Specific Behavior
 
