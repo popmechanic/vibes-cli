@@ -1,6 +1,5 @@
 // vibes-desktop/src/bun/setup.ts
 // First-launch setup orchestrator.
-// Auth flow is a PLACEHOLDER — pending Loom skill integration for OAuth method.
 
 import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
@@ -9,6 +8,7 @@ import { BrowserWindow } from "electrobun/bun";
 import { SETUP_HTML } from "./setup-html.ts";
 import { CLAUDE_BIN, refreshClaudePath, installClaude } from "./auth.ts";
 import { installPlugin } from "./plugin-installer.ts";
+import { checkClaudeAuth, startClaudeLogin, waitForClaudeAuth } from "./claude-auth.ts";
 
 const VIBES_DIR = join(homedir(), ".vibes");
 
@@ -62,7 +62,7 @@ export function getBundledPluginPath(): string | null {
  * Shows a setup UI in the provided window and orchestrates:
  *   1. Find or install Claude Code binary
  *   2. Copy plugin files to ~/.claude/plugins/
- *   3. Authenticate (PENDING — Loom skill will provide OAuth method)
+ *   3. Authenticate via Claude CLI OAuth
  *
  * Returns when setup is complete. Throws on unrecoverable failure.
  */
@@ -88,6 +88,12 @@ export async function runSetup(
 			mainWindow.webview.executeJavascript(`showError("${msg.replace(/"/g, '\\"')}")`),
 		ready: () =>
 			mainWindow.webview.executeJavascript(`showReady()`),
+		waitingForAuth: () =>
+			mainWindow.webview.executeJavascript(`showWaitingForAuth()`),
+		authSuccess: (email: string) =>
+			mainWindow.webview.executeJavascript(`showAuthSuccess("${email.replace(/"/g, '\\"')}")`),
+		authError: (msg: string) =>
+			mainWindow.webview.executeJavascript(`showAuthError("${msg.replace(/"/g, '\\"')}")`),
 	};
 
 	// Small delay so the UI renders before we start work
@@ -145,21 +151,70 @@ export async function runSetup(
 	ui.step("plugin", "done", pluginResult.skipped ? "Plugin up to date" : "Plugin installed");
 
 	// --- Step 3: Authentication ---
-	// PENDING: Auth flow will be implemented via Loom skill OAuth method.
-	// For now, mark as done. The existing checkClaude() in index.ts verifies
-	// the binary works, and auth failures will surface when claude -p is first called.
 	ui.step("auth", "active", "Checking authentication...");
-	log("[setup] Auth step — PENDING Loom skill integration");
+	log("[setup] Checking Claude auth status...");
 
-	// TODO(loom): Replace this placeholder with Loom-provided OAuth flow.
-	// The Loom skill will provide a method to:
-	//   1. Check if valid credentials exist
-	//   2. If not, trigger browser-based OAuth login
-	//   3. Wait for completion and verify
-	// Until then, we optimistically mark auth as done.
-	// Auth failures will surface at first claude -p invocation.
-	await new Promise(r => setTimeout(r, 500)); // Brief pause for visual consistency
-	ui.step("auth", "done", "Authentication (pending setup)");
+	let authResult = checkClaudeAuth();
+
+	if (authResult.loggedIn) {
+		log(`[setup] Already authenticated as ${authResult.email}`);
+		ui.step("auth", "done", `Signed in as ${authResult.email || "authenticated"}`);
+	} else {
+		log("[setup] Not authenticated, showing login button");
+		ui.step("auth", "active", "Sign in to continue");
+		ui.showAuth(true);
+
+		// Wait for user to click "Sign in with Anthropic"
+		await new Promise<void>((resolve) => {
+			const handler = (event: any) => {
+				const msg = event.data?.detail;
+				if (msg?.type === "setup-action" && msg?.action === "auth") {
+					mainWindow.webview.off("host-message", handler);
+					resolve();
+				}
+			};
+			mainWindow.webview.on("host-message", handler);
+		});
+
+		// Start login and poll for completion
+		ui.showAuth(false);
+		ui.step("auth", "active", "Waiting for sign-in...");
+		ui.waitingForAuth();
+		log("[setup] Starting Claude auth login...");
+
+		const loginProc = startClaudeLogin();
+
+		try {
+			authResult = await waitForClaudeAuth();
+			log(`[setup] Auth successful: ${authResult.email}`);
+			ui.authSuccess(authResult.email || "");
+			ui.step("auth", "done", `Signed in as ${authResult.email || "authenticated"}`);
+		} catch (err: any) {
+			// Kill the login process if it's still running
+			try { loginProc.kill(); } catch {}
+			log(`[setup] Auth failed: ${err.message}`);
+			ui.step("auth", "error", "Sign-in failed");
+			ui.authError(err.message);
+
+			// Wait for retry — reuse existing pattern
+			authResult = await waitForRetry(mainWindow, async () => {
+				ui.showRetry(false);
+				ui.showError("");
+				ui.step("auth", "active", "Waiting for sign-in...");
+				ui.waitingForAuth();
+				const retryProc = startClaudeLogin();
+				try {
+					const result = await waitForClaudeAuth();
+					return result;
+				} catch (retryErr) {
+					try { retryProc.kill(); } catch {}
+					throw retryErr;
+				}
+			}, log);
+			ui.authSuccess(authResult.email || "");
+			ui.step("auth", "done", `Signed in as ${authResult.email || "authenticated"}`);
+		}
+	}
 
 	// --- Done ---
 	ui.ready();
