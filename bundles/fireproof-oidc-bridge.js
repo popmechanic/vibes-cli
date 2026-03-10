@@ -275,10 +275,13 @@ export function OIDCProvider(props) {
 
     var cancelled = false;
     var redirectUri = window.location.origin + window.location.pathname;
-    // Preserve ?joined=true through the OIDC redirect so redeemInvite runs after auth
+    // Persist joined state in sessionStorage so it survives the OIDC redirect chain
+    // (query params in redirect_uri get stripped by some OIDC providers)
     if (window.__VIBES_JOINED__) {
-      redirectUri += "?joined=true";
+      try { sessionStorage.setItem("vibes_joined", "true"); } catch (e) {}
     }
+    var isJoined = window.__VIBES_JOINED__ ||
+      (function () { try { return sessionStorage.getItem("vibes_joined") === "true"; } catch (e) { return false; } })();
 
     async function init() {
       // Step 0: Check for OTA (one-time-access-token) from invite link
@@ -641,37 +644,71 @@ OIDCTokenStrategy.prototype.waitForToken = function (_sthis, _logger, _deviceId,
     // Redeem any pending invites before ledger discovery.
     // The join callback creates a pending invite by email server-side; this redeems it
     // so listLedgersByUser returns the shared ledger on the first authenticated request.
-    var redeemPromise = (typeof window !== "undefined" && window.__VIBES_JOINED__)
-      ? self._dashApi.redeemInvite({}).catch(function (e) {
-          console.debug("[vibes-oidc] redeemInvite skipped:", e);
-        })
-      : Promise.resolve();
-
-    // If no cached ledger, try discovery
-    var discoveryPromise = ledgerParam
-      ? Promise.resolve(ledgerParam)
-      : redeemPromise.then(function () {
-          return self._dashApi.listLedgersByUser({});
-        }).then(function (rLedgers) {
-          if (rLedgers.isOk()) {
-            var ledgers = rLedgers.Ok().ledgers || [];
-            var appHost = typeof window !== "undefined" ? window.location.hostname : "";
-            var matched = ledgers.find(function (l) {
-              if (!l.name) return false;
-              if (dbName && l.name.includes(dbName)) return true;
-              if (appHost && l.name.includes(appHost)) return true;
-              return false;
-            });
-            if (matched) {
-              if (typeof window !== "undefined") {
-                if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
-                window.__VIBES_LEDGER_MAP__[dbName || appHost] = matched.ledgerId;
-              }
-              console.debug("[vibes] Discovered ledger:", matched.ledgerId);
-              return matched.ledgerId;
+    var _isJoined = (typeof window !== "undefined") && (
+      window.__VIBES_JOINED__ ||
+      (function () { try { return sessionStorage.getItem("vibes_joined") === "true"; } catch (e) { return false; } })()
+    );
+    var redeemPromise = _isJoined
+      ? self._dashApi.redeemInvite({}).then(function (rRedeem) {
+          // Clear the joined flag — one-time use
+          try { sessionStorage.removeItem("vibes_joined"); } catch (e) {}
+          if (rRedeem.isOk()) {
+            var invites = rRedeem.Ok().invites || [];
+            if (invites.length > 0 && invites[0].invitedParams && invites[0].invitedParams.ledger) {
+              var redeemedLedger = invites[0].invitedParams.ledger.id;
+              console.debug("[vibes-oidc] Redeemed invite, using ledger:", redeemedLedger);
+              return redeemedLedger;
             }
           }
           return undefined;
+        }).catch(function (e) {
+          console.debug("[vibes-oidc] redeemInvite skipped:", e);
+          try { sessionStorage.removeItem("vibes_joined"); } catch (e2) {}
+          return undefined;
+        })
+      : Promise.resolve(undefined);
+
+    // If no cached ledger, try discovery (redeemed invite ledger takes priority)
+    var discoveryPromise = ledgerParam
+      ? Promise.resolve(ledgerParam)
+      : redeemPromise.then(function (redeemedLedgerId) {
+          if (redeemedLedgerId) {
+            // Persist redeemed ledger so it's used on subsequent page loads
+            try { localStorage.setItem("vibes_shared_ledger", redeemedLedgerId); } catch (e) {}
+            return redeemedLedgerId;
+          }
+          // Check for previously redeemed shared ledger
+          var savedLedger;
+          try { savedLedger = localStorage.getItem("vibes_shared_ledger"); } catch (e) {}
+          if (savedLedger) {
+            console.debug("[vibes] Using saved shared ledger:", savedLedger);
+            return savedLedger;
+          }
+          return self._dashApi.listLedgersByUser({}).then(function (rLedgers) {
+            if (rLedgers.isOk()) {
+              var ledgers = rLedgers.Ok().ledgers || [];
+              var appHost = typeof window !== "undefined" ? window.location.hostname : "";
+              var hostMatches = ledgers.filter(function (l) {
+                if (!l.name) return false;
+                if (dbName && l.name.includes(dbName)) return true;
+                if (appHost && l.name.includes(appHost)) return true;
+                return false;
+              });
+              // Prefer ledgers where user is "member" (shared) over "admin" (own)
+              var matched = hostMatches.find(function (l) {
+                return l.users && l.users.some(function (u) { return u.role === "member"; });
+              }) || hostMatches[0];
+              if (matched) {
+                if (typeof window !== "undefined") {
+                  if (!window.__VIBES_LEDGER_MAP__) window.__VIBES_LEDGER_MAP__ = {};
+                  window.__VIBES_LEDGER_MAP__[dbName || appHost] = matched.ledgerId;
+                }
+                console.debug("[vibes] Discovered ledger:", matched.ledgerId);
+                return matched.ledgerId;
+              }
+            }
+            return undefined;
+          });
         }).catch(function () { return undefined; });
 
     return discoveryPromise.then(function (resolvedLedger) {

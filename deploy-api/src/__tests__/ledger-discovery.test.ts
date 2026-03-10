@@ -1,30 +1,36 @@
 import { describe, it, expect, vi } from "vitest";
 import { discoverLedgerId } from "../ledger-discovery";
 
-function mockFetch(response: object) {
+// Mock global fetch for D1 API calls
+function mockD1Response(rows: Array<{ ledgerId: string; name: string }>) {
   return vi.fn().mockResolvedValue(
-    new Response(JSON.stringify(response), {
+    new Response(JSON.stringify({
+      result: [{ results: rows, success: true }],
+      success: true,
+    }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     })
   );
 }
 
+const baseOpts = {
+  accountId: "test-account",
+  apiToken: "test-token",
+  d1DatabaseId: "test-d1-id",
+};
+
 describe("discoverLedgerId", () => {
   it("finds ledger by app name in ledger name", async () => {
-    const fetchFn = mockFetch({
-      type: "resListLedgersByUser",
-      ledgers: [
-        { ledgerId: "led-1", name: "other-app.vibesos.com", role: "admin" },
-        { ledgerId: "led-2", name: "my-app.vibesos.com", role: "admin" },
-      ],
-    });
+    const fetchFn = mockD1Response([
+      { ledgerId: "led-1", name: "other-app.vibesos.com" },
+      { ledgerId: "led-2", name: "my-app.vibesos.com" },
+    ]);
+    globalThis.fetch = fetchFn;
 
     const result = await discoverLedgerId({
-      apiUrl: "https://dashboard.workers.dev/api",
-      serviceToken: "key|owner-1|owner@test.com",
+      ...baseOpts,
       appName: "my-app",
-      fetchFn,
     });
 
     expect(result).toBe("led-2");
@@ -32,86 +38,63 @@ describe("discoverLedgerId", () => {
   });
 
   it("returns first ledger when no name match", async () => {
-    const fetchFn = mockFetch({
-      type: "resListLedgersByUser",
-      ledgers: [
-        { ledgerId: "led-1", name: "something-else", role: "admin" },
-      ],
-    });
+    globalThis.fetch = mockD1Response([
+      { ledgerId: "led-1", name: "something-else" },
+    ]);
 
     const result = await discoverLedgerId({
-      apiUrl: "https://dashboard.workers.dev/api",
-      serviceToken: "key|owner-1|",
+      ...baseOpts,
       appName: "my-app",
-      fetchFn,
     });
 
     expect(result).toBe("led-1");
   });
 
   it("returns null when no ledgers exist", async () => {
-    const fetchFn = mockFetch({
-      type: "resListLedgersByUser",
-      ledgers: [],
-    });
+    globalThis.fetch = mockD1Response([]);
 
     const result = await discoverLedgerId({
-      apiUrl: "https://dashboard.workers.dev/api",
-      serviceToken: "key|owner-1|",
+      ...baseOpts,
       appName: "my-app",
-      fetchFn,
     });
 
     expect(result).toBeNull();
   });
 
   it("finds ledger with oidc- prefix (actual OIDC bridge format)", async () => {
-    const fetchFn = mockFetch({
-      type: "resListLedgersByUser",
-      ledgers: [
-        { ledgerId: "led-1", name: "other-app.vibesos.com", role: "admin" },
-        { ledgerId: "led-2", name: "oidc-ai-dog.vibesos.com-aper-biscuit-chat-v1-z2qX2RYZ3EDaQ62Q1t", role: "admin" },
-      ],
-    });
+    globalThis.fetch = mockD1Response([
+      { ledgerId: "led-1", name: "other-app.vibesos.com" },
+      { ledgerId: "led-2", name: "oidc-ai-dog.vibesos.com-aper-biscuit-chat-v1-z2qX2RYZ3EDaQ62Q1t" },
+    ]);
 
     const result = await discoverLedgerId({
-      apiUrl: "https://dashboard.workers.dev/api",
-      serviceToken: "key|owner-1|",
+      ...baseOpts,
       appName: "ai-dog",
-      fetchFn,
     });
 
     expect(result).toBe("led-2");
   });
 
   it("does not match partial app names as substring", async () => {
-    const fetchFn = mockFetch({
-      type: "resListLedgersByUser",
-      ledgers: [
-        { ledgerId: "led-wrong", name: "my-app.vibesos.com", role: "admin" },
-        { ledgerId: "led-right", name: "app.vibesos.com", role: "admin" },
-      ],
-    });
+    globalThis.fetch = mockD1Response([
+      { ledgerId: "led-wrong", name: "my-app.vibesos.com" },
+      { ledgerId: "led-right", name: "app.vibesos.com" },
+    ]);
 
     const result = await discoverLedgerId({
-      apiUrl: "https://dashboard.workers.dev/api",
-      serviceToken: "key|owner-1|",
+      ...baseOpts,
       appName: "app",
-      fetchFn,
     });
 
-    // Should match "app.vibesos.com", not "my-app.vibesos.com"
     expect(result).toBe("led-right");
   });
 
   it("returns null on fetch error", async () => {
-    const fetchFn = vi.fn().mockRejectedValue(new Error("network fail"));
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error("network fail"));
 
     const result = await discoverLedgerId({
-      apiUrl: "https://dashboard.workers.dev/api",
-      serviceToken: "key|owner-1|",
+      ...baseOpts,
       appName: "my-app",
-      fetchFn,
     });
 
     expect(result).toBeNull();
