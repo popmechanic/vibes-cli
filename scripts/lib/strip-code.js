@@ -84,8 +84,7 @@ export function stripWindowDestructuring(code) {
  * @param {string[]|object} [templateConstantsOrOptions] - Array of constants OR options object
  * @param {string[]} [templateConstantsOrOptions.templateConstants] - Constants the template provides
  * @param {boolean} [templateConstantsOrOptions.stripReactHooks=true] - Strip `const { useState } = React;`
- *   Set false for vibes template (React is a global, hooks need destructuring).
- *   Set true for sell template (hooks provided via ES imports, destructuring causes duplicates).
+ *   All templates now import React hooks via ES imports, so this should be true (default).
  * @returns {string} Cleaned code ready for template injection
  */
 export function stripForTemplate(code, templateConstantsOrOptions = []) {

@@ -445,7 +445,7 @@ export function assembleAppFrame(ctx) {
   }
 
   const appCode = readFileSync(appPath, 'utf-8');
-  const strippedCode = stripForTemplate(appCode, { stripReactHooks: false });
+  const strippedCode = stripForTemplate(appCode, { stripReactHooks: true });
 
   if (!template.includes(APP_PLACEHOLDER)) {
     return `<html><body><h1>Template missing placeholder</h1><p>${APP_PLACEHOLDER}</p></body></html>`;

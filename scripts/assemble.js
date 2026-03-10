@@ -46,9 +46,9 @@ async function main() {
   console.log('Assembling (Connect URLs will be injected at deploy time)');
 
   // Strip imports/exports/destructuring that conflict with the template.
-  // Keep React destructuring — vibes template provides React as a global,
-  // so app code needs `const { useState } = React;` to access hooks.
-  const cleanedAppCode = stripForTemplate(appCode, { stripReactHooks: false });
+  // The vibes delta imports React hooks via ES import (added in 0e59bd2),
+  // so React destructuring in app code causes duplicate declarations.
+  const cleanedAppCode = stripForTemplate(appCode, { stripReactHooks: true });
 
   // Assemble: insert app code at placeholder
   let output = template.replace(APP_PLACEHOLDER, cleanedAppCode);
