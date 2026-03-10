@@ -986,21 +986,27 @@ app.get("/join/callback", async (c) => {
     return c.html("<h1>Invite link has been revoked</h1>", 410);
   }
 
+  const steps: string[] = [];
   try {
     // 1. Add user to Pocket ID group
     if (record.userGroupId) {
+      steps.push("adding to group");
       await addUsersToGroup(
         c.env.POCKET_ID,
         c.env.POCKET_ID_API_KEY,
         record.userGroupId,
         [userId]
       );
+      steps.push("group OK");
+    } else {
+      steps.push("no userGroupId, skipped group");
     }
 
     // 2. Create Connect invite via dashboard API (service auth)
     if (record.connect?.apiUrl && c.env.SERVICE_API_KEY) {
+      steps.push(`connect invite to ${record.connect.apiUrl}`);
       const serviceToken = `${c.env.SERVICE_API_KEY}|${record.owner}|`;
-      await fetch(record.connect.apiUrl, {
+      const inviteRes = await fetch(record.connect.apiUrl, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1018,9 +1024,13 @@ app.get("/join/callback", async (c) => {
           },
         }),
       });
+      steps.push(`connect invite ${inviteRes.status}`);
+    } else {
+      steps.push(`no connect (apiUrl=${!!record.connect?.apiUrl}, key=${!!c.env.SERVICE_API_KEY})`);
     }
 
     // 3. Add collaborator to KV
+    steps.push("updating collaborators");
     const collaborators = record.collaborators || [];
     if (!collaborators.some((col) => col.userId === userId)) {
       collaborators.push({ userId, email, role: "member" });
@@ -1030,23 +1040,49 @@ app.get("/join/callback", async (c) => {
         updatedAt: new Date().toISOString(),
       });
     }
+    steps.push("collaborators OK");
 
-    // 4. Generate OTA for seamless sign-in to the per-app client
-    const ota = await createOneTimeAccessToken(
-      c.env.POCKET_ID,
-      c.env.POCKET_ID_API_KEY,
-      userId
-    );
-
-    // 5. Redirect to the app
+    // 4. Redirect to the app (with OTA for seamless sign-in if available)
     const appUrl = c.env.CF_ZONE_ID
       ? `https://${state.app}.vibesos.com`
       : `https://${state.app}.workers.dev`;
 
-    return c.redirect(`${appUrl}?ota=${encodeURIComponent(ota.token)}`, 302);
+    let redirectUrl = appUrl;
+    try {
+      steps.push("generating OTA");
+      const ota = await createOneTimeAccessToken(
+        c.env.POCKET_ID,
+        c.env.POCKET_ID_API_KEY,
+        userId
+      );
+      redirectUrl = `${appUrl}?ota=${encodeURIComponent(ota.token)}`;
+      steps.push("OTA OK");
+    } catch (otaErr) {
+      // OTA is optional — user can sign in manually on the app
+      console.warn(`[join] OTA failed for ${userId}, redirecting without it:`, otaErr);
+      steps.push("OTA failed (non-fatal)");
+    }
+
+    return c.redirect(redirectUrl, 302);
   } catch (err) {
-    console.error(`[join] Failed to complete join for ${email} to ${state.app}:`, err);
-    return c.html("<h1>Join failed — please try again</h1>", 500);
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[join] Failed for ${email} to ${state.app}: steps=[${steps.join(" → ")}] error=${errMsg}`);
+    return c.html(`<h1>Join failed</h1><pre>Steps: ${steps.join(" → ")}\nError: ${errMsg}</pre>`, 500);
+  }
+});
+
+// Temporary debug endpoint — remove after testing
+app.get("/debug/pocket-id", async (c) => {
+  if (!c.env.POCKET_ID_API_KEY) return c.json({ error: "no api key" });
+  try {
+    // List OIDC clients via service binding
+    const res = await c.env.POCKET_ID.fetch("https://pocket-id/api/oidc/clients?search=vibes-join", {
+      headers: { "X-API-Key": c.env.POCKET_ID_API_KEY, Accept: "application/json" },
+    });
+    const body = await res.json();
+    return c.json({ status: res.status, body });
+  } catch (err) {
+    return c.json({ error: String(err) });
   }
 });
 
