@@ -75,6 +75,24 @@ export async function discoverVibesPlugin(
 		}
 	}
 
+	// Desktop-bundled plugin: check vibes-bundled cache before installed_plugins.json
+	const hBundled = home || homedir();
+	const bundledCacheDir = join(hBundled, ".claude", "plugins", "cache", "vibes-bundled", "vibes");
+	if (existsSync(bundledCacheDir)) {
+		try {
+			const versions = readdirSync(bundledCacheDir).filter(v => !v.startsWith("."));
+			if (versions.length > 0) {
+				const latestVersion = versions.sort().pop()!;
+				const bundledRoot = join(bundledCacheDir, latestVersion);
+				const bundledResult = validateAndReturn(bundledRoot);
+				if (bundledResult) {
+					console.log(`[plugin-discovery] Desktop-bundled: ${bundledRoot}`);
+					return bundledResult;
+				}
+			}
+		} catch {}
+	}
+
 	const h = home || homedir();
 	const installedPath = join(h, ".claude", "plugins", "installed_plugins.json");
 
