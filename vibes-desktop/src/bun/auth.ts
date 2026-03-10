@@ -74,24 +74,61 @@ export function refreshClaudePath(): void {
 
 /**
  * Install Claude Code via Anthropic's official installer.
- * Returns the resolved path to the installed binary.
+ * Downloads the script first (so we can detect curl failures),
+ * then runs it. Returns the resolved path to the installed binary.
  * Throws if installation fails.
  */
 export async function installClaude(): Promise<string> {
-	const result = Bun.spawnSync(
-		["sh", "-c", "curl -sSL https://cli.anthropic.com/install.sh | sh"],
-		{ timeout: 120_000 }
+	const tmpScript = "/tmp/claude-install.sh";
+
+	// Step 1: Download installer script (--fail returns non-zero on HTTP errors)
+	const download = Bun.spawnSync(
+		["curl", "--fail", "-sSL", "https://cli.anthropic.com/install.sh", "-o", tmpScript],
+		{ timeout: 30_000 }
 	);
 
-	if (result.exitCode !== 0) {
-		const stderr = result.stderr.toString().trim();
-		throw new Error(`Claude installation failed: ${stderr || "unknown error"}`);
+	if (download.exitCode !== 0) {
+		const stderr = download.stderr.toString().trim();
+		throw new Error(`Failed to download installer: ${stderr || "network error"}`);
 	}
 
-	// Re-resolve — installer puts binary at ~/.claude/local/claude
-	refreshClaudePath();
-	if (CLAUDE_BIN === "claude") {
-		throw new Error("Claude installed but binary not found on PATH");
+	// Step 2: Run the installer
+	const install = Bun.spawnSync(
+		["sh", tmpScript],
+		{ timeout: 120_000, stderr: "pipe", stdout: "pipe" }
+	);
+
+	const stdout = install.stdout.toString().trim();
+	const stderr = install.stderr.toString().trim();
+
+	if (install.exitCode !== 0) {
+		throw new Error(`Claude installation failed (exit ${install.exitCode}): ${stderr || stdout || "unknown error"}`);
 	}
-	return CLAUDE_BIN;
+
+	// Step 3: Find the binary — check known locations directly
+	refreshClaudePath();
+	if (CLAUDE_BIN !== "claude") {
+		return CLAUDE_BIN;
+	}
+
+	// If resolveClaudePath didn't find it, check installer output for hints
+	// and do one more scan of likely locations
+	const home = process.env.HOME || "";
+	const postInstallPaths = [
+		`${home}/.claude/local/claude`,
+		`${home}/.local/bin/claude`,
+		"/usr/local/bin/claude",
+	];
+
+	for (const p of postInstallPaths) {
+		if (existsSync(p)) {
+			CLAUDE_BIN = p;
+			return p;
+		}
+	}
+
+	throw new Error(
+		`Installer completed but Claude binary not found. ` +
+		`Output: ${stdout.slice(0, 200)}${stderr ? ` | ${stderr.slice(0, 200)}` : ""}`
+	);
 }

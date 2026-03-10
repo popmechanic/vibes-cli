@@ -20,7 +20,7 @@ DMG_ICON_PNG="$DESKTOP_DIR/dmg-icon.png"
 
 # 1. Sync version from plugin.json → electrobun.config.ts
 PLUGIN_VERSION=$(grep '"version"' "$PLUGIN_JSON" | head -1 | sed 's/.*"version": *"\([^"]*\)".*/\1/')
-echo "[1/5] Syncing version: $PLUGIN_VERSION"
+echo "[1/4] Syncing version: $PLUGIN_VERSION"
 
 # Use bun to update the version in electrobun.config.ts
 bun -e "
@@ -32,7 +32,7 @@ bun -e "
 "
 
 # 2. Compile native dylib (if source is newer than output)
-echo "[2/5] Compiling native dylib..."
+echo "[2/4] Compiling native dylib..."
 if [ ! -f "$DYLIB_OUT" ] || [ "$DYLIB_SRC" -nt "$DYLIB_OUT" ]; then
   bash "$DESKTOP_DIR/native/macos/build-window-controls.sh"
 else
@@ -40,34 +40,13 @@ else
 fi
 
 # 3. Build ElectroBun app
-echo "[3/5] Building ElectroBun app..."
+echo "[3/4] Building ElectroBun app (includes plugin bundling)..."
 cd "$DESKTOP_DIR"
 bunx electrobun build --env=stable
 
-# 4. Bundle plugin files into .app Resources
-echo "[4/5] Bundling plugin files..."
-APP_RESOURCES="$BUILD_DIR/$APP_NAME.app/Contents/Resources"
-PLUGIN_DEST="$APP_RESOURCES/vibes-plugin"
-rm -rf "$PLUGIN_DEST"
-rsync -a \
-  --exclude='.git' --exclude='.git-backup' --exclude='node_modules' \
-  --exclude='vibes-desktop' --exclude='deploy-api' --exclude='.claude' \
-  --exclude='scripts/__tests__' --exclude='scripts/coverage' \
-  --exclude='docs/plans' --exclude='alchemy' \
-  --exclude='skills/cloudflare/worker' --exclude='superpowers' \
-  --exclude='.netlify-deploy' --exclude='.env' --exclude='.env.*' \
-  --exclude='.connect' --exclude='.wrangler' --exclude='.DS_Store' \
-  --exclude='.vibes-tmp' --exclude='.worktrees' \
-  --exclude='*.bak.*' --exclude='*.bak.html' --exclude='*.bak.jsx' \
-  --exclude='ai-worker' --exclude='designs' --exclude='dist' \
-  --exclude='examples' --exclude='test-vibes' \
-  "$REPO_ROOT/" "$PLUGIN_DEST/"
-
-BUNDLE_SIZE=$(du -sh "$PLUGIN_DEST" | cut -f1)
-echo "  Plugin bundled: $BUNDLE_SIZE"
-
-# 5. Create polished DMG with create-dmg
-echo "[5/5] Creating DMG..."
+# 4. Create polished DMG with create-dmg
+# (Plugin files are bundled by postBuild/postWrap hooks before signing)
+echo "[4/4] Creating DMG..."
 ORIG_DMG="$ARTIFACTS_DIR/stable-macos-arm64-VibesOS.dmg"
 rm -f "$ORIG_DMG"
 
