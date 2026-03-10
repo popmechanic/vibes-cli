@@ -840,7 +840,7 @@
       background: var(--vibes-cream);
       color: var(--vibes-near-black);
     }
-    .theme-mode-chip.custom {
+    .theme-mode-chip.custom, .theme-mode-chip.active {
       background: var(--vibes-near-black);
       color: var(--vibes-cream);
       border-color: var(--vibes-near-black);
@@ -2631,6 +2631,7 @@
                 </div>
               </div>
               <button class="theme-mode-chip" id="themeModeChip" onclick="toggleThemeMode()">Themed</button>
+              <button class="theme-mode-chip" id="genAiChip" onclick="toggleGenAI()">Use AI</button>
               <button class="generate-submit-btn" id="generateBtn" onclick="startGenerate()" title="Generate">&#8593;</button>
             </div>
           </div>
@@ -2858,6 +2859,7 @@
                 </div>
               </div>
             </div>
+            <button class="theme-mode-chip" id="chatAiChip" onclick="toggleChatAI()" style="flex-shrink:0;margin-right:0.25rem">Use AI</button>
             <button class="composer-btn" id="skillsBtn" onclick="toggleSkillsModal()" title="Add skill context" style="display:none">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -4130,7 +4132,7 @@
     const hasReference = !!genReferenceFile;
     // Skip theme in custom mode (user toggle or reference attached)
     const skipTheme = customThemeMode || hasReference;
-    const payload = { type: 'generate', prompt, themeId: skipTheme ? null : (themeId || null), model: getModel() };
+    const payload = { type: 'generate', prompt, themeId: skipTheme ? null : (themeId || null), model: getModel(), useAI: genAIEnabled };
     if (hasReference) {
       payload.reference = {
         name: genReferenceFile.name,
@@ -4992,6 +4994,20 @@
   }
 
   let customThemeMode = false;
+  let genAIEnabled = false;
+  let chatAIEnabled = false;
+
+  function toggleGenAI() {
+    genAIEnabled = !genAIEnabled;
+    const chip = document.getElementById('genAiChip');
+    if (chip) chip.classList.toggle('active', genAIEnabled);
+  }
+
+  function toggleChatAI() {
+    chatAIEnabled = !chatAIEnabled;
+    const chip = document.getElementById('chatAiChip');
+    if (chip) chip.classList.toggle('active', chatAIEnabled);
+  }
 
   function setThemeMode(custom) {
     customThemeMode = custom;
@@ -5132,7 +5148,7 @@
     addMessage('user', displayText);
 
     const defaultMsg = refIntent === 'none' ? '' : 'Style the app to match the attached reference';
-    const payload = { type: 'chat', message: text || defaultMsg, model: getModel() };
+    const payload = { type: 'chat', message: text || defaultMsg, model: getModel(), useAI: chatAIEnabled };
     if (activeAnimationId) payload.animationId = activeAnimationId;
     if (activeSkillId) payload.skillId = activeSkillId;
     if (referenceFile) {

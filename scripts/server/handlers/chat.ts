@@ -19,7 +19,28 @@ const EFFECT_INSTRUCTIONS = {
   'shader': `MANDATORY: Add a WebGL fragment shader background. Create a fullscreen quad with vertex shader, pass u_time/u_resolution/u_mouse uniforms. Use effects like: aurora (sine wave color mixing), plasma (layered sine interference), noise gradient mesh (hash-based noise with mouse reactivity), or animated color fields. Use precision mediump float. Graceful fallback if WebGL unavailable.`,
 };
 
-export async function handleChat(ctx: ServerContext, onEvent: EventCallback, message: string, effects: string[] = [], animationId: string | null = null, model: string | undefined, reference: any = null, skillId: string | null = null) {
+const AI_INSTRUCTIONS = `\n\nAI FEATURES — the useAI hook is available as a global (NO import needed):
+
+\`\`\`jsx
+// Non-streaming:
+const { callAI, loading, error } = useAI();
+const response = await callAI({
+  model: "anthropic/claude-sonnet-4",
+  messages: [{ role: "user", content: userMessage }]
+});
+const aiText = response.choices[0].message.content;
+
+// Streaming (for chat UIs):
+const { ask, answer, loading, error } = useAI();
+ask({ model: "anthropic/claude-sonnet-4", messages: [{ role: "user", content: userMessage }] });
+// answer updates reactively as tokens stream in
+\`\`\`
+
+Rules: useAI() at component top level, callAI() is async, ask() is fire-and-forget.
+Use Fireproof to persist conversations. Show loading state. Handle errors.
+Do NOT use fetch() for AI calls — always useAI(). Do NOT simulate AI responses.`;
+
+export async function handleChat(ctx: ServerContext, onEvent: EventCallback, message: string, effects: string[] = [], animationId: string | null = null, model: string | undefined, reference: any = null, skillId: string | null = null, useAI: boolean = false) {
   let effectBlock = '';
   let referenceBlock = '';
   let skillBlock = '';
@@ -209,7 +230,7 @@ RULES:
 - Preserve all components, hooks, state, data models, __VIBES_THEMES__, useVibesTheme()
 - Do NOT add imports, do NOT use TypeScript, keep export default App
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
-- Never change Fireproof document types or query filters`;
+- Never change Fireproof document types or query filters${useAI ? AI_INSTRUCTIONS : ''}`;
 
   const maxTurns = skillId ? 16 : (animationId || effects.length > 0 || reference) ? 12 : 8;
   await runOneShot(prompt, { maxTurns, model, cwd: currentAppDir(ctx) || ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent, ctx.projectRoot);
