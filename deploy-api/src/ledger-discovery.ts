@@ -41,9 +41,14 @@ export async function discoverLedgerId(opts: DiscoverOptions): Promise<string | 
     console.log(`[ledger-discovery] Found ${ledgers.length} ledger(s) for ${appName}: ${JSON.stringify(ledgers.map(l => ({ id: l.ledgerId, name: l.name })))}`);
     if (ledgers.length === 0) return null;
 
-    // Match by app name in ledger name (OIDC bridge names ledgers after hostname)
-    // Use anchored comparison to avoid substring false positives (e.g. "app" matching "my-app")
-    const match = ledgers.find((l) => l.name.startsWith(appName + ".") || l.name === appName);
+    // Match by app name in ledger name. OIDC bridge names ledgers after the hostname, prefixed
+    // with "oidc-": e.g. "oidc-ai-dog.vibesos.com-{dbName}-{userId}". Match the hostname segment
+    // "-{appName}." or "{appName}." (anchored to avoid "my-app" matching "app").
+    const match = ledgers.find((l) =>
+      l.name.startsWith(appName + ".") ||
+      l.name === appName ||
+      l.name.startsWith("oidc-" + appName + ".")
+    );
     const result = match ? match.ledgerId : ledgers[0].ledgerId;
     console.log(`[ledger-discovery] Selected ledger: ${result} (match: ${match?.name || 'fallback to first'})`);
     return result;

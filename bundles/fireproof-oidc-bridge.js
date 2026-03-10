@@ -634,10 +634,21 @@ OIDCTokenStrategy.prototype.waitForToken = function (_sthis, _logger, _deviceId,
       ledgerParam = window.__VIBES_SHARED_LEDGER__;
     }
 
+    // Redeem any pending invites before ledger discovery.
+    // The join callback creates a pending invite by email server-side; this redeems it
+    // so listLedgersByUser returns the shared ledger on the first authenticated request.
+    var redeemPromise = (typeof window !== "undefined" && window.__VIBES_JOINED__)
+      ? self._dashApi.redeemInvite({}).catch(function (e) {
+          console.debug("[vibes-oidc] redeemInvite skipped:", e);
+        })
+      : Promise.resolve();
+
     // If no cached ledger, try discovery
     var discoveryPromise = ledgerParam
       ? Promise.resolve(ledgerParam)
-      : self._dashApi.listLedgersByUser({}).then(function (rLedgers) {
+      : redeemPromise.then(function () {
+          return self._dashApi.listLedgersByUser({});
+        }).then(function (rLedgers) {
           if (rLedgers.isOk()) {
             var ledgers = rLedgers.Ok().ledgers || [];
             var appHost = typeof window !== "undefined" ? window.location.hostname : "";

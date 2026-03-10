@@ -65,6 +65,25 @@ describe("discoverLedgerId", () => {
     expect(result).toBeNull();
   });
 
+  it("finds ledger with oidc- prefix (actual OIDC bridge format)", async () => {
+    const fetchFn = mockFetch({
+      type: "resListLedgersByUser",
+      ledgers: [
+        { ledgerId: "led-1", name: "other-app.vibesos.com", role: "admin" },
+        { ledgerId: "led-2", name: "oidc-ai-dog.vibesos.com-aper-biscuit-chat-v1-z2qX2RYZ3EDaQ62Q1t", role: "admin" },
+      ],
+    });
+
+    const result = await discoverLedgerId({
+      apiUrl: "https://dashboard.workers.dev/api",
+      serviceToken: "key|owner-1|",
+      appName: "ai-dog",
+      fetchFn,
+    });
+
+    expect(result).toBe("led-2");
+  });
+
   it("does not match partial app names as substring", async () => {
     const fetchFn = mockFetch({
       type: "resListLedgersByUser",
