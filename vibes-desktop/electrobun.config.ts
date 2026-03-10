@@ -7,7 +7,7 @@ export default {
 		version: "0.1.80",
 	},
 	build: {
-		mac: { bundleCEF: false, codesign: false, notarize: false },
+		mac: { bundleCEF: false, codesign: true, notarize: true },
 		linux: { bundleCEF: false },
 		win: { bundleCEF: false },
 	},

@@ -95,16 +95,6 @@ export async function discoverVibesPlugin(
 
 	const h = home || homedir();
 
-	// Check VIBES_PLUGIN_ROOT env var
-	const envRoot = process.env.VIBES_PLUGIN_ROOT;
-	if (envRoot && existsSync(envRoot)) {
-		const envResult = validateAndReturn(envRoot);
-		if (envResult) {
-			console.log(`[plugin-discovery] VIBES_PLUGIN_ROOT: using ${envRoot}`);
-			return envResult;
-		}
-	}
-
 	// Check ~/.vibes-plugin-root config file (one line: absolute path to plugin)
 	const configFile = join(h, ".vibes-plugin-root");
 	if (existsSync(configFile)) {
