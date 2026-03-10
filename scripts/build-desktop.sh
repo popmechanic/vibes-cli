@@ -17,11 +17,10 @@ ARTIFACTS_DIR="$DESKTOP_DIR/artifacts"
 ICNS="$BUILD_DIR/$APP_NAME.app/Contents/Resources/AppIcon.icns"
 DMG_BG="$DESKTOP_DIR/dmg-background.png"
 DMG_ICON_PNG="$DESKTOP_DIR/dmg-icon.png"
-INSTALL_CMD="$REPO_ROOT/scripts/install-vibes.command"
 
 # 1. Sync version from plugin.json → electrobun.config.ts
 PLUGIN_VERSION=$(grep '"version"' "$PLUGIN_JSON" | head -1 | sed 's/.*"version": *"\([^"]*\)".*/\1/')
-echo "[1/4] Syncing version: $PLUGIN_VERSION"
+echo "[1/5] Syncing version: $PLUGIN_VERSION"
 
 # Use bun to update the version in electrobun.config.ts
 bun -e "
@@ -33,7 +32,7 @@ bun -e "
 "
 
 # 2. Compile native dylib (if source is newer than output)
-echo "[2/4] Compiling native dylib..."
+echo "[2/5] Compiling native dylib..."
 if [ ! -f "$DYLIB_OUT" ] || [ "$DYLIB_SRC" -nt "$DYLIB_OUT" ]; then
   bash "$DESKTOP_DIR/native/macos/build-window-controls.sh"
 else
@@ -41,13 +40,34 @@ else
 fi
 
 # 3. Build ElectroBun app
-echo "[3/4] Building ElectroBun app..."
+echo "[3/5] Building ElectroBun app..."
 cd "$DESKTOP_DIR"
 bunx electrobun build --env=stable
 
+# 4. Bundle plugin files into .app Resources
+echo "[4/5] Bundling plugin files..."
+APP_RESOURCES="$BUILD_DIR/$APP_NAME.app/Contents/Resources"
+PLUGIN_DEST="$APP_RESOURCES/vibes-plugin"
+rm -rf "$PLUGIN_DEST"
+rsync -a \
+  --exclude='.git' --exclude='.git-backup' --exclude='node_modules' \
+  --exclude='vibes-desktop' --exclude='deploy-api' --exclude='.claude' \
+  --exclude='scripts/__tests__' --exclude='scripts/coverage' \
+  --exclude='docs/plans' --exclude='alchemy' \
+  --exclude='skills/cloudflare/worker' --exclude='superpowers' \
+  --exclude='.netlify-deploy' --exclude='.env' --exclude='.env.*' \
+  --exclude='.connect' --exclude='.wrangler' --exclude='.DS_Store' \
+  --exclude='.vibes-tmp' --exclude='.worktrees' \
+  --exclude='*.bak.*' --exclude='*.bak.html' --exclude='*.bak.jsx' \
+  --exclude='ai-worker' --exclude='designs' --exclude='dist' \
+  --exclude='examples' --exclude='test-vibes' \
+  "$REPO_ROOT/" "$PLUGIN_DEST/"
 
-# 4. Create polished DMG with create-dmg
-echo "[4/4] Creating DMG..."
+BUNDLE_SIZE=$(du -sh "$PLUGIN_DEST" | cut -f1)
+echo "  Plugin bundled: $BUNDLE_SIZE"
+
+# 5. Create polished DMG with create-dmg
+echo "[5/5] Creating DMG..."
 ORIG_DMG="$ARTIFACTS_DIR/stable-macos-arm64-VibesOS.dmg"
 rm -f "$ORIG_DMG"
 
@@ -57,8 +77,6 @@ if [ -f "$ICNS" ]; then
   rm -rf "$STAGE_DIR"
   mkdir -p "$STAGE_DIR"
   cp -R "$BUILD_DIR/$APP_NAME.app" "$STAGE_DIR/"
-  cp "$INSTALL_CMD" "$STAGE_DIR/Install Vibes CLI.command"
-  chmod +x "$STAGE_DIR/Install Vibes CLI.command"
   # Replace symlink with Finder alias + system icon in staging dir
   # (symlinks can't hold custom icons, aliases can)
   swift -e '
@@ -86,7 +104,7 @@ do {
     ln -s /Applications "$STAGE_DIR/Applications"
   fi
 
-  # Layout: .command (left) → VibesOS (center) → Applications (right)
+  # Layout: VibesOS (left) → Applications (right)
   create-dmg \
     --volname "$APP_NAME" \
     --volicon "$ICNS" \
@@ -94,9 +112,8 @@ do {
     --window-pos 200 100 \
     --window-size 1024 576 \
     --icon-size 120 \
-    --icon "Install Vibes CLI.command" 200 270 \
-    --icon "$APP_NAME.app" 512 270 \
-    --icon "Applications" 824 270 \
+    --icon "$APP_NAME.app" 360 270 \
+    --icon "Applications" 664 270 \
     --no-internet-enable \
     "$ORIG_DMG" \
     "$STAGE_DIR" \
