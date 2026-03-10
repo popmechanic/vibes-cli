@@ -197,12 +197,23 @@ async function main() {
 }
 
 function checkClaude(): boolean {
-	try {
-		const result = Bun.spawnSync([CLAUDE_BIN, "--version"], { timeout: 5000 });
-		return result.exitCode === 0 && result.stdout.toString().trim().length > 0;
-	} catch {
-		return false;
+	console.log(`[vibes-desktop] checkClaude: CLAUDE_BIN=${CLAUDE_BIN}`);
+	// In ElectroBun bundles, spawning claude may fail due to sandboxed PATH/env.
+	// Just verify the binary exists on disk — the server will spawn it with proper env later.
+	if (CLAUDE_BIN === "claude") {
+		// Fallback name means resolveClaudePath found nothing
+		console.log("[vibes-desktop] checkClaude: no resolved path, trying spawn");
+		try {
+			const result = Bun.spawnSync([CLAUDE_BIN, "--version"], { timeout: 5000 });
+			return result.exitCode === 0 && result.stdout.toString().trim().length > 0;
+		} catch {
+			return false;
+		}
 	}
+	const { existsSync } = require("fs");
+	const exists = existsSync(CLAUDE_BIN);
+	console.log(`[vibes-desktop] checkClaude: existsSync(${CLAUDE_BIN}) = ${exists}`);
+	return exists;
 }
 
 main().catch((err) => {
