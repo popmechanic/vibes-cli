@@ -106,6 +106,25 @@ export const SETUP_HTML = `<!DOCTYPE html>
     display: none;
     text-align: center;
   }
+  .auth-waiting {
+    font-size: 13px;
+    color: #888;
+    margin-top: 8px;
+    display: none;
+    text-align: center;
+  }
+  .auth-waiting .hint {
+    font-size: 11px;
+    color: #555;
+    margin-top: 4px;
+  }
+  .auth-email {
+    font-size: 14px;
+    color: #e0e0e0;
+    margin-top: 8px;
+    display: none;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
@@ -133,6 +152,12 @@ export const SETUP_HTML = `<!DOCTYPE html>
     Retry
   </button>
   <div class="error-detail" id="error-detail"></div>
+  <div style="font-size:11px;color:#555;margin-top:6px;text-align:center" id="auth-hint">Opens your browser</div>
+  <div class="auth-waiting" id="auth-waiting">
+    Complete sign-in in your browser
+    <div class="hint">then return here</div>
+  </div>
+  <div class="auth-email" id="auth-email"></div>
 </div>
 <script>
 function updateStep(id, state, label) {
@@ -160,6 +185,30 @@ function showError(msg) {
 function showReady() {
   document.querySelector('.subtitle').textContent = 'Ready!';
   document.querySelector('.subtitle').style.color = '#4ade80';
+}
+function showWaitingForAuth() {
+  document.getElementById('auth-btn').style.display = 'none';
+  document.getElementById('auth-hint').style.display = 'none';
+  document.getElementById('auth-waiting').style.display = 'block';
+}
+function showAuthSuccess(email) {
+  document.getElementById('auth-waiting').style.display = 'none';
+  document.getElementById('auth-btn').style.display = 'none';
+  document.getElementById('retry-btn').style.display = 'none';
+  var el = document.getElementById('auth-email');
+  el.textContent = email || 'Authenticated';
+  el.style.display = 'block';
+}
+function showAuthError(msg) {
+  document.getElementById('auth-waiting').style.display = 'none';
+  document.getElementById('auth-btn').style.display = 'none';
+  showError(msg);
+  showRetryButton(true);
+}
+function showLoginScreen(subtitle) {
+  document.querySelector('.subtitle').textContent = subtitle || 'Setting up your environment';
+  document.querySelector('.steps').style.display = 'none';
+  document.getElementById('auth-btn').style.display = 'block';
 }
 </script>
 </body>
