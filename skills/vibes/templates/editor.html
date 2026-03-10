@@ -373,9 +373,9 @@
       display: flex; flex-direction: column; align-items: center; gap: 24px;
     }
     .welcome-ascii-art {
-      font-size: 11px; line-height: 1.4;
+      font-size: 11px; line-height: 1.15;
       text-align: center; white-space: pre;
-      margin-bottom: 8px;
+      margin: 0 auto 8px;
       font-family: Menlo, Monaco, 'SF Mono', 'Courier New', monospace;
       background: linear-gradient(to right,
         #009ACE 0% 14.3%,
@@ -389,6 +389,11 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+    }
+    .welcome-ascii-art span {
+      display: inline-block;
+      width: 1ch;
+      text-align: center;
     }
     .welcome-title {
       font-size: 13px; font-weight: 400; color: #EAE3E0;
@@ -2502,10 +2507,17 @@
       </div>
       <div class="welcome-card-body">
         <div id="welcomeDefault">
-          <pre class="welcome-ascii-art">▄   ▄ ▄ ▗▖   ▗▞▀▚▖ ▄▄▄  ▗▄▖  ▗▄▄▖
+          <pre class="welcome-ascii-art" id="asciiArt">▄   ▄ ▄ ▗▖   ▗▞▀▚▖ ▄▄▄  ▗▄▖  ▗▄▄▖
 █   █ ▄ ▐▌   ▐▛▀▀▘▀▄▄  ▐▌ ▐▌▐▌
  ▀▄▀  █ ▐▛▀▚▖▝▚▄▄▖▄▄▄▀ ▐▌ ▐▌ ▝▀▚▖
       █ ▐▙▄▞▘          ▝▚▄▞▘▗▄▄▞▘</pre>
+          <script>
+            // Wrap each character in a fixed-width span for uniform block char rendering
+            const art = document.getElementById('asciiArt');
+            art.innerHTML = art.textContent.split('').map(c =>
+              c === '\n' ? '\n' : `<span>${c}</span>`
+            ).join('');
+          </script>
           <div class="welcome-title">
             The fastest and easiest way to turn your ideas
             into 100% secure multiplayer and AI apps &mdash;

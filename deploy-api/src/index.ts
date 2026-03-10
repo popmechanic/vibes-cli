@@ -1090,6 +1090,10 @@ async function ensureJoinClient(
 
   const existing = await findAppByName(fetcher, apiKey, "vibes-join");
   if (existing) {
+    // Always update callback URL to match current deploy origin (domain may have changed)
+    await updateApp(fetcher, apiKey, existing.id, {
+      callbackURLs: [`${deployOrigin}/join/callback`],
+    });
     cachedJoinClientId = existing.id;
     return existing.id;
   }
