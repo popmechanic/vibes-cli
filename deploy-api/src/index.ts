@@ -1152,23 +1152,9 @@ app.get("/join/callback", async (c) => {
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.error(`[join] Failed for ${email} to ${state.app}: steps=[${steps.join(" → ")}] error=${errMsg}`);
-    return c.html(`<h1>Join failed</h1><pre>Steps: ${steps.join(" → ")}\nError: ${errMsg}</pre>`, 500);
+    return c.html(`<h1>Join failed</h1><p>Something went wrong. Please try the invite link again, or contact the app owner.</p>`, 500);
   }
 });
 
-// Temporary debug endpoint — remove after testing
-app.get("/debug/pocket-id", async (c) => {
-  if (!c.env.POCKET_ID_API_KEY) return c.json({ error: "no api key" });
-  try {
-    // List OIDC clients via service binding
-    const res = await c.env.POCKET_ID.fetch("https://pocket-id/api/oidc/clients?search=vibes-join", {
-      headers: { "X-API-Key": c.env.POCKET_ID_API_KEY, Accept: "application/json" },
-    });
-    const body = await res.json();
-    return c.json({ status: res.status, body });
-  } catch (err) {
-    return c.json({ error: String(err) });
-  }
-});
 
 export default app;
