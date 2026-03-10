@@ -19,6 +19,7 @@ import { CLAUDE_BIN, refreshClaudePath } from "./auth.ts";
 import { hideZoomButton } from "./window-controls.ts";
 import { isSetupComplete, runSetup, getBundledPluginPath } from "./setup.ts";
 import { SETUP_HTML } from "./setup-html.ts";
+import { checkClaudeAuth, startClaudeLogin, waitForClaudeAuth, type ClaudeAuthResult } from "./claude-auth.ts";
 
 // --- Debug logging (~/Library/Logs/VibesOS/desktop.log) ---
 const LOG_DIR = join(homedir(), "Library", "Logs", "VibesOS");
@@ -53,6 +54,51 @@ function getAppVersion(): string {
 		}
 	} catch {}
 	return "unknown";
+}
+
+/**
+ * Show the login screen in the given window and wait for auth completion.
+ * Used both during first-launch setup and on normal startup when credentials expire.
+ * Includes retry loop — never throws, keeps showing login until the user succeeds.
+ */
+async function showLoginAndWait(
+	mainWindow: BrowserWindow,
+	subtitle: string,
+): Promise<ClaudeAuthResult> {
+	// Load setup HTML and switch to login-only view
+	mainWindow.webview.loadHTML(SETUP_HTML);
+	await new Promise(r => setTimeout(r, 300));
+	mainWindow.webview.executeJavascript(`showLoginScreen("${subtitle.replace(/"/g, '\\"')}")`);
+
+	while (true) {
+		// Wait for button click (auth or retry)
+		await new Promise<void>((resolve) => {
+			const handler = (event: any) => {
+				const msg = event.data?.detail;
+				if (msg?.type === "setup-action" && (msg?.action === "auth" || msg?.action === "retry")) {
+					mainWindow.webview.off("host-message", handler);
+					resolve();
+				}
+			};
+			mainWindow.webview.on("host-message", handler);
+		});
+
+		// Start login and poll
+		mainWindow.webview.executeJavascript(`showWaitingForAuth()`);
+		const loginProc = startClaudeLogin();
+
+		try {
+			const result = await waitForClaudeAuth();
+			mainWindow.webview.executeJavascript(`showAuthSuccess("${(result.email || "").replace(/"/g, '\\"')}")`);
+			await new Promise(r => setTimeout(r, 1000));
+			return result;
+		} catch (err: any) {
+			try { loginProc.kill(); } catch {}
+			log(`[vibes-desktop] Auth failed: ${err.message}`);
+			mainWindow.webview.executeJavascript(`showAuthError("${err.message.replace(/"/g, '\\"')}")`);
+			// Loop back — retry button click will re-enter the while loop
+		}
+	}
 }
 
 // Inline preload — uses __electrobunSendToHost (host-message channel) for reliable
@@ -150,6 +196,16 @@ async function main() {
 				throw new Error("Plugin not found after setup");
 			}
 		}
+	}
+
+	// --- Auth check (both paths) ---
+	log("[vibes-desktop] Checking Claude auth...");
+	const authCheck = checkClaudeAuth();
+	if (!authCheck.loggedIn) {
+		log("[vibes-desktop] Not authenticated, showing login screen");
+		await showLoginAndWait(mainWindow, needsSetup ? "Setting up your environment" : "Welcome back");
+	} else {
+		log(`[vibes-desktop] Authenticated as ${authCheck.email}`);
 	}
 
 	// Expose resolved Claude path for server subprocess spawning
