@@ -12,11 +12,13 @@ import Electrobun, {
 	Utils,
 } from "electrobun/bun";
 import { join } from "path";
-import { appendFileSync, mkdirSync } from "fs";
+import { appendFileSync, mkdirSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { discoverVibesPlugin } from "./plugin-discovery.ts";
 import { CLAUDE_BIN, refreshClaudePath } from "./auth.ts";
 import { hideZoomButton } from "./window-controls.ts";
+import { isSetupComplete, runSetup, getBundledPluginPath } from "./setup.ts";
+import { SETUP_HTML } from "./setup-html.ts";
 
 // --- Debug logging (~/Library/Logs/VibesOS/desktop.log) ---
 const LOG_DIR = join(homedir(), "Library", "Logs", "VibesOS");
@@ -40,6 +42,18 @@ console.error = (...args: any[]) => log("[ERROR]", ...args);
 const PORT = 3333;
 const SERVER_URL = `http://localhost:${PORT}`;
 const BUILD_ID = "build-2026-03-09-v7";
+
+// Read app version from plugin.json (synced from .claude-plugin/plugin.json at build time)
+function getAppVersion(): string {
+	try {
+		const bundledPath = getBundledPluginPath();
+		if (bundledPath) {
+			const pj = JSON.parse(readFileSync(join(bundledPath, ".claude-plugin", "plugin.json"), "utf-8"));
+			return pj.version || "unknown";
+		}
+	} catch {}
+	return "unknown";
+}
 
 // Inline preload — uses __electrobunSendToHost (host-message channel) for reliable
 // preload→Bun communication. Raw bridge messages have FFI race conditions.
@@ -78,51 +92,12 @@ const LINK_PRELOAD = `
 // --- Startup ---
 async function main() {
 	log(`[vibes-desktop] Starting ${BUILD_ID}`);
-	// 1. Check Claude CLI (retry loop — user may install between attempts)
-	while (!checkClaude()) {
-		const result = await Utils.showMessageBox({
-			type: "warning",
-			title: "Claude CLI Not Found",
-			message: "Vibes Editor requires the Claude CLI.",
-			detail: "Install it with:\n  npm install -g @anthropic-ai/claude-code\n\nThen click Retry.",
-			buttons: ["Retry", "Quit"],
-		});
-		if (result !== 0) {
-			Utils.quit();
-			return;
-		}
-		refreshClaudePath();
-	}
 
-	// 2. Find plugin
-	const pluginPaths = await discoverVibesPlugin();
-	if (!pluginPaths) {
-		await Utils.showMessageBox({
-			type: "error",
-			title: "Vibes Plugin Not Found",
-			message: "Could not locate the Vibes plugin.",
-			detail: "Make sure the vibes-skill plugin is installed in Claude Code.",
-			buttons: ["Quit"],
-		});
-		Utils.quit();
-		return;
-	}
+	const appVersion = getAppVersion();
+	const needsSetup = !isSetupComplete(appVersion);
+	log(`[vibes-desktop] Version: ${appVersion}, needsSetup: ${needsSetup}`);
 
-	// 3. Expose resolved Claude path for server subprocess spawning
-	process.env.CLAUDE_BIN = CLAUDE_BIN;
-
-	// 4. Start the existing server
-	const serverModule = await import(join(pluginPaths.root, "scripts", "server.ts"));
-	const { server, ctx, shutdown } = await serverModule.startServer({
-		mode: "editor",
-		port: PORT,
-		managed: true, // We handle lifecycle
-	});
-
-	log(`[vibes-desktop] Plugin root: ${pluginPaths.root}`);
-	log(`[vibes-desktop] Server started at ${SERVER_URL}`);
-
-	// 4. Create window pointing to the server
+	// Create window early — setup UI and editor both use it
 	const mainWindow = new BrowserWindow({
 		title: "Vibes Editor",
 		titleBarStyle: "hiddenInset",
@@ -133,9 +108,66 @@ async function main() {
 			Closable: false,
 			Miniaturizable: true,
 		},
-		url: SERVER_URL,
+		// Start with setup page or dark blank — server URL loaded after ready
+		html: needsSetup
+			? SETUP_HTML
+			: "<html><body style='background:#0a0a0a'></body></html>",
 		frame: { width: 1280, height: 820 },
 	});
+
+	let claudeBin: string;
+	let pluginPaths: any;
+
+	if (needsSetup) {
+		// Run first-launch setup — shows UI in the window
+		const setupResult = await runSetup(mainWindow, appVersion, log);
+		claudeBin = setupResult.claudeBin;
+
+		// Re-discover plugin from the newly installed location
+		const { discoverVibesPlugin: discover } = await import("./plugin-discovery.ts");
+		pluginPaths = await discover();
+		if (!pluginPaths) {
+			throw new Error("Plugin not found after setup — this should not happen");
+		}
+	} else {
+		// Normal startup — verify deps exist
+		if (!checkClaude()) {
+			// Claude disappeared — re-trigger setup
+			log("[vibes-desktop] Claude binary missing, re-running setup");
+			const setupResult = await runSetup(mainWindow, appVersion, log);
+			claudeBin = setupResult.claudeBin;
+		} else {
+			claudeBin = CLAUDE_BIN;
+		}
+
+		pluginPaths = await discoverVibesPlugin();
+		if (!pluginPaths) {
+			log("[vibes-desktop] Plugin missing, re-running setup");
+			const setupResult = await runSetup(mainWindow, appVersion, log);
+			claudeBin = setupResult.claudeBin;
+			pluginPaths = await discoverVibesPlugin();
+			if (!pluginPaths) {
+				throw new Error("Plugin not found after setup");
+			}
+		}
+	}
+
+	// Expose resolved Claude path for server subprocess spawning
+	process.env.CLAUDE_BIN = claudeBin;
+
+	// Start the server
+	const serverModule = await import(join(pluginPaths.root, "scripts", "server.ts"));
+	const { server, ctx, shutdown } = await serverModule.startServer({
+		mode: "editor",
+		port: PORT,
+		managed: true,
+	});
+
+	log(`[vibes-desktop] Plugin root: ${pluginPaths.root}`);
+	log(`[vibes-desktop] Server started at ${SERVER_URL}`);
+
+	// Load the editor in the window (transition from setup UI or blank page)
+	mainWindow.webview.loadURL(SERVER_URL);
 
 	// Inject preload via executeJavascript on dom-ready (preload option doesn't work)
 	mainWindow.webview.on("dom-ready", () => {
