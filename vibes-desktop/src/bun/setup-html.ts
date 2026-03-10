@@ -833,8 +833,9 @@ function showWelcomeScreen() {
 
 function hideWelcomeScreen() {
   document.getElementById('welcome-screen').className = 'welcome-screen';
-  // Restore step-auth for the waiting state
+  // Restore step-auth and ascii-buttons (hidden by showWelcomeScreen)
   document.getElementById('step-auth').style.display = '';
+  document.querySelector('.ascii-buttons').style.display = '';
 }
 </script>
 </body>
