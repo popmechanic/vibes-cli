@@ -8,14 +8,12 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
 import { join } from 'path';
 import { getAccessToken } from '../../lib/cli-auth.js';
-import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '../../lib/auth-constants.js';
+import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL } from '../../lib/auth-constants.js';
 import { getApp, setApp } from '../../lib/registry.js';
 import { runBunScript } from '../claude-bridge.ts';
 import type { EventCallback } from '../claude-bridge.ts';
 import type { ServerContext } from '../config.ts';
 import { currentAppDir } from '../app-context.js';
-
-const DEPLOY_API_URL = 'https://vibes-deploy-api.marcus-e.workers.dev';
 
 /**
  * Assemble and deploy an app via the Deploy API.

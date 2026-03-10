@@ -13,10 +13,8 @@ import { readFileSync, existsSync, unlinkSync } from "fs";
 import { resolve, join } from "path";
 import { validateName, getApp, setApp } from './lib/registry.js';
 import { getAccessToken } from './lib/cli-auth.js';
-import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from './lib/auth-constants.js';
+import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL } from './lib/auth-constants.js';
 import { PLUGIN_ROOT } from './lib/paths.js';
-
-const DEPLOY_API_URL = 'https://vibes-deploy-api.marcus-e.workers.dev';
 
 async function deployViaAPI(name, files, accessToken, options = {}) {
   console.log(`Deploying ${name} (${Object.keys(files).length} file(s))...`);
