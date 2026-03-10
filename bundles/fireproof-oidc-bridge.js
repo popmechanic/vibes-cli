@@ -275,6 +275,10 @@ export function OIDCProvider(props) {
 
     var cancelled = false;
     var redirectUri = window.location.origin + window.location.pathname;
+    // Preserve ?joined=true through the OIDC redirect so redeemInvite runs after auth
+    if (window.__VIBES_JOINED__) {
+      redirectUri += "?joined=true";
+    }
 
     async function init() {
       // Step 0: Check for OTA (one-time-access-token) from invite link
