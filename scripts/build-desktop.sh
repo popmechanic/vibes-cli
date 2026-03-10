@@ -92,8 +92,8 @@ do {
     --window-pos 200 100 \
     --window-size 1024 576 \
     --icon-size 120 \
-    --icon "$APP_NAME.app" 350 287 \
-    --icon "Applications" 700 287 \
+    --icon "$APP_NAME.app" 350 285 \
+    --icon "Applications" 700 285 \
     --no-internet-enable \
     "$ORIG_DMG" \
     "$STAGE_DIR" \
