@@ -252,7 +252,12 @@ Rules:
 - ANY class with visual properties (color, background, border, box-shadow, font-family, font-size, font-weight, text-shadow, fill, stroke, opacity, gradients) MUST go inside @theme:surfaces — even if it also has layout properties
 - ONLY pure-layout classes go outside markers: display, grid-template, gap, padding, margin, position, z-index, width, max-width, height, flex-*, align-items, justify-content, overflow, box-sizing
 
-DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}), database.put/del`;
+DATABASE:
+- useDocument({text:"",type:"item"}) returns { doc, merge, submit, reset, save }
+  merge({text:"new"}) to update fields, submit() to save as new doc, save() to upsert by _id
+  For forms: merge() on each keystroke, submit() when done. NEVER use setDoc — it doesn't exist.
+- useLiveQuery("type",{key:"item"}) returns { docs, isLoading }
+- database.put({...doc, field:"val"}) for direct writes, database.del(doc) to delete`;
 
     onEvent({ type: 'theme_selected', themeId: 'custom-ref', themeName: 'Custom Reference' });
 
@@ -402,7 +407,12 @@ Rules:
 - ANY class with visual properties (color, background, border, box-shadow, font-family, font-size, font-weight, text-shadow, fill, stroke, opacity, gradients) MUST go inside @theme:surfaces — even if it also has layout properties
 - ONLY pure-layout classes go outside markers: display, grid-template, gap, padding, margin, position, z-index, width, max-width, height, flex-*, align-items, justify-content, overflow, box-sizing
 
-DATABASE: useDocument({text:"",type:"item"}), useLiveQuery("type",{key:"item"}), database.put/del`;
+DATABASE:
+- useDocument({text:"",type:"item"}) returns { doc, merge, submit, reset, save }
+  merge({text:"new"}) to update fields, submit() to save as new doc, save() to upsert by _id
+  For forms: merge() on each keystroke, submit() when done. NEVER use setDoc — it doesn't exist.
+- useLiveQuery("type",{key:"item"}) returns { docs, isLoading }
+- database.put({...doc, field:"val"}) for direct writes, database.del(doc) to delete`;
 
   onEvent({ type: 'theme_selected', themeId, themeName });
 
