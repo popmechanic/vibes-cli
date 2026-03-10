@@ -210,8 +210,8 @@ export async function runSetup(
 
 	// --- Done ---
 	ui.ready();
-	log("[setup] Setup complete");
-	await new Promise(r => setTimeout(r, 800)); // Let user see "Ready!"
+	log("[setup] Setup complete, waiting for user to click Continue");
+	await waitForSetupAction(["continue"]);
 
 	markSetupComplete(appVersion);
 

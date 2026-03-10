@@ -341,6 +341,55 @@ export const SETUP_HTML = `<!DOCTYPE html>
     font-size: 12px;
   }
 
+  /* Welcome screen (phase 2) */
+  .welcome-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 0 4px 0;
+  }
+
+  .welcome-screen.visible { display: flex; }
+
+  .welcome-ascii {
+    color: var(--accent-teal);
+    font-size: 11px;
+    line-height: 1.3;
+    text-align: center;
+    white-space: pre;
+    text-shadow: 0 0 12px rgba(94, 234, 212, 0.3);
+  }
+
+  .welcome-tagline {
+    color: var(--text-main);
+    font-size: 12px;
+    line-height: 1.6;
+    text-align: center;
+    max-width: 440px;
+    margin-top: 4px;
+  }
+
+  .welcome-tagline em {
+    font-style: normal;
+    color: var(--accent-teal);
+  }
+
+  .welcome-hint {
+    color: var(--text-muted);
+    opacity: 0.6;
+    font-size: 11px;
+    text-align: center;
+  }
+
+  .welcome-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
   /* Status bar */
   .status-bar {
     display: flex;
@@ -486,6 +535,14 @@ export const SETUP_HTML = `<!DOCTYPE html>
             <span class="btn-highlight">└──────────────────────────────┘</span>
           </button>
           <span id="auth-hint" style="display:none; font-size:11px; color:var(--text-muted); opacity:0.5; padding-left: 4px;">↑ opens your browser</span>
+          <button class="ascii-btn" id="continue-btn" onclick="fetch('http://localhost:3335/continue').catch(function(){})"
+            style="margin-top: 8px;">
+            <span class="btn-highlight">┌──────────────────────────────┐</span>
+            <br>
+            <span class="btn-highlight">│</span>  ▸ Continue                   <span class="btn-highlight">│</span>
+            <br>
+            <span class="btn-highlight">└──────────────────────────────┘</span>
+          </button>
           <button class="ascii-btn" id="retry-btn" onclick="fetch('http://localhost:3335/retry').catch(function(){})">
             <span class="btn-highlight">┌─────────────┐</span>
             <br>
@@ -501,6 +558,29 @@ export const SETUP_HTML = `<!DOCTYPE html>
           <div class="waiting-hint">then return here</div>
         </div>
         <div class="auth-email" id="auth-email"></div>
+
+        <!-- Welcome screen (phase 2: after Claude installed) -->
+        <div class="welcome-screen" id="welcome-screen">
+          <pre class="welcome-ascii">▄   ▄ ▄ ▗▖   ▗▞▀▚▖ ▄▄▄  ▗▄▖  ▗▄▄▖
+█   █ ▄ ▐▌   ▐▛▀▀▘▀▄▄  ▐▌ ▐▌▐▌
+ ▀▄▀  █ ▐▛▀▚▖▝▚▄▄▖▄▄▄▀ ▐▌ ▐▌ ▝▀▚▖
+      █ ▐▙▄▞▘          ▝▚▄▞▘▗▄▄▞▘</pre>
+          <div class="welcome-tagline">
+            The fastest and easiest way to turn your ideas
+            into 100% secure multiplayer and AI apps —
+            without a web server. <em>It's magic.</em>
+          </div>
+          <div class="welcome-buttons">
+            <button class="ascii-btn" id="welcome-auth-btn" onclick="fetch('http://localhost:3335/auth').catch(function(){})" style="display: inline-block;">
+              <span class="btn-highlight">┌──────────────────────────────┐</span>
+              <br>
+              <span class="btn-highlight">│</span>  ▸ Sign in                    <span class="btn-highlight">│</span>
+              <br>
+              <span class="btn-highlight">└──────────────────────────────┘</span>
+            </button>
+          </div>
+          <div class="welcome-hint">Don't have an account? You'll be able to create one.</div>
+        </div>
 
         <!-- Prompt line (shows after completion) -->
         <div class="prompt-line" id="ready-prompt" style="display: none;">
@@ -582,6 +662,7 @@ function showReady() {
   document.getElementById('status-dot').className = 'status-indicator ready';
   document.getElementById('status-label').textContent = 'Ready';
   document.getElementById('ready-prompt').style.display = 'flex';
+  document.getElementById('continue-btn').style.display = 'inline-block';
 }
 
 function showWaitingForAuth() {
