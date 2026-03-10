@@ -92,8 +92,8 @@ export interface OneShotOpts {
   cwd?: string;
   skipChat?: boolean;
   permissionMode?: string;
-  /** Called with a cancel function once the subprocess is spawned. Wire to acquireLock. */
-  onCancel?: (cancelFn: () => void) => void;
+  /** Operation type for the lock (default: 'chat'). Set to false to skip auto-locking. */
+  lockType?: string | false;
 }
 
 export async function runOneShot(
@@ -131,12 +131,15 @@ export async function runOneShot(
   proc.stdin.end();
   console.log(`[OneShot] PID ${proc.pid} stdin written and closed`);
 
-  // Register cancel callback so the operation lock can kill this subprocess.
+  // Auto-acquire operation lock so cancelCurrent() can kill this subprocess.
   // NOTE: The 5s SIGKILL fallback may not fire if the caller's process.exit()
   // runs first (e.g., during server shutdown). This is acceptable — the OS
   // reaps orphaned subprocesses, and SIGTERM is sufficient for `claude`.
-  if (opts.onCancel) {
-    opts.onCancel(() => {
+  const useLock = opts.lockType !== false;
+  if (useLock) {
+    const lockType = (typeof opts.lockType === 'string' ? opts.lockType : 'chat');
+    acquireLock(lockType, () => {
+      console.log(`[OneShot] Cancel requested — killing PID ${proc.pid}`);
       try { proc.kill('SIGTERM'); } catch {}
       setTimeout(() => { try { proc.kill('SIGKILL'); } catch {} }, 5000);
     });
@@ -286,7 +289,17 @@ export async function runOneShot(
   const exitCode = await proc.exited;
   await stderrPromise;
 
+  // Release the operation lock now that the subprocess has exited.
+  if (useLock) releaseLock();
+
   console.log(`[OneShot] Completed in ${getElapsed()}s (${toolsUsed} tools, code ${exitCode})`);
+
+  // SIGTERM exit: process was cancelled via cancelCurrent()
+  if (exitCode === 143 || exitCode === 137) {
+    console.log(`[OneShot] Process was cancelled (signal ${exitCode === 143 ? 'TERM' : 'KILL'})`);
+    onEvent({ type: 'cancelled' });
+    return null;
+  }
 
   if (killedByTimeout && !errorSent) {
     onEvent({ type: 'error', message: `Claude stopped responding after ${getElapsed()}s. Try again.` });

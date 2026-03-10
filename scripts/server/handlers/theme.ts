@@ -176,7 +176,7 @@ ${extractDataSchema(pass1Code)}`;
   console.log(`[ThemeSwitch] Pass 2: Claude creative restyle, prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
 
   // Use skipChat in onEvent — the wsAdapter will check event.skipChat
-  const claudeResult = await runOneShot(prompt, { skipChat: true, maxTurns: 5, model, cwd: currentAppDir(ctx), tools: 'Read,Edit' }, onEvent, ctx.projectRoot);
+  const claudeResult = await runOneShot(prompt, { lockType: 'theme', skipChat: true, maxTurns: 5, model, cwd: currentAppDir(ctx), tools: 'Read,Edit' }, onEvent, ctx.projectRoot);
 
   if (claudeResult === null) {
     onEvent({ type: 'app_updated' });
@@ -266,7 +266,7 @@ KEEP UNCHANGED:
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.`;
 
   console.log(`[ThemeSwitch] Legacy mode for "${themeName}" (${themeId}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
-  await runOneShot(prompt, { skipChat: true, maxTurns: 8, model, cwd: currentAppDir(ctx), tools: 'Read,Edit' }, onEvent, ctx.projectRoot);
+  await runOneShot(prompt, { lockType: 'theme', skipChat: true, maxTurns: 8, model, cwd: currentAppDir(ctx), tools: 'Read,Edit' }, onEvent, ctx.projectRoot);
 
   sanitizeAppJsx(currentAppDir(ctx) || ctx.projectRoot);
 }

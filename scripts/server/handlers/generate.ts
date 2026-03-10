@@ -309,7 +309,7 @@ DATABASE:
 
     const maxTurns = isHtmlRef ? 5 : 8;
     console.log(`[Generate] Starting (reference path) — ref: ${reference.name} (${intent}), prompt: ${(refPrompt.length / 1024).toFixed(1)}KB`);
-    await runOneShot(refPrompt, { skipChat: true, maxTurns, model, cwd: currentAppDir(ctx), tools: isHtmlRef ? 'Write' : 'Write,Read' }, onEvent, ctx.projectRoot);
+    await runOneShot(refPrompt, { lockType: 'generate', skipChat: true, maxTurns, model, cwd: currentAppDir(ctx), tools: isHtmlRef ? 'Write' : 'Write,Read' }, onEvent, ctx.projectRoot);
 
     sanitizeAppJsx(currentAppDir(ctx));
     return;
@@ -463,7 +463,7 @@ DATABASE:
   onEvent({ type: 'theme_selected', themeId, themeName });
 
   console.log(`[Generate] Starting — theme: ${themeId} (${themeName}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
-  await runOneShot(prompt, { skipChat: true, maxTurns: 5, model, cwd: currentAppDir(ctx), tools: 'Write' }, onEvent, ctx.projectRoot);
+  await runOneShot(prompt, { lockType: 'generate', skipChat: true, maxTurns: 5, model, cwd: currentAppDir(ctx), tools: 'Write' }, onEvent, ctx.projectRoot);
 
   sanitizeAppJsx(currentAppDir(ctx));
 }
