@@ -94,6 +94,31 @@ export async function discoverVibesPlugin(
 	}
 
 	const h = home || homedir();
+
+	// Check VIBES_PLUGIN_ROOT env var
+	const envRoot = process.env.VIBES_PLUGIN_ROOT;
+	if (envRoot && existsSync(envRoot)) {
+		const envResult = validateAndReturn(envRoot);
+		if (envResult) {
+			console.log(`[plugin-discovery] VIBES_PLUGIN_ROOT: using ${envRoot}`);
+			return envResult;
+		}
+	}
+
+	// Check ~/.vibes-plugin-root config file (one line: absolute path to plugin)
+	const configFile = join(h, ".vibes-plugin-root");
+	if (existsSync(configFile)) {
+		try {
+			const configPath = (await Bun.file(configFile).text()).trim();
+			if (configPath && existsSync(configPath)) {
+				const configResult = validateAndReturn(configPath);
+				if (configResult) {
+					console.log(`[plugin-discovery] Config file: using ${configPath}`);
+					return configResult;
+				}
+			}
+		} catch {}
+	}
 	const installedPath = join(h, ".claude", "plugins", "installed_plugins.json");
 
 	if (!existsSync(installedPath)) return null;

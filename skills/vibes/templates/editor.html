@@ -64,7 +64,16 @@
       border-top-right-radius: 10px;
     }
     .header-left { display: flex; align-items: center; height: 100%; }
-    .header-drag { flex: 1; height: 100%; cursor: default; }
+    .header-drag { flex: 1; height: 100%; cursor: default; display: flex; align-items: center; justify-content: center; }
+    .app-name-display {
+      display: none; font-size: 0.8125rem; font-weight: 700; color: var(--vibes-near-black);
+      cursor: pointer; padding: 0.25rem 0.75rem; border-radius: 6px;
+      text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-width: 260px;
+      transition: background 0.15s;
+      letter-spacing: 0.02em; opacity: 0.7;
+    }
+    .app-name-display:hover { background: rgba(0,0,0,0.06); opacity: 1; }
+    .app-name-display.visible { display: block; }
     .header-right { display: flex; align-items: center; height: 100%; }
 
     /* Desktop window controls (traffic lights) */
@@ -714,24 +723,30 @@
       border-color: var(--vibes-near-black);
     }
     .theme-carousel-btn:hover { background: white; color: var(--vibes-near-black); }
-    .theme-carousel.overridden {
-      opacity: 0.3;
+    .theme-carousel.custom-mode {
+      opacity: 0.25;
       pointer-events: none;
-      position: relative;
     }
-    .theme-carousel.overridden::after {
-      content: 'Using design reference';
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.75rem;
-      font-weight: 700;
+    .theme-mode-chip {
+      flex-shrink: 0;
+      padding: 0.4rem 0.75rem;
+      border: 2px solid var(--vibes-near-black);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.6875rem;
+      font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 1px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      background: var(--vibes-cream);
       color: var(--vibes-near-black);
-      pointer-events: none;
+    }
+    .theme-mode-chip.custom {
+      background: var(--vibes-near-black);
+      color: var(--vibes-cream);
+      border-color: var(--vibes-near-black);
     }
     .theme-select { display: none; }
     .theme-select-row { display: none; }
@@ -895,6 +910,29 @@
       padding: 1rem 0;
     }
     .generate-progress.active { display: flex; }
+
+    /* Settings slide panel (edit phase) */
+    .edit-settings-panel {
+      position: fixed; top: 64px; right: 0; bottom: 0; width: 380px; max-width: 90vw;
+      background: #1a1a1a; box-shadow: -4px 0 24px rgba(0,0,0,0.5); z-index: 901;
+      overflow-y: auto; padding: 2rem; display: none;
+    }
+    .edit-settings-backdrop {
+      display: none; position: fixed; top: 64px; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4); z-index: 900;
+    }
+    .go-home-btn {
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      width: 100%; padding: 0.875rem 1rem; margin-top: 2rem;
+      background: var(--vibes-near-black); color: var(--vibes-cream);
+      border: 2px solid #444; border-radius: 10px; cursor: pointer;
+      font-size: 0.875rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+      transition: box-shadow 0.15s, transform 0.15s, background 0.15s;
+    }
+    .go-home-btn:hover {
+      box-shadow: 4px 4px 0 0 rgba(255,255,255,0.15); transform: translate(-2px,-2px);
+      background: #333;
+    }
 
     /* === PHASE 3: EDIT === */
     .edit-phase { flex-direction: row; }
@@ -1430,6 +1468,11 @@
     }
     .gen-ref-badge-row { display: none; padding: 0.5rem 0.75rem 0; }
     .gen-ref-badge-row.visible { display: block; }
+    /* Fix colors for light-background generate prompt area */
+    .gen-ref-badge-row .ref-intent-picker .ref-intent-label { color: var(--vibes-near-black); }
+    .gen-ref-badge-row .ref-intent-picker .clear-btn { color: var(--vibes-near-black); }
+    .gen-ref-badge-row .ref-badge { color: var(--vibes-near-black); }
+    .gen-ref-badge-row .ref-badge .clear-btn { color: var(--vibes-near-black); }
     /* Send button */
     .chat-send {
       width: 32px;
@@ -2337,7 +2380,9 @@
         </button>
       </div>
     </div>
-    <div class="header-drag" id="headerDrag" style="app-region: drag"></div>
+    <div class="header-drag" id="headerDrag" style="app-region: drag">
+      <span class="app-name-display" id="appNameDisplay" onclick="promptRenameApp()" title="Click to rename"></span>
+    </div>
     <div class="header-right" id="headerRight">
       <!-- Phase 3 buttons injected here by JS -->
     </div>
@@ -2460,18 +2505,21 @@
                   </div>
                 </div>
               </div>
+              <button class="theme-mode-chip" id="themeModeChip" onclick="toggleThemeMode()">Themed</button>
               <button class="generate-submit-btn" id="generateBtn" onclick="startGenerate()" title="Generate">&#8593;</button>
             </div>
           </div>
         </div>
 
-        <!-- Theme carousel -->
-        <div class="theme-carousel">
-          <button class="theme-carousel-arrow" onclick="themeCarouselPrev()" aria-label="Previous themes">&#9664;</button>
-          <div class="theme-carousel-viewport" id="themeCarouselViewport">
-            <div class="theme-carousel-track" id="themeCarouselTrack"></div>
+        <!-- Theme carousel + mode toggle -->
+        <div style="display:flex;align-items:center;gap:10px;width:100%;">
+          <div class="theme-carousel" id="themeCarousel">
+            <button class="theme-carousel-arrow" onclick="themeCarouselPrev()" aria-label="Previous themes">&#9664;</button>
+            <div class="theme-carousel-viewport" id="themeCarouselViewport">
+              <div class="theme-carousel-track" id="themeCarouselTrack"></div>
+            </div>
+            <button class="theme-carousel-arrow" onclick="themeCarouselNext()" aria-label="Next themes">&#9654;</button>
           </div>
-          <button class="theme-carousel-arrow" onclick="themeCarouselNext()" aria-label="Next themes">&#9654;</button>
         </div>
 
         <!-- Hidden select for JS compat -->
@@ -2548,10 +2596,26 @@
       </div>
     </div>
     <div class="generate-right" id="generateRight" style="display:none;">
-      <div class="gallery-title">Your Apps</div>
-      <div class="app-gallery-grid" id="appGalleryGrid"></div>
-      <hr class="gallery-divider" id="galleryDivider" style="display:none;">
-      <div class="app-list" id="appListOlder"></div>
+      <!-- Apps content -->
+      <div id="rightPanelApps">
+        <div class="gallery-title">Your Apps</div>
+        <div class="app-gallery-grid" id="appGalleryGrid"></div>
+        <hr class="gallery-divider" id="galleryDivider" style="display:none;">
+        <div class="app-list" id="appListOlder"></div>
+      </div>
+      <!-- Settings content -->
+      <div id="rightPanelSettings" style="display:none;">
+        <div class="account-header">
+          <img class="account-avatar" id="accountAvatarInline" src="" alt="">
+          <div>
+            <div class="account-name" id="accountNameInline"></div>
+            <div class="account-email" id="accountEmailInline"></div>
+            <button class="account-signout" onclick="signOut()">Sign out</button>
+          </div>
+        </div>
+        <div class="gallery-title">Deployed Apps</div>
+        <div id="accountDeploymentsInline"><div style="color:#888;font-size:0.875rem;">Loading...</div></div>
+      </div>
     </div>
   </div>
 
@@ -2710,6 +2774,25 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Edit-phase Settings Panel (slide-in, same style as apps panel) -->
+  <div class="edit-settings-backdrop" id="editSettingsBackdrop" onclick="closeEditSettings()"></div>
+  <div class="edit-settings-panel" id="editSettingsPanel">
+    <div class="account-header">
+      <img class="account-avatar" id="accountAvatarEdit" src="" alt="">
+      <div>
+        <div class="account-name" id="accountNameEdit"></div>
+        <div class="account-email" id="accountEmailEdit"></div>
+        <button class="account-signout" onclick="signOut()">Sign out</button>
+      </div>
+    </div>
+    <div class="gallery-title">Deployed Apps</div>
+    <div id="accountDeploymentsEdit"><div style="color:#888;font-size:0.875rem;">Loading...</div></div>
+    <button class="go-home-btn" onclick="goHome()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Back to Home
+    </button>
   </div>
 
   <!-- Theme Modal -->
@@ -2925,6 +3008,9 @@
 
   function loadAndRedeploy(name) {
     closeAccountPanel();
+    // Close any settings panel that might be open
+    if (activeRightPanel === 'settings') toggleRightPanel('settings');
+    if (editSettingsOpen) closeEditSettings();
     // Load the app, then trigger deploy
     fetch('/editor/apps/load', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) })
       .then(r => r.json())
@@ -2938,22 +3024,19 @@
       }).catch(() => {});
   }
 
-  // === Apps Panel Toggle ===
-  let appsPanelVisible = false;
-  function toggleAppsPanel() {
+  // === Right Panel Toggle (apps / settings) ===
+  let activeRightPanel = null; // null | 'apps' | 'settings'
+
+  function toggleRightPanel(panel) {
     const right = document.getElementById('generateRight');
     const phase = document.getElementById('phaseGenerate');
     const left = phase.querySelector('.generate-left');
-    appsPanelVisible = !appsPanelVisible;
-    if (appsPanelVisible) {
-      // Show menu with slide-in, shrink prompt to 40%
-      phase.classList.remove('single-panel');
-      left.style.flexGrow = '';
-      left.style.flexBasis = '';
-      right.style.display = '';
-      right.style.animation = 'slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-    } else {
-      // Slide menu out, prompt glides back to center
+    const appsContent = document.getElementById('rightPanelApps');
+    const settingsContent = document.getElementById('rightPanelSettings');
+
+    if (activeRightPanel === panel) {
+      // Same button → close
+      activeRightPanel = null;
       left.style.flexGrow = '1';
       left.style.flexBasis = '0';
       right.style.animation = 'slideOutRight 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
@@ -2962,8 +3045,70 @@
         right.style.display = 'none';
         right.style.animation = '';
       });
+      return;
     }
+
+    if (activeRightPanel && activeRightPanel !== panel) {
+      // Different panel open → slide out, then slide in with new content
+      right.style.animation = 'slideOutRight 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      right.addEventListener('animationend', function handler() {
+        right.removeEventListener('animationend', handler);
+        showPanelContent(panel, appsContent, settingsContent);
+        right.style.animation = 'slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+      });
+      activeRightPanel = panel;
+      if (panel === 'settings') populateSettingsPanel();
+      return;
+    }
+
+    // Nothing open → open fresh
+    activeRightPanel = panel;
+    showPanelContent(panel, appsContent, settingsContent);
+    if (panel === 'settings') populateSettingsPanel();
+    phase.classList.remove('single-panel');
+    left.style.flexGrow = '';
+    left.style.flexBasis = '';
+    right.style.display = '';
+    right.style.animation = 'slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
   }
+
+  function showPanelContent(panel, appsEl, settingsEl) {
+    appsEl.style.display = panel === 'apps' ? '' : 'none';
+    settingsEl.style.display = panel === 'settings' ? '' : 'none';
+  }
+
+  function populateSettingsPanel() {
+    if (!currentUser) return;
+    document.getElementById('accountNameInline').textContent = currentUser.name || 'User';
+    document.getElementById('accountEmailInline').textContent = currentUser.email || '';
+    const avatar = document.getElementById('accountAvatarInline');
+    if (currentUser.picture) { avatar.src = currentUser.picture; avatar.style.display = ''; }
+    else { avatar.style.display = 'none'; }
+    // Fetch deployments
+    fetch('/editor/deployments').then(r => r.json()).then(deps => {
+      const container = document.getElementById('accountDeploymentsInline');
+      if (!deps.length) {
+        container.innerHTML = '<div style="color:#888;font-size:0.875rem;">No deployed apps yet.</div>';
+        return;
+      }
+      container.innerHTML = deps.map(d => `
+        <div class="deploy-card">
+          <div class="deploy-card-name">${d.name}</div>
+          <a class="deploy-card-url" href="${d.url}" target="_blank" rel="noopener">${d.url}</a>
+          <div class="deploy-card-actions">
+            <button class="deploy-card-btn" onclick="window.open('${d.url}','_blank')">Open</button>
+            <button class="deploy-card-btn" onclick="loadAndRedeploy('${d.name}')">Redeploy</button>
+          </div>
+        </div>
+      `).join('');
+    }).catch(() => {
+      document.getElementById('accountDeploymentsInline').innerHTML =
+        '<div style="color:#888;font-size:0.875rem;">Could not load deployments.</div>';
+    });
+  }
+
+  // Legacy compat
+  function toggleAppsPanel() { toggleRightPanel('apps'); }
 
   // === Phase Navigation ===
   const settingsButtonHtml = `
@@ -2981,9 +3126,15 @@
 
   async function openSettings() {
     if (currentUser) {
-      const overlay = document.getElementById('accountOverlay');
-      if (overlay.classList.contains('active')) { closeAccountPanel(); return; }
-      openAccountPanel();
+      if (currentPhase === 'generate') {
+        toggleRightPanel('settings');
+      } else if (currentPhase === 'edit') {
+        toggleEditSettings();
+      } else {
+        const overlay = document.getElementById('accountOverlay');
+        if (overlay.classList.contains('active')) { closeAccountPanel(); return; }
+        openAccountPanel();
+      }
     } else {
       setPhase('setup');
       const btn = document.getElementById('welcomeBtn');
@@ -2995,16 +3146,135 @@
     }
   }
 
+  // === Edit-phase Settings Panel (slide animation) ===
+  let editSettingsOpen = false;
+
+  function toggleEditSettings() {
+    if (editSettingsOpen) { closeEditSettings(); return; }
+    openEditSettings();
+  }
+
+  function openEditSettings() {
+    if (!currentUser) return;
+    const panel = document.getElementById('editSettingsPanel');
+    const backdrop = document.getElementById('editSettingsBackdrop');
+    document.getElementById('accountNameEdit').textContent = currentUser.name || 'User';
+    document.getElementById('accountEmailEdit').textContent = currentUser.email || '';
+    const avatar = document.getElementById('accountAvatarEdit');
+    if (currentUser.picture) { avatar.src = currentUser.picture; avatar.style.display = ''; }
+    else { avatar.style.display = 'none'; }
+    // Fetch deployments
+    fetch('/editor/deployments').then(r => r.json()).then(deps => {
+      const container = document.getElementById('accountDeploymentsEdit');
+      if (!deps.length) {
+        container.innerHTML = '<div style="color:#888;font-size:0.875rem;">No deployed apps yet.</div>';
+        return;
+      }
+      container.innerHTML = deps.map(d => `
+        <div class="deploy-card">
+          <div class="deploy-card-name">${d.name}</div>
+          <a class="deploy-card-url" href="${d.url}" target="_blank" rel="noopener">${d.url}</a>
+          <div class="deploy-card-actions">
+            <button class="deploy-card-btn" onclick="window.open('${d.url}','_blank')">Open</button>
+            <button class="deploy-card-btn" onclick="loadAndRedeploy('${d.name}')">Redeploy</button>
+          </div>
+        </div>
+      `).join('');
+    }).catch(() => {
+      document.getElementById('accountDeploymentsEdit').innerHTML =
+        '<div style="color:#888;font-size:0.875rem;">Could not load deployments.</div>';
+    });
+    backdrop.style.display = 'block';
+    panel.style.display = 'block';
+    panel.style.animation = 'slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+    editSettingsOpen = true;
+  }
+
+  function closeEditSettings() {
+    const panel = document.getElementById('editSettingsPanel');
+    const backdrop = document.getElementById('editSettingsBackdrop');
+    panel.style.animation = 'slideOutRight 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+    panel.addEventListener('animationend', function handler() {
+      panel.removeEventListener('animationend', handler);
+      panel.style.display = 'none';
+      panel.style.animation = '';
+    });
+    backdrop.style.display = 'none';
+    editSettingsOpen = false;
+  }
+
+  // === Go Home with unsaved-changes guard ===
+  let lastSavedVersion = -1; // tracks versionIndex at last save
+
+  function goHome() {
+    const isDirty = versionIndex > lastSavedVersion;
+    if (isDirty) {
+      showUnsavedDialog();
+    } else {
+      navigateHome();
+    }
+  }
+
+  function navigateHome() {
+    closeEditSettings();
+    setPhase('generate');
+  }
+
+  function showUnsavedDialog() {
+    // Create a simple modal
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;';
+    const dialog = document.createElement('div');
+    dialog.style.cssText = 'background:#1a1a1a;border:2px solid #444;border-radius:12px;padding:2rem;max-width:380px;width:90%;text-align:center;';
+    dialog.innerHTML = `
+      <div style="font-weight:800;font-size:1rem;color:#f0f0f0;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.05em;">Unsaved Changes</div>
+      <div style="color:#999;font-size:0.875rem;margin-bottom:1.5rem;">You have unsaved changes. What do you want to do?</div>
+      <div style="display:flex;gap:0.75rem;justify-content:center;">
+        <button id="unsavedDiscard" style="padding:0.625rem 1.25rem;background:var(--vibes-red);color:white;border:none;border-radius:8px;font-weight:700;font-size:0.8125rem;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;">Discard</button>
+        <button id="unsavedSave" style="padding:0.625rem 1.25rem;background:var(--vibes-green);color:white;border:none;border-radius:8px;font-weight:700;font-size:0.8125rem;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;">Save & Go</button>
+        <button id="unsavedCancel" style="padding:0.625rem 1.25rem;background:#333;color:#ccc;border:2px solid #555;border-radius:8px;font-weight:700;font-size:0.8125rem;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;">Cancel</button>
+      </div>
+    `;
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    dialog.querySelector('#unsavedCancel').onclick = () => overlay.remove();
+    dialog.querySelector('#unsavedDiscard').onclick = () => { overlay.remove(); navigateHome(); };
+    dialog.querySelector('#unsavedSave').onclick = () => {
+      overlay.remove();
+      saveApp();
+      lastSavedVersion = versionIndex;
+      navigateHome();
+    };
+    overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+  }
+
   function setPhase(phase) {
     currentPhase = phase;
     document.querySelectorAll('.phase').forEach(p => p.classList.remove('active'));
     document.getElementById('phase' + phase.charAt(0).toUpperCase() + phase.slice(1)).classList.add('active');
 
-    // Reset apps panel state and progress bar when entering generate phase
+    // Update app name in header
+    updateAppNameDisplay(phase === 'edit');
+
+    // Close edit settings panel if open
+    if (editSettingsOpen) {
+      const ep = document.getElementById('editSettingsPanel');
+      const eb = document.getElementById('editSettingsBackdrop');
+      ep.style.display = 'none'; ep.style.animation = '';
+      eb.style.display = 'none';
+      editSettingsOpen = false;
+    }
+
+    // Reset right panel state and progress bar when entering generate phase
     if (phase === 'generate') {
-      appsPanelVisible = false;
+      activeRightPanel = null;
       const right = document.getElementById('generateRight');
       if (right) { right.style.display = 'none'; right.style.animation = ''; }
+      const rpApps = document.getElementById('rightPanelApps');
+      const rpSettings = document.getElementById('rightPanelSettings');
+      if (rpApps) rpApps.style.display = '';
+      if (rpSettings) rpSettings.style.display = 'none';
       const pg = document.getElementById('phaseGenerate');
       if (pg) {
         pg.classList.add('single-panel');
@@ -3187,6 +3457,13 @@
         // Update the dropdown to reflect the selected theme
         const select = document.getElementById('themeSelect');
         if (select && msg.themeId) select.value = msg.themeId;
+        // Update carousel selection (won't match custom-ref, that's fine — carousel was overridden)
+        if (msg.themeId !== 'custom-ref') {
+          selectThemeCarousel(msg.themeId);
+        }
+        // Update the theme badge in modal
+        const badge = document.getElementById('currentThemeBadge');
+        if (badge) { badge.textContent = 'Current: ' + name; badge.style.display = ''; }
         console.log('[Theme] Selected:', msg.themeId, name);
       } else if (msg.type === 'auth_complete') {
         handleAuthComplete(msg.user);
@@ -3204,11 +3481,11 @@
         document.getElementById('welcomeError').style.display = 'none';
         return;
       } else if (msg.type === 'app_saved') {
-        if (msg.name) currentAppName = msg.name;
+        if (msg.name) { currentAppName = msg.name; updateAppNameDisplay(currentPhase === 'edit'); }
         if (_appSavedResolve) { _appSavedResolve(); _appSavedResolve = null; }
       } else if (msg.type === 'deploy_complete') {
         setThinking(false);
-        if (msg.name) currentAppName = msg.name;
+        if (msg.name) { currentAppName = msg.name; updateAppNameDisplay(currentPhase === 'edit'); }
         addMessage('deploy-success', 'Deployed! ' + (msg.url || ''));
         captureScreenshot();
       } else if (msg.type === 'theme_created') {
@@ -3477,25 +3754,12 @@
   }
 
   function autoSaveApp() {
-    // Derive a name from the prompt or use current app name
-    if (currentAppName) {
-      // Already named — save silently
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'save_app', name: currentAppName }));
-      }
-      return;
-    }
-    // Derive name from prompt: strip filler words, take first 4 meaningful words
-    const FILLER = new Set(['build','me','a','an','the','my','for','make','create','app','that','with','i','want','need','please','can','you','some','this','it','of','to','and','in','on','is']);
-    const prompt = document.getElementById('generatePrompt')?.value || '';
-    const words = prompt.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w && !FILLER.has(w));
-    const slug = (words.length ? words.slice(0, 4).join('-') : '').slice(0, 63);
-    if (slug && ws && ws.readyState === WebSocket.OPEN) {
-      currentAppName = slug;
-      ws.send(JSON.stringify({ type: 'save_app', name: slug }));
-      // Pre-fill deploy name input if empty
-      const deployInput = document.getElementById('deployNameInput');
-      if (deployInput && !deployInput.value) deployInput.value = slug;
+    // Only auto-save if the app already has a name.
+    // For unnamed apps, the user will be prompted when they click Save.
+    if (!currentAppName) return;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'save_app', name: currentAppName }));
+      lastSavedVersion = versionIndex;
     }
   }
 
@@ -3504,26 +3768,92 @@
 
   function saveApp() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    let name = currentAppName;
-    if (!name) {
-      // No name yet — derive from prompt (strip filler, first 4 words)
-      const FILLER = new Set(['build','me','a','an','the','my','for','make','create','app','that','with','i','want','need','please','can','you','some','this','it','of','to','and','in','on','is']);
-      const prompt = document.getElementById('generatePrompt')?.value || '';
-      const words = prompt.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w && !FILLER.has(w));
-      name = (words.length ? words.slice(0, 4).join('-') : '').slice(0, 63);
-      if (!name) {
-        addMessage('system', 'Generate an app first before saving.');
-        return;
-      }
-      currentAppName = name;
+    if (!currentAppName) {
+      // First save — ask for a name
+      promptAppName((name) => {
+        if (!name) return;
+        currentAppName = name;
+        updateAppNameDisplay(currentPhase === 'edit');
+        doSave(name);
+      });
+      return;
     }
-    // Send save, wait for confirmation, then capture screenshot
+    doSave(currentAppName);
+  }
+
+  function doSave(name) {
     const savedPromise = new Promise(resolve => { _appSavedResolve = resolve; });
     ws.send(JSON.stringify({ type: 'save_app', name }));
+    lastSavedVersion = versionIndex;
     addMessage('system', 'Saved as "' + name + '".');
     savedPromise.then(() => captureScreenshot());
-    // Timeout fallback — capture anyway if server doesn't respond in 2s
     setTimeout(() => { if (_appSavedResolve) { _appSavedResolve(); _appSavedResolve = null; } }, 2000);
+  }
+
+  function updateAppNameDisplay(show) {
+    const el = document.getElementById('appNameDisplay');
+    if (show && currentAppName) {
+      el.textContent = currentAppName;
+      el.classList.add('visible');
+    } else {
+      el.classList.remove('visible');
+    }
+  }
+
+  function promptAppName(callback) {
+    // Suggest a name from the prompt
+    const FILLER = new Set(['build','me','a','an','the','my','for','make','create','app','that','with','i','want','need','please','can','you','some','this','it','of','to','and','in','on','is']);
+    const prompt = document.getElementById('generatePrompt')?.value || '';
+    const words = prompt.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w && !FILLER.has(w));
+    const suggestion = (words.length ? words.slice(0, 4).join('-') : '').slice(0, 63);
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;';
+    const dialog = document.createElement('div');
+    dialog.style.cssText = 'background:#1a1a1a;border:2px solid #444;border-radius:12px;padding:2rem;max-width:380px;width:90%;';
+    dialog.innerHTML = `
+      <div style="font-weight:800;font-size:1rem;color:#f0f0f0;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.05em;">Name Your App</div>
+      <div style="color:#999;font-size:0.875rem;margin-bottom:1rem;">Choose a name to save this app.</div>
+      <input type="text" id="appNameInput" value="${suggestion}" placeholder="my-cool-app"
+        style="width:100%;padding:0.625rem 0.75rem;background:#2a2a2a;border:2px solid #555;border-radius:8px;color:#f0f0f0;font-size:0.9375rem;font-weight:600;box-sizing:border-box;outline:none;font-family:inherit;"
+        onfocus="this.select()" />
+      <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.25rem;">
+        <button id="nameCancel" style="padding:0.625rem 1.25rem;background:#333;color:#ccc;border:2px solid #555;border-radius:8px;font-weight:700;font-size:0.8125rem;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;">Cancel</button>
+        <button id="nameSave" style="padding:0.625rem 1.25rem;background:var(--vibes-green);color:white;border:none;border-radius:8px;font-weight:700;font-size:0.8125rem;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;">Save</button>
+      </div>
+    `;
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    const input = dialog.querySelector('#appNameInput');
+    input.focus();
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); submit(); }
+      if (e.key === 'Escape') { overlay.remove(); callback(null); }
+    });
+    dialog.querySelector('#nameCancel').onclick = () => { overlay.remove(); callback(null); };
+    dialog.querySelector('#nameSave').onclick = submit;
+    overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); callback(null); } };
+
+    function submit() {
+      const val = input.value.trim().replace(/[^a-z0-9\-]/gi, '-').toLowerCase().slice(0, 63);
+      overlay.remove();
+      if (!val) { callback(null); return; }
+      callback(val);
+    }
+  }
+
+  function promptRenameApp() {
+    promptAppName((newName) => {
+      if (!newName || newName === currentAppName) return;
+      const oldName = currentAppName;
+      currentAppName = newName;
+      updateAppNameDisplay(currentPhase === 'edit');
+      // Save under new name
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        doSave(newName);
+      }
+    });
   }
 
   async function captureScreenshot() {
@@ -3646,8 +3976,11 @@
     document.getElementById('generateError').style.display = 'none';
     document.getElementById('generateProgress').classList.add('active');
 
-    const payload = { type: 'generate', prompt, themeId: themeId || null, model: getModel() };
-    if (genReferenceFile) {
+    const hasReference = !!genReferenceFile;
+    // Skip theme in custom mode (user toggle or reference attached)
+    const skipTheme = customThemeMode || hasReference;
+    const payload = { type: 'generate', prompt, themeId: skipTheme ? null : (themeId || null), model: getModel() };
+    if (hasReference) {
       payload.reference = {
         name: genReferenceFile.name,
         type: genReferenceFile.type,
@@ -4507,11 +4840,26 @@
     row.classList.add('visible');
   }
 
-  function setThemeCarouselOverridden(overridden) {
-    const carousel = document.querySelector('.theme-carousel');
-    if (carousel) {
-      carousel.classList.toggle('overridden', overridden);
+  let customThemeMode = false;
+
+  function setThemeMode(custom) {
+    customThemeMode = custom;
+    const carousel = document.getElementById('themeCarousel');
+    const chip = document.getElementById('themeModeChip');
+    if (carousel) carousel.classList.toggle('custom-mode', custom);
+    if (chip) {
+      chip.textContent = custom ? 'Custom' : 'Themed';
+      chip.classList.toggle('custom', custom);
     }
+  }
+
+  function toggleThemeMode() {
+    setThemeMode(!customThemeMode);
+  }
+
+  // Legacy compat
+  function setThemeCarouselOverridden(overridden) {
+    setThemeMode(overridden);
   }
 
   function genToggleImgGen() {
@@ -4925,6 +5273,9 @@
   function onThemeCreated(themeId, themeName) {
     document.getElementById('saveThemeBtn').disabled = false;
 
+    // Set the new theme as the current active theme
+    currentThemeId = themeId;
+
     // Floating toast in center of screen
     const toast = document.createElement('div');
     toast.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10001;background:var(--vibes-near-black);color:var(--vibes-cream);padding:1.25rem 2.5rem;border-radius:12px;font-size:1.2rem;font-weight:800;text-transform:uppercase;letter-spacing:1px;border:2px solid var(--vibes-cream);box-shadow:0 8px 32px rgba(0,0,0,0.5);pointer-events:none;opacity:0;transition:opacity 0.3s;';
@@ -4942,7 +5293,13 @@
       if (Date.now() < end) requestAnimationFrame(frame);
     })();
 
-    reloadThemes();
+    reloadThemes().then(() => {
+      // After reload, select the newly saved theme in carousel
+      selectThemeCarousel(themeId);
+      // Update the current theme badge in modal
+      const badge = document.getElementById('currentThemeBadge');
+      if (badge) { badge.textContent = 'Current: ' + themeName; badge.style.display = ''; }
+    });
 
     // Fade out toast and close modal after 2.5s
     setTimeout(() => {
@@ -4970,6 +5327,8 @@
         }
         if (prev) select.value = prev;
       }
+      // Rebuild carousel with updated theme list
+      if (typeof buildThemeCarousel === 'function') buildThemeCarousel();
     } catch (err) {
       console.error('Failed to reload themes:', err);
     }
