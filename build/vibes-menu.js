@@ -1,7 +1,7 @@
 // Auto-generated vibes menu components
 // Run: bun scripts/build-components.js --force to regenerate
 // Source: components/
-// Generated: 2026-03-09T22:25:29.706Z
+// Generated: 2026-03-10T07:22:49.893Z
 // Components: 26/26
 
 // === useMobile ===
@@ -1712,13 +1712,12 @@ function getButtonContainerStyle(isMobile) {
 }
 function getInviteFormStyle(isMobile) {
   return {
-    width: isMobile ? "calc(100% - 40px)" : "300px",
+    width: isMobile ? "100%" : "260px",
     display: "flex",
     padding: "20px",
     flexDirection: "column",
     gap: "12px",
-    borderRadius: "20px",
-    background: "var(--vibes-button-bg)"
+    flex: isMobile ? void 0 : "1"
   };
 }
 function getInviteLabelStyle() {
@@ -1785,7 +1784,29 @@ function getInviteRowStyle(isMobile) {
     display: "flex",
     flexDirection: isMobile ? "column" : "row",
     gap: isMobile ? "24px" : "65px",
-    width: isMobile ? "100%" : "auto"
+    width: isMobile ? "100%" : "auto",
+    alignItems: "center"
+  };
+}
+function getInviteDualFormStyle(isMobile) {
+  return {
+    display: "flex",
+    flexDirection: isMobile ? "column" : "row",
+    gap: "0",
+    borderRadius: "20px",
+    background: "var(--vibes-button-bg)",
+    overflow: "hidden"
+  };
+}
+function getInviteDividerStyle(isMobile) {
+  return {
+    width: isMobile ? "calc(100% - 40px)" : "2px",
+    height: isMobile ? "2px" : "auto",
+    alignSelf: "stretch",
+    margin: isMobile ? "0 20px" : "20px 0",
+    background: "var(--vibes-card-border)",
+    opacity: 0.3,
+    flexShrink: 0
   };
 }
 function getButtonAnimationStyle(isVisible, delay = 0) {
@@ -1845,13 +1866,16 @@ function VibesPanel({
       setInviteMessage("");
       setInviteLink("");
       setLinkCopied(false);
+      setPublicLinkStatus("idle");
+      setPublicLink("");
+      setPublicLinkMessage("");
+      setPublicLinkCopied(false);
     }
   };
   const handleBackClick = () => {
     setMode("default");
   };
-  const handlePublicLinkClick = () => {
-    setMode("public-link");
+  const handleGeneratePublicLink = () => {
     setPublicLinkStatus("generating");
     setPublicLink("");
     setPublicLinkMessage("");
@@ -1953,36 +1977,7 @@ function VibesPanel({
         className: mode === "default" ? "vibes-panel-stagger" : void 0,
         style: getButtonContainerStyle(isMobile)
       },
-      mode === "public-link" ? /* @__PURE__ */ React.createElement("div", { className: "vibes-panel-stagger", style: getInviteRowStyle(isMobile) }, /* @__PURE__ */ React.createElement(
-        VibesButton,
-        {
-          variant: YELLOW,
-          onClick: () => {
-          },
-          icon: "invite"
-        },
-        "Share"
-      ), /* @__PURE__ */ React.createElement(
-        BrutalistCard,
-        {
-          id: "public-link-status",
-          role: "status",
-          "aria-live": "polite",
-          size: "sm",
-          variant: publicLinkStatus === "generating" ? "default" : publicLinkStatus === "error" ? "error" : "success",
-          style: getInviteStatusStyle()
-        },
-        publicLinkStatus === "generating" ? "Generating link..." : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", null, publicLinkMessage), publicLink && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "0.5rem" } }, /* @__PURE__ */ React.createElement("button", { onClick: handleCopyPublicLink, style: {
-          background: "none",
-          border: "2px solid currentColor",
-          borderRadius: "6px",
-          padding: "0.25rem 0.75rem",
-          cursor: "pointer",
-          color: "inherit",
-          fontWeight: 600,
-          fontSize: "0.85em"
-        } }, publicLinkCopied ? "Copied!" : "Copy Share Link")))
-      ), /* @__PURE__ */ React.createElement(VibesButton, { variant: GRAY, onClick: handleBackClick, icon: "back" }, "Back")) : mode === "invite" ? /* @__PURE__ */ React.createElement("div", { className: "vibes-panel-stagger", style: getInviteRowStyle(isMobile) }, /* @__PURE__ */ React.createElement(
+      mode === "invite" ? /* @__PURE__ */ React.createElement("div", { className: "vibes-panel-stagger", style: getInviteRowStyle(isMobile) }, /* @__PURE__ */ React.createElement(
         VibesButton,
         {
           variant: YELLOW,
@@ -1991,11 +1986,11 @@ function VibesPanel({
           icon: "invite"
         },
         "Invite"
-      ), inviteStatus === "idle" ? /* @__PURE__ */ React.createElement(
+      ), /* @__PURE__ */ React.createElement("div", { style: getInviteDualFormStyle(isMobile) }, /* @__PURE__ */ React.createElement("div", { style: getInviteFormStyle(isMobile) }, inviteStatus === "idle" ? /* @__PURE__ */ React.createElement(
         "form",
         {
           onSubmit: handleInviteSubmit,
-          style: getInviteFormStyle(isMobile)
+          style: { display: "flex", flexDirection: "column", gap: "12px" }
         },
         /* @__PURE__ */ React.createElement("label", { htmlFor: emailId, style: getInviteLabelStyle() }, "Invite by email"),
         /* @__PURE__ */ React.createElement(
@@ -2040,7 +2035,34 @@ function VibesPanel({
           fontWeight: 600,
           fontSize: "0.85em"
         } }, linkCopied ? "Copied!" : "Copy Invite Link")))
-      ), /* @__PURE__ */ React.createElement(VibesButton, { variant: GRAY, onClick: handleBackClick, icon: "back" }, "Back")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
+      )), /* @__PURE__ */ React.createElement("div", { style: getInviteDividerStyle(isMobile) }), /* @__PURE__ */ React.createElement("div", { style: getInviteFormStyle(isMobile) }, /* @__PURE__ */ React.createElement("label", { style: getInviteLabelStyle() }, "Generate public link"), publicLinkStatus === "idle" ? /* @__PURE__ */ React.createElement(
+        VibesButton,
+        {
+          variant: YELLOW,
+          onClick: handleGeneratePublicLink
+        },
+        "Generate Link"
+      ) : /* @__PURE__ */ React.createElement(
+        BrutalistCard,
+        {
+          id: "public-link-status",
+          role: "status",
+          "aria-live": "polite",
+          size: "sm",
+          variant: publicLinkStatus === "generating" ? "default" : publicLinkStatus === "error" ? "error" : "success",
+          style: getInviteStatusStyle()
+        },
+        publicLinkStatus === "generating" ? "Generating..." : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", null, publicLinkMessage), publicLink && /* @__PURE__ */ React.createElement("div", { style: { marginTop: "0.5rem" } }, /* @__PURE__ */ React.createElement("button", { onClick: handleCopyPublicLink, style: {
+          background: "none",
+          border: "2px solid currentColor",
+          borderRadius: "6px",
+          padding: "0.25rem 0.75rem",
+          cursor: "pointer",
+          color: "inherit",
+          fontWeight: 600,
+          fontSize: "0.85em"
+        } }, publicLinkCopied ? "Copied!" : "Copy Link")))
+      ))), /* @__PURE__ */ React.createElement(VibesButton, { variant: GRAY, onClick: handleBackClick, icon: "back" }, "Back")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
         VibesButton,
         {
           variant: BLUE,
@@ -2056,14 +2078,6 @@ function VibesPanel({
           icon: "invite"
         },
         "Invite"
-      ), /* @__PURE__ */ React.createElement(
-        VibesButton,
-        {
-          variant: YELLOW,
-          onClick: handlePublicLinkClick,
-          icon: "invite"
-        },
-        "Share Link"
       ))
     )
   ));

@@ -185,9 +185,9 @@ export async function runOneShot(
     }
     const elapsed = getElapsed();
     const silenceOverride = silentFor >= 90_000
-      ? { stage: `No activity for ${Math.round(silentFor / 1000)}s — click Cancel to retry` }
+      ? { stage: 'Still working — complex apps take a moment to craft' }
       : silentFor >= 45_000
-      ? { stage: 'Waiting for response...' }
+      ? { stage: 'Thinking hard about this one...' }
       : {};
     onEvent({ type: 'progress', ...calcProgressLocal(), ...silenceOverride, elapsed });
   }, 1000);

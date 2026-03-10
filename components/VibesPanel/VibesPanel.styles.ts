@@ -121,13 +121,12 @@ export function getButtonContainerStyle(
 
 export function getInviteFormStyle(isMobile: boolean): React.CSSProperties {
   return {
-    width: isMobile ? "calc(100% - 40px)" : "300px",
+    width: isMobile ? "100%" : "260px",
     display: "flex",
     padding: "20px",
     flexDirection: "column",
     gap: "12px",
-    borderRadius: "20px",
-    background: "var(--vibes-button-bg)",
+    flex: isMobile ? undefined : "1",
   };
 }
 
@@ -208,6 +207,30 @@ export function getInviteRowStyle(isMobile: boolean): React.CSSProperties {
     flexDirection: isMobile ? "column" : "row",
     gap: isMobile ? "24px" : "65px",
     width: isMobile ? "100%" : "auto",
+    alignItems: "center",
+  };
+}
+
+export function getInviteDualFormStyle(isMobile: boolean): React.CSSProperties {
+  return {
+    display: "flex",
+    flexDirection: isMobile ? "column" : "row",
+    gap: "0",
+    borderRadius: "20px",
+    background: "var(--vibes-button-bg)",
+    overflow: "hidden",
+  };
+}
+
+export function getInviteDividerStyle(isMobile: boolean): React.CSSProperties {
+  return {
+    width: isMobile ? "calc(100% - 40px)" : "2px",
+    height: isMobile ? "2px" : "auto",
+    alignSelf: "stretch",
+    margin: isMobile ? "0 20px" : "20px 0",
+    background: "var(--vibes-card-border)",
+    opacity: 0.3,
+    flexShrink: 0,
   };
 }
 

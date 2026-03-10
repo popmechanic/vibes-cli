@@ -10,6 +10,8 @@ import {
   getInviteInputStyle,
   getInviteStatusStyle,
   getInviteRowStyle,
+  getInviteDualFormStyle,
+  getInviteDividerStyle,
 } from "./VibesPanel.styles.js";
 import { useIsMobile } from "../hooks/useIsMobile.js";
 
@@ -19,7 +21,7 @@ export interface VibesPanelProps {
   token?: string;
 }
 
-type PanelMode = "default" | "invite" | "public-link";
+type PanelMode = "default" | "invite";
 
 export function VibesPanel({
   style,
@@ -51,6 +53,10 @@ export function VibesPanel({
       setInviteMessage("");
       setInviteLink("");
       setLinkCopied(false);
+      setPublicLinkStatus("idle");
+      setPublicLink("");
+      setPublicLinkMessage("");
+      setPublicLinkCopied(false);
     }
   };
 
@@ -58,8 +64,7 @@ export function VibesPanel({
     setMode("default");
   };
 
-  const handlePublicLinkClick = () => {
-    setMode("public-link");
+  const handleGeneratePublicLink = () => {
     setPublicLinkStatus("generating");
     setPublicLink("");
     setPublicLinkMessage("");
@@ -179,51 +184,7 @@ export function VibesPanel({
           className={mode === "default" ? "vibes-panel-stagger" : undefined}
           style={getButtonContainerStyle(isMobile)}
         >
-          {mode === "public-link" ? (
-            <div className="vibes-panel-stagger" style={getInviteRowStyle(isMobile)}>
-              <VibesButton
-                variant={YELLOW}
-                onClick={() => {}}
-                icon="invite"
-              >
-                Share
-              </VibesButton>
-              <BrutalistCard
-                id="public-link-status"
-                role="status"
-                aria-live="polite"
-                size="sm"
-                variant={
-                  publicLinkStatus === "generating"
-                    ? "default"
-                    : publicLinkStatus === "error"
-                      ? "error"
-                      : "success"
-                }
-                style={getInviteStatusStyle()}
-              >
-                {publicLinkStatus === "generating" ? "Generating link..." : (
-                  <>
-                    <div>{publicLinkMessage}</div>
-                    {publicLink && (
-                      <div style={{ marginTop: '0.5rem' }}>
-                        <button onClick={handleCopyPublicLink} style={{
-                          background: 'none', border: '2px solid currentColor', borderRadius: '6px',
-                          padding: '0.25rem 0.75rem', cursor: 'pointer', color: 'inherit',
-                          fontWeight: 600, fontSize: '0.85em'
-                        }}>
-                          {publicLinkCopied ? 'Copied!' : 'Copy Share Link'}
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-              </BrutalistCard>
-              <VibesButton variant={GRAY} onClick={handleBackClick} icon="back">
-                Back
-              </VibesButton>
-            </div>
-          ) : mode === "invite" ? (
+          {mode === "invite" ? (
             <div className="vibes-panel-stagger" style={getInviteRowStyle(isMobile)}>
               <VibesButton
                 variant={YELLOW}
@@ -232,65 +193,118 @@ export function VibesPanel({
               >
                 Invite
               </VibesButton>
-              {inviteStatus === "idle" ? (
-                <form
-                  onSubmit={handleInviteSubmit}
-                  style={getInviteFormStyle(isMobile)}
-                >
-                  <label htmlFor={emailId} style={getInviteLabelStyle()}>
-                    Invite by email
-                  </label>
-                  <input
-                    id={emailId}
-                    type="email"
-                    placeholder="friend@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    style={getInviteInputStyle()}
-                    autoComplete="email"
-                    required
-                  />
-                  <VibesButton
-                    variant={YELLOW}
-                    type="submit"
-                    disabled={!email.trim()}
-                  >
-                    Submit
-                  </VibesButton>
-                </form>
-              ) : (
-                <BrutalistCard
-                  id="invite-status"
-                  role="status"
-                  aria-live="polite"
-                  size="sm"
-                  variant={
-                    inviteStatus === "sending"
-                      ? "default"
-                      : inviteStatus === "error"
-                        ? "error"
-                        : "success"
-                  }
-                  style={getInviteStatusStyle()}
-                >
-                  {inviteStatus === "sending" ? "Inviting..." : (
-                    <>
-                      <div>{inviteMessage}</div>
-                      {inviteLink && (
-                        <div style={{ marginTop: '0.5rem' }}>
-                          <button onClick={handleCopyLink} style={{
-                            background: 'none', border: '2px solid currentColor', borderRadius: '6px',
-                            padding: '0.25rem 0.75rem', cursor: 'pointer', color: 'inherit',
-                            fontWeight: 600, fontSize: '0.85em'
-                          }}>
-                            {linkCopied ? 'Copied!' : 'Copy Invite Link'}
-                          </button>
-                        </div>
+              <div style={getInviteDualFormStyle(isMobile)}>
+                {/* Email invite form */}
+                <div style={getInviteFormStyle(isMobile)}>
+                  {inviteStatus === "idle" ? (
+                    <form
+                      onSubmit={handleInviteSubmit}
+                      style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+                    >
+                      <label htmlFor={emailId} style={getInviteLabelStyle()}>
+                        Invite by email
+                      </label>
+                      <input
+                        id={emailId}
+                        type="email"
+                        placeholder="friend@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        style={getInviteInputStyle()}
+                        autoComplete="email"
+                        required
+                      />
+                      <VibesButton
+                        variant={YELLOW}
+                        type="submit"
+                        disabled={!email.trim()}
+                      >
+                        Submit
+                      </VibesButton>
+                    </form>
+                  ) : (
+                    <BrutalistCard
+                      id="invite-status"
+                      role="status"
+                      aria-live="polite"
+                      size="sm"
+                      variant={
+                        inviteStatus === "sending"
+                          ? "default"
+                          : inviteStatus === "error"
+                            ? "error"
+                            : "success"
+                      }
+                      style={getInviteStatusStyle()}
+                    >
+                      {inviteStatus === "sending" ? "Inviting..." : (
+                        <>
+                          <div>{inviteMessage}</div>
+                          {inviteLink && (
+                            <div style={{ marginTop: '0.5rem' }}>
+                              <button onClick={handleCopyLink} style={{
+                                background: 'none', border: '2px solid currentColor', borderRadius: '6px',
+                                padding: '0.25rem 0.75rem', cursor: 'pointer', color: 'inherit',
+                                fontWeight: 600, fontSize: '0.85em'
+                              }}>
+                                {linkCopied ? 'Copied!' : 'Copy Invite Link'}
+                              </button>
+                            </div>
+                          )}
+                        </>
                       )}
-                    </>
+                    </BrutalistCard>
                   )}
-                </BrutalistCard>
-              )}
+                </div>
+                {/* Divider */}
+                <div style={getInviteDividerStyle(isMobile)} />
+                {/* Public link form */}
+                <div style={getInviteFormStyle(isMobile)}>
+                  <label style={getInviteLabelStyle()}>
+                    Generate public link
+                  </label>
+                  {publicLinkStatus === "idle" ? (
+                    <VibesButton
+                      variant={YELLOW}
+                      onClick={handleGeneratePublicLink}
+                    >
+                      Generate Link
+                    </VibesButton>
+                  ) : (
+                    <BrutalistCard
+                      id="public-link-status"
+                      role="status"
+                      aria-live="polite"
+                      size="sm"
+                      variant={
+                        publicLinkStatus === "generating"
+                          ? "default"
+                          : publicLinkStatus === "error"
+                            ? "error"
+                            : "success"
+                      }
+                      style={getInviteStatusStyle()}
+                    >
+                      {publicLinkStatus === "generating" ? "Generating..." : (
+                        <>
+                          <div>{publicLinkMessage}</div>
+                          {publicLink && (
+                            <div style={{ marginTop: '0.5rem' }}>
+                              <button onClick={handleCopyPublicLink} style={{
+                                background: 'none', border: '2px solid currentColor', borderRadius: '6px',
+                                padding: '0.25rem 0.75rem', cursor: 'pointer', color: 'inherit',
+                                fontWeight: 600, fontSize: '0.85em'
+                              }}>
+                                {publicLinkCopied ? 'Copied!' : 'Copy Link'}
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </BrutalistCard>
+                  )}
+                </div>
+              </div>
               <VibesButton variant={GRAY} onClick={handleBackClick} icon="back">
                 Back
               </VibesButton>
@@ -310,13 +324,6 @@ export function VibesPanel({
                 icon="invite"
               >
                 Invite
-              </VibesButton>
-              <VibesButton
-                variant={YELLOW}
-                onClick={handlePublicLinkClick}
-                icon="invite"
-              >
-                Share Link
               </VibesButton>
             </>
           )}
