@@ -12,7 +12,6 @@
 | Debugging React errors | `.claude/rules/react-singleton.md` loads automatically; also `skills/vibes/SKILL.md` Common Mistakes |
 | Deploying to Cloudflare | `skills/cloudflare/SKILL.md` |
 | Testing plugin changes | `cd scripts && npm run test:fixtures` for structural tests; `/vibes:test` for full E2E |
-| Editing SessionStart hook context | `hooks/session-context.md` for content; `hooks/session-start.sh` for logic |
 | Editing auth components | `.claude/rules/auth-components.md` loads automatically |
 | Editing templates or build system | `.claude/rules/template-build.md` loads automatically |
 | Working on sharing/invites | `.claude/rules/sharing-architecture.md` loads automatically |
@@ -192,16 +191,6 @@ For subdomain routing tests, add to `/etc/hosts`:
 127.0.0.1  test-app.local  tenant1.test-app.local  admin.test-app.local
 ```
 Then `npm run test:e2e:server` and open `http://test-app.local:3000`.
-
-## Hooks (SessionStart)
-
-The `SessionStart` hook injects framework awareness context into every conversation.
-
-1. `hooks.json` triggers `run-hook.cmd session-start.sh`
-2. `session-start.sh` reads `session-context.md` (static) + detects project state in `$PWD`
-3. Outputs JSON with `additionalContext` → appears in system reminders
-
-**Editing:** Static content in `hooks/session-context.md` (keep under 100 lines). Dynamic detection in `hooks/session-start.sh` (pure bash only). Test with `echo '{}' | bash hooks/session-start.sh`.
 
 ## Non-Obvious Files
 
