@@ -6,3 +6,7 @@ workers_dev = true
 routes = [
   { pattern = "install.vibesos.com", custom_domain = true }
 ]
+
+[[r2_buckets]]
+binding = "DMG_BUCKET"
+bucket_name = "vibesos-releases"
