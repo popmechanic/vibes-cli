@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rune Interface — Theme Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --abyss: #020406;
+    --abyss-blue: #05101a;
+    --cyan-neon: #00ffcc;
+    --cyan-dim: #005f52;
+    --cyan-text: #ccfffa;
+    --purple-magic: #9d4eff;
+    --stone: #0d161f;
+    --stone-border: #1c2b38;
+    --stone-light: #162330;
+    --text: #b0c4cc;
+    --text-muted: #4a6070;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    background: var(--abyss);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* === Background layers === */
+  .bg-gradient {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+      radial-gradient(ellipse 600px 400px at 50% 0%, rgba(0,255,204,0.06) 0%, transparent 70%),
+      linear-gradient(180deg, var(--abyss) 0%, var(--abyss-blue) 100%);
+  }
+
+  .bg-runes {
+    position: fixed; inset: 0; pointer-events: none; z-index: 1;
+    font-size: 2.5rem; line-height: 3rem; color: rgba(0,255,204,0.05);
+    font-family: serif; word-break: break-all; overflow: hidden;
+    padding: 1rem;
+  }
+
+  /* === Layout === */
+  .layout {
+    max-width: 860px; margin: 0 auto; padding: 3rem 2rem 6rem;
+    position: relative; z-index: 10;
+  }
+
+  /* === Chamfered panel === */
+  .stone-panel {
+    background: var(--stone);
+    border: 1px solid var(--stone-border);
+    clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+    padding: 1.75rem;
+    position: relative;
+    margin-bottom: 2rem;
+  }
+  .stone-panel::before {
+    content: '';
+    position: absolute; top: 8px; left: 2px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--cyan-neon);
+    box-shadow: 0 0 8px var(--cyan-neon);
+    z-index: 2;
+  }
+  .stone-panel::after {
+    content: '';
+    position: absolute; bottom: 2px; right: 8px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--cyan-neon);
+    box-shadow: 0 0 8px var(--cyan-neon);
+    z-index: 2;
+  }
+
+  /* Corner rune decorations */
+  .rune-corner {
+    position: relative;
+  }
+  .rune-corner .corner-rune {
+    position: absolute;
+    font-family: serif;
+    font-size: 0.85rem;
+    color: var(--cyan-dim);
+    transition: color 0.3s, text-shadow 0.3s;
+    pointer-events: none;
+    z-index: 3;
+  }
+  .rune-corner:hover .corner-rune {
+    color: var(--cyan-neon);
+    text-shadow: 0 0 10px var(--cyan-neon);
+  }
+  .corner-rune.tl { top: 4px; left: 24px; }
+  .corner-rune.br { bottom: 4px; right: 24px; }
+
+  /* === Titles === */
+  h1, h2, h3 {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    color: var(--cyan-text);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  h1 { font-size: clamp(2rem, 6vw, 3.2rem); text-align: center; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.1rem; margin-bottom: 1rem; color: var(--cyan-neon); }
+  h3 { font-size: 0.85rem; margin-bottom: 0.75rem; }
+
+  .subtitle {
+    text-align: center;
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    margin-bottom: 3rem;
+  }
+
+  .section-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--cyan-dim);
+    margin-bottom: 0.5rem;
+  }
+
+  /* === Mystic Eye Orb === */
+  .mystic-eye {
+    width: 80px; height: 80px;
+    margin: 0 auto 1.5rem;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .eye-outer {
+    width: 80px; height: 80px; border-radius: 50%;
+    border: 2px solid var(--cyan-dim);
+    display: flex; align-items: center; justify-content: center;
+    animation: eye-pulse 3s ease-in-out infinite;
+    box-shadow: 0 0 20px rgba(0,255,204,0.15), inset 0 0 20px rgba(0,255,204,0.05);
+  }
+  .eye-inner {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: radial-gradient(circle at 40% 40%, var(--cyan-neon), var(--cyan-dim) 60%, transparent 80%);
+    box-shadow: 0 0 15px var(--cyan-neon), 0 0 30px rgba(0,255,204,0.3);
+    animation: eye-glow 3s ease-in-out infinite;
+  }
+  .eye-slit {
+    width: 4px; height: 20px; border-radius: 2px;
+    background: var(--abyss);
+    position: absolute;
+    animation: slit-narrow 3s ease-in-out infinite;
+  }
+  @keyframes eye-pulse {
+    0%, 100% { transform: scale(1); border-color: var(--cyan-dim); }
+    50% { transform: scale(1.05); border-color: var(--cyan-neon); }
+  }
+  @keyframes eye-glow {
+    0%, 100% { box-shadow: 0 0 15px var(--cyan-neon), 0 0 30px rgba(0,255,204,0.3); }
+    50% { box-shadow: 0 0 25px var(--cyan-neon), 0 0 50px rgba(0,255,204,0.5); }
+  }
+  @keyframes slit-narrow {
+    0%, 100% { transform: scaleX(1); }
+    50% { transform: scaleX(0.5); }
+  }
+
+  /* === Nav === */
+  .rune-nav {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem;
+    margin-bottom: 3rem;
+  }
+  .rune-nav-item {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  }
+  .rune-nav-item:hover, .rune-nav-item.active {
+    color: var(--cyan-neon);
+    background: rgba(0,255,204,0.05);
+    border-color: var(--stone-border);
+    text-shadow: 0 0 8px rgba(0,255,204,0.4);
+  }
+  .rune-nav-item .rune-prefix {
+    color: var(--cyan-dim);
+    margin-right: 0.4rem;
+    font-size: 0.9rem;
+    vertical-align: middle;
+  }
+  .rune-nav-item:hover .rune-prefix {
+    color: var(--cyan-neon);
+    text-shadow: 0 0 10px var(--cyan-neon);
+  }
+
+  /* === Stat Bars === */
+  .stat-row {
+    display: grid;
+    grid-template-columns: 120px 1fr 50px;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid rgba(28,43,56,0.6);
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-name {
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cyan-text);
+  }
+  .stat-bar-track {
+    height: 8px;
+    background: rgba(0,255,204,0.06);
+    border-radius: 1px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-bar-fill {
+    height: 100%;
+    border-radius: 1px;
+    position: relative;
+    width: 0;
+    animation: bar-fill 1.2s ease-out forwards;
+  }
+  .stat-bar-fill.cyan {
+    background: linear-gradient(90deg, var(--cyan-dim), var(--cyan-neon));
+    box-shadow: 0 0 8px rgba(0,255,204,0.4);
+  }
+  .stat-bar-fill.purple {
+    background: linear-gradient(90deg, #4a1a80, var(--purple-magic));
+    box-shadow: 0 0 8px rgba(157,78,255,0.4);
+  }
+  .stat-bar-fill::after {
+    content: '';
+    position: absolute;
+    right: 0; top: -2px;
+    width: 4px; height: 12px;
+    border-radius: 1px;
+  }
+  .stat-bar-fill.cyan::after {
+    background: var(--cyan-neon);
+    box-shadow: 0 0 6px var(--cyan-neon);
+  }
+  .stat-bar-fill.purple::after {
+    background: var(--purple-magic);
+    box-shadow: 0 0 6px var(--purple-magic);
+  }
+  .stat-value {
+    font-family: monospace;
+    font-size: 0.8rem;
+    text-align: right;
+    color: var(--cyan-text);
+  }
+  .stat-value.purple-val { color: #c89dff; }
+  @keyframes bar-fill {
+    from { width: 0; }
+    to { width: var(--fill); }
+  }
+
+  /* === Table === */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    font-family: 'Cinzel', serif;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--cyan-neon);
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--stone-border);
+  }
+  td {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.9rem;
+    border-bottom: 1px solid rgba(28,43,56,0.4);
+  }
+  td:first-child {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: var(--cyan-text);
+  }
+  td:nth-child(n+2) { font-family: monospace; font-size: 0.8rem; }
+  tr:hover td { background: rgba(0,255,204,0.03); }
+
+  /* === Form Controls === */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+  @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+
+  .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .form-group label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--cyan-dim);
+  }
+
+  /* Text Input */
+  .rune-input {
+    background: rgba(2,4,6,0.8);
+    border: 1px solid var(--stone-border);
+    color: var(--cyan-text);
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    padding: 0.65rem 0.9rem;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  }
+  .rune-input:focus {
+    border-color: var(--cyan-neon);
+    box-shadow: 0 0 12px rgba(0,255,204,0.2), inset 0 0 8px rgba(0,255,204,0.05);
+  }
+  .rune-input::placeholder { color: var(--text-muted); font-style: italic; }
+
+  /* Dropdown */
+  .rune-select-wrap {
+    position: relative;
+  }
+  .rune-select {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    background: rgba(2,4,6,0.8);
+    border: 1px solid var(--stone-border);
+    color: var(--cyan-text);
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    padding: 0.65rem 2.5rem 0.65rem 0.9rem;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  }
+  .rune-select:focus {
+    border-color: var(--cyan-neon);
+    box-shadow: 0 0 12px rgba(0,255,204,0.2);
+  }
+  .rune-select-wrap::after {
+    content: 'ᚦ';
+    position: absolute;
+    right: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--cyan-dim);
+    font-size: 1rem;
+    pointer-events: none;
+  }
+
+  /* Checkbox */
+  .rune-checkbox-group {
+    display: flex; flex-direction: column; gap: 0.65rem;
+  }
+  .rune-checkbox {
+    display: flex; align-items: center; gap: 0.65rem; cursor: pointer;
+    font-size: 0.9rem; color: var(--text);
+  }
+  .rune-checkbox input { display: none; }
+  .rune-check-box {
+    width: 22px; height: 22px; flex-shrink: 0;
+    border: 1px solid var(--stone-border);
+    background: rgba(2,4,6,0.8);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s;
+    clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+  }
+  .rune-check-box .check-mark {
+    opacity: 0;
+    color: var(--abyss);
+    font-size: 0.75rem;
+    font-weight: 900;
+    transition: opacity 0.2s;
+  }
+  .rune-checkbox input:checked + .rune-check-box {
+    background: var(--cyan-neon);
+    border-color: var(--cyan-neon);
+    box-shadow: 0 0 10px rgba(0,255,204,0.4);
+  }
+  .rune-checkbox input:checked + .rune-check-box .check-mark { opacity: 1; }
+
+  /* Toggle Switch */
+  .rune-toggle-group {
+    display: flex; flex-direction: column; gap: 0.65rem;
+  }
+  .rune-toggle {
+    display: flex; align-items: center; gap: 0.75rem; cursor: pointer;
+    font-size: 0.9rem; color: var(--text);
+  }
+  .rune-toggle input { display: none; }
+  .toggle-track {
+    width: 44px; height: 22px; flex-shrink: 0;
+    background: var(--stone);
+    border: 1px solid var(--stone-border);
+    border-radius: 11px;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .toggle-knob {
+    width: 16px; height: 16px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    position: absolute;
+    top: 2px; left: 2px;
+    transition: all 0.3s;
+  }
+  .rune-toggle input:checked + .toggle-track {
+    background: var(--cyan-dim);
+    border-color: var(--cyan-neon);
+    box-shadow: 0 0 12px rgba(0,255,204,0.3);
+  }
+  .rune-toggle input:checked + .toggle-track .toggle-knob {
+    left: 24px;
+    background: var(--cyan-text);
+    box-shadow: 0 0 6px var(--cyan-neon);
+  }
+
+  /* === Buttons === */
+  .rune-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.7rem 1.5rem;
+    border: 1px solid var(--stone-border);
+    background: var(--stone);
+    color: var(--cyan-text);
+    cursor: pointer;
+    transition: all 0.3s;
+    clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  }
+  .rune-btn:hover {
+    background: var(--stone-light);
+    border-color: var(--cyan-neon);
+    color: var(--cyan-neon);
+    box-shadow: 0 0 15px rgba(0,255,204,0.15);
+  }
+  .rune-btn-primary {
+    background: linear-gradient(135deg, var(--cyan-dim), rgba(0,255,204,0.2));
+    border-color: var(--cyan-neon);
+    color: var(--cyan-neon);
+    box-shadow: 0 0 12px rgba(0,255,204,0.15);
+  }
+  .rune-btn-primary:hover {
+    background: linear-gradient(135deg, rgba(0,255,204,0.3), rgba(0,255,204,0.1));
+    box-shadow: 0 0 20px rgba(0,255,204,0.3);
+  }
+
+  /* === Modal === */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(2,4,6,0.85);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: auto; }
+  .modal-panel {
+    background: var(--stone);
+    border: 1px solid var(--cyan-dim);
+    clip-path: polygon(24px 0, 100% 0, 100% calc(100% - 24px), calc(100% - 24px) 100%, 0 100%, 0 24px);
+    padding: 2.5rem;
+    max-width: 520px; width: 90%;
+    position: relative;
+    box-shadow: 0 0 40px rgba(0,255,204,0.1), 0 0 80px rgba(0,255,204,0.05);
+    transform: scale(0.95); transition: transform 0.3s;
+  }
+  .modal-overlay.open .modal-panel { transform: scale(1); }
+  .modal-panel::before {
+    content: '';
+    position: absolute; top: 10px; left: 3px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--cyan-neon);
+    box-shadow: 0 0 8px var(--cyan-neon);
+  }
+  .modal-panel::after {
+    content: '';
+    position: absolute; bottom: 3px; right: 10px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--cyan-neon);
+    box-shadow: 0 0 8px var(--cyan-neon);
+  }
+  .modal-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 900;
+    font-size: 1.2rem;
+    color: var(--cyan-neon);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+  }
+  .modal-body {
+    font-style: italic;
+    color: var(--text);
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+  }
+  .modal-rune {
+    text-align: center;
+    font-size: 2rem;
+    color: var(--cyan-dim);
+    margin-bottom: 1rem;
+    text-shadow: 0 0 15px rgba(0,255,204,0.3);
+  }
+  .modal-close {
+    position: absolute; top: 1rem; right: 1.25rem;
+    background: none; border: none;
+    color: var(--text-muted); font-size: 1.2rem;
+    cursor: pointer; transition: color 0.3s;
+    font-family: 'Cinzel', serif;
+  }
+  .modal-close:hover { color: var(--cyan-neon); }
+
+  /* === Utility === */
+  .flex-row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+  .mt-1 { margin-top: 1rem; }
+  .mb-2 { margin-bottom: 2rem; }
+  .text-center { text-align: center; }
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--stone-border), var(--cyan-dim), var(--stone-border), transparent);
+    margin: 2.5rem 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- Background layers -->
+<div class="bg-gradient"></div>
+<div class="bg-runes" aria-hidden="true" id="bgRunes"></div>
+
+<!-- Layout -->
+<div class="layout">
+
+  <!-- Mystic Eye Orb -->
+  <div class="mystic-eye">
+    <div class="eye-outer">
+      <div class="eye-inner"></div>
+      <div class="eye-slit"></div>
+    </div>
+  </div>
+
+  <!-- Title -->
+  <h1>Rune Interface</h1>
+  <p class="subtitle">Abyss-dark &middot; Cyan neon glow &middot; Norse rune inscriptions</p>
+
+  <!-- Rune Nav -->
+  <nav class="rune-nav">
+    <button class="rune-nav-item active"><span class="rune-prefix">ᚹ</span>Waypoint</button>
+    <button class="rune-nav-item"><span class="rune-prefix">ᚺ</span>Hearth</button>
+    <button class="rune-nav-item"><span class="rune-prefix">ᛟ</span>Oath</button>
+    <button class="rune-nav-item"><span class="rune-prefix">ᛗ</span>Memory</button>
+    <button class="rune-nav-item"><span class="rune-prefix">ᚱ</span>Rite</button>
+  </nav>
+
+  <!-- Stat Bars -->
+  <div class="stone-panel rune-corner">
+    <span class="corner-rune tl">ᚠ</span>
+    <span class="corner-rune br">ᚢ</span>
+    <h2>ᚲ Character Stats</h2>
+    <div class="stat-row">
+      <span class="stat-name">Strength</span>
+      <div class="stat-bar-track"><div class="stat-bar-fill cyan" style="--fill:78%; animation-delay:0s"></div></div>
+      <span class="stat-value">78</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-name">Vitality</span>
+      <div class="stat-bar-track"><div class="stat-bar-fill cyan" style="--fill:92%; animation-delay:0.2s"></div></div>
+      <span class="stat-value">92</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-name">Agility</span>
+      <div class="stat-bar-track"><div class="stat-bar-fill cyan" style="--fill:65%; animation-delay:0.4s"></div></div>
+      <span class="stat-value">65</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-name">Arcana</span>
+      <div class="stat-bar-track"><div class="stat-bar-fill purple" style="--fill:88%; animation-delay:0.6s"></div></div>
+      <span class="stat-value purple-val">88</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-name">Divination</span>
+      <div class="stat-bar-track"><div class="stat-bar-fill purple" style="--fill:54%; animation-delay:0.8s"></div></div>
+      <span class="stat-value purple-val">54</span>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="stone-panel rune-corner">
+    <span class="corner-rune tl">ᚷ</span>
+    <span class="corner-rune br">ᚦ</span>
+    <h2>ᚫ Party Roster</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Class</th>
+          <th>Level</th>
+          <th>HP</th>
+          <th>Mana</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Sigrid Stoneweaver</td>
+          <td>Runekeeper</td>
+          <td>42</td>
+          <td>1,280</td>
+          <td>890</td>
+        </tr>
+        <tr>
+          <td>Bjorn Ironfang</td>
+          <td>Berserker</td>
+          <td>38</td>
+          <td>2,150</td>
+          <td>320</td>
+        </tr>
+        <tr>
+          <td>Eira Frostwhisper</td>
+          <td>Seeress</td>
+          <td>40</td>
+          <td>780</td>
+          <td>1,540</td>
+        </tr>
+        <tr>
+          <td>Thorvald Ashborn</td>
+          <td>Skald</td>
+          <td>35</td>
+          <td>960</td>
+          <td>1,120</td>
+        </tr>
+        <tr>
+          <td>Ylva Nightpact</td>
+          <td>Shade Walker</td>
+          <td>44</td>
+          <td>1,050</td>
+          <td>1,380</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Form Controls -->
+  <div class="stone-panel rune-corner">
+    <span class="corner-rune tl">ᚹ</span>
+    <span class="corner-rune br">ᚺ</span>
+    <h2>ᛗ Inscription Forge</h2>
+    <div class="form-grid">
+      <!-- Text Input -->
+      <div class="form-group">
+        <label>Rune Name</label>
+        <input type="text" class="rune-input" placeholder="Enter inscription...">
+      </div>
+      <!-- Dropdown -->
+      <div class="form-group">
+        <label>Rune School</label>
+        <div class="rune-select-wrap">
+          <select class="rune-select">
+            <option>Elder Futhark</option>
+            <option>Younger Futhark</option>
+            <option>Anglo-Saxon Futhorc</option>
+            <option>Marcomannic Runes</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkboxes & Toggles -->
+  <div class="stone-panel rune-corner">
+    <span class="corner-rune tl">ᛟ</span>
+    <span class="corner-rune br">ᚱ</span>
+    <h2>ᚱ Enchantment Bindings</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Active Wards</label>
+        <div class="rune-checkbox-group">
+          <label class="rune-checkbox">
+            <input type="checkbox" checked>
+            <span class="rune-check-box"><span class="check-mark">&#10003;</span></span>
+            Frost Ward
+          </label>
+          <label class="rune-checkbox">
+            <input type="checkbox">
+            <span class="rune-check-box"><span class="check-mark">&#10003;</span></span>
+            Shadow Veil
+          </label>
+          <label class="rune-checkbox">
+            <input type="checkbox" checked>
+            <span class="rune-check-box"><span class="check-mark">&#10003;</span></span>
+            Rune Sight
+          </label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Channel Powers</label>
+        <div class="rune-toggle-group">
+          <label class="rune-toggle">
+            <input type="checkbox" checked>
+            <span class="toggle-track"><span class="toggle-knob"></span></span>
+            Ley Line Sync
+          </label>
+          <label class="rune-toggle">
+            <input type="checkbox">
+            <span class="toggle-track"><span class="toggle-knob"></span></span>
+            Void Channel
+          </label>
+          <label class="rune-toggle">
+            <input type="checkbox" checked>
+            <span class="toggle-track"><span class="toggle-knob"></span></span>
+            Aether Flow
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal trigger -->
+  <div class="text-center mb-2">
+    <button class="rune-btn rune-btn-primary" onclick="document.getElementById('runeModal').classList.add('open')">
+      Open Modal
+    </button>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="runeModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-panel">
+    <button class="modal-close" onclick="document.getElementById('runeModal').classList.remove('open')">&times;</button>
+    <div class="modal-rune">ᚫ ᚠ ᚢ ᚦ ᚱ ᚲ</div>
+    <div class="modal-title">Rune Interface</div>
+    <div class="modal-body">
+      The Rune Interface theme is abyss-dark with cyan neon glow, Norse rune decorations, chamfered stone panels, and staggered stat bar animations creating a dark fantasy RPG aesthetic.
+    </div>
+    <div class="flex-row" style="justify-content:flex-end">
+      <button class="rune-btn" onclick="document.getElementById('runeModal').classList.remove('open')">Dismiss</button>
+      <button class="rune-btn rune-btn-primary" onclick="document.getElementById('runeModal').classList.remove('open')">Accept Pact</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Populate background runes
+  (function() {
+    var runes = 'ᚠᚢᚦᚫᚱᚲᚷᚹᚺᛟᛗ';
+    var el = document.getElementById('bgRunes');
+    var text = '';
+    for (var i = 0; i < 600; i++) {
+      text += runes[Math.floor(Math.random() * runes.length)];
+      if (i % 40 === 39) text += '\n';
+    }
+    el.textContent = text;
+  })();
+
+  // Nav active state
+  document.querySelectorAll('.rune-nav-item').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.rune-nav-item').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

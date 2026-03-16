@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Specimen — Lab Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Inter', sans-serif; background: #fff; color: #000;
+    min-height: 100vh; text-transform: uppercase;
+  }
+  .layout { max-width: 1000px; margin: 0 auto; }
+  .hero {
+    padding: 8rem 2rem 4rem; text-align: center;
+    border-bottom: 1px solid #000;
+  }
+  .giant {
+    font-size: clamp(4rem, 15vw, 14rem); font-weight: 900;
+    line-height: 0.85; letter-spacing: -0.06em;
+  }
+  .hero-sub {
+    font-family: 'Space Mono', monospace; font-size: 0.65rem;
+    letter-spacing: 0.2em; color: rgba(0,0,0,0.3); margin-top: 2rem;
+  }
+  .section { padding: 3rem 2rem; }
+  .section + .section { border-top: 1px solid #000; }
+  .section-label {
+    font-family: 'Space Mono', monospace; font-size: 0.6rem;
+    letter-spacing: 0.15em; color: rgba(0,0,0,0.3); margin-bottom: 2rem;
+  }
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-size: 0.55rem; letter-spacing: 0.15em;
+    color: rgba(0,0,0,0.3); padding: 0.75rem 0; font-weight: 500;
+    font-family: 'Space Mono', monospace;
+  }
+  td { padding: 1rem 0; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.02em; }
+  tr + tr td { border-top: none; }
+  tr { transition: opacity 0.2s; }
+  tbody tr:hover { opacity: 0.5; }
+  td:first-child {
+    font-family: 'Space Mono', monospace; font-size: 0.7rem;
+    color: rgba(0,0,0,0.25); font-weight: 400; width: 60px;
+  }
+  .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; }
+  @media (max-width: 700px) { .columns { grid-template-columns: 1fr; gap: 2rem; } }
+  /* Form */
+  .form-group { margin-bottom: 1.5rem; }
+  label { display: block; font-family: 'Space Mono', monospace; font-size: 0.55rem; letter-spacing: 0.15em; color: rgba(0,0,0,0.3); margin-bottom: 0.5rem; }
+  input[type="text"], select {
+    width: 100%; padding: 0.6rem 0; background: transparent;
+    border: none; border-bottom: 1px solid #000; color: #000;
+    font-family: inherit; font-size: 0.9rem; font-weight: 700;
+    text-transform: uppercase; outline: none;
+    transition: border-width 0.15s;
+  }
+  input[type="text"]:focus, select:focus { border-bottom-width: 2px; }
+  select { cursor: pointer; appearance: none; }
+  .btn {
+    padding: 0.5rem 0; background: transparent; border: none; border-bottom: 1px solid #000;
+    color: #000; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; cursor: pointer; transition: all 0.15s;
+    font-family: 'Space Mono', monospace;
+  }
+  .btn:hover { border-bottom-width: 2px; letter-spacing: 0.15em; }
+  .btn-fill {
+    background: #000; color: #fff; border: none;
+    padding: 0.6rem 1.5rem; font-size: 0.65rem;
+  }
+  .btn-fill:hover { opacity: 0.7; }
+  /* Checkbox */
+  .check-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; cursor: pointer; }
+  .check-box {
+    width: 18px; height: 18px; border: 1px solid #000;
+    display: grid; place-items: center; flex-shrink: 0; transition: background 0.1s;
+  }
+  .check-box.checked { background: #000; }
+  .check-box svg { opacity: 0; transition: opacity 0.1s; }
+  .check-box.checked svg { opacity: 1; }
+  .check-label { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.02em; }
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; gap: 0.75rem; margin-top: 1rem; cursor: pointer; }
+  .toggle-track {
+    width: 36px; height: 18px; border: 1px solid #000;
+    position: relative; transition: background 0.15s; flex-shrink: 0;
+  }
+  .toggle-track.on { background: #000; }
+  .toggle-knob {
+    width: 12px; height: 12px; background: #000;
+    position: absolute; top: 2px; left: 2px; transition: transform 0.15s;
+  }
+  .toggle-track.on .toggle-knob { background: #fff; transform: translateX(18px); }
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(255,255,255,0.92);
+    display: none; place-items: center; z-index: 1000;
+  }
+  .modal-overlay.open { display: grid; }
+  .modal {
+    background: #fff; border: 1px solid #000; padding: 3rem;
+    width: 90%; max-width: 440px; animation: appear 0.2s ease;
+  }
+  @keyframes appear { from { opacity: 0; } }
+  .modal h2 { font-size: 2rem; font-weight: 900; letter-spacing: -0.04em; margin-bottom: 1rem; }
+  .modal p { color: rgba(0,0,0,0.4); font-size: 0.82rem; line-height: 1.6; margin-bottom: 2rem; text-transform: none; }
+  .modal-actions { display: flex; gap: 1rem; justify-content: flex-end; }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <section class="hero">
+      <div class="giant">SPECIMEN</div>
+      <div class="hero-sub">Clinical &middot; Stark &middot; Monochrome &middot; Typographic</div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">01:00 &mdash; Index</div>
+      <table>
+        <thead><tr><th>No.</th><th>Subject</th><th>Classification</th><th>Status</th><th>Protocol</th></tr></thead>
+        <tbody>
+          <tr><td>01</td><td>Gene Sequence Alpha</td><td>Molecular Biology</td><td>Verified</td><td>PCR-Standard</td></tr>
+          <tr><td>02</td><td>Protein Fold Beta</td><td>Structural Analysis</td><td>In Review</td><td>X-Ray Diff</td></tr>
+          <tr><td>03</td><td>Cell Culture Gamma</td><td>Tissue Engineering</td><td>Active</td><td>ISO-9001</td></tr>
+          <tr><td>04</td><td>Neural Map Delta</td><td>Neuroscience</td><td>Verified</td><td>MRI-Func</td></tr>
+          <tr><td>05</td><td>Compound Epsilon</td><td>Pharmacology</td><td>Pending</td><td>Phase-II</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="section">
+      <div class="columns">
+        <div>
+          <div class="section-label">02:00 &mdash; Input</div>
+          <div class="form-group">
+            <label>Specimen ID</label>
+            <input type="text" placeholder="ENTER IDENTIFIER">
+          </div>
+          <div class="form-group">
+            <label>Classification</label>
+            <select>
+              <option>Molecular Biology</option>
+              <option>Structural Analysis</option>
+              <option>Tissue Engineering</option>
+              <option>Neuroscience</option>
+              <option>Pharmacology</option>
+            </select>
+          </div>
+          <button class="btn" onclick="document.getElementById('modal').classList.add('open')">Open Modal &#x2192;</button>
+        </div>
+
+        <div>
+          <div class="section-label">03:00 &mdash; Parameters</div>
+          <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+            <div class="check-box checked"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+            <span class="check-label">Sterile Environment</span>
+          </div>
+          <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+            <div class="check-box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+            <span class="check-label">Double Blind</span>
+          </div>
+          <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+            <div class="check-box checked"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+            <span class="check-label">Peer Review</span>
+          </div>
+          <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+            <div class="toggle-track on"><div class="toggle-knob"></div></div>
+            <span class="check-label">Auto-log</span>
+          </div>
+          <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+            <div class="toggle-track"><div class="toggle-knob"></div></div>
+            <span class="check-label">Verbose Mode</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" id="modal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <h2>CONFIRM PROTOCOL</h2>
+      <p>The Specimen Lab theme is clinical and stark. Pure monochrome, extreme typography scale, no decorative elements — visual interest comes entirely from type weight, spacing, and structure.</p>
+      <div class="modal-actions">
+        <button class="btn" onclick="document.getElementById('modal').classList.remove('open')">DISMISS</button>
+        <button class="btn-fill" onclick="document.getElementById('modal').classList.remove('open')">EXECUTE</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

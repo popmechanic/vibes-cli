@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elder Codex - Component Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:             oklch(0.06 0.000 0);
+    --stone-dark:     oklch(0.17 0.000 0);
+    --stone-light:    oklch(0.30 0.000 0);
+    --stone-border:   oklch(0.40 0.000 0);
+    --fg:             oklch(0.90 0.000 0);
+    --fg-muted:       oklch(0.55 0.000 0);
+    --gold-base:      oklch(0.73 0.10 78);
+    --gold-highlight: oklch(0.97 0.07 100);
+    --gold-shadow:    oklch(0.53 0.08 72);
+    --crimson:        oklch(0.32 0.10 25);
+    --crimson-dark:   oklch(0.20 0.07 22);
+    --parchment:      oklch(0.78 0.05 70);
+    --parchment-ink:  oklch(0.27 0.04 45);
+  }
+
+  body {
+    background-color: var(--bg);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    font-family: 'Cinzel', serif;
+    color: var(--fg);
+    min-height: 100vh;
+  }
+
+  /* ---- CROWN BAR ---- */
+  .crown-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--gold-shadow), var(--gold-highlight), var(--gold-shadow));
+    z-index: 100;
+    box-shadow: 0 0 15px var(--gold-base);
+  }
+
+  /* ---- ROTATING SIGIL ---- */
+  .header-sigil {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 16px;
+    border: 2px solid var(--gold-base);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: rotate-sigil 60s linear infinite;
+    box-shadow: 0 0 20px oklch(0.73 0.10 78 / 0.2);
+    position: relative;
+  }
+  .header-sigil::after {
+    content: "";
+    position: absolute;
+    width: 70%;
+    height: 70%;
+    border: 1px solid var(--gold-shadow);
+    transform: rotate(45deg);
+  }
+  @keyframes rotate-sigil {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ---- GOLD TEXT ---- */
+  .gold-text {
+    background: linear-gradient(to bottom, var(--gold-highlight), var(--gold-base));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* ---- HEADER ---- */
+  .page-header {
+    text-align: center;
+    border-bottom: 1px solid var(--gold-shadow);
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+  }
+  .page-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 32px;
+    line-height: 1;
+    letter-spacing: 2px;
+    margin: 0;
+  }
+  .page-subtitle {
+    display: block;
+    color: var(--gold-shadow);
+    font-size: 12px;
+    letter-spacing: 6px;
+    margin-top: 8px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* ---- STONE NAV BUTTON ---- */
+  .stone-btn {
+    background: linear-gradient(145deg, #2a2a2a, #222);
+    border: 1px solid #444;
+    border-bottom: 3px solid #111;
+    color: var(--fg-muted);
+    padding: 14px 10px;
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+  .stone-btn::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 2px;
+    background: var(--gold-base);
+    opacity: 0;
+    transition: 0.3s;
+  }
+  .stone-btn:hover, .stone-btn-active {
+    color: var(--gold-highlight);
+    border-color: var(--gold-shadow);
+    background: linear-gradient(145deg, #333, #2a2a2a);
+    text-shadow: 0 0 8px oklch(0.73 0.10 78 / 0.4);
+    transform: translateY(1px);
+    border-bottom-width: 1px;
+  }
+  .stone-btn:hover::before, .stone-btn-active::before {
+    opacity: 1;
+  }
+
+  /* ---- GOLD DIVIDER ---- */
+  .gold-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-shadow), transparent);
+    margin: 20px 0;
+    opacity: 0.5;
+  }
+
+  /* ---- SECTION LABEL ---- */
+  .section-label {
+    font-size: 11px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    margin-bottom: 12px;
+  }
+
+  /* ---- CRIMSON CARD (DATA TABLE) ---- */
+  .card-crimson {
+    background: linear-gradient(to bottom, var(--crimson-dark), oklch(0.10 0.03 20));
+    border: 2px solid var(--crimson);
+    color: #ffcccc;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .card-crimson .card-header {
+    background: var(--crimson);
+    color: var(--gold-highlight);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    border-bottom: 2px solid var(--gold-base);
+    padding: 12px 16px;
+    font-family: 'Cinzel Decorative', serif;
+    font-weight: 700;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* ---- STAT ROW ---- */
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 16px;
+    border-bottom: 1px dashed #444;
+    font-size: 13px;
+  }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-row .stat-val { color: var(--gold-base); font-weight: 600; }
+
+  /* ---- STAT BAR ---- */
+  .stat-bar-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(0,0,0,0.3);
+    margin: 4px 16px 12px;
+  }
+  .stat-bar-fill {
+    height: 100%;
+    background: var(--gold-base);
+    box-shadow: 0 0 5px var(--gold-base);
+    transition: width 0.8s ease;
+  }
+
+  /* ---- PARCHMENT CARD (FORM) ---- */
+  .card-parchment {
+    background: var(--parchment);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+    border: 4px double var(--gold-shadow);
+    color: var(--parchment-ink);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .card-parchment .card-header {
+    background: oklch(0.27 0.04 45 / 0.1);
+    border-bottom: 1px solid oklch(0.27 0.04 45 / 0.3);
+    color: var(--crimson-dark);
+    padding: 12px 16px;
+    font-family: 'Cinzel Decorative', serif;
+    font-weight: 700;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+  .card-parchment .card-body {
+    padding: 20px;
+  }
+
+  /* parchment form elements */
+  .parch-label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--parchment-ink);
+    margin-bottom: 6px;
+    opacity: 0.7;
+    font-weight: 600;
+  }
+  .parch-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid oklch(0.53 0.08 72 / 0.4);
+    padding: 8px 0;
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    color: var(--parchment-ink);
+    outline: none;
+    margin-bottom: 16px;
+    transition: border-color 0.3s;
+  }
+  .parch-input:focus {
+    border-bottom-color: var(--gold-base);
+  }
+  .parch-input::placeholder {
+    color: oklch(0.27 0.04 45 / 0.4);
+    font-style: italic;
+  }
+  .parch-select {
+    width: 100%;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid oklch(0.53 0.08 72 / 0.4);
+    padding: 8px 10px;
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    color: var(--parchment-ink);
+    outline: none;
+    cursor: pointer;
+    margin-bottom: 16px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+  .parch-select:focus { border-color: var(--gold-base); }
+
+  /* ---- IRON CARD (CHECKBOX + TOGGLE) ---- */
+  .card-iron {
+    background: linear-gradient(160deg, #2c2c2c, var(--stone-dark));
+    border: 1px solid var(--stone-border);
+    border-top: 3px solid #777;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .card-iron .card-header {
+    background: #111;
+    border-bottom: 1px solid #444;
+    color: #aaa;
+    padding: 12px 16px;
+    font-family: 'Cinzel Decorative', serif;
+    font-weight: 700;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+  .card-iron .card-body {
+    padding: 20px;
+  }
+
+  /* Checkbox on iron */
+  .iron-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 8px 0;
+    border-bottom: 1px dashed #444;
+    font-size: 13px;
+    color: var(--fg);
+    letter-spacing: 1px;
+    transition: color 0.3s;
+  }
+  .iron-checkbox:last-of-type { border-bottom: none; }
+  .iron-checkbox:hover { color: var(--gold-highlight); }
+  .iron-cb-box {
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--stone-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.3s;
+    background: rgba(0,0,0,0.3);
+  }
+  .iron-cb-box.checked {
+    border-color: var(--gold-base);
+    background: rgba(197,160,89,0.15);
+  }
+  .iron-cb-box .mark {
+    display: none;
+    color: var(--gold-base);
+    font-size: 12px;
+  }
+  .iron-cb-box.checked .mark { display: block; }
+
+  /* Toggle on iron */
+  .iron-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px dashed #444;
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+  .iron-toggle-row:last-child { border-bottom: none; }
+  .iron-toggle-track {
+    width: 40px;
+    height: 20px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--stone-border);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .iron-toggle-track.active {
+    border-color: var(--gold-base);
+    background: rgba(197,160,89,0.1);
+  }
+  .iron-toggle-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: #777;
+    transition: all 0.3s;
+  }
+  .iron-toggle-track.active .iron-toggle-knob {
+    left: 22px;
+    background: var(--gold-base);
+    box-shadow: 0 0 5px var(--gold-base);
+  }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,10,0.9);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    background: linear-gradient(to bottom, var(--crimson-dark), oklch(0.10 0.03 20));
+    border: 2px solid var(--crimson);
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 0 60px rgba(107,31,31,0.4);
+    animation: modalPop 0.3s ease;
+  }
+  @keyframes modalPop {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .modal-box .card-header {
+    background: var(--crimson);
+    color: var(--gold-highlight);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    border-bottom: 2px solid var(--gold-base);
+    padding: 12px 16px;
+    font-family: 'Cinzel Decorative', serif;
+    font-weight: 700;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-box .modal-body {
+    padding: 25px 20px;
+    text-align: center;
+    color: #ffcccc;
+  }
+  .modal-box .modal-body h2 {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 22px;
+    margin-bottom: 12px;
+  }
+  .modal-box .modal-body p {
+    font-size: 13px;
+    line-height: 1.8;
+    opacity: 0.8;
+    margin-bottom: 20px;
+  }
+  .modal-close-btn {
+    background: none;
+    border: 1px solid var(--gold-shadow);
+    color: var(--gold-base);
+    padding: 8px 20px;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .modal-close-btn:hover {
+    border-color: var(--gold-highlight);
+    color: var(--gold-highlight);
+    box-shadow: 0 0 10px oklch(0.73 0.10 78 / 0.3);
+  }
+
+  /* ---- SIGIL GRID ---- */
+  .sigil-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .sigil-cell {
+    aspect-ratio: 1;
+    border: 1px solid oklch(0.73 0.10 78 / 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: var(--gold-base);
+    cursor: pointer;
+    background: rgba(0,0,0,0.3);
+    transition: 0.3s;
+  }
+  .sigil-cell:hover {
+    background: oklch(0.73 0.10 78 / 0.1);
+    border-color: var(--gold-highlight);
+    box-shadow: 0 0 15px oklch(0.73 0.10 78 / 0.2);
+    transform: scale(1.1);
+  }
+  .sigil-active {
+    color: var(--gold-highlight);
+    text-shadow: 0 0 5px var(--gold-base);
+  }
+  .sigil-locked { opacity: 0.3; }
+
+  /* ---- FOOTER ---- */
+  .page-footer {
+    margin-top: 40px;
+    text-align: center;
+    border-top: 1px solid #333;
+    padding-top: 30px;
+    padding-bottom: 20px;
+    position: relative;
+  }
+  .page-footer::before {
+    content: "\2756";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg);
+    padding: 0 10px;
+    color: var(--gold-shadow);
+    font-size: 19px;
+  }
+  .footer-text {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--stone-border);
+    text-transform: uppercase;
+    margin: 0;
+  }
+
+  /* ---- LAYOUT ---- */
+  .content-stack {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-height: 100vh;
+  }
+</style>
+</head>
+<body>
+
+<div class="crown-bar"></div>
+
+<div class="content-stack" style="padding-top: 30px;">
+
+  <!-- HEADER -->
+  <header class="page-header">
+    <div class="header-sigil">
+      <svg width="30" height="30" viewBox="0 0 100 100" fill="none" stroke="var(--gold-base)" stroke-width="5">
+        <circle cx="50" cy="50" r="40" stroke-dasharray="10 5" />
+        <line x1="50" y1="10" x2="50" y2="90" />
+        <line x1="10" y1="50" x2="90" y2="50" />
+      </svg>
+    </div>
+    <h1 class="page-title gold-text">Elder Codex</h1>
+    <span class="page-subtitle">Chronicles of the Ascendant</span>
+  </header>
+
+  <!-- NAV -->
+  <nav style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+    <button class="stone-btn stone-btn-active"><span>&#9876;</span> Lineage</button>
+    <button class="stone-btn"><span>&#10022;</span> Arcana</button>
+    <button class="stone-btn"><span>&#9874;</span> Forge</button>
+    <button class="stone-btn"><span>&#9764;</span> Rites</button>
+  </nav>
+
+  <!-- MODAL TRIGGER -->
+  <div style="text-align: center;">
+    <button class="stone-btn" id="openModal" style="padding: 12px 30px; font-size: 14px;">
+      <span>&#9812;</span> Open Sovereign Decree
+    </button>
+  </div>
+
+  <!-- DATA TABLE (CRIMSON CARD) -->
+  <div>
+    <div class="section-label">Sovereign State</div>
+    <div class="card-crimson">
+      <div class="card-header">
+        <span>Lineage Records</span>
+        <span style="font-size: 19px;">&#9812;</span>
+      </div>
+      <div style="padding-top: 8px;">
+        <div class="stat-row">
+          <span>Ser Aldric of Blackthorn</span>
+          <span class="stat-val">Grand Master</span>
+        </div>
+        <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 100%;"></div></div>
+        <div class="stat-row">
+          <span>Lady Elowen of Silverleaf</span>
+          <span class="stat-val">High Warden</span>
+        </div>
+        <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 89%;"></div></div>
+        <div class="stat-row">
+          <span>Theron Voss of Ironheart</span>
+          <span class="stat-val">Knight</span>
+        </div>
+        <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 67%;"></div></div>
+        <div class="stat-row">
+          <span>Miriel Dune of Ashford</span>
+          <span class="stat-val">Squire</span>
+        </div>
+        <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 44%;"></div></div>
+        <div class="stat-row">
+          <span>Cassius Wren of Stormwall</span>
+          <span class="stat-val">Initiate</span>
+        </div>
+        <div class="stat-bar-track"><div class="stat-bar-fill" style="width: 15%;"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORM (PARCHMENT CARD) -->
+  <div>
+    <div class="section-label">Active Decree</div>
+    <div class="card-parchment">
+      <div class="card-header">Inscription Chamber</div>
+      <div class="card-body">
+        <div>
+          <label class="parch-label">Scribe's Name</label>
+          <input type="text" class="parch-input" placeholder="Enter thy name...">
+        </div>
+        <div>
+          <label class="parch-label">Order Affiliation</label>
+          <select class="parch-select">
+            <option>Select thy Order...</option>
+            <option>The Silver Quill</option>
+            <option>The Iron Seal</option>
+            <option>The Golden Flame</option>
+            <option>The Shadow Ledger</option>
+          </select>
+        </div>
+        <div class="gold-divider"></div>
+        <div style="text-align: right; font-size: 13px; font-weight: 700;">
+          REWARD: 500 <span style="color: var(--gold-shadow);">GOLD</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECKBOX + TOGGLE + SIGIL GRID (IRON CARD) -->
+  <div>
+    <div class="section-label">Glyphs &amp; Wards</div>
+    <div class="card-iron">
+      <div class="card-header">Equipped Arsenal</div>
+      <div class="card-body">
+        <div style="margin-bottom: 16px;">
+          <div class="iron-checkbox" onclick="toggleIronCb(this)">
+            <div class="iron-cb-box checked"><span class="mark">&#10003;</span></div>
+            <span>Ward of Protection</span>
+          </div>
+          <div class="iron-checkbox" onclick="toggleIronCb(this)">
+            <div class="iron-cb-box checked"><span class="mark">&#10003;</span></div>
+            <span>Glyph of Foresight</span>
+          </div>
+          <div class="iron-checkbox" onclick="toggleIronCb(this)">
+            <div class="iron-cb-box"><span class="mark">&#10003;</span></div>
+            <span>Rune of Silence</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <div class="iron-toggle-row">
+            <span>Auto-cast Wards</span>
+            <div class="iron-toggle-track active" onclick="toggleIronSwitch(this)">
+              <div class="iron-toggle-knob"></div>
+            </div>
+          </div>
+          <div class="iron-toggle-row">
+            <span>Sigil Resonance</span>
+            <div class="iron-toggle-track" onclick="toggleIronSwitch(this)">
+              <div class="iron-toggle-knob"></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size: 12px; letter-spacing: 1px; color: #aaa; margin-bottom: 8px;">
+          Equipped Slots: <span style="color: var(--gold-base);">4 / 6</span>
+        </div>
+        <div class="sigil-grid">
+          <div class="sigil-cell sigil-active">&#5983;</div>
+          <div class="sigil-cell">&#5810;</div>
+          <div class="sigil-cell sigil-active">&#5798;</div>
+          <div class="sigil-cell">&#5833;</div>
+          <div class="sigil-cell sigil-locked">&#5839;</div>
+          <div class="sigil-cell sigil-locked">&#5842;</div>
+          <div class="sigil-cell sigil-locked">&#5846;</div>
+          <div class="sigil-cell sigil-locked">&#5831;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="page-footer">
+    <h2 class="footer-text">MCMXC &bull; Royal Archives &bull; MMXXIV</h2>
+  </footer>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="card-header">
+      <span>Sovereign Decree</span>
+      <span style="cursor: pointer; font-size: 14px;" id="closeModal">&#10006;</span>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom: 16px;">
+        <svg width="50" height="50" viewBox="0 0 100 100" fill="none" stroke="var(--gold-base)" stroke-width="3" style="animation: rotate-sigil 60s linear infinite;">
+          <circle cx="50" cy="50" r="40" stroke-dasharray="10 5" />
+          <line x1="50" y1="10" x2="50" y2="90" />
+          <line x1="10" y1="50" x2="90" y2="50" />
+        </svg>
+      </div>
+      <h2 class="gold-text">The Pillar of Ash</h2>
+      <p>
+        The omens speak of a fractured leyline beneath the capital.
+        Seek the Pillar before the equinox, lest the sovereign's
+        dominion falter and the ancient wards collapse.
+      </p>
+      <div style="height: 1px; background: linear-gradient(90deg, transparent, var(--gold-shadow), transparent); margin-bottom: 20px; opacity: 0.5;"></div>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button class="modal-close-btn" onclick="closeModal()">Accept Quest</button>
+        <button class="modal-close-btn" onclick="closeModal()">Decline</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Modal
+  var overlay = document.getElementById('modalOverlay');
+  document.getElementById('openModal').addEventListener('click', function() {
+    overlay.classList.add('open');
+  });
+  document.getElementById('closeModal').addEventListener('click', closeModal);
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) closeModal();
+  });
+  function closeModal() {
+    overlay.classList.remove('open');
+  }
+
+  // Iron checkboxes
+  function toggleIronCb(el) {
+    var box = el.querySelector('.iron-cb-box');
+    box.classList.toggle('checked');
+  }
+
+  // Iron toggles
+  function toggleIronSwitch(el) {
+    el.classList.toggle('active');
+  }
+</script>
+</body>
+</html>

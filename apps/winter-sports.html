@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Winter Sports - Theme Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Nunito:wght@400;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --comp-bg: oklch(0.99 0.003 240);
+    --comp-text: oklch(0.22 0.025 250);
+    --comp-border: oklch(0.88 0.012 235);
+    --comp-accent: oklch(0.55 0.19 250);
+    --comp-accent-text: oklch(0.99 0 0);
+    --comp-muted: oklch(0.55 0.02 250);
+    --color-background: oklch(0.95 0.015 230);
+    --grid-color: oklch(0.85 0.02 240 / 0.12);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    font-family: 'Inter', sans-serif;
+    background: var(--color-background);
+    color: var(--comp-text);
+  }
+
+  body {
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  canvas#snow {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app-content {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+
+  /* Header */
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--comp-border);
+    margin-bottom: 1.5rem;
+  }
+
+  .app-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .accent-dot {
+    width: 10px;
+    height: 10px;
+    background: var(--comp-accent);
+    display: inline-block;
+  }
+
+  .live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--comp-accent);
+  }
+
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--comp-accent);
+    animation: livePulse 2s ease-in-out infinite;
+  }
+
+  @keyframes livePulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  @keyframes cardFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Mountain Divider */
+  .divider-svg {
+    width: 100%;
+    height: 40px;
+    margin: 1.5rem 0;
+    display: block;
+  }
+
+  /* Section label */
+  .section-label {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--comp-muted);
+    margin-bottom: 1rem;
+  }
+
+  /* Cards */
+  .card-wrap {
+    background: var(--comp-bg);
+    border-radius: 16px;
+    box-shadow: 0 2px 12px oklch(0.22 0.02 250 / 0.07);
+    animation: cardFadeIn 0.4s ease both;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+
+  .card-wrap:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px oklch(0.22 0.02 250 / 0.12);
+  }
+
+  .card-inner {
+    padding: 1.25rem;
+  }
+
+  /* Buttons */
+  .btn-accent {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.6rem 1.2rem;
+    background: var(--comp-accent);
+    color: var(--comp-accent-text);
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .btn-accent:hover { opacity: 0.9; }
+  .btn-accent:active { transform: scale(0.97); }
+
+  .btn-outline {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.6rem 1.2rem;
+    background: var(--comp-bg);
+    color: var(--comp-muted);
+    border: 1px solid var(--comp-border);
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+
+  .btn-outline:hover {
+    background: oklch(0.93 0.01 240);
+    color: var(--comp-text);
+  }
+
+  /* Data Table */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+
+  .data-table thead th {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--comp-muted);
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 2px solid var(--comp-border);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.2s;
+  }
+
+  .data-table thead th:hover {
+    color: var(--comp-accent);
+  }
+
+  .data-table tbody tr {
+    border-bottom: 1px solid oklch(0.85 0.01 240 / 0.2);
+    animation: cardFadeIn 0.3s ease both;
+    transition: background 0.2s;
+  }
+
+  .data-table tbody tr:hover {
+    background: oklch(0.93 0.01 240);
+  }
+
+  .data-table td {
+    padding: 0.6rem 0.75rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sort-arrow {
+    display: inline-block;
+    margin-left: 0.3rem;
+    font-size: 0.55rem;
+    color: var(--comp-accent);
+  }
+
+  .row-tag {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--comp-muted);
+    border: 1px solid var(--comp-border);
+    padding: 0.15rem 0.5rem;
+    white-space: nowrap;
+    border-radius: 4px;
+    display: inline-block;
+  }
+
+  .row-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--comp-accent);
+    white-space: nowrap;
+  }
+
+  /* Forms */
+  .form-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+  }
+
+  .form-field {
+    flex: 1;
+    min-width: 160px;
+  }
+
+  .form-field label {
+    display: block;
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--comp-muted);
+    margin-bottom: 0.35rem;
+  }
+
+  .form-field input,
+  .form-field select {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--color-background);
+    border: 1px solid var(--comp-border);
+    border-radius: 8px;
+    color: var(--comp-text);
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .form-field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+  }
+
+  .form-field input:focus,
+  .form-field select:focus {
+    border-color: var(--comp-accent);
+  }
+
+  .form-field input::placeholder {
+    color: var(--comp-muted);
+    opacity: 0.6;
+  }
+
+  /* Checkbox */
+  .ws-checkbox-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    user-select: none;
+    margin-bottom: 8px;
+  }
+
+  .ws-checkbox-wrap input { display: none; }
+
+  .ws-check-box {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 2px solid var(--comp-border);
+    background: var(--comp-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .ws-check-box svg {
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.15s ease;
+  }
+
+  .ws-checkbox-wrap input:checked + .ws-check-box {
+    background: var(--comp-accent);
+    border-color: var(--comp-accent);
+  }
+
+  .ws-checkbox-wrap input:checked + .ws-check-box svg {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Toggle */
+  .ws-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    user-select: none;
+    margin-bottom: 8px;
+  }
+
+  .ws-toggle-wrap input { display: none; }
+
+  .ws-toggle-track {
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    background: var(--comp-border);
+    position: relative;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .ws-toggle-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 1px 3px oklch(0.22 0.02 250 / 0.15);
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: all 0.2s ease;
+  }
+
+  .ws-toggle-wrap input:checked ~ .ws-toggle-track {
+    background: var(--comp-accent);
+  }
+
+  .ws-toggle-wrap input:checked ~ .ws-toggle-track .ws-toggle-thumb {
+    left: 23px;
+  }
+
+  /* Metric cards */
+  .metric-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .metric-card {
+    background: var(--comp-bg);
+    padding: 1.25rem;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px oklch(0.22 0.02 250 / 0.07);
+    animation: cardFadeIn 0.4s ease both;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px oklch(0.22 0.02 250 / 0.12);
+  }
+
+  .metric-card.highlight {
+    background: var(--comp-accent);
+    color: var(--comp-accent-text);
+  }
+
+  .metric-card.highlight .metric-label,
+  .metric-card.highlight .metric-sublabel {
+    color: var(--comp-accent-text);
+    opacity: 0.7;
+  }
+
+  .metric-card.highlight .metric-value {
+    color: var(--comp-accent-text);
+  }
+
+  .metric-label {
+    font-family: 'Space Grotesk', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--comp-muted);
+    margin-bottom: 0.75rem;
+  }
+
+  .metric-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .metric-sublabel {
+    font-size: 0.75rem;
+    color: var(--comp-muted);
+  }
+
+  /* Progress bar */
+  .progress-bar {
+    height: 4px;
+    background: var(--comp-border);
+    margin-top: 0.75rem;
+    position: relative;
+    overflow: hidden;
+    border-radius: 2px;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--comp-accent);
+    transition: width 0.6s ease;
+    border-radius: 2px;
+  }
+
+  /* Modal */
+  .ws-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: oklch(0.22 0.025 250 / 0.4);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .ws-modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .ws-modal-content {
+    background: var(--comp-bg);
+    border-radius: 16px;
+    box-shadow: 0 24px 60px oklch(0.22 0.02 250 / 0.2);
+    max-width: 480px;
+    width: 90%;
+    padding: 2rem;
+    transform: translateY(8px);
+    transition: transform 0.3s ease;
+  }
+
+  .ws-modal-overlay.open .ws-modal-content {
+    transform: translateY(0);
+  }
+
+  .ws-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--comp-border);
+  }
+
+  .ws-modal-header h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .ws-modal-close {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--comp-border);
+    background: transparent;
+    color: var(--comp-muted);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ws-modal-close:hover {
+    color: var(--comp-text);
+    border-color: var(--comp-accent);
+  }
+
+  .ws-modal-body {
+    color: var(--comp-text);
+    font-size: 0.85rem;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
+
+  .ws-modal-body p { margin-bottom: 0.75rem; }
+
+  .ws-modal-footer {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+
+  .controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 640px) {
+    .controls-grid { grid-template-columns: 1fr; }
+    .metric-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="snow"></canvas>
+
+<div class="app-content">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="app-title">
+      <span class="accent-dot"></span>
+      Winter Sports
+    </div>
+    <div class="live-indicator">
+      <span class="live-dot"></span>
+      Live Data
+    </div>
+  </header>
+
+  <!-- Metric Cards -->
+  <div class="section-label">Season Overview</div>
+  <div class="metric-row">
+    <div class="metric-card highlight" style="animation-delay:0s">
+      <div class="metric-label">Total Athletes</div>
+      <div class="metric-value">247</div>
+      <div class="metric-sublabel">+12 this week</div>
+    </div>
+    <div class="metric-card" style="animation-delay:0.1s">
+      <div class="metric-label">Events Active</div>
+      <div class="metric-value">18</div>
+      <div class="metric-sublabel">across 6 venues</div>
+      <div class="progress-bar"><div class="progress-bar-fill" style="width:72%"></div></div>
+    </div>
+    <div class="metric-card" style="animation-delay:0.2s">
+      <div class="metric-label">Avg Speed</div>
+      <div class="metric-value">94.3</div>
+      <div class="metric-sublabel">km/h downhill</div>
+      <div class="progress-bar"><div class="progress-bar-fill" style="width:85%"></div></div>
+    </div>
+    <div class="metric-card" style="animation-delay:0.3s">
+      <div class="metric-label">Season Score</div>
+      <div class="metric-value">8.7</div>
+      <div class="metric-sublabel">out of 10.0</div>
+      <div class="progress-bar"><div class="progress-bar-fill" style="width:87%"></div></div>
+    </div>
+  </div>
+
+  <!-- Mountain Divider -->
+  <svg class="divider-svg" viewBox="0 0 800 40" preserveAspectRatio="none">
+    <path d="M0,35 L80,20 L160,30 L280,8 L350,25 L480,5 L560,22 L680,12 L760,28 L800,18 L800,40 L0,40 Z" fill="oklch(0.88 0.012 235 / 0.3)">
+      <animate attributeName="d" dur="7s" repeatCount="indefinite" values="M0,35 L80,20 L160,30 L280,8 L350,25 L480,5 L560,22 L680,12 L760,28 L800,18 L800,40 L0,40 Z;M0,28 L80,15 L160,35 L280,12 L350,30 L480,10 L560,28 L680,8 L760,22 L800,25 L800,40 L0,40 Z;M0,35 L80,20 L160,30 L280,8 L350,25 L480,5 L560,22 L680,12 L760,28 L800,18 L800,40 L0,40 Z"/>
+    </path>
+    <path d="M0,38 L100,25 L200,35 L320,15 L420,30 L520,10 L620,28 L720,15 L800,30 L800,40 L0,40 Z" fill="oklch(0.55 0.19 250 / 0.1)">
+      <animate attributeName="d" dur="6s" repeatCount="indefinite" values="M0,38 L100,25 L200,35 L320,15 L420,30 L520,10 L620,28 L720,15 L800,30 L800,40 L0,40 Z;M0,30 L100,20 L200,32 L320,18 L420,35 L520,15 L620,25 L720,20 L800,35 L800,40 L0,40 Z;M0,38 L100,25 L200,35 L320,15 L420,30 L520,10 L620,28 L720,15 L800,30 L800,40 L0,40 Z"/>
+    </path>
+  </svg>
+
+  <!-- Modal Button -->
+  <div class="card-wrap" style="animation-delay:0.15s; text-align:center;">
+    <div class="card-inner">
+      <div class="section-label">Race Details</div>
+      <p style="font-size:0.85rem; color:var(--comp-muted); margin-bottom:1rem;">
+        View the full race breakdown and athlete stats in the detail panel.
+      </p>
+      <button class="btn-accent" onclick="openModal()">Open Race Report</button>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="card-wrap" style="animation-delay:0.2s;">
+    <div class="card-inner">
+      <div class="section-label">Athlete Leaderboard</div>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Rank <span class="sort-arrow">&#9660;</span></th>
+              <th>Athlete</th>
+              <th>Discipline</th>
+              <th>Time</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="animation-delay:0.05s">
+              <td style="font-family:'Space Grotesk',monospace; font-size:0.65rem; color:var(--comp-muted)">01</td>
+              <td style="font-weight:600">Kira Volkov</td>
+              <td><span class="row-tag">Downhill</span></td>
+              <td style="font-variant-numeric:tabular-nums">1:42.31</td>
+              <td><span class="row-value">97.4</span></td>
+            </tr>
+            <tr style="animation-delay:0.1s">
+              <td style="font-family:'Space Grotesk',monospace; font-size:0.65rem; color:var(--comp-muted)">02</td>
+              <td style="font-weight:600">Erik Johansson</td>
+              <td><span class="row-tag">Slalom</span></td>
+              <td style="font-variant-numeric:tabular-nums">1:45.08</td>
+              <td><span class="row-value">95.1</span></td>
+            </tr>
+            <tr style="animation-delay:0.15s">
+              <td style="font-family:'Space Grotesk',monospace; font-size:0.65rem; color:var(--comp-muted)">03</td>
+              <td style="font-weight:600">Mei Tanaka</td>
+              <td><span class="row-tag">Freestyle</span></td>
+              <td style="font-variant-numeric:tabular-nums">1:48.72</td>
+              <td><span class="row-value">93.8</span></td>
+            </tr>
+            <tr style="animation-delay:0.2s">
+              <td style="font-family:'Space Grotesk',monospace; font-size:0.65rem; color:var(--comp-muted)">04</td>
+              <td style="font-weight:600">Luca Fontaine</td>
+              <td><span class="row-tag">Cross-Country</span></td>
+              <td style="font-variant-numeric:tabular-nums">1:51.44</td>
+              <td><span class="row-value">91.2</span></td>
+            </tr>
+            <tr style="animation-delay:0.25s">
+              <td style="font-family:'Space Grotesk',monospace; font-size:0.65rem; color:var(--comp-muted)">05</td>
+              <td style="font-weight:600">Anna Bergstrom</td>
+              <td><span class="row-tag">Biathlon</span></td>
+              <td style="font-variant-numeric:tabular-nums">1:53.19</td>
+              <td><span class="row-value">89.6</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form + Controls -->
+  <div class="card-wrap" style="animation-delay:0.3s;">
+    <div class="card-inner">
+      <div class="section-label">Athlete Registration</div>
+      <div class="form-row">
+        <div class="form-field">
+          <label for="athleteName">Athlete Name</label>
+          <input type="text" id="athleteName" placeholder="Enter full name...">
+        </div>
+        <div class="form-field">
+          <label for="discipline">Discipline</label>
+          <select id="discipline">
+            <option value="">Select discipline...</option>
+            <option value="downhill">Downhill</option>
+            <option value="slalom">Slalom</option>
+            <option value="freestyle">Freestyle</option>
+            <option value="crosscountry">Cross-Country</option>
+            <option value="biathlon">Biathlon</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="controls-grid" style="margin-top:1rem;">
+        <div>
+          <div class="section-label" style="margin-bottom:0.5rem">Options</div>
+          <label class="ws-checkbox-wrap">
+            <input type="checkbox" checked>
+            <span class="ws-check-box">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            Include training data
+          </label>
+          <label class="ws-checkbox-wrap">
+            <input type="checkbox">
+            <span class="ws-check-box">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            Notify on results
+          </label>
+        </div>
+        <div>
+          <div class="section-label" style="margin-bottom:0.5rem">Settings</div>
+          <label class="ws-toggle-wrap" onclick="this.querySelector('input').click()">
+            <input type="checkbox" checked>
+            <div class="ws-toggle-track"><div class="ws-toggle-thumb"></div></div>
+            Live tracking
+          </label>
+          <label class="ws-toggle-wrap" onclick="this.querySelector('input').click()">
+            <input type="checkbox">
+            <div class="ws-toggle-track"><div class="ws-toggle-thumb"></div></div>
+            Public profile
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div class="ws-modal-overlay" id="modal">
+  <div class="ws-modal-content">
+    <div class="ws-modal-header">
+      <h2>Race Report</h2>
+      <button class="ws-modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="ws-modal-body">
+      <p>
+        The alpine downhill event recorded 247 participants across six international
+        venues this season. Average completion times improved by 3.2% compared to
+        last year, with peak speeds reaching 142 km/h on the Kitzbuhel course.
+      </p>
+      <p>
+        Top athletes demonstrated exceptional consistency with scores above 90.0
+        in four consecutive rounds. The season concludes with the championship
+        finals in March.
+      </p>
+    </div>
+    <div class="ws-modal-footer">
+      <button class="btn-outline" onclick="closeModal()">Dismiss</button>
+      <button class="btn-accent" onclick="closeModal()">View Full Report</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Snow particles
+  (function() {
+    const canvas = document.getElementById('snow');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    for (let i = 0; i < 50; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 2.5 + 0.5,
+        speed: Math.random() * 0.6 + 0.15,
+        drift: Math.random() * 0.4 - 0.2,
+        opacity: Math.random() * 0.25 + 0.05
+      });
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.y += p.speed;
+        p.x += p.drift + Math.sin(p.y * 0.01) * 0.3;
+        if (p.y > canvas.height + 10) {
+          p.y = -10;
+          p.x = Math.random() * canvas.width;
+        }
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(180, 195, 220, ${p.opacity})`;
+        ctx.fill();
+      });
+      requestAnimationFrame(draw);
+    }
+    draw();
+  })();
+
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+  }
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+</script>
+</body>
+</html>

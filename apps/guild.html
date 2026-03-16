@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guild Ledger - Component Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:           oklch(0.10 0.03 260);
+    --bg-highlight: oklch(0.18 0.04 255);
+    --fg:           oklch(0.90 0.000 0);
+    --fg-muted:     oklch(0.67 0.04 240);
+    --gold-base:    oklch(0.60 0.13 80);
+    --gold-mid:     oklch(0.78 0.13 88);
+    --gold-light:   oklch(0.96 0.08 100);
+    --gold-shadow:  oklch(0.27 0.07 70);
+    --stone:        oklch(0.15 0.000 0);
+    --parchment:    oklch(0.84 0.03 75);
+    --wood:         oklch(0.27 0.04 30);
+    --iron:         oklch(0.27 0.02 220);
+  }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E"),
+      radial-gradient(circle at center, var(--bg-highlight), var(--bg));
+    font-family: 'Cinzel', serif;
+    color: var(--fg);
+    min-height: 100vh;
+    padding: 20px 16px;
+  }
+
+  /* ---- GOLD THREAD TEXT ---- */
+  .gold-text {
+    background: linear-gradient(180deg, var(--gold-mid), var(--gold-base) 60%, var(--gold-shadow));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: none;
+    font-weight: 700;
+  }
+
+  /* ---- SHIMMER TEXT ---- */
+  .shimmer-text {
+    background: linear-gradient(90deg, var(--gold-base), var(--gold-light) 50%, var(--gold-base));
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 4s linear infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  /* ---- GOLD RULE ---- */
+  .gold-rule {
+    width: 120px;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--gold-base), transparent);
+    box-shadow: 0 2px 4px black;
+    margin: 0 auto;
+  }
+
+  /* ---- PAGE HEADER ---- */
+  .page-header {
+    text-align: center;
+    margin-bottom: 40px;
+    position: relative;
+    padding-bottom: 25px;
+  }
+  .page-title {
+    font-size: 32px;
+    letter-spacing: 4px;
+    margin: 10px 0 0;
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+  .page-title-sub {
+    display: block;
+    font-size: 13px;
+    letter-spacing: 8px;
+    margin-top: 10px;
+    color: var(--fg-muted);
+    font-weight: 400;
+  }
+  .page-subtitle {
+    margin-top: 10px;
+    font-size: 11px;
+    letter-spacing: 6px;
+    color: var(--gold-mid);
+    text-transform: uppercase;
+    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .page-subtitle::before,
+  .page-subtitle::after {
+    content: "\2022";
+    font-size: 19px;
+  }
+
+  /* ---- STITCHED PANEL ---- */
+  .stitched-panel {
+    background: rgba(0,0,0,0.3);
+    border: 4px double transparent;
+    position: relative;
+    box-shadow:
+      0 10px 20px rgba(0,0,0,0.4),
+      inset 0 0 20px rgba(0,0,0,0.6);
+    border-radius: 4px;
+    padding: 30px;
+  }
+  .stitched-panel::after {
+    content: "";
+    position: absolute;
+    top: 4px; left: 4px; right: 4px; bottom: 4px;
+    border: 2px dashed var(--gold-base);
+    border-radius: 2px;
+    opacity: 0.6;
+    pointer-events: none;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.8);
+  }
+
+  /* ---- STONE NAV BUTTON ---- */
+  .stone-btn {
+    background: linear-gradient(135deg, #2a2a2a, var(--stone));
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E");
+    border: none;
+    padding: 16px 10px;
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: #888;
+    cursor: pointer;
+    position: relative;
+    border-radius: 2px;
+    box-shadow:
+      0 4px 6px rgba(0,0,0,0.5),
+      inset 0 1px 0 rgba(255,255,255,0.05);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    text-transform: uppercase;
+  }
+  .stone-btn::before {
+    content: "";
+    position: absolute;
+    top: 3px; left: 3px; right: 3px; bottom: 3px;
+    border: 1px dashed #444;
+    transition: 0.3s;
+  }
+  .stone-btn:hover, .stone-btn-active {
+    color: var(--gold-light);
+    background: linear-gradient(135deg, #1e2838, #0e1521);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 12px rgba(0,0,0,0.6);
+  }
+  .stone-btn:hover::before, .stone-btn-active::before {
+    border-color: var(--gold-mid);
+    border-style: solid;
+    box-shadow: 0 0 5px var(--gold-shadow);
+  }
+
+  /* ---- SECTION TITLE ---- */
+  .section-title {
+    font-size: 13px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    margin-bottom: 15px;
+    font-weight: 400;
+  }
+
+  /* ---- TABLE (data table on parchment material) ---- */
+  .guild-table-wrap {
+    background: radial-gradient(circle, #e3d2b6, #d2b48c);
+    border: 1px solid #8d6e63;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 15px 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+  }
+  .guild-table-header {
+    padding: 12px 15px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--wood);
+    background: rgba(62,39,35,0.1);
+    border-bottom: 1px dashed #8d6e63;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .guild-table-header .rank { color: var(--gold-base); font-size: 11px; }
+  .guild-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+  }
+  .guild-table th {
+    text-align: left;
+    padding: 10px 15px;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #5d4037;
+    border-bottom: 1px dashed #8d6e63;
+    font-weight: 700;
+  }
+  .guild-table td {
+    padding: 10px 15px;
+    color: var(--wood);
+    border-bottom: 1px dashed rgba(141,110,99,0.3);
+  }
+  .guild-table tr:last-child td { border-bottom: none; }
+  .guild-table .rank-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border: 1px dashed #8d6e63;
+    color: #5d4037;
+    border-radius: 2px;
+  }
+  .guild-table .rank-badge.elite {
+    border-color: var(--gold-base);
+    color: var(--gold-shadow);
+    background: rgba(166,124,0,0.1);
+  }
+
+  /* ---- FORM ELEMENTS ---- */
+  .form-group { margin-bottom: 20px; }
+  .form-label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+    margin-bottom: 8px;
+    font-weight: 400;
+  }
+  .form-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(166,124,0,0.4);
+    padding: 10px 0;
+    font-family: 'Cinzel', serif;
+    font-size: 14px;
+    color: var(--fg);
+    outline: none;
+    transition: border-color 0.3s;
+    letter-spacing: 1px;
+  }
+  .form-input:focus {
+    border-bottom-color: var(--gold-mid);
+  }
+  .form-input::placeholder {
+    color: rgba(136,155,179,0.4);
+    font-style: italic;
+  }
+
+  /* ---- SELECT ---- */
+  .form-select-wrap {
+    position: relative;
+  }
+  .form-select {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(166,124,0,0.3);
+    border-radius: 2px;
+    padding: 10px 35px 10px 12px;
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    color: var(--fg);
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    letter-spacing: 1px;
+    transition: border-color 0.3s;
+  }
+  .form-select:focus, .form-select:hover {
+    border-color: var(--gold-mid);
+  }
+  .form-select option {
+    background: #0a1120;
+    color: var(--fg);
+  }
+  .form-select-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--gold-base);
+    font-size: 10px;
+  }
+
+  /* ---- CHECKBOX ---- */
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--fg);
+  }
+  .checkbox-box {
+    width: 20px;
+    height: 20px;
+    border: 1px dashed rgba(166,124,0,0.5);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    flex-shrink: 0;
+    background: rgba(0,0,0,0.2);
+  }
+  .checkbox-box.checked {
+    border-style: solid;
+    border-color: var(--gold-mid);
+    background: rgba(166,124,0,0.15);
+  }
+  .checkbox-box .check-mark {
+    display: none;
+    color: var(--gold-mid);
+    font-size: 14px;
+    line-height: 1;
+  }
+  .checkbox-box.checked .check-mark { display: block; }
+
+  /* ---- TOGGLE SWITCH ---- */
+  .toggle-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--fg);
+    cursor: pointer;
+  }
+  .toggle-track {
+    width: 44px;
+    height: 22px;
+    background: rgba(0,0,0,0.4);
+    border: 1px dashed rgba(166,124,0,0.4);
+    border-radius: 2px;
+    position: relative;
+    transition: all 0.3s;
+    flex-shrink: 0;
+  }
+  .toggle-track.active {
+    border-style: solid;
+    border-color: var(--gold-mid);
+    background: rgba(166,124,0,0.15);
+  }
+  .toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg, #888, #555);
+    border-radius: 2px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+  .toggle-track.active .toggle-thumb {
+    left: 24px;
+    background: linear-gradient(180deg, var(--gold-mid), var(--gold-base));
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5), 0 0 6px rgba(166,124,0,0.3);
+  }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,17,32,0.85);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+  }
+  .modal-overlay.open { display: flex; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .modal-content {
+    background: var(--bg);
+    background-image:
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E");
+    width: 100%;
+    max-width: 500px;
+    border-radius: 4px;
+    position: relative;
+    box-shadow:
+      0 10px 20px rgba(0,0,0,0.4),
+      inset 0 0 20px rgba(0,0,0,0.6);
+    border: 4px double transparent;
+    animation: modalSlide 0.3s ease;
+  }
+  .modal-content::after {
+    content: "";
+    position: absolute;
+    top: 4px; left: 4px; right: 4px; bottom: 4px;
+    border: 2px dashed var(--gold-base);
+    border-radius: 2px;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  @keyframes modalSlide {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .modal-header {
+    padding: 12px 15px;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.8);
+    background: rgba(0,0,0,0.4);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-rank { color: var(--gold-mid); font-size: 11px; cursor: pointer; }
+  .modal-rank:hover { color: var(--gold-light); }
+  .modal-body {
+    padding: 30px 25px;
+    text-align: center;
+  }
+  .modal-body h2 {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .modal-body p {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--fg-muted);
+    line-height: 1.8;
+    margin-bottom: 20px;
+  }
+  .modal-footer {
+    padding: 15px;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  /* ---- LAYOUT ---- */
+  .content-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    max-width: 700px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* ---- FOOTER ---- */
+  .page-footer {
+    margin-top: 60px;
+    text-align: center;
+    padding: 30px 0;
+    opacity: 0.6;
+    background-image: linear-gradient(to right, transparent, oklch(0.60 0.13 80 / 0.1), transparent);
+    position: relative;
+  }
+  .page-footer::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 2px;
+    background: var(--gold-base);
+  }
+  .footer-title {
+    font-size: 13px;
+    letter-spacing: 6px;
+    font-weight: 400;
+    color: var(--gold-mid);
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="content-stack">
+
+  <!-- HEADER -->
+  <header class="page-header">
+    <div class="gold-rule" style="margin-bottom: 10px;"></div>
+    <h1 class="page-title gold-text">
+      Royal Registry
+      <span class="page-title-sub">Of The High Guard</span>
+    </h1>
+    <div class="page-subtitle">Est. MCM XCII</div>
+    <div class="gold-rule" style="position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);"></div>
+  </header>
+
+  <!-- NAV -->
+  <nav style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+    <button class="stone-btn stone-btn-active">Registry</button>
+    <button class="stone-btn">Armory</button>
+    <button class="stone-btn">Bestiary</button>
+    <button class="stone-btn">Edicts</button>
+  </nav>
+
+  <!-- MODAL TRIGGER -->
+  <div style="text-align: center;">
+    <button class="stone-btn" id="openModal" style="padding: 14px 30px; font-size: 14px;">
+      Open Royal Decree
+    </button>
+  </div>
+
+  <!-- DATA TABLE -->
+  <div>
+    <div class="section-title">Guild Registry</div>
+    <div class="guild-table-wrap">
+      <div class="guild-table-header">
+        <span>Active Members</span>
+        <span class="rank">V Records</span>
+      </div>
+      <table class="guild-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>House</th>
+            <th>Rank</th>
+            <th>Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Ser Aldric</td>
+            <td>Blackthorn</td>
+            <td><span class="rank-badge elite">Grand Master</span></td>
+            <td>1,450</td>
+          </tr>
+          <tr>
+            <td>Lady Elowen</td>
+            <td>Silverleaf</td>
+            <td><span class="rank-badge elite">High Warden</span></td>
+            <td>1,320</td>
+          </tr>
+          <tr>
+            <td>Theron Voss</td>
+            <td>Ironheart</td>
+            <td><span class="rank-badge">Knight</span></td>
+            <td>980</td>
+          </tr>
+          <tr>
+            <td>Miriel Dune</td>
+            <td>Ashford</td>
+            <td><span class="rank-badge">Squire</span></td>
+            <td>640</td>
+          </tr>
+          <tr>
+            <td>Cassius Wren</td>
+            <td>Stormwall</td>
+            <td><span class="rank-badge">Initiate</span></td>
+            <td>210</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FORM CONTROLS -->
+  <div class="stitched-panel">
+    <div class="section-title shimmer-text" style="display: inline-block; margin-bottom: 20px;">Enlistment Form</div>
+
+    <div class="form-group">
+      <label class="form-label">Knight's Name</label>
+      <input type="text" class="form-input" placeholder="Enter thy name...">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">House Affiliation</label>
+      <div class="form-select-wrap">
+        <select class="form-select">
+          <option>Select thy House...</option>
+          <option>House Blackthorn</option>
+          <option>House Silverleaf</option>
+          <option>House Ironheart</option>
+          <option>House Ashford</option>
+          <option>House Stormwall</option>
+        </select>
+        <span class="form-select-arrow">&#9662;</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="checkbox-group" onclick="toggleCheckbox(this)">
+        <div class="checkbox-box">
+          <span class="check-mark">&#10003;</span>
+        </div>
+        <span>I swear fealty to the Royal Crown</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="toggle-group" onclick="toggleSwitch(this)">
+        <div class="toggle-track">
+          <div class="toggle-thumb"></div>
+        </div>
+        <span>Receive decree notifications</span>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 10px;">
+      <button class="stone-btn" style="padding: 14px 40px;">Submit Enlistment</button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="page-footer">
+    <h2 class="footer-title">OFFICIAL ARCHIVES</h2>
+    <div style="font-size: 10px; margin-top: 10px; letter-spacing: 2px;">
+      AUTHORIZED EYES ONLY
+    </div>
+  </footer>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-content">
+    <div class="modal-header">
+      Royal Decree
+      <span class="modal-rank" id="closeModal">&#10006; CLOSE</span>
+    </div>
+    <div class="modal-body">
+      <div class="gold-rule" style="margin-bottom: 20px;"></div>
+      <h2 class="gold-text">By Order of the Crown</h2>
+      <p>
+        Let it be known throughout the realm that all noble houses
+        shall convene at the Great Hall upon the next full moon.
+        Failure to attend shall be considered an act of defiance
+        against the sovereign.
+      </p>
+      <div class="gold-rule" style="margin-bottom: 20px;"></div>
+      <div style="font-size: 10px; letter-spacing: 4px; text-transform: uppercase; color: var(--gold-mid);">
+        Sealed in the Year of the Silver Stag
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="stone-btn" onclick="closeModal()" style="padding: 12px 24px;">Accept Decree</button>
+      <button class="stone-btn" onclick="closeModal()" style="padding: 12px 24px;">Deny</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Modal
+  const overlay = document.getElementById('modalOverlay');
+  document.getElementById('openModal').addEventListener('click', function() {
+    overlay.classList.add('open');
+  });
+  document.getElementById('closeModal').addEventListener('click', closeModal);
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) closeModal();
+  });
+  function closeModal() {
+    overlay.classList.remove('open');
+  }
+
+  // Checkbox
+  function toggleCheckbox(el) {
+    const box = el.querySelector('.checkbox-box');
+    box.classList.toggle('checked');
+  }
+
+  // Toggle Switch
+  function toggleSwitch(el) {
+    const track = el.querySelector('.toggle-track');
+    track.classList.toggle('active');
+  }
+</script>
+</body>
+</html>

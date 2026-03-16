@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chrono — Neumorphic Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #dde1e7;
+    --text: #5a6270;
+    --text-dark: #3a3f4a;
+    --shadow-dark: #b8bec7;
+    --shadow-light: #ffffff;
+    --accent: #6c8ee6;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
+    min-height: 100vh; padding: 2rem;
+  }
+  .layout { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.25rem; }
+  .subtitle { font-size: 0.8rem; color: var(--text); margin-bottom: 2rem; }
+  .neu {
+    background: var(--bg); border-radius: 20px;
+    box-shadow: 8px 8px 16px var(--shadow-dark), -8px -8px 16px var(--shadow-light);
+    padding: 1.75rem; margin-bottom: 1.5rem;
+  }
+  .neu-inset {
+    background: var(--bg); border-radius: 14px;
+    box-shadow: inset 4px 4px 8px var(--shadow-dark), inset -4px -4px 8px var(--shadow-light);
+    padding: 1.25rem;
+  }
+  .section-label {
+    font-family: 'Space Mono', monospace; font-size: 0.6rem;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--text);
+    margin-bottom: 1rem;
+  }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-family: 'Space Mono', monospace;
+    font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text); padding: 0.5rem 0.75rem;
+  }
+  td {
+    padding: 0.6rem 0.75rem; font-size: 0.82rem; color: var(--text-dark);
+  }
+  tr:nth-child(even) td { background: oklch(0.91 0.005 260 / 0.5); border-radius: 8px; }
+  td:nth-child(3) { font-family: 'Space Mono', monospace; }
+  /* Form */
+  .form-group { margin-bottom: 1rem; }
+  label { display: block; font-family: 'Space Mono', monospace; font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.4rem; }
+  input[type="text"], select {
+    width: 100%; padding: 0.65rem 1rem; background: var(--bg);
+    border: none; border-radius: 12px; color: var(--text-dark);
+    font-family: inherit; font-size: 0.85rem; outline: none;
+    box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+    transition: box-shadow 0.2s;
+  }
+  input[type="text"]:focus, select:focus {
+    box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light), 0 0 0 2px var(--accent);
+  }
+  select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%235a6270' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1rem center; }
+  .btn {
+    padding: 0.65rem 1.5rem; background: var(--bg); border: none;
+    border-radius: 14px; color: var(--accent); font-weight: 600;
+    font-size: 0.8rem; cursor: pointer;
+    box-shadow: 6px 6px 12px var(--shadow-dark), -6px -6px 12px var(--shadow-light);
+    transition: all 0.15s;
+  }
+  .btn:active {
+    box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+  }
+  .btn-accent { background: var(--accent); color: #fff; box-shadow: 4px 4px 10px oklch(0.55 0.15 260 / 0.3), -2px -2px 8px var(--shadow-light); }
+  /* Checkbox */
+  .check-row { display: flex; align-items: center; gap: 0.65rem; margin-bottom: 0.65rem; cursor: pointer; }
+  .check-box {
+    width: 22px; height: 22px; border-radius: 8px; background: var(--bg);
+    box-shadow: inset 2px 2px 4px var(--shadow-dark), inset -2px -2px 4px var(--shadow-light);
+    display: grid; place-items: center; flex-shrink: 0; transition: all 0.15s;
+  }
+  .check-box.checked { background: var(--accent); box-shadow: 2px 2px 4px var(--shadow-dark), -2px -2px 4px var(--shadow-light); }
+  .check-box svg { opacity: 0; transition: opacity 0.15s; }
+  .check-box.checked svg { opacity: 1; }
+  .check-label { font-size: 0.82rem; }
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; gap: 0.65rem; margin-top: 0.75rem; cursor: pointer; }
+  .toggle-track {
+    width: 48px; height: 26px; border-radius: 13px; background: var(--bg);
+    box-shadow: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+    position: relative; transition: all 0.2s; flex-shrink: 0;
+  }
+  .toggle-track.on { background: var(--accent); box-shadow: 2px 2px 6px var(--shadow-dark), -2px -2px 6px var(--shadow-light); }
+  .toggle-knob {
+    width: 20px; height: 20px; border-radius: 50%; background: var(--bg);
+    box-shadow: 2px 2px 4px var(--shadow-dark), -2px -2px 4px var(--shadow-light);
+    position: absolute; top: 3px; left: 3px;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .toggle-track.on .toggle-knob { transform: translateX(22px); background: #fff; }
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: oklch(0.88 0.005 260 / 0.8);
+    backdrop-filter: blur(8px); display: none; place-items: center; z-index: 1000;
+  }
+  .modal-overlay.open { display: grid; }
+  .modal {
+    background: var(--bg); border-radius: 24px;
+    box-shadow: 12px 12px 24px var(--shadow-dark), -12px -12px 24px var(--shadow-light);
+    padding: 2.5rem; width: 90%; max-width: 420px;
+    animation: popIn 0.3s ease;
+  }
+  @keyframes popIn { from { opacity: 0; transform: scale(0.95); } }
+  .modal h2 { font-size: 1.3rem; font-weight: 700; color: var(--text-dark); margin-bottom: 0.5rem; }
+  .modal p { font-size: 0.82rem; line-height: 1.6; margin-bottom: 1.5rem; }
+  .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <h1>Chrono Neumorphic</h1>
+    <p class="subtitle">Tactile, soft, physical — like a premium instrument</p>
+
+    <div class="neu">
+      <div class="section-label">Readings</div>
+      <div class="neu-inset">
+        <table>
+          <thead><tr><th>Metric</th><th>Source</th><th>Value</th><th>Trend</th><th>Unit</th></tr></thead>
+          <tbody>
+            <tr><td>Heart Rate</td><td>Sensor A</td><td>72</td><td>Stable</td><td>BPM</td></tr>
+            <tr><td>Temperature</td><td>Probe B</td><td>36.6</td><td>Rising</td><td>°C</td></tr>
+            <tr><td>Blood O2</td><td>Pulse Ox</td><td>98</td><td>Normal</td><td>%SpO2</td></tr>
+            <tr><td>Steps</td><td>Pedometer</td><td>8,421</td><td>Active</td><td>steps</td></tr>
+            <tr><td>Sleep</td><td>Actigraphy</td><td>7.2</td><td>Good</td><td>hours</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="neu">
+        <div class="section-label">Configure</div>
+        <div class="form-group">
+          <label>Patient ID</label>
+          <input type="text" placeholder="Enter ID">
+        </div>
+        <div class="form-group">
+          <label>Sensor Mode</label>
+          <select>
+            <option>Continuous</option>
+            <option>Interval (5m)</option>
+            <option>Interval (15m)</option>
+            <option>Manual</option>
+          </select>
+        </div>
+        <button class="btn" onclick="document.getElementById('modal').classList.add('open')">Open Modal</button>
+      </div>
+
+      <div class="neu">
+        <div class="section-label">Options</div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Haptic feedback</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Always-on display</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Auto-sync</span>
+        </div>
+        <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track on"><div class="toggle-knob"></div></div>
+          <span class="check-label">Power save</span>
+        </div>
+        <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track"><div class="toggle-knob"></div></div>
+          <span class="check-label">Night mode</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <h2>Calibrate Sensor</h2>
+      <p>The Chrono Neumorphic theme is tactile and physical. Soft extruded shadows, chrome gradients, rounded controls, and dual shadow pairs create a premium instrument aesthetic.</p>
+      <div class="modal-actions">
+        <button class="btn" onclick="document.getElementById('modal').classList.remove('open')">Cancel</button>
+        <button class="btn btn-accent" onclick="document.getElementById('modal').classList.remove('open')">Calibrate</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

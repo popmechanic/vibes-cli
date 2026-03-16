@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sensor Dashboard — Component Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: oklch(0.10 0.003 264);
+    --panel: oklch(0.16 0.003 264);
+    --panel-hi: oklch(0.19 0.003 264);
+    --stroke: oklch(0.24 0.003 264);
+    --bar-bg: oklch(0.20 0.005 264);
+    --muted: oklch(0.63 0.008 264);
+    --text: oklch(0.93 0.005 264);
+    --accent: oklch(0.53 0.22 25);
+    --accent-weak: oklch(0.45 0.19 25);
+    --glow: 0 0 0.6rem oklch(0.53 0.22 25 / 0.35);
+    --knob-glow: 0 0 0 2px oklch(0.53 0.22 25 / 0.45), 0 0 18px oklch(0.53 0.22 25 / 0.35);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  .label {
+    font-family: 'Rajdhani', system-ui, sans-serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .accent-num {
+    color: var(--accent);
+    text-shadow: var(--glow);
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .tile {
+    background: var(--panel);
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 1px var(--stroke);
+    transition: background 0.15s;
+  }
+  .tile:hover {
+    background: var(--panel-hi);
+  }
+
+  .dot-grid {
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 8px 8px;
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0.2));
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,0.8), rgba(0,0,0,0.2));
+    border-radius: 6px;
+  }
+
+  .sparkline polyline {
+    fill: none;
+    stroke: var(--accent-weak);
+    stroke-width: 2;
+    stroke-dasharray: 400;
+    stroke-dashoffset: 400;
+    animation: drawLine 600ms ease forwards;
+  }
+  @keyframes drawLine {
+    to { stroke-dashoffset: 0; }
+  }
+
+  .mark-btn {
+    font-family: 'Rajdhani', system-ui, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--stroke);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color 0.15s;
+    font-weight: 600;
+  }
+  .mark-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Layout */
+  .app-wrapper {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  header {
+    padding: 16px 20px 8px;
+  }
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  /* Progress Bar */
+  .progress-track {
+    height: 12px;
+    border-radius: 9999px;
+    background: var(--bar-bg);
+    position: relative;
+    overflow: visible;
+    margin-top: 8px;
+  }
+  .progress-fill {
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    background: var(--accent);
+    border-radius: 9999px;
+    transition: width 0.3s;
+  }
+  .progress-segments {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+  .progress-segments > div {
+    border-right: 1px solid var(--stroke);
+  }
+  .progress-knob {
+    position: absolute;
+    top: -6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1px solid var(--accent);
+    box-shadow: var(--knob-glow);
+    transition: left 0.3s;
+    z-index: 2;
+  }
+
+  /* Tile Grid */
+  .sensor-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 0 20px;
+    margin-bottom: 16px;
+  }
+
+  /* Data Table Tile */
+  .table-tile {
+    padding: 0;
+    margin: 0 20px 16px;
+    overflow: hidden;
+  }
+  .table-tile .tile-header {
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--stroke);
+  }
+  .sensor-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .sensor-table thead th {
+    text-align: left;
+    padding: 10px 16px;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 400;
+    border-bottom: 1px solid var(--stroke);
+  }
+  .sensor-table tbody td {
+    padding: 10px 16px;
+    border-bottom: 1px solid oklch(0.24 0.003 264 / 0.4);
+  }
+  .sensor-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+  .sensor-table tbody tr:hover {
+    background: var(--panel-hi);
+  }
+  .sensor-table .val {
+    color: var(--accent);
+    text-shadow: var(--glow);
+    font-weight: 600;
+  }
+
+  /* Form Controls */
+  .controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 0 20px;
+    margin-bottom: 16px;
+  }
+  .control-tile {
+    padding: 16px;
+  }
+  .control-label {
+    font-family: 'Rajdhani', system-ui, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .sensor-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--stroke);
+    padding: 8px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .sensor-input::placeholder {
+    color: oklch(0.63 0.008 264 / 0.5);
+  }
+  .sensor-input:focus {
+    border-color: var(--accent);
+  }
+
+  .sensor-select {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--stroke);
+    padding: 8px 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6' fill='none' stroke='%23e41e24' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0 center;
+  }
+  .sensor-select option {
+    background: #161617;
+    color: #e6e7ea;
+  }
+  .sensor-select:focus {
+    border-color: var(--accent);
+  }
+
+  /* Checkbox */
+  .sensor-checkbox-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+  .sensor-checkbox {
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--stroke);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .sensor-checkbox.checked {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .sensor-checkbox.checked::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 2px;
+    box-shadow: 0 0 6px var(--accent);
+  }
+  .sensor-checkbox-label {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* Toggle Switch */
+  .sensor-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sensor-toggle-label {
+    font-family: 'Rajdhani', system-ui, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .sensor-toggle {
+    width: 44px;
+    height: 22px;
+    background: var(--bar-bg);
+    border: 1px solid var(--stroke);
+    border-radius: 11px;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .sensor-toggle .dot {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+  }
+  .sensor-toggle.on {
+    border-color: var(--accent);
+  }
+  .sensor-toggle.on .dot {
+    transform: translateX(22px);
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* Modal Overlay */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 11, 0.9);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .modal-overlay.open {
+    display: flex;
+  }
+  .modal-tile {
+    width: 90%;
+    max-width: 480px;
+    background: var(--panel);
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 1px var(--stroke), 0 24px 48px rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+  .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--stroke);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-body {
+    padding: 24px 20px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--muted);
+  }
+  .modal-body .accent-num {
+    font-size: 36px;
+    display: block;
+    margin: 12px 0 8px;
+  }
+  .modal-footer {
+    padding: 16px 20px;
+    border-top: 1px solid var(--stroke);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  /* Footer Bar */
+  .footer-bar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    padding: 0 20px 16px;
+    z-index: 100;
+  }
+  .footer-bar .inner {
+    background: var(--panel);
+    border-radius: 14px;
+    box-shadow: inset 0 0 0 1px var(--stroke);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .switches-row {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .tile-spark {
+    padding: 12px;
+  }
+  .tile-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .tile-values {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app-wrapper">
+
+  <!-- Header -->
+  <header>
+    <div class="header-row">
+      <span class="label" style="font-size:13px; color:var(--muted);">S-01</span>
+      <span class="label" style="font-size:18px;">SENSOR DASHBOARD</span>
+      <button class="mark-btn" onclick="openModal()">MODAL</button>
+    </div>
+
+    <!-- Day Progress -->
+    <div class="tile" style="padding:10px 14px;">
+      <div style="display:flex; justify-content:space-between;">
+        <span class="label" style="font-size:11px; color:var(--muted);">System Load</span>
+        <span class="label" style="font-size:11px; color:var(--muted);" id="pctLabel">67%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill" style="width:67%;"></div>
+        <div class="progress-segments">
+          <div></div><div></div><div></div><div></div><div></div><div></div>
+          <div></div><div></div><div></div><div></div><div></div><div></div>
+        </div>
+        <div class="progress-knob" id="progressKnob" style="left:calc(67% - 10px);"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Metric Tiles -->
+  <div class="sensor-grid">
+    <div class="tile tile-spark">
+      <div class="tile-top">
+        <span class="label" style="font-size:11px; color:var(--muted);">CPU Temp</span>
+        <button class="mark-btn" style="font-size:10px; padding:2px 6px;">Log</button>
+      </div>
+      <div class="tile-values">
+        <div>
+          <div class="label" style="font-size:10px; color:var(--muted);">Current</div>
+          <div class="accent-num">72C</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="label" style="font-size:10px; color:var(--muted);">Peak</div>
+          <div style="font-size:20px; line-height:1;">89C</div>
+        </div>
+      </div>
+      <div class="dot-grid" style="height:56px; position:relative; overflow:hidden;">
+        <svg class="sparkline" viewBox="0 0 200 56" style="position:absolute; inset:0; width:100%; height:100%;">
+          <polyline points="0,40 20,36 40,32 60,38 80,28 100,24 120,30 140,20 160,18 180,22 200,16"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="tile tile-spark">
+      <div class="tile-top">
+        <span class="label" style="font-size:11px; color:var(--muted);">Memory</span>
+        <button class="mark-btn" style="font-size:10px; padding:2px 6px;">Log</button>
+      </div>
+      <div class="tile-values">
+        <div>
+          <div class="label" style="font-size:10px; color:var(--muted);">Used</div>
+          <div class="accent-num">14G</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="label" style="font-size:10px; color:var(--muted);">Total</div>
+          <div style="font-size:20px; line-height:1;">32G</div>
+        </div>
+      </div>
+      <div class="dot-grid" style="height:56px; position:relative; overflow:hidden;">
+        <svg class="sparkline" viewBox="0 0 200 56" style="position:absolute; inset:0; width:100%; height:100%;">
+          <polyline points="0,48 20,44 40,40 60,36 80,38 100,32 120,30 140,28 160,26 180,24 200,22"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="tile tile-spark">
+      <div class="tile-top">
+        <span class="label" style="font-size:11px; color:var(--muted);">Disk I/O</span>
+        <button class="mark-btn" style="font-size:10px; padding:2px 6px;">Log</button>
+      </div>
+      <div class="tile-values">
+        <div>
+          <div class="label" style="font-size:10px; color:var(--muted);">Read</div>
+          <div class="accent-num">245</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="label" style="font-size:10px; color:var(--muted);">MB/s</div>
+          <div style="font-size:20px; line-height:1;">W:182</div>
+        </div>
+      </div>
+      <div class="dot-grid" style="height:56px; position:relative; overflow:hidden;">
+        <svg class="sparkline" viewBox="0 0 200 56" style="position:absolute; inset:0; width:100%; height:100%;">
+          <polyline points="0,30 20,42 40,28 60,44 80,20 100,36 120,18 140,32 160,24 180,28 200,14"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="tile tile-spark">
+      <div class="tile-top">
+        <span class="label" style="font-size:11px; color:var(--muted);">Network</span>
+        <button class="mark-btn" style="font-size:10px; padding:2px 6px;">Log</button>
+      </div>
+      <div class="tile-values">
+        <div>
+          <div class="label" style="font-size:10px; color:var(--muted);">Down</div>
+          <div class="accent-num">89M</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="label" style="font-size:10px; color:var(--muted);">Up</div>
+          <div style="font-size:20px; line-height:1;">12M</div>
+        </div>
+      </div>
+      <div class="dot-grid" style="height:56px; position:relative; overflow:hidden;">
+        <svg class="sparkline" viewBox="0 0 200 56" style="position:absolute; inset:0; width:100%; height:100%;">
+          <polyline points="0,50 20,46 40,42 60,48 80,36 100,40 120,32 140,38 160,26 180,30 200,20"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="tile table-tile">
+    <div class="tile-header">
+      <span class="label" style="font-size:12px; color:var(--muted);">S-02 / Process Table</span>
+      <span class="label" style="font-size:11px; color:var(--muted);">5 Active</span>
+    </div>
+    <table class="sensor-table">
+      <thead>
+        <tr>
+          <th class="label">PID</th>
+          <th class="label">Process</th>
+          <th class="label">CPU %</th>
+          <th class="label">Mem MB</th>
+          <th class="label">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="val">2041</td><td>node-server</td><td class="val">24.3</td><td>512</td><td>Running</td></tr>
+        <tr><td class="val">1887</td><td>postgres</td><td class="val">18.7</td><td>1024</td><td>Running</td></tr>
+        <tr><td class="val">3102</td><td>redis-cache</td><td class="val">8.2</td><td>256</td><td>Running</td></tr>
+        <tr><td class="val">4455</td><td>nginx-proxy</td><td class="val">3.1</td><td>128</td><td>Idle</td></tr>
+        <tr><td class="val">5621</td><td>cron-worker</td><td class="val">1.4</td><td>64</td><td>Sleeping</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-grid">
+    <div class="tile control-tile">
+      <div class="control-label">Input / Query</div>
+      <input type="text" class="sensor-input" placeholder="Filter processes...">
+    </div>
+    <div class="tile control-tile">
+      <div class="control-label">Select / Period</div>
+      <select class="sensor-select">
+        <option>Last 1 Hour</option>
+        <option>Last 6 Hours</option>
+        <option>Last 24 Hours</option>
+        <option>Last 7 Days</option>
+        <option>Last 30 Days</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Checkboxes & Toggles -->
+  <div class="tile" style="margin:0 20px 16px; padding:16px;">
+    <div class="control-label" style="margin-bottom:12px;">S-03 / Config</div>
+    <div class="switches-row">
+      <div class="sensor-checkbox-wrap" onclick="toggleCheck(this)">
+        <div class="sensor-checkbox checked"></div>
+        <span class="sensor-checkbox-label">Auto-refresh</span>
+      </div>
+      <div class="sensor-checkbox-wrap" onclick="toggleCheck(this)">
+        <div class="sensor-checkbox"></div>
+        <span class="sensor-checkbox-label">Show inactive</span>
+      </div>
+      <div class="sensor-toggle-wrap">
+        <span class="sensor-toggle-label">Alerts</span>
+        <div class="sensor-toggle on" onclick="toggleSw(this)">
+          <div class="dot"></div>
+        </div>
+      </div>
+      <div class="sensor-toggle-wrap">
+        <span class="sensor-toggle-label">Dark Mode</span>
+        <div class="sensor-toggle on" onclick="toggleSw(this)">
+          <div class="dot"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div class="footer-bar">
+  <div class="inner">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <span class="label" style="font-size:11px; color:var(--muted);">Last sync</span>
+      <span class="label" style="font-size:11px;">14:37</span>
+    </div>
+    <span class="label" style="font-size:11px; color:var(--muted);">24h</span>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOut(event)">
+  <div class="modal-tile">
+    <div class="modal-header">
+      <span class="label" style="font-size:13px;">Alert Detail</span>
+      <button class="mark-btn" onclick="closeModal()">Close</button>
+    </div>
+    <div class="modal-body">
+      <span class="label" style="font-size:11px; color:var(--muted);">CPU Temperature Warning</span>
+      <span class="accent-num">89C</span>
+      <span class="label" style="font-size:11px; color:var(--muted);">Peak recorded at 14:22</span>
+      <p style="margin-top:16px;">Thermal throttling threshold is 95C. Consider reviewing
+      active processes and workload distribution. The node-server process is consuming
+      24.3% CPU — highest in the current cycle.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="mark-btn" onclick="closeModal()">Dismiss</button>
+      <button class="mark-btn" onclick="closeModal()" style="border-color:var(--accent); color:var(--accent);">Acknowledge</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openModal() {
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+  function closeModalOut(e) {
+    if (e.target === e.currentTarget) closeModal();
+  }
+  function toggleCheck(wrap) {
+    wrap.querySelector('.sensor-checkbox').classList.toggle('checked');
+  }
+  function toggleSw(el) {
+    el.classList.toggle('on');
+  }
+</script>
+</body>
+</html>

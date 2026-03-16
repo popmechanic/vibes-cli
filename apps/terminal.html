@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terminal CRT - Theme Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:           oklch(0.16 0.000 0);
+    --terminal:     oklch(0.00 0.000 0 / 0.85);
+    --green:        oklch(0.87 0.30 142);
+    --green-dim:    oklch(0.87 0.30 142 / 0.4);
+    --green-border: oklch(0.87 0.30 142 / 0.3);
+    --green-faint:  oklch(0.87 0.30 142 / 0.1);
+    --green-glow:   oklch(0.87 0.30 142 / 0.5);
+    --white:        oklch(1.00 0.000 0);
+    --glow:         0 0 10px oklch(0.87 0.30 142 / 0.7);
+    --dot-glow:     0 0 8px oklch(0.87 0.30 142 / 0.6);
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--green);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    line-height: 1.4;
+    min-height: 100vh;
+  }
+
+  /* ---- SCAN LINE SWEEP ---- */
+  .scan-line {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(to bottom, transparent, var(--green-glow), transparent);
+    animation: scan 8s linear infinite;
+    pointer-events: none;
+    z-index: 100;
+  }
+  @keyframes scan {
+    0%   { top: -3px; }
+    100% { top: 100vh; }
+  }
+
+  /* ---- CRT OVERLAY ---- */
+  .crt-overlay {
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(0, 255, 0, 0.03) 0px,
+      rgba(0, 255, 0, 0.03) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    pointer-events: none;
+    z-index: 99;
+  }
+
+  /* ---- HEADER BAR ---- */
+  .header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--green-border);
+  }
+  .header-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ---- DOT ---- */
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: var(--dot-glow);
+    flex-shrink: 0;
+  }
+  .dot.inactive {
+    background: var(--green-dim);
+    box-shadow: none;
+  }
+  .dot.blink {
+    animation: dotpulse 2s ease infinite;
+  }
+  @keyframes dotpulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* ---- GLOW TEXT ---- */
+  .glow-text {
+    color: var(--green);
+    text-shadow: var(--glow);
+  }
+
+  /* ---- SYSTEM LABEL ---- */
+  .sys-label {
+    font-size: 14px;
+    color: var(--green-dim);
+    letter-spacing: 0.1em;
+  }
+
+  /* ---- TYPEWRITER ---- */
+  .typewriter {
+    overflow: hidden;
+    white-space: nowrap;
+    border-right: 2px solid var(--green);
+    display: inline-block;
+    animation:
+      typing 2s steps(22) forwards,
+      blink 0.8s step-end infinite;
+    width: 0;
+  }
+  @keyframes typing {
+    from { width: 0; }
+    to   { width: 100%; }
+  }
+  @keyframes blink {
+    50% { border-color: transparent; }
+  }
+
+  /* ---- CONTENT ---- */
+  .main-content {
+    padding: 0 16px;
+    padding-bottom: 100px;
+  }
+
+  /* ---- ITEM ROW ---- */
+  .item-row {
+    border: 1px solid var(--green-border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .item-row::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, var(--green-faint), transparent 60%);
+    pointer-events: none;
+  }
+  .item-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+  }
+  .item-right {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ---- TABLE (terminal-style) ---- */
+  .term-table {
+    width: 100%;
+    margin-bottom: 24px;
+  }
+  .term-table-header {
+    display: grid;
+    grid-template-columns: 50px 1fr 100px 100px 80px;
+    padding: 8px 16px;
+    border: 1px solid var(--green-border);
+    border-bottom: none;
+    color: var(--green-dim);
+    font-size: 14px;
+    letter-spacing: 0.1em;
+  }
+  .term-table-row {
+    display: grid;
+    grid-template-columns: 50px 1fr 100px 100px 80px;
+    padding: 10px 16px;
+    border: 1px solid var(--green-border);
+    border-bottom: none;
+    position: relative;
+    overflow: hidden;
+    align-items: center;
+  }
+  .term-table-row:last-child { border-bottom: 1px solid var(--green-border); }
+  .term-table-row::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, var(--green-faint), transparent 60%);
+    pointer-events: none;
+  }
+  .term-table-row span { position: relative; z-index: 1; }
+  .term-table-row .idx { color: var(--green-dim); font-size: 14px; }
+  .term-table-row .val { color: var(--white); }
+
+  /* ---- FORM ELEMENTS ---- */
+  .term-section {
+    margin-bottom: 24px;
+  }
+  .term-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--green-border);
+    color: var(--green);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    padding: 8px 0;
+    width: 100%;
+    outline: none;
+    caret-color: var(--green);
+  }
+  .term-input:focus {
+    border-bottom-color: var(--green);
+    text-shadow: var(--glow);
+  }
+  .term-input::placeholder {
+    color: var(--green-dim);
+  }
+
+  .term-select {
+    background: transparent;
+    border: 1px solid var(--green-border);
+    color: var(--green);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    padding: 8px 12px;
+    width: 100%;
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .term-select:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 8px var(--green-glow);
+  }
+  .term-select option {
+    background: #1a1a1a;
+    color: #00ff00;
+  }
+  .select-wrap {
+    position: relative;
+  }
+  .select-wrap::after {
+    content: '>';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%) rotate(90deg);
+    color: var(--green-dim);
+    pointer-events: none;
+  }
+
+  /* ---- CHECKBOX ---- */
+  .term-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+  .check-indicator {
+    width: 18px; height: 18px;
+    border: 1px solid var(--green-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: var(--green);
+    flex-shrink: 0;
+  }
+  .check-indicator .mark { display: none; }
+  .check-indicator.checked { border-color: var(--green); box-shadow: var(--dot-glow); }
+  .check-indicator.checked .mark { display: block; text-shadow: var(--glow); }
+
+  /* ---- TOGGLE ---- */
+  .term-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    margin-bottom: 8px;
+  }
+  .toggle-track {
+    width: 40px; height: 18px;
+    border: 1px solid var(--green-border);
+    position: relative;
+    display: flex;
+    align-items: center;
+    font-size: 10px;
+  }
+  .toggle-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 0;
+    background: var(--green-faint);
+    transition: width 0.2s;
+  }
+  .toggle-track.on .toggle-fill { width: 100%; }
+  .toggle-thumb {
+    width: 14px; height: 14px;
+    background: var(--green-dim);
+    position: absolute;
+    top: 1px; left: 1px;
+    transition: left 0.2s, background 0.2s, box-shadow 0.2s;
+  }
+  .toggle-track.on {
+    border-color: var(--green);
+  }
+  .toggle-track.on .toggle-thumb {
+    left: 23px;
+    background: var(--green);
+    box-shadow: var(--dot-glow);
+  }
+
+  /* ---- CONTROL BAR ---- */
+  .control-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    padding: 12px 16px;
+    background: var(--terminal);
+    border-top: 1px solid var(--green-border);
+    z-index: 50;
+  }
+  .control-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .ctrl-btn {
+    background: transparent;
+    border: 1px solid var(--green-border);
+    color: var(--green);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    padding: 8px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .ctrl-btn:hover {
+    border-color: var(--green);
+    text-shadow: var(--glow);
+    background: var(--green-faint);
+  }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+  }
+  .modal-box {
+    position: relative;
+    z-index: 201;
+    background: var(--terminal);
+    border: 1px solid var(--green-border);
+    max-width: 480px;
+    width: 90%;
+    overflow: hidden;
+  }
+  .modal-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, var(--green-faint), transparent 40%);
+    pointer-events: none;
+  }
+  .modal-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--green-border);
+    position: relative;
+    z-index: 1;
+  }
+  .modal-body {
+    padding: 20px 16px;
+    position: relative;
+    z-index: 1;
+    line-height: 1.7;
+  }
+  .modal-footer-bar {
+    padding: 12px 16px;
+    border-top: 1px solid var(--green-border);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    position: relative;
+    z-index: 1;
+  }
+  .modal-btn {
+    background: transparent;
+    border: 1px solid var(--green-border);
+    color: var(--green);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    padding: 6px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .modal-btn:hover {
+    border-color: var(--green);
+    text-shadow: var(--glow);
+    background: var(--green-faint);
+  }
+  .modal-btn.primary {
+    background: var(--green-faint);
+    border-color: var(--green);
+    text-shadow: var(--glow);
+  }
+
+  .form-field { margin-bottom: 12px; }
+  .field-label { font-size: 14px; color: var(--green-dim); letter-spacing: 0.1em; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<!-- CRT EFFECTS -->
+<div class="scan-line"></div>
+<div class="crt-overlay"></div>
+
+<!-- HEADER -->
+<div class="header-bar">
+  <div class="header-status">
+    <span class="dot blink"></span>
+    <span class="glow-text" style="font-size:16px;">SYSTEM ONLINE</span>
+  </div>
+  <span class="sys-label">ID:SHOWCASE/CRT/V2.4</span>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main-content">
+
+  <!-- BOOT TEXT -->
+  <div style="padding: 16px 0;">
+    <div class="sys-label" style="margin-bottom: 4px;">
+      &gt; INITIALIZING COMPONENT REGISTRY...
+    </div>
+    <h1 class="glow-text" style="font-size: clamp(3rem, 8vw, 7rem); line-height: 0.9; margin-bottom: 8px;">
+      TERMINAL<br>CRT
+    </h1>
+    <div style="overflow:hidden; margin-bottom: 16px;">
+      <span class="typewriter">ALL SUBSYSTEMS NOMINAL_</span>
+    </div>
+  </div>
+
+  <!-- DATA TABLE -->
+  <div class="term-section">
+    <div class="sys-label" style="margin-bottom: 8px;">
+      ID:DATA/REGISTRY/NODES
+    </div>
+    <div class="term-table-header">
+      <span>#</span>
+      <span>PROCESS</span>
+      <span>UPTIME</span>
+      <span>MEMORY</span>
+      <span>STATE</span>
+    </div>
+    <div class="term-table-row">
+      <span class="idx">01</span>
+      <span>kernel_main</span>
+      <span>847:22:01</span>
+      <span class="val">128 MB</span>
+      <span><span class="dot" style="display:inline-block;"></span></span>
+    </div>
+    <div class="term-table-row">
+      <span class="idx">02</span>
+      <span>net_handler</span>
+      <span>847:22:01</span>
+      <span class="val">64 MB</span>
+      <span><span class="dot" style="display:inline-block;"></span></span>
+    </div>
+    <div class="term-table-row">
+      <span class="idx">03</span>
+      <span>io_scheduler</span>
+      <span>422:10:33</span>
+      <span class="val">32 MB</span>
+      <span><span class="dot inactive" style="display:inline-block;"></span></span>
+    </div>
+    <div class="term-table-row">
+      <span class="idx">04</span>
+      <span>crt_renderer</span>
+      <span>847:22:01</span>
+      <span class="val">256 MB</span>
+      <span><span class="dot blink" style="display:inline-block;"></span></span>
+    </div>
+    <div class="term-table-row">
+      <span class="idx">05</span>
+      <span>phosphor_glow</span>
+      <span>198:05:44</span>
+      <span class="val">16 MB</span>
+      <span><span class="dot" style="display:inline-block;"></span></span>
+    </div>
+  </div>
+
+  <!-- FORM: TEXT INPUT -->
+  <div class="term-section">
+    <div class="sys-label" style="margin-bottom: 8px;">
+      ID:INPUT/COMMAND/V1.0
+    </div>
+    <div class="form-field">
+      <div class="field-label">&gt; COMMAND INPUT</div>
+      <input class="term-input" type="text" placeholder="enter command...">
+    </div>
+    <div class="form-field">
+      <div class="field-label">&gt; TARGET MODULE</div>
+      <div class="select-wrap">
+        <select class="term-select">
+          <option>KERNEL_MAIN</option>
+          <option>NET_HANDLER</option>
+          <option>IO_SCHEDULER</option>
+          <option>CRT_RENDERER</option>
+          <option>PHOSPHOR_GLOW</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECKBOX + TOGGLE -->
+  <div class="term-section">
+    <div class="sys-label" style="margin-bottom: 8px;">
+      ID:CONFIG/FLAGS/V1.0
+    </div>
+
+    <div class="term-check" onclick="toggleCheck(this)">
+      <div class="check-indicator checked"><span class="mark">X</span></div>
+      <span>ENABLE PHOSPHOR GLOW</span>
+    </div>
+
+    <div class="term-check" onclick="toggleCheck(this)">
+      <div class="check-indicator"><span class="mark">X</span></div>
+      <span>VERBOSE LOGGING</span>
+    </div>
+
+    <div class="term-check" onclick="toggleCheck(this)">
+      <div class="check-indicator checked"><span class="mark">X</span></div>
+      <span>SCAN LINE EFFECT</span>
+    </div>
+
+    <div style="margin-top: 12px;"></div>
+
+    <div class="term-toggle" onclick="toggleSwitch(this)">
+      <div class="toggle-track on">
+        <div class="toggle-fill"></div>
+        <div class="toggle-thumb"></div>
+      </div>
+      <span>CRT MODE</span>
+    </div>
+
+    <div class="term-toggle" onclick="toggleSwitch(this)">
+      <div class="toggle-track">
+        <div class="toggle-fill"></div>
+        <div class="toggle-thumb"></div>
+      </div>
+      <span>DEBUG OUTPUT</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- CONTROL BAR -->
+<div class="control-bar">
+  <div class="control-grid">
+    <button class="ctrl-btn" onclick="openModal()">&gt; MODAL</button>
+    <button class="ctrl-btn">&gt; RESET</button>
+    <button class="ctrl-btn">&gt; LOG</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-backdrop" onclick="closeModal()"></div>
+  <div class="modal-box">
+    <div class="modal-header-bar">
+      <div class="header-status">
+        <span class="dot"></span>
+        <span class="glow-text" style="font-size:16px;">SYSTEM ALERT</span>
+      </div>
+      <span class="sys-label">ID:ALERT/MODAL/V1.0</span>
+    </div>
+    <div class="modal-body">
+      <div class="sys-label" style="margin-bottom: 12px;">&gt; DIAGNOSTIC REPORT</div>
+      <div style="margin-bottom: 12px;">
+        All terminal subsystems have been scanned.<br>
+        Phosphor degradation: <span style="color:var(--white);">NOMINAL</span><br>
+        CRT refresh rate: <span style="color:var(--white);">60 Hz</span><br>
+        Scan line integrity: <span style="color:var(--white);">98.7%</span><br>
+        Electron beam alignment: <span style="color:var(--white);">CALIBRATED</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="dot"></span>
+        <span class="glow-text" style="font-size:16px;">NO ERRORS DETECTED</span>
+      </div>
+    </div>
+    <div class="modal-footer-bar">
+      <button class="modal-btn" onclick="closeModal()">&gt; DISMISS</button>
+      <button class="modal-btn primary" onclick="closeModal()">&gt; ACKNOWLEDGE</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openModal() {
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+function toggleCheck(el) {
+  var ind = el.querySelector('.check-indicator');
+  ind.classList.toggle('checked');
+}
+
+function toggleSwitch(el) {
+  var track = el.querySelector('.toggle-track');
+  track.classList.toggle('on');
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+</script>
+</body>
+</html>

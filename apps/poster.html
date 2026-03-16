@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poster — Editorial Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: oklch(0.11 0.01 270);
+    --card-bg: oklch(0.13 0.01 270);
+    --text: oklch(0.93 0.01 270);
+    --border: oklch(0.22 0.01 270);
+    --accent: oklch(0.65 0.18 290);
+    --accent-text: oklch(0.10 0.01 270);
+    --muted: oklch(0.42 0.01 270);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
+    min-height: 100vh;
+  }
+  .layout { max-width: 1000px; margin: 0 auto; }
+  /* Hero */
+  .hero {
+    padding: 6rem 2rem 3rem; text-align: center;
+    border-bottom: 1px solid var(--border); position: relative;
+  }
+  .hero::before {
+    content: ''; position: absolute; inset: 0; opacity: 0.03;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.65' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+  .hero-display {
+    font-family: 'Bebas Neue', cursive; font-size: clamp(5rem, 16vw, 14rem);
+    line-height: 0.85; letter-spacing: -0.02em; color: var(--accent);
+  }
+  .hero-sub {
+    font-family: 'Space Mono', monospace; font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted);
+    margin-top: 1.5rem;
+  }
+  .reg-mark {
+    position: absolute; font-size: 0.5rem; color: var(--muted); opacity: 0.4;
+  }
+  /* Sections */
+  .section { padding: 2.5rem 2rem; border-bottom: 1px solid var(--border); }
+  .section-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 1.5rem;
+  }
+  .micro {
+    font-family: 'Space Mono', monospace; font-size: 0.6rem;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted);
+  }
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-family: 'Space Mono', monospace;
+    font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.12em;
+    color: var(--muted); padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 0.75rem 1rem; font-size: 0.85rem;
+    box-shadow: inset 0 -1px 0 var(--border);
+  }
+  tr:hover td { background: oklch(0.65 0.18 290 / 0.05); }
+  .accent-num { font-family: 'Bebas Neue', cursive; font-size: 1.3rem; color: var(--accent); }
+  .pill {
+    display: inline-block; padding: 0.15rem 0.5rem; border: 1px solid var(--accent);
+    border-radius: 20px; font-size: 0.65rem; color: var(--accent);
+    font-family: 'Space Mono', monospace;
+  }
+  /* Grid */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+  .col { padding: 2.5rem 2rem; }
+  .col + .col { border-left: 1px solid var(--border); }
+  @media (max-width: 700px) { .col + .col { border-left: none; border-top: 1px solid var(--border); } }
+  /* Form */
+  .form-group { margin-bottom: 1.1rem; }
+  label { display: block; font-family: 'Space Mono', monospace; font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 0.35rem; }
+  input[type="text"], select {
+    width: 100%; padding: 0.6rem 0.75rem; background: transparent;
+    border: 1px solid var(--border); color: var(--text);
+    font-family: inherit; font-size: 0.85rem; outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, select:focus { border-color: var(--accent); }
+  select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; }
+  .btn {
+    padding: 0.6rem 1.5rem; border: 1px solid var(--accent);
+    background: transparent; color: var(--accent);
+    font-family: 'Space Mono', monospace; font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn:hover { background: var(--accent); color: var(--accent-text); }
+  .btn-fill { background: var(--accent); color: var(--accent-text); }
+  .btn-fill:hover { opacity: 0.85; }
+  /* Checkbox */
+  .check-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; cursor: pointer; }
+  .check-box {
+    width: 16px; height: 16px; border: 1px solid var(--muted);
+    display: grid; place-items: center; flex-shrink: 0; transition: all 0.15s;
+  }
+  .check-box.checked { background: var(--accent); border-color: var(--accent); }
+  .check-box svg { opacity: 0; transition: opacity 0.15s; }
+  .check-box.checked svg { opacity: 1; }
+  .check-label { font-size: 0.82rem; }
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.75rem; cursor: pointer; }
+  .toggle-track {
+    width: 36px; height: 18px; border: 1px solid var(--muted);
+    position: relative; transition: all 0.2s; flex-shrink: 0;
+  }
+  .toggle-track.on { background: var(--accent); border-color: var(--accent); }
+  .toggle-knob {
+    width: 12px; height: 12px; background: var(--text);
+    position: absolute; top: 2px; left: 2px; transition: transform 0.2s;
+  }
+  .toggle-track.on .toggle-knob { transform: translateX(18px); background: var(--accent-text); }
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: oklch(0.11 0.01 270 / 0.85);
+    backdrop-filter: blur(6px); display: none; place-items: center; z-index: 1000;
+  }
+  .modal-overlay.open { display: grid; }
+  .modal {
+    background: var(--card-bg); border: 1px solid var(--border);
+    padding: 2.5rem; width: 90%; max-width: 440px;
+    animation: fadeIn 0.25s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } }
+  .modal h2 { font-family: 'Bebas Neue', cursive; font-size: 2.5rem; color: var(--accent); margin-bottom: 0.5rem; }
+  .modal p { color: var(--muted); font-size: 0.82rem; line-height: 1.6; margin-bottom: 1.5rem; }
+  .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <section class="hero">
+      <span class="reg-mark" style="top:1.5rem;left:2rem;">+</span>
+      <span class="reg-mark" style="top:1.5rem;right:2rem;">+</span>
+      <div class="hero-display">POSTER</div>
+      <div class="hero-sub">Cinematic editorial &mdash; typographic studio-grade design</div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <span class="micro">01 / Data Table</span>
+        <span class="micro">2026</span>
+      </div>
+      <table>
+        <thead><tr><th>Project</th><th>Client</th><th>Revenue</th><th>Growth</th><th>Tag</th></tr></thead>
+        <tbody>
+          <tr><td>Brand Refresh</td><td>Volkov Inc</td><td><span class="accent-num">$84K</span></td><td>+12%</td><td><span class="pill">Design</span></td></tr>
+          <tr><td>App Launch</td><td>Meridian</td><td><span class="accent-num">$120K</span></td><td>+28%</td><td><span class="pill">Dev</span></td></tr>
+          <tr><td>Campaign</td><td>Lumen Co</td><td><span class="accent-num">$56K</span></td><td>+8%</td><td><span class="pill">Marketing</span></td></tr>
+          <tr><td>Platform</td><td>Onyx Labs</td><td><span class="accent-num">$200K</span></td><td>+45%</td><td><span class="pill">SaaS</span></td></tr>
+          <tr><td>Consulting</td><td>Apex Group</td><td><span class="accent-num">$35K</span></td><td>+5%</td><td><span class="pill">Strategy</span></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <div class="two-col" style="border-bottom:1px solid var(--border);">
+      <div class="col">
+        <span class="micro" style="display:block;margin-bottom:1.25rem;">02 / Input Controls</span>
+        <div class="form-group">
+          <label>Project Name</label>
+          <input type="text" placeholder="Enter project name">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select>
+            <option>Design</option>
+            <option>Development</option>
+            <option>Marketing</option>
+            <option>SaaS</option>
+            <option>Strategy</option>
+          </select>
+        </div>
+        <button class="btn" onclick="document.getElementById('modal').classList.add('open')">Open Modal</button>
+      </div>
+
+      <div class="col">
+        <span class="micro" style="display:block;margin-bottom:1.25rem;">03 / Settings</span>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Film grain overlay</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Registration marks</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Condensed display type</span>
+        </div>
+        <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track on"><div class="toggle-knob"></div></div>
+          <span class="check-label">Dark mode</span>
+        </div>
+        <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track"><div class="toggle-knob"></div></div>
+          <span class="check-label">Marquee scroll</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <h2>New Project</h2>
+      <p>The Poster Editorial theme is cinematic and typographic. Massive condensed display type, film grain, lavender accents, and strict grid structures create a studio-grade design aesthetic.</p>
+      <div class="modal-actions">
+        <button class="btn" onclick="document.getElementById('modal').classList.remove('open')">Cancel</button>
+        <button class="btn btn-fill" onclick="document.getElementById('modal').classList.remove('open')">Create</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

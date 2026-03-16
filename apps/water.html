@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Water - Component Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep:        oklch(0.08 0.04 255);
+    --bg-surface:     oklch(0.13 0.04 250);
+    --surface-card:   oklch(0.18 0.05 245);
+    --surface-card-t: oklch(0.18 0.05 245 / 0.65);
+    --accent:         oklch(0.72 0.15 195);
+    --accent-dim:     oklch(0.52 0.10 195);
+    --accent-glow:    oklch(0.72 0.15 195 / 0.35);
+    --accent-glow-strong: oklch(0.72 0.15 195 / 0.55);
+    --text-primary:   oklch(0.92 0.01 250);
+    --text-secondary: oklch(0.70 0.04 240);
+    --text-muted:     oklch(0.50 0.04 240);
+    --frost:          oklch(0.15 0.04 250 / 0.55);
+    --frost-border:   oklch(0.40 0.05 240 / 0.25);
+    --radius-card:    14px;
+    --radius-btn:     16px;
+    --radius-input:   11px;
+    --radius-modal:   18px;
+    --radius-check:   6px;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-deep);
+    min-height: 100vh;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 400;
+    color: var(--text-primary);
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ---- Canvas Bubbles ---- */
+  #bubble-canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ---- Hero ---- */
+  .hero {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 6rem 1.5rem 4rem;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% 0%, oklch(0.30 0.10 210 / 0.50), transparent 70%),
+      radial-gradient(ellipse 40% 30% at 50% 0%, oklch(0.45 0.12 195 / 0.30), transparent 60%);
+  }
+  .hero h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: clamp(2.4rem, 6vw, 4rem);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-primary);
+    text-shadow: 0 0 30px var(--accent-glow), 0 0 60px oklch(0.72 0.15 195 / 0.18);
+    margin-bottom: 0.5rem;
+  }
+  .hero p {
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    max-width: 540px;
+    margin: 0 auto;
+    line-height: 1.65;
+    font-weight: 300;
+  }
+
+  /* ---- SVG Wave Divider ---- */
+  .wave-divider {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 80px;
+    overflow: hidden;
+    margin-top: -1px;
+  }
+  .wave-divider svg {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .wave-layer-1 { opacity: 0.35; }
+  .wave-layer-2 { opacity: 0.55; }
+
+  /* ---- Frosted Nav ---- */
+  .frost-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.5rem;
+    background: var(--frost);
+    backdrop-filter: blur(18px) saturate(1.3);
+    -webkit-backdrop-filter: blur(18px) saturate(1.3);
+    border-bottom: 1px solid var(--frost-border);
+  }
+  .frost-nav .brand {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    text-shadow: 0 0 12px var(--accent-glow);
+  }
+  .frost-nav .nav-links {
+    display: flex;
+    gap: 1.5rem;
+    list-style: none;
+  }
+  .frost-nav .nav-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: color 0.2s, text-shadow 0.2s;
+  }
+  .frost-nav .nav-links a:hover {
+    color: var(--accent);
+    text-shadow: 0 0 8px var(--accent-glow);
+  }
+
+  /* ---- Main Container ---- */
+  .main-wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+
+  /* ---- Section ---- */
+  .section-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .section-label::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent-glow-strong);
+  }
+
+  /* ---- Filter Pills ---- */
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  .pill {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 0.4rem 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--frost-border);
+    background: var(--frost);
+    backdrop-filter: blur(10px);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.25s;
+    user-select: none;
+  }
+  .pill:hover {
+    border-color: var(--accent-dim);
+    color: var(--text-primary);
+  }
+  .pill.active {
+    border-color: var(--accent);
+    background: oklch(0.72 0.15 195 / 0.12);
+    color: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow), inset 0 0 8px oklch(0.72 0.15 195 / 0.08);
+  }
+
+  /* ---- Stats Row (Frosted Glass) ---- */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+  }
+  .stat-card {
+    background: var(--frost);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--frost-border);
+    border-radius: var(--radius-card);
+    padding: 1.25rem 1.5rem;
+    text-align: center;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+  .stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px oklch(0.72 0.15 195 / 0.15), 0 0 0 1px oklch(0.72 0.15 195 / 0.12);
+  }
+  .stat-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-shadow: 0 0 16px var(--accent-glow);
+  }
+  .stat-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 0.25rem;
+  }
+
+  /* ---- Data Table (Card Rows) ---- */
+  .table-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .table-header, .table-row {
+    display: grid;
+    grid-template-columns: 2.5fr 1.2fr 1.2fr 1.5fr;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-card);
+    gap: 0.5rem;
+  }
+  .table-header {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--frost-border);
+  }
+  .table-row {
+    background: var(--surface-card-t);
+    backdrop-filter: blur(10px);
+    border: 1px solid transparent;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    transition: all 0.25s;
+    opacity: 0;
+    animation: card-in 0.5s ease forwards;
+  }
+  .table-row:hover {
+    transform: translateY(-4px);
+    border-color: oklch(0.72 0.15 195 / 0.20);
+    box-shadow: 0 6px 24px oklch(0.72 0.15 195 / 0.12), 0 0 0 1px oklch(0.72 0.15 195 / 0.08);
+    background: oklch(0.20 0.06 240 / 0.70);
+  }
+  .table-row .specimen {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+  .table-row .depth { color: var(--accent); font-weight: 600; font-family: 'Space Grotesk', sans-serif; }
+  .badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .badge-active { background: oklch(0.72 0.15 195 / 0.15); color: var(--accent); border: 1px solid oklch(0.72 0.15 195 / 0.30); }
+  .badge-dormant { background: oklch(0.50 0.04 240 / 0.15); color: var(--text-muted); border: 1px solid oklch(0.50 0.04 240 / 0.25); }
+
+  /* staggered entrance */
+  .table-row:nth-child(2) { animation-delay: 0.08s; }
+  .table-row:nth-child(3) { animation-delay: 0.16s; }
+  .table-row:nth-child(4) { animation-delay: 0.24s; }
+  .table-row:nth-child(5) { animation-delay: 0.32s; }
+  .table-row:nth-child(6) { animation-delay: 0.40s; }
+
+  @keyframes card-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- Form Controls ---- */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+  @media (max-width: 600px) {
+    .form-grid { grid-template-columns: 1fr; }
+  }
+
+  .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+  .form-label {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* Text Input */
+  .input-text {
+    background: oklch(0.12 0.04 250);
+    border: 1px solid var(--frost-border);
+    border-radius: var(--radius-input);
+    padding: 0.65rem 0.9rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .input-text::placeholder { color: var(--text-muted); }
+  .input-text:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow), 0 0 16px oklch(0.72 0.15 195 / 0.12);
+  }
+
+  /* Dropdown */
+  .select-wrap {
+    position: relative;
+  }
+  .input-select {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 100%;
+    background: var(--frost);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--frost-border);
+    border-radius: var(--radius-input);
+    padding: 0.65rem 2.2rem 0.65rem 0.9rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem;
+    color: var(--text-primary);
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .input-select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .input-select option {
+    background: oklch(0.14 0.04 250);
+    color: var(--text-primary);
+  }
+  .select-wrap::after {
+    content: '';
+    position: absolute;
+    right: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid var(--text-muted);
+    pointer-events: none;
+  }
+
+  /* Checkbox */
+  .check-group {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .check-box {
+    width: 20px; height: 20px;
+    border-radius: var(--radius-check);
+    border: 1.5px solid var(--frost-border);
+    background: oklch(0.12 0.04 250);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .check-box svg { opacity: 0; transition: opacity 0.15s; }
+  .check-group.checked .check-box {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
+  }
+  .check-group.checked .check-box svg { opacity: 1; }
+  .check-label { font-size: 0.88rem; color: var(--text-secondary); }
+
+  /* Toggle */
+  .toggle-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle-track {
+    width: 44px; height: 24px;
+    border-radius: 999px;
+    background: oklch(0.20 0.04 250);
+    border: 1.5px solid var(--frost-border);
+    position: relative;
+    transition: all 0.3s;
+  }
+  .toggle-thumb {
+    width: 18px; height: 18px;
+    border-radius: 999px;
+    background: var(--text-muted);
+    position: absolute;
+    top: 50%;
+    left: 2px;
+    transform: translateY(-50%);
+    transition: all 0.3s;
+  }
+  .toggle-group.on .toggle-track {
+    background: oklch(0.72 0.15 195 / 0.25);
+    border-color: var(--accent);
+    box-shadow: 0 0 14px var(--accent-glow);
+  }
+  .toggle-group.on .toggle-thumb {
+    left: calc(100% - 20px);
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent-glow-strong);
+  }
+  .toggle-label { font-size: 0.88rem; color: var(--text-secondary); }
+
+  /* ---- Buttons ---- */
+  .btn {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: none;
+    border-radius: var(--radius-btn);
+    padding: 0.7rem 1.6rem;
+    cursor: pointer;
+    transition: all 0.25s;
+    outline: none;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: oklch(0.10 0.04 250);
+    box-shadow: 0 0 20px var(--accent-glow), 0 4px 12px oklch(0.72 0.15 195 / 0.20);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 30px var(--accent-glow-strong), 0 6px 20px oklch(0.72 0.15 195 / 0.30);
+    transform: translateY(-1px);
+  }
+  .btn-secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid oklch(0.72 0.15 195 / 0.35);
+  }
+  .btn-secondary:hover {
+    background: oklch(0.72 0.15 195 / 0.08);
+    border-color: var(--accent);
+    box-shadow: 0 0 14px var(--accent-glow);
+  }
+  .btn-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  /* ---- Modal ---- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: oklch(0.05 0.03 255 / 0.75);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .modal-box {
+    background: var(--frost);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border: 1px solid var(--frost-border);
+    border-radius: var(--radius-modal);
+    padding: 2.2rem 2rem;
+    max-width: 480px;
+    width: 90%;
+    transform: translateY(20px) scale(0.97);
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 24px 80px oklch(0.04 0.03 255 / 0.60), 0 0 40px oklch(0.72 0.15 195 / 0.08);
+  }
+  .modal-overlay.open .modal-box {
+    transform: translateY(0) scale(1);
+  }
+  .modal-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.3rem;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+  }
+  .modal-body {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    font-weight: 300;
+  }
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+  }
+
+  /* ---- Search Bar (frost) ---- */
+  .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: var(--frost);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--frost-border);
+    border-radius: var(--radius-btn);
+    padding: 0.5rem 1rem;
+    max-width: 360px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .search-bar:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .search-bar svg { flex-shrink: 0; color: var(--text-muted); }
+  .search-bar input {
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    width: 100%;
+  }
+  .search-bar input::placeholder { color: var(--text-muted); }
+
+  /* ---- Responsive ---- */
+  @media (max-width: 600px) {
+    .frost-nav .nav-links { gap: 1rem; }
+    .table-header, .table-row {
+      grid-template-columns: 1.5fr 1fr 1fr;
+    }
+    .table-header > :last-child,
+    .table-row > :last-child { display: none; }
+    .hero h1 { letter-spacing: 0.06em; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Bubble Canvas -->
+<canvas id="bubble-canvas"></canvas>
+
+<!-- Frosted Nav -->
+<nav class="frost-nav">
+  <div class="brand">Water</div>
+  <ul class="nav-links">
+    <li><a href="#data">Data</a></li>
+    <li><a href="#controls">Controls</a></li>
+    <li><a href="#modal-section">Modal</a></li>
+  </ul>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <h1>Water</h1>
+  <p>Deep-ocean interface. Bioluminescent accents on dark abyss backgrounds, with frosted glass surfaces and ambient motion.</p>
+</section>
+
+<!-- SVG Wave Divider -->
+<div class="wave-divider">
+  <svg viewBox="0 0 1440 80" preserveAspectRatio="none">
+    <path class="wave-layer-1" fill="oklch(0.18 0.05 245)" d="">
+      <animate attributeName="d" dur="8s" repeatCount="indefinite" values="
+        M0,40 C180,10 360,70 540,40 C720,10 900,70 1080,40 C1260,10 1440,50 1440,50 L1440,80 L0,80 Z;
+        M0,50 C180,70 360,20 540,50 C720,70 900,20 1080,50 C1260,70 1440,40 1440,40 L1440,80 L0,80 Z;
+        M0,35 C180,55 360,15 540,45 C720,65 900,25 1080,35 C1260,55 1440,45 1440,45 L1440,80 L0,80 Z;
+        M0,40 C180,10 360,70 540,40 C720,10 900,70 1080,40 C1260,10 1440,50 1440,50 L1440,80 L0,80 Z
+      " />
+    </path>
+    <path class="wave-layer-2" fill="oklch(0.15 0.04 248)" d="">
+      <animate attributeName="d" dur="6s" repeatCount="indefinite" values="
+        M0,55 C200,30 400,65 600,45 C800,25 1000,60 1200,50 C1350,40 1440,55 1440,55 L1440,80 L0,80 Z;
+        M0,45 C200,65 400,30 600,55 C800,65 1000,35 1200,45 C1350,60 1440,45 1440,45 L1440,80 L0,80 Z;
+        M0,50 C200,40 400,60 600,35 C800,55 1000,40 1200,55 C1350,35 1440,50 1440,50 L1440,80 L0,80 Z;
+        M0,55 C200,30 400,65 600,45 C800,25 1000,60 1200,50 C1350,40 1440,55 1440,55 L1440,80 L0,80 Z
+      " />
+    </path>
+  </svg>
+</div>
+
+<!-- Main Content -->
+<main class="main-wrap">
+
+  <!-- Stats Row -->
+  <section>
+    <div class="section-label">Station Telemetry</div>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value">3,842m</div>
+        <div class="stat-label">Current Depth</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">2.1 &deg;C</div>
+        <div class="stat-label">Water Temp</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">387 bar</div>
+        <div class="stat-label">Pressure</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">14</div>
+        <div class="stat-label">Specimens</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Filter Pills + Search -->
+  <section id="data">
+    <div class="section-label">Marine Data Log</div>
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.75rem; margin-bottom:1rem;">
+      <div class="filter-bar" style="margin-bottom:0;">
+        <button class="pill active" onclick="activatePill(this)">All Specimens</button>
+        <button class="pill" onclick="activatePill(this)">Bioluminescent</button>
+        <button class="pill" onclick="activatePill(this)">Deep Abyssal</button>
+        <button class="pill" onclick="activatePill(this)">Thermal Vent</button>
+      </div>
+      <div class="search-bar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Search specimens...">
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-wrap">
+      <div class="table-header">
+        <span>Specimen</span>
+        <span>Depth</span>
+        <span>Temp</span>
+        <span>Status</span>
+      </div>
+      <div class="table-row">
+        <span class="specimen">Vampyroteuthis infernalis</span>
+        <span class="depth">2,400m</span>
+        <span>3.8 &deg;C</span>
+        <span><span class="badge badge-active">Active</span></span>
+      </div>
+      <div class="table-row">
+        <span class="specimen">Bathynomus giganteus</span>
+        <span class="depth">3,100m</span>
+        <span>1.9 &deg;C</span>
+        <span><span class="badge badge-active">Active</span></span>
+      </div>
+      <div class="table-row">
+        <span class="specimen">Chauliodus sloani</span>
+        <span class="depth">4,700m</span>
+        <span>1.2 &deg;C</span>
+        <span><span class="badge badge-dormant">Dormant</span></span>
+      </div>
+      <div class="table-row">
+        <span class="specimen">Melanocetus johnsonii</span>
+        <span class="depth">3,900m</span>
+        <span>2.1 &deg;C</span>
+        <span><span class="badge badge-active">Active</span></span>
+      </div>
+      <div class="table-row">
+        <span class="specimen">Grimpoteuthis abyssicola</span>
+        <span class="depth">5,200m</span>
+        <span>0.8 &deg;C</span>
+        <span><span class="badge badge-dormant">Dormant</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Form Controls -->
+  <section id="controls">
+    <div class="section-label">Controls</div>
+    <div class="form-grid">
+      <!-- Text Input -->
+      <div class="form-group">
+        <label class="form-label">Station ID</label>
+        <input class="input-text" type="text" placeholder="e.g. ABS-0042">
+      </div>
+
+      <!-- Dropdown -->
+      <div class="form-group">
+        <label class="form-label">Zone</label>
+        <div class="select-wrap">
+          <select class="input-select">
+            <option>Abyssopelagic (4000-6000m)</option>
+            <option>Bathypelagic (1000-4000m)</option>
+            <option>Hadopelagic (6000m+)</option>
+            <option>Mesopelagic (200-1000m)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Checkbox -->
+      <div class="form-group" style="justify-content:flex-end;">
+        <div class="check-group" onclick="toggleCheck(this)">
+          <div class="check-box">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2.5 6L5 8.5L9.5 3.5" stroke="oklch(0.10 0.04 250)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <span class="check-label">Enable sonar pulse</span>
+        </div>
+      </div>
+
+      <!-- Toggle -->
+      <div class="form-group" style="justify-content:flex-end;">
+        <div class="toggle-group" onclick="toggleSwitch(this)">
+          <div class="toggle-track">
+            <div class="toggle-thumb"></div>
+          </div>
+          <span class="toggle-label">Bioluminescence filter</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal Trigger -->
+  <section id="modal-section">
+    <div class="section-label">Modal Dialog</div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="openModal()">Open Modal</button>
+      <button class="btn btn-secondary">Secondary Action</button>
+    </div>
+  </section>
+
+</main>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal-box">
+    <div class="modal-title">Water Theme</div>
+    <div class="modal-body">
+      The Water theme is deep-ocean and bioluminescent. Dark blue-black backgrounds, cyan glow accents, rising bubble animations, morphing wave dividers, and frosted glass panels create an immersive underwater aesthetic.
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ---- Filter Pills ---- */
+  function activatePill(el) {
+    el.parentElement.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  /* ---- Checkbox ---- */
+  function toggleCheck(el) {
+    el.classList.toggle('checked');
+  }
+
+  /* ---- Toggle Switch ---- */
+  function toggleSwitch(el) {
+    el.classList.toggle('on');
+  }
+
+  /* ---- Modal ---- */
+  function openModal() {
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+  }
+  function closeModalOnOverlay(e) {
+    if (e.target === e.currentTarget) closeModal();
+  }
+
+  /* ---- Bubble Canvas ---- */
+  (function() {
+    const canvas = document.getElementById('bubble-canvas');
+    const ctx = canvas.getContext('2d');
+    let w, h;
+
+    function resize() {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    const BUBBLE_COUNT = 40;
+    const bubbles = [];
+
+    for (let i = 0; i < BUBBLE_COUNT; i++) {
+      bubbles.push({
+        x: Math.random() * w,
+        y: h + Math.random() * h * 0.5,
+        r: 2 + Math.random() * 5,
+        speed: 0.3 + Math.random() * 0.7,
+        wobbleAmp: 10 + Math.random() * 25,
+        wobbleFreq: 0.005 + Math.random() * 0.01,
+        phase: Math.random() * Math.PI * 2,
+        opacity: 0.08 + Math.random() * 0.18
+      });
+    }
+
+    function draw(time) {
+      ctx.clearRect(0, 0, w, h);
+
+      for (const b of bubbles) {
+        b.y -= b.speed;
+        const wx = b.x + Math.sin(time * b.wobbleFreq + b.phase) * b.wobbleAmp;
+
+        if (b.y + b.r < 0) {
+          b.y = h + b.r + Math.random() * 40;
+          b.x = Math.random() * w;
+        }
+
+        ctx.beginPath();
+        ctx.arc(wx, b.y, b.r, 0, Math.PI * 2);
+        /* cyan glow fill */
+        const grad = ctx.createRadialGradient(wx, b.y, 0, wx, b.y, b.r * 2.5);
+        grad.addColorStop(0, `rgba(80, 220, 230, ${b.opacity})`);
+        grad.addColorStop(1, 'rgba(80, 220, 230, 0)');
+        ctx.fillStyle = grad;
+        ctx.fill();
+
+        /* bubble edge */
+        ctx.beginPath();
+        ctx.arc(wx, b.y, b.r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(120, 240, 250, ${b.opacity * 0.6})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+
+      requestAnimationFrame(draw);
+    }
+    requestAnimationFrame(draw);
+  })();
+</script>
+</body>
+</html>

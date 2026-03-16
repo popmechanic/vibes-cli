@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier Studio - Component Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Italianno&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --comp-bg: oklch(0.95 0.03 70);
+    --comp-text: oklch(0.25 0.04 30);
+    --comp-border: oklch(0.25 0.04 30 / 0.15);
+    --comp-accent: oklch(0.65 0.18 55);
+    --comp-accent-text: oklch(1.00 0 0);
+    --comp-muted: oklch(0.50 0.04 30);
+    --color-background: oklch(0.96 0.03 70);
+    --comp-accent-secondary: oklch(0.60 0.15 40);
+    --comp-golden: oklch(0.72 0.15 80);
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--comp-bg);
+    color: var(--comp-text);
+    font-family: 'Playfair Display', serif;
+    cursor: none;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .mono { font-family: 'Space Mono', monospace; }
+  .script { font-family: 'Italianno', cursive; }
+
+  /* Noise Overlay */
+  .noise-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    opacity: 0.12;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+    filter: contrast(120%);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+
+  /* Custom Cursor */
+  .cursor-dot {
+    position: fixed;
+    width: 4px;
+    height: 4px;
+    background: var(--comp-accent);
+    z-index: 9999;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+  }
+  .cursor-outline {
+    position: fixed;
+    width: 40px;
+    height: 40px;
+    border: 1px solid oklch(0.65 0.18 55 / 0.4);
+    border-radius: 50%;
+    z-index: 9999;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: width 0.2s, height 0.2s, border-color 0.2s;
+    mix-blend-mode: color-burn;
+  }
+  .cursor-outline::before,
+  .cursor-outline::after {
+    content: '';
+    position: absolute;
+    background: var(--comp-accent);
+  }
+  .cursor-outline::before {
+    top: 50%;
+    left: -20%;
+    right: -20%;
+    height: 1px;
+  }
+  .cursor-outline::after {
+    left: 50%;
+    top: -20%;
+    bottom: -20%;
+    width: 1px;
+  }
+  .cursor-hover .cursor-outline {
+    width: 60px;
+    height: 60px;
+    border-color: var(--comp-accent);
+  }
+
+  /* Layout */
+  .page-wrapper {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 4rem 3rem;
+    position: relative;
+    z-index: 10;
+  }
+
+  /* Header */
+  .header-atelier {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--comp-border);
+    padding-bottom: 1.5rem;
+    margin-bottom: 4rem;
+  }
+  .brand-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    font-style: italic;
+  }
+  .nav-links {
+    display: flex;
+    gap: 2.5rem;
+  }
+  .nav-link {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--comp-text);
+    text-decoration: none;
+    transition: color 0.3s, text-shadow 0.3s;
+    cursor: none;
+  }
+  .nav-link:hover {
+    color: var(--comp-accent);
+    text-shadow: 0 0 8px oklch(0.65 0.18 55 / 0.4);
+  }
+
+  /* Section Title */
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+  .section-subtitle {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--comp-accent);
+    margin-bottom: 2.5rem;
+  }
+  .section-subtitle::before {
+    content: '||| || | |||  ';
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    opacity: 0.8;
+  }
+
+  .section-block {
+    margin-bottom: 4rem;
+  }
+
+  /* Entrance Animation */
+  @keyframes fadeInSlow {
+    from { opacity: 0; filter: blur(10px); }
+    to { opacity: 1; filter: blur(0); }
+  }
+  .fade-blur-in {
+    opacity: 0;
+    animation: fadeInSlow 3s cubic-bezier(0.2, 0, 0.2, 1) forwards;
+  }
+
+  /* Buttons */
+  .btn-atelier {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 1rem 2rem;
+    border: none;
+    transition: all 0.4s cubic-bezier(0.2, 0, 0.2, 1);
+    cursor: none;
+    display: inline-block;
+  }
+  .btn-atelier-primary {
+    background: var(--comp-accent);
+    color: white;
+    font-weight: 700;
+  }
+  .btn-atelier-primary:hover {
+    background: var(--comp-accent-secondary);
+    box-shadow: 0 0 30px oklch(0.65 0.18 55 / 0.4);
+    transform: translateY(-2px);
+  }
+  .btn-atelier-secondary {
+    background: transparent;
+    border: 1px solid var(--comp-border);
+    color: var(--comp-text);
+  }
+  .btn-atelier-secondary:hover {
+    border-color: var(--comp-text);
+    background: oklch(0.65 0.18 55 / 0.08);
+    transform: translateY(-2px);
+  }
+
+  /* Data Table (Curated Entries) */
+  .specimen-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .specimen-table thead th {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--comp-muted);
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--comp-border);
+    font-weight: 400;
+  }
+  .specimen-table tbody tr {
+    transition: all 0.4s cubic-bezier(0.2, 0, 0.2, 1);
+    cursor: none;
+  }
+  .specimen-table tbody tr:hover {
+    background: oklch(0.65 0.18 55 / 0.06);
+  }
+  .specimen-table tbody td {
+    padding: 1.1rem 1rem;
+    border-bottom: 1px solid oklch(0.25 0.04 30 / 0.07);
+    font-size: 0.95rem;
+    vertical-align: middle;
+  }
+  .specimen-table .index-col {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--comp-muted);
+    text-transform: uppercase;
+    width: 100px;
+  }
+  .specimen-table .name-col {
+    font-style: italic;
+    font-weight: 600;
+  }
+  .specimen-table .meta-col {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--comp-muted);
+  }
+  .specimen-table .accent-col {
+    color: var(--comp-accent);
+    font-weight: 600;
+  }
+
+  /* Form Inputs */
+  .input-atelier {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--comp-border);
+    padding: 0.8rem 0.2rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    color: var(--comp-text);
+    outline: none;
+    transition: border-color 0.4s;
+    cursor: none;
+  }
+  .input-atelier:focus {
+    border-bottom-color: var(--comp-accent);
+  }
+  .input-atelier::placeholder {
+    color: var(--comp-muted);
+    font-style: italic;
+  }
+  .input-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--comp-muted);
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+
+  /* Select / Dropdown */
+  .select-wrapper {
+    position: relative;
+  }
+  .select-atelier {
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--comp-border);
+    padding: 0.8rem 2rem 0.8rem 0.2rem;
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    color: var(--comp-text);
+    outline: none;
+    cursor: none;
+    transition: border-color 0.4s;
+  }
+  .select-atelier:focus {
+    border-bottom-color: var(--comp-accent);
+  }
+  .select-arrow {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    border-bottom: 1.5px solid var(--comp-accent);
+    border-right: 1.5px solid var(--comp-accent);
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+  }
+
+  /* Checkbox */
+  .checkbox-atelier {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    cursor: none;
+    padding: 0.4rem 0;
+  }
+  .checkbox-atelier input[type="checkbox"] {
+    display: none;
+  }
+  .checkbox-box {
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--comp-border);
+    position: relative;
+    transition: all 0.3s;
+    flex-shrink: 0;
+  }
+  .checkbox-atelier input:checked + .checkbox-box {
+    border-color: var(--comp-accent);
+    background: var(--comp-accent);
+  }
+  .checkbox-atelier input:checked + .checkbox-box::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 5px;
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 1.5px 1.5px 0;
+    transform: rotate(45deg);
+  }
+  .checkbox-label {
+    font-size: 0.9rem;
+    font-style: italic;
+  }
+
+  /* Toggle Switch */
+  .toggle-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: none;
+  }
+  .toggle-track {
+    width: 44px;
+    height: 22px;
+    background: var(--comp-border);
+    border-radius: 11px;
+    position: relative;
+    transition: background 0.4s cubic-bezier(0.2, 0, 0.2, 1);
+    cursor: none;
+  }
+  .toggle-track.active {
+    background: var(--comp-accent);
+  }
+  .toggle-thumb {
+    width: 16px;
+    height: 16px;
+    background: var(--color-background);
+    border-radius: 50%;
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.4s cubic-bezier(0.2, 0, 0.2, 1), box-shadow 0.4s;
+    box-shadow: 0 1px 3px oklch(0 0 0 / 0.15);
+  }
+  .toggle-track.active .toggle-thumb {
+    transform: translateX(22px);
+    box-shadow: 0 0 10px oklch(0.65 0.18 55 / 0.3);
+  }
+  .toggle-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--comp-muted);
+  }
+  .toggle-label.active {
+    color: var(--comp-accent);
+  }
+
+  /* Form Grid */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+  }
+
+  .controls-row {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: oklch(0.25 0.04 30 / 0.6);
+    z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.6s cubic-bezier(0.2, 0, 0.2, 1);
+  }
+  .modal-overlay.visible {
+    display: flex;
+    opacity: 1;
+  }
+  .modal-content {
+    background: var(--comp-bg);
+    max-width: 520px;
+    width: 90%;
+    padding: 3rem;
+    position: relative;
+    transform: translateY(20px) scale(0.98);
+    transition: transform 0.6s cubic-bezier(0.2, 0, 0.2, 1);
+    filter: blur(4px);
+  }
+  .modal-overlay.visible .modal-content {
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+  .modal-close {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: none;
+    border: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--comp-muted);
+    cursor: none;
+    transition: color 0.3s;
+  }
+  .modal-close:hover {
+    color: var(--comp-accent);
+  }
+  .modal-title {
+    font-size: 1.8rem;
+    font-style: italic;
+    margin-bottom: 0.5rem;
+  }
+  .modal-subtitle {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--comp-accent);
+    margin-bottom: 2rem;
+  }
+  .modal-body {
+    font-size: 0.95rem;
+    line-height: 1.8;
+    color: var(--comp-muted);
+    margin-bottom: 2rem;
+  }
+
+  /* Coords Label */
+  .coords-label {
+    font-family: 'Space Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: var(--comp-muted);
+    border-left: 1px solid var(--comp-golden);
+    padding-left: 1rem;
+    line-height: 1.4;
+    margin-top: 4rem;
+  }
+  .coords-label::before {
+    content: '||| || | |||';
+    display: block;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
+    color: var(--comp-accent);
+    opacity: 0.8;
+  }
+
+  /* Decorative Script */
+  .decorative-script {
+    font-family: 'Italianno', cursive;
+    font-size: 4rem;
+    color: oklch(0.65 0.18 55 / 0.15);
+    position: absolute;
+    right: 0;
+    top: -1rem;
+    pointer-events: none;
+    line-height: 1;
+  }
+
+  @media (max-width: 768px) {
+    .page-wrapper { padding: 2rem 1.5rem; }
+    .form-grid { grid-template-columns: 1fr; }
+    .cursor-dot, .cursor-outline { display: none; }
+    body { cursor: auto; }
+    .nav-links { gap: 1.5rem; }
+    .btn-atelier { cursor: pointer; }
+    .nav-link { cursor: pointer; }
+  }
+</style>
+</head>
+<body>
+<div class="noise-overlay"></div>
+
+<div class="page-wrapper">
+  <!-- Header -->
+  <header class="header-atelier fade-blur-in" style="animation-delay: 0.2s">
+    <span class="brand-text">Atelier</span>
+    <nav class="nav-links">
+      <a class="nav-link" href="#">Components</a>
+      <a class="nav-link" href="#">Palette</a>
+      <a class="nav-link" href="#">About</a>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <div class="section-block fade-blur-in" style="animation-delay: 0.5s; text-align: center; margin-bottom: 5rem; position: relative;">
+    <span class="decorative-script">Showcase</span>
+    <h1 style="font-size: clamp(2.5rem, 5vw, 4rem); font-weight: 400; letter-spacing: -0.03em; text-transform: uppercase; line-height: 0.9; margin-bottom: 1rem;">Component<br>Showcase</h1>
+    <p class="mono" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--comp-accent);">Atelier Studio Theme</p>
+  </div>
+
+  <!-- Modal Trigger -->
+  <div class="section-block fade-blur-in" style="animation-delay: 0.8s">
+    <div class="section-title">The Gallery</div>
+    <div class="section-subtitle">Modal Window</div>
+    <p style="font-size: 0.9rem; line-height: 1.7; color: var(--comp-muted); max-width: 600px; margin-bottom: 2rem;">
+      A warm, cinematic overlay that opens with a blur-to-sharp transition. Each modal feels like a photograph being developed in a darkroom.
+    </p>
+    <button class="btn-atelier btn-atelier-primary" id="openModal">Open Gallery</button>
+    <button class="btn-atelier btn-atelier-secondary" style="margin-left: 1rem;" onclick="alert('Secondary action')">Learn More</button>
+  </div>
+
+  <!-- Data Table -->
+  <div class="section-block fade-blur-in" style="animation-delay: 1.1s">
+    <div class="section-title">The Collection</div>
+    <div class="section-subtitle">Specimen Index</div>
+    <table class="specimen-table">
+      <thead>
+        <tr>
+          <th>Index</th>
+          <th>Specimen</th>
+          <th>Medium</th>
+          <th>Year</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="index-col">SP-001</td>
+          <td class="name-col">Golden Hour Study</td>
+          <td class="meta-col">Oil on linen</td>
+          <td class="meta-col">2024</td>
+          <td class="accent-col">$12,400</td>
+        </tr>
+        <tr>
+          <td class="index-col">SP-002</td>
+          <td class="name-col">Amber Fragments</td>
+          <td class="meta-col">Mixed media</td>
+          <td class="meta-col">2023</td>
+          <td class="accent-col">$8,750</td>
+        </tr>
+        <tr>
+          <td class="index-col">SP-003</td>
+          <td class="name-col">Parchment & Ember</td>
+          <td class="meta-col">Digital print</td>
+          <td class="meta-col">2024</td>
+          <td class="accent-col">$3,200</td>
+        </tr>
+        <tr>
+          <td class="index-col">SP-004</td>
+          <td class="name-col">Warm Dissolution</td>
+          <td class="meta-col">Archival pigment</td>
+          <td class="meta-col">2023</td>
+          <td class="accent-col">$6,100</td>
+        </tr>
+        <tr>
+          <td class="index-col">SP-005</td>
+          <td class="name-col">Cinematic Still No. 7</td>
+          <td class="meta-col">Photograph</td>
+          <td class="meta-col">2024</td>
+          <td class="accent-col">$4,800</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Form Controls -->
+  <div class="section-block fade-blur-in" style="animation-delay: 1.4s">
+    <div class="section-title">The Studio</div>
+    <div class="section-subtitle">Form Controls</div>
+    <div class="form-grid">
+      <!-- Left Column: Text Input + Select -->
+      <div>
+        <div style="margin-bottom: 2rem;">
+          <label class="input-label">Artist Name</label>
+          <input type="text" class="input-atelier" placeholder="Enter your name...">
+        </div>
+        <div>
+          <label class="input-label">Collection</label>
+          <div class="select-wrapper">
+            <select class="select-atelier">
+              <option>Autumn Catalogue 2024</option>
+              <option>Summer Exhibition</option>
+              <option>Permanent Collection</option>
+              <option>Private Archive</option>
+              <option>Traveling Show</option>
+            </select>
+            <div class="select-arrow"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Checkbox + Toggle -->
+      <div>
+        <label class="input-label" style="margin-bottom: 1rem;">Preferences</label>
+        <div class="controls-row">
+          <label class="checkbox-atelier">
+            <input type="checkbox" checked>
+            <span class="checkbox-box"></span>
+            <span class="checkbox-label">Available for exhibition</span>
+          </label>
+          <label class="checkbox-atelier">
+            <input type="checkbox">
+            <span class="checkbox-box"></span>
+            <span class="checkbox-label">Include in catalogue</span>
+          </label>
+          <label class="checkbox-atelier">
+            <input type="checkbox" checked>
+            <span class="checkbox-box"></span>
+            <span class="checkbox-label">Notify on inquiries</span>
+          </label>
+        </div>
+        <div style="margin-top: 1.8rem; display: flex; flex-direction: column; gap: 1rem;">
+          <div class="toggle-wrapper" id="toggle1">
+            <div class="toggle-track active" onclick="toggleSwitch(this)">
+              <div class="toggle-thumb"></div>
+            </div>
+            <span class="toggle-label active">Darkroom Mode</span>
+          </div>
+          <div class="toggle-wrapper" id="toggle2">
+            <div class="toggle-track" onclick="toggleSwitch(this)">
+              <div class="toggle-thumb"></div>
+            </div>
+            <span class="toggle-label">Blur Layer</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Coords -->
+  <div class="coords-label fade-blur-in" style="animation-delay: 1.7s">
+    EST. 2024 / ATELIER STUDIO<br>
+    COMPONENT SHOWCASE v1.0<br>
+    48.8566 N, 2.3522 E
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-content">
+    <button class="modal-close" id="closeModal">Close [x]</button>
+    <div class="modal-title">Gallery Preview</div>
+    <div class="modal-subtitle">Specimen Detail View</div>
+    <div class="modal-body">
+      Every surface in the Atelier has texture. The parchment background carries visible noise grain. Light falls through the studio window at the angle that makes burnt orange glow like embers suspended in amber. This modal emerges from blur, as if developed in a photographic darkroom.
+    </div>
+    <div style="display: flex; gap: 1rem;">
+      <button class="btn-atelier btn-atelier-primary" id="closeModal2">Acquire</button>
+      <button class="btn-atelier btn-atelier-secondary" id="closeModal3">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Cursor -->
+<div class="cursor-dot" id="cursorDot"></div>
+<div class="cursor-outline" id="cursorOutline"></div>
+
+<script>
+  // Custom cursor
+  const dot = document.getElementById('cursorDot');
+  const outline = document.getElementById('cursorOutline');
+  let mouseX = window.innerWidth / 2;
+  let mouseY = window.innerHeight / 2;
+  let outlineX = mouseX;
+  let outlineY = mouseY;
+
+  document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    dot.style.left = mouseX + 'px';
+    dot.style.top = mouseY + 'px';
+  });
+
+  function animateCursor() {
+    outlineX += (mouseX - outlineX) * 0.1;
+    outlineY += (mouseY - outlineY) * 0.1;
+    outline.style.left = outlineX + 'px';
+    outline.style.top = outlineY + 'px';
+    requestAnimationFrame(animateCursor);
+  }
+  animateCursor();
+
+  // Hover expansion on interactive elements
+  document.querySelectorAll('button, a, input, select, label, .toggle-track, tr').forEach(el => {
+    el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
+    el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
+  });
+
+  // Modal
+  const overlay = document.getElementById('modalOverlay');
+  document.getElementById('openModal').addEventListener('click', () => {
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => {
+      overlay.classList.add('visible');
+    });
+  });
+
+  function closeModal() {
+    overlay.classList.remove('visible');
+    setTimeout(() => { overlay.style.display = 'none'; }, 600);
+  }
+
+  document.getElementById('closeModal').addEventListener('click', closeModal);
+  document.getElementById('closeModal2').addEventListener('click', closeModal);
+  document.getElementById('closeModal3').addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal();
+  });
+
+  // Toggle switch
+  function toggleSwitch(track) {
+    track.classList.toggle('active');
+    const label = track.parentElement.querySelector('.toggle-label');
+    label.classList.toggle('active');
+  }
+</script>
+</body>
+</html>

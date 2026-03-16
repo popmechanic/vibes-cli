@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Industrial — HUD Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: oklch(0.88 0.01 90);
+    --text: oklch(0.05 0.01 0);
+    --border: oklch(0.05 0.01 0);
+    --accent: oklch(0.90 0.20 110);
+    --accent-text: oklch(0.05 0.01 0);
+    --muted: oklch(0.40 0.01 0);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
+    min-height: 100vh;
+  }
+  /* HUD Header */
+  .hud-header {
+    display: flex; justify-content: space-between; align-items: center;
+    height: 56px; padding: 0 2rem;
+    border-bottom: 2px solid var(--border);
+  }
+  .hud-left { display: flex; align-items: center; gap: 0.75rem; }
+  .hud-target {
+    width: 20px; height: 20px; border: 1.5px solid var(--border);
+    border-radius: 50%; position: relative;
+  }
+  .hud-target::before, .hud-target::after { content: ''; position: absolute; background: var(--border); }
+  .hud-target::before { width: 100%; height: 1px; top: 50%; }
+  .hud-target::after { height: 100%; width: 1px; left: 50%; }
+  .hud-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+  .hud-code { font-weight: 900; font-size: 1.2rem; letter-spacing: -0.04em; }
+  /* Hero */
+  .hero {
+    position: relative; height: 40vh; min-height: 280px;
+    display: flex; align-items: center; justify-content: center;
+    border-bottom: 2px solid var(--border); overflow: hidden;
+  }
+  .giant-type {
+    font-weight: 900; font-size: clamp(4rem, 14vw, 12rem);
+    line-height: 0.85; text-transform: uppercase; letter-spacing: -0.06em;
+    text-align: center; opacity: 0.12; pointer-events: none;
+  }
+  .hero-meta {
+    position: absolute; bottom: 1.5rem; left: 2rem;
+    font-family: 'Space Mono', monospace; font-size: 0.65rem;
+    text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);
+  }
+  /* Content */
+  .content {
+    display: grid; grid-template-columns: 320px 1fr; min-height: 50vh;
+  }
+  @media (max-width: 768px) { .content { grid-template-columns: 1fr; } }
+  .sidebar {
+    padding: 2rem; border-right: 2px solid var(--border);
+    background: var(--accent);
+  }
+  .sidebar h2 { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 1.5rem; font-weight: 700; }
+  .main-panel { padding: 0; }
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-family: 'Space Mono', monospace;
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--muted); padding: 1rem 2rem;
+    border-bottom: 2px solid var(--border);
+  }
+  td {
+    padding: 1rem 2rem; font-size: 0.85rem; font-weight: 600;
+    border-bottom: 1px solid oklch(0.05 0.01 0 / 0.1);
+    text-transform: uppercase; letter-spacing: -0.01em;
+    transition: padding-left 0.15s, background 0.1s;
+  }
+  tr:hover td { padding-left: 2.5rem; background: oklch(0.90 0.20 110 / 0.15); }
+  td:first-child { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--muted); }
+  /* Form */
+  .form-group { margin-bottom: 1.25rem; }
+  label {
+    display: block; font-family: 'Space Mono', monospace;
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--accent-text); margin-bottom: 0.35rem; opacity: 0.6;
+  }
+  input[type="text"], select {
+    width: 100%; padding: 0.65rem 0.75rem; background: transparent;
+    border: 2px solid var(--border); color: var(--text);
+    font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600;
+    outline: none; transition: border-color 0.15s;
+  }
+  input[type="text"]:focus, select:focus { border-color: var(--muted); background: oklch(1 0 0 / 0.4); }
+  select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23111' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; }
+  /* Checkbox */
+  .check-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; cursor: pointer; }
+  .check-box {
+    width: 18px; height: 18px; border: 2px solid var(--border);
+    display: grid; place-items: center; flex-shrink: 0; transition: background 0.1s;
+  }
+  .check-box.checked { background: var(--border); }
+  .check-box svg { opacity: 0; transition: opacity 0.1s; }
+  .check-box.checked svg { opacity: 1; }
+  .check-label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; }
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; gap: 0.6rem; margin-top: 1rem; cursor: pointer; }
+  .toggle-track {
+    width: 40px; height: 20px; border: 2px solid var(--border);
+    position: relative; transition: background 0.15s; flex-shrink: 0;
+  }
+  .toggle-track.on { background: var(--border); }
+  .toggle-knob {
+    width: 12px; height: 12px; background: var(--border);
+    position: absolute; top: 2px; left: 2px; transition: transform 0.15s;
+  }
+  .toggle-track.on .toggle-knob { transform: translateX(20px); background: var(--accent); }
+  /* Button */
+  .btn {
+    padding: 0.65rem 1.5rem; border: 2px solid var(--border);
+    background: var(--border); color: var(--accent);
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; cursor: pointer; transition: all 0.1s;
+  }
+  .btn:hover { background: transparent; color: var(--text); }
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: oklch(0.88 0.01 90 / 0.9);
+    backdrop-filter: blur(4px); display: none; place-items: center; z-index: 1000;
+  }
+  .modal-overlay.open { display: grid; }
+  .modal {
+    background: var(--accent); border: 2px solid var(--border);
+    padding: 2.5rem; width: 90%; max-width: 440px;
+    animation: slideIn 0.2s ease;
+  }
+  @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } }
+  .modal h2 { font-size: 1.8rem; font-weight: 900; text-transform: uppercase; letter-spacing: -0.04em; margin-bottom: 0.5rem; }
+  .modal p { color: var(--muted); font-size: 0.82rem; line-height: 1.6; margin-bottom: 1.5rem; }
+  .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+  .btn-outline { background: transparent; color: var(--text); }
+  .btn-outline:hover { background: oklch(0.05 0.01 0 / 0.06); }
+  /* Footer */
+  .brand-strip {
+    border-top: 2px solid var(--border); padding: 1rem 2rem;
+    background: var(--accent); display: flex; gap: 2rem; align-items: center;
+    font-family: 'Space Mono', monospace; font-size: 0.6rem;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+  }
+</style>
+</head>
+<body>
+  <header class="hud-header">
+    <div class="hud-left">
+      <div class="hud-target"></div>
+      <span class="hud-label">Industrial HUD</span>
+    </div>
+    <span class="hud-code">IND—01</span>
+  </header>
+
+  <section class="hero">
+    <div class="giant-type">INDUSTRIAL</div>
+    <div class="hero-meta">Component Showcase &mdash; Precision Design System</div>
+  </section>
+
+  <div class="content">
+    <aside class="sidebar">
+      <h2>Controls</h2>
+      <div class="form-group">
+        <label>Identifier</label>
+        <input type="text" placeholder="SPEC-001">
+      </div>
+      <div class="form-group">
+        <label>Classification</label>
+        <select>
+          <option>All Types</option>
+          <option>Structural</option>
+          <option>Mechanical</option>
+          <option>Electronic</option>
+          <option>Composite</option>
+        </select>
+      </div>
+      <div style="margin: 1.5rem 0;">
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Verified</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">In Production</span>
+        </div>
+      </div>
+      <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+        <div class="toggle-track on"><div class="toggle-knob"></div></div>
+        <span class="check-label">Live Feed</span>
+      </div>
+      <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+        <div class="toggle-track"><div class="toggle-knob"></div></div>
+        <span class="check-label">Debug Mode</span>
+      </div>
+      <div style="margin-top: 1.5rem;">
+        <button class="btn" onclick="document.getElementById('modal').classList.add('open')">Open Modal</button>
+      </div>
+    </aside>
+
+    <div class="main-panel">
+      <table>
+        <thead>
+          <tr><th>Idx</th><th>Component</th><th>Material</th><th>Tolerance</th><th>Grade</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>01</td><td>Load Bearing Frame</td><td>Carbon Steel</td><td>±0.02mm</td><td>A1</td></tr>
+          <tr><td>02</td><td>Precision Shaft</td><td>Titanium Ti-6Al</td><td>±0.005mm</td><td>A1</td></tr>
+          <tr><td>03</td><td>Thermal Shield</td><td>Ceramic Composite</td><td>±0.1mm</td><td>B2</td></tr>
+          <tr><td>04</td><td>Actuator Housing</td><td>Aluminum 7075</td><td>±0.01mm</td><td>A2</td></tr>
+          <tr><td>05</td><td>Seal Assembly</td><td>Viton Fluorocarbon</td><td>±0.05mm</td><td>B1</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer class="brand-strip">
+    <span>Industrial HUD v2.1</span>
+    <span>|</span>
+    <span>Precision Design System</span>
+    <span>|</span>
+    <span>2026</span>
+  </footer>
+
+  <div class="modal-overlay" id="modal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <h2>Spec Sheet</h2>
+      <p>The Industrial HUD theme is technical and high-contrast. Zero border-radius, thick borders, monospace metadata, and acid-green accents create a precision-engineered aesthetic.</p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('modal').classList.remove('open')">Cancel</button>
+        <button class="btn" onclick="document.getElementById('modal').classList.remove('open')">Confirm</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

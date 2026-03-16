@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proof Sheet - Theme Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       oklch(0.14 0.000 0);
+    --card:     oklch(0.16 0.000 0);
+    --border:   oklch(0.28 0.03 257);
+    --fg:       oklch(1.00 0.000 0);
+    --fg-muted: oklch(0.71 0.02 261);
+    --fg-dim:   oklch(1.00 0.000 0 / 0.6);
+    --tag-bg:   oklch(1.00 0.000 0 / 0.1);
+    --card-hi:  oklch(0.21 0.03 265);
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ---- PAGE HEADER ---- */
+  .page-header {
+    padding: 24px 16px 0;
+    margin-bottom: 24px;
+  }
+  .page-title {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--fg);
+    margin-bottom: 4px;
+  }
+  .page-subtitle {
+    font-size: 14px;
+    color: var(--fg-muted);
+  }
+
+  /* ---- CARD ---- */
+  .card {
+    background: var(--card);
+    border-radius: 0;
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--fg);
+  }
+  .card-content {
+    padding: 32px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 160px;
+  }
+  .card-footer {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* ---- TAGS ---- */
+  .tag {
+    font-size: 0.65rem;
+    background: var(--tag-bg);
+    border-radius: 2px;
+    padding: 1px 6px;
+    color: var(--fg);
+  }
+  .tag-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ---- ICON BUTTONS ---- */
+  .icon-btn {
+    width: 24px; height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--fg);
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+  }
+  .icon-btn:hover { opacity: 1; }
+  .icon-btn svg {
+    width: 18px; height: 18px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+  }
+  .btn-group { display: flex; gap: 16px; }
+
+  /* ---- CARD STACK ---- */
+  .card-stack {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 16px;
+    padding-bottom: 90px;
+  }
+
+  /* ---- DATA TABLE CARD ---- */
+  .table-wrap {
+    width: 100%;
+    overflow-x: auto;
+  }
+  .proof-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .proof-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--fg-muted);
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .proof-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg-dim);
+  }
+  .proof-table tr:last-child td { border-bottom: none; }
+  .proof-table tr:hover td { background: var(--card-hi); }
+  .proof-table .primary-cell { color: var(--fg); font-weight: 500; }
+
+  /* ---- FORM ELEMENTS ---- */
+  .form-area {
+    width: 100%;
+    max-width: 400px;
+  }
+  .form-group {
+    margin-bottom: 20px;
+  }
+  .form-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .proof-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg);
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    font-size: 14px;
+    padding: 10px 0;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .proof-input:focus { border-bottom-color: var(--fg-muted); }
+  .proof-input::placeholder { color: var(--fg-dim); opacity: 0.4; }
+
+  .proof-select {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg);
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    font-size: 14px;
+    padding: 10px 0;
+    width: 100%;
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color 0.2s;
+  }
+  .proof-select:focus { border-bottom-color: var(--fg-muted); }
+  .proof-select option { background: #1a1a1a; color: #fff; }
+  .select-wrap {
+    position: relative;
+  }
+  .select-wrap::after {
+    content: '\2193';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--fg-muted);
+    font-size: 12px;
+    pointer-events: none;
+  }
+
+  /* ---- CHECKBOX ---- */
+  .proof-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--fg-dim);
+    margin-bottom: 10px;
+  }
+  .check-box {
+    width: 16px; height: 16px;
+    border: 1px solid var(--border);
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.2s;
+  }
+  .check-box.checked { border-color: var(--fg-muted); }
+  .check-box .mark {
+    display: none;
+    color: var(--fg);
+    font-size: 11px;
+    line-height: 1;
+  }
+  .check-box.checked .mark { display: block; }
+
+  /* ---- TOGGLE ---- */
+  .proof-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--fg-dim);
+    margin-bottom: 10px;
+  }
+  .toggle-track {
+    width: 32px; height: 16px;
+    border: 1px solid var(--border);
+    border-radius: 0;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+  .toggle-thumb {
+    width: 10px; height: 10px;
+    background: var(--fg-muted);
+    position: absolute;
+    top: 2px; left: 2px;
+    transition: left 0.2s, background 0.2s;
+  }
+  .toggle-track.on { border-color: var(--fg-muted); }
+  .toggle-track.on .toggle-thumb {
+    left: 18px;
+    background: var(--fg);
+  }
+
+  /* ---- BOTTOM TAB BAR ---- */
+  .tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card-hi);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    padding: 12px;
+    z-index: 50;
+  }
+  .tab-btn {
+    width: 32px; height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--fg-muted);
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .tab-btn.active { color: var(--fg); }
+  .tab-btn:hover { color: var(--fg); }
+  .tab-btn svg {
+    width: 20px; height: 20px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+  }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+  }
+  .modal-card {
+    position: relative;
+    z-index: 101;
+    background: var(--card);
+    max-width: 440px;
+    width: 90%;
+  }
+  .modal-card .card-header {
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-card .card-content {
+    min-height: auto;
+    padding: 24px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    font-size: 14px;
+    color: var(--fg-dim);
+    line-height: 1.7;
+  }
+  .modal-card .card-footer {
+    border-top: 1px solid var(--border);
+    justify-content: flex-end;
+    gap: 12px;
+  }
+  .proof-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--fg);
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    font-size: 12px;
+    padding: 8px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 0;
+  }
+  .proof-btn:hover { border-color: var(--fg-muted); background: var(--card-hi); }
+  .proof-btn.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  .proof-btn.primary:hover { opacity: 0.9; }
+
+  /* ---- CARD ENTER ANIMATION ---- */
+  @keyframes cardEnter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card { animation: cardEnter 0.3s ease forwards; }
+  .card:nth-child(1) { animation-delay: 0ms; }
+  .card:nth-child(2) { animation-delay: 50ms; }
+  .card:nth-child(3) { animation-delay: 100ms; }
+  .card:nth-child(4) { animation-delay: 150ms; }
+  .card:nth-child(5) { animation-delay: 200ms; }
+</style>
+</head>
+<body>
+
+<!-- PAGE HEADER -->
+<header class="page-header">
+  <h1 class="page-title">Proof Sheet</h1>
+  <p class="page-subtitle">Component Showcase</p>
+</header>
+
+<!-- CARD STACK -->
+<div class="card-stack">
+
+  <!-- CARD 01: DATA TABLE -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Record 01</span>
+      <div class="tag-group">
+        <span class="tag">Data</span>
+        <span class="tag">Table</span>
+      </div>
+    </div>
+    <div class="card-content" style="padding:0;min-height:auto;">
+      <div class="table-wrap">
+        <table class="proof-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Size</th>
+              <th>Modified</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="primary-cell">proof-alpha.svg</td>
+              <td>Vector</td>
+              <td>24 KB</td>
+              <td>Mar 12, 2026</td>
+              <td>Final</td>
+            </tr>
+            <tr>
+              <td class="primary-cell">concept-grid.png</td>
+              <td>Raster</td>
+              <td>1.4 MB</td>
+              <td>Mar 11, 2026</td>
+              <td>Review</td>
+            </tr>
+            <tr>
+              <td class="primary-cell">layout-v3.fig</td>
+              <td>Design</td>
+              <td>8.2 MB</td>
+              <td>Mar 10, 2026</td>
+              <td>Draft</td>
+            </tr>
+            <tr>
+              <td class="primary-cell">icons-set.svg</td>
+              <td>Vector</td>
+              <td>12 KB</td>
+              <td>Mar 09, 2026</td>
+              <td>Final</td>
+            </tr>
+            <tr>
+              <td class="primary-cell">palette-dark.json</td>
+              <td>Config</td>
+              <td>2 KB</td>
+              <td>Mar 08, 2026</td>
+              <td>Final</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="btn-group">
+        <button class="icon-btn" title="Add">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="16" />
+            <line x1="8" y1="12" x2="16" y2="12" />
+          </svg>
+        </button>
+        <button class="icon-btn" title="Download">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+        </button>
+      </div>
+      <div class="btn-group">
+        <button class="icon-btn" title="Filter">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="21" x2="4" y2="14" />
+            <line x1="12" y1="21" x2="12" y2="12" />
+            <line x1="20" y1="21" x2="20" y2="16" />
+            <line x1="1" y1="14" x2="7" y2="14" />
+            <line x1="9" y1="8" x2="15" y2="8" />
+            <line x1="17" y1="16" x2="23" y2="16" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD 02: GEOMETRIC VISUAL -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Concept 02</span>
+      <div class="tag-group">
+        <span class="tag">Geometric</span>
+        <span class="tag">Minimal</span>
+      </div>
+    </div>
+    <div class="card-content">
+      <svg width="160" height="160" viewBox="0 0 160 160" fill="none">
+        <circle cx="80" cy="80" r="50" stroke="white" stroke-width="1.5" />
+        <circle cx="80" cy="80" r="30" stroke="white" stroke-width="1" opacity="0.5" />
+        <circle cx="80" cy="80" r="10" fill="white" />
+        <line x1="80" y1="20" x2="80" y2="140" stroke="white" stroke-width="0.5" opacity="0.2" />
+        <line x1="20" y1="80" x2="140" y2="80" stroke="white" stroke-width="0.5" opacity="0.2" />
+      </svg>
+    </div>
+    <div class="card-footer">
+      <div class="btn-group">
+        <button class="icon-btn" title="Edit">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </button>
+      </div>
+      <div class="btn-group">
+        <button class="icon-btn" title="Share">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+            <polyline points="16 6 12 2 8 6" />
+            <line x1="12" y1="2" x2="12" y2="15" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD 03: FORM INPUTS -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Input 03</span>
+      <div class="tag-group">
+        <span class="tag">Form</span>
+        <span class="tag">Controls</span>
+      </div>
+    </div>
+    <div class="card-content" style="flex-direction:column;align-items:center;gap:0;padding:24px 32px;">
+      <div class="form-area">
+        <div class="form-group">
+          <label class="form-label">Project Name</label>
+          <input class="proof-input" type="text" placeholder="Enter name...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Export Format</label>
+          <div class="select-wrap">
+            <select class="proof-select">
+              <option>SVG (Vector)</option>
+              <option>PNG (Raster)</option>
+              <option>PDF (Print)</option>
+              <option>WEBP (Web)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="btn-group">
+        <button class="icon-btn" title="Reset">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10" />
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+          </svg>
+        </button>
+      </div>
+      <div class="btn-group">
+        <button class="icon-btn" title="Save">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD 04: CHECKBOX + TOGGLE -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Config 04</span>
+      <div class="tag-group">
+        <span class="tag">Toggle</span>
+        <span class="tag">Options</span>
+      </div>
+    </div>
+    <div class="card-content" style="flex-direction:column;align-items:center;gap:0;padding:24px 32px;">
+      <div class="form-area">
+        <div class="proof-check" onclick="toggleCheck(this)">
+          <div class="check-box checked"><span class="mark">&#10003;</span></div>
+          <span>Include metadata</span>
+        </div>
+        <div class="proof-check" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="mark">&#10003;</span></div>
+          <span>Compress output</span>
+        </div>
+        <div class="proof-check" onclick="toggleCheck(this)">
+          <div class="check-box checked"><span class="mark">&#10003;</span></div>
+          <span>Preserve layer names</span>
+        </div>
+        <div style="margin-top:16px;"></div>
+        <div class="proof-toggle" onclick="toggleSwitch(this)">
+          <div class="toggle-track on"><div class="toggle-thumb"></div></div>
+          <span>Dark mode</span>
+        </div>
+        <div class="proof-toggle" onclick="toggleSwitch(this)">
+          <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          <span>Grid overlay</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-footer">
+      <div class="btn-group">
+        <button class="icon-btn" title="Info">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+        </button>
+      </div>
+      <div class="btn-group">
+        <button class="icon-btn" title="Apply">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD 05: MODAL LAUNCHER -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Action 05</span>
+      <div class="tag-group">
+        <span class="tag">Modal</span>
+        <span class="tag">Dialog</span>
+      </div>
+    </div>
+    <div class="card-content" style="flex-direction:column;gap:16px;">
+      <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+        <rect x="10" y="10" width="60" height="60" stroke="white" stroke-width="1.5" />
+        <rect x="20" y="20" width="40" height="40" stroke="white" stroke-width="1" opacity="0.4" />
+        <line x1="40" y1="28" x2="40" y2="52" stroke="white" stroke-width="1.5" />
+        <line x1="28" y1="40" x2="52" y2="40" stroke="white" stroke-width="1.5" />
+      </svg>
+      <button class="proof-btn" onclick="openModal()">Open Modal</button>
+    </div>
+    <div class="card-footer">
+      <div class="btn-group">
+        <button class="icon-btn" title="Expand">
+          <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 3 21 3 21 9" />
+            <polyline points="9 21 3 21 3 15" />
+            <line x1="21" y1="3" x2="14" y2="10" />
+            <line x1="3" y1="21" x2="10" y2="14" />
+          </svg>
+        </button>
+      </div>
+      <span style="font-size:11px;color:var(--fg-muted);">5 of 5</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-backdrop" onclick="closeModal()"></div>
+  <div class="modal-card card">
+    <div class="card-header">
+      <span class="card-title">Review Complete</span>
+      <div class="tag-group">
+        <span class="tag">System</span>
+      </div>
+    </div>
+    <div class="card-content">
+      <p>All five proof sheet components have been reviewed. The showcase includes a data table, form inputs, checkboxes, toggle switches, and this modal dialog.</p>
+      <p style="font-size:12px;color:var(--fg-muted);">Every element follows the zero-accent monochrome system. Sharp corners. Stroke-only icons. Content is the only color.</p>
+    </div>
+    <div class="card-footer">
+      <div></div>
+      <div style="display:flex;gap:12px;">
+        <button class="proof-btn" onclick="closeModal()">Dismiss</button>
+        <button class="proof-btn primary" onclick="closeModal()">Confirm</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10" />
+    </svg>
+  </button>
+  <button class="tab-btn">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+    </svg>
+  </button>
+  <button class="tab-btn">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 2L2 7l10 5 10-5-10-5z" />
+      <path d="M2 17l10 5 10-5" />
+      <path d="M2 12l10 5 10-5" />
+    </svg>
+  </button>
+  <button class="tab-btn">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="4" y1="21" x2="4" y2="14" />
+      <line x1="12" y1="21" x2="12" y2="12" />
+      <line x1="20" y1="21" x2="20" y2="16" />
+      <line x1="1" y1="14" x2="7" y2="14" />
+      <line x1="9" y1="8" x2="15" y2="8" />
+      <line x1="17" y1="16" x2="23" y2="16" />
+    </svg>
+  </button>
+  <button class="tab-btn">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  </button>
+</div>
+
+<script>
+function openModal() {
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+function toggleCheck(el) {
+  var box = el.querySelector('.check-box');
+  box.classList.toggle('checked');
+}
+
+function toggleSwitch(el) {
+  var track = el.querySelector('.toggle-track');
+  track.classList.toggle('on');
+}
+
+// Tab bar interaction
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+  });
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+</script>
+</body>
+</html>

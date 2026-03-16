@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atlas Reference — Component Showcase</title>
+<style>
+  :root {
+    --comp-bg: oklch(1.00 0 0);
+    --comp-text: oklch(0.13 0 0);
+    --comp-border: oklch(0.93 0 0);
+    --comp-accent: oklch(0.62 0.24 25);
+    --comp-accent-text: oklch(0.13 0 0);
+    --comp-muted: oklch(0.66 0 0);
+    --color-background: oklch(1.00 0 0);
+    --atlas-brand-bg: oklch(0.62 0.24 25);
+    --atlas-brand-border: oklch(0 0 0 / 0.08);
+    --atlas-brand-hover: oklch(0 0 0 / 0.05);
+    --font-sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --font-serif: 'Georgia', Times, serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--comp-bg);
+    color: var(--comp-text);
+    height: 100vh;
+    display: flex;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .layout {
+    display: flex;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Brand Panel */
+  .panel-brand {
+    width: 45%;
+    background: var(--comp-accent);
+    color: var(--comp-accent-text);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--atlas-brand-border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .brand-header {
+    padding: 36px 40px 24px;
+    border-bottom: 1px solid var(--atlas-brand-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .logo {
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    text-transform: uppercase;
+  }
+  .logo span {
+    font-weight: 400;
+    opacity: 0.6;
+  }
+  .brand-tag {
+    font-size: 11px;
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Data Grid */
+  .data-grid {
+    display: flex;
+    flex: 1;
+    position: relative;
+    z-index: 10;
+    overflow: hidden;
+  }
+  .grid-col {
+    flex: 1;
+    border-right: 1px solid var(--atlas-brand-border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .grid-col:last-child { border-right: none; }
+  .col-header {
+    font-size: 11px;
+    opacity: 0.5;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--atlas-brand-border);
+    font-family: var(--font-serif);
+    font-style: italic;
+    flex-shrink: 0;
+  }
+  .nav-item {
+    display: block;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--atlas-brand-border);
+    text-decoration: none;
+    color: var(--comp-accent-text);
+    font-size: 13px;
+    transition: all 0.2s;
+    cursor: pointer;
+    line-height: 1.3;
+  }
+  .nav-item:hover {
+    background: var(--atlas-brand-hover);
+    padding-left: 28px;
+  }
+  .nav-item .nav-sub {
+    display: block;
+    font-size: 11px;
+    opacity: 0.55;
+    margin-top: 2px;
+  }
+
+  /* Orb */
+  .orb-container {
+    position: absolute;
+    bottom: -12%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 55%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.85;
+  }
+  .orb {
+    width: 360px; height: 360px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle at 30% 30%,
+      oklch(0.72 0.18 25) 0%,
+      var(--comp-accent) 50%,
+      oklch(0.48 0.20 25) 100%
+    );
+    box-shadow: inset -40px -40px 100px rgba(0,0,0,0.2);
+    position: relative;
+  }
+  .orb-texture {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 70% 20%, rgba(0,0,0,0.1) 0%, transparent 10%),
+      radial-gradient(circle at 20% 60%, rgba(0,0,0,0.1) 0%, transparent 20%);
+    mix-blend-mode: multiply;
+  }
+
+  .brand-footer {
+    padding: 20px 24px;
+    border-top: 1px solid var(--atlas-brand-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    background: var(--comp-accent);
+    position: relative;
+    z-index: 20;
+  }
+  .brand-footer-text {
+    opacity: 0.7;
+    font-size: 12px;
+  }
+
+  /* Content Panel */
+  .panel-content {
+    width: 55%;
+    background: var(--comp-bg);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 40px 72px;
+  }
+
+  .meta-label {
+    font-size: 12px;
+    color: var(--comp-muted);
+    margin-bottom: 36px;
+    display: block;
+    border-bottom: 1px solid var(--comp-border);
+    padding-bottom: 14px;
+    width: 100px;
+  }
+
+  h1 {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-size: 30px;
+    margin-bottom: 20px;
+    letter-spacing: -0.5px;
+    color: var(--comp-text);
+  }
+
+  .intro-text {
+    font-family: var(--font-serif);
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--comp-text);
+    max-width: 560px;
+    margin-bottom: 48px;
+  }
+
+  .section-header {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 20px;
+    color: var(--comp-muted);
+  }
+
+  /* Modal Button */
+  .btn-atlas {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 14px 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--comp-text);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 500;
+    border-bottom: 1px solid var(--comp-border);
+    transition: all 0.2s ease;
+    width: 100%;
+    text-align: left;
+  }
+  .btn-atlas:hover {
+    padding-left: 8px;
+    color: var(--comp-accent);
+  }
+  .btn-atlas-arrow {
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .btn-atlas-desc {
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--comp-muted);
+    font-size: 13px;
+    font-weight: 400;
+  }
+
+  /* Data Table */
+  .link-row {
+    display: flex;
+    align-items: baseline;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--comp-border);
+    color: var(--comp-text);
+    text-decoration: none;
+    transition: padding-left 0.2s ease;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .link-row:hover {
+    padding-left: 8px;
+    color: var(--comp-accent);
+  }
+  .link-arrow {
+    margin-right: 14px;
+    font-size: 10px;
+    flex-shrink: 0;
+    width: 16px;
+  }
+  .link-title {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    margin-right: 14px;
+    min-width: 140px;
+  }
+  .link-meta {
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--comp-muted);
+    font-size: 13px;
+    margin-right: 14px;
+    flex: 1;
+  }
+  .link-value {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+
+  /* Form Controls */
+  .form-section {
+    margin-top: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-label {
+    font-size: 12px;
+    color: var(--comp-muted);
+    border-bottom: 1px solid var(--comp-border);
+    padding-bottom: 6px;
+    width: 80px;
+  }
+  .form-input {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    padding: 10px 0;
+    border: none;
+    border-bottom: 1px solid var(--comp-border);
+    background: transparent;
+    color: var(--comp-text);
+    outline: none;
+    font-weight: 400;
+    transition: border-color 0.2s;
+    width: 100%;
+    max-width: 400px;
+  }
+  .form-input::placeholder { color: var(--comp-muted); }
+  .form-input:focus { border-color: var(--comp-accent); }
+
+  .form-select {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    padding: 10px 28px 10px 0;
+    border: none;
+    border-bottom: 1px solid var(--comp-border);
+    background: transparent;
+    color: var(--comp-text);
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    max-width: 400px;
+    width: 100%;
+    transition: border-color 0.2s;
+  }
+  .form-select:focus { border-color: var(--comp-accent); }
+  .select-wrap {
+    position: relative;
+    max-width: 400px;
+  }
+  .select-indicator {
+    position: absolute;
+    right: 0; top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--comp-muted);
+    font-size: 12px;
+  }
+
+  /* Checkbox */
+  .check-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--comp-border);
+    cursor: pointer;
+    transition: padding-left 0.2s;
+  }
+  .check-row:hover { padding-left: 8px; }
+  .check-box {
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--comp-border);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    background: transparent;
+  }
+  .check-row.checked .check-box {
+    background: var(--comp-accent);
+    border-color: var(--comp-accent);
+  }
+  .check-mark {
+    display: none;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .check-row.checked .check-mark { display: block; }
+  .check-text {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--comp-text);
+  }
+  .check-row:hover .check-text { color: var(--comp-accent); }
+
+  /* Toggle */
+  .toggle-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--comp-border);
+  }
+  .toggle-text {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--comp-text);
+  }
+  .toggle-switch {
+    width: 44px; height: 24px;
+    background: var(--comp-border);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+    border: none;
+  }
+  .toggle-switch.on { background: var(--comp-accent); }
+  .toggle-knob {
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .toggle-switch.on .toggle-knob { transform: translateX(20px); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: oklch(0 0 0 / 0.3);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    background: var(--comp-bg);
+    width: 90%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--comp-border);
+  }
+  .modal-header {
+    padding: 28px 36px 20px;
+    border-bottom: 1px solid var(--comp-border);
+  }
+  .modal-header h2 {
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-size: 24px;
+    letter-spacing: -0.3px;
+  }
+  .modal-content {
+    padding: 24px 36px;
+  }
+  .modal-content p {
+    font-family: var(--font-serif);
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--comp-text);
+  }
+  .modal-footer {
+    padding: 20px 36px;
+    border-top: 1px solid var(--comp-border);
+    display: flex;
+    gap: 20px;
+  }
+  .modal-btn {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--comp-text);
+    transition: color 0.2s;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .modal-btn:hover { color: var(--comp-accent); }
+  .modal-btn-primary { color: var(--comp-accent); }
+
+  /* Scrollbar */
+  .panel-content::-webkit-scrollbar { width: 4px; }
+  .panel-content::-webkit-scrollbar-track { background: transparent; }
+  .panel-content::-webkit-scrollbar-thumb { background: var(--comp-border); border-radius: 2px; }
+  .grid-col::-webkit-scrollbar { width: 3px; }
+  .grid-col::-webkit-scrollbar-track { background: transparent; }
+  .grid-col::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); }
+
+  @media (max-width: 900px) {
+    .layout { flex-direction: column; overflow-y: auto; }
+    .panel-brand, .panel-content { width: 100%; overflow: visible; }
+    .panel-brand { height: auto; min-height: 360px; }
+    .panel-content { padding: 36px 24px; }
+    .orb-container { position: relative; bottom: auto; height: 240px; margin: 24px 0; }
+    .orb { width: 180px; height: 180px; }
+    body { overflow: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- Brand Panel -->
+  <aside class="panel-brand">
+    <header class="brand-header">
+      <div class="logo">Atlas <span>(Reference)</span></div>
+      <div class="brand-tag">Component Catalog</div>
+    </header>
+
+    <div class="data-grid">
+      <div class="grid-col">
+        <div class="col-header">I &mdash; Controls</div>
+        <a class="nav-item">Text Input<span class="nav-sub">Single-line field</span></a>
+        <a class="nav-item">Select Menu<span class="nav-sub">Dropdown picker</span></a>
+        <a class="nav-item">Checkbox<span class="nav-sub">Multi-select boolean</span></a>
+        <a class="nav-item">Toggle<span class="nav-sub">Binary switch</span></a>
+      </div>
+      <div class="grid-col">
+        <div class="col-header">II &mdash; Display</div>
+        <a class="nav-item">Data Table<span class="nav-sub">5-row reference grid</span></a>
+        <a class="nav-item">Modal Dialog<span class="nav-sub">Overlay panel</span></a>
+        <a class="nav-item">Link Row<span class="nav-sub">Navigation pattern</span></a>
+        <a class="nav-item">Meta Label<span class="nav-sub">Typographic detail</span></a>
+      </div>
+      <div class="grid-col">
+        <div class="col-header">III &mdash; Design</div>
+        <a class="nav-item">Serif / Sans<span class="nav-sub">Dual typeface system</span></a>
+        <a class="nav-item">Red / Coral<span class="nav-sub">Bold brand color</span></a>
+        <a class="nav-item">Gradient Orb<span class="nav-sub">Decorative element</span></a>
+        <a class="nav-item">Split Panel<span class="nav-sub">45% / 55% layout</span></a>
+      </div>
+    </div>
+
+    <div class="orb-container">
+      <div class="orb"><div class="orb-texture"></div></div>
+    </div>
+
+    <footer class="brand-footer">
+      <span class="brand-footer-text">6 Components</span>
+      <span class="brand-footer-text">2026 Edition</span>
+    </footer>
+  </aside>
+
+  <!-- Content Panel -->
+  <main class="panel-content">
+    <span class="meta-label">Nr. 001 / 2026</span>
+
+    <h1>Component Showcase</h1>
+
+    <p class="intro-text">
+      This page demonstrates the Atlas Reference design language across six core
+      UI components. The bold coral panel organizes metadata into Roman-numbered
+      columns, while the white content panel presents each element with editorial
+      precision and generous whitespace.
+    </p>
+
+    <!-- Open Modal -->
+    <div style="margin-bottom:40px">
+      <div class="section-header">Modal Dialog</div>
+      <button class="btn-atlas" id="openModal">
+        <span class="btn-atlas-arrow">&darr;</span>
+        <span class="link-title">Open Modal</span>
+        <span class="btn-atlas-desc">Click to view overlay dialog</span>
+      </button>
+    </div>
+
+    <!-- Data Table -->
+    <div style="margin-bottom:40px">
+      <div class="section-header">Reference Data</div>
+      <div class="link-row">
+        <span class="link-arrow">&darr;</span>
+        <span class="link-title">Helium</span>
+        <span class="link-meta">Noble gas, atomic nr. 2</span>
+        <span class="link-value">4.003 u</span>
+      </div>
+      <div class="link-row">
+        <span class="link-arrow">&darr;</span>
+        <span class="link-title">Carbon</span>
+        <span class="link-meta">Nonmetal, atomic nr. 6</span>
+        <span class="link-value">12.011 u</span>
+      </div>
+      <div class="link-row">
+        <span class="link-arrow">&darr;</span>
+        <span class="link-title">Neon</span>
+        <span class="link-meta">Noble gas, atomic nr. 10</span>
+        <span class="link-value">20.180 u</span>
+      </div>
+      <div class="link-row">
+        <span class="link-arrow">&darr;</span>
+        <span class="link-title">Iron</span>
+        <span class="link-meta">Transition metal, atomic nr. 26</span>
+        <span class="link-value">55.845 u</span>
+      </div>
+      <div class="link-row">
+        <span class="link-arrow">&darr;</span>
+        <span class="link-title">Gold</span>
+        <span class="link-meta">Transition metal, atomic nr. 79</span>
+        <span class="link-value">196.97 u</span>
+      </div>
+    </div>
+
+    <!-- Form Controls -->
+    <div class="form-section">
+      <div class="section-header">Form Controls</div>
+
+      <!-- Text Input -->
+      <div class="form-group">
+        <label class="form-label">Query</label>
+        <input type="text" class="form-input" placeholder="Search the atlas...">
+      </div>
+
+      <!-- Select -->
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <div class="select-wrap">
+          <select class="form-select">
+            <option>Noble Gases</option>
+            <option>Alkali Metals</option>
+            <option>Transition Metals</option>
+            <option>Nonmetals</option>
+            <option>Lanthanides</option>
+          </select>
+          <span class="select-indicator">&#9662;</span>
+        </div>
+      </div>
+
+      <!-- Checkbox -->
+      <div class="form-group">
+        <label class="form-label">Filters</label>
+        <div class="check-list">
+          <div class="check-row checked" onclick="this.classList.toggle('checked')">
+            <div class="check-box"><span class="check-mark">&#10003;</span></div>
+            <span class="check-text">Include synthetic elements</span>
+          </div>
+          <div class="check-row" onclick="this.classList.toggle('checked')">
+            <div class="check-box"><span class="check-mark">&#10003;</span></div>
+            <span class="check-text">Show isotope variants</span>
+          </div>
+          <div class="check-row checked" onclick="this.classList.toggle('checked')">
+            <div class="check-box"><span class="check-mark">&#10003;</span></div>
+            <span class="check-text">Display orbital diagrams</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Toggle -->
+      <div class="form-group">
+        <label class="form-label">Settings</label>
+        <div class="toggle-list">
+          <div class="toggle-row">
+            <span class="toggle-text">Compact view</span>
+            <button class="toggle-switch on" onclick="this.classList.toggle('on')">
+              <span class="toggle-knob"></span>
+            </button>
+          </div>
+          <div class="toggle-row">
+            <span class="toggle-text">Auto-refresh data</span>
+            <button class="toggle-switch" onclick="this.classList.toggle('on')">
+              <span class="toggle-knob"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Atlas Reference Dialog</h2>
+    </div>
+    <div class="modal-content">
+      <p>
+        This modal follows the Atlas editorial design language &mdash; clean white
+        background, light-weight heading at 400, Georgia serif body text, and
+        subtle border separators. No shadows, no rounded corners. The
+        authority comes from the content and structure.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn modal-btn-primary" id="modalOk">
+        <span>&darr;</span> Confirm
+      </button>
+      <button class="modal-btn" id="modalCancel">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('openModal').addEventListener('click', function() {
+    document.getElementById('modal').classList.add('open');
+  });
+  document.getElementById('modalOk').addEventListener('click', function() {
+    document.getElementById('modal').classList.remove('open');
+  });
+  document.getElementById('modalCancel').addEventListener('click', function() {
+    document.getElementById('modal').classList.remove('open');
+  });
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hearth Sim — Component Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-start: oklch(0.18 0.10 300);
+    --bg-end: oklch(0.12 0.09 300);
+    --primary: oklch(0.38 0.17 295);
+    --primary-dark: oklch(0.30 0.15 295);
+    --primary-light: oklch(0.47 0.18 295);
+    --accent-green: oklch(0.70 0.15 155);
+    --accent-gold: oklch(0.88 0.18 95);
+    --danger: oklch(0.55 0.20 25);
+    --text: oklch(1.00 0.000 0);
+    --text-purple: oklch(0.25 0.16 295);
+    --card-bg: oklch(0.38 0.17 295 / 0.4);
+    --border: oklch(1.00 0.000 0 / 0.1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+    color: var(--text);
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Background Grid + Pattern */
+  .scene-bg {
+    position: fixed; inset: 0; z-index: 0;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(94,38,165,0.2) 0%, rgba(0,0,0,0.6) 80%),
+      repeating-linear-gradient(0deg, transparent 0, transparent 49px, rgba(255,255,255,0.05) 50px),
+      repeating-linear-gradient(90deg, transparent 0, transparent 49px, rgba(255,255,255,0.05) 50px);
+    pointer-events: none;
+  }
+
+  /* Gold SVG Pattern Overlay */
+  .pattern-overlay {
+    position: fixed; inset: 0; z-index: 0;
+    opacity: 0.06;
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='20' fill='none' stroke='%23FFD700' stroke-width='0.5'/%3E%3Ccircle cx='50' cy='50' r='35' fill='none' stroke='%23FFD700' stroke-width='0.3'/%3E%3Cpath d='M25 25 L75 75 M75 25 L25 75' stroke='%23FFD700' stroke-width='0.3'/%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+
+  .app-content {
+    position: relative;
+    z-index: 1;
+    padding: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* Control Pill Header */
+  .control-pill {
+    background: var(--primary);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 50px;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    backdrop-filter: blur(10px);
+    margin-bottom: 24px;
+    justify-content: space-between;
+  }
+  .pill-title {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent-gold);
+    text-shadow: 0 2px 0 var(--primary-dark);
+  }
+  .pill-meta {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent-gold);
+    opacity: 0.8;
+  }
+
+  /* Section Title */
+  .section-title {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent-gold);
+    text-shadow: 0 2px 0 var(--primary-dark);
+    margin-bottom: 14px;
+  }
+
+  /* Plumbob */
+  .plumbob {
+    display: inline-block;
+    filter: drop-shadow(0 0 8px rgba(0, 255, 127, 0.6));
+    animation: floatPlumb 2s ease-in-out infinite;
+  }
+  @keyframes floatPlumb {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+
+  /* Character Card */
+  .character-card {
+    background: rgba(94, 38, 165, 0.4);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 14px;
+    display: grid;
+    grid-template-columns: 52px 1fr 28px;
+    gap: 14px;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+  }
+  .character-card:hover {
+    background: rgba(94, 38, 165, 0.6);
+    border-color: rgba(255, 215, 0, 0.3);
+    transform: translateX(4px);
+  }
+  .character-card.active {
+    background: var(--primary);
+    border-color: var(--accent-gold);
+    box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+    transform: none;
+  }
+  .char-portrait {
+    width: 52px; height: 52px;
+    background: var(--primary-light);
+    border-radius: 16px;
+    border: 3px solid var(--accent-gold);
+    display: grid;
+    place-items: center;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: white;
+  }
+  .char-name {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 17px;
+    font-weight: 600;
+  }
+  .char-level {
+    font-size: 12px;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Stats Card */
+  .stats-card {
+    background: var(--primary);
+    border-radius: 24px 8px 24px 24px;
+    padding: 28px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .stats-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 12px;
+    background: var(--accent-green);
+    border-radius: 0 0 24px 24px;
+    -webkit-mask-image: radial-gradient(circle at 10px 0px, transparent 10px, black 11px);
+    -webkit-mask-size: 20px 20px;
+    -webkit-mask-position: 0 -10px;
+    -webkit-mask-repeat: repeat-x;
+    mask-image: radial-gradient(circle at 10px 0px, transparent 10px, black 11px);
+    mask-size: 20px 20px;
+    mask-position: 0 -10px;
+    mask-repeat: repeat-x;
+  }
+
+  /* Stat Bar */
+  .stat-row {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .stat-icon {
+    width: 28px; height: 28px;
+    display: grid;
+    place-items: center;
+  }
+  .stat-icon svg {
+    width: 20px; height: 20px;
+    stroke: white;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .bar-container {
+    height: 28px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 14px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 14px;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2);
+    transition: width 0.3s;
+  }
+  .bar-fill.high { background: var(--accent-green); }
+  .bar-fill.med  { background: var(--accent-gold); }
+  .bar-fill.low  { background: var(--danger); }
+  .stat-label {
+    position: absolute;
+    left: 12px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.9);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    z-index: 2;
+  }
+  .stat-value {
+    position: absolute;
+    right: 12px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    z-index: 2;
+  }
+
+  /* Data Table Card */
+  .table-card {
+    background: rgba(94, 38, 165, 0.4);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .table-header {
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .hearth-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .hearth-table thead th {
+    text-align: left;
+    padding: 12px 20px;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent-gold);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .hearth-table tbody td {
+    padding: 12px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .hearth-table tbody tr:last-child td { border-bottom: none; }
+  .hearth-table tbody tr:hover {
+    background: rgba(94, 38, 165, 0.3);
+  }
+  .mood-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .mood-dot.green { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+  .mood-dot.gold { background: var(--accent-gold); box-shadow: 0 0 6px var(--accent-gold); }
+  .mood-dot.red { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+
+  /* Form Controls */
+  .form-card {
+    background: rgba(94, 38, 165, 0.4);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .form-label {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent-gold);
+  }
+  .hearth-input {
+    background: rgba(94, 38, 165, 0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 10px 16px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    color: white;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .hearth-input::placeholder {
+    color: rgba(255,255,255,0.3);
+  }
+  .hearth-input:focus {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 8px rgba(255,215,0,0.15);
+  }
+  .hearth-select {
+    background: rgba(94, 38, 165, 0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 10px 16px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    color: white;
+    outline: none;
+    appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6' fill='none' stroke='%23FFD700' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    transition: border-color 0.2s;
+  }
+  .hearth-select option {
+    background: #2a104a;
+    color: white;
+  }
+  .hearth-select:focus {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 8px rgba(255,215,0,0.15);
+  }
+
+  /* Switches */
+  .switches-card {
+    background: rgba(94, 38, 165, 0.4);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .switches-row {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  /* Checkbox */
+  .hearth-check-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+  .hearth-check {
+    width: 22px; height: 22px;
+    background: rgba(94, 38, 165, 0.5);
+    border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .hearth-check.checked {
+    background: var(--accent-gold);
+    border-color: var(--accent-gold);
+  }
+  .hearth-check.checked::after {
+    content: '';
+    width: 10px; height: 6px;
+    border-left: 2.5px solid var(--text-purple);
+    border-bottom: 2.5px solid var(--text-purple);
+    transform: rotate(-45deg) translateY(-1px);
+  }
+  .hearth-check-text {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  /* Toggle */
+  .hearth-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .hearth-toggle-label {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.7);
+  }
+  .hearth-toggle {
+    width: 52px;
+    height: 28px;
+    background: rgba(0,0,0,0.3);
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 14px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .hearth-toggle .orb {
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.5);
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .hearth-toggle.on {
+    background: var(--accent-green);
+    border-color: var(--accent-green);
+  }
+  .hearth-toggle.on .orb {
+    transform: translateX(24px);
+    background: white;
+    box-shadow: 0 0 8px rgba(255,255,255,0.4);
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26, 8, 51, 0.85);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(6px);
+  }
+  .modal-overlay.open {
+    display: flex;
+  }
+  .modal-card {
+    width: 90%;
+    max-width: 480px;
+    background: var(--primary);
+    border: 2px solid var(--accent-gold);
+    border-radius: 24px 24px 16px 24px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 30px rgba(255,215,0,0.15);
+    overflow: hidden;
+    position: relative;
+  }
+  .modal-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 10px;
+    background: var(--accent-gold);
+    border-radius: 0 0 14px 22px;
+    -webkit-mask-image: radial-gradient(circle at 10px 0px, transparent 10px, black 11px);
+    -webkit-mask-size: 20px 20px;
+    -webkit-mask-position: 0 -10px;
+    -webkit-mask-repeat: repeat-x;
+    mask-image: radial-gradient(circle at 10px 0px, transparent 10px, black 11px);
+    mask-size: 20px 20px;
+    mask-position: 0 -10px;
+    mask-repeat: repeat-x;
+  }
+  .modal-top {
+    padding: 24px 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .modal-title {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent-gold);
+    text-shadow: 0 2px 0 var(--primary-dark);
+  }
+  .modal-close {
+    width: 32px; height: 32px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: all 0.2s;
+  }
+  .modal-close:hover {
+    background: var(--danger);
+  }
+  .modal-body {
+    padding: 16px 24px 8px;
+    font-size: 14px;
+    line-height: 1.7;
+    opacity: 0.85;
+  }
+
+  /* Mood Bubble in Modal */
+  .mood-bubble {
+    background: var(--accent-green);
+    color: var(--text);
+    padding: 10px 24px;
+    border-radius: 16px 16px 16px 0;
+    font-family: 'Fredoka', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    box-shadow: 0 6px 16px rgba(68, 189, 118, 0.4);
+    animation: floatBubble 3s ease-in-out infinite;
+    display: inline-block;
+    margin: 12px 24px 12px;
+  }
+  @keyframes floatBubble {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+
+  .modal-actions {
+    padding: 16px 24px 28px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .hearth-btn {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 24px;
+    border-radius: 12px;
+    border: 2px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.08);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .hearth-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .hearth-btn.primary {
+    background: var(--accent-gold);
+    border-color: var(--accent-gold);
+    color: var(--text-purple);
+    font-weight: 600;
+  }
+  .hearth-btn.primary:hover {
+    box-shadow: 0 6px 16px rgba(255,215,0,0.3);
+  }
+
+  /* Open Modal Button */
+  .open-btn {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 20px;
+    border-radius: 12px;
+    border: 2px solid var(--accent-gold);
+    background: var(--primary);
+    color: var(--accent-gold);
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .open-btn:hover {
+    background: var(--primary-light);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(255,215,0,0.3);
+  }
+
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+    .character-card { grid-template-columns: 44px 1fr 24px; gap: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="scene-bg"></div>
+<div class="pattern-overlay"></div>
+
+<div class="app-content">
+
+  <!-- Header Pill -->
+  <div class="control-pill">
+    <div class="pill-title">Hearth Sim</div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span class="pill-meta">DAY 14</span>
+      <svg class="plumbob" viewBox="0 0 100 120" width="20" height="24">
+        <defs>
+          <linearGradient id="plumbGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#00FF7F"/>
+            <stop offset="100%" stop-color="#00C9A7"/>
+          </linearGradient>
+        </defs>
+        <path d="M50 10 L80 50 L50 90 L20 50 Z" fill="url(#plumbGrad)" opacity="0.85"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Modal Trigger + Title Row -->
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+    <div class="section-title">Household</div>
+    <button class="open-btn" onclick="openModal()">Open Modal</button>
+  </div>
+
+  <!-- Character Cards -->
+  <div class="character-card active" onclick="selectCard(this)">
+    <div class="char-portrait">B</div>
+    <div>
+      <div class="char-name">Barnaby</div>
+      <div class="char-level">Young Adult</div>
+    </div>
+    <svg class="plumbob" viewBox="0 0 100 120" width="20" height="24">
+      <path d="M50 10 L80 50 L50 90 L20 50 Z" fill="#00FF7F" opacity="0.8"/>
+    </svg>
+  </div>
+  <div class="character-card" onclick="selectCard(this)">
+    <div class="char-portrait" style="border-color:#FFD700;">Z</div>
+    <div>
+      <div class="char-name">Zara</div>
+      <div class="char-level">Adult</div>
+    </div>
+    <svg class="plumbob" viewBox="0 0 100 120" width="20" height="24">
+      <path d="M50 10 L80 50 L50 90 L20 50 Z" fill="#FFD700" opacity="0.8"/>
+    </svg>
+  </div>
+  <div class="character-card" onclick="selectCard(this)" style="margin-bottom:20px;">
+    <div class="char-portrait" style="border-color:#E74C3C;">M</div>
+    <div>
+      <div class="char-name">Max</div>
+      <div class="char-level">Child</div>
+    </div>
+    <svg class="plumbob" viewBox="0 0 100 120" width="20" height="24">
+      <path d="M50 10 L80 50 L50 90 L20 50 Z" fill="#FF6B6B" opacity="0.8"/>
+    </svg>
+  </div>
+
+  <!-- Stats Card with Bars -->
+  <div class="section-title">Needs</div>
+  <div class="stats-card">
+    <div class="stat-row">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zm4-5v3m4-3v3m4-3v3"/></svg>
+      </div>
+      <div class="bar-container">
+        <span class="stat-label">Hunger</span>
+        <span class="stat-value">45%</span>
+        <div class="bar-fill med" style="width:45%;"></div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2m8-10a4 4 0 100-8 4 4 0 000 8zm11 4v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      </div>
+      <div class="bar-container">
+        <span class="stat-label">Social</span>
+        <span class="stat-value">80%</span>
+        <div class="bar-fill high" style="width:80%;"></div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      </div>
+      <div class="bar-container">
+        <span class="stat-label">Fun</span>
+        <span class="stat-value">20%</span>
+        <div class="bar-fill low" style="width:20%;"></div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      </div>
+      <div class="bar-container">
+        <span class="stat-label">Energy</span>
+        <span class="stat-value">80%</span>
+        <div class="bar-fill high" style="width:80%;"></div>
+      </div>
+    </div>
+    <div class="stat-row" style="margin-bottom:0;">
+      <div class="stat-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>
+      </div>
+      <div class="bar-container">
+        <span class="stat-label">Hygiene</span>
+        <span class="stat-value">45%</span>
+        <div class="bar-fill med" style="width:45%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="section-title">Inventory</div>
+  <div class="table-card">
+    <div class="table-header">
+      <span style="font-family:'Fredoka',sans-serif; font-weight:500; color:var(--accent-gold);">Items</span>
+      <span style="font-size:12px; opacity:0.6;">5 total</span>
+    </div>
+    <table class="hearth-table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Type</th>
+          <th>Quality</th>
+          <th>Value</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Enchanted Lamp</td>
+          <td>Decor</td>
+          <td><span class="mood-dot green"></span>Excellent</td>
+          <td style="color:var(--accent-gold);">1,250</td>
+          <td>Placed</td>
+        </tr>
+        <tr>
+          <td>Oak Bookshelf</td>
+          <td>Storage</td>
+          <td><span class="mood-dot green"></span>Good</td>
+          <td style="color:var(--accent-gold);">800</td>
+          <td>Placed</td>
+        </tr>
+        <tr>
+          <td>Crystal Vase</td>
+          <td>Decor</td>
+          <td><span class="mood-dot gold"></span>Fair</td>
+          <td style="color:var(--accent-gold);">450</td>
+          <td>Stored</td>
+        </tr>
+        <tr>
+          <td>Velvet Sofa</td>
+          <td>Comfort</td>
+          <td><span class="mood-dot red"></span>Worn</td>
+          <td style="color:var(--accent-gold);">300</td>
+          <td>Repair</td>
+        </tr>
+        <tr>
+          <td>Music Box</td>
+          <td>Fun</td>
+          <td><span class="mood-dot green"></span>Excellent</td>
+          <td style="color:var(--accent-gold);">950</td>
+          <td>Placed</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Form Controls -->
+  <div class="section-title">Settings</div>
+  <div class="form-card">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Character Name</label>
+        <input type="text" class="hearth-input" placeholder="Enter name...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Life Stage</label>
+        <select class="hearth-select">
+          <option>Toddler</option>
+          <option>Child</option>
+          <option>Teen</option>
+          <option selected>Young Adult</option>
+          <option>Adult</option>
+          <option>Elder</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Switches -->
+  <div class="switches-card">
+    <div class="section-title" style="margin-bottom:16px;">Options</div>
+    <div class="switches-row">
+      <div class="hearth-check-wrap" onclick="toggleHCheck(this)">
+        <div class="hearth-check checked"></div>
+        <span class="hearth-check-text">Free Will</span>
+      </div>
+      <div class="hearth-check-wrap" onclick="toggleHCheck(this)">
+        <div class="hearth-check"></div>
+        <span class="hearth-check-text">Aging</span>
+      </div>
+      <div class="hearth-toggle-wrap">
+        <span class="hearth-toggle-label">Autonomy</span>
+        <div class="hearth-toggle on" onclick="toggleHTog(this)">
+          <div class="orb"></div>
+        </div>
+      </div>
+      <div class="hearth-toggle-wrap">
+        <span class="hearth-toggle-label">Needs Decay</span>
+        <div class="hearth-toggle" onclick="toggleHTog(this)">
+          <div class="orb"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOut(event)">
+  <div class="modal-card">
+    <div class="modal-top">
+      <div class="modal-title">Event Notification</div>
+      <button class="modal-close" onclick="closeModal()">x</button>
+    </div>
+    <div class="mood-bubble">Barnaby is feeling inspired!</div>
+    <div class="modal-body">
+      Barnaby has unlocked the <strong>Masterful Cooking</strong> skill after
+      completing 15 gourmet meals. New recipes are now available in the kitchen.
+      Would you like to throw a dinner party to celebrate?
+    </div>
+    <div class="modal-actions">
+      <button class="hearth-btn" onclick="closeModal()">Maybe Later</button>
+      <button class="hearth-btn primary" onclick="closeModal()">Throw Party!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openModal() {
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+  function closeModalOut(e) {
+    if (e.target === e.currentTarget) closeModal();
+  }
+  function selectCard(card) {
+    document.querySelectorAll('.character-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+  }
+  function toggleHCheck(wrap) {
+    wrap.querySelector('.hearth-check').classList.toggle('checked');
+  }
+  function toggleHTog(el) {
+    el.classList.toggle('on');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Computer Angel Heaven - Theme Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --comp-bg: oklch(0.96 0.008 80);
+    --comp-text: oklch(0.30 0.03 250);
+    --comp-text-secondary: oklch(0.55 0.04 260);
+    --comp-heading: oklch(0.25 0.03 250);
+    --comp-accent: oklch(0.78 0.12 85);
+    --comp-accent-hover: oklch(0.72 0.14 80);
+    --comp-accent-text: oklch(0.98 0.005 90);
+    --comp-secondary: oklch(0.80 0.06 240);
+    --comp-secondary-hover: oklch(0.74 0.08 240);
+    --comp-tertiary: oklch(0.82 0.06 290);
+    --comp-surface: oklch(0.97 0.005 240 / 0.55);
+    --comp-surface-hover: oklch(0.97 0.005 240 / 0.70);
+    --comp-surface-active: oklch(0.98 0.01 85 / 0.60);
+    --comp-border: oklch(0.92 0.01 240 / 0.40);
+    --comp-border-accent: oklch(0.78 0.12 85 / 0.50);
+    --comp-shadow: oklch(0.70 0.05 250 / 0.12);
+    --comp-glow: oklch(0.85 0.08 85 / 0.40);
+    --comp-sparkle: oklch(0.95 0.03 240 / 0.80);
+    --comp-input-bg: oklch(0.98 0.003 240 / 0.45);
+    --comp-input-border: oklch(0.90 0.01 240 / 0.35);
+    --comp-danger: oklch(0.65 0.18 25);
+    --comp-success: oklch(0.75 0.12 155);
+    --comp-radius: 16px;
+    --comp-radius-sm: 10px;
+    --comp-radius-pill: 999px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', 'SF Pro Display', system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.65;
+    color: var(--comp-text);
+    background:
+      radial-gradient(ellipse at 30% 20%, oklch(0.94 0.02 85 / 0.4) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 80%, oklch(0.90 0.04 240 / 0.3) 0%, transparent 50%),
+      linear-gradient(170deg, oklch(0.97 0.008 80) 0%, oklch(0.93 0.02 230) 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .sparkle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 0;
+    animation: sparkle-pulse 3.5s ease-in-out infinite;
+  }
+  .sparkle:nth-child(2) { animation-delay: 0.8s; animation-duration: 4.2s; }
+  .sparkle:nth-child(3) { animation-delay: 1.5s; animation-duration: 3s; }
+  .sparkle:nth-child(4) { animation-delay: 2.2s; animation-duration: 5s; }
+  .sparkle:nth-child(5) { animation-delay: 0.3s; animation-duration: 3.8s; }
+  .sparkle:nth-child(6) { animation-delay: 1.8s; animation-duration: 4.5s; }
+
+  @keyframes sparkle-pulse {
+    0%, 100% { opacity: 0.2; transform: scale(0.8); }
+    50% { opacity: 0.7; transform: scale(1.3); }
+  }
+
+  @keyframes float-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes halo-draw {
+    from { stroke-dashoffset: 300; }
+    to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes modal-in {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes backdrop-in {
+    from { opacity: 0; backdrop-filter: blur(0); }
+    to { opacity: 1; backdrop-filter: blur(12px); }
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 40px 32px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  .page-header {
+    text-align: center;
+    margin-bottom: 48px;
+    animation: float-in 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    position: relative;
+  }
+
+  .halo-container {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+
+  .halo-ring {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 180px;
+    height: 50px;
+  }
+
+  .halo-ring ellipse {
+    stroke-dasharray: 300;
+    stroke-dashoffset: 300;
+    animation: halo-draw 1.5s cubic-bezier(0.22, 1, 0.36, 1) 0.3s forwards;
+  }
+
+  h1 {
+    font-weight: 300;
+    font-size: 2rem;
+    letter-spacing: 0.03em;
+    color: var(--comp-heading);
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+    color: var(--comp-text-secondary);
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    margin-top: 4px;
+  }
+
+  .label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--comp-text-secondary);
+    margin-bottom: 8px;
+  }
+
+  h2 {
+    font-weight: 300;
+    font-size: 1.25rem;
+    letter-spacing: 0.02em;
+    color: var(--comp-heading);
+    margin-bottom: 16px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--comp-surface);
+    backdrop-filter: blur(20px) saturate(1.2);
+    border: 1px solid var(--comp-border);
+    border-radius: var(--comp-radius);
+    padding: 28px;
+    transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+    animation: float-in 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    margin-bottom: 24px;
+  }
+
+  .card:nth-child(1) { animation-delay: 0ms; }
+  .card:nth-child(2) { animation-delay: 80ms; }
+  .card:nth-child(3) { animation-delay: 160ms; }
+  .card:nth-child(4) { animation-delay: 240ms; }
+  .card:nth-child(5) { animation-delay: 320ms; }
+
+  .card:hover {
+    background: var(--comp-surface-hover);
+    border-color: var(--comp-border-accent);
+    transform: translateY(-3px);
+    box-shadow:
+      0 8px 32px var(--comp-shadow),
+      0 0 20px var(--comp-glow);
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border: none;
+    border-radius: var(--comp-radius-pill);
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: all 250ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .btn-primary {
+    background: var(--comp-accent);
+    color: var(--comp-accent-text);
+    box-shadow: 0 2px 12px var(--comp-glow);
+  }
+
+  .btn-primary:hover {
+    background: var(--comp-accent-hover);
+    box-shadow: 0 4px 24px var(--comp-glow);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active {
+    transform: scale(0.97);
+    box-shadow: 0 1px 8px var(--comp-glow);
+  }
+
+  .btn-ghost {
+    background: var(--comp-surface);
+    backdrop-filter: blur(12px);
+    color: var(--comp-text);
+    border: 1px solid var(--comp-border);
+  }
+
+  .btn-ghost:hover {
+    background: var(--comp-surface-hover);
+    border-color: var(--comp-border-accent);
+  }
+
+  /* Tags */
+  .tag {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: var(--comp-radius-pill);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+
+  .tag-lavender { background: var(--comp-tertiary); color: var(--comp-heading); }
+  .tag-blue { background: var(--comp-secondary); color: var(--comp-heading); }
+  .tag-gold { background: var(--comp-accent); color: var(--comp-accent-text); }
+  .tag-success { background: var(--comp-success); color: var(--comp-heading); }
+
+  /* Table */
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  thead th {
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--comp-text-secondary);
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--comp-border);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid oklch(0.92 0.01 240 / 0.25);
+    transition: all 200ms ease;
+  }
+
+  tbody tr:hover {
+    background: var(--comp-surface-active);
+    border-left: 3px solid var(--comp-accent);
+  }
+
+  tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  td {
+    padding: 14px 16px;
+    vertical-align: middle;
+  }
+
+  td:first-child {
+    font-weight: 500;
+    color: var(--comp-heading);
+  }
+
+  /* Form Elements */
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--comp-text-secondary);
+    margin-bottom: 6px;
+  }
+
+  input[type="text"], select {
+    width: 100%;
+    background: var(--comp-input-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--comp-input-border);
+    border-radius: var(--comp-radius-sm);
+    padding: 10px 16px;
+    font-family: inherit;
+    font-size: 0.875rem;
+    color: var(--comp-text);
+    outline: none;
+    transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+
+  input[type="text"]:focus, select:focus {
+    border-color: var(--comp-border-accent);
+    box-shadow: 0 0 16px var(--comp-glow);
+  }
+
+  input[type="text"]::placeholder {
+    color: var(--comp-text-secondary);
+    opacity: 0.6;
+  }
+
+  /* Checkbox */
+  .checkbox-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    user-select: none;
+  }
+
+  .checkbox-wrap input[type="checkbox"] {
+    display: none;
+  }
+
+  .checkbox-box {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 1px solid var(--comp-input-border);
+    background: var(--comp-input-bg);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 250ms cubic-bezier(0.22, 1, 0.36, 1);
+    flex-shrink: 0;
+  }
+
+  .checkbox-box svg {
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 200ms ease;
+  }
+
+  .checkbox-wrap input:checked + .checkbox-box {
+    background: var(--comp-accent);
+    border-color: var(--comp-accent-hover);
+    box-shadow: 0 0 10px var(--comp-glow);
+  }
+
+  .checkbox-wrap input:checked + .checkbox-box svg {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Toggle */
+  .toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    user-select: none;
+  }
+
+  .toggle-wrap input {
+    display: none;
+  }
+
+  .toggle-track {
+    width: 48px;
+    height: 26px;
+    border-radius: 13px;
+    background: var(--comp-input-bg);
+    border: 1px solid var(--comp-input-border);
+    position: relative;
+    transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
+    flex-shrink: 0;
+  }
+
+  .toggle-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 1px 4px var(--comp-shadow);
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: all 300ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .toggle-wrap input:checked ~ .toggle-track {
+    background: var(--comp-accent);
+    border-color: var(--comp-accent-hover);
+    box-shadow: 0 0 12px var(--comp-glow);
+  }
+
+  .toggle-wrap input:checked ~ .toggle-track .toggle-thumb {
+    left: 26px;
+  }
+
+  /* Grid */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .controls-row {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .control-item {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: oklch(0.30 0.03 250 / 0.35);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 400ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal-content {
+    background: var(--comp-surface-hover);
+    backdrop-filter: blur(24px) saturate(1.3);
+    border: 1px solid var(--comp-border);
+    border-radius: var(--comp-radius);
+    padding: 32px;
+    max-width: 480px;
+    width: 90%;
+    box-shadow:
+      0 24px 60px var(--comp-shadow),
+      0 0 40px var(--comp-glow);
+    transform: scale(0.95);
+    transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .modal-overlay.open .modal-content {
+    transform: scale(1);
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .modal-header h2 {
+    margin: 0;
+  }
+
+  .modal-close {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--comp-border);
+    background: var(--comp-surface);
+    color: var(--comp-text-secondary);
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 200ms ease;
+  }
+
+  .modal-close:hover {
+    background: var(--comp-surface-hover);
+    border-color: var(--comp-border-accent);
+    color: var(--comp-heading);
+  }
+
+  .modal-body p {
+    color: var(--comp-text);
+    font-size: 0.9rem;
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+
+  .modal-footer {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+  }
+
+  /* Wing decoration */
+  .wing-accent {
+    opacity: 0.12;
+    position: absolute;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: var(--comp-border);
+    border-radius: var(--comp-radius-pill);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--comp-secondary);
+  }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .container { padding: 24px 16px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .controls-row { flex-direction: column; }
+    h1 { font-size: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Sparkle particles -->
+<svg class="sparkle" style="top:8%;left:12%;width:16px;height:16px" viewBox="0 0 20 20"><path d="M10 0 L12 8 L20 10 L12 12 L10 20 L8 12 L0 10 L8 8 Z" fill="var(--comp-sparkle)"/></svg>
+<svg class="sparkle" style="top:15%;right:18%;width:10px;height:10px" viewBox="0 0 20 20"><path d="M10 0 L12 8 L20 10 L12 12 L10 20 L8 12 L0 10 L8 8 Z" fill="var(--comp-sparkle)"/></svg>
+<svg class="sparkle" style="top:42%;left:5%;width:12px;height:12px" viewBox="0 0 20 20"><path d="M10 0 L12 8 L20 10 L12 12 L10 20 L8 12 L0 10 L8 8 Z" fill="var(--comp-sparkle)"/></svg>
+<svg class="sparkle" style="top:65%;right:8%;width:14px;height:14px" viewBox="0 0 20 20"><path d="M10 0 L12 8 L20 10 L12 12 L10 20 L8 12 L0 10 L8 8 Z" fill="var(--comp-sparkle)"/></svg>
+<svg class="sparkle" style="top:80%;left:20%;width:8px;height:8px" viewBox="0 0 20 20"><path d="M10 0 L12 8 L20 10 L12 12 L10 20 L8 12 L0 10 L8 8 Z" fill="var(--comp-sparkle)"/></svg>
+<svg class="sparkle" style="top:30%;right:30%;width:10px;height:10px" viewBox="0 0 20 20"><path d="M10 0 L12 8 L20 10 L12 12 L10 20 L8 12 L0 10 L8 8 Z" fill="var(--comp-sparkle)"/></svg>
+
+<div class="container">
+
+  <!-- Header with halo -->
+  <div class="page-header">
+    <div class="halo-container">
+      <svg class="halo-ring" viewBox="0 0 180 50">
+        <ellipse cx="90" cy="20" rx="80" ry="16" fill="none" stroke="var(--comp-accent)" stroke-width="1.5" opacity="0.5" stroke-dasharray="300"/>
+      </svg>
+      <h1>Computer Angel Heaven</h1>
+    </div>
+    <p class="subtitle">A celestial glassmorphic interface, floating above the clouds</p>
+  </div>
+
+  <!-- Modal trigger -->
+  <div class="card" style="text-align:center; animation-delay:0ms;">
+    <p class="label">Ethereal Interactions</p>
+    <h2 style="margin-bottom:12px;">Open the Gateway</h2>
+    <p style="color:var(--comp-text-secondary); font-size:0.9rem; margin-bottom:20px;">
+      Discover what lies within the frosted glass portal.
+    </p>
+    <button class="btn btn-primary" onclick="openModal()">Illuminate</button>
+  </div>
+
+  <!-- Data Table -->
+  <div class="card" style="animation-delay:80ms;">
+    <p class="label">Celestial Records</p>
+    <h2>Heavenly Registry</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Entity</th>
+            <th>Realm</th>
+            <th>Radiance</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Seraphiel</td>
+            <td style="color:var(--comp-text-secondary)">Seventh Heaven</td>
+            <td style="font-variant-numeric:tabular-nums">98.7%</td>
+            <td><span class="tag tag-gold">Ascended</span></td>
+          </tr>
+          <tr>
+            <td>Luminos</td>
+            <td style="color:var(--comp-text-secondary)">Crystal Spire</td>
+            <td style="font-variant-numeric:tabular-nums">94.2%</td>
+            <td><span class="tag tag-success">Active</span></td>
+          </tr>
+          <tr>
+            <td>Aetheria</td>
+            <td style="color:var(--comp-text-secondary)">Cloud Gardens</td>
+            <td style="font-variant-numeric:tabular-nums">91.5%</td>
+            <td><span class="tag tag-blue">Meditating</span></td>
+          </tr>
+          <tr>
+            <td>Celestine</td>
+            <td style="color:var(--comp-text-secondary)">Dawn Gate</td>
+            <td style="font-variant-numeric:tabular-nums">87.3%</td>
+            <td><span class="tag tag-lavender">Dreaming</span></td>
+          </tr>
+          <tr>
+            <td>Aurelius</td>
+            <td style="color:var(--comp-text-secondary)">Golden Archive</td>
+            <td style="font-variant-numeric:tabular-nums">85.1%</td>
+            <td><span class="tag tag-success">Active</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Form Controls -->
+  <div class="card" style="animation-delay:160ms;">
+    <p class="label">Celestial Controls</p>
+    <h2>Configure Your Realm</h2>
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="nameInput">Chosen Name</label>
+        <input type="text" id="nameInput" placeholder="Enter your celestial name...">
+      </div>
+      <div class="form-group">
+        <label for="realmSelect">Select Realm</label>
+        <select id="realmSelect">
+          <option value="">Choose a realm...</option>
+          <option value="heaven7">Seventh Heaven</option>
+          <option value="crystal">Crystal Spire</option>
+          <option value="cloud">Cloud Gardens</option>
+          <option value="dawn">Dawn Gate</option>
+          <option value="archive">Golden Archive</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkbox & Toggle -->
+  <div class="card" style="animation-delay:240ms;">
+    <p class="label">Preferences</p>
+    <h2>Tune Your Experience</h2>
+    <div class="controls-row">
+      <div class="control-item">
+        <label class="checkbox-wrap">
+          <input type="checkbox" checked>
+          <span class="checkbox-box">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M2.5 7.5L5.5 10.5L11.5 3.5" stroke="var(--comp-accent-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          Enable sparkle particles
+        </label>
+        <div style="height:12px"></div>
+        <label class="checkbox-wrap">
+          <input type="checkbox">
+          <span class="checkbox-box">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M2.5 7.5L5.5 10.5L11.5 3.5" stroke="var(--comp-accent-text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          Receive divine notifications
+        </label>
+      </div>
+      <div class="control-item">
+        <label class="toggle-wrap" onclick="this.querySelector('input').click()">
+          <input type="checkbox" checked>
+          <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          Cloud sync enabled
+        </label>
+        <div style="height:12px"></div>
+        <label class="toggle-wrap" onclick="this.querySelector('input').click()">
+          <input type="checkbox">
+          <div class="toggle-track"><div class="toggle-thumb"></div></div>
+          Ambient halo glow
+        </label>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>A Gentle Revelation</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p>
+        You have opened a portal into the celestial interface. Here, frosted glass
+        panels hover weightlessly above a pearlescent sky, illuminated by golden
+        halo accents and scattered sparkle particles.
+      </p>
+      <p>
+        Every interaction is slow and graceful. Nothing snaps into place --
+        everything drifts, like a benevolent digital consciousness guiding you
+        through a world of quiet wonder.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Retreat</button>
+      <button class="btn btn-primary" onclick="closeModal()">Ascend</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+  }
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+</script>
+</body>
+</html>

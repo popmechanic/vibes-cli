@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDGE INTERFACE</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --pink: #ff0077;
+  --yellow: #fcee0a;
+  --cyan: #00f0ff;
+  --void: #0a0205;
+  --vignette: #2a0a2e;
+  --panel-bg: rgba(15, 5, 20, 0.85);
+  --panel-border: rgba(255, 0, 119, 0.6);
+  --chamfer: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
+  --font-display: 'Orbitron', sans-serif;
+  --font-body: 'Rajdhani', sans-serif;
+  --font-mono: 'Share Tech Mono', monospace;
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pink) var(--void);
+}
+
+body {
+  background-color: var(--void);
+  color: #e0d0e8;
+  font-family: var(--font-body);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  min-height: 100vh;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* ── CROSSHATCH BACKGROUND ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 19px,
+      rgba(255, 0, 119, 0.05) 19px,
+      rgba(255, 0, 119, 0.05) 20px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 19px,
+      rgba(255, 0, 119, 0.05) 19px,
+      rgba(255, 0, 119, 0.05) 20px
+    );
+  pointer-events: none;
+}
+
+/* ── RADIAL VIGNETTE ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(ellipse at center, var(--vignette) 0%, rgba(0, 0, 0, 0.9) 70%, #000 100%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ── SCANLINES OVERLAY ── */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.3) 2px,
+    rgba(0, 0, 0, 0.3) 4px
+  );
+}
+
+/* ── LAYOUT ── */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── GLITCH TITLE ── */
+.glitch-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(2.4rem, 6vw, 4.2rem);
+  color: var(--yellow);
+  text-align: center;
+  transform: skewX(-6deg);
+  letter-spacing: 0.15em;
+  position: relative;
+  margin-bottom: 12px;
+  text-shadow: 0 0 20px rgba(252, 238, 10, 0.4);
+}
+
+.glitch-title::before,
+.glitch-title::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.glitch-title::before {
+  color: var(--pink);
+  text-shadow: -3px 0 var(--pink);
+  animation: glitch-left 3s infinite linear alternate-reverse;
+}
+
+.glitch-title::after {
+  color: var(--cyan);
+  text-shadow: 3px 0 var(--cyan);
+  animation: glitch-right 2.5s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-left {
+  0%   { clip: rect(42px, 9999px, 44px, 0); }
+  5%   { clip: rect(12px, 9999px, 60px, 0); }
+  10%  { clip: rect(58px, 9999px, 80px, 0); }
+  15%  { clip: rect(20px, 9999px, 30px, 0); }
+  20%  { clip: rect(0px, 9999px, 10px, 0); }
+  25%  { clip: rect(35px, 9999px, 55px, 0); }
+  30%  { clip: rect(70px, 9999px, 90px, 0); }
+  35%  { clip: rect(5px, 9999px, 25px, 0); }
+  40%  { clip: rect(45px, 9999px, 65px, 0); }
+  45%  { clip: rect(15px, 9999px, 35px, 0); }
+  50%  { clip: rect(60px, 9999px, 80px, 0); }
+  55%  { clip: rect(28px, 9999px, 48px, 0); }
+  60%  { clip: rect(3px, 9999px, 18px, 0); }
+  65%  { clip: rect(50px, 9999px, 70px, 0); }
+  70%  { clip: rect(10px, 9999px, 40px, 0); }
+  75%  { clip: rect(38px, 9999px, 58px, 0); }
+  80%  { clip: rect(22px, 9999px, 42px, 0); }
+  85%  { clip: rect(65px, 9999px, 85px, 0); }
+  90%  { clip: rect(8px, 9999px, 28px, 0); }
+  95%  { clip: rect(48px, 9999px, 68px, 0); }
+  100% { clip: rect(30px, 9999px, 50px, 0); }
+}
+
+@keyframes glitch-right {
+  0%   { clip: rect(60px, 9999px, 80px, 0); }
+  5%   { clip: rect(30px, 9999px, 50px, 0); }
+  10%  { clip: rect(10px, 9999px, 30px, 0); }
+  15%  { clip: rect(50px, 9999px, 70px, 0); }
+  20%  { clip: rect(25px, 9999px, 45px, 0); }
+  25%  { clip: rect(5px, 9999px, 20px, 0); }
+  30%  { clip: rect(40px, 9999px, 60px, 0); }
+  35%  { clip: rect(15px, 9999px, 35px, 0); }
+  40%  { clip: rect(55px, 9999px, 75px, 0); }
+  45%  { clip: rect(35px, 9999px, 55px, 0); }
+  50%  { clip: rect(8px, 9999px, 28px, 0); }
+  55%  { clip: rect(45px, 9999px, 65px, 0); }
+  60%  { clip: rect(18px, 9999px, 38px, 0); }
+  65%  { clip: rect(62px, 9999px, 82px, 0); }
+  70%  { clip: rect(28px, 9999px, 48px, 0); }
+  75%  { clip: rect(2px, 9999px, 15px, 0); }
+  80%  { clip: rect(52px, 9999px, 72px, 0); }
+  85%  { clip: rect(12px, 9999px, 32px, 0); }
+  90%  { clip: rect(42px, 9999px, 62px, 0); }
+  95%  { clip: rect(22px, 9999px, 42px, 0); }
+  100% { clip: rect(68px, 9999px, 88px, 0); }
+}
+
+.subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--cyan);
+  text-align: center;
+  letter-spacing: 0.25em;
+  margin-bottom: 48px;
+  opacity: 0.8;
+}
+
+/* ── CORNER BRACKETS ── */
+.corner-brackets {
+  position: relative;
+  padding: 16px;
+}
+
+.corner-brackets::before,
+.corner-brackets::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+}
+
+.corner-brackets::before {
+  top: 0;
+  left: 0;
+  border-top: 2px solid var(--yellow);
+  border-left: 2px solid var(--yellow);
+}
+
+.corner-brackets::after {
+  bottom: 0;
+  right: 0;
+  border-bottom: 2px solid var(--yellow);
+  border-right: 2px solid var(--yellow);
+}
+
+/* ── CHAMFERED PANEL ── */
+.panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  clip-path: var(--chamfer);
+  padding: 28px 24px;
+  margin-bottom: 32px;
+  position: relative;
+}
+
+.panel-header {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--yellow);
+  letter-spacing: 0.2em;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 0, 119, 0.3);
+}
+
+/* ── STATUS BAR ── */
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--cyan);
+  padding: 12px 20px;
+  margin-bottom: 32px;
+  background: rgba(0, 240, 255, 0.04);
+  border: 1px solid rgba(0, 240, 255, 0.15);
+  clip-path: var(--chamfer);
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-label {
+  color: rgba(224, 208, 232, 0.5);
+}
+
+.signal-blocks {
+  display: flex;
+  gap: 2px;
+}
+
+.signal-block {
+  width: 6px;
+  height: 12px;
+  background: var(--cyan);
+  opacity: 0.3;
+}
+
+.signal-block.active {
+  opacity: 1;
+}
+
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pink);
+  font-weight: 600;
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background: #ff2244;
+  border-radius: 50%;
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px #ff2244; }
+  50% { opacity: 0.3; box-shadow: 0 0 12px #ff2244; }
+}
+
+/* ── PROGRESS BAR ── */
+.progress-track {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 0, 119, 0.1);
+  border: 1px solid rgba(255, 0, 119, 0.3);
+  clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--pink), var(--yellow));
+  transition: width 0.6s ease;
+}
+
+.progress-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--cyan);
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+/* ── BUTTONS ── */
+.btn {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--void);
+  background: var(--pink);
+  border: none;
+  padding: 12px 28px;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0 12px rgba(255, 0, 119, 0.3);
+}
+
+.btn:hover {
+  background: #ff3399;
+  box-shadow: 0 0 24px rgba(255, 0, 119, 0.6);
+}
+
+.btn:active {
+  background: #cc0066;
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--pink);
+  border: 1px solid var(--pink);
+  box-shadow: none;
+}
+
+.btn-outline:hover {
+  background: rgba(255, 0, 119, 0.1);
+  box-shadow: 0 0 16px rgba(255, 0, 119, 0.3);
+}
+
+/* ── DATA TABLE ── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.data-table thead th {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.7rem;
+  color: var(--yellow);
+  letter-spacing: 0.2em;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--pink);
+}
+
+.data-table tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 0, 119, 0.12);
+  color: #c8b8d0;
+}
+
+.data-table tbody tr {
+  transition: background 0.15s;
+}
+
+.data-table tbody tr:hover {
+  background: rgba(255, 0, 119, 0.08);
+}
+
+.data-table .val-pink { color: var(--pink); }
+.data-table .val-cyan { color: var(--cyan); }
+.data-table .val-yellow { color: var(--yellow); }
+
+.status-active {
+  color: #00ff88;
+  text-shadow: 0 0 6px rgba(0, 255, 136, 0.4);
+}
+
+.status-pending {
+  color: var(--yellow);
+  text-shadow: 0 0 6px rgba(252, 238, 10, 0.4);
+}
+
+.status-failed {
+  color: #ff2244;
+  text-shadow: 0 0 6px rgba(255, 34, 68, 0.4);
+}
+
+/* ── FORM ELEMENTS ── */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 0.7rem;
+  color: var(--yellow);
+  letter-spacing: 0.2em;
+  margin-bottom: 8px;
+}
+
+/* Text Input */
+.text-input {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e0d0e8;
+  background: rgba(10, 2, 5, 0.9);
+  border: none;
+  border-bottom: 2px solid var(--pink);
+  padding: 12px 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.text-input::placeholder {
+  color: rgba(224, 208, 232, 0.3);
+  text-transform: uppercase;
+}
+
+.text-input:focus {
+  border-bottom-color: var(--cyan);
+  box-shadow: 0 2px 16px rgba(0, 240, 255, 0.25);
+}
+
+/* Dropdown / Select */
+.select-wrap {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.select-input {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e0d0e8;
+  background: rgba(10, 2, 5, 0.9);
+  border: 1px solid var(--pink);
+  padding: 12px 40px 12px 14px;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.select-input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 16px rgba(0, 240, 255, 0.2);
+}
+
+.select-wrap::after {
+  content: '\25BC';
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--pink);
+  font-size: 0.65rem;
+  pointer-events: none;
+}
+
+.select-input option {
+  background: #0a0205;
+  color: #e0d0e8;
+}
+
+/* Checkbox */
+.checkbox-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  color: #c8b8d0;
+  user-select: none;
+}
+
+.checkbox-wrap input[type="checkbox"] {
+  display: none;
+}
+
+.checkbox-box {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--pink);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.checkbox-wrap input[type="checkbox"]:checked + .checkbox-box {
+  background: var(--pink);
+  box-shadow: 0 0 10px rgba(255, 0, 119, 0.4);
+}
+
+.checkbox-box::after {
+  content: '';
+  width: 10px;
+  height: 6px;
+  border-left: 2px solid var(--void);
+  border-bottom: 2px solid var(--void);
+  transform: rotate(-45deg) translateY(-1px);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.checkbox-wrap input[type="checkbox"]:checked + .checkbox-box::after {
+  opacity: 1;
+}
+
+/* Toggle Switch */
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  color: #c8b8d0;
+  user-select: none;
+}
+
+.toggle-wrap input[type="checkbox"] {
+  display: none;
+}
+
+.toggle-track {
+  width: 48px;
+  height: 24px;
+  border: 2px solid var(--pink);
+  background: transparent;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.toggle-knob {
+  width: 14px;
+  height: 14px;
+  background: rgba(255, 0, 119, 0.6);
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: left 0.2s, background 0.2s;
+}
+
+.toggle-wrap input[type="checkbox"]:checked + .toggle-track {
+  background: var(--pink);
+  box-shadow: 0 0 12px rgba(255, 0, 119, 0.4);
+}
+
+.toggle-wrap input[type="checkbox"]:checked + .toggle-track .toggle-knob {
+  left: 27px;
+  background: var(--void);
+}
+
+/* ── GRID LAYOUT ── */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 700px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+.controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.controls-row > * {
+  flex: 1;
+  min-width: 180px;
+}
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(10, 2, 5, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-panel {
+  background: rgba(20, 8, 28, 0.97);
+  border: 1px solid var(--pink);
+  clip-path: var(--chamfer);
+  padding: 36px 32px;
+  max-width: 540px;
+  width: 90%;
+  box-shadow: 0 0 40px rgba(255, 0, 119, 0.3), 0 0 80px rgba(255, 0, 119, 0.1);
+  position: relative;
+  transform: translateY(20px) scale(0.97);
+  transition: transform 0.3s;
+}
+
+.modal-overlay.open .modal-panel {
+  transform: translateY(0) scale(1);
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.3rem;
+  color: var(--yellow);
+  letter-spacing: 0.15em;
+  margin-bottom: 16px;
+}
+
+.modal-body {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: #c8b8d0;
+  line-height: 1.7;
+  letter-spacing: 0.06em;
+  margin-bottom: 28px;
+}
+
+.modal-close {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  color: var(--void);
+  background: var(--pink);
+  border: none;
+  padding: 10px 24px;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0 12px rgba(255, 0, 119, 0.3);
+}
+
+.modal-close:hover {
+  background: #ff3399;
+  box-shadow: 0 0 24px rgba(255, 0, 119, 0.5);
+}
+
+/* ── HAZARD FOOTER ── */
+.hazard-footer {
+  margin-top: 48px;
+  padding: 20px 24px;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--yellow) 0px,
+    var(--yellow) 10px,
+    #111 10px,
+    #111 20px
+  );
+  text-align: center;
+  position: relative;
+}
+
+.hazard-footer-inner {
+  background: var(--void);
+  padding: 14px 24px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--yellow);
+  letter-spacing: 0.3em;
+}
+
+/* ── SECTION SPACING ── */
+.section-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--cyan);
+  letter-spacing: 0.25em;
+  margin-bottom: 20px;
+  padding-left: 4px;
+}
+
+.section-gap {
+  margin-bottom: 40px;
+}
+</style>
+</head>
+<body>
+
+<!-- SCANLINES -->
+<div class="scanlines"></div>
+
+<div class="container">
+
+  <!-- GLITCH TITLE -->
+  <h1 class="glitch-title" data-text="EDGE INTERFACE">EDGE INTERFACE</h1>
+  <p class="subtitle">// cyberpunk terminal v4.7.2 &mdash; night city uplink</p>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <div class="status-item">
+      <span class="status-label">NET:</span>
+      <span style="color:var(--cyan);">CONNECTED</span>
+      <div class="signal-blocks">
+        <div class="signal-block active"></div>
+        <div class="signal-block active"></div>
+        <div class="signal-block active"></div>
+        <div class="signal-block active"></div>
+        <div class="signal-block"></div>
+      </div>
+    </div>
+    <div class="status-item">
+      <span class="status-label">ENC:</span>
+      <span style="color:var(--cyan);">AES-256-GCM</span>
+    </div>
+    <div class="status-item">
+      <span class="status-label">MEM:</span>
+      <span style="color:var(--cyan);">2.4 GB / 8.0 GB</span>
+    </div>
+    <div class="status-item live-badge">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+  </div>
+
+  <!-- PROGRESS BARS -->
+  <div class="panel section-gap">
+    <div class="panel-header">System Load</div>
+    <div class="corner-brackets">
+      <div style="margin-bottom:16px;">
+        <div class="progress-label"><span>Upload Queue</span><span>73%</span></div>
+        <div class="progress-track"><div class="progress-fill" style="width:73%"></div></div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div class="progress-label"><span>Neural Sync</span><span>91%</span></div>
+        <div class="progress-track"><div class="progress-fill" style="width:91%"></div></div>
+      </div>
+      <div>
+        <div class="progress-label"><span>Data Stream</span><span>48%</span></div>
+        <div class="progress-track"><div class="progress-fill" style="width:48%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA TABLE -->
+  <div class="section-gap">
+    <div class="section-title">// Mission Log</div>
+    <div class="panel">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Op ID</th>
+            <th>Codename</th>
+            <th>Target</th>
+            <th>Status</th>
+            <th>Payout</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="val-cyan">#0x7A3F</td>
+            <td>Neon Serpent</td>
+            <td>Arasaka Sub-Net</td>
+            <td><span class="status-active">Active</span></td>
+            <td class="val-yellow">&euro;12,400</td>
+          </tr>
+          <tr>
+            <td class="val-cyan">#0x4B12</td>
+            <td>Chrome Veil</td>
+            <td>Militech R&amp;D</td>
+            <td><span class="status-active">Active</span></td>
+            <td class="val-yellow">&euro;8,750</td>
+          </tr>
+          <tr>
+            <td class="val-cyan">#0x9E01</td>
+            <td>Ghost Wire</td>
+            <td>Kang Tao Vault</td>
+            <td><span class="status-pending">Pending</span></td>
+            <td class="val-yellow">&euro;21,000</td>
+          </tr>
+          <tr>
+            <td class="val-cyan">#0x2D88</td>
+            <td>Razor Signal</td>
+            <td>NetWatch Node</td>
+            <td><span class="status-failed">Failed</span></td>
+            <td class="val-yellow">&euro;0</td>
+          </tr>
+          <tr>
+            <td class="val-cyan">#0xF5C4</td>
+            <td>Blackout Pulse</td>
+            <td>Biotechnica Lab</td>
+            <td><span class="status-active">Active</span></td>
+            <td class="val-yellow">&euro;15,200</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODAL TRIGGER -->
+  <div class="section-gap">
+    <div class="section-title">// System Modal</div>
+    <button class="btn" id="openModal">Open Modal</button>
+  </div>
+
+  <!-- FORM CONTROLS -->
+  <div class="section-gap">
+    <div class="section-title">// Input Controls</div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header">Text Input</div>
+        <div class="form-group">
+          <label class="form-label">Operator Handle</label>
+          <input type="text" class="text-input" placeholder="Enter callsign..." />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Encryption Key</label>
+          <input type="text" class="text-input" placeholder="0xAF29...B7C1" />
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Select &amp; Options</div>
+        <div class="form-group">
+          <label class="form-label">Network Zone</label>
+          <div class="select-wrap">
+            <select class="select-input">
+              <option>Watson District</option>
+              <option>Westbrook Subnet</option>
+              <option>Pacifica Deadzone</option>
+              <option>City Center Core</option>
+              <option>Badlands Relay</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Protocol</label>
+          <div class="select-wrap">
+            <select class="select-input">
+              <option>ICE Breaker v3</option>
+              <option>Daemon Inject</option>
+              <option>Stealth Ping</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECKBOXES & TOGGLES -->
+  <div class="section-gap">
+    <div class="section-title">// System Toggles</div>
+    <div class="grid-2">
+      <div class="panel">
+        <div class="panel-header">Checkboxes</div>
+        <div class="corner-brackets" style="display:flex; flex-direction:column; gap:16px;">
+          <label class="checkbox-wrap">
+            <input type="checkbox" checked />
+            <span class="checkbox-box"></span>
+            Enable Neural Firewall
+          </label>
+          <label class="checkbox-wrap">
+            <input type="checkbox" />
+            <span class="checkbox-box"></span>
+            Route Through Ghost Proxy
+          </label>
+          <label class="checkbox-wrap">
+            <input type="checkbox" checked />
+            <span class="checkbox-box"></span>
+            Encrypt All Transmissions
+          </label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">Toggles</div>
+        <div class="corner-brackets" style="display:flex; flex-direction:column; gap:16px;">
+          <label class="toggle-wrap">
+            <input type="checkbox" checked />
+            <span class="toggle-track"><span class="toggle-knob"></span></span>
+            Stealth Mode
+          </label>
+          <label class="toggle-wrap">
+            <input type="checkbox" />
+            <span class="toggle-track"><span class="toggle-knob"></span></span>
+            Auto-Decrypt
+          </label>
+          <label class="toggle-wrap">
+            <input type="checkbox" checked />
+            <span class="toggle-track"><span class="toggle-knob"></span></span>
+            Real-Time Sync
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /.container -->
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-panel">
+    <div class="modal-title">Edge Interface</div>
+    <div class="modal-body">
+      The Edge Interface theme is cyberpunk-neon with chamfered panels, glitch text, pink-yellow-cyan accents, hazard stripes, and scanline overlays creating a Night City terminal aesthetic.
+    </div>
+    <div style="display:flex; gap:12px;">
+      <button class="modal-close" id="closeModal">Close Terminal</button>
+      <button class="btn btn-outline" id="closeModal2">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- HAZARD FOOTER -->
+<div class="hazard-footer">
+  <div class="hazard-footer-inner">
+    &laquo; Edge Interface &mdash; Unauthorized Access Will Be Traced &raquo;
+  </div>
+</div>
+
+<script>
+(function() {
+  // Modal
+  var overlay = document.getElementById('modalOverlay');
+  var openBtn = document.getElementById('openModal');
+  var closeBtn = document.getElementById('closeModal');
+  var closeBtn2 = document.getElementById('closeModal2');
+
+  function openModal() {
+    overlay.classList.add('open');
+  }
+
+  function closeModal() {
+    overlay.classList.remove('open');
+  }
+
+  openBtn.addEventListener('click', openModal);
+  closeBtn.addEventListener('click', closeModal);
+  closeBtn2.addEventListener('click', closeModal);
+
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) {
+      closeModal();
+    }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+  });
+})();
+</script>
+
+</body>
+</html>

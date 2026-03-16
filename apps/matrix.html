@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Matrix Status - Component Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:           oklch(0.16 0.000 0);
+    --card:         oklch(0.00 0.000 0 / 0.5);
+    --green:        oklch(0.79 0.21 152);
+    --green-border: oklch(0.72 0.22 150 / 0.3);
+    --green-glow:   oklch(0.87 0.30 142);
+    --yellow:       oklch(0.85 0.20 92);
+    --red:          oklch(0.70 0.19 22);
+    --fg:           oklch(1.00 0.000 0);
+    --fg-muted:     oklch(0.71 0.02 261);
+    --glow:         0 0 5px oklch(0.87 0.30 142 / 0.7);
+    --dot-glow:     0 0 5px oklch(0.87 0.30 142);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'VT323', monospace;
+    background: var(--bg);
+    color: var(--fg);
+    letter-spacing: 0.05em;
+    min-height: 100vh;
+  }
+
+  /* ---- SCAN LINE ---- */
+  .scan-line {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: oklch(0.87 0.30 142 / 0.1);
+    opacity: 0.75;
+    animation: scan 7s linear infinite;
+    pointer-events: none;
+    z-index: 100;
+  }
+  @keyframes scan {
+    0%   { top: 0%; }
+    100% { top: 100%; }
+  }
+
+  /* ---- SCREEN OVERLAY ---- */
+  .screen-overlay {
+    background: linear-gradient(180deg,
+      oklch(0.87 0.30 142 / 0.03) 0%,
+      oklch(0.87 0.30 142 / 0.05) 100%
+    );
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 99;
+  }
+
+  /* ---- FLICKER ---- */
+  .screen-flicker {
+    animation: flicker 0.3s infinite alternate;
+  }
+  @keyframes flicker {
+    0%   { opacity: 0.97; }
+    100% { opacity: 1; }
+  }
+
+  /* ---- MAIN SHELL ---- */
+  .app-shell {
+    max-width: 28rem;
+    width: 100%;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ---- SYSTEM BAR ---- */
+  .sys-bar {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--fg-muted);
+    margin-bottom: 8px;
+  }
+
+  /* ---- TERMINAL TEXT ---- */
+  .terminal-text {
+    color: var(--green);
+    text-shadow: var(--glow);
+  }
+
+  /* ---- SECTION CARD ---- */
+  .section-card {
+    border: 1px solid var(--green-border);
+    background: var(--card);
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    color: var(--green);
+    font-size: 18px;
+    margin-bottom: 10px;
+    text-shadow: var(--glow);
+  }
+
+  /* ---- GREEN DOT ---- */
+  .green-dot::before {
+    content: "";
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--green-glow);
+    margin-right: 6px;
+    box-shadow: var(--dot-glow);
+  }
+
+  /* ---- STATUS TEXT ---- */
+  .status-ok      { color: var(--green); text-shadow: var(--glow); }
+  .status-warning  { color: var(--yellow); }
+  .status-error    { color: var(--red); }
+
+  /* ---- EVENT ROW ---- */
+  .event-row { margin-bottom: 10px; }
+  .event-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2px;
+    font-size: 16px;
+  }
+  .event-detail {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+  }
+  .event-detail .label { color: var(--fg-muted); }
+  .event-detail .value { color: var(--green); text-shadow: var(--glow); }
+
+  /* ---- DATA TABLE ---- */
+  .data-table-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--green-border);
+    font-size: 16px;
+  }
+  .data-table-row:last-child { border-bottom: none; }
+  .data-table-label { color: var(--fg-muted); }
+  .data-table-value { text-shadow: var(--glow); }
+
+  /* ---- FORM INPUT ---- */
+  .matrix-input {
+    width: 100%;
+    padding: 8px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--green-border);
+    color: var(--green);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    letter-spacing: 0.05em;
+    outline: none;
+    caret-color: var(--green);
+    text-shadow: var(--glow);
+    transition: border-color 0.2s;
+  }
+  .matrix-input:focus {
+    border-bottom-color: var(--green);
+  }
+  .matrix-input::placeholder {
+    color: var(--fg-muted);
+    text-shadow: none;
+  }
+  .matrix-label {
+    font-size: 14px;
+    color: var(--fg-muted);
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  /* ---- SELECT ---- */
+  .matrix-select {
+    width: 100%;
+    padding: 8px;
+    background: var(--card);
+    border: 1px solid var(--green-border);
+    color: var(--green);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    letter-spacing: 0.05em;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    text-shadow: var(--glow);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%2322c55e' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    transition: border-color 0.2s;
+  }
+  .matrix-select:focus {
+    border-color: var(--green);
+  }
+  .matrix-select option {
+    background: #111;
+    color: #22c55e;
+  }
+
+  /* ---- CHECKBOX ---- */
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 0;
+    color: var(--fg);
+  }
+  .checkbox-matrix {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--green-border);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .checkbox-matrix.checked {
+    border-color: var(--green);
+    background: var(--green);
+    box-shadow: var(--dot-glow);
+  }
+  .checkbox-matrix.checked::after {
+    content: 'X';
+    color: #000;
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  /* ---- TOGGLE ---- */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 16px;
+    padding: 4px 0;
+  }
+  .toggle-track {
+    width: 40px;
+    height: 20px;
+    border: 1px solid var(--green-border);
+    background: transparent;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .toggle-track.active {
+    border-color: var(--green);
+    box-shadow: 0 0 8px oklch(0.87 0.30 142 / 0.3);
+  }
+  .toggle-thumb {
+    width: 14px;
+    height: 14px;
+    background: var(--fg-muted);
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: left 0.2s, background 0.2s, box-shadow 0.2s;
+  }
+  .toggle-track.active .toggle-thumb {
+    left: 22px;
+    background: var(--green);
+    box-shadow: var(--dot-glow);
+  }
+
+  /* ---- CONTROL GRID ---- */
+  .control-grid {
+    margin-top: 16px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .ctrl-btn {
+    border: 1px solid var(--green-border);
+    background: var(--card);
+    padding: 8px;
+    color: var(--green);
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    text-shadow: var(--glow);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .ctrl-btn:hover {
+    border-color: var(--green);
+    background: oklch(0.87 0.30 142 / 0.1);
+  }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    max-width: 28rem;
+    width: 100%;
+    border: 1px solid var(--green-border);
+    background: var(--bg);
+    padding: 16px;
+    position: relative;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .modal-title {
+    color: var(--green);
+    font-size: 20px;
+    text-shadow: var(--glow);
+  }
+  .modal-close {
+    background: none;
+    border: 1px solid var(--green-border);
+    color: var(--green);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    padding: 2px 8px;
+    cursor: pointer;
+    text-shadow: var(--glow);
+    transition: all 0.2s;
+  }
+  .modal-close:hover {
+    border-color: var(--green);
+    background: oklch(0.87 0.30 142 / 0.1);
+  }
+  .modal-body {
+    font-size: 16px;
+    color: var(--fg-muted);
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+  .modal-scan {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: oklch(0.87 0.30 142 / 0.15);
+    animation: scan 4s linear infinite;
+    pointer-events: none;
+  }
+
+  .content-area {
+    flex: 1;
+    overflow-y: auto;
+  }
+</style>
+</head>
+<body>
+
+<div class="scan-line"></div>
+<div class="screen-overlay"></div>
+
+<div class="app-shell">
+  <!-- SYSTEM BAR -->
+  <div class="sys-bar">
+    <span>ID:MATRIX/SHOWCASE/UI</span>
+    <span class="screen-flicker">SYS:OPERATIONAL</span>
+  </div>
+
+  <!-- TITLE -->
+  <div style="text-align: center; margin-bottom: 16px;">
+    <h1 class="terminal-text" style="font-size: 28px;">MATRIX STATUS</h1>
+    <p style="font-size: 14px; color: var(--fg-muted);">COMPONENT SHOWCASE</p>
+  </div>
+
+  <div class="content-area">
+    <!-- MODAL TRIGGER -->
+    <div class="section-card">
+      <div class="section-title">MODAL CONTROL</div>
+      <button class="ctrl-btn" style="width: 100%; grid-column: span 3;" onclick="openModal()">OPEN SYSTEM ALERT</button>
+    </div>
+
+    <!-- DATA TABLE -->
+    <div class="section-card">
+      <div class="section-title">SYSTEM METRICS</div>
+      <div class="data-table-row">
+        <span class="green-dot terminal-text">CPU CORES</span>
+        <span class="status-ok screen-flicker">16 ACTIVE</span>
+      </div>
+      <div class="data-table-row">
+        <span class="green-dot terminal-text">MEMORY</span>
+        <span class="status-ok">64GB / 128GB</span>
+      </div>
+      <div class="data-table-row">
+        <span class="green-dot terminal-text">DISK I/O</span>
+        <span class="status-warning">ELEVATED</span>
+      </div>
+      <div class="data-table-row">
+        <span class="green-dot terminal-text">NETWORK</span>
+        <span class="status-ok">1.2 GBPS</span>
+      </div>
+      <div class="data-table-row">
+        <span class="green-dot terminal-text">GPU TEMP</span>
+        <span class="status-error">87C CRITICAL</span>
+      </div>
+    </div>
+
+    <!-- TEXT INPUT -->
+    <div class="section-card">
+      <div class="section-title">COMMAND INPUT</div>
+      <div style="margin-bottom: 12px;">
+        <label class="matrix-label">ENTER COMMAND:</label>
+        <input type="text" class="matrix-input" placeholder="> AWAITING INPUT...">
+      </div>
+      <div>
+        <label class="matrix-label">SELECT SUBSYSTEM:</label>
+        <select class="matrix-select">
+          <option value="">-- SELECT --</option>
+          <option value="core">CORE PROCESSOR</option>
+          <option value="mem">MEMORY BANK</option>
+          <option value="net">NETWORK RELAY</option>
+          <option value="gpu">GPU CLUSTER</option>
+          <option value="io">DISK ARRAY</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- CHECKBOXES -->
+    <div class="section-card">
+      <div class="section-title">MONITORING FLAGS</div>
+      <div class="checkbox-row" onclick="toggleCheckbox(this)">
+        <div class="checkbox-matrix checked"></div>
+        <span>ALERT ON THRESHOLD BREACH</span>
+      </div>
+      <div class="checkbox-row" onclick="toggleCheckbox(this)">
+        <div class="checkbox-matrix"></div>
+        <span>LOG ALL TRANSACTIONS</span>
+      </div>
+      <div class="checkbox-row" onclick="toggleCheckbox(this)">
+        <div class="checkbox-matrix checked"></div>
+        <span>AUTO-RESTART ON FAILURE</span>
+      </div>
+    </div>
+
+    <!-- TOGGLES -->
+    <div class="section-card">
+      <div class="section-title">SYSTEM SWITCHES</div>
+      <div class="toggle-row">
+        <span>REAL-TIME FEED</span>
+        <div class="toggle-track active" onclick="toggleSwitch(this)">
+          <div class="toggle-thumb"></div>
+        </div>
+      </div>
+      <div class="toggle-row" style="margin-top: 8px;">
+        <span>VERBOSE OUTPUT</span>
+        <div class="toggle-track" onclick="toggleSwitch(this)">
+          <div class="toggle-thumb"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="control-grid">
+    <button class="ctrl-btn">REFRESH</button>
+    <button class="ctrl-btn">RESET</button>
+    <button class="ctrl-btn">EXPORT</button>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="sys-bar" style="margin-top: 8px; margin-bottom: 0;">
+    <span>COMPONENT SHOWCASE</span>
+    <span>V.2.07.3</span>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-scan"></div>
+    <div class="modal-header">
+      <div class="modal-title screen-flicker">!! SYSTEM ALERT !!</div>
+      <button class="modal-close" onclick="closeModal()">[X]</button>
+    </div>
+    <div class="modal-body">
+      <span style="color: var(--red);">WARNING:</span> GPU temperature has exceeded safe operating threshold. Current reading: 87C. Maximum safe temperature: 80C. Recommend immediate workload reduction or cooling system inspection.
+    </div>
+    <div class="section-card" style="margin-bottom: 12px;">
+      <div class="event-row">
+        <div class="event-main">
+          <span class="green-dot terminal-text">GPU-0</span>
+          <span class="status-error">CRITICAL</span>
+        </div>
+        <div class="event-detail">
+          <span class="label">TEMPERATURE:</span>
+          <span class="value screen-flicker">87C</span>
+        </div>
+      </div>
+      <div class="event-row" style="margin-bottom: 0;">
+        <div class="event-main">
+          <span class="green-dot terminal-text">GPU-1</span>
+          <span class="status-warning">WARNING</span>
+        </div>
+        <div class="event-detail">
+          <span class="label">TEMPERATURE:</span>
+          <span class="value">76C</span>
+        </div>
+      </div>
+    </div>
+    <div class="control-grid" style="margin-top: 8px;">
+      <button class="ctrl-btn" onclick="closeModal()">ACKNOWLEDGE</button>
+      <button class="ctrl-btn" onclick="closeModal()">THROTTLE</button>
+      <button class="ctrl-btn" onclick="closeModal()">DISMISS</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openModal() {
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+function toggleCheckbox(row) {
+  var box = row.querySelector('.checkbox-matrix');
+  box.classList.toggle('checked');
+}
+function toggleSwitch(track) {
+  track.classList.toggle('active');
+}
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+
+</body>
+</html>

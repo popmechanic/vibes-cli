@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Desktop Retro - Theme Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* IDE Layer */
+    --editor-bg:     oklch(0.11 0.01 250);
+    --chrome:        oklch(0.18 0.000 0);
+    --gutter:        oklch(0.39 0.01 250);
+    --code-text:     oklch(0.75 0.02 240);
+    --code-comment:  oklch(0.59 0.000 0);
+
+    /* Syntax Colors (Darcula palette) */
+    --syn-keyword:   oklch(0.62 0.14 55);
+    --syn-string:    oklch(0.57 0.08 140);
+    --syn-prop:      oklch(0.56 0.08 300);
+    --syn-def:       oklch(0.84 0.12 75);
+    --syn-num:       oklch(0.62 0.08 235);
+
+    /* Win95 Layer */
+    --win-silver:    oklch(0.79 0.000 0);
+    --win-title-dk:  oklch(0.21 0.12 265);
+    --win-title-lt:  oklch(0.55 0.14 245);
+    --win-highlight: oklch(1.00 0.000 0);
+    --win-shadow:    oklch(0.00 0.000 0);
+    --win-text:      oklch(0.00 0.000 0);
+    --heart:         oklch(0.58 0.17 18);
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--editor-bg);
+    color: var(--code-text);
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ---- IDE CHROME BAR ---- */
+  .chrome-bar {
+    height: 32px;
+    background: var(--chrome);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    border-bottom: 1px solid #333;
+    position: relative;
+    z-index: 1;
+  }
+  .traffic-lights { display: flex; gap: 8px; opacity: 0.5; }
+  .traffic-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .traffic-dot.red { background: #ef4444; }
+  .traffic-dot.yellow { background: #eab308; }
+  .traffic-dot.green { background: #22c55e; }
+
+  /* ---- TAB BAR ---- */
+  .tab-bar {
+    height: 36px;
+    background: var(--chrome);
+    display: flex;
+    align-items: flex-end;
+    padding: 0 8px;
+    gap: 4px;
+    position: relative;
+    z-index: 1;
+  }
+  .tab {
+    background: var(--editor-bg);
+    color: var(--code-text);
+    padding: 8px 16px;
+    font-size: 12px;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+    cursor: pointer;
+  }
+  .tab.active::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%;
+    height: 2px;
+    background: #3b82f6;
+  }
+
+  /* ---- CODE EDITOR (background layer) ---- */
+  .editor-bg {
+    position: fixed;
+    top: 68px; left: 0; right: 0; bottom: 0;
+    background: var(--editor-bg);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    line-height: 24px;
+    color: var(--code-text);
+    display: flex;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .line-numbers {
+    width: 48px;
+    padding: 16px 16px 16px 0;
+    text-align: right;
+    color: var(--gutter);
+    border-right: 1px solid var(--chrome);
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .code-content { flex: 1; padding: 16px; overflow: hidden; }
+  .c-keyword { color: var(--syn-keyword); }
+  .c-string  { color: var(--syn-string); }
+  .c-prop    { color: var(--syn-prop); }
+  .c-def     { color: var(--syn-def); }
+  .c-num     { color: var(--syn-num); }
+  .c-comment { color: var(--code-comment); }
+
+  /* ---- WIN95 DIALOG WINDOW ---- */
+  .win-window {
+    position: absolute;
+    background: var(--win-silver);
+    border-top: 2px solid #dfdfdf;
+    border-left: 2px solid #dfdfdf;
+    border-right: 2px solid #000;
+    border-bottom: 2px solid #000;
+    box-shadow: 4px 4px 10px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    z-index: 10;
+    user-select: none;
+  }
+  .window-inner {
+    border-top: 1px solid #fff;
+    border-left: 1px solid #fff;
+    border-right: 1px solid #808080;
+    border-bottom: 1px solid #808080;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 2px;
+  }
+
+  /* ---- WIN95 TITLE BAR ---- */
+  .title-bar {
+    background: linear-gradient(90deg, #000080, #1084d0);
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+    color: white;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    cursor: move;
+    flex-shrink: 0;
+  }
+  .title-bar-btns { display: flex; gap: 2px; }
+
+  /* ---- WIN95 CLOSE BUTTON ---- */
+  .close-btn, .min-btn {
+    width: 16px; height: 16px;
+    background: var(--win-silver);
+    border-top: 1px solid #fff;
+    border-left: 1px solid #fff;
+    border-right: 1px solid #000;
+    border-bottom: 1px solid #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    color: black;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .close-btn:active, .min-btn:active {
+    border-top-color: #000;
+    border-left-color: #000;
+    border-right-color: #fff;
+    border-bottom-color: #fff;
+  }
+
+  /* ---- WIN95 BUTTON ---- */
+  .win-btn {
+    background: var(--win-silver);
+    border-top: 1px solid #fff;
+    border-left: 1px solid #fff;
+    border-right: 1px solid #000;
+    border-bottom: 1px solid #000;
+    padding: 4px 20px;
+    font-size: 11px;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    min-width: 70px;
+    cursor: pointer;
+    box-shadow: 1px 1px 0 #000;
+    color: black;
+  }
+  .win-btn:active {
+    border-top-color: #000;
+    border-left-color: #000;
+    border-right-color: #fff;
+    border-bottom-color: #fff;
+    transform: translate(1px, 1px);
+  }
+  .win-btn.focused {
+    border: 1px solid #000;
+    outline: 1px dotted #000;
+    outline-offset: -4px;
+  }
+
+  /* ---- WIN95 FORM ELEMENTS ---- */
+  .win-input, .win-select {
+    background: #fff;
+    border-top: 1px solid #808080;
+    border-left: 1px solid #808080;
+    border-right: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+    padding: 3px 4px;
+    font-family: 'Tahoma', 'Segoe UI', sans-serif;
+    font-size: 11px;
+    color: #000;
+    outline: none;
+  }
+  .win-input:focus, .win-select:focus {
+    outline: 1px dotted #000;
+    outline-offset: 1px;
+  }
+
+  .win-checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #000;
+    cursor: pointer;
+  }
+  .win-checkbox {
+    width: 13px; height: 13px;
+    background: #fff;
+    border-top: 1px solid #808080;
+    border-left: 1px solid #808080;
+    border-right: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    font-size: 10px;
+    color: #000;
+    font-weight: bold;
+  }
+
+  /* ---- WIN95 TOGGLE (option button style) ---- */
+  .win-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #000;
+    cursor: pointer;
+  }
+  .win-toggle-track {
+    width: 36px; height: 16px;
+    background: #fff;
+    border-top: 1px solid #808080;
+    border-left: 1px solid #808080;
+    border-right: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+    display: flex;
+    align-items: center;
+    padding: 0 2px;
+    position: relative;
+    cursor: pointer;
+  }
+  .win-toggle-thumb {
+    width: 10px; height: 10px;
+    background: var(--win-silver);
+    border-top: 1px solid #fff;
+    border-left: 1px solid #fff;
+    border-right: 1px solid #000;
+    border-bottom: 1px solid #000;
+    position: absolute;
+    left: 2px;
+    transition: left 0.15s;
+  }
+  .win-toggle-track.on .win-toggle-thumb {
+    left: 22px;
+  }
+  .win-toggle-track.on {
+    background: #000080;
+  }
+
+  /* ---- WIN95 TABLE ---- */
+  .win-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    color: #000;
+    background: #fff;
+    border-top: 1px solid #808080;
+    border-left: 1px solid #808080;
+    border-right: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+  }
+  .win-table th {
+    background: var(--win-silver);
+    border-top: 1px solid #fff;
+    border-left: 1px solid #fff;
+    border-right: 1px solid #808080;
+    border-bottom: 1px solid #808080;
+    padding: 3px 8px;
+    text-align: left;
+    font-weight: normal;
+    cursor: default;
+  }
+  .win-table td {
+    padding: 2px 8px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .win-table tr.selected {
+    background: #000080;
+    color: #fff;
+  }
+  .win-table tr:hover:not(.selected) {
+    background: #e8e8e8;
+  }
+
+  /* ---- WINDOW CONTENT ---- */
+  .window-content {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .msg-area {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .btn-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .form-row label {
+    font-size: 11px;
+    color: #000;
+  }
+
+  /* ---- MODAL OVERLAY ---- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+  }
+  .modal-window {
+    position: relative;
+    z-index: 201;
+    width: 380px;
+  }
+</style>
+</head>
+<body>
+
+<!-- IDE CHROME BAR -->
+<div class="chrome-bar">
+  <div class="traffic-lights">
+    <div class="traffic-dot red"></div>
+    <div class="traffic-dot yellow"></div>
+    <div class="traffic-dot green"></div>
+  </div>
+  <span style="color: #808080; font-size: 12px;">showcase / desktop-retro</span>
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <div class="tab active">
+    <span style="color: #ec4899;">&#9829;</span> components.js
+    <span style="cursor: pointer; margin-left: 8px; opacity: 0.5;">x</span>
+  </div>
+  <div class="tab">
+    styles.css
+    <span style="cursor: pointer; margin-left: 8px; opacity: 0.5;">x</span>
+  </div>
+</div>
+
+<!-- CODE EDITOR BACKGROUND -->
+<div class="editor-bg">
+  <div class="line-numbers" id="lineNums"></div>
+  <div class="code-content" id="codeContent"></div>
+</div>
+
+<!-- WIN95 WINDOWS (positioned over the editor) -->
+<div style="position: relative; z-index: 5; pointer-events: none;">
+  <div style="pointer-events: auto;">
+
+    <!-- TABLE WINDOW -->
+    <div class="win-window" id="win-table" style="left: 40px; top: 20px; width: 420px;">
+      <div class="window-inner">
+        <div class="title-bar" onmousedown="startDrag(event, 'win-table')">
+          <span>System Registry</span>
+          <div class="title-bar-btns">
+            <div class="min-btn">_</div>
+            <div class="close-btn" onclick="hideWin('win-table')">x</div>
+          </div>
+        </div>
+        <div class="window-content" style="padding: 8px;">
+          <div class="sys-label" style="font-size:10px; color:#808080; margin-bottom:4px;">ID:SYS/REGISTRY/V2.1</div>
+          <table class="win-table">
+            <thead>
+              <tr>
+                <th>Process</th>
+                <th>PID</th>
+                <th>CPU</th>
+                <th>Memory</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="selected"><td>explorer.exe</td><td>1024</td><td>2.4%</td><td>18.2 MB</td><td>Running</td></tr>
+              <tr><td>winamp.exe</td><td>2048</td><td>1.1%</td><td>8.4 MB</td><td>Running</td></tr>
+              <tr><td>mspaint.exe</td><td>3072</td><td>0.3%</td><td>4.1 MB</td><td>Running</td></tr>
+              <tr><td>notepad.exe</td><td>4096</td><td>0.0%</td><td>1.2 MB</td><td>Idle</td></tr>
+              <tr><td>calc.exe</td><td>5120</td><td>0.0%</td><td>0.8 MB</td><td>Idle</td></tr>
+            </tbody>
+          </table>
+          <div class="btn-row" style="margin-top: 4px;">
+            <button class="win-btn focused">End Task</button>
+            <button class="win-btn">Refresh</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FORM WINDOW -->
+    <div class="win-window" id="win-form" style="left: 500px; top: 40px; width: 300px;">
+      <div class="window-inner">
+        <div class="title-bar" onmousedown="startDrag(event, 'win-form')">
+          <span>User Settings</span>
+          <div class="title-bar-btns">
+            <div class="min-btn">_</div>
+            <div class="close-btn" onclick="hideWin('win-form')">x</div>
+          </div>
+        </div>
+        <div class="window-content">
+          <div class="msg-area">
+            <svg viewBox="0 0 24 24" style="width:32px;height:32px;flex-shrink:0;">
+              <path fill="#e04f5f" stroke="#c83e4e" stroke-width="1.5"
+                d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
+            <div style="font-size:11px;color:black;">Configure your display preferences below.</div>
+          </div>
+
+          <div class="form-row">
+            <label>Username:</label>
+            <input class="win-input" type="text" value="retro_user_95" style="width:100%;">
+          </div>
+
+          <div class="form-row">
+            <label>Screen Resolution:</label>
+            <select class="win-select" style="width:100%;">
+              <option>640 x 480</option>
+              <option selected>800 x 600</option>
+              <option>1024 x 768</option>
+              <option>1280 x 1024</option>
+            </select>
+          </div>
+
+          <div class="win-checkbox-row" onclick="toggleCheck(this)">
+            <div class="win-checkbox"><span style="display:none;">&#10003;</span></div>
+            <span>Enable Active Desktop</span>
+          </div>
+
+          <div class="win-checkbox-row" onclick="toggleCheck(this)">
+            <div class="win-checkbox"><span>&#10003;</span></div>
+            <span>Show desktop icons</span>
+          </div>
+
+          <div class="win-toggle-row" onclick="toggleSwitch(this)">
+            <div class="win-toggle-track on">
+              <div class="win-toggle-thumb"></div>
+            </div>
+            <span>Sound effects</span>
+          </div>
+
+          <div class="btn-row">
+            <button class="win-btn focused">OK</button>
+            <button class="win-btn" onclick="hideWin('win-form')">Cancel</button>
+            <button class="win-btn">Apply</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OPEN MODAL BUTTON WINDOW -->
+    <div class="win-window" id="win-launch" style="left: 280px; top: 350px; width: 240px;">
+      <div class="window-inner">
+        <div class="title-bar" onmousedown="startDrag(event, 'win-launch')">
+          <span>Program Manager</span>
+          <div class="title-bar-btns">
+            <div class="close-btn" onclick="hideWin('win-launch')">x</div>
+          </div>
+        </div>
+        <div class="window-content" style="align-items: center;">
+          <div class="msg-area" style="justify-content:center;">
+            <svg viewBox="0 0 24 24" style="width:32px;height:32px;flex-shrink:0;">
+              <path fill="#e04f5f" stroke="#c83e4e" stroke-width="1.5"
+                d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+            </svg>
+            <div style="font-size:11px;color:black;">Click to open the<br>system dialog.</div>
+          </div>
+          <div class="btn-row">
+            <button class="win-btn focused" onclick="openModal()">Open Modal</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SMALL STATUS WINDOW -->
+    <div class="win-window" id="win-status" style="left: 580px; top: 370px; width: 220px;">
+      <div class="window-inner">
+        <div class="title-bar" onmousedown="startDrag(event, 'win-status')">
+          <span>System Status</span>
+          <div class="title-bar-btns">
+            <div class="close-btn" onclick="hideWin('win-status')">x</div>
+          </div>
+        </div>
+        <div class="window-content" style="font-size:11px;color:#000;gap:6px;">
+          <div style="display:flex;justify-content:space-between;"><span>CPU:</span><span>12%</span></div>
+          <div style="height:12px;background:#fff;border-top:1px solid #808080;border-left:1px solid #808080;border-right:1px solid #fff;border-bottom:1px solid #fff;">
+            <div style="height:100%;width:12%;background:#000080;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;"><span>Memory:</span><span>64 MB / 128 MB</span></div>
+          <div style="height:12px;background:#fff;border-top:1px solid #808080;border-left:1px solid #808080;border-right:1px solid #fff;border-bottom:1px solid #fff;">
+            <div style="height:100%;width:50%;background:#000080;"></div>
+          </div>
+          <div class="btn-row" style="margin-top:4px;">
+            <button class="win-btn">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-backdrop" onclick="closeModal()"></div>
+  <div class="win-window modal-window" style="position:relative;">
+    <div class="window-inner">
+      <div class="title-bar">
+        <span>Important System Message</span>
+        <div class="title-bar-btns">
+          <div class="close-btn" onclick="closeModal()">x</div>
+        </div>
+      </div>
+      <div class="window-content" style="padding: 20px;">
+        <div class="msg-area">
+          <svg viewBox="0 0 24 24" style="width:48px;height:48px;flex-shrink:0;">
+            <path fill="#e04f5f" stroke="#c83e4e" stroke-width="1.5"
+              d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+          </svg>
+          <div style="font-size:12px;color:black;line-height:1.6;">
+            <b>Welcome to Desktop Retro!</b><br><br>
+            This system combines the warmth of a 1997 Windows desktop with the depth of a modern dark IDE. Every dialog can be dragged, stacked, and dismissed.<br><br>
+            Your nostalgia settings have been saved successfully.
+          </div>
+        </div>
+        <div style="border-top:1px solid #808080;margin:8px 0;"></div>
+        <div class="btn-row">
+          <button class="win-btn focused" onclick="closeModal()">OK</button>
+          <button class="win-btn" onclick="closeModal()">Cancel</button>
+          <button class="win-btn">Help</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Generate code background
+(function() {
+  var lines = [
+    '<span class="c-comment">// Desktop Retro Component Showcase</span>',
+    '<span class="c-comment">// Nostalgic computing meets modern IDE</span>',
+    '',
+    '<span class="c-keyword">import</span> { <span class="c-def">WindowManager</span> } <span class="c-keyword">from</span> <span class="c-string">"./win95"</span>;',
+    '<span class="c-keyword">import</span> { <span class="c-def">DarculaTheme</span> } <span class="c-keyword">from</span> <span class="c-string">"./themes"</span>;',
+    '',
+    '<span class="c-keyword">const</span> <span class="c-def">CONFIG</span> = {',
+    '  <span class="c-prop">resolution</span>: <span class="c-string">"800x600"</span>,',
+    '  <span class="c-prop">colorDepth</span>: <span class="c-num">16</span>,',
+    '  <span class="c-prop">wallpaper</span>: <span class="c-string">"teal.bmp"</span>,',
+    '  <span class="c-prop">screenSaver</span>: <span class="c-string">"maze3d"</span>,',
+    '  <span class="c-prop">soundScheme</span>: <span class="c-string">"utopia"</span>,',
+    '};',
+    '',
+    '<span class="c-keyword">class</span> <span class="c-def">DesktopManager</span> {',
+    '  <span class="c-keyword">constructor</span>(<span class="c-prop">options</span>) {',
+    '    <span class="c-keyword">this</span>.<span class="c-prop">windows</span> = [];',
+    '    <span class="c-keyword">this</span>.<span class="c-prop">zIndex</span> = <span class="c-num">10</span>;',
+    '    <span class="c-keyword">this</span>.<span class="c-prop">taskbar</span> = <span class="c-keyword">null</span>;',
+    '  }',
+    '',
+    '  <span class="c-def">createWindow</span>(<span class="c-prop">title</span>, <span class="c-prop">content</span>) {',
+    '    <span class="c-keyword">const</span> <span class="c-def">win</span> = {',
+    '      <span class="c-prop">id</span>: <span class="c-keyword">this</span>.<span class="c-prop">windows</span>.<span class="c-prop">length</span>,',
+    '      <span class="c-prop">title</span>,',
+    '      <span class="c-prop">content</span>,',
+    '      <span class="c-prop">x</span>: <span class="c-num">100</span> + <span class="c-keyword">this</span>.<span class="c-prop">windows</span>.<span class="c-prop">length</span> * <span class="c-num">40</span>,',
+    '      <span class="c-prop">y</span>: <span class="c-num">100</span> + <span class="c-keyword">this</span>.<span class="c-prop">windows</span>.<span class="c-prop">length</span> * <span class="c-num">30</span>,',
+    '      <span class="c-prop">z</span>: ++<span class="c-keyword">this</span>.<span class="c-prop">zIndex</span>,',
+    '      <span class="c-prop">visible</span>: <span class="c-keyword">true</span>,',
+    '    };',
+    '    <span class="c-keyword">this</span>.<span class="c-prop">windows</span>.<span class="c-def">push</span>(win);',
+    '    <span class="c-keyword">return</span> win;',
+    '  }',
+    '',
+    '  <span class="c-def">bringToFront</span>(<span class="c-prop">id</span>) {',
+    '    <span class="c-keyword">this</span>.<span class="c-prop">zIndex</span>++;',
+    '    <span class="c-keyword">const</span> <span class="c-def">w</span> = <span class="c-keyword">this</span>.<span class="c-prop">windows</span>.<span class="c-def">find</span>(',
+    '      <span class="c-prop">w</span> => <span class="c-prop">w</span>.<span class="c-prop">id</span> === <span class="c-prop">id</span>',
+    '    );',
+    '    <span class="c-keyword">if</span> (w) w.<span class="c-prop">z</span> = <span class="c-keyword">this</span>.<span class="c-prop">zIndex</span>;',
+    '  }',
+    '}',
+    '',
+    '<span class="c-comment">// Initialize desktop environment</span>',
+    '<span class="c-keyword">const</span> <span class="c-def">desktop</span> = <span class="c-keyword">new</span> <span class="c-def">DesktopManager</span>({',
+    '  <span class="c-prop">theme</span>: DarculaTheme,',
+    '  <span class="c-prop">startMenu</span>: <span class="c-keyword">true</span>,',
+    '  <span class="c-prop">taskbar</span>: <span class="c-string">"bottom"</span>,',
+    '});',
+    '',
+    '<span class="c-comment">// Heart curve positioning</span>',
+    '<span class="c-keyword">function</span> <span class="c-def">heartCurve</span>(<span class="c-prop">t</span>) {',
+    '  <span class="c-keyword">return</span> {',
+    '    <span class="c-prop">x</span>: <span class="c-num">16</span> * Math.<span class="c-def">pow</span>(Math.<span class="c-def">sin</span>(t), <span class="c-num">3</span>),',
+    '    <span class="c-prop">y</span>: <span class="c-num">13</span> * Math.<span class="c-def">cos</span>(t) - <span class="c-num">5</span> *',
+    '       Math.<span class="c-def">cos</span>(<span class="c-num">2</span> * t),',
+    '  };',
+    '}',
+  ];
+
+  var numsEl = document.getElementById('lineNums');
+  var codeEl = document.getElementById('codeContent');
+  var numsHtml = '';
+  var codeHtml = '';
+  for (var i = 0; i < lines.length; i++) {
+    numsHtml += '<div>' + (i + 1) + '</div>';
+    codeHtml += '<div>' + (lines[i] || '&nbsp;') + '</div>';
+  }
+  numsEl.innerHTML = numsHtml;
+  codeEl.innerHTML = codeHtml;
+})();
+
+// Dragging
+var dragState = null;
+function startDrag(e, winId) {
+  var el = document.getElementById(winId);
+  bringToFront(winId);
+  dragState = {
+    el: el,
+    startX: e.clientX - el.offsetLeft,
+    startY: e.clientY - el.offsetTop
+  };
+  e.preventDefault();
+}
+document.addEventListener('mousemove', function(e) {
+  if (!dragState) return;
+  dragState.el.style.left = (e.clientX - dragState.startX) + 'px';
+  dragState.el.style.top = (e.clientY - dragState.startY) + 'px';
+});
+document.addEventListener('mouseup', function() {
+  dragState = null;
+});
+
+var maxZ = 50;
+function bringToFront(winId) {
+  maxZ++;
+  document.getElementById(winId).style.zIndex = maxZ;
+}
+
+function hideWin(winId) {
+  document.getElementById(winId).style.display = 'none';
+}
+
+function toggleCheck(row) {
+  var mark = row.querySelector('.win-checkbox span');
+  mark.style.display = mark.style.display === 'none' ? '' : 'none';
+}
+
+function toggleSwitch(row) {
+  var track = row.querySelector('.win-toggle-track');
+  track.classList.toggle('on');
+}
+
+function openModal() {
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+// Click to bring windows to front
+document.querySelectorAll('.win-window').forEach(function(w) {
+  w.addEventListener('mousedown', function() {
+    if (w.id) bringToFront(w.id);
+  });
+});
+</script>
+</body>
+</html>

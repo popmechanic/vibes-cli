@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Theme Tournament</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Space Grotesk',sans-serif; background:#0a0a0a; color:#eee; min-height:100vh; }
+
+  /* Header */
+  .header {
+    padding:1.2rem 2rem; display:flex; justify-content:space-between; align-items:center;
+    border-bottom:1px solid #222; background:#0f0f0f; position:sticky; top:0; z-index:50;
+  }
+  .header h1 { font-size:1.1rem; letter-spacing:0.08em; text-transform:uppercase; }
+  .header h1 span { color:#ff0077; }
+  .round-info {
+    font-family:'Space Mono',monospace; font-size:0.7rem; color:#666;
+    letter-spacing:0.1em; text-transform:uppercase;
+  }
+  .round-info em { color:#fcee0a; font-style:normal; }
+
+  /* Battle area */
+  .battle { display:flex; flex:1; height:calc(100vh - 52px - 64px); }
+  .side {
+    flex:1; display:flex; flex-direction:column; position:relative;
+    cursor:pointer; transition: outline 0.2s;
+    outline: 3px solid transparent; outline-offset:-3px;
+  }
+  .side:hover { outline-color: #ff007744; }
+  .side.left:hover { outline-color: #ff007744; }
+  .side.right:hover { outline-color: #00f0ff44; }
+
+  .side-label {
+    padding:0.5rem 1rem; font-family:'Space Mono',monospace; font-size:0.65rem;
+    letter-spacing:0.12em; text-transform:uppercase; color:#666;
+    background:#111; border-bottom:1px solid #1a1a1a;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .side-label .name { color:#eee; font-size:0.8rem; font-family:'Space Grotesk',sans-serif; font-weight:700; }
+
+  .side iframe {
+    flex:1; width:100%; border:none; background:#fff;
+  }
+
+  .divider {
+    width:48px; background:#111; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:0.5rem;
+    border-left:1px solid #1a1a1a; border-right:1px solid #1a1a1a;
+    flex-shrink:0;
+  }
+  .vs {
+    font-family:'Space Mono',monospace; font-size:0.7rem; color:#ff0077;
+    letter-spacing:0.15em; writing-mode:vertical-lr;
+  }
+
+  /* Vote overlay on click */
+  .side .vote-overlay {
+    position:absolute; inset:0; display:none; align-items:center; justify-content:center;
+    z-index:10; pointer-events:none;
+  }
+  .side .vote-overlay.show { display:flex; pointer-events:auto; }
+  .side.left .vote-overlay { background:rgba(255,0,119,0.15); }
+  .side.right .vote-overlay { background:rgba(0,240,255,0.15); }
+  .vote-overlay .check {
+    width:80px; height:80px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    animation: pop 0.3s ease;
+  }
+  .side.left .vote-overlay .check { background:#ff0077; }
+  .side.right .vote-overlay .check { background:#00f0ff; }
+  @keyframes pop { from { transform:scale(0); } to { transform:scale(1); } }
+
+  /* Footer */
+  .footer {
+    height:64px; background:#0f0f0f; border-top:1px solid #222;
+    display:flex; align-items:center; justify-content:center; gap:1rem;
+    padding:0 2rem;
+  }
+  .bracket-dots { display:flex; gap:4px; align-items:center; }
+  .dot {
+    width:8px; height:8px; border-radius:50%; background:#222; transition:background 0.3s;
+  }
+  .dot.done { background:#ff0077; }
+  .dot.current { background:#fcee0a; box-shadow:0 0 6px #fcee0a; }
+  .dot.upcoming { background:#222; }
+  .round-label {
+    font-family:'Space Mono',monospace; font-size:0.6rem; color:#444;
+    letter-spacing:0.1em; text-transform:uppercase; margin:0 0.5rem;
+  }
+
+  /* Winner screen */
+  .winner-screen {
+    display:none; flex-direction:column; align-items:center; justify-content:center;
+    height:calc(100vh - 52px); gap:1.5rem; text-align:center; padding:2rem;
+  }
+  .winner-screen.show { display:flex; }
+  .winner-screen h2 {
+    font-size:2.5rem; text-transform:uppercase; letter-spacing:0.1em;
+    background:linear-gradient(135deg,#ff0077,#fcee0a,#00f0ff);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .winner-screen .crown { font-size:4rem; }
+  .winner-screen iframe {
+    width:90%; max-width:900px; height:60vh; border:2px solid #ff0077;
+    border-radius:8px; box-shadow:0 0 40px rgba(255,0,119,0.2);
+  }
+  .winner-screen .restart {
+    padding:0.6rem 2rem; background:transparent; border:1px solid #333;
+    color:#eee; font-family:'Space Mono',monospace; font-size:0.7rem;
+    letter-spacing:0.1em; text-transform:uppercase; cursor:pointer;
+    transition:all 0.2s;
+  }
+  .winner-screen .restart:hover { border-color:#ff0077; color:#ff0077; }
+
+  /* Rankings */
+  .rankings {
+    display:none; flex-direction:column; padding:2rem; max-width:600px;
+    margin:1.5rem auto 0; gap:0.5rem;
+  }
+  .rankings.show { display:flex; }
+  .rank-row {
+    display:flex; align-items:center; gap:0.75rem; padding:0.5rem 0.75rem;
+    border:1px solid #1a1a1a; font-size:0.82rem; transition:all 0.2s;
+  }
+  .rank-row:hover { border-color:#333; }
+  .rank-num {
+    font-family:'Space Mono',monospace; font-size:0.65rem; color:#666;
+    width:28px; text-align:right;
+  }
+  .rank-name { flex:1; font-weight:600; }
+  .rank-round { font-family:'Space Mono',monospace; font-size:0.6rem; color:#444; }
+  .rank-row:first-child { border-color:#ff0077; }
+  .rank-row:first-child .rank-num { color:#ff0077; }
+  .rank-row:nth-child(2) { border-color:#fcee0a33; }
+  .rank-row:nth-child(3) { border-color:#00f0ff33; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span>Theme</span> Tournament</h1>
+  <div class="round-info" id="roundInfo">Loading...</div>
+</div>
+
+<div class="battle" id="battle">
+  <div class="side left" id="sideLeft" onclick="vote('left')">
+    <div class="side-label">
+      <span class="name" id="nameLeft">—</span>
+      <span>Click to vote</span>
+    </div>
+    <iframe id="frameLeft"></iframe>
+    <div class="vote-overlay" id="overlayLeft">
+      <div class="check">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider">
+    <span class="vs">VS</span>
+  </div>
+
+  <div class="side right" id="sideRight" onclick="vote('right')">
+    <div class="side-label">
+      <span class="name" id="nameRight">—</span>
+      <span>Click to vote</span>
+    </div>
+    <iframe id="frameRight"></iframe>
+    <div class="vote-overlay" id="overlayRight">
+      <div class="check">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer" id="footer">
+  <div class="bracket-dots" id="dots"></div>
+</div>
+
+<div class="winner-screen" id="winnerScreen">
+  <div class="crown">&#x1F451;</div>
+  <h2 id="winnerName">Champion</h2>
+  <iframe id="winnerFrame"></iframe>
+  <div class="rankings show" id="rankings"></div>
+  <button class="restart" onclick="startTournament()">Play Again</button>
+</div>
+
+<script>
+const ALL_THEMES = [
+  "aether","archive","atelier","atlas","broadsheet","capsule","carbon","chrome",
+  "chrono","codex","computer-angel-heaven","console","default","desktop","dial",
+  "dossier","edge","guild","hearth","industrial","matrix","mesh","neon","nexus",
+  "opus","orbit","palate","pitch","poster","proof","recon","rift","rune",
+  "scrapbook","sensor","signal","slab","specimen","sticker-cozy","terminal",
+  "vault","water","winter-sports","zine"
+];
+
+let bracket = [];
+let matchIndex = 0;
+let roundNum = 1;
+let roundMatches = 0;
+let eliminated = [];
+let voting = false;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function prettyName(slug) {
+  return slug.split('-').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+}
+
+function startTournament() {
+  bracket = shuffle(ALL_THEMES);
+  matchIndex = 0;
+  roundNum = 1;
+  eliminated = [];
+  voting = false;
+
+  document.getElementById('winnerScreen').classList.remove('show');
+  document.getElementById('battle').style.display = 'flex';
+  document.getElementById('footer').style.display = 'flex';
+
+  renderDots();
+  loadMatch();
+}
+
+function renderDots() {
+  const total = Math.floor(bracket.length / 2);
+  const current = matchIndex;
+  const dots = document.getElementById('dots');
+  dots.innerHTML = `<span class="round-label">R${roundNum}</span>`;
+  for (let i = 0; i < total; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < current ? ' done' : i === current ? ' current' : ' upcoming');
+    dots.appendChild(d);
+  }
+  const remaining = bracket.length % 2 === 1 ? '(+1 bye)' : '';
+  document.getElementById('roundInfo').innerHTML =
+    `Round <em>${roundNum}</em> &mdash; Match <em>${matchIndex + 1}</em> of <em>${total}</em> &mdash; ${bracket.length} left ${remaining}`;
+}
+
+function loadMatch() {
+  const pair = matchIndex * 2;
+  if (pair + 1 >= bracket.length) {
+    // If odd, last one gets a bye
+    if (bracket.length % 2 === 1) {
+      // bye already handled; advance round
+    }
+    advanceRound();
+    return;
+  }
+
+  const left = bracket[pair];
+  const right = bracket[pair + 1];
+
+  document.getElementById('nameLeft').textContent = prettyName(left);
+  document.getElementById('nameRight').textContent = prettyName(right);
+  document.getElementById('frameLeft').src = left + '.html';
+  document.getElementById('frameRight').src = right + '.html';
+  document.getElementById('overlayLeft').classList.remove('show');
+  document.getElementById('overlayRight').classList.remove('show');
+
+  renderDots();
+  voting = false;
+}
+
+function vote(side) {
+  if (voting) return;
+  voting = true;
+
+  const pair = matchIndex * 2;
+  const left = bracket[pair];
+  const right = bracket[pair + 1];
+  let winner, loser;
+
+  if (side === 'left') {
+    winner = left; loser = right;
+    document.getElementById('overlayLeft').classList.add('show');
+  } else {
+    winner = right; loser = left;
+    document.getElementById('overlayRight').classList.add('show');
+  }
+
+  // Replace both with winner at winner's position, mark loser
+  bracket[pair] = winner;
+  bracket[pair + 1] = '__eliminated__';
+  eliminated.push({ name: loser, round: roundNum });
+
+  setTimeout(() => {
+    matchIndex++;
+    const totalMatches = Math.floor(bracket.length / 2);
+    if (matchIndex >= totalMatches) {
+      advanceRound();
+    } else {
+      loadMatch();
+    }
+  }, 600);
+}
+
+function advanceRound() {
+  // Collect survivors
+  let survivors = bracket.filter(t => t !== '__eliminated__');
+
+  if (survivors.length === 1) {
+    showWinner(survivors[0]);
+    return;
+  }
+
+  bracket = shuffle(survivors);
+  matchIndex = 0;
+  roundNum++;
+  loadMatch();
+}
+
+function showWinner(theme) {
+  document.getElementById('battle').style.display = 'none';
+  document.getElementById('footer').style.display = 'none';
+
+  const ws = document.getElementById('winnerScreen');
+  ws.classList.add('show');
+  document.getElementById('winnerName').textContent = prettyName(theme);
+  document.getElementById('winnerFrame').src = theme + '.html';
+
+  // Build rankings
+  const rankings = document.getElementById('rankings');
+  rankings.innerHTML = '<div style="font-family:Space Mono,monospace;font-size:0.6rem;color:#444;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.5rem;">Final Rankings</div>';
+
+  const rows = [{ name: theme, round: 'Winner' }];
+  for (let i = eliminated.length - 1; i >= 0; i--) {
+    rows.push(eliminated[i]);
+  }
+  rows.forEach((r, i) => {
+    const row = document.createElement('div');
+    row.className = 'rank-row';
+    const roundLabel = i === 0 ? 'Champion' : `Out R${r.round}`;
+    row.innerHTML = `
+      <span class="rank-num">#${i + 1}</span>
+      <span class="rank-name">${prettyName(r.name)}</span>
+      <span class="rank-round">${roundLabel}</span>
+    `;
+    rankings.appendChild(row);
+  });
+}
+
+startTournament();
+</script>
+</body>
+</html>

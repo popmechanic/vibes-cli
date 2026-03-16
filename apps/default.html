@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Default — Neo-Brutalist Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: oklch(0.18 0.04 60);
+    --card-bg: oklch(0.22 0.04 60);
+    --text: oklch(0.95 0.01 80);
+    --accent: oklch(0.72 0.18 70);
+    --accent-text: oklch(0.12 0.04 60);
+    --muted: oklch(0.55 0.03 60);
+    --border: oklch(0.35 0.04 60);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, oklch(0.72 0.18 70 / 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, oklch(0.60 0.15 300 / 0.06) 0%, transparent 50%);
+  }
+  h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 0.25rem; }
+  .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 2rem; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; max-width: 1100px; margin: 0 auto; }
+  @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--card-bg);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: 4px 4px 0 oklch(0 0 0 / 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: 6px 8px 0 oklch(0 0 0 / 0.35); }
+  .card-title {
+    font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--accent); margin-bottom: 1rem;
+  }
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-size: 0.65rem; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--muted); padding: 0.5rem 0.75rem;
+    border-bottom: 2px solid var(--border);
+  }
+  td {
+    padding: 0.65rem 0.75rem; font-size: 0.85rem; border-bottom: 1px solid oklch(0.35 0.04 60 / 0.5);
+  }
+  tr:hover td { background: oklch(0.72 0.18 70 / 0.06); }
+  .badge {
+    display: inline-block; padding: 0.15rem 0.5rem; border-radius: 20px;
+    font-size: 0.7rem; font-weight: 600;
+  }
+  .badge-green { background: oklch(0.45 0.15 155 / 0.3); color: oklch(0.75 0.15 155); }
+  .badge-amber { background: oklch(0.50 0.15 70 / 0.3); color: oklch(0.80 0.15 70); }
+  .badge-red { background: oklch(0.45 0.15 25 / 0.3); color: oklch(0.72 0.18 25); }
+  /* Form elements */
+  .form-group { margin-bottom: 1rem; }
+  label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  input[type="text"], select {
+    width: 100%; padding: 0.7rem 1rem; background: var(--bg);
+    border: 2px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text); font-family: inherit; font-size: 0.9rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  input[type="text"]:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px oklch(0.72 0.18 70 / 0.2);
+  }
+  select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 1rem center; padding-right: 2.5rem; }
+  /* Checkbox */
+  .check-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; cursor: pointer; }
+  .check-box {
+    width: 22px; height: 22px; border: 2px solid var(--border);
+    border-radius: 6px; display: grid; place-items: center;
+    transition: background 0.15s, border-color 0.15s; flex-shrink: 0;
+  }
+  .check-box.checked { background: var(--accent); border-color: var(--accent); }
+  .check-box svg { opacity: 0; transition: opacity 0.15s; }
+  .check-box.checked svg { opacity: 1; }
+  .check-label { font-size: 0.85rem; }
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; }
+  .toggle-track {
+    width: 48px; height: 26px; border-radius: 13px;
+    background: var(--border); position: relative;
+    transition: background 0.2s; flex-shrink: 0;
+  }
+  .toggle-track.on { background: var(--accent); }
+  .toggle-knob {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: white; position: absolute; top: 3px; left: 3px;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 4px oklch(0 0 0 / 0.3);
+  }
+  .toggle-track.on .toggle-knob { transform: translateX(22px); }
+  /* Button */
+  .btn {
+    padding: 0.7rem 1.5rem; border: 2px solid var(--accent);
+    background: var(--accent); color: var(--accent-text);
+    border-radius: var(--radius-sm); font-weight: 700; font-size: 0.85rem;
+    cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .btn:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 4px 12px oklch(0.72 0.18 70 / 0.4); }
+  .btn:active { transform: scale(0.97); }
+  .btn-outline {
+    background: transparent; color: var(--accent);
+  }
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: oklch(0 0 0 / 0.6);
+    backdrop-filter: blur(8px); display: none; place-items: center;
+    z-index: 1000;
+  }
+  .modal-overlay.open { display: grid; }
+  .modal {
+    background: var(--card-bg); border: 2px solid var(--border);
+    border-radius: var(--radius); padding: 2rem; width: 90%; max-width: 440px;
+    box-shadow: 8px 8px 0 oklch(0 0 0 / 0.4);
+    animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.9) translateY(20px); } }
+  .modal h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: 0.5rem; }
+  .modal p { color: var(--muted); font-size: 0.85rem; line-height: 1.5; margin-bottom: 1.5rem; }
+  .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
+  .header { max-width: 1100px; margin: 0 auto 2rem; }
+  .full-width { grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>Neo-Brutalist</h1>
+    <p class="subtitle">Bold, graphic, utilitarian — the default Vibes theme</p>
+  </div>
+
+  <div class="grid">
+    <!-- Table Card -->
+    <div class="card full-width">
+      <div class="card-title">Data Overview</div>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Category</th><th>Value</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Aurora Engine</td><td>Infrastructure</td><td>$12,450</td><td><span class="badge badge-green">Active</span></td></tr>
+          <tr><td>Nebula Cache</td><td>Storage</td><td>$8,200</td><td><span class="badge badge-green">Active</span></td></tr>
+          <tr><td>Pulse Monitor</td><td>Analytics</td><td>$3,780</td><td><span class="badge badge-amber">Warning</span></td></tr>
+          <tr><td>Drift Relay</td><td>Network</td><td>$6,100</td><td><span class="badge badge-green">Active</span></td></tr>
+          <tr><td>Echo Vault</td><td>Security</td><td>$15,900</td><td><span class="badge badge-red">Critical</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card">
+      <div class="card-title">Input Controls</div>
+      <div class="form-group">
+        <label>Search</label>
+        <input type="text" placeholder="Type something fun...">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select>
+          <option>All Categories</option>
+          <option>Infrastructure</option>
+          <option>Storage</option>
+          <option>Analytics</option>
+          <option>Network</option>
+        </select>
+      </div>
+      <button class="btn" onclick="document.getElementById('modal').classList.add('open')">Open Modal</button>
+    </div>
+
+    <!-- Toggles Card -->
+    <div class="card">
+      <div class="card-title">Preferences</div>
+      <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+        <div class="check-box checked">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <span class="check-label">Enable notifications</span>
+      </div>
+      <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+        <div class="check-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <span class="check-label">Auto-save drafts</span>
+      </div>
+      <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+        <div class="check-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <span class="check-label">Compact mode</span>
+      </div>
+      <div style="margin-top:1.25rem; border-top: 1px solid var(--border); padding-top:1.25rem;">
+        <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track on"><div class="toggle-knob"></div></div>
+          <span class="check-label">Dark mode</span>
+        </div>
+        <div class="toggle-row" style="margin-top:0.75rem;" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track"><div class="toggle-knob"></div></div>
+          <span class="check-label">Sound effects</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <h2>Confirm Action</h2>
+      <p>This is a modal dialog styled in the Neo-Brutalist theme. Bold borders, hard shadows, and warm amber tones create an approachable yet graphic feel.</p>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('modal').classList.remove('open')">Cancel</button>
+        <button class="btn" onclick="document.getElementById('modal').classList.remove('open')">Confirm</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

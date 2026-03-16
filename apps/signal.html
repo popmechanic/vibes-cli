@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signal — Interface Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #030303;
+    --card-bg: #0a0a0a;
+    --text: #eaeaea;
+    --border: #1a1a1a;
+    --accent: #ffffff;
+    --muted: #666;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
+    min-height: 100vh; cursor: crosshair;
+  }
+  .layout { max-width: 900px; margin: 0 auto; padding: 3rem 2rem; }
+  .nav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 2rem; border-bottom: 1px solid var(--border); margin-bottom: 3rem;
+  }
+  .nav-logo { font-family: 'Space Mono', monospace; font-size: 0.75rem; letter-spacing: 0.1em; }
+  .nav-label {
+    font-family: 'Space Mono', monospace; font-size: 0.55rem;
+    color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase;
+  }
+  .section-header {
+    display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .section-num {
+    font-family: 'Space Mono', monospace; font-size: 0.6rem;
+    color: var(--muted); letter-spacing: 0.1em;
+  }
+  .section-line { flex: 1; height: 1px; background: var(--border); }
+  /* Bracket card */
+  .bracket-card {
+    background: var(--card-bg); padding: 1.5rem; position: relative;
+    margin-bottom: 1.5rem; transition: background 0.2s;
+  }
+  .bracket-card:hover { background: #0e0e0e; }
+  .bracket-card::before, .bracket-card::after,
+  .bracket-card .corner-bl, .bracket-card .corner-br {
+    content: ''; position: absolute; width: 12px; height: 12px;
+    transition: width 0.2s, height 0.2s;
+  }
+  .bracket-card::before { top: 0; left: 0; border-top: 1px solid var(--muted); border-left: 1px solid var(--muted); }
+  .bracket-card::after { top: 0; right: 0; border-top: 1px solid var(--muted); border-right: 1px solid var(--muted); }
+  .corner-bl { bottom: 0; left: 0; border-bottom: 1px solid var(--muted); border-left: 1px solid var(--muted); }
+  .corner-br { bottom: 0; right: 0; border-bottom: 1px solid var(--muted); border-right: 1px solid var(--muted); }
+  .bracket-card:hover::before, .bracket-card:hover::after,
+  .bracket-card:hover .corner-bl, .bracket-card:hover .corner-br { width: 20px; height: 20px; border-color: var(--accent); }
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-family: 'Space Mono', monospace;
+    font-size: 0.55rem; letter-spacing: 0.12em; color: var(--muted);
+    padding: 0.6rem 0; text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 0.7rem 0; font-size: 0.82rem;
+    border-bottom: 1px solid #0e0e0e;
+  }
+  td:first-child { font-family: 'Space Mono', monospace; font-size: 0.7rem; color: var(--muted); }
+  tr:hover td { color: var(--accent); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  /* Form */
+  .form-group { margin-bottom: 1rem; }
+  label { display: block; font-family: 'Space Mono', monospace; font-size: 0.55rem; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 0.35rem; text-transform: uppercase; }
+  input[type="text"], select {
+    width: 100%; padding: 0.6rem 0; background: transparent;
+    border: none; border-bottom: 1px solid var(--border); color: var(--text);
+    font-family: 'Space Mono', monospace; font-size: 0.85rem; outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, select:focus { border-color: var(--accent); }
+  select { cursor: crosshair; appearance: none; }
+  .btn {
+    padding: 0.55rem 1.25rem; background: transparent; border: 1px solid var(--muted);
+    color: var(--text); font-family: 'Space Mono', monospace; font-size: 0.65rem;
+    letter-spacing: 0.08em; text-transform: uppercase; cursor: crosshair;
+    transition: all 0.2s;
+  }
+  .btn:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .btn-fill { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .btn-fill:hover { opacity: 0.8; }
+  /* Checkbox */
+  .check-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; cursor: crosshair; }
+  .check-box {
+    width: 16px; height: 16px; border: 1px solid var(--muted);
+    display: grid; place-items: center; flex-shrink: 0; transition: all 0.15s;
+  }
+  .check-box.checked { background: var(--accent); border-color: var(--accent); }
+  .check-box svg { opacity: 0; transition: opacity 0.15s; }
+  .check-box.checked svg { opacity: 1; }
+  .check-label { font-size: 0.8rem; }
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.75rem; cursor: crosshair; }
+  .toggle-track {
+    width: 36px; height: 18px; border: 1px solid var(--muted);
+    position: relative; transition: all 0.2s; flex-shrink: 0;
+  }
+  .toggle-track.on { background: var(--accent); border-color: var(--accent); }
+  .toggle-knob {
+    width: 12px; height: 12px; background: var(--muted);
+    position: absolute; top: 2px; left: 2px; transition: transform 0.2s;
+  }
+  .toggle-track.on .toggle-knob { transform: translateX(18px); background: var(--bg); }
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(3,3,3,0.85);
+    backdrop-filter: blur(4px); display: none; place-items: center; z-index: 1000;
+  }
+  .modal-overlay.open { display: grid; }
+  .modal {
+    background: var(--card-bg); padding: 2.5rem; width: 90%; max-width: 420px;
+    position: relative; animation: fadeIn 0.2s ease;
+  }
+  .modal::before, .modal::after { content: ''; position: absolute; width: 16px; height: 16px; }
+  .modal::before { top: 0; left: 0; border-top: 1px solid var(--accent); border-left: 1px solid var(--accent); }
+  .modal::after { bottom: 0; right: 0; border-bottom: 1px solid var(--accent); border-right: 1px solid var(--accent); }
+  @keyframes fadeIn { from { opacity: 0; } }
+  .modal h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem; }
+  .modal p { color: var(--muted); font-size: 0.82rem; line-height: 1.6; margin-bottom: 1.5rem; }
+  .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <nav class="nav">
+      <span class="nav-logo">[SIGNAL]</span>
+      <span class="nav-label">Interface v2.0</span>
+    </nav>
+
+    <div class="section-header">
+      <span class="section-num">[00]</span>
+      <div class="section-line"></div>
+      <span class="section-num">DATA</span>
+    </div>
+
+    <div class="bracket-card">
+      <div class="corner-bl"></div><div class="corner-br"></div>
+      <table>
+        <thead><tr><th>ID</th><th>Signal</th><th>Frequency</th><th>Amplitude</th><th>Phase</th></tr></thead>
+        <tbody>
+          <tr><td>[00]</td><td>Carrier Wave</td><td>440 Hz</td><td>0.82</td><td>0.00</td></tr>
+          <tr><td>[01]</td><td>Harmonic A</td><td>880 Hz</td><td>0.45</td><td>1.57</td></tr>
+          <tr><td>[02]</td><td>Noise Floor</td><td>20 kHz</td><td>0.03</td><td>--</td></tr>
+          <tr><td>[03]</td><td>Modulator</td><td>2.2 Hz</td><td>0.91</td><td>3.14</td></tr>
+          <tr><td>[04]</td><td>Sub Bass</td><td>55 Hz</td><td>0.78</td><td>0.00</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-header">
+      <span class="section-num">[01]</span>
+      <div class="section-line"></div>
+      <span class="section-num">CONTROLS</span>
+    </div>
+
+    <div class="grid">
+      <div class="bracket-card">
+        <div class="corner-bl"></div><div class="corner-br"></div>
+        <div class="form-group">
+          <label>Signal Name</label>
+          <input type="text" placeholder="enter identifier">
+        </div>
+        <div class="form-group">
+          <label>Waveform</label>
+          <select>
+            <option>Sine</option>
+            <option>Square</option>
+            <option>Sawtooth</option>
+            <option>Triangle</option>
+            <option>Noise</option>
+          </select>
+        </div>
+        <button class="btn" onclick="document.getElementById('modal').classList.add('open')">Open Modal</button>
+      </div>
+
+      <div class="bracket-card">
+        <div class="corner-bl"></div><div class="corner-br"></div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#030303" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Anti-alias filter</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#030303" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">DC offset correction</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#030303" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Normalize output</span>
+        </div>
+        <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track on"><div class="toggle-knob"></div></div>
+          <span class="check-label">Monitor</span>
+        </div>
+        <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track"><div class="toggle-knob"></div></div>
+          <span class="check-label">Bypass</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <h2>Signal Configuration</h2>
+      <p>The Signal Interface theme is deeply minimal and dark. Near-black backgrounds, white-only accents, bracket-corner frames, and crosshair cursor create a focused instrument aesthetic.</p>
+      <div class="modal-actions">
+        <button class="btn" onclick="document.getElementById('modal').classList.remove('open')">Cancel</button>
+        <button class="btn btn-fill" onclick="document.getElementById('modal').classList.remove('open')">Apply</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

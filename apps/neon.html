@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Arcade - Component Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-gradient-start: #ff5bad;
+    --bg-gradient-mid:   #ffc85c;
+    --bg-gradient-end:   #fcee0a;
+    --panel-dark:        #2a0a2e;
+    --panel-mid:         #4d1558;
+    --neon-pink:         #f93c94;
+    --neon-yellow:       #fcee0a;
+    --neon-cyan:         #00f0ff;
+    --text-dark:         #2a0a2e;
+    --text-light:        #ffffff;
+    --text-on-pink:      #2a0a2e;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: linear-gradient(to bottom right, var(--bg-gradient-start), var(--bg-gradient-mid), var(--bg-gradient-end));
+    min-height: 100vh;
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem;
+    overflow-x: hidden;
+  }
+
+  /* octagonal clip */
+  .clip-tech-border {
+    clip-path: polygon(
+      20px 0, calc(100% - 20px) 0, 100% 20px, 100% calc(100% - 20px),
+      calc(100% - 20px) 100%, 20px 100%, 0 calc(100% - 20px), 0 20px
+    );
+  }
+  .clip-tech-corner-sm {
+    clip-path: polygon(
+      8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px),
+      calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px
+    );
+  }
+
+  /* header on gradient */
+  .page-header {
+    text-align: center;
+    padding: 1rem 0 0.75rem;
+    position: relative;
+  }
+  .title-container { position: relative; display: inline-block; }
+  .title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900; font-style: italic;
+    font-size: 2.8rem; letter-spacing: 0.1em;
+    color: var(--neon-yellow);
+    transform: skewX(-12deg);
+    position: relative; z-index: 1;
+    filter: drop-shadow(4px 4px 0 rgba(0,0,0,1));
+    display: inline-block;
+  }
+  .title .accent { color: var(--neon-cyan); }
+  .title-shadow {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900; font-style: italic;
+    font-size: 2.8rem; letter-spacing: 0.1em;
+    color: var(--neon-pink);
+    transform: skewX(-12deg);
+    position: absolute; top: 0; left: 1px;
+    z-index: 0; opacity: 0.7;
+  }
+  .subtitle-bar {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    transform: skewX(-12deg);
+    background: #000; padding: 2px 0.5rem;
+    border: 1px solid var(--neon-yellow);
+    margin-top: 0.25rem;
+  }
+  .barcode-stripe {
+    height: 1rem; width: 3rem;
+    background: repeating-linear-gradient(90deg, transparent, transparent 2px, var(--neon-yellow) 2px, var(--neon-yellow) 4px);
+  }
+  .subtitle-label {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--text-light); font-size: 0.8rem;
+    letter-spacing: 0.1em; font-weight: 700;
+  }
+  .subtitle-block { width: 2rem; height: 1rem; background: var(--neon-yellow); }
+
+  /* dark panel */
+  .neon-panel {
+    background: var(--panel-dark);
+    border: 3px solid var(--neon-pink);
+    box-shadow:
+      0 0 20px rgba(249, 60, 148, 0.6),
+      0 0 40px rgba(249, 60, 148, 0.4),
+      inset 0 0 20px rgba(249, 60, 148, 0.3);
+    position: relative;
+    width: 100%; max-width: 900px;
+    padding: 2rem 2rem 1.5rem;
+    display: flex; flex-direction: column; gap: 1.25rem;
+    margin-top: 0.5rem;
+  }
+
+  /* panel notch */
+  .panel-notch {
+    position: absolute; top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 8rem; height: 1.5rem;
+    background: var(--panel-dark);
+    border-bottom: 2px solid var(--neon-pink);
+    clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    z-index: 10;
+  }
+  .notch-dot { width: 0.5rem; height: 0.5rem; border-radius: 9999px; }
+  .notch-dot.cyan { background: var(--neon-cyan); animation: pulse 2s infinite; }
+  .notch-dot.yellow { background: var(--neon-yellow); }
+
+  /* side rails */
+  .side-rail {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 0.5rem;
+    pointer-events: none;
+  }
+  .side-rail.left { left: 0.4rem; }
+  .side-rail.right { right: 0.4rem; }
+  .rail-bar { width: 4px; border-radius: 9999px; }
+  .rail-bar.pink { background: var(--neon-pink); }
+  .rail-bar.yellow { background: var(--neon-yellow); }
+
+  /* section title */
+  .section-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700; font-size: 0.8rem;
+    color: var(--neon-pink);
+    letter-spacing: 0.2em; text-transform: uppercase;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--panel-mid);
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .section-title .dot {
+    width: 6px; height: 6px;
+    background: var(--neon-yellow);
+    border-radius: 9999px;
+  }
+
+  /* data table */
+  .neon-table-wrap {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--panel-mid);
+    overflow: hidden;
+    border-radius: 2px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  thead th {
+    background: rgba(249, 60, 148, 0.15);
+    color: var(--neon-yellow);
+    text-align: left; padding: 0.55rem 0.75rem;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700; font-size: 0.65rem;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    border-bottom: 2px solid var(--neon-pink);
+  }
+  tbody td {
+    padding: 0.45rem 0.75rem;
+    border-bottom: 1px solid rgba(77, 21, 88, 0.5);
+    color: rgba(255,255,255,0.8);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+  }
+  tbody tr:hover { background: rgba(249, 60, 148, 0.1); }
+  .rank-pill {
+    display: inline-block;
+    background: var(--neon-pink);
+    color: var(--panel-dark);
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.7rem;
+  }
+  .score-val { color: var(--neon-cyan); text-shadow: 0 0 5px var(--neon-cyan); }
+
+  /* form controls */
+  .form-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  .form-group { display: flex; flex-direction: column; gap: 0.3rem; flex: 1; min-width: 160px; }
+  .form-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem; font-weight: 700;
+    color: var(--neon-pink);
+    letter-spacing: 0.15em; text-transform: uppercase;
+  }
+
+  /* input */
+  .neon-input {
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--panel-mid);
+    color: var(--text-light);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem; padding: 0.5rem 0.75rem;
+    outline: none; transition: all 0.3s;
+    border-radius: 2px;
+  }
+  .neon-input:focus {
+    border-color: var(--neon-pink);
+    box-shadow: 0 0 12px rgba(249, 60, 148, 0.4), inset 0 0 8px rgba(249, 60, 148, 0.1);
+  }
+  .neon-input::placeholder { color: rgba(255,255,255,0.35); }
+
+  /* select */
+  .neon-select {
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--panel-mid);
+    color: var(--text-light);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem; padding: 0.5rem 2rem 0.5rem 0.75rem;
+    outline: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23f93c94' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    cursor: pointer; transition: all 0.3s;
+    border-radius: 2px;
+  }
+  .neon-select:focus { border-color: var(--neon-pink); }
+  .neon-select option { background: var(--panel-dark); color: var(--text-light); }
+
+  /* checkbox */
+  .neon-checkbox-wrap {
+    display: flex; align-items: center; gap: 0.6rem; cursor: pointer;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: rgba(255,255,255,0.7);
+    user-select: none;
+  }
+  .neon-checkbox {
+    width: 22px; height: 22px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--panel-mid);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .neon-checkbox.checked {
+    border-color: var(--neon-pink);
+    background: rgba(249, 60, 148, 0.2);
+  }
+  .neon-checkbox.checked::after {
+    content: '';
+    width: 10px; height: 10px;
+    background: var(--neon-pink);
+    border-radius: 2px;
+    box-shadow: 0 0 8px var(--neon-pink);
+  }
+
+  /* toggle */
+  .neon-toggle-wrap {
+    display: flex; align-items: center; gap: 0.6rem;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: rgba(255,255,255,0.7);
+    cursor: pointer; user-select: none;
+  }
+  .neon-toggle {
+    width: 48px; height: 24px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid var(--panel-mid);
+    border-radius: 12px;
+    position: relative; transition: all 0.3s;
+  }
+  .neon-toggle .knob {
+    position: absolute; top: 3px; left: 3px;
+    width: 14px; height: 14px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 50%; transition: all 0.3s;
+  }
+  .neon-toggle.on {
+    border-color: var(--neon-pink);
+    background: rgba(249, 60, 148, 0.2);
+  }
+  .neon-toggle.on .knob {
+    left: 27px;
+    background: var(--neon-pink);
+    box-shadow: 0 0 10px var(--neon-pink);
+  }
+
+  /* controls row */
+  .controls-row {
+    display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;
+  }
+
+  /* button */
+  .neon-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900; font-size: 0.75rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    background: var(--neon-yellow);
+    color: var(--panel-dark);
+    border: 2px solid var(--neon-pink);
+    padding: 0.6rem 1.5rem;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .neon-btn:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 20px rgba(249, 60, 148, 0.5);
+  }
+
+  /* progress bar */
+  .slide-progress {
+    width: 100%; height: 0.5rem;
+    background: var(--panel-mid);
+    border-radius: 9999px;
+    position: relative; overflow: hidden;
+  }
+  .slide-progress .fill {
+    position: absolute; top: 0; left: -30%;
+    height: 100%; width: 33%;
+    background: var(--neon-yellow);
+    border-radius: 9999px;
+    animation: slide 2s infinite linear;
+  }
+  @keyframes slide { 0% { left: -30%; } 100% { left: 100%; } }
+
+  /* circuit corners */
+  .circuit-corner {
+    position: absolute; bottom: 0;
+    width: 3.5rem; height: 3.5rem;
+    pointer-events: none; z-index: 20;
+  }
+  .circuit-corner.left { left: 0; }
+  .circuit-corner.right { right: 0; transform: scaleX(-1); }
+  .circuit-corner svg .fill-path { fill: var(--neon-pink); opacity: 0.5; }
+  .circuit-corner svg .stroke-path { fill: none; stroke: var(--neon-yellow); stroke-width: 2; }
+
+  /* hazard footer */
+  .hazard-stripe {
+    width: 100%; height: 0.75rem;
+    background: repeating-linear-gradient(-45deg, #000, #000 10px, var(--neon-yellow) 10px, var(--neon-yellow) 20px);
+    opacity: 0.8;
+    clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
+  }
+  .footer-msg {
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--neon-yellow); font-size: 0.8rem;
+    letter-spacing: 0.1em; font-weight: 700;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    filter: drop-shadow(0 0 5px var(--neon-yellow));
+  }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
+
+  /* floating ambient */
+  .ping-dot {
+    position: fixed;
+    width: 0.5rem; height: 0.5rem;
+    background: #fff; border-radius: 9999px;
+    animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+    pointer-events: none;
+  }
+  .cross-mark {
+    position: fixed; font-size: 1.25rem;
+    opacity: 0.25; user-select: none; pointer-events: none;
+    color: var(--neon-pink);
+  }
+
+  /* ========== MODAL ========== */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(42, 10, 46, 0.85);
+    z-index: 100;
+    align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-panel {
+    background: var(--panel-dark);
+    border: 3px solid var(--neon-pink);
+    box-shadow:
+      0 0 30px rgba(249, 60, 148, 0.6),
+      0 0 60px rgba(249, 60, 148, 0.3),
+      inset 0 0 20px rgba(249, 60, 148, 0.2);
+    width: 90%; max-width: 480px;
+    position: relative;
+    clip-path: polygon(20px 0, calc(100% - 20px) 0, 100% 20px, 100% calc(100% - 20px), calc(100% - 20px) 100%, 20px 100%, 0 calc(100% - 20px), 0 20px);
+  }
+  .modal-header {
+    padding: 1rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--panel-mid);
+  }
+  .modal-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900; font-size: 1rem;
+    color: var(--neon-yellow);
+    transform: skewX(-8deg);
+    letter-spacing: 0.1em;
+    filter: drop-shadow(0 0 5px var(--neon-yellow));
+  }
+  .modal-close {
+    background: none; border: 2px solid var(--neon-pink);
+    color: var(--neon-pink); cursor: pointer;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', monospace; font-size: 1rem;
+    transition: all 0.2s; border-radius: 4px;
+  }
+  .modal-close:hover {
+    background: var(--neon-pink); color: var(--panel-dark);
+    box-shadow: 0 0 12px var(--neon-pink);
+  }
+  .modal-body {
+    padding: 1.5rem;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.95rem; color: rgba(255,255,255,0.8);
+    line-height: 1.7;
+  }
+  .modal-body p { margin-bottom: 0.75rem; }
+  .modal-body .hl-pink { color: var(--neon-pink); text-shadow: 0 0 5px var(--neon-pink); font-weight: 700; }
+  .modal-body .hl-cyan { color: var(--neon-cyan); text-shadow: 0 0 5px var(--neon-cyan); font-weight: 700; }
+  .modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--panel-mid);
+    display: flex; justify-content: flex-end; gap: 0.75rem;
+  }
+  .modal-btn-ghost {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700; font-size: 0.65rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    background: transparent;
+    color: rgba(255,255,255,0.5); border: 1px solid var(--panel-mid);
+    padding: 0.5rem 1rem; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .modal-btn-ghost:hover { border-color: var(--neon-cyan); color: var(--neon-cyan); }
+  .modal-btn-pink {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700; font-size: 0.65rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    background: var(--neon-pink); color: var(--panel-dark);
+    border: none; padding: 0.5rem 1rem;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .modal-btn-pink:hover {
+    box-shadow: 0 0 20px var(--neon-pink);
+    transform: scale(1.03);
+  }
+</style>
+</head>
+<body>
+
+  <!-- Floating ambient -->
+  <div class="ping-dot" style="top:10%; left:5%;"></div>
+  <div class="ping-dot" style="bottom:15%; right:8%; animation-delay:0.6s;"></div>
+  <div class="cross-mark" style="top:20%; right:12%;">+</div>
+  <div class="cross-mark" style="bottom:25%; left:8%;">+</div>
+
+  <!-- Header on gradient -->
+  <header class="page-header">
+    <div class="title-container">
+      <div class="title">NEON<span class="accent">ARCADE</span></div>
+      <div class="title-shadow">NEONARCADE</div>
+    </div>
+    <div style="display:block; text-align:center; margin-top:0.25rem;">
+      <div class="subtitle-bar">
+        <div class="barcode-stripe"></div>
+        <span class="subtitle-label">COMPONENTS</span>
+        <div class="subtitle-block"></div>
+      </div>
+    </div>
+    <h2 style="font-family:'Orbitron'; font-size:0.9rem; font-weight:700; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-dark); margin-top:0.4rem; opacity:0.8;">
+      Interactive Showcase
+    </h2>
+  </header>
+
+  <!-- Dark content panel -->
+  <main class="neon-panel clip-tech-border">
+    <div class="panel-notch">
+      <div class="notch-dot cyan"></div>
+      <div class="notch-dot yellow"></div>
+    </div>
+
+    <div class="side-rail left">
+      <div class="rail-bar pink" style="height:3rem"></div>
+      <div class="rail-bar yellow" style="height:1.5rem"></div>
+      <div class="rail-bar pink" style="height:1rem"></div>
+    </div>
+    <div class="side-rail right">
+      <div class="rail-bar yellow" style="height:1.5rem"></div>
+      <div class="rail-bar pink" style="height:3rem"></div>
+      <div class="rail-bar yellow" style="height:0.75rem"></div>
+    </div>
+
+    <!-- Open modal button -->
+    <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+      <button class="neon-btn clip-tech-corner-sm" onclick="openModal()">OPEN MODAL</button>
+      <span style="font-family:'Share Tech Mono'; font-size:0.75rem; color:rgba(255,255,255,0.4); letter-spacing:0.1em;">
+        [SYS] All arcade cabinets online
+      </span>
+    </div>
+
+    <!-- Data Table -->
+    <div>
+      <div class="section-title">
+        <div class="dot"></div>
+        HIGH SCORES
+      </div>
+      <div class="neon-table-wrap" style="margin-top:0.4rem">
+        <table>
+          <thead>
+            <tr>
+              <th>RANK</th>
+              <th>PLAYER</th>
+              <th>GAME</th>
+              <th>SCORE</th>
+              <th>DATE</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="rank-pill">01</span></td>
+              <td style="color:var(--neon-yellow)">NEON_HAWK</td>
+              <td>Cyber Drift</td>
+              <td class="score-val">9,847,200</td>
+              <td>2086.03.13</td>
+            </tr>
+            <tr>
+              <td><span class="rank-pill">02</span></td>
+              <td style="color:var(--neon-yellow)">PIXEL_QUEEN</td>
+              <td>Grid Runner</td>
+              <td class="score-val">8,221,050</td>
+              <td>2086.03.12</td>
+            </tr>
+            <tr>
+              <td><span class="rank-pill">03</span></td>
+              <td style="color:var(--neon-yellow)">SYNTH_LORD</td>
+              <td>Neon Blitz</td>
+              <td class="score-val">7,654,800</td>
+              <td>2086.03.11</td>
+            </tr>
+            <tr>
+              <td><span class="rank-pill">04</span></td>
+              <td style="color:var(--neon-yellow)">GLITCH_FOX</td>
+              <td>Cyber Drift</td>
+              <td class="score-val">6,890,300</td>
+              <td>2086.03.10</td>
+            </tr>
+            <tr>
+              <td><span class="rank-pill">05</span></td>
+              <td style="color:var(--neon-yellow)">VOXEL_MIND</td>
+              <td>Pulse Arena</td>
+              <td class="score-val">5,102,750</td>
+              <td>2086.03.09</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Form Controls -->
+    <div>
+      <div class="section-title">
+        <div class="dot"></div>
+        PLAYER CONFIG
+      </div>
+      <div class="form-row" style="margin-top:0.4rem">
+        <div class="form-group">
+          <label class="form-label">PLAYER TAG</label>
+          <input type="text" class="neon-input" placeholder="Enter callsign...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">GAME SELECT</label>
+          <select class="neon-select">
+            <option>Cyber Drift</option>
+            <option>Grid Runner</option>
+            <option>Neon Blitz</option>
+            <option>Pulse Arena</option>
+            <option>Synth Wars</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Checkbox + Toggle -->
+    <div class="controls-row">
+      <div class="neon-checkbox-wrap" onclick="toggleCheckbox(this)">
+        <div class="neon-checkbox checked"></div>
+        AUTO-SAVE
+      </div>
+      <div class="neon-checkbox-wrap" onclick="toggleCheckbox(this)">
+        <div class="neon-checkbox"></div>
+        TURBO MODE
+      </div>
+      <div class="neon-toggle-wrap" onclick="toggleSwitch(this)">
+        <div class="neon-toggle on"><div class="knob"></div></div>
+        SOUND FX
+      </div>
+      <div class="neon-toggle-wrap" onclick="toggleSwitch(this)">
+        <div class="neon-toggle"><div class="knob"></div></div>
+        RUMBLE
+      </div>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="slide-progress">
+      <div class="fill"></div>
+    </div>
+
+    <!-- Circuit corners -->
+    <div class="circuit-corner left">
+      <svg viewBox="0 0 100 100">
+        <path class="fill-path" d="M0,100 L20,100 L30,90 L90,90 L100,80 L100,100 Z" />
+        <path class="stroke-path" d="M10,100 L10,80 L30,60 L40,60" />
+      </svg>
+    </div>
+    <div class="circuit-corner right">
+      <svg viewBox="0 0 100 100">
+        <path class="fill-path" d="M0,100 L20,100 L30,90 L90,90 L100,80 L100,100 Z" />
+        <path class="stroke-path" d="M10,100 L10,80 L30,60 L40,60" />
+      </svg>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer style="margin-top:1rem; text-align:center; width:100%; max-width:900px;">
+    <div class="footer-msg">&lt;&lt; INSERT COIN TO CONTINUE &gt;&gt;</div>
+    <div class="hazard-stripe" style="margin-top:0.5rem"></div>
+  </footer>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal-panel">
+      <div class="modal-header">
+        <span class="modal-title">PLAYER ALERT</span>
+        <button class="modal-close" onclick="closeModal()">X</button>
+      </div>
+      <div class="modal-body">
+        <p>New challenger approaching! <span class="hl-pink">PIXEL_QUEEN</span> has initiated a ranked match on <span class="hl-cyan">Grid Runner</span>.</p>
+        <p>Your current streak: <span class="hl-pink">14 wins</span>. Wager pool: <span class="hl-cyan">25,000 credits</span>.</p>
+        <p style="margin-bottom:0">Accept the challenge to defend your rank on the leaderboard.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn-ghost" onclick="closeModal()">DECLINE</button>
+        <button class="modal-btn-pink" onclick="closeModal()">ACCEPT</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Click flash
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.modal-overlay') && !e.target.closest('.modal-panel')) return;
+    const flash = document.createElement('div');
+    flash.style.cssText = 'position:fixed;inset:0;background:white;opacity:0.6;z-index:999;pointer-events:none';
+    document.body.appendChild(flash);
+    flash.animate([{opacity:0.6},{opacity:0}], {duration:120, easing:'ease-out'})
+      .onfinish = () => flash.remove();
+  });
+
+  // Modal
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+  }
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // Checkbox
+  function toggleCheckbox(wrap) {
+    wrap.querySelector('.neon-checkbox').classList.toggle('checked');
+  }
+
+  // Toggle
+  function toggleSwitch(wrap) {
+    wrap.querySelector('.neon-toggle').classList.toggle('on');
+  }
+</script>
+</body>
+</html>

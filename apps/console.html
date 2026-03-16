@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Console Rack — Component Showcase</title>
+<style>
+  :root {
+    --comp-bg: oklch(0.93 0.003 265);
+    --comp-text: oklch(0.28 0 0);
+    --comp-border: oklch(0.82 0.005 265);
+    --comp-accent: oklch(0.58 0.20 35);
+    --comp-accent-text: oklch(1.00 0 0);
+    --comp-muted: oklch(0.55 0 0);
+    --color-background: oklch(0.98 0 0);
+    --console-cap-blue: oklch(0.28 0.05 240);
+    --console-cap-ochre: oklch(0.66 0.10 75);
+    --console-cap-grey: oklch(0.60 0 0);
+    --console-cap-orange: oklch(0.58 0.20 35);
+    --console-cap-white: oklch(0.95 0 0);
+    --console-screen-bg: oklch(0.07 0 0);
+    --console-led-green: oklch(0.85 0.30 140);
+    --font-tech: 'Courier New', Courier, monospace;
+    --font-ui: system-ui, -apple-system, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--color-background);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    user-select: none;
+    padding: 24px;
+  }
+
+  .device-case {
+    background: linear-gradient(to bottom, var(--comp-bg), oklch(0.91 0.003 265));
+    width: 1100px;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow:
+      0 50px 100px -20px rgba(0,0,0,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.8),
+      inset 0 -1px 0 rgba(0,0,0,0.1),
+      0 0 0 1px #ccc;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    position: relative;
+  }
+
+  .label {
+    font-family: var(--font-tech);
+    font-size: 10px;
+    color: var(--comp-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.8);
+    pointer-events: none;
+  }
+
+  /* Top Row: Screen + Knobs */
+  .top-row {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+  .top-row::after {
+    content: '';
+    position: absolute;
+    left: 28px; right: 28px;
+    top: calc(28px + 160px + 20px);
+    height: 1px;
+    background: rgba(255,255,255,0.5);
+  }
+
+  /* Screen */
+  .screen-display {
+    background: var(--console-screen-bg);
+    height: 160px;
+    width: 100%;
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+    border: 4px solid #000;
+    box-shadow: inset 0 0 20px rgba(255,255,255,0.05);
+    display: flex;
+    flex-direction: column;
+  }
+  .screen-ui {
+    padding: 10px 14px;
+    color: white;
+    font-family: var(--font-tech);
+    font-size: 10px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: space-between;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .screen-header, .screen-footer {
+    display: flex;
+    justify-content: space-between;
+    opacity: 0.8;
+    background: rgba(0,0,0,0.3);
+    padding: 4px 8px;
+    margin: -10px -14px 0;
+  }
+  .screen-footer { margin: 0 -14px -10px; }
+  .screen-canvas {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* Knob Section */
+  .knob-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .encoder-row {
+    display: flex;
+    gap: 28px;
+    flex-wrap: wrap;
+  }
+  .encoder-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .knob-socket {
+    width: 58px; height: 58px;
+    border-radius: 50%;
+    background: oklch(0.90 0.003 265);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1), 0 1px 0 rgba(255,255,255,0.8);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .knob-cap {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    box-shadow:
+      0 4px 6px rgba(0,0,0,0.3),
+      0 8px 12px rgba(0,0,0,0.1),
+      inset 0 2px 3px rgba(255,255,255,0.3),
+      inset 0 -2px 4px rgba(0,0,0,0.2);
+    cursor: grab;
+    position: relative;
+  }
+  .knob-cap:active { cursor: grabbing; }
+  .knob-cap::after {
+    content: '';
+    position: absolute;
+    top: 15%; left: 15%; right: 15%; bottom: 15%;
+    border-radius: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(0,0,0,0.1));
+    pointer-events: none;
+  }
+  .knob-indicator {
+    position: absolute;
+    top: 4px; left: 50%;
+    width: 2px; height: 8px;
+    background: rgba(255,255,255,0.6);
+    transform: translateX(-50%);
+    border-radius: 1px;
+  }
+  .knob-blue { background: var(--console-cap-blue); }
+  .knob-ochre { background: var(--console-cap-ochre); }
+  .knob-grey { background: var(--console-cap-grey); }
+  .knob-orange { background: var(--console-cap-orange); }
+  .knob-white { background: var(--console-cap-white); }
+
+  /* Middle Row: Controls */
+  .mid-row {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  /* Control Group */
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Round Button */
+  .btn-round {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: var(--console-cap-white);
+    border: none;
+    box-shadow: 0 3px 0 #c2c2c4, 0 4px 4px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-tech);
+    text-transform: uppercase;
+    font-size: 9px;
+    letter-spacing: 0.3px;
+    color: var(--comp-text);
+    cursor: pointer;
+    transition: transform 0.05s ease, box-shadow 0.05s ease;
+    position: relative;
+  }
+  .btn-round:active {
+    transform: translateY(3px);
+    box-shadow: 0 0 0 #c2c2c4, inset 0 2px 4px rgba(0,0,0,0.1);
+  }
+  .btn-round::after {
+    content: '';
+    width: 80%; height: 80%;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(0,0,0,0.02), rgba(255,255,255,0.2));
+    position: absolute;
+    pointer-events: none;
+  }
+
+  /* LED Toggle */
+  .btn-toggle {
+    width: 36px; height: 36px;
+    background: #1a1a1a;
+    border-radius: 50%;
+    border: none;
+    box-shadow: 0 2px 0 #000;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.1s;
+  }
+  .btn-toggle::after {
+    content: '';
+    position: absolute;
+    top: 14px; left: 14px;
+    width: 8px; height: 8px;
+    background: #333;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
+  }
+  .btn-toggle.active::after {
+    background: var(--console-led-green);
+    box-shadow: 0 0 8px var(--console-led-green), inset 0 -1px 2px rgba(255,255,255,0.4);
+  }
+  .btn-toggle:active {
+    transform: translateY(2px);
+    box-shadow: none;
+  }
+
+  /* Page Button */
+  .btn-page {
+    background: var(--console-cap-white);
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-family: var(--font-tech);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--comp-text);
+    box-shadow: 0 3px 0 #c2c2c4, 0 4px 4px rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: transform 0.05s ease;
+  }
+  .btn-page:active {
+    transform: translateY(3px);
+    box-shadow: none;
+  }
+  .btn-page.active-page {
+    background: var(--console-cap-orange);
+    color: white;
+    box-shadow: 0 3px 0 oklch(0.45 0.18 35), 0 4px 4px rgba(0,0,0,0.15);
+  }
+
+  /* Data Table (screen-style) */
+  .data-panel {
+    background: var(--console-screen-bg);
+    border: 4px solid #000;
+    border-radius: 2px;
+    box-shadow: inset 0 0 20px rgba(255,255,255,0.03);
+    padding: 0;
+    flex: 1;
+    min-width: 340px;
+    overflow: hidden;
+  }
+  .data-header {
+    display: grid;
+    grid-template-columns: 40px 1fr 80px 80px;
+    padding: 8px 14px;
+    font-family: var(--font-tech);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .data-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 80px 80px;
+    padding: 10px 14px;
+    font-family: var(--font-tech);
+    font-size: 11px;
+    color: rgba(255,255,255,0.75);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    transition: background 0.1s;
+  }
+  .data-row:hover { background: rgba(255,255,255,0.04); }
+  .data-row .idx { color: rgba(255,255,255,0.3); }
+  .data-row .name { color: rgba(255,255,255,0.85); }
+  .data-row .val { text-align: right; color: var(--console-led-green); }
+  .data-row .status { text-align: right; }
+  .status-on { color: var(--console-led-green); }
+  .status-off { color: rgba(255,255,255,0.25); }
+
+  /* Input Section */
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 220px;
+  }
+  .console-input {
+    font-family: var(--font-tech);
+    font-size: 12px;
+    padding: 10px 14px;
+    background: var(--console-screen-bg);
+    color: rgba(255,255,255,0.85);
+    border: 4px solid #000;
+    border-radius: 2px;
+    outline: none;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    box-shadow: inset 0 0 10px rgba(255,255,255,0.03);
+  }
+  .console-input::placeholder {
+    color: rgba(255,255,255,0.25);
+    text-transform: uppercase;
+  }
+  .console-input:focus {
+    box-shadow: inset 0 0 10px rgba(255,255,255,0.03), 0 0 0 1px rgba(74,246,38,0.3);
+  }
+
+  /* Select */
+  .console-select-wrap { position: relative; }
+  .console-select {
+    font-family: var(--font-tech);
+    font-size: 12px;
+    padding: 10px 30px 10px 14px;
+    background: var(--console-screen-bg);
+    color: rgba(255,255,255,0.85);
+    border: 4px solid #000;
+    border-radius: 2px;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    width: 100%;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    box-shadow: inset 0 0 10px rgba(255,255,255,0.03);
+  }
+  .console-select option { background: #111; color: #ddd; }
+  .console-select-arrow {
+    position: absolute;
+    right: 10px; top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: rgba(255,255,255,0.3);
+    font-size: 10px;
+  }
+
+  /* Checkbox row */
+  .checkbox-strip {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+  }
+  .hw-checkbox {
+    width: 20px; height: 20px;
+    background: #1a1a1a;
+    border-radius: 3px;
+    border: none;
+    box-shadow: 0 2px 0 #000;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: transform 0.05s;
+  }
+  .hw-checkbox::after {
+    content: '';
+    position: absolute;
+    top: 5px; left: 5px;
+    width: 10px; height: 10px;
+    background: #333;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+  .hw-checkbox.checked::after {
+    background: var(--console-led-green);
+    box-shadow: 0 0 6px var(--console-led-green);
+  }
+  .hw-checkbox:active { transform: translateY(2px); box-shadow: none; }
+
+  /* Toggle strip */
+  .toggle-strip {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .toggle-unit {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-device {
+    background: linear-gradient(to bottom, var(--comp-bg), oklch(0.91 0.003 265));
+    border-radius: 12px;
+    padding: 24px;
+    width: 420px;
+    max-width: 90%;
+    box-shadow:
+      0 50px 100px -20px rgba(0,0,0,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.8),
+      0 0 0 1px #ccc;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .modal-screen {
+    background: var(--console-screen-bg);
+    border: 4px solid #000;
+    border-radius: 2px;
+    padding: 20px;
+    color: rgba(255,255,255,0.85);
+    font-family: var(--font-tech);
+    font-size: 12px;
+    line-height: 1.6;
+    box-shadow: inset 0 0 20px rgba(255,255,255,0.03);
+  }
+  .modal-screen-title {
+    font-size: 14px;
+    color: var(--console-led-green);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+
+  /* Grille */
+  .grille {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+    width: 50px;
+    align-self: center;
+  }
+  .grille-dot {
+    width: 3px; height: 3px;
+    background: #999;
+    border-radius: 50%;
+    box-shadow: inset 0 1px 1px rgba(0,0,0,0.4);
+  }
+
+  /* Branding */
+  .branding {
+    font-family: var(--font-ui);
+    color: #888;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-align: center;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0,0,0,0.06);
+    opacity: 0.5;
+  }
+
+  /* Bottom row */
+  .bottom-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  @media (max-width: 1100px) {
+    .device-case { width: 100%; max-width: 600px; }
+    .top-row { grid-template-columns: 1fr; }
+    .bottom-row { flex-direction: column; }
+    .data-panel { min-width: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div class="device-case">
+
+  <!-- Top Row: Screen + Encoders -->
+  <div class="top-row">
+    <!-- Screen -->
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="screen-display">
+        <canvas class="screen-canvas" id="waveCanvas"></canvas>
+        <div class="screen-ui">
+          <div class="screen-header">
+            <span>CONSOLE-RACK</span>
+            <span>CH:8 MODE:LIVE</span>
+          </div>
+          <div class="screen-footer">
+            <span>SIGNAL: ACTIVE</span>
+            <span>48KHZ 24BIT</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button class="btn-page active-page">PAGE 1</button>
+        <button class="btn-page">PAGE 2</button>
+        <button class="btn-page">PAGE 3</button>
+      </div>
+    </div>
+
+    <!-- Encoders + Action Buttons -->
+    <div class="knob-section">
+      <div class="encoder-row">
+        <div class="encoder-unit">
+          <div class="knob-socket"><div class="knob-cap knob-blue"><div class="knob-indicator"></div></div></div>
+          <span class="label">Pan</span>
+        </div>
+        <div class="encoder-unit">
+          <div class="knob-socket"><div class="knob-cap knob-ochre"><div class="knob-indicator"></div></div></div>
+          <span class="label">Tilt</span>
+        </div>
+        <div class="encoder-unit">
+          <div class="knob-socket"><div class="knob-cap knob-grey"><div class="knob-indicator"></div></div></div>
+          <span class="label">Dim</span>
+        </div>
+        <div class="encoder-unit">
+          <div class="knob-socket"><div class="knob-cap knob-orange"><div class="knob-indicator"></div></div></div>
+          <span class="label">FX</span>
+        </div>
+        <div class="encoder-unit">
+          <div class="knob-socket"><div class="knob-cap knob-white"><div class="knob-indicator"></div></div></div>
+          <span class="label">Gain</span>
+        </div>
+        <div class="encoder-unit">
+          <div class="knob-socket"><div class="knob-cap knob-blue"><div class="knob-indicator"></div></div></div>
+          <span class="label">Speed</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+        <button class="btn-round">M1</button>
+        <button class="btn-round">M2</button>
+        <button class="btn-round" style="color:var(--console-cap-orange)">REC</button>
+        <button class="btn-round" id="openModal">
+          <svg width="12" height="14" viewBox="0 0 12 14" fill="currentColor"><polygon points="2,0 12,7 2,14"/></svg>
+        </button>
+        <div class="grille" style="margin-left:auto">
+          <div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div>
+          <div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div>
+          <div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div><div class="grille-dot"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Row: Table + Controls -->
+  <div class="bottom-row">
+
+    <!-- Data Table -->
+    <div class="data-panel">
+      <div class="data-header">
+        <span>CH</span>
+        <span>NAME</span>
+        <span style="text-align:right">VALUE</span>
+        <span style="text-align:right">STATUS</span>
+      </div>
+      <div class="data-row">
+        <span class="idx">01</span>
+        <span class="name">FRONT WASH</span>
+        <span class="val">186</span>
+        <span class="status status-on">ON</span>
+      </div>
+      <div class="data-row">
+        <span class="idx">02</span>
+        <span class="name">BACK FILL</span>
+        <span class="val">142</span>
+        <span class="status status-on">ON</span>
+      </div>
+      <div class="data-row">
+        <span class="idx">03</span>
+        <span class="name">SIDE KEY L</span>
+        <span class="val">210</span>
+        <span class="status status-off">OFF</span>
+      </div>
+      <div class="data-row">
+        <span class="idx">04</span>
+        <span class="name">SIDE KEY R</span>
+        <span class="val">098</span>
+        <span class="status status-on">ON</span>
+      </div>
+      <div class="data-row">
+        <span class="idx">05</span>
+        <span class="name">SPOT CENTER</span>
+        <span class="val">255</span>
+        <span class="status status-on">ON</span>
+      </div>
+    </div>
+
+    <!-- Controls Column -->
+    <div style="display:flex;flex-direction:column;gap:18px;min-width:220px">
+      <!-- Text Input -->
+      <div class="input-section">
+        <span class="label">Channel Name</span>
+        <input type="text" class="console-input" placeholder="ENTER NAME...">
+      </div>
+
+      <!-- Select -->
+      <div class="input-section">
+        <span class="label">Fixture Type</span>
+        <div class="console-select-wrap">
+          <select class="console-select">
+            <option>PAR CAN 64</option>
+            <option>MOVING HEAD</option>
+            <option>LED BAR</option>
+            <option>STROBE</option>
+            <option>FRESNEL</option>
+          </select>
+          <span class="console-select-arrow">&#9662;</span>
+        </div>
+      </div>
+
+      <!-- Checkbox -->
+      <div>
+        <span class="label" style="display:block;margin-bottom:8px">Options</span>
+        <div class="checkbox-strip">
+          <div class="checkbox-row">
+            <button class="hw-checkbox checked" onclick="this.classList.toggle('checked')"></button>
+            <span class="label">INVERT PAN</span>
+          </div>
+          <div class="checkbox-row">
+            <button class="hw-checkbox" onclick="this.classList.toggle('checked')"></button>
+            <span class="label">INVERT TILT</span>
+          </div>
+          <div class="checkbox-row">
+            <button class="hw-checkbox checked" onclick="this.classList.toggle('checked')"></button>
+            <span class="label">16-BIT MODE</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toggle Column -->
+    <div style="display:flex;flex-direction:column;gap:14px;min-width:140px">
+      <span class="label">Channel Enable</span>
+      <div class="toggle-strip">
+        <div class="toggle-unit">
+          <button class="btn-toggle active" onclick="this.classList.toggle('active')"></button>
+          <span class="label">CH 01</span>
+        </div>
+        <div class="toggle-unit">
+          <button class="btn-toggle active" onclick="this.classList.toggle('active')"></button>
+          <span class="label">CH 02</span>
+        </div>
+        <div class="toggle-unit">
+          <button class="btn-toggle" onclick="this.classList.toggle('active')"></button>
+          <span class="label">CH 03</span>
+        </div>
+        <div class="toggle-unit">
+          <button class="btn-toggle active" onclick="this.classList.toggle('active')"></button>
+          <span class="label">CH 04</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Branding -->
+  <div class="branding">Console Rack &mdash; Showcase Unit</div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-device">
+    <div class="modal-screen">
+      <div class="modal-screen-title">// System Message</div>
+      <div>This modal is styled as a hardware device dialog. It inherits the aluminum case, black screen, and physical button aesthetics of the Console Rack theme. Every control element has mechanical depth and tactile response.</div>
+    </div>
+    <div class="modal-buttons">
+      <button class="btn-round" style="width:auto;border-radius:6px;padding:10px 24px;font-size:10px" id="modalOk">CONFIRM</button>
+      <button class="btn-page" id="modalCancel">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Waveform canvas
+  (function() {
+    var canvas = document.getElementById('waveCanvas');
+    var ctx = canvas.getContext('2d');
+    var time = 0;
+
+    function resize() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function draw() {
+      var w = canvas.width, h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      // Main waveform
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(74, 246, 38, 0.6)';
+      ctx.lineWidth = 1.5;
+      for (var x = 0; x < w; x++) {
+        var y = h/2 + Math.sin(x * 0.02 + time) * 25 + Math.sin(x * 0.05 + time * 1.5) * 10;
+        if (x === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Secondary waveform
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(232, 74, 27, 0.4)';
+      ctx.lineWidth = 1;
+      for (var x2 = 0; x2 < w; x2++) {
+        var y2 = h/2 + Math.cos(x2 * 0.03 + time * 0.8) * 18 + Math.sin(x2 * 0.07 + time * 2) * 8;
+        if (x2 === 0) ctx.moveTo(x2, y2);
+        else ctx.lineTo(x2, y2);
+      }
+      ctx.stroke();
+
+      time += 0.03;
+      requestAnimationFrame(draw);
+    }
+    draw();
+  })();
+
+  // Modal
+  document.getElementById('openModal').addEventListener('click', function() {
+    document.getElementById('modal').classList.add('open');
+  });
+  document.getElementById('modalOk').addEventListener('click', function() {
+    document.getElementById('modal').classList.remove('open');
+  });
+  document.getElementById('modalCancel').addEventListener('click', function() {
+    document.getElementById('modal').classList.remove('open');
+  });
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+
+  // Page buttons
+  document.querySelectorAll('.btn-page').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.btn-page').forEach(function(b) { b.classList.remove('active-page'); });
+      btn.classList.add('active-page');
+    });
+  });
+
+  // Knob rotation on drag
+  document.querySelectorAll('.knob-cap').forEach(function(cap) {
+    var angle = Math.random() * 270 - 135;
+    cap.style.transform = 'rotate(' + angle + 'deg)';
+    var dragging = false;
+    var startY = 0;
+    var startAngle = angle;
+
+    cap.addEventListener('mousedown', function(e) {
+      dragging = true;
+      startY = e.clientY;
+      startAngle = angle;
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (!dragging) return;
+      var delta = (startY - e.clientY) * 1.5;
+      angle = Math.max(-135, Math.min(135, startAngle + delta));
+      cap.style.transform = 'rotate(' + angle + 'deg)';
+    });
+    window.addEventListener('mouseup', function() { dragging = false; });
+  });
+</script>
+
+</body>
+</html>

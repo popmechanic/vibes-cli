@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rift Portal - Theme Showcase</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Creepster&family=Orbitron:wght@400;500;700;900&family=Patrick+Hand&display=swap');
+
+  :root {
+    --bg:            oklch(0.07 0.02 280);
+    --surface:       oklch(0.17 0.02 270 / 0.9);
+    --card:          oklch(0.13 0.000 0);
+    --card-inner:    oklch(0.21 0.02 255);
+    --border:        oklch(0.37 0.03 255);
+    --border-frame:  oklch(0.44 0.02 255);
+    --fg:            oklch(1.00 0.000 0);
+    --fg-muted:      oklch(0.70 0.02 260);
+    --fg-dim:        oklch(0.55 0.02 260);
+    --accent-green:  oklch(0.88 0.27 128);
+    --accent-cyan:   oklch(0.87 0.14 200);
+    --accent-pink:   oklch(0.58 0.32 320);
+    --accent-yellow: oklch(0.87 0.18 90);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Orbitron', sans-serif;
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 50%, oklch(0.30 0.15 300 / 0.2) 0%, transparent 50%),
+      radial-gradient(circle at 85% 30%, oklch(0.50 0.10 200 / 0.15) 0%, transparent 50%);
+    color: var(--fg);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* STARS */
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.5); }
+  }
+  .star {
+    position: fixed;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle 3s infinite ease-in-out;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* SPINNING RINGS */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .status-rings {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ring-outer {
+    position: absolute;
+    inset: 0;
+    border: 2px solid var(--accent-cyan);
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 2s linear infinite;
+  }
+  .ring-inner {
+    position: absolute;
+    inset: 8px;
+    border: 2px solid var(--accent-green);
+    border-radius: 50%;
+    border-bottom-color: transparent;
+    animation: spin 2s linear infinite reverse;
+  }
+  .ring-center {
+    width: 6px;
+    height: 6px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 0 10px white;
+  }
+
+  /* FLOAT */
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  /* HERO */
+  .hero-title {
+    font-family: 'Creepster', cursive;
+    font-size: 64px;
+    color: var(--accent-green);
+    text-shadow: 0 0 5px oklch(0.88 0.27 128), 0 0 10px oklch(0.88 0.27 128), 0 0 30px oklch(0.88 0.27 128 / 0.5);
+    letter-spacing: 0.05em;
+    line-height: 1;
+    -webkit-text-stroke: 1px rgba(0,0,0,0.5);
+    text-align: center;
+  }
+  .subtitle-pill {
+    background: oklch(0.00 0.000 0 / 0.4);
+    border: 1px solid var(--accent-pink);
+    padding: 4px 24px;
+    border-radius: 9999px;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 0 10px oklch(0.58 0.32 320);
+    transform: skewX(-12deg);
+    display: inline-block;
+  }
+  .subtitle-text {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--accent-pink);
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-shadow: 0 0 5px oklch(0.58 0.32 320);
+    transform: skewX(12deg);
+    display: inline-block;
+    font-size: 14px;
+  }
+
+  /* NEON DIVIDER */
+  .neon-divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--accent-cyan), transparent);
+    opacity: 0.5;
+  }
+  .neon-divider-pink {
+    background: linear-gradient(to right, transparent, var(--accent-pink), transparent);
+    box-shadow: 0 0 15px oklch(0.58 0.32 320);
+  }
+
+  /* MACHINE FRAME */
+  .machine-frame {
+    background: var(--surface);
+    backdrop-filter: blur(12px);
+    border-top: 4px solid var(--border);
+    border-bottom: 4px solid var(--border);
+    border-radius: 3rem;
+    padding: 32px;
+    position: relative;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* HEX BUTTON */
+  .hex-btn {
+    clip-path: polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+    padding: 12px 32px;
+    background: var(--card);
+    border: none;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    color: var(--accent-cyan);
+    cursor: pointer;
+    transition: all 0.3s;
+    text-shadow: 0 0 5px oklch(0.87 0.14 200);
+  }
+  .hex-btn:hover {
+    background: var(--accent-cyan);
+    color: black;
+    text-shadow: none;
+  }
+  .hex-btn-pink {
+    color: var(--accent-pink);
+    text-shadow: 0 0 5px oklch(0.58 0.32 320);
+  }
+  .hex-btn-pink:hover {
+    background: var(--accent-pink);
+    color: black;
+  }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--fg-dim);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+
+  /* DATA TABLE */
+  .neon-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .neon-table th {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--fg-dim);
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 500;
+  }
+  .neon-table th:last-child,
+  .neon-table td:last-child { text-align: right; }
+  .neon-table td {
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid oklch(0.37 0.03 255 / 0.3);
+    transition: background 0.2s;
+  }
+  .neon-table tr:hover td {
+    background: oklch(0.17 0.02 270 / 0.5);
+  }
+  .neon-table .cyan { color: var(--accent-cyan); }
+  .neon-table .green { color: var(--accent-green); }
+  .neon-table .pink { color: var(--accent-pink); }
+  .neon-table .yellow { color: var(--accent-yellow); }
+
+  /* FORM INPUT */
+  .neon-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .neon-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--fg-dim);
+    text-transform: uppercase;
+  }
+  .neon-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--accent-cyan);
+    color: var(--fg);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    padding: 8px 0;
+    outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .neon-input:focus {
+    border-bottom-color: var(--accent-green);
+    box-shadow: 0 2px 8px oklch(0.88 0.27 128 / 0.3);
+  }
+  .neon-input::placeholder { color: var(--fg-dim); font-size: 11px; }
+
+  .neon-select {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--fg);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    padding: 10px 30px 10px 10px;
+    outline: none;
+    appearance: none;
+    cursor: pointer;
+    transition: border-color 0.3s;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%2300f2ff' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+  .neon-select:focus { border-color: var(--accent-cyan); box-shadow: 0 0 8px oklch(0.87 0.14 200 / 0.3); }
+  .neon-select option { background: var(--card); color: var(--fg); }
+
+  /* CHECKBOX */
+  .neon-check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--fg-muted);
+  }
+  .neon-check-box {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .neon-check-box.checked {
+    background: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 8px oklch(0.87 0.14 200 / 0.4);
+  }
+  .neon-check-box svg {
+    width: 14px; height: 14px;
+    stroke: black; stroke-width: 3; fill: none;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .neon-check-box.checked svg { opacity: 1; }
+
+  /* TOGGLE */
+  .neon-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: ui-monospace, monospace;
+    font-size: 12px;
+    color: var(--fg-muted);
+  }
+  .neon-toggle-track {
+    width: 48px;
+    height: 24px;
+    background: var(--card-inner);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .neon-toggle-track.on {
+    background: oklch(0.88 0.27 128 / 0.3);
+    border-color: var(--accent-green);
+    box-shadow: 0 0 8px oklch(0.88 0.27 128 / 0.3);
+  }
+  .neon-toggle-knob {
+    width: 18px;
+    height: 18px;
+    background: var(--fg-dim);
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: all 0.3s;
+  }
+  .neon-toggle-track.on .neon-toggle-knob {
+    left: 26px;
+    background: var(--accent-green);
+    box-shadow: 0 0 8px var(--accent-green);
+  }
+
+  /* GRID LAYOUTS */
+  .controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .control-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+  }
+
+  /* STAT PANEL */
+  .stat-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--fg-muted);
+  }
+  .stat-bar {
+    width: 100%;
+    height: 6px;
+    background: var(--card-inner);
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+  .stat-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.7s ease;
+  }
+  .stat-fill-green {
+    background: linear-gradient(to right, var(--accent-green), oklch(0.78 0.18 155));
+    box-shadow: 0 0 5px var(--accent-green);
+  }
+  .stat-fill-cyan {
+    background: linear-gradient(to right, var(--accent-cyan), oklch(0.70 0.10 220));
+    box-shadow: 0 0 5px var(--accent-cyan);
+  }
+  .stat-fill-pink {
+    background: linear-gradient(to right, var(--accent-pink), oklch(0.50 0.25 340));
+    box-shadow: 0 0 5px var(--accent-pink);
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal-box {
+    background: var(--card);
+    border: 2px solid var(--accent-cyan);
+    border-radius: 24px;
+    width: 460px;
+    max-width: 90vw;
+    padding: 32px;
+    box-shadow: 0 0 30px oklch(0.87 0.14 200 / 0.3);
+    transform: scale(0.9) translateY(20px);
+    transition: transform 0.3s;
+  }
+  .modal-overlay.open .modal-box { transform: scale(1) translateY(0); }
+  .modal-box h2 {
+    font-family: 'Bangers', cursive;
+    font-size: 28px;
+    color: var(--accent-cyan);
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .modal-box .modal-sub {
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--fg-dim);
+    margin-bottom: 24px;
+  }
+  .modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .modal-footer {
+    display: flex;
+    gap: 12px;
+  }
+  .modal-footer button {
+    flex: 1;
+    padding: 12px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s;
+  }
+  .modal-cancel-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--fg-muted);
+  }
+  .modal-cancel-btn:hover { border-color: var(--accent-pink); color: var(--accent-pink); }
+  .modal-confirm-btn {
+    background: var(--accent-cyan);
+    border: none;
+    color: black;
+  }
+  .modal-confirm-btn:hover { box-shadow: 0 0 20px oklch(0.87 0.14 200 / 0.5); }
+
+  /* OPEN MODAL BTN */
+  .open-modal-hex {
+    clip-path: polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+    padding: 14px 40px;
+    background: var(--card);
+    border: none;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--accent-green);
+    cursor: pointer;
+    transition: all 0.3s;
+    text-shadow: 0 0 5px oklch(0.88 0.27 128);
+  }
+  .open-modal-hex:hover {
+    background: var(--accent-green);
+    color: black;
+    text-shadow: none;
+  }
+
+  /* FOOTER */
+  .footer-text {
+    font-family: 'Patrick Hand', cursive;
+    font-size: 32px;
+    color: var(--accent-cyan);
+    text-shadow: 0 0 5px oklch(0.87 0.14 200), 0 0 10px oklch(0.87 0.14 200);
+  }
+
+  @media (max-width: 700px) {
+    .controls-grid { grid-template-columns: 1fr; }
+    .hero-title { font-size: 40px; }
+    .machine-frame { padding: 16px; border-radius: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- STARS -->
+<div id="stars"></div>
+
+<!-- HEADER -->
+<header style="padding:32px 32px 16px; text-align:center; position:relative; z-index:20;">
+  <h1 class="hero-title">RIFT PORTAL</h1>
+  <div style="margin-top:8px;">
+    <div class="subtitle-pill">
+      <span class="subtitle-text">COMPONENT SHOWCASE</span>
+    </div>
+  </div>
+</header>
+
+<div class="neon-divider neon-divider-pink" style="margin:16px 0;"></div>
+
+<!-- MACHINE FRAME -->
+<main style="padding:0 16px 32px; position:relative; z-index:10;">
+  <div class="machine-frame">
+
+    <!-- STATUS BAR -->
+    <div style="display:flex; align-items:center; gap:16px; justify-content:space-between; margin-bottom:24px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="status-rings">
+          <div class="ring-outer"></div>
+          <div class="ring-inner"></div>
+          <div class="ring-center"></div>
+        </div>
+        <div>
+          <div style="font-size:10px; color:var(--accent-cyan); letter-spacing:0.15em;">SYSTEM STATUS</div>
+          <div style="font-family:monospace; font-size:13px; color:var(--accent-green);">ALL SYSTEMS NOMINAL</div>
+        </div>
+      </div>
+      <div style="display:flex; gap:12px;">
+        <div class="stat-panel" style="width:140px;">
+          <div class="stat-row"><span>SHIELD</span><span style="color:var(--accent-green);">92%</span></div>
+          <div class="stat-bar"><div class="stat-fill stat-fill-green" style="width:92%;"></div></div>
+        </div>
+        <div class="stat-panel" style="width:140px;">
+          <div class="stat-row"><span>POWER</span><span style="color:var(--accent-cyan);">78%</span></div>
+          <div class="stat-bar"><div class="stat-fill stat-fill-cyan" style="width:78%;"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NAV + MODAL TRIGGER -->
+    <nav style="display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin-bottom:24px;">
+      <button class="hex-btn">EXPLORE</button>
+      <button class="hex-btn hex-btn-pink">INVENTORY</button>
+      <button class="open-modal-hex" onclick="toggleModal(true)">OPEN MODAL</button>
+      <button class="hex-btn hex-btn-pink">SETTINGS</button>
+      <button class="hex-btn">MISSIONS</button>
+    </nav>
+
+    <div class="neon-divider" style="margin-bottom:24px;"></div>
+
+    <!-- DATA TABLE -->
+    <div style="margin-bottom:24px;">
+      <div class="section-label">SIGNAL INTERCEPTS</div>
+      <div style="background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+        <table class="neon-table">
+          <thead>
+            <tr>
+              <th>SIGNAL ID</th>
+              <th>ORIGIN</th>
+              <th>FREQUENCY</th>
+              <th>CLASS</th>
+              <th>POWER</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="cyan">SIG-0091</td>
+              <td>Andromeda Sector 7</td>
+              <td>142.7 GHz</td>
+              <td class="green">BEACON</td>
+              <td>+94 dBm</td>
+            </tr>
+            <tr>
+              <td class="cyan">SIG-0092</td>
+              <td>Proxima Centauri</td>
+              <td>88.3 GHz</td>
+              <td class="pink">DISTRESS</td>
+              <td>+67 dBm</td>
+            </tr>
+            <tr>
+              <td class="cyan">SIG-0093</td>
+              <td>Kepler-442b</td>
+              <td>201.1 GHz</td>
+              <td class="yellow">UNKNOWN</td>
+              <td>+112 dBm</td>
+            </tr>
+            <tr>
+              <td class="cyan">SIG-0094</td>
+              <td>Barnard's Star</td>
+              <td>55.9 GHz</td>
+              <td class="green">COMM</td>
+              <td>+43 dBm</td>
+            </tr>
+            <tr>
+              <td class="cyan">SIG-0095</td>
+              <td>Trappist-1e</td>
+              <td>310.5 GHz</td>
+              <td class="pink">ANOMALY</td>
+              <td>+188 dBm</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CONTROLS: INPUT, SELECT, CHECKBOX, TOGGLE -->
+    <div class="controls-grid">
+      <!-- Left: Input + Select -->
+      <div class="control-card">
+        <div class="section-label">TRANSMISSION CONTROLS</div>
+        <div style="display:flex; flex-direction:column; gap:18px;">
+          <div class="neon-input-group">
+            <label class="neon-label">TARGET COORDINATES</label>
+            <input class="neon-input" type="text" placeholder="Enter coordinates...">
+          </div>
+          <div class="neon-input-group">
+            <label class="neon-label">FREQUENCY BAND</label>
+            <select class="neon-select">
+              <option>ALL BANDS</option>
+              <option>UHF (300 MHz - 3 GHz)</option>
+              <option>SHF (3 - 30 GHz)</option>
+              <option>EHF (30 - 300 GHz)</option>
+              <option>SUBSPACE</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Checkboxes + Toggles -->
+      <div class="control-card">
+        <div class="section-label">SYSTEM CONFIGURATION</div>
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div class="neon-check-row" onclick="toggleCheck(this)">
+            <div class="neon-check-box checked"><svg viewBox="0 0 14 14"><polyline points="2.5 7 5.5 10 11.5 4"/></svg></div>
+            <span>Auto-decode signals</span>
+          </div>
+          <div class="neon-check-row" onclick="toggleCheck(this)">
+            <div class="neon-check-box"><svg viewBox="0 0 14 14"><polyline points="2.5 7 5.5 10 11.5 4"/></svg></div>
+            <span>Enable deep scan mode</span>
+          </div>
+          <div class="neon-check-row" onclick="toggleCheck(this)">
+            <div class="neon-check-box checked"><svg viewBox="0 0 14 14"><polyline points="2.5 7 5.5 10 11.5 4"/></svg></div>
+            <span>Broadcast position</span>
+          </div>
+          <div style="height:1px; background:var(--border); margin:4px 0;"></div>
+          <div class="neon-toggle-row">
+            <span>Shield array</span>
+            <div class="neon-toggle-track on" onclick="toggleSwitch(this)"><div class="neon-toggle-knob"></div></div>
+          </div>
+          <div class="neon-toggle-row">
+            <span>Stealth mode</span>
+            <div class="neon-toggle-track" onclick="toggleSwitch(this)"><div class="neon-toggle-knob"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<div class="neon-divider" style="margin:0 0 24px;"></div>
+
+<!-- FOOTER -->
+<footer style="text-align:center; padding:0 0 32px; position:relative; z-index:20;">
+  <div style="display:flex; align-items:center; justify-content:center; gap:16px;">
+    <span style="font-size:28px; animation:float 4s ease-in-out infinite;">&#x1F47D;</span>
+    <span class="footer-text">ADVENTURE AWAITS!</span>
+    <span style="font-size:28px; animation:float 4s ease-in-out infinite 2s;">&#x1F680;</span>
+  </div>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)toggleModal(false)">
+  <div class="modal-box">
+    <h2>INCOMING TRANSMISSION</h2>
+    <div class="modal-sub">ORIGIN: UNKNOWN // DECRYPTION: IN PROGRESS</div>
+    <div class="modal-body">
+      <div class="neon-input-group">
+        <label class="neon-label">RESPONSE MESSAGE</label>
+        <input class="neon-input" type="text" placeholder="Compose reply...">
+      </div>
+      <div class="neon-input-group">
+        <label class="neon-label">PRIORITY LEVEL</label>
+        <select class="neon-select">
+          <option>CRITICAL</option>
+          <option>HIGH</option>
+          <option>STANDARD</option>
+          <option>LOW</option>
+        </select>
+      </div>
+      <div class="neon-check-row" onclick="toggleCheck(this)">
+        <div class="neon-check-box checked"><svg viewBox="0 0 14 14"><polyline points="2.5 7 5.5 10 11.5 4"/></svg></div>
+        <span>Encrypt response</span>
+      </div>
+      <div class="stat-panel">
+        <div class="stat-row"><span>DECRYPT PROGRESS</span><span style="color:var(--accent-pink);">63%</span></div>
+        <div class="stat-bar"><div class="stat-fill stat-fill-pink" style="width:63%;"></div></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-cancel-btn" onclick="toggleModal(false)">ABORT</button>
+      <button class="modal-confirm-btn" onclick="toggleModal(false)">TRANSMIT</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleModal(open) {
+    document.getElementById('modalOverlay').classList.toggle('open', open);
+  }
+  function toggleCheck(wrapper) {
+    wrapper.querySelector('.neon-check-box').classList.toggle('checked');
+  }
+  function toggleSwitch(track) {
+    track.classList.toggle('on');
+  }
+
+  // Generate stars
+  (function() {
+    var container = document.getElementById('stars');
+    for (var i = 0; i < 30; i++) {
+      var star = document.createElement('div');
+      star.className = 'star';
+      var size = 2 + Math.random() * 3;
+      star.style.width = size + 'px';
+      star.style.height = size + 'px';
+      star.style.top = Math.random() * 100 + '%';
+      star.style.left = Math.random() * 100 + '%';
+      star.style.animationDelay = (Math.random() * 3) + 's';
+      star.style.animationDuration = (2 + Math.random() * 2) + 's';
+      container.appendChild(star);
+    }
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dossier Card - Component Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        oklch(0.16 0.000 0);
+    --card:      oklch(0.00 0.000 0);
+    --fg:        oklch(1.00 0.000 0);
+    --border:    oklch(0.28 0.03 257);
+    --border-fg: oklch(1.00 0.000 0);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Roboto Mono', monospace;
+    background: var(--bg);
+    color: var(--fg);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+  }
+
+  .app-shell {
+    max-width: 28rem;
+    width: 100%;
+    margin: 0 auto;
+    background: var(--card);
+    min-height: 100vh;
+    position: relative;
+    padding: 24px 16px 80px;
+    animation: cardEnter 400ms ease both;
+  }
+
+  @keyframes cardEnter {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ---- HEADER ---- */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .app-name {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 30px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--fg);
+  }
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .menu-btn {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--fg);
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    color: var(--fg);
+    cursor: pointer;
+  }
+  .menu-btn svg { width: 16px; height: 16px; fill: currentColor; }
+  .cross-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    position: relative;
+  }
+  .cross-btn::before,
+  .cross-btn::after {
+    content: '';
+    position: absolute;
+    width: 1px;
+    height: 12px;
+    background: var(--fg);
+  }
+  .cross-btn::before { transform: rotate(45deg); }
+  .cross-btn::after  { transform: rotate(-45deg); }
+
+  /* ---- HANDLE ---- */
+  .handle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    color: var(--fg);
+    margin-bottom: 24px;
+  }
+  .handle svg { width: 16px; height: 16px; fill: currentColor; }
+
+  /* ---- SECTION LABEL ---- */
+  .section-label {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fg);
+    margin-bottom: 12px;
+    opacity: 0.6;
+  }
+
+  /* ---- SPEC GRID (data table) ---- */
+  .spec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 8px;
+    font-size: 12px;
+    line-height: 1.625;
+    color: var(--fg);
+    margin-bottom: 24px;
+  }
+  .spec-grid .spec-label { opacity: 0.5; }
+  .spec-grid .spec-value { text-align: right; }
+
+  /* ---- CTA BUTTON ---- */
+  .cta-btn {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--fg);
+    background: none;
+    color: var(--fg);
+    font-family: 'Roboto Mono', monospace;
+    font-size: 14px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 0;
+    transition: background 0.2s, color 0.2s;
+    margin-bottom: 24px;
+  }
+  .cta-btn:hover {
+    background: var(--fg);
+    color: var(--card);
+  }
+
+  /* ---- FORM INPUTS ---- */
+  .input-group {
+    margin-bottom: 16px;
+  }
+  .input-label {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fg);
+    opacity: 0.5;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .dossier-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-fg);
+    background: none;
+    color: var(--fg);
+    font-family: 'Roboto Mono', monospace;
+    font-size: 14px;
+    border-radius: 0;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .dossier-input:focus {
+    border-color: var(--fg);
+    box-shadow: 0 0 0 1px var(--fg);
+  }
+  .dossier-input::placeholder {
+    color: var(--border);
+  }
+
+  /* ---- SELECT ---- */
+  .dossier-select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--border-fg);
+    background: var(--card);
+    color: var(--fg);
+    font-family: 'Roboto Mono', monospace;
+    font-size: 14px;
+    border-radius: 0;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='white' stroke-width='1'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+  }
+  .dossier-select option {
+    background: #000;
+    color: #fff;
+  }
+
+  /* ---- CHECKBOX ---- */
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  .checkbox-custom {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--border-fg);
+    background: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .checkbox-custom.checked {
+    background: var(--fg);
+  }
+  .checkbox-custom.checked::after {
+    content: '';
+    width: 8px;
+    height: 4px;
+    border-left: 1px solid var(--card);
+    border-bottom: 1px solid var(--card);
+    transform: rotate(-45deg) translateY(-1px);
+  }
+
+  /* ---- TOGGLE ---- */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 12px;
+  }
+  .toggle-track {
+    width: 36px;
+    height: 18px;
+    border: 1px solid var(--border-fg);
+    background: none;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-track.active {
+    background: var(--fg);
+  }
+  .toggle-thumb {
+    width: 12px;
+    height: 12px;
+    background: var(--fg);
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: left 0.2s, background 0.2s;
+  }
+  .toggle-track.active .toggle-thumb {
+    left: 20px;
+    background: var(--card);
+  }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+  }
+  .modal-overlay.open {
+    display: flex;
+  }
+  .modal-box {
+    max-width: 28rem;
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border-fg);
+    padding: 24px 16px;
+    position: relative;
+    animation: cardEnter 300ms ease both;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .modal-title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: 24px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .modal-body {
+    font-size: 12px;
+    line-height: 1.625;
+    color: var(--fg);
+    margin-bottom: 24px;
+  }
+
+  /* ---- BOTTOM NAV ---- */
+  .nav-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: 28rem;
+    margin: 0 auto;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    z-index: 50;
+  }
+  .nav-inner {
+    display: flex;
+    justify-content: space-around;
+    padding: 16px;
+  }
+  .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: none;
+    border: none;
+    color: var(--fg);
+    cursor: pointer;
+    gap: 4px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+  .nav-btn:hover { opacity: 1; }
+  .nav-btn svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    stroke-width: 1;
+    fill: none;
+  }
+  .nav-btn span { font-size: 12px; }
+
+  /* ---- SEPARATOR ---- */
+  .separator {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 24px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <!-- HEADER -->
+  <div class="header">
+    <h1 class="app-name">DOSSIER</h1>
+    <div class="header-controls">
+      <button class="menu-btn">
+        <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+      </button>
+      <button class="cross-btn"></button>
+    </div>
+  </div>
+
+  <!-- HANDLE -->
+  <div class="handle">
+    <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/></svg>
+    <span>@COMPONENT_SHOWCASE</span>
+  </div>
+
+  <!-- MODAL TRIGGER -->
+  <div class="section-label">Modal</div>
+  <button class="cta-btn" onclick="openModal()">OPEN CLASSIFIED FILE</button>
+
+  <!-- DATA TABLE -->
+  <div class="section-label">Specifications</div>
+  <div class="spec-grid">
+    <span class="spec-label">Subject</span><span class="spec-value">AGENT-7X</span>
+    <span class="spec-label">Clearance</span><span class="spec-value">LEVEL 5</span>
+    <span class="spec-label">Status</span><span class="spec-value">ACTIVE</span>
+    <span class="spec-label">Division</span><span class="spec-value">COVERT OPS</span>
+    <span class="spec-label">Sector</span><span class="spec-value">NORTHWEST</span>
+    <span class="spec-label">Handler</span><span class="spec-value">SPHINX</span>
+    <span class="spec-label">Missions</span><span class="spec-value">142</span>
+    <span class="spec-label">Success Rate</span><span class="spec-value">97.8%</span>
+    <span class="spec-label">Last Contact</span><span class="spec-value">2026-03-12</span>
+    <span class="spec-label">Next Review</span><span class="spec-value">2026-04-01</span>
+  </div>
+
+  <hr class="separator">
+
+  <!-- TEXT INPUT -->
+  <div class="section-label">Input</div>
+  <div class="input-group">
+    <label class="input-label">Operative Callsign</label>
+    <input type="text" class="dossier-input" placeholder="Enter callsign...">
+  </div>
+
+  <!-- SELECT -->
+  <div class="section-label">Dropdown</div>
+  <div class="input-group">
+    <label class="input-label">Clearance Level</label>
+    <select class="dossier-select">
+      <option value="">Select level...</option>
+      <option value="1">LEVEL 1 - PUBLIC</option>
+      <option value="2">LEVEL 2 - RESTRICTED</option>
+      <option value="3">LEVEL 3 - CONFIDENTIAL</option>
+      <option value="4">LEVEL 4 - SECRET</option>
+      <option value="5">LEVEL 5 - TOP SECRET</option>
+    </select>
+  </div>
+
+  <hr class="separator">
+
+  <!-- CHECKBOX -->
+  <div class="section-label">Checkbox</div>
+  <div class="checkbox-row" onclick="toggleCheckbox(this)">
+    <div class="checkbox-custom checked"></div>
+    <span>Surveillance Active</span>
+  </div>
+  <div class="checkbox-row" onclick="toggleCheckbox(this)">
+    <div class="checkbox-custom"></div>
+    <span>Field Deployment Authorized</span>
+  </div>
+  <div class="checkbox-row" onclick="toggleCheckbox(this)">
+    <div class="checkbox-custom checked"></div>
+    <span>Encrypted Communications</span>
+  </div>
+
+  <hr class="separator">
+
+  <!-- TOGGLE -->
+  <div class="section-label">Toggle Switch</div>
+  <div class="toggle-row">
+    <span>Dark Protocol</span>
+    <div class="toggle-track active" onclick="toggleSwitch(this)">
+      <div class="toggle-thumb"></div>
+    </div>
+  </div>
+  <div class="toggle-row">
+    <span>Ghost Mode</span>
+    <div class="toggle-track" onclick="toggleSwitch(this)">
+      <div class="toggle-thumb"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">CLASSIFIED</div>
+      <button class="cross-btn" onclick="closeModal()"></button>
+    </div>
+    <div class="handle" style="margin-bottom: 16px;">
+      <svg viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd"/></svg>
+      <span>@EYES_ONLY</span>
+    </div>
+    <div class="spec-grid" style="margin-bottom: 16px;">
+      <span class="spec-label">Classification</span><span class="spec-value">TOP SECRET</span>
+      <span class="spec-label">Origin</span><span class="spec-value">DIRECTORATE</span>
+      <span class="spec-label">Date Filed</span><span class="spec-value">2026-03-13</span>
+      <span class="spec-label">Expiry</span><span class="spec-value">NEVER</span>
+    </div>
+    <div class="modal-body">
+      This document contains information classified at the highest level.
+      Unauthorized disclosure is subject to penalties under the Official
+      Secrets Act. Handle according to protocol. Destroy after reading.
+    </div>
+    <button class="cta-btn" onclick="closeModal()">ACKNOWLEDGE & CLOSE</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="nav-bar">
+  <div class="nav-inner">
+    <button class="nav-btn">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="nav-btn">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <span>Search</span>
+    </button>
+    <button class="nav-btn">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      <span>Intel</span>
+    </button>
+    <button class="nav-btn">
+      <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Profile</span>
+    </button>
+  </div>
+</div>
+
+<script>
+function openModal() {
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+function toggleCheckbox(row) {
+  var box = row.querySelector('.checkbox-custom');
+  box.classList.toggle('checked');
+}
+function toggleSwitch(track) {
+  track.classList.toggle('active');
+}
+// Close modal on overlay click
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+
+</body>
+</html>

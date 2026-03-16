@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sticker Cozy - Theme Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --comp-bg: oklch(0.94 0.03 80);
+    --comp-text: oklch(0.25 0.05 50);
+    --comp-border: oklch(0.72 0.05 60);
+    --comp-accent: oklch(0.62 0.14 50);
+    --comp-accent-text: oklch(0.97 0.01 80);
+    --comp-muted: oklch(0.65 0.04 60);
+    --color-background: oklch(0.94 0.03 80);
+    --comp-card-bg: oklch(0.96 0.02 78);
+    --comp-green: oklch(0.55 0.13 145);
+    --comp-green-light: oklch(0.88 0.06 145);
+    --comp-brown-dark: oklch(0.40 0.07 50);
+    --comp-brown-medium: oklch(0.55 0.06 55);
+    --comp-cream: oklch(0.92 0.04 75);
+    --comp-orange-light: oklch(0.85 0.08 65);
+    --comp-yellow: oklch(0.85 0.12 85);
+    --comp-red: oklch(0.60 0.16 25);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--color-background);
+    color: var(--comp-text);
+    min-height: 100vh;
+    position: relative;
+  }
+
+  /* Background decoration */
+  .bg-decoration {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .bg-leaf {
+    position: absolute;
+    border-radius: 50% 50% 50% 0;
+    opacity: 0.06;
+    animation: leafFloat 18s ease-in-out infinite;
+  }
+
+  @keyframes leafFloat {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-12px) rotate(5deg); }
+  }
+
+  /* Header */
+  .app-header {
+    background: var(--comp-brown-dark);
+    color: var(--comp-accent-text);
+    border-bottom: 3px solid oklch(0.35 0.07 45);
+    box-shadow: 0 2px 12px oklch(0.30 0.05 50 / 0.2);
+    padding: 0.85rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 2;
+  }
+
+  .app-header-title {
+    font-weight: 800;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .app-header-subtitle {
+    font-size: 0.75rem;
+    color: oklch(0.80 0.05 70);
+    font-weight: 600;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 1.25rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Stat Cards */
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .stat-card {
+    background: var(--comp-card-bg);
+    border: 2px solid var(--comp-border);
+    border-radius: 12px;
+    box-shadow: 3px 3px 0 oklch(0.72 0.05 60 / 0.4);
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 4px 5px 0 oklch(0.72 0.05 60 / 0.4);
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .stat-value {
+    font-weight: 800;
+    font-size: 1.6rem;
+    color: var(--comp-accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--comp-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Wave divider */
+  .wave-divider {
+    width: 100%;
+    height: 30px;
+    display: block;
+    margin: 0.5rem 0 1rem;
+  }
+
+  /* Section title */
+  .section-title {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--comp-text);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Sticker card */
+  .sticker-card {
+    background: var(--comp-card-bg);
+    border: 2px solid var(--comp-border);
+    border-radius: 12px;
+    box-shadow: 3px 3px 0 oklch(0.72 0.05 60 / 0.4);
+    padding: 1.25rem;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    margin-bottom: 1rem;
+  }
+
+  .sticker-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 5px 7px 0 oklch(0.72 0.05 60 / 0.4);
+  }
+
+  /* Badges */
+  .badge {
+    font-weight: 700;
+    font-size: 0.7rem;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.2rem 0.6rem;
+    display: inline-block;
+  }
+
+  .badge-ready {
+    background: var(--comp-green-light);
+    color: oklch(0.35 0.10 145);
+    border: 1.5px solid var(--comp-green);
+  }
+
+  .badge-growing {
+    background: var(--comp-orange-light);
+    color: oklch(0.40 0.10 55);
+    border: 1.5px solid oklch(0.70 0.10 60);
+  }
+
+  .badge-soon {
+    background: oklch(0.90 0.08 85);
+    color: oklch(0.40 0.10 80);
+    border: 1.5px solid oklch(0.75 0.10 85);
+  }
+
+  .number-badge {
+    background: var(--comp-cream);
+    border: 2px solid var(--comp-border);
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 0.75rem;
+    color: var(--comp-brown-medium);
+    padding: 0.15rem 0.5rem;
+    display: inline-block;
+  }
+
+  /* Table as sticker cards */
+  .data-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .data-row {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.85rem 1rem;
+    border-bottom: 1.5px solid oklch(0.72 0.05 60 / 0.25);
+    font-size: 0.85rem;
+    transition: background 0.15s ease;
+  }
+
+  .data-row:last-child { border-bottom: none; }
+
+  .data-row:hover {
+    background: oklch(0.93 0.03 78);
+  }
+
+  .data-row-name {
+    font-weight: 700;
+  }
+
+  .data-row-meta {
+    font-size: 0.78rem;
+    color: var(--comp-muted);
+  }
+
+  .data-row-value {
+    font-weight: 800;
+    color: var(--comp-accent);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Progress ring */
+  .progress-ring-wrap {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+  }
+
+  .progress-ring-wrap svg {
+    transform: rotate(-90deg);
+  }
+
+  /* Form elements */
+  .input-label {
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: var(--comp-brown-medium);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.3rem;
+    display: block;
+  }
+
+  .cozy-input, .cozy-select {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    padding: 0.55rem 0.75rem;
+    background: var(--comp-card-bg);
+    border: 2px solid var(--comp-border);
+    border-radius: 8px;
+    color: var(--comp-text);
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .cozy-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23886644' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 30px;
+  }
+
+  .cozy-input:focus, .cozy-select:focus {
+    border-color: var(--comp-accent);
+    box-shadow: 3px 3px 0 oklch(0.62 0.14 50 / 0.15);
+  }
+
+  .cozy-input::placeholder {
+    color: var(--comp-muted);
+    opacity: 0.6;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .form-group {
+    margin-bottom: 0.75rem;
+  }
+
+  /* Checkbox */
+  .cozy-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    user-select: none;
+    margin-bottom: 8px;
+  }
+
+  .cozy-checkbox input { display: none; }
+
+  .cozy-check-box {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 2px solid var(--comp-border);
+    background: var(--comp-card-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .cozy-check-box svg {
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.15s ease;
+  }
+
+  .cozy-checkbox input:checked + .cozy-check-box {
+    background: var(--comp-green);
+    border-color: oklch(0.45 0.13 145);
+    box-shadow: 2px 2px 0 oklch(0.45 0.13 145 / 0.3);
+  }
+
+  .cozy-checkbox input:checked + .cozy-check-box svg {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* Toggle */
+  .cozy-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    user-select: none;
+    margin-bottom: 8px;
+  }
+
+  .cozy-toggle input { display: none; }
+
+  .cozy-toggle-track {
+    width: 46px;
+    height: 26px;
+    border-radius: 13px;
+    background: var(--comp-cream);
+    border: 2px solid var(--comp-border);
+    position: relative;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .cozy-toggle-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid var(--comp-border);
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: all 0.2s ease;
+    box-shadow: 1px 1px 0 oklch(0.72 0.05 60 / 0.3);
+  }
+
+  .cozy-toggle input:checked ~ .cozy-toggle-track {
+    background: var(--comp-accent);
+    border-color: oklch(0.55 0.14 50);
+  }
+
+  .cozy-toggle input:checked ~ .cozy-toggle-track .cozy-toggle-thumb {
+    left: 22px;
+    border-color: oklch(0.55 0.14 50);
+  }
+
+  /* Buttons */
+  .btn-save {
+    font-family: 'Nunito', sans-serif;
+    background: var(--comp-accent);
+    color: var(--comp-accent-text);
+    border: 2px solid oklch(0.55 0.14 50);
+    font-weight: 700;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    padding: 0.6rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 3px 3px 0 oklch(0.55 0.14 50 / 0.3);
+  }
+
+  .btn-save:hover {
+    transform: translateY(-1px);
+    box-shadow: 4px 4px 0 oklch(0.55 0.14 50 / 0.3);
+  }
+
+  .btn-save:active {
+    transform: translateY(1px);
+    box-shadow: 1px 1px 0 oklch(0.55 0.14 50 / 0.3);
+  }
+
+  .btn-cancel {
+    font-family: 'Nunito', sans-serif;
+    background: var(--comp-cream);
+    color: var(--comp-text);
+    border: 2px solid var(--comp-border);
+    font-weight: 700;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    padding: 0.6rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-cancel:hover {
+    background: oklch(0.88 0.04 75);
+  }
+
+  .btn-harvest {
+    font-family: 'Nunito', sans-serif;
+    background: var(--comp-green);
+    color: white;
+    border: 2px solid oklch(0.45 0.13 145);
+    font-weight: 700;
+    font-size: 0.78rem;
+    border-radius: 8px;
+    padding: 0.4rem 0.8rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 2px 2px 0 oklch(0.45 0.13 145 / 0.3);
+  }
+
+  .btn-harvest:hover {
+    transform: translateY(-1px);
+    box-shadow: 3px 3px 0 oklch(0.45 0.13 145 / 0.3);
+  }
+
+  /* Modal */
+  .cozy-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: oklch(0.25 0.05 50 / 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  .cozy-modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .cozy-modal-content {
+    background: var(--comp-card-bg);
+    border: 3px solid var(--comp-border);
+    border-radius: 16px;
+    box-shadow: 6px 6px 0 oklch(0.72 0.05 60 / 0.4);
+    padding: 2rem;
+    max-width: 480px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    transform: translateY(8px);
+    transition: transform 0.25s ease;
+  }
+
+  .cozy-modal-overlay.open .cozy-modal-content {
+    transform: translateY(0);
+  }
+
+  .cozy-modal-title {
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: var(--comp-text);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .cozy-modal-body {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--comp-text);
+    margin-bottom: 1.25rem;
+  }
+
+  .cozy-modal-body p { margin-bottom: 0.75rem; }
+
+  .preset-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .preset-chip {
+    font-family: 'Nunito', sans-serif;
+    background: var(--comp-cream);
+    border: 1.5px solid var(--comp-border);
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    color: var(--comp-text);
+    padding: 0.3rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .preset-chip:hover {
+    background: var(--comp-accent);
+    color: var(--comp-accent-text);
+    border-color: var(--comp-accent);
+    transform: scale(1.05);
+  }
+
+  .cozy-modal-footer {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+
+  /* Settings bar */
+  .settings-bar {
+    background: var(--comp-cream);
+    border: 2px solid var(--comp-border);
+    border-radius: 12px;
+    box-shadow: 2px 2px 0 oklch(0.72 0.05 60 / 0.3);
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .settings-label {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--comp-brown-medium);
+  }
+
+  /* Footer */
+  .footer-bar {
+    background: var(--comp-cream);
+    border-top: 2px solid var(--comp-border);
+    color: var(--comp-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    text-align: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  .controls-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+
+  @media (max-width: 640px) {
+    .stat-row { grid-template-columns: 1fr 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .controls-layout { grid-template-columns: 1fr; }
+    .data-row { grid-template-columns: auto 1fr auto; }
+    .data-row-meta, .progress-ring-wrap { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Background decoration -->
+<div class="bg-decoration">
+  <div class="bg-leaf" style="width:80px;height:80px;background:oklch(0.55 0.13 145);top:10%;left:5%;animation-delay:0s;"></div>
+  <div class="bg-leaf" style="width:60px;height:60px;background:oklch(0.62 0.14 50);top:30%;right:8%;animation-delay:3s;animation-duration:14s;"></div>
+  <div class="bg-leaf" style="width:50px;height:50px;background:oklch(0.85 0.12 85);top:55%;left:12%;animation-delay:6s;animation-duration:20s;"></div>
+  <div class="bg-leaf" style="width:70px;height:70px;background:oklch(0.55 0.13 145);top:75%;right:15%;animation-delay:2s;animation-duration:16s;"></div>
+  <div class="bg-leaf" style="width:40px;height:40px;background:oklch(0.62 0.14 50);top:90%;left:40%;animation-delay:8s;animation-duration:22s;"></div>
+</div>
+
+<!-- Header -->
+<header class="app-header">
+  <div>
+    <div class="app-header-title">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="oklch(0.85 0.12 85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="4"/>
+        <line x1="12" y1="20" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/>
+        <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="4" y2="12"/>
+        <line x1="20" y1="12" x2="23" y2="12"/>
+      </svg>
+      Sticker Cozy
+    </div>
+    <div class="app-header-subtitle">A warm craft-table for your data</div>
+  </div>
+  <button class="btn-harvest" onclick="openModal()">+ Add Item</button>
+</header>
+
+<div class="container">
+
+  <!-- Stat Cards -->
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--comp-green-light);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--comp-green)" stroke-width="2.5" stroke-linecap="round"><path d="M12 22V8M12 8C12 8 8 12 5 12M12 8C12 8 16 12 19 12"/></svg>
+      </div>
+      <div>
+        <div class="stat-value">12</div>
+        <div class="stat-label">Total Items</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:var(--comp-orange-light);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--comp-accent)" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      </div>
+      <div>
+        <div class="stat-value">5</div>
+        <div class="stat-label">In Progress</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:oklch(0.90 0.08 85);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="oklch(0.55 0.10 85)" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      </div>
+      <div>
+        <div class="stat-value">7</div>
+        <div class="stat-label">Completed</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wave Divider -->
+  <svg class="wave-divider" viewBox="0 0 800 30" preserveAspectRatio="none">
+    <path d="M0,15 C200,5 400,25 800,15" fill="none" stroke="var(--comp-border)" stroke-width="2" opacity="0.5">
+      <animate attributeName="d" dur="7s" repeatCount="indefinite" values="M0,15 C200,5 400,25 800,15;M0,15 C200,25 400,5 800,15;M0,15 C200,5 400,25 800,15"/>
+    </path>
+  </svg>
+
+  <!-- Data Table as sticker card -->
+  <div class="sticker-card">
+    <div class="section-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--comp-accent)" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+      Collection Overview
+    </div>
+    <div class="data-grid">
+      <div class="data-row">
+        <span class="number-badge">#1</span>
+        <span class="data-row-name">Sunflower Seeds</span>
+        <span class="data-row-meta">Planted 3 weeks ago</span>
+        <div class="progress-ring-wrap">
+          <svg width="36" height="36" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="14" fill="none" stroke="var(--comp-border)" stroke-width="3"/>
+            <circle cx="18" cy="18" r="14" fill="none" stroke="var(--comp-green)" stroke-width="3" stroke-dasharray="88" stroke-dashoffset="12" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="badge badge-ready">Ready</span>
+      </div>
+      <div class="data-row">
+        <span class="number-badge">#2</span>
+        <span class="data-row-name">Tomato Vines</span>
+        <span class="data-row-meta">Planted 2 weeks ago</span>
+        <div class="progress-ring-wrap">
+          <svg width="36" height="36" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="14" fill="none" stroke="var(--comp-border)" stroke-width="3"/>
+            <circle cx="18" cy="18" r="14" fill="none" stroke="var(--comp-accent)" stroke-width="3" stroke-dasharray="88" stroke-dashoffset="30" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="badge badge-growing">Growing</span>
+      </div>
+      <div class="data-row">
+        <span class="number-badge">#3</span>
+        <span class="data-row-name">Basil Herbs</span>
+        <span class="data-row-meta">Planted 1 week ago</span>
+        <div class="progress-ring-wrap">
+          <svg width="36" height="36" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="14" fill="none" stroke="var(--comp-border)" stroke-width="3"/>
+            <circle cx="18" cy="18" r="14" fill="none" stroke="oklch(0.75 0.10 85)" stroke-width="3" stroke-dasharray="88" stroke-dashoffset="44" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="badge badge-soon">Soon</span>
+      </div>
+      <div class="data-row">
+        <span class="number-badge">#4</span>
+        <span class="data-row-name">Lavender Sprigs</span>
+        <span class="data-row-meta">Planted 4 weeks ago</span>
+        <div class="progress-ring-wrap">
+          <svg width="36" height="36" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="14" fill="none" stroke="var(--comp-border)" stroke-width="3"/>
+            <circle cx="18" cy="18" r="14" fill="none" stroke="var(--comp-green)" stroke-width="3" stroke-dasharray="88" stroke-dashoffset="5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="badge badge-ready">Ready</span>
+      </div>
+      <div class="data-row">
+        <span class="number-badge">#5</span>
+        <span class="data-row-name">Mint Cuttings</span>
+        <span class="data-row-meta">Planted 10 days ago</span>
+        <div class="progress-ring-wrap">
+          <svg width="36" height="36" viewBox="0 0 36 36">
+            <circle cx="18" cy="18" r="14" fill="none" stroke="var(--comp-border)" stroke-width="3"/>
+            <circle cx="18" cy="18" r="14" fill="none" stroke="var(--comp-accent)" stroke-width="3" stroke-dasharray="88" stroke-dashoffset="50" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="badge badge-growing">Growing</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Controls -->
+  <div class="sticker-card">
+    <div class="section-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--comp-accent)" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Quick Entry
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="input-label" for="itemName">Item Name</label>
+        <input class="cozy-input" type="text" id="itemName" placeholder="What are you adding?">
+      </div>
+      <div class="form-group">
+        <label class="input-label" for="category">Category</label>
+        <select class="cozy-select" id="category">
+          <option value="">Choose category...</option>
+          <option value="flowers">Flowers</option>
+          <option value="herbs">Herbs</option>
+          <option value="veggies">Vegetables</option>
+          <option value="fruits">Fruits</option>
+          <option value="seeds">Seeds</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="controls-layout" style="margin-top:0.75rem;">
+      <div>
+        <label class="input-label" style="margin-bottom:0.5rem;">Options</label>
+        <label class="cozy-checkbox">
+          <input type="checkbox" checked>
+          <span class="cozy-check-box">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 3.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          Track daily progress
+        </label>
+        <label class="cozy-checkbox">
+          <input type="checkbox">
+          <span class="cozy-check-box">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7.5L5.5 10.5L11.5 3.5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+          Send reminders
+        </label>
+      </div>
+      <div>
+        <label class="input-label" style="margin-bottom:0.5rem;">Settings</label>
+        <label class="cozy-toggle" onclick="this.querySelector('input').click()">
+          <input type="checkbox" checked>
+          <div class="cozy-toggle-track"><div class="cozy-toggle-thumb"></div></div>
+          Auto-watering
+        </label>
+        <label class="cozy-toggle" onclick="this.querySelector('input').click()">
+          <input type="checkbox">
+          <div class="cozy-toggle-track"><div class="cozy-toggle-thumb"></div></div>
+          Share publicly
+        </label>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+      <button class="btn-save">Save Entry</button>
+      <button class="btn-cancel">Clear</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div class="footer-bar">
+  Tended with care -- 12 items in your collection
+</div>
+
+<!-- Modal -->
+<div class="cozy-modal-overlay" id="modal">
+  <div class="cozy-modal-content">
+    <div class="cozy-modal-title">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--comp-accent)" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Add New Item
+    </div>
+    <div class="cozy-modal-body">
+      <p>Pick a preset to get started quickly, or fill in the details below.</p>
+    </div>
+    <div class="preset-chips">
+      <button class="preset-chip">Sunflower</button>
+      <button class="preset-chip">Tomato</button>
+      <button class="preset-chip">Basil</button>
+      <button class="preset-chip">Lavender</button>
+      <button class="preset-chip">Mint</button>
+      <button class="preset-chip">Rosemary</button>
+      <button class="preset-chip">Cilantro</button>
+    </div>
+    <div class="form-group">
+      <label class="input-label">Item Name</label>
+      <input class="cozy-input" type="text" placeholder="What would you like to grow?">
+    </div>
+    <div class="form-group">
+      <label class="input-label">Notes</label>
+      <input class="cozy-input" type="text" placeholder="Any special instructions...">
+    </div>
+    <div class="cozy-modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="closeModal()">Plant It!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+  }
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+</script>
+</body>
+</html>

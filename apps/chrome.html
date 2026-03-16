@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chrome Terminal - Component Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:               #000000;
+    --bg-surface:       #171717;
+    --bg-panel:         #2a0a18;
+    --bg-dark:          #12050e;
+    --bg-footer:        #1a050c;
+    --neon-red:         #ff003c;
+    --neon-yellow:      #fcee0a;
+    --neon-cyan:        #00f0ff;
+    --border:           #3d1326;
+    --border-red:       rgba(255, 0, 60, 0.5);
+    --text:             #ffffff;
+    --text-dim:         #d1d1d1;
+    --text-muted:       #a3a3a3;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 50%, rgba(255, 0, 60, 0.2), transparent 25%),
+      radial-gradient(circle at 85% 30%, rgba(252, 238, 10, 0.15), transparent 25%);
+    font-family: 'Rajdhani', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-x: hidden;
+  }
+
+  /* grid overlay */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-size: 20px 20px;
+    background-image:
+      linear-gradient(to right, rgba(255, 0, 60, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 0, 60, 0.05) 1px, transparent 1px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* octagonal clip-frame */
+  .clip-frame {
+    clip-path: polygon(
+      20px 0, calc(100% - 20px) 0,
+      100% 20px, 100% calc(100% - 20px),
+      calc(100% - 20px) 100%, 20px 100%,
+      0 calc(100% - 20px), 0 20px
+    );
+  }
+
+  /* main container */
+  .main-frame {
+    position: relative;
+    width: 96%;
+    max-width: 1100px;
+    background: var(--bg-surface);
+    border: 2px solid var(--neon-red);
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5), 0 0 30px rgba(255, 0, 60, 0.15);
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* corner brackets */
+  .corner-tl {
+    position: absolute; top: 0; left: 0;
+    width: 5rem; height: 5rem;
+    border-top: 4px solid var(--neon-yellow);
+    border-left: 4px solid var(--neon-yellow);
+    border-top-left-radius: 0.75rem;
+    pointer-events: none; opacity: 0.8; z-index: 20;
+  }
+  .corner-br {
+    position: absolute; bottom: 0; right: 0;
+    width: 5rem; height: 5rem;
+    border-bottom: 4px solid var(--neon-yellow);
+    border-right: 4px solid var(--neon-yellow);
+    border-bottom-right-radius: 0.75rem;
+    pointer-events: none; opacity: 0.8; z-index: 20;
+  }
+
+  /* scanlines overlay */
+  .scanlines {
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(255,255,255,0) 50%, rgba(0,0,0,0.15) 50%);
+    background-size: 100% 4px;
+    pointer-events: none; z-index: 15;
+  }
+
+  /* scan bar */
+  .scanline-bar {
+    width: 100%; height: 5px;
+    background: rgba(0, 240, 255, 0.3);
+    position: absolute; top: 0; left: 0;
+    animation: scan-down 6s linear infinite;
+    opacity: 0.5;
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+    z-index: 16; pointer-events: none;
+  }
+  @keyframes scan-down { 0% { top: -10%; } 100% { top: 110%; } }
+
+  /* header */
+  .header {
+    padding: 1.25rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(255, 0, 60, 0.3);
+    background: var(--bg-dark);
+    position: relative;
+  }
+  .header-left { display: flex; align-items: center; gap: 1rem; }
+  .skew-divider {
+    width: 4px; height: 2.5rem;
+    background: var(--neon-red);
+    transform: skewX(-20deg);
+  }
+
+  .glitch-text {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900; font-style: italic;
+    letter-spacing: -0.05em;
+    color: var(--neon-yellow);
+    position: relative;
+    transform: skewX(-12deg);
+    font-size: 1.8rem;
+    text-shadow: 0 0 8px var(--neon-yellow);
+  }
+  .glitch-text::before, .glitch-text::after {
+    content: attr(data-text);
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+  .glitch-text::before {
+    left: 2px; text-shadow: -1px 0 var(--neon-cyan);
+    animation: glitch-a 2s infinite linear alternate-reverse;
+  }
+  .glitch-text::after {
+    left: -2px; text-shadow: -1px 0 var(--neon-red);
+    animation: glitch-b 3s infinite linear alternate-reverse;
+  }
+  @keyframes glitch-a {
+    0%{clip-path:inset(20% 0 80% 0)}20%{clip-path:inset(60% 0 10% 0)}
+    40%{clip-path:inset(40% 0 50% 0)}60%{clip-path:inset(80% 0 5% 0)}
+    100%{clip-path:inset(10% 0 40% 0)}
+  }
+  @keyframes glitch-b {
+    0%{clip-path:inset(10% 0 60% 0)}20%{clip-path:inset(30% 0 20% 0)}
+    40%{clip-path:inset(70% 0 10% 0)}60%{clip-path:inset(20% 0 50% 0)}
+    100%{clip-path:inset(50% 0 30% 0)}
+  }
+
+  .subtitle-label {
+    display: inline-block;
+    background: var(--neon-red);
+    color: #000; padding: 2px 0.5rem;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700; font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    transform: skewX(-12deg);
+  }
+
+  .header-stats {
+    display: flex; align-items: center; gap: 1rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem; color: var(--neon-cyan);
+  }
+  .stat-divider { width: 1px; height: 2rem; background: rgba(255, 0, 60, 0.5); }
+
+  /* content area */
+  .content-area {
+    flex: 1; padding: 1.5rem;
+    display: flex; flex-direction: column; gap: 1.25rem;
+    overflow-y: auto; position: relative;
+  }
+
+  /* section titles */
+  .section-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700; font-size: 0.85rem;
+    color: var(--neon-cyan);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0.75rem;
+  }
+  .section-title .accent-bar {
+    width: 4px; height: 1rem;
+    background: var(--neon-red);
+    transform: skewX(-20deg);
+  }
+
+  /* data table */
+  .chrome-table-wrap {
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  table {
+    width: 100%; border-collapse: collapse;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+  }
+  thead th {
+    background: var(--bg-panel);
+    color: var(--neon-yellow);
+    text-align: left; padding: 0.6rem 1rem;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700; font-size: 0.7rem;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    border-bottom: 2px solid var(--neon-red);
+  }
+  tbody td {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid rgba(61, 19, 38, 0.5);
+    color: var(--text-dim);
+  }
+  tbody tr:hover {
+    background: rgba(255, 0, 60, 0.08);
+  }
+  tbody tr:hover td { color: var(--text); }
+  .status-active {
+    color: var(--neon-cyan);
+    text-shadow: 0 0 5px var(--neon-cyan);
+  }
+  .status-warning {
+    color: var(--neon-yellow);
+    text-shadow: 0 0 5px var(--neon-yellow);
+  }
+  .status-critical {
+    color: var(--neon-red);
+    text-shadow: 0 0 5px var(--neon-red);
+  }
+
+  /* form row */
+  .form-row {
+    display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 0.35rem; flex: 1; min-width: 180px; }
+  .form-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem; color: var(--neon-cyan);
+    letter-spacing: 0.15em; text-transform: uppercase;
+  }
+
+  /* text input */
+  .chrome-input {
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem; padding: 0.5rem 0.75rem;
+    outline: none;
+    clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .chrome-input:focus {
+    border-color: var(--neon-red);
+    box-shadow: 0 0 10px rgba(255, 0, 60, 0.3), inset 0 0 5px rgba(255, 0, 60, 0.1);
+  }
+  .chrome-input::placeholder { color: var(--text-muted); }
+
+  /* select */
+  .chrome-select {
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem; padding: 0.5rem 2rem 0.5rem 0.75rem;
+    outline: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23ff003c' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+    cursor: pointer;
+    transition: border-color 0.3s;
+  }
+  .chrome-select:focus { border-color: var(--neon-red); }
+  .chrome-select option { background: var(--bg-dark); color: var(--text); }
+
+  /* checkbox */
+  .chrome-checkbox-wrap {
+    display: flex; align-items: center; gap: 0.6rem; cursor: pointer;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--text-dim);
+    user-select: none;
+  }
+  .chrome-checkbox {
+    width: 20px; height: 20px;
+    background: var(--bg-dark);
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
+    clip-path: polygon(4px 0, calc(100% - 4px) 0, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 0 calc(100% - 4px), 0 4px);
+  }
+  .chrome-checkbox.checked {
+    border-color: var(--neon-red);
+    background: rgba(255, 0, 60, 0.15);
+  }
+  .chrome-checkbox.checked::after {
+    content: '';
+    width: 8px; height: 8px;
+    background: var(--neon-red);
+    box-shadow: 0 0 6px var(--neon-red);
+  }
+
+  /* toggle switch */
+  .chrome-toggle-wrap {
+    display: flex; align-items: center; gap: 0.6rem;
+    font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; color: var(--text-dim);
+    cursor: pointer; user-select: none;
+  }
+  .chrome-toggle {
+    width: 44px; height: 22px;
+    background: var(--bg-dark);
+    border: 2px solid var(--border);
+    position: relative; transition: all 0.3s;
+    clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
+  }
+  .chrome-toggle .knob {
+    position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    background: var(--text-muted);
+    transition: all 0.3s;
+  }
+  .chrome-toggle.on {
+    border-color: var(--neon-red);
+    background: rgba(255, 0, 60, 0.15);
+  }
+  .chrome-toggle.on .knob {
+    left: 24px;
+    background: var(--neon-red);
+    box-shadow: 0 0 8px var(--neon-red);
+  }
+
+  /* controls row */
+  .controls-row {
+    display: flex; gap: 2rem; flex-wrap: wrap; align-items: center;
+    padding: 0.75rem 0;
+  }
+
+  /* modal button */
+  .chrome-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700; font-size: 0.75rem;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    background: var(--bg-dark);
+    color: var(--neon-yellow);
+    border: 2px solid var(--neon-red);
+    padding: 0.6rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+    text-shadow: 0 0 5px var(--neon-yellow);
+  }
+  .chrome-btn:hover {
+    background: rgba(255, 0, 60, 0.15);
+    box-shadow: 0 0 15px rgba(255, 0, 60, 0.3), inset 0 0 10px rgba(255, 0, 60, 0.1);
+    transform: scale(1.02);
+  }
+
+  /* warning ticker */
+  .warning-ticker {
+    height: 1.5rem; display: flex; align-items: center; gap: 0.5rem;
+  }
+  .warning-ticker .skew-bar {
+    width: 0.5rem; height: 100%;
+    background: var(--neon-yellow);
+    transform: skewX(-20deg);
+  }
+  .warning-ticker .ticker-content {
+    flex: 1; height: 100%;
+    background: var(--bg-panel);
+    border: 1px solid rgba(255, 0, 60, 0.5);
+    display: flex; align-items: center;
+    padding: 0 1rem; position: relative; overflow: hidden;
+  }
+  .warning-ticker .stripes {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(45deg, var(--neon-yellow), var(--neon-yellow) 10px, #000 10px, #000 20px);
+    opacity: 0.08;
+  }
+  .warning-ticker .ticker-text {
+    color: var(--neon-red);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem; letter-spacing: 0.1em;
+    position: relative; z-index: 1;
+  }
+  .warning-ticker .alert-icon {
+    width: 2.5rem; height: 100%;
+    background: var(--neon-red);
+    transform: skewX(-20deg);
+    display: flex; align-items: center; justify-content: center;
+    color: #000; font-size: 0.85rem; font-weight: 900;
+  }
+
+  /* footer */
+  .footer {
+    height: 3.5rem;
+    background: var(--bg-footer);
+    border-top: 2px solid var(--neon-red);
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  .footer .stripes-left, .footer .stripes-right {
+    position: absolute; height: 100%; width: 6rem;
+    background: repeating-linear-gradient(45deg, var(--neon-yellow), var(--neon-yellow) 10px, #000 10px, #000 20px);
+    opacity: 0.7;
+  }
+  .footer .stripes-left { left: 0; }
+  .footer .stripes-right { right: 0; transform: scaleX(-1); }
+  .footer .msg {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem; color: var(--neon-yellow);
+    letter-spacing: 0.2em;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    position: relative; z-index: 1;
+  }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  /* ping dot */
+  .ping-dot {
+    position: absolute;
+    width: 0.5rem; height: 0.5rem;
+    background: #fff; border-radius: 9999px;
+    animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+    opacity: 0.5; pointer-events: none;
+  }
+  @keyframes ping { 75%, 100% { transform: scale(2); opacity: 0; } }
+
+  /* ========== MODAL ========== */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-panel {
+    background: var(--bg-surface);
+    border: 2px solid var(--neon-red);
+    box-shadow: 0 0 40px rgba(255, 0, 60, 0.3), inset 0 0 20px rgba(255, 0, 60, 0.05);
+    width: 90%; max-width: 500px;
+    position: relative;
+    clip-path: polygon(20px 0, calc(100% - 20px) 0, 100% 20px, 100% calc(100% - 20px), calc(100% - 20px) 100%, 20px 100%, 0 calc(100% - 20px), 0 20px);
+  }
+  .modal-header {
+    background: var(--bg-dark);
+    padding: 1rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700; font-size: 1rem;
+    color: var(--neon-yellow);
+    text-shadow: 0 0 5px var(--neon-yellow);
+    transform: skewX(-8deg);
+    letter-spacing: 0.1em;
+  }
+  .modal-close {
+    background: none; border: 1px solid var(--neon-red);
+    color: var(--neon-red); cursor: pointer;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', monospace; font-size: 1rem;
+    transition: all 0.2s;
+  }
+  .modal-close:hover {
+    background: var(--neon-red); color: #000;
+    box-shadow: 0 0 10px var(--neon-red);
+  }
+  .modal-body {
+    padding: 1.5rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem; color: var(--text-dim);
+    line-height: 1.7;
+  }
+  .modal-body p { margin-bottom: 1rem; }
+  .modal-body .highlight { color: var(--neon-cyan); text-shadow: 0 0 5px var(--neon-cyan); }
+  .modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end; gap: 0.75rem;
+  }
+  .modal-btn-secondary {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700; font-size: 0.65rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    background: transparent;
+    color: var(--text-muted); border: 1px solid var(--border);
+    padding: 0.5rem 1rem; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .modal-btn-secondary:hover {
+    border-color: var(--neon-cyan); color: var(--neon-cyan);
+  }
+  .modal-btn-primary {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700; font-size: 0.65rem;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    background: var(--neon-red); color: #000;
+    border: none; padding: 0.5rem 1rem;
+    cursor: pointer; transition: all 0.2s;
+    text-shadow: none;
+  }
+  .modal-btn-primary:hover {
+    box-shadow: 0 0 15px var(--neon-red);
+    transform: scale(1.03);
+  }
+</style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+
+  <div class="main-frame clip-frame" id="mainFrame">
+    <div class="corner-tl"></div>
+    <div class="corner-br"></div>
+    <div class="scanlines"></div>
+    <div class="scanline-bar"></div>
+
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <h1 class="glitch-text" data-text="CHROME">CHROME</h1>
+        <div class="skew-divider"></div>
+        <div>
+          <span class="subtitle-label">TERMINAL</span>
+          <span style="display:block; font-size:0.75rem; color:var(--neon-red); letter-spacing:0.2em; margin-top:0.15rem; text-shadow: 0 0 5px var(--neon-red);">
+            COMPONENT SHOWCASE
+          </span>
+        </div>
+      </div>
+      <div class="header-stats">
+        <div style="text-align:right">
+          <div style="opacity:0.6">SYS_STATUS</div>
+          <div style="color:var(--neon-yellow); font-weight:700">OPERATIONAL</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div style="text-align:right">
+          <div style="opacity:0.6">UPTIME</div>
+          <div style="color:var(--neon-yellow); font-weight:700" id="uptime">00:00:00</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="content-area">
+
+      <!-- Open Modal Button + Warning Ticker -->
+      <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+        <button class="chrome-btn" onclick="openModal()">OPEN MODAL</button>
+        <div class="warning-ticker" style="flex:1; min-width:200px;">
+          <div class="skew-bar"></div>
+          <div class="ticker-content">
+            <div class="stripes"></div>
+            <span class="ticker-text">WARNING: UNAUTHORIZED ACCESS WILL BE LOGGED AND REPORTED</span>
+          </div>
+          <div class="alert-icon">!</div>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div>
+        <div class="section-title">
+          <div class="accent-bar"></div>
+          OPERATIONS LOG
+        </div>
+        <div class="chrome-table-wrap" style="margin-top:0.5rem">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>OPERATION</th>
+                <th>AGENT</th>
+                <th>STATUS</th>
+                <th>TIMESTAMP</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="color:var(--neon-yellow)">#0x7F01</td>
+                <td>Perimeter Sweep</td>
+                <td>RECON-7</td>
+                <td class="status-active">ACTIVE</td>
+                <td>2085.03.13 // 04:22</td>
+              </tr>
+              <tr>
+                <td style="color:var(--neon-yellow)">#0x7F02</td>
+                <td>Data Exfiltration</td>
+                <td>GHOST-3</td>
+                <td class="status-warning">PENDING</td>
+                <td>2085.03.13 // 03:58</td>
+              </tr>
+              <tr>
+                <td style="color:var(--neon-yellow)">#0x7F03</td>
+                <td>Firewall Override</td>
+                <td>CIPHER-9</td>
+                <td class="status-critical">CRITICAL</td>
+                <td>2085.03.13 // 03:41</td>
+              </tr>
+              <tr>
+                <td style="color:var(--neon-yellow)">#0x7F04</td>
+                <td>Signal Intercept</td>
+                <td>ECHO-1</td>
+                <td class="status-active">ACTIVE</td>
+                <td>2085.03.13 // 03:15</td>
+              </tr>
+              <tr>
+                <td style="color:var(--neon-yellow)">#0x7F05</td>
+                <td>Asset Recovery</td>
+                <td>WRAITH-5</td>
+                <td class="status-active">COMPLETE</td>
+                <td>2085.03.13 // 02:50</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Form Controls -->
+      <div>
+        <div class="section-title">
+          <div class="accent-bar"></div>
+          SYSTEM CONTROLS
+        </div>
+        <div class="form-row" style="margin-top:0.5rem">
+          <div class="form-group">
+            <label class="form-label">COMMAND INPUT</label>
+            <input type="text" class="chrome-input" placeholder="Enter directive...">
+          </div>
+          <div class="form-group">
+            <label class="form-label">SECTOR</label>
+            <select class="chrome-select">
+              <option>SECTOR ALPHA-7</option>
+              <option>SECTOR BETA-12</option>
+              <option>SECTOR GAMMA-3</option>
+              <option>SECTOR DELTA-9</option>
+              <option>SECTOR OMEGA-1</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Checkbox + Toggle -->
+      <div class="controls-row">
+        <div class="chrome-checkbox-wrap" onclick="toggleCheckbox(this)">
+          <div class="chrome-checkbox checked"></div>
+          STEALTH_MODE // ENABLED
+        </div>
+        <div class="chrome-checkbox-wrap" onclick="toggleCheckbox(this)">
+          <div class="chrome-checkbox"></div>
+          AUTO_ENCRYPT // DISABLED
+        </div>
+        <div class="chrome-toggle-wrap" onclick="toggleSwitch(this)">
+          <div class="chrome-toggle on"><div class="knob"></div></div>
+          LIVE_FEED
+        </div>
+        <div class="chrome-toggle-wrap" onclick="toggleSwitch(this)">
+          <div class="chrome-toggle"><div class="knob"></div></div>
+          RECORD
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="stripes-left"></div>
+      <div class="stripes-right"></div>
+      <span class="msg">&lt;&lt; CHROME TERMINAL v4.2.0 // ALL SYSTEMS NOMINAL &gt;&gt;</span>
+    </footer>
+
+    <div class="ping-dot" style="top:20%; left:1.5rem"></div>
+    <div class="ping-dot" style="bottom:15%; right:2rem; animation-delay:0.5s"></div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal-panel">
+      <div class="scanlines" style="z-index:5"></div>
+      <div class="modal-header">
+        <span class="modal-title">SYSTEM ALERT</span>
+        <button class="modal-close" onclick="closeModal()">X</button>
+      </div>
+      <div class="modal-body">
+        <p>Intrusion detected on <span class="highlight">NODE-7F.ALPHA</span>. Perimeter firewall breach at sector boundary.</p>
+        <p>Threat level classified as <span style="color:var(--neon-red); text-shadow:0 0 5px var(--neon-red)">CRITICAL</span>. Automated countermeasures have been deployed. Agent <span class="highlight">CIPHER-9</span> dispatched for manual override.</p>
+        <p style="margin-bottom:0">Estimated resolution: <span style="color:var(--neon-yellow); text-shadow:0 0 5px var(--neon-yellow)">47 minutes</span></p>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn-secondary" onclick="closeModal()">DISMISS</button>
+        <button class="modal-btn-primary" onclick="closeModal()">ACKNOWLEDGE</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Container micro-glitch
+  const frame = document.getElementById('mainFrame');
+  setInterval(() => {
+    if (Math.random() > 0.97) {
+      const x = (Math.random() - 0.5) * 4;
+      const y = (Math.random() - 0.5) * 4;
+      frame.style.transform = `translate(${x}px, ${y}px)`;
+      frame.style.filter = 'hue-rotate(90deg)';
+      setTimeout(() => {
+        frame.style.transform = 'none';
+        frame.style.filter = 'none';
+      }, 50);
+    }
+  }, 100);
+
+  // Modal
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+  }
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // Checkbox
+  function toggleCheckbox(wrap) {
+    const box = wrap.querySelector('.chrome-checkbox');
+    box.classList.toggle('checked');
+    const label = wrap.childNodes[wrap.childNodes.length - 1];
+    if (box.classList.contains('checked')) {
+      wrap.lastChild.textContent = wrap.lastChild.textContent.replace('DISABLED', 'ENABLED');
+    } else {
+      wrap.lastChild.textContent = wrap.lastChild.textContent.replace('ENABLED', 'DISABLED');
+    }
+  }
+
+  // Toggle
+  function toggleSwitch(wrap) {
+    wrap.querySelector('.chrome-toggle').classList.toggle('on');
+  }
+
+  // Uptime counter
+  let seconds = 0;
+  setInterval(() => {
+    seconds++;
+    const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+    const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+    const s = String(seconds % 60).padStart(2, '0');
+    document.getElementById('uptime').textContent = `${h}:${m}:${s}`;
+  }, 1000);
+</script>
+</body>
+</html>

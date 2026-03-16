@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pitch — Scoreboard Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: oklch(0.22 0.05 163);
+    --card-bg: oklch(0.27 0.055 163);
+    --text: oklch(0.95 0.01 100);
+    --border: oklch(0.39 0.065 165);
+    --accent: oklch(0.86 0.18 90);
+    --accent-text: oklch(0.20 0.04 163);
+    --muted: oklch(0.55 0.04 165);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--text);
+    min-height: 100vh;
+  }
+  .layout { max-width: 1000px; margin: 0 auto; padding: 2rem; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; }
+  h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; }
+  .tag { font-family: 'Space Mono', monospace; font-size: 0.6rem; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; }
+  .section-label {
+    font-family: 'Space Mono', monospace; font-size: 0.6rem; letter-spacing: 0.1em;
+    color: var(--muted); text-transform: uppercase; margin-bottom: 1rem;
+  }
+  .card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    padding: 1.5rem; margin-bottom: 1.5rem;
+  }
+  .highlight-card { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-family: 'Space Mono', monospace;
+    font-size: 0.55rem; letter-spacing: 0.1em; color: var(--muted);
+    padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); text-transform: uppercase;
+  }
+  td {
+    padding: 0.7rem 0.75rem; font-size: 0.85rem;
+    border-bottom: 1px solid oklch(0.39 0.065 165 / 0.3);
+  }
+  tr:hover td { background: oklch(0.39 0.065 165 / 0.2); }
+  .stat-big { font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem; font-weight: 700; }
+  .yellow-cell { background: var(--accent); color: var(--accent-text); font-weight: 700; padding: 0.3rem 0.6rem; }
+  /* Form */
+  .form-group { margin-bottom: 1rem; }
+  label { display: block; font-family: 'Space Mono', monospace; font-size: 0.55rem; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.35rem; text-transform: uppercase; }
+  input[type="text"], select {
+    width: 100%; padding: 0.6rem 0.75rem; background: var(--bg);
+    border: 1px solid var(--border); color: var(--text);
+    font-family: inherit; font-size: 0.85rem; outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, select:focus { border-color: var(--accent); }
+  select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2388aa88' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; }
+  .btn {
+    padding: 0.6rem 1.5rem; background: var(--accent); border: none;
+    color: var(--accent-text); font-weight: 700; font-size: 0.75rem;
+    text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); }
+  /* Checkbox */
+  .check-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.55rem; cursor: pointer; }
+  .check-box {
+    width: 18px; height: 18px; border: 1px solid var(--border);
+    display: grid; place-items: center; flex-shrink: 0; transition: all 0.15s;
+  }
+  .check-box.checked { background: var(--accent); border-color: var(--accent); }
+  .check-box svg { opacity: 0; transition: opacity 0.15s; }
+  .check-box.checked svg { opacity: 1; }
+  .check-label { font-size: 0.82rem; }
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.75rem; cursor: pointer; }
+  .toggle-track {
+    width: 40px; height: 20px; border: 1px solid var(--border);
+    position: relative; transition: all 0.2s; flex-shrink: 0;
+  }
+  .toggle-track.on { background: var(--accent); border-color: var(--accent); }
+  .toggle-knob {
+    width: 14px; height: 14px; background: var(--text);
+    position: absolute; top: 2px; left: 2px; transition: transform 0.2s;
+  }
+  .toggle-track.on .toggle-knob { transform: translateX(20px); background: var(--accent-text); }
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: oklch(0.22 0.05 163 / 0.85);
+    backdrop-filter: blur(6px); display: none; place-items: center; z-index: 1000;
+  }
+  .modal-overlay.open { display: grid; }
+  .modal {
+    background: var(--card-bg); border: 1px solid var(--border);
+    padding: 2.5rem; width: 90%; max-width: 440px;
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } }
+  .modal h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .modal p { color: var(--muted); font-size: 0.82rem; line-height: 1.6; margin-bottom: 1.5rem; }
+  .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <div class="header">
+      <h1>Pitch Scoreboard</h1>
+      <span class="tag">Season 2026 &bull; METRIC_01</span>
+    </div>
+
+    <div class="card">
+      <div class="section-label">Performance Index</div>
+      <table>
+        <thead><tr><th>Player</th><th>Position</th><th>Rating</th><th>Goals</th><th>Form</th></tr></thead>
+        <tbody>
+          <tr><td>Marcus Sterling</td><td>FW</td><td><span class="stat-big">92</span></td><td><span class="yellow-cell">24</span></td><td>Excellent</td></tr>
+          <tr><td>Kai Hernandez</td><td>MF</td><td><span class="stat-big">88</span></td><td>12</td><td>Good</td></tr>
+          <tr><td>Leo Nakamura</td><td>DF</td><td><span class="stat-big">85</span></td><td>3</td><td>Stable</td></tr>
+          <tr><td>Andre Mbeki</td><td>GK</td><td><span class="stat-big">90</span></td><td>0</td><td>Peak</td></tr>
+          <tr><td>Rio Vasquez</td><td>MF</td><td><span class="stat-big">83</span></td><td>8</td><td>Rising</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="section-label">Scout Filter</div>
+        <div class="form-group">
+          <label>Search Player</label>
+          <input type="text" placeholder="Name or ID">
+        </div>
+        <div class="form-group">
+          <label>Position</label>
+          <select>
+            <option>All Positions</option>
+            <option>Forward</option>
+            <option>Midfielder</option>
+            <option>Defender</option>
+            <option>Goalkeeper</option>
+          </select>
+        </div>
+        <button class="btn" onclick="document.getElementById('modal').classList.add('open')">Open Modal</button>
+      </div>
+
+      <div class="card">
+        <div class="section-label">Display</div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Show form streak</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Include reserves</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Highlight top scorer</span>
+        </div>
+        <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track on"><div class="toggle-knob"></div></div>
+          <span class="check-label">Live updates</span>
+        </div>
+        <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track"><div class="toggle-knob"></div></div>
+          <span class="check-label">Compact view</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <h2>Player Analysis</h2>
+      <p>The Pitch Scoreboard theme is athletic and data-rich. Deep forest green, yellow highlights, archive-style labels, and bold stat numbers create a sports analytics war room aesthetic.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal').classList.remove('open')">Cancel</button>
+        <button class="btn" onclick="document.getElementById('modal').classList.remove('open')">Analyze</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

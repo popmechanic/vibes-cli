@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recon Grid - Theme Showcase</title>
+<style>
+  :root {
+    --bg:          oklch(0.00 0.000 0);
+    --card:        oklch(0.00 0.000 0 / 0.8);
+    --panel:       oklch(0.21 0.03 265 / 0.8);
+    --grid-line:   oklch(0.28 0.000 0);
+    --border:      oklch(0.28 0.03 257);
+    --fg:          oklch(0.97 0.003 265);
+    --fg-dim:      oklch(0.55 0.03 264);
+    --accent:      oklch(0.64 0.24 25);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+                 'Liberation Mono', 'Courier New', monospace;
+    background: var(--bg);
+    color: var(--fg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+  }
+
+  /* PAGE HEADER */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .page-title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .dot-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+  .dot-grid-item {
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+  }
+
+  /* GRID CARD CONTAINER */
+  .grid-card {
+    position: relative;
+    flex: 1;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .grid-pattern {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+  }
+  .grid-content {
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px;
+    z-index: 1;
+    overflow: auto;
+  }
+
+  /* DATA CARD */
+  .data-card {
+    background: var(--card);
+    padding: 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+  .data-label {
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fg);
+    margin-bottom: 8px;
+  }
+  .data-title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--fg);
+  }
+  .data-accent {
+    font-size: 14px;
+    color: var(--accent);
+    margin-top: 4px;
+  }
+
+  /* STAT BARS */
+  .stat-bar-container {
+    background: var(--panel);
+    padding: 8px;
+    border: 1px solid var(--border);
+  }
+  .stat-bar-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 4px;
+    color: var(--fg);
+    letter-spacing: 0.05em;
+  }
+  .stat-bar-track {
+    height: 4px;
+    background: var(--border);
+  }
+  .stat-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.6s ease;
+  }
+
+  /* DATA TABLE AS STAT BARS */
+  .table-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .table-header {
+    display: grid;
+    grid-template-columns: 1.2fr 1.5fr 0.8fr 0.6fr 0.6fr;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fg-dim);
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1.5fr 0.8fr 0.6fr 0.6fr;
+    font-size: 12px;
+    padding: 8px;
+    border-bottom: 1px solid oklch(0.28 0.000 0 / 0.5);
+    transition: background 0.15s;
+    letter-spacing: 0.03em;
+  }
+  .table-row:hover {
+    background: oklch(0.28 0.03 257 / 0.3);
+  }
+  .table-row .accent { color: var(--accent); }
+  .table-row .dim { color: var(--fg-dim); }
+  .text-right { text-align: right; }
+
+  /* FORM INPUT */
+  .form-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--fg-dim);
+    margin-bottom: 6px;
+    display: block;
+  }
+  .form-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 8px 0;
+    width: 100%;
+    outline: none;
+    letter-spacing: 0.03em;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-input::placeholder { color: var(--fg-dim); }
+
+  /* SELECT */
+  .form-select {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 8px 28px 8px 8px;
+    width: 100%;
+    outline: none;
+    appearance: none;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: border-color 0.2s;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%23888' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+  }
+  .form-select:focus { border-color: var(--accent); }
+  .form-select option { background: #111; color: var(--fg); }
+
+  /* CHECKBOX */
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+  }
+  .checkbox-box {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .checkbox-box.checked {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .checkbox-box svg {
+    width: 12px;
+    height: 12px;
+    stroke: var(--bg);
+    stroke-width: 3;
+    fill: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .checkbox-box.checked svg { opacity: 1; }
+
+  /* TOGGLE */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+  }
+  .toggle-track {
+    width: 48px;
+    height: 24px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    position: relative;
+    cursor: pointer;
+    background: transparent;
+    transition: border-color 0.2s;
+  }
+  .toggle-track:hover { border-color: var(--accent); }
+  .toggle-track.on { border-color: var(--accent); }
+  .toggle-knob {
+    width: 16px;
+    height: 16px;
+    background: var(--fg-dim);
+    border-radius: 2px;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: all 0.2s;
+  }
+  .toggle-track.on .toggle-knob {
+    left: 26px;
+    background: var(--accent);
+  }
+
+  /* CONTROL BUTTONS */
+  .ctrl-square {
+    width: 48px;
+    height: 48px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .ctrl-square:hover { border-color: var(--accent); }
+  .ctrl-square svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+  }
+  .ctrl-reject { color: var(--fg-dim); }
+  .ctrl-accept { color: var(--accent); }
+
+  /* PROGRESS */
+  .progress-bars {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .progress-segment {
+    width: 48px;
+    height: 4px;
+  }
+  .progress-active { background: var(--accent); }
+  .progress-inactive { background: var(--border); }
+
+  /* CONTROLS BAR */
+  .controls-bar {
+    margin-top: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .modal {
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    width: 420px;
+    max-width: 90vw;
+    position: relative;
+    overflow: hidden;
+    transform: scale(0.95);
+    transition: transform 0.2s;
+  }
+  .modal-overlay.open .modal { transform: scale(1); }
+  .modal-grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+  }
+  .modal-content {
+    position: relative;
+    z-index: 1;
+    padding: 24px;
+  }
+  .modal-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .modal-subtitle {
+    font-size: 12px;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .modal-footer {
+    display: flex;
+    gap: 12px;
+  }
+  .modal-btn {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    background: none;
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .modal-btn:hover { border-color: var(--accent); }
+  .modal-btn-primary {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .modal-btn-primary:hover {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  /* OPEN MODAL TRIGGER */
+  .open-btn {
+    background: none;
+    border: 2px solid var(--accent);
+    border-radius: 4px;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .open-btn:hover {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  /* Two-column layout inside grid */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 700px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="page-header">
+  <div class="page-title">RECON.GRID</div>
+  <div class="dot-grid">
+    <div class="dot-grid-item"></div>
+    <div class="dot-grid-item"></div>
+    <div class="dot-grid-item"></div>
+    <div class="dot-grid-item"></div>
+    <div class="dot-grid-item"></div>
+    <div class="dot-grid-item"></div>
+    <div class="dot-grid-item"></div>
+    <div class="dot-grid-item"></div>
+    <div class="dot-grid-item"></div>
+  </div>
+</header>
+
+<!-- MAIN GRID CARD -->
+<div class="grid-card">
+  <div class="grid-pattern"></div>
+  <div class="grid-content">
+
+    <!-- TOP: Info + Controls -->
+    <div class="two-col">
+      <!-- Left: Data Card + Modal Button -->
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div class="data-card">
+          <div class="data-label">SPECIMEN DATA:</div>
+          <div class="data-title">COMPONENT SHOWCASE</div>
+          <div class="data-accent">ID: RG-2026-0313 // STATUS: ACTIVE</div>
+        </div>
+        <button class="open-btn" onclick="toggleModal(true)">[ OPEN MODAL ]</button>
+      </div>
+
+      <!-- Right: Form Controls -->
+      <div class="data-card" style="display:flex; flex-direction:column; gap:14px;">
+        <div class="data-label">INPUT CONTROLS:</div>
+        <div>
+          <label class="form-label">SEARCH QUERY</label>
+          <input class="form-input" type="text" placeholder="Enter target parameters...">
+        </div>
+        <div>
+          <label class="form-label">CLASSIFICATION</label>
+          <select class="form-select">
+            <option>ALL SPECIMENS</option>
+            <option>CARNIVORE</option>
+            <option>HERBIVORE</option>
+            <option>OMNIVORE</option>
+            <option>UNKNOWN</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- STAT BARS -->
+    <div class="data-card">
+      <div class="data-label">ATTRIBUTE ANALYSIS:</div>
+      <div style="display:flex; flex-direction:column; gap:8px; margin-top:8px;">
+        <div class="stat-bar-container">
+          <div class="stat-bar-header"><span>STRENGTH</span><span>98%</span></div>
+          <div class="stat-bar-track"><div class="stat-bar-fill" style="width:98%"></div></div>
+        </div>
+        <div class="stat-bar-container">
+          <div class="stat-bar-header"><span>AGILITY</span><span>75%</span></div>
+          <div class="stat-bar-track"><div class="stat-bar-fill" style="width:75%"></div></div>
+        </div>
+        <div class="stat-bar-container">
+          <div class="stat-bar-header"><span>INTELLIGENCE</span><span>82%</span></div>
+          <div class="stat-bar-track"><div class="stat-bar-fill" style="width:82%"></div></div>
+        </div>
+        <div class="stat-bar-container">
+          <div class="stat-bar-header"><span>ENDURANCE</span><span>91%</span></div>
+          <div class="stat-bar-track"><div class="stat-bar-fill" style="width:91%"></div></div>
+        </div>
+        <div class="stat-bar-container">
+          <div class="stat-bar-header"><span>PERCEPTION</span><span>67%</span></div>
+          <div class="stat-bar-track"><div class="stat-bar-fill" style="width:67%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DATA TABLE -->
+    <div class="data-card">
+      <div class="data-label">SPECIMEN LOG:</div>
+      <div class="table-grid" style="margin-top:8px;">
+        <div class="table-header">
+          <div>ID</div>
+          <div>SPECIMEN</div>
+          <div>CLASS</div>
+          <div class="text-right">THREAT</div>
+          <div class="text-right">STATUS</div>
+        </div>
+        <div class="table-row">
+          <div class="dim">RG-001</div>
+          <div>VELOCIRAPTOR</div>
+          <div>CARNIVORE</div>
+          <div class="text-right accent">HIGH</div>
+          <div class="text-right">ACTIVE</div>
+        </div>
+        <div class="table-row">
+          <div class="dim">RG-002</div>
+          <div>TRICERATOPS</div>
+          <div>HERBIVORE</div>
+          <div class="text-right dim">LOW</div>
+          <div class="text-right">ACTIVE</div>
+        </div>
+        <div class="table-row">
+          <div class="dim">RG-003</div>
+          <div>PTERANODON</div>
+          <div>CARNIVORE</div>
+          <div class="text-right accent">HIGH</div>
+          <div class="text-right accent">ESCAPED</div>
+        </div>
+        <div class="table-row">
+          <div class="dim">RG-004</div>
+          <div>STEGOSAURUS</div>
+          <div>HERBIVORE</div>
+          <div class="text-right dim">LOW</div>
+          <div class="text-right">ACTIVE</div>
+        </div>
+        <div class="table-row">
+          <div class="dim">RG-005</div>
+          <div>T-REX</div>
+          <div>CARNIVORE</div>
+          <div class="text-right accent">EXTREME</div>
+          <div class="text-right">CONTAINED</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHECKBOX + TOGGLE ROW -->
+    <div class="two-col">
+      <div class="data-card" style="display:flex; flex-direction:column; gap:12px;">
+        <div class="data-label">SYSTEM FLAGS:</div>
+        <div class="checkbox-row" onclick="toggleCheck(this)">
+          <div class="checkbox-box checked"><svg viewBox="0 0 14 14"><polyline points="2.5 7 5.5 10 11.5 4"/></svg></div>
+          <span>PERIMETER SCAN ACTIVE</span>
+        </div>
+        <div class="checkbox-row" onclick="toggleCheck(this)">
+          <div class="checkbox-box"><svg viewBox="0 0 14 14"><polyline points="2.5 7 5.5 10 11.5 4"/></svg></div>
+          <span>MOTION SENSORS ARMED</span>
+        </div>
+        <div class="checkbox-row" onclick="toggleCheck(this)">
+          <div class="checkbox-box checked"><svg viewBox="0 0 14 14"><polyline points="2.5 7 5.5 10 11.5 4"/></svg></div>
+          <span>THERMAL IMAGING ON</span>
+        </div>
+      </div>
+
+      <div class="data-card" style="display:flex; flex-direction:column; gap:14px;">
+        <div class="data-label">TOGGLE CONTROLS:</div>
+        <div class="toggle-row">
+          <span>CONTAINMENT FIELD</span>
+          <div class="toggle-track on" onclick="toggleSwitch(this)"><div class="toggle-knob"></div></div>
+        </div>
+        <div class="toggle-row">
+          <span>TRACKING BEACON</span>
+          <div class="toggle-track" onclick="toggleSwitch(this)"><div class="toggle-knob"></div></div>
+        </div>
+        <div class="toggle-row">
+          <span>ALERT BROADCAST</span>
+          <div class="toggle-track on" onclick="toggleSwitch(this)"><div class="toggle-knob"></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- BOTTOM CONTROLS -->
+<div class="controls-bar">
+  <button class="ctrl-square ctrl-reject">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 18L18 6M6 6l12 12"/>
+    </svg>
+  </button>
+  <div class="progress-bars">
+    <div class="progress-segment progress-active"></div>
+    <div class="progress-segment progress-active"></div>
+    <div class="progress-segment progress-inactive"></div>
+    <div class="progress-segment progress-inactive"></div>
+    <div class="progress-segment progress-inactive"></div>
+  </div>
+  <button class="ctrl-square ctrl-accept">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+    </svg>
+  </button>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)toggleModal(false)">
+  <div class="modal">
+    <div class="modal-grid-bg"></div>
+    <div class="modal-content">
+      <div class="modal-title">SPECIMEN REPORT</div>
+      <div class="modal-subtitle">CLASSIFICATION PENDING // CLEARANCE REQUIRED</div>
+      <div class="modal-body">
+        <div>
+          <label class="form-label">SPECIMEN NAME</label>
+          <input class="form-input" type="text" value="UNKNOWN APEX PREDATOR">
+        </div>
+        <div>
+          <label class="form-label">THREAT LEVEL</label>
+          <select class="form-select">
+            <option>EXTREME</option>
+            <option>HIGH</option>
+            <option>MODERATE</option>
+            <option>LOW</option>
+          </select>
+        </div>
+        <div class="checkbox-row" onclick="toggleCheck(this)">
+          <div class="checkbox-box checked"><svg viewBox="0 0 14 14"><polyline points="2.5 7 5.5 10 11.5 4"/></svg></div>
+          <span>FLAG FOR REVIEW</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="modal-btn" onclick="toggleModal(false)">REJECT</button>
+        <button class="modal-btn modal-btn-primary" onclick="toggleModal(false)">CONFIRM</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function toggleModal(open) {
+    document.getElementById('modalOverlay').classList.toggle('open', open);
+  }
+  function toggleCheck(wrapper) {
+    wrapper.querySelector('.checkbox-box').classList.toggle('checked');
+  }
+  function toggleSwitch(track) {
+    track.classList.toggle('on');
+  }
+
+  // Animate stat bars on load
+  document.addEventListener('DOMContentLoaded', function() {
+    var fills = document.querySelectorAll('.stat-bar-fill');
+    fills.forEach(function(fill) {
+      var w = fill.style.width;
+      fill.style.width = '0%';
+      setTimeout(function() { fill.style.width = w; }, 100);
+    });
+  });
+</script>
+</body>
+</html>

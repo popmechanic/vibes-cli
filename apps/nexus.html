@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus Grid - Component Showcase</title>
+<style>
+  :root {
+    --bg:              #000000;
+    --text:            #ffffff;
+    --accent-lime:     #D4FF00;
+    --text-dim:        #888888;
+    --text-body:       #dddddd;
+    --separator:       #666666;
+    --outline:         rgba(255,255,255,0.3);
+    --voxel:           #ffffff;
+    --voxel-shadow:    rgba(0,0,0,0.5);
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+    font-size: 16px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .container {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+    flex: 1;
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* pills */
+  .pill {
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    padding: 2px 12px;
+    border-radius: 999px;
+    font-weight: 500; font-size: 0.95em;
+    color: #000; text-decoration: none;
+    vertical-align: middle;
+    margin: 0 2px; cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    border: none;
+  }
+  .pill:active { transform: scale(0.95); }
+  .pill--lime { background: var(--accent-lime); }
+  .pill--white { background: var(--text); }
+
+  /* outline buttons */
+  .btn-outline {
+    display: inline-block;
+    border: 1px solid var(--outline);
+    color: var(--text); padding: 8px 18px;
+    border-radius: 999px;
+    text-decoration: none; font-size: 14px;
+    transition: all 0.3s ease;
+    margin-right: 8px; cursor: pointer;
+    background: none;
+  }
+  .btn-outline:hover {
+    border-color: var(--text);
+    background: rgba(255,255,255,0.1);
+  }
+
+  /* labels */
+  .text-label {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    display: block;
+  }
+  .text-body {
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--text-body);
+  }
+
+  /* voxel grid */
+  .voxel-container {
+    width: 100%;
+    max-width: 300px;
+    aspect-ratio: 1;
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(12, 1fr);
+    gap: 2px;
+    cursor: pointer;
+  }
+  .voxel {
+    background: var(--voxel);
+    width: 100%; height: 100%;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    box-shadow: 2px 2px 0 var(--voxel-shadow);
+  }
+
+  /* data table */
+  .nexus-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .nexus-table thead th {
+    text-align: left;
+    padding: 10px 12px;
+    color: var(--text-dim);
+    font-weight: 400;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .nexus-table tbody td {
+    padding: 10px 12px;
+    color: var(--text-body);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  .nexus-table tbody tr:hover td {
+    color: var(--text);
+  }
+  .lime-text { color: var(--accent-lime); }
+  .dim-text { color: var(--text-dim); }
+
+  /* form controls */
+  .nexus-input {
+    background: none;
+    border: 1px solid var(--outline);
+    color: var(--text);
+    font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+    font-size: 15px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    outline: none;
+    width: 100%;
+    transition: all 0.3s ease;
+  }
+  .nexus-input:focus {
+    border-color: var(--accent-lime);
+    box-shadow: 0 0 0 1px var(--accent-lime);
+  }
+  .nexus-input::placeholder { color: var(--separator); }
+
+  .nexus-select {
+    background: none;
+    border: 1px solid var(--outline);
+    color: var(--text);
+    font-family: 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+    font-size: 15px;
+    padding: 10px 36px 10px 16px;
+    border-radius: 999px;
+    outline: none;
+    width: 100%;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23888888' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  .nexus-select:focus { border-color: var(--accent-lime); }
+  .nexus-select option { background: #111; color: var(--text); }
+
+  /* checkbox */
+  .nexus-checkbox-wrap {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer; font-size: 15px; color: var(--text-body);
+    user-select: none;
+  }
+  .nexus-checkbox {
+    width: 20px; height: 20px;
+    border: 1px solid var(--outline);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .nexus-checkbox.checked {
+    border-color: var(--accent-lime);
+    background: var(--accent-lime);
+  }
+  .nexus-checkbox.checked::after {
+    content: '';
+    width: 10px; height: 10px;
+    background: #000;
+    border-radius: 2px;
+  }
+
+  /* toggle */
+  .nexus-toggle-wrap {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 15px; color: var(--text-body);
+    cursor: pointer; user-select: none;
+  }
+  .nexus-toggle {
+    width: 44px; height: 24px;
+    border: 1px solid var(--outline);
+    border-radius: 12px;
+    position: relative; transition: all 0.3s;
+    background: none;
+  }
+  .nexus-toggle .knob {
+    position: absolute; top: 3px; left: 3px;
+    width: 16px; height: 16px;
+    background: var(--separator);
+    border-radius: 50%; transition: all 0.3s;
+  }
+  .nexus-toggle.on {
+    border-color: var(--accent-lime);
+    background: rgba(212, 255, 0, 0.15);
+  }
+  .nexus-toggle.on .knob {
+    left: 23px;
+    background: var(--accent-lime);
+  }
+
+  .form-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .form-group { flex: 1; min-width: 180px; }
+  .controls-row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
+
+  /* separator */
+  .slash-sep { color: var(--separator); margin: 0 4px; }
+
+  /* footer */
+  footer {
+    margin-top: auto;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+  }
+  .copyright { font-size: 14px; color: var(--separator); }
+
+  /* ========== MODAL ========== */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-panel {
+    width: 90%; max-width: 440px;
+    padding: 32px;
+  }
+  .modal-title {
+    font-size: 14px; color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  .modal-text {
+    font-size: 16px; color: var(--text-body);
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+  .modal-actions {
+    display: flex; gap: 8px; justify-content: flex-end;
+  }
+</style>
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- Hero text with inline pills -->
+    <header style="padding-top:24px">
+      <p style="font-size:20px; line-height:1.6; max-width:90%; color:var(--text-body);">
+        Explore components built on the
+        <span class="pill pill--lime">nexus</span>
+        grid system. Every element follows
+        <span class="pill pill--white">minimal</span>
+        design principles. No decoration. No noise.
+      </p>
+    </header>
+
+    <!-- Voxel grid -->
+    <div style="display:flex; justify-content:center;">
+      <div class="voxel-container" id="voxelGrid" title="Click to regenerate"></div>
+    </div>
+
+    <!-- Data Table -->
+    <div>
+      <span class="text-label">data</span>
+      <table class="nexus-table">
+        <thead>
+          <tr>
+            <th>node</th>
+            <th>status</th>
+            <th>latency</th>
+            <th>uptime</th>
+            <th>region</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="lime-text">nx-alpha</td>
+            <td>connected</td>
+            <td>12ms</td>
+            <td>99.97%</td>
+            <td class="dim-text">us-east</td>
+          </tr>
+          <tr>
+            <td class="lime-text">nx-beta</td>
+            <td>connected</td>
+            <td>8ms</td>
+            <td>99.99%</td>
+            <td class="dim-text">eu-west</td>
+          </tr>
+          <tr>
+            <td class="lime-text">nx-gamma</td>
+            <td>degraded</td>
+            <td>45ms</td>
+            <td>98.20%</td>
+            <td class="dim-text">ap-south</td>
+          </tr>
+          <tr>
+            <td class="lime-text">nx-delta</td>
+            <td>connected</td>
+            <td>15ms</td>
+            <td>99.95%</td>
+            <td class="dim-text">us-west</td>
+          </tr>
+          <tr>
+            <td class="lime-text">nx-epsilon</td>
+            <td>offline</td>
+            <td>--</td>
+            <td>--</td>
+            <td class="dim-text">sa-east</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Form Controls -->
+    <div>
+      <span class="text-label">input</span>
+      <div class="form-row" style="margin-top:8px">
+        <div class="form-group">
+          <input type="text" class="nexus-input" placeholder="enter query...">
+        </div>
+        <div class="form-group">
+          <select class="nexus-select">
+            <option>all regions</option>
+            <option>us-east</option>
+            <option>eu-west</option>
+            <option>ap-south</option>
+            <option>us-west</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Checkbox + Toggle -->
+    <div>
+      <span class="text-label">controls</span>
+      <div class="controls-row" style="margin-top:8px">
+        <div class="nexus-checkbox-wrap" onclick="toggleCheckbox(this)">
+          <div class="nexus-checkbox checked"></div>
+          auto-refresh
+        </div>
+        <div class="nexus-checkbox-wrap" onclick="toggleCheckbox(this)">
+          <div class="nexus-checkbox"></div>
+          verbose logs
+        </div>
+        <div class="nexus-toggle-wrap" onclick="toggleSwitch(this)">
+          <div class="nexus-toggle on"><div class="knob"></div></div>
+          dark mode
+        </div>
+        <div class="nexus-toggle-wrap" onclick="toggleSwitch(this)">
+          <div class="nexus-toggle"><div class="knob"></div></div>
+          notifications
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal trigger -->
+    <div>
+      <span class="text-label">modal</span>
+      <div style="margin-top:8px">
+        <button class="pill pill--lime" onclick="openModal()" style="font-size:15px; padding:6px 20px;">
+          open modal
+        </button>
+      </div>
+    </div>
+
+    <!-- Collaborator list -->
+    <div>
+      <span class="text-label">collaborators</span>
+      <div style="font-size:16px; line-height:1.6; color:var(--text);">
+        Amber Macias <span class="slash-sep">/</span>
+        Nexus Lab <span class="slash-sep">/</span>
+        Grid Studio <span class="slash-sep">/</span>
+        Voxel Collective <span class="slash-sep">/</span>
+        Void Systems
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <div>
+        <button class="btn-outline">source</button>
+        <button class="btn-outline">docs</button>
+        <button class="btn-outline">contact</button>
+      </div>
+      <span class="copyright">nexus.2026</span>
+    </footer>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal-panel">
+      <div class="modal-title">confirmation</div>
+      <div class="modal-text">
+        This action will regenerate all grid nodes and reset latency metrics. The process takes approximately 3 seconds. Connected clients will experience a brief interruption.
+      </div>
+      <div class="modal-actions">
+        <button class="btn-outline" onclick="closeModal()">cancel</button>
+        <button class="pill pill--lime" onclick="closeModal()" style="font-size:14px; padding:8px 20px;">confirm</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Voxel grid - N shape
+  const shapeMap = [
+    [1,0,0,0,0,0,0,0,0,0,0,1],
+    [1,1,0,0,0,0,0,0,0,0,0,1],
+    [1,1,1,0,0,0,0,0,0,0,0,1],
+    [1,0,1,1,0,0,0,0,0,0,0,1],
+    [1,0,0,1,1,0,0,0,0,0,0,1],
+    [1,0,0,0,1,1,0,0,0,0,0,1],
+    [1,0,0,0,0,1,1,0,0,0,0,1],
+    [1,0,0,0,0,0,1,1,0,0,0,1],
+    [1,0,0,0,0,0,0,1,1,0,0,1],
+    [1,0,0,0,0,0,0,0,1,1,0,1],
+    [1,0,0,0,0,0,0,0,0,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,1,1],
+  ];
+
+  const grid = document.getElementById('voxelGrid');
+  let voxels = [];
+
+  function createGrid() {
+    grid.innerHTML = '';
+    voxels = [];
+    for (let r = 0; r < 12; r++) {
+      for (let c = 0; c < 12; c++) {
+        const div = document.createElement('div');
+        div.className = 'voxel';
+        if (shapeMap[r][c]) {
+          div.style.opacity = Math.random() > 0.5 ? '0.9' : '0.2';
+          voxels.push(div);
+        }
+        grid.appendChild(div);
+      }
+    }
+  }
+
+  createGrid();
+
+  // Voxel breathe animation
+  setInterval(() => {
+    for (let i = 0; i < 8; i++) {
+      if (voxels.length === 0) break;
+      const idx = Math.floor(Math.random() * voxels.length);
+      const v = voxels[idx];
+      v.style.opacity = parseFloat(v.style.opacity) > 0.5 ? '0.2' : '0.9';
+    }
+  }, 100);
+
+  // Click to regenerate
+  grid.addEventListener('click', createGrid);
+
+  // Modal
+  function openModal() {
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal() {
+    document.getElementById('modal').classList.remove('open');
+  }
+  document.getElementById('modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // Checkbox
+  function toggleCheckbox(wrap) {
+    wrap.querySelector('.nexus-checkbox').classList.toggle('checked');
+  }
+
+  // Toggle
+  function toggleSwitch(wrap) {
+    wrap.querySelector('.nexus-toggle').classList.toggle('on');
+  }
+</script>
+</body>
+</html>

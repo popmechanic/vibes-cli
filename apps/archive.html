@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Archive — Editorial Archive Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: oklch(0.95 0.01 70);
+    --text: oklch(0.15 0.02 50);
+    --border: oklch(0.20 0.02 50);
+    --accent: oklch(0.35 0.04 50);
+    --accent-text: oklch(0.95 0.01 70);
+    --muted: oklch(0.55 0.02 50);
+    --page-bg: oklch(0.92 0.01 65);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Inter', sans-serif; background: var(--page-bg);
+    color: var(--text); min-height: 100vh;
+  }
+  .layout {
+    max-width: 1000px; margin: 0 auto; padding: 3rem 2rem;
+  }
+  .header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2.5rem;
+  }
+  .header h1 {
+    font-family: 'Playfair Display', serif; font-weight: 300;
+    font-size: 2.2rem; letter-spacing: -0.02em;
+  }
+  .header .ref {
+    font-size: 0.6rem; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .section-label {
+    font-size: 0.6rem; font-weight: 600; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 1rem;
+  }
+  /* Table */
+  .table-wrap {
+    border: 1px solid var(--border); margin-bottom: 2.5rem;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-size: 0.6rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--muted); padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 0.7rem 1rem; font-size: 0.82rem; border-bottom: 1px solid oklch(0.20 0.02 50 / 0.1);
+  }
+  tr:hover td { background: oklch(0.20 0.02 50 / 0.03); }
+  td:first-child {
+    font-size: 0.7rem; font-weight: 600; color: var(--muted); letter-spacing: 0.05em;
+  }
+  .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5rem; }
+  @media (max-width: 700px) { .columns { grid-template-columns: 1fr; } }
+  /* Form */
+  .form-group { margin-bottom: 1.25rem; }
+  label { display: block; font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 0.35rem; }
+  input[type="text"], select {
+    width: 100%; padding: 0.6rem 0.75rem; background: transparent;
+    border: 1px solid var(--border); border-radius: 0; color: var(--text);
+    font-family: inherit; font-size: 0.85rem; outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, select:focus { border-color: var(--accent); border-width: 2px; }
+  select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.75rem center; }
+  .btn {
+    padding: 0.55rem 1.25rem; border: 1px solid var(--border); background: var(--accent);
+    color: var(--accent-text); font-size: 0.7rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.1em; cursor: pointer;
+    transition: background 0.2s; border-radius: 0;
+  }
+  .btn:hover { background: var(--text); }
+  .btn-ghost { background: transparent; color: var(--text); }
+  .btn-ghost:hover { background: oklch(0.20 0.02 50 / 0.06); }
+  /* Checkbox */
+  .check-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; cursor: pointer; }
+  .check-box {
+    width: 16px; height: 16px; border: 1px solid var(--border);
+    display: grid; place-items: center; flex-shrink: 0; transition: background 0.15s;
+  }
+  .check-box.checked { background: var(--accent); border-color: var(--accent); }
+  .check-box svg { opacity: 0; transition: opacity 0.15s; }
+  .check-box.checked svg { opacity: 1; }
+  .check-label { font-size: 0.82rem; }
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; gap: 0.6rem; margin-top: 1rem; cursor: pointer; }
+  .toggle-track {
+    width: 36px; height: 18px; border: 1px solid var(--border);
+    position: relative; transition: background 0.2s; flex-shrink: 0;
+  }
+  .toggle-track.on { background: var(--accent); border-color: var(--accent); }
+  .toggle-knob {
+    width: 12px; height: 12px; background: var(--text);
+    position: absolute; top: 2px; left: 2px; transition: transform 0.2s;
+  }
+  .toggle-track.on .toggle-knob { transform: translateX(18px); background: var(--accent-text); }
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: oklch(0.92 0.01 65 / 0.85);
+    backdrop-filter: blur(4px); display: none; place-items: center; z-index: 1000;
+  }
+  .modal-overlay.open { display: grid; }
+  .modal {
+    background: var(--bg); border: 1px solid var(--border);
+    padding: 2.5rem; width: 90%; max-width: 420px;
+    animation: fadeUp 0.3s ease;
+  }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } }
+  .modal h2 { font-family: 'Playfair Display', serif; font-weight: 300; font-size: 1.5rem; margin-bottom: 0.5rem; }
+  .modal p { color: var(--muted); font-size: 0.82rem; line-height: 1.6; margin-bottom: 1.5rem; }
+  .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+  .divider { height: 1px; background: var(--border); margin: 2.5rem 0; }
+  .crop-marks {
+    position: relative; padding: 1.5rem; border: 1px solid transparent;
+  }
+  .crop-marks::before, .crop-marks::after {
+    content: ''; position: absolute; width: 12px; height: 12px;
+  }
+  .crop-marks::before { top: 0; left: 0; border-top: 1px solid var(--muted); border-left: 1px solid var(--muted); }
+  .crop-marks::after { bottom: 0; right: 0; border-bottom: 1px solid var(--muted); border-right: 1px solid var(--muted); }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <div class="header">
+      <h1>Editorial Archive</h1>
+      <span class="ref">CAT — 2026.03</span>
+    </div>
+
+    <div class="section-label">Index</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>No.</th><th>Title</th><th>Medium</th><th>Year</th><th>Condition</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>[001]</td><td>Morning Light Study</td><td>Oil on canvas</td><td>2024</td><td>Excellent</td></tr>
+          <tr><td>[002]</td><td>Urban Fragments III</td><td>Silver gelatin print</td><td>2023</td><td>Good</td></tr>
+          <tr><td>[003]</td><td>Tide Patterns</td><td>Cyanotype on paper</td><td>2025</td><td>Mint</td></tr>
+          <tr><td>[004]</td><td>Concrete Meditation</td><td>Pigment ink</td><td>2024</td><td>Excellent</td></tr>
+          <tr><td>[005]</td><td>Archive of Silence</td><td>Mixed media</td><td>2022</td><td>Fair</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="columns">
+      <div class="crop-marks">
+        <div class="section-label">Search &amp; Filter</div>
+        <div class="form-group">
+          <label>Search Collection</label>
+          <input type="text" placeholder="Artist, title, medium...">
+        </div>
+        <div class="form-group">
+          <label>Medium</label>
+          <select>
+            <option>All Mediums</option>
+            <option>Oil on canvas</option>
+            <option>Silver gelatin print</option>
+            <option>Cyanotype</option>
+            <option>Mixed media</option>
+          </select>
+        </div>
+        <button class="btn" onclick="document.getElementById('modal').classList.add('open')">Open Modal</button>
+      </div>
+
+      <div class="crop-marks">
+        <div class="section-label">Display Options</div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <span class="check-label">Show thumbnails</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <span class="check-label">Include archived items</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <span class="check-label">Show condition notes</span>
+        </div>
+        <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track on"><div class="toggle-knob"></div></div>
+          <span class="check-label">Grid view</span>
+        </div>
+        <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track"><div class="toggle-knob"></div></div>
+          <span class="check-label">Dark variant</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <h2>Acquisition Details</h2>
+      <p>The Editorial Archive theme evokes museum catalogs and printed collections. Sharp edges, serif typography, wide letter-spacing, and thin borders create a quiet, documentary aesthetic.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal').classList.remove('open')">Dismiss</button>
+        <button class="btn" onclick="document.getElementById('modal').classList.remove('open')">Confirm</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

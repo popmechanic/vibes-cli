@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scrapbook — Handmade Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --desk: oklch(0.93 0.03 130);
+    --paper: oklch(0.97 0.01 80);
+    --ink: oklch(0.12 0.01 0);
+    --yellow: oklch(0.93 0.12 95);
+    --pink: oklch(0.90 0.06 10);
+    --blue: oklch(0.90 0.05 240);
+    --muted: oklch(0.45 0.01 0);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Inter', sans-serif; background: var(--desk); color: var(--ink);
+    min-height: 100vh; padding: 2rem;
+    background-image: repeating-linear-gradient(0deg, transparent, transparent 29px, oklch(0.12 0.01 0 / 0.03) 29px, oklch(0.12 0.01 0 / 0.03) 30px);
+  }
+  .page { max-width: 900px; margin: 0 auto; }
+  h1 {
+    font-family: 'Caveat', cursive; font-size: 3rem; font-weight: 700;
+    transform: rotate(-2deg); margin-bottom: 0.25rem;
+    background: var(--yellow); display: inline-block; padding: 0.1rem 1rem;
+  }
+  .subtitle { font-family: 'Caveat', cursive; font-size: 1.2rem; color: var(--muted); margin-bottom: 2rem; margin-left: 1rem; }
+  /* Paper note */
+  .paper {
+    background: var(--paper); border: 2px dashed var(--ink);
+    padding: 1.5rem; margin-bottom: 1.5rem;
+    box-shadow: 3px 3px 0 oklch(0 0 0 / 0.08);
+    position: relative;
+  }
+  .paper.tilted { transform: rotate(-1deg); }
+  .paper.tilted-r { transform: rotate(0.8deg); }
+  .tape {
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%) rotate(2deg);
+    width: 60px; height: 20px; background: oklch(0.93 0.12 95 / 0.7);
+    border: 1px solid oklch(0.12 0.01 0 / 0.15);
+  }
+  .section-label {
+    font-family: 'Caveat', cursive; font-size: 1.1rem; font-weight: 600;
+    margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;
+  }
+  .section-label::before { content: '★'; color: var(--yellow); }
+  .columns { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 700px) { .columns { grid-template-columns: 1fr; } }
+  /* Table as lined paper */
+  .lined-table { width: 100%; border-collapse: collapse; }
+  .lined-table th {
+    text-align: left; font-family: 'Caveat', cursive; font-size: 0.9rem;
+    color: var(--muted); padding: 0.5rem 0.75rem;
+    border-bottom: 2px solid var(--ink);
+  }
+  .lined-table td {
+    padding: 0.6rem 0.75rem; font-size: 0.85rem;
+    border-bottom: 1px dashed oklch(0.12 0.01 0 / 0.2);
+  }
+  .lined-table tr:nth-child(odd) { transform: rotate(-0.2deg); }
+  .lined-table tr:nth-child(even) { transform: rotate(0.15deg); }
+  .lined-table tr:hover td { background: oklch(0.93 0.12 95 / 0.25); }
+  .sticker {
+    display: inline-block; padding: 0.1rem 0.5rem; border-radius: 12px;
+    font-size: 0.7rem; font-weight: 600; font-family: 'Caveat', cursive;
+  }
+  .sticker-pink { background: var(--pink); }
+  .sticker-blue { background: var(--blue); }
+  .sticker-yellow { background: var(--yellow); }
+  /* Form */
+  .form-group { margin-bottom: 1rem; }
+  label {
+    display: block; font-family: 'Caveat', cursive; font-size: 1rem;
+    color: var(--ink); margin-bottom: 0.25rem;
+  }
+  input[type="text"], select {
+    width: 100%; padding: 0.55rem 0.75rem; background: transparent;
+    border: none; border-bottom: 2px dashed var(--ink); color: var(--ink);
+    font-family: 'Caveat', cursive; font-size: 1.05rem; outline: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  input[type="text"]:focus, select:focus {
+    background: oklch(0.93 0.12 95 / 0.2); border-bottom-style: solid;
+  }
+  select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.5rem center; }
+  .btn {
+    padding: 0.6rem 1.5rem; background: var(--yellow); border: 2px solid var(--ink);
+    color: var(--ink); font-family: 'Caveat', cursive; font-size: 1.1rem;
+    font-weight: 700; cursor: pointer; transform: rotate(-1deg);
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .btn:hover { transform: rotate(0deg) translateY(-2px); box-shadow: 3px 4px 0 var(--ink); }
+  .btn-ghost { background: transparent; box-shadow: none; }
+  .btn-ghost:hover { background: oklch(0.93 0.12 95 / 0.3); }
+  /* Checkbox */
+  .check-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; cursor: pointer; }
+  .check-box {
+    width: 20px; height: 20px; border: 2px dashed var(--ink);
+    border-radius: 4px; display: grid; place-items: center; flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .check-box.checked { background: var(--yellow); border-style: solid; }
+  .check-box svg { opacity: 0; transition: opacity 0.15s; }
+  .check-box.checked svg { opacity: 1; }
+  .check-label { font-family: 'Caveat', cursive; font-size: 1.05rem; }
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.75rem; cursor: pointer; }
+  .toggle-track {
+    width: 44px; height: 24px; border: 2px solid var(--ink);
+    border-radius: 12px; position: relative; transition: background 0.2s; flex-shrink: 0;
+    background: var(--paper);
+  }
+  .toggle-track.on { background: var(--yellow); }
+  .toggle-knob {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--ink); position: absolute; top: 2px; left: 3px;
+    transition: transform 0.2s;
+  }
+  .toggle-track.on .toggle-knob { transform: translateX(20px); }
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: oklch(0.93 0.03 130 / 0.85);
+    backdrop-filter: blur(4px); display: none; place-items: center; z-index: 1000;
+  }
+  .modal-overlay.open { display: grid; }
+  .modal {
+    background: var(--paper); border: 2px dashed var(--ink);
+    padding: 2rem; width: 90%; max-width: 400px;
+    box-shadow: 5px 5px 0 oklch(0 0 0 / 0.1);
+    transform: rotate(-1deg);
+    animation: popIn 0.3s ease;
+    position: relative;
+  }
+  .modal .tape { top: -10px; left: 30%; }
+  @keyframes popIn { from { opacity: 0; transform: rotate(-1deg) scale(0.9); } }
+  .modal h2 { font-family: 'Caveat', cursive; font-size: 1.8rem; margin-bottom: 0.5rem; }
+  .modal p { color: var(--muted); font-size: 0.85rem; line-height: 1.6; margin-bottom: 1.5rem; }
+  .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+  /* Decorations */
+  .doodle { font-size: 1.5rem; position: absolute; opacity: 0.15; pointer-events: none; }
+</style>
+</head>
+<body>
+  <div class="page">
+    <h1>My Scrapbook</h1>
+    <p class="subtitle">warm, playful, and personal ~ like a page from a journal</p>
+
+    <div class="paper tilted" style="position:relative;">
+      <div class="tape"></div>
+      <div class="section-label">Collection</div>
+      <table class="lined-table">
+        <thead><tr><th>Item</th><th>Category</th><th>Date</th><th>Mood</th></tr></thead>
+        <tbody>
+          <tr><td>Morning walk photos</td><td>Memory</td><td>Mar 12</td><td><span class="sticker sticker-yellow">Happy</span></td></tr>
+          <tr><td>Grandma's cookies recipe</td><td>Recipe</td><td>Mar 10</td><td><span class="sticker sticker-pink">Cozy</span></td></tr>
+          <tr><td>Concert ticket stub</td><td>Keepsake</td><td>Mar 8</td><td><span class="sticker sticker-blue">Excited</span></td></tr>
+          <tr><td>Letter to future me</td><td>Journal</td><td>Mar 5</td><td><span class="sticker sticker-pink">Hopeful</span></td></tr>
+          <tr><td>Pressed wildflowers</td><td>Nature</td><td>Mar 1</td><td><span class="sticker sticker-yellow">Peaceful</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="columns">
+      <div class="paper tilted-r" style="position:relative;">
+        <div class="tape" style="left:40%;transform:translateX(-50%) rotate(-3deg);"></div>
+        <div class="section-label">Add a Memory</div>
+        <div class="form-group">
+          <label>What happened?</label>
+          <input type="text" placeholder="Something wonderful...">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select>
+            <option>Memory</option>
+            <option>Recipe</option>
+            <option>Keepsake</option>
+            <option>Journal</option>
+            <option>Nature</option>
+          </select>
+        </div>
+        <button class="btn" onclick="document.getElementById('modal').classList.add('open')">Open Modal</button>
+      </div>
+
+      <div class="paper" style="position:relative;">
+        <div class="tape" style="left:60%;transform:translateX(-50%) rotate(4deg);"></div>
+        <div class="section-label">Preferences</div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Add date stamps</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Include weather</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Polaroid borders</span>
+        </div>
+        <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track on"><div class="toggle-knob"></div></div>
+          <span class="check-label">Sticker mode</span>
+        </div>
+        <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track"><div class="toggle-knob"></div></div>
+          <span class="check-label">Shuffle layout</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <div class="tape"></div>
+      <h2>Save this memory?</h2>
+      <p>The Handmade Scrapbook theme is warm, playful, and personal. Dashed borders, handwriting fonts, lemon-yellow highlights, and paper textures make everything feel like it was crafted by hand.</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="document.getElementById('modal').classList.remove('open')">Nah</button>
+        <button class="btn" onclick="document.getElementById('modal').classList.remove('open')">Save it!</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

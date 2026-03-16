@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vault — Terminal Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: oklch(0.08 0.03 280);
+    --card-bg: oklch(0.12 0.03 280 / 0.7);
+    --text: oklch(0.93 0.02 80);
+    --border: oklch(0.65 0.15 80 / 0.12);
+    --accent: oklch(0.72 0.15 75);
+    --accent-text: oklch(0.10 0.03 280);
+    --muted: oklch(0.50 0.04 290);
+    --purple: oklch(0.55 0.18 300);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
+    min-height: 100vh; position: relative; overflow-x: hidden;
+  }
+  /* Ambient */
+  .orb { position: fixed; border-radius: 50%; filter: blur(120px); opacity: 0.2; pointer-events: none; }
+  .orb-gold { width: 500px; height: 500px; background: radial-gradient(circle, var(--accent), transparent 70%); top: -10%; right: -5%; animation: drift 12s ease-in-out infinite; }
+  .orb-purple { width: 350px; height: 350px; background: radial-gradient(circle, var(--purple), transparent 70%); bottom: -10%; left: -5%; animation: drift 15s ease-in-out infinite reverse; }
+  @keyframes drift { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-30px,20px); } }
+  .grid-bg {
+    position: fixed; inset: 0; pointer-events: none;
+    background-image: linear-gradient(oklch(1 0 0 / 0.03) 1px, transparent 1px), linear-gradient(90deg, oklch(1 0 0 / 0.03) 1px, transparent 1px);
+    background-size: 80px 80px; opacity: 0.5; z-index: 1;
+  }
+  .layout { max-width: 900px; margin: 0 auto; padding: 4rem 2rem; position: relative; z-index: 10; }
+  /* Nav */
+  .nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; }
+  .nav-logo { font-weight: 700; display: flex; align-items: center; gap: 0.75rem; }
+  .nav-logo::before { content: ''; width: 10px; height: 10px; background: var(--accent); border-radius: 2px; transform: rotate(45deg); box-shadow: 0 0 12px var(--accent); }
+  .status-badge {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    padding: 0.4rem 0.75rem; background: oklch(0.72 0.15 75 / 0.08);
+    border-radius: 6px; border: 1px solid var(--border);
+  }
+  .status-dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px var(--accent); animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .tech-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--muted); }
+  /* Hero */
+  .hero-text {
+    font-size: clamp(2.5rem, 7vw, 4.5rem); font-weight: 600; line-height: 0.95;
+    letter-spacing: -0.02em; text-align: center; margin-bottom: 0.75rem;
+    background: linear-gradient(135deg, var(--text) 0%, var(--accent) 50%, oklch(0.65 0.15 65) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-size: 200% 200%; animation: shimmer 6s ease-in-out infinite;
+  }
+  @keyframes shimmer { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+  .hero-sub { text-align: center; color: var(--muted); font-size: 0.9rem; margin-bottom: 3rem; }
+  /* Glass Card */
+  .glass {
+    background: var(--card-bg); backdrop-filter: blur(24px);
+    border: 1px solid var(--border); border-radius: 20px; padding: 1.75rem;
+    box-shadow: 0 24px 64px oklch(0 0 0 / 0.4), inset 0 1px 0 oklch(1 0 0 / 0.04);
+    margin-bottom: 1.5rem; position: relative;
+  }
+  .glass::before, .glass::after { content: ''; position: absolute; width: 16px; height: 16px; border-color: var(--accent); opacity: 0.25; }
+  .glass::before { top: -1px; left: -1px; border-top: 1px solid; border-left: 1px solid; border-radius: 20px 0 0 0; }
+  .glass::after { bottom: -1px; right: -1px; border-bottom: 1px solid; border-right: 1px solid; border-radius: 0 0 20px 0; }
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 700px) { .card-grid { grid-template-columns: 1fr; } }
+  /* Table */
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left; font-size: 0.6rem; text-transform: uppercase;
+    letter-spacing: 0.12em; color: var(--accent); padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 0.7rem 1rem; font-size: 0.85rem; border-bottom: 1px solid oklch(1 0 0 / 0.04);
+  }
+  td:nth-child(3), td:nth-child(4) { font-family: 'Space Mono', monospace; font-size: 0.8rem; }
+  tr:hover td { background: oklch(0.72 0.15 75 / 0.05); }
+  .gold-badge {
+    font-size: 0.7rem; color: var(--accent); background: oklch(0.72 0.15 75 / 0.1);
+    padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid var(--border);
+  }
+  /* Form */
+  .form-group { margin-bottom: 1.1rem; }
+  label { display: block; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 0.35rem; }
+  input[type="text"], select {
+    width: 100%; padding: 0.65rem 0.85rem; background: oklch(1 0 0 / 0.04);
+    border: 1px solid var(--border); border-radius: 10px; color: var(--text);
+    font-family: inherit; font-size: 0.85rem; outline: none;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  input[type="text"]:focus, select:focus {
+    border-color: var(--accent); box-shadow: 0 0 0 3px oklch(0.72 0.15 75 / 0.15);
+  }
+  select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23a89060' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.85rem center; }
+  /* Checkbox */
+  .check-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.6rem; cursor: pointer; }
+  .check-box {
+    width: 20px; height: 20px; border: 1px solid var(--border);
+    border-radius: 6px; display: grid; place-items: center; flex-shrink: 0;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .check-box.checked { background: var(--accent); border-color: var(--accent); }
+  .check-box svg { opacity: 0; transition: opacity 0.15s; }
+  .check-box.checked svg { opacity: 1; }
+  .check-label { font-size: 0.82rem; }
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; gap: 0.65rem; margin-top: 0.75rem; cursor: pointer; }
+  .toggle-track {
+    width: 44px; height: 24px; border-radius: 12px;
+    background: oklch(1 0 0 / 0.08); border: 1px solid var(--border);
+    position: relative; transition: background 0.3s; flex-shrink: 0;
+  }
+  .toggle-track.on { background: var(--accent); border-color: var(--accent); }
+  .toggle-knob {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--text); position: absolute; top: 2px; left: 2px;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 6px oklch(0 0 0 / 0.4);
+  }
+  .toggle-track.on .toggle-knob { transform: translateX(20px); background: var(--accent-text); }
+  /* Buttons */
+  .btn-vault {
+    padding: 0.75rem 1.5rem; background: linear-gradient(135deg, var(--accent), oklch(0.65 0.15 65));
+    color: var(--accent-text); border: none; border-radius: 12px;
+    font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; cursor: pointer; transition: all 0.3s;
+    position: relative; overflow: hidden;
+  }
+  .btn-vault:hover { box-shadow: 0 8px 32px oklch(0.72 0.15 75 / 0.35); transform: translateY(-2px); }
+  .btn-ghost {
+    padding: 0.6rem 1.25rem; background: oklch(1 0 0 / 0.06);
+    color: var(--text); border: 1px solid oklch(1 0 0 / 0.1);
+    border-radius: 10px; font-size: 0.8rem; cursor: pointer; transition: all 0.3s;
+  }
+  .btn-ghost:hover { background: oklch(1 0 0 / 0.12); }
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: oklch(0.08 0.03 280 / 0.7);
+    backdrop-filter: blur(12px); display: none; place-items: center; z-index: 1000;
+  }
+  .modal-overlay.open { display: grid; }
+  .modal {
+    background: oklch(0.14 0.03 280 / 0.95); backdrop-filter: blur(24px);
+    border: 1px solid var(--border); border-radius: 20px;
+    padding: 2.5rem; width: 90%; max-width: 440px;
+    box-shadow: 0 32px 80px oklch(0 0 0 / 0.5), 0 0 0 1px oklch(0.72 0.15 75 / 0.05);
+    animation: fadeScale 0.3s ease;
+  }
+  @keyframes fadeScale { from { opacity: 0; transform: scale(0.95); } }
+  .modal h2 { font-size: 1.3rem; font-weight: 600; margin-bottom: 0.5rem; }
+  .modal p { color: var(--muted); font-size: 0.82rem; line-height: 1.6; margin-bottom: 1.5rem; }
+  .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
+</style>
+</head>
+<body>
+  <div class="orb orb-gold"></div>
+  <div class="orb orb-purple"></div>
+  <div class="grid-bg"></div>
+
+  <div class="layout">
+    <nav class="nav">
+      <div class="nav-logo">Vault Terminal</div>
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        <span class="tech-label" style="color:var(--accent)">Live</span>
+      </div>
+    </nav>
+
+    <h1 class="hero-text">Premium Dark Interface</h1>
+    <p class="hero-sub">Institutional trading terminal — sophisticated, high-trust, quietly expensive</p>
+
+    <!-- Table -->
+    <div class="glass">
+      <span class="tech-label" style="display:block;margin-bottom:1rem;">Portfolio Assets</span>
+      <table>
+        <thead><tr><th>Asset</th><th>Type</th><th>Value</th><th>24h</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Bitcoin</td><td>Crypto</td><td>$67,240.00</td><td>+2.4%</td><td><span class="gold-badge">Active</span></td></tr>
+          <tr><td>Ethereum</td><td>Crypto</td><td>$3,890.50</td><td>+1.8%</td><td><span class="gold-badge">Active</span></td></tr>
+          <tr><td>Treasury Bond</td><td>Fixed Income</td><td>$250,000</td><td>+0.02%</td><td><span class="gold-badge">Locked</span></td></tr>
+          <tr><td>Gold ETF</td><td>Commodity</td><td>$45,600</td><td>-0.3%</td><td><span class="gold-badge">Active</span></td></tr>
+          <tr><td>Real Estate Fund</td><td>Alternative</td><td>$180,000</td><td>+0.1%</td><td><span class="gold-badge">Vesting</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Form + Controls -->
+    <div class="card-grid">
+      <div class="glass">
+        <span class="tech-label" style="display:block;margin-bottom:1rem;">Transfer</span>
+        <div class="form-group">
+          <label>Recipient Address</label>
+          <input type="text" placeholder="0x...">
+        </div>
+        <div class="form-group">
+          <label>Asset</label>
+          <select>
+            <option>Bitcoin (BTC)</option>
+            <option>Ethereum (ETH)</option>
+            <option>USD Coin (USDC)</option>
+            <option>Gold ETF</option>
+          </select>
+        </div>
+        <button class="btn-vault" onclick="document.getElementById('modal').classList.add('open')">Open Modal</button>
+      </div>
+
+      <div class="glass">
+        <span class="tech-label" style="display:block;margin-bottom:1rem;">Settings</span>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Two-factor auth</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Email confirmations</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent-text)" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Withdrawal limits</span>
+        </div>
+        <div style="margin-top:1rem;border-top:1px solid var(--border);padding-top:1rem;">
+          <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+            <div class="toggle-track on"><div class="toggle-knob"></div></div>
+            <span class="check-label">Auto-compound</span>
+          </div>
+          <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+            <div class="toggle-track"><div class="toggle-knob"></div></div>
+            <span class="check-label">Stealth mode</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <h2>Confirm Transfer</h2>
+      <p>The Vault Terminal theme conveys premium trust and authority. Deep indigo backgrounds, warm gold accents, frosted glass cards, and ambient orbs create a luxury fintech aesthetic.</p>
+      <div class="modal-actions">
+        <button class="btn-ghost" onclick="document.getElementById('modal').classList.remove('open')">Cancel</button>
+        <button class="btn-vault" onclick="document.getElementById('modal').classList.remove('open')">Execute</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

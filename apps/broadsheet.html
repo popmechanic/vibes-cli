@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Broadsheet — Grid Showcase</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background: #fff; color: #000; min-height: 100vh;
+  }
+  .layout { max-width: 1000px; margin: 0 auto; border-left: 1px solid #000; border-right: 1px solid #000; min-height: 100vh; }
+  /* Nav */
+  .nav {
+    display: flex; border-bottom: 1px solid #000;
+  }
+  .nav-cell {
+    padding: 0.75rem 1.25rem; border-right: 1px solid #000;
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; cursor: pointer; transition: all 0.15s;
+  }
+  .nav-cell:last-child { border-right: none; margin-left: auto; }
+  .nav-cell.brand { background: #000; color: #fff; }
+  .nav-cell:hover { background: #000; color: #fff; }
+  /* Hero */
+  .hero-row {
+    display: grid; grid-template-columns: 200px 1fr 200px;
+    border-bottom: 1px solid #000; position: relative;
+  }
+  @media (max-width: 700px) { .hero-row { grid-template-columns: 1fr; } }
+  .hero-side {
+    padding: 2rem 1.25rem; border-right: 1px solid #000;
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.15em;
+    color: #666; display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .hero-side:last-child { border-right: none; border-left: 1px solid #000; }
+  .hero-center {
+    padding: 3rem 2rem; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+  }
+  .giant-outline {
+    font-size: clamp(3rem, 10vw, 8rem); font-weight: 900;
+    text-transform: uppercase; letter-spacing: -0.04em;
+    -webkit-text-stroke: 2px #000; color: transparent; line-height: 0.9;
+  }
+  .giant-solid { -webkit-text-stroke: 0; color: #000; }
+  .section-label {
+    font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.12em; padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid #000; background: #000; color: #fff;
+  }
+  /* Table */
+  .table-grid { border-bottom: 1px solid #000; }
+  .table-row {
+    display: grid; grid-template-columns: 60px 1fr 120px 100px 100px;
+    border-bottom: 1px solid #000; transition: all 0.15s; cursor: pointer;
+  }
+  .table-row:last-child { border-bottom: none; }
+  .table-row:hover { background: #000; color: #fff; }
+  .table-cell {
+    padding: 0.65rem 1rem; font-size: 0.82rem; border-right: 1px solid #000;
+  }
+  .table-cell:last-child { border-right: none; }
+  .table-header .table-cell {
+    font-size: 0.55rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: #666;
+  }
+  /* Form */
+  .form-area {
+    display: grid; grid-template-columns: 1fr 1fr;
+    border-bottom: 1px solid #000;
+  }
+  @media (max-width: 700px) { .form-area { grid-template-columns: 1fr; } }
+  .form-col { padding: 1.5rem 1.25rem; }
+  .form-col + .form-col { border-left: 1px solid #000; }
+  @media (max-width: 700px) { .form-col + .form-col { border-left: none; border-top: 1px solid #000; } }
+  .form-group { margin-bottom: 1rem; }
+  label { display: block; font-size: 0.55rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.3rem; }
+  input[type="text"], select {
+    width: 100%; padding: 0.55rem 0; background: transparent;
+    border: none; border-bottom: 1px solid #000; color: #000;
+    font-family: inherit; font-size: 0.85rem; outline: none;
+  }
+  input[type="text"]:focus, select:focus { border-bottom-width: 2px; }
+  select { cursor: pointer; appearance: none; }
+  .btn-cell {
+    padding: 0.75rem 1.5rem; background: #fff; border: 1px solid #000;
+    color: #000; font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.08em; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-cell:hover { background: #000; color: #fff; }
+  /* Checkbox */
+  .check-row { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.55rem; cursor: pointer; }
+  .check-box {
+    width: 16px; height: 16px; border: 1px solid #000;
+    display: grid; place-items: center; flex-shrink: 0; transition: all 0.1s;
+  }
+  .check-box.checked { background: #000; }
+  .check-box svg { opacity: 0; transition: opacity 0.1s; }
+  .check-box.checked svg { opacity: 1; }
+  .check-label { font-size: 0.82rem; }
+  /* Toggle */
+  .toggle-row { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.75rem; cursor: pointer; }
+  .toggle-track {
+    width: 36px; height: 18px; border: 1px solid #000;
+    position: relative; transition: all 0.15s; flex-shrink: 0;
+  }
+  .toggle-track.on { background: #000; }
+  .toggle-knob {
+    width: 12px; height: 12px; background: #000;
+    position: absolute; top: 2px; left: 2px; transition: transform 0.15s;
+  }
+  .toggle-track.on .toggle-knob { background: #fff; transform: translateX(18px); }
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(255,255,255,0.9);
+    display: none; place-items: center; z-index: 1000;
+  }
+  .modal-overlay.open { display: grid; }
+  .modal {
+    background: #fff; border: 1px solid #000; width: 90%; max-width: 440px;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } }
+  .modal-header { padding: 1.25rem; background: #000; color: #fff; font-size: 1.2rem; font-weight: 900; text-transform: uppercase; }
+  .modal-body { padding: 1.5rem; }
+  .modal-body p { color: #666; font-size: 0.82rem; line-height: 1.6; margin-bottom: 1.5rem; }
+  .modal-actions { display: flex; gap: 0; border-top: 1px solid #000; }
+  .modal-actions .btn-cell { flex: 1; text-align: center; border: none; border-right: 1px solid #000; }
+  .modal-actions .btn-cell:last-child { border-right: none; }
+</style>
+</head>
+<body>
+  <div class="layout">
+    <nav class="nav">
+      <div class="nav-cell brand">Broadsheet</div>
+      <div class="nav-cell">Index</div>
+      <div class="nav-cell">Archive</div>
+      <div class="nav-cell">About</div>
+      <div class="nav-cell">2026</div>
+    </nav>
+
+    <div class="hero-row">
+      <div class="hero-side">
+        <div>Issue No. 01<br>March 2026</div>
+        <div>Swiss Brutalist<br>Grid System</div>
+      </div>
+      <div class="hero-center">
+        <div class="giant-outline">BROAD</div>
+        <div class="giant-outline giant-solid">SHEET</div>
+      </div>
+      <div class="hero-side">
+        <div>Component<br>Showcase</div>
+        <div>Stark &amp;<br>Structured</div>
+      </div>
+    </div>
+
+    <div class="section-label">Data Index</div>
+    <div class="table-grid">
+      <div class="table-row table-header">
+        <div class="table-cell">No.</div>
+        <div class="table-cell">Title</div>
+        <div class="table-cell">Category</div>
+        <div class="table-cell">Season</div>
+        <div class="table-cell">Status</div>
+      </div>
+      <div class="table-row"><div class="table-cell">001</div><div class="table-cell">Minimal Geometry</div><div class="table-cell">Editorial</div><div class="table-cell">SS26</div><div class="table-cell">Published</div></div>
+      <div class="table-row"><div class="table-cell">002</div><div class="table-cell">Grid Tension</div><div class="table-cell">Type Study</div><div class="table-cell">AW25</div><div class="table-cell">Archive</div></div>
+      <div class="table-row"><div class="table-cell">003</div><div class="table-cell">Structure & Form</div><div class="table-cell">Fashion</div><div class="table-cell">SS26</div><div class="table-cell">Published</div></div>
+      <div class="table-row"><div class="table-cell">004</div><div class="table-cell">Swiss Standard</div><div class="table-cell">Design</div><div class="table-cell">AW25</div><div class="table-cell">Draft</div></div>
+      <div class="table-row"><div class="table-cell">005</div><div class="table-cell">Black & White</div><div class="table-cell">Photography</div><div class="table-cell">SS26</div><div class="table-cell">Published</div></div>
+    </div>
+
+    <div class="form-area">
+      <div class="form-col">
+        <label style="margin-bottom:1rem;">Search & Filter</label>
+        <div class="form-group">
+          <label>Query</label>
+          <input type="text" placeholder="Search the archive">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select>
+            <option>All</option>
+            <option>Editorial</option>
+            <option>Type Study</option>
+            <option>Fashion</option>
+            <option>Design</option>
+          </select>
+        </div>
+        <button class="btn-cell" onclick="document.getElementById('modal').classList.add('open')">Open Modal</button>
+      </div>
+      <div class="form-col">
+        <label style="margin-bottom:1rem;">Display Options</label>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Show grid lines</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Include drafts</span>
+        </div>
+        <div class="check-row" onclick="this.querySelector('.check-box').classList.toggle('checked')">
+          <div class="check-box checked"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg></div>
+          <span class="check-label">Invert on hover</span>
+        </div>
+        <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track on"><div class="toggle-knob"></div></div>
+          <span class="check-label">Borders visible</span>
+        </div>
+        <div class="toggle-row" onclick="this.querySelector('.toggle-track').classList.toggle('on')">
+          <div class="toggle-track"><div class="toggle-knob"></div></div>
+          <span class="check-label">Outline type</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal" onclick="if(event.target===this)this.classList.remove('open')">
+    <div class="modal">
+      <div class="modal-header">New Entry</div>
+      <div class="modal-body">
+        <p>The Broadsheet Grid theme is stark and Swiss-brutalist. Pure black and white, 1px borders dividing everything into cells, inverted hovers, and rigid grid structures create an authoritative editorial aesthetic.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cell" onclick="document.getElementById('modal').classList.remove('open')">Cancel</button>
+        <button class="btn-cell" onclick="document.getElementById('modal').classList.remove('open')" style="background:#000;color:#fff;">Confirm</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

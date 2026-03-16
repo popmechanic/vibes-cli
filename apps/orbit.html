@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orbit Dashboard - Component Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-gradient-from: oklch(0.56 0.29 302);
+    --bg-gradient-to:   oklch(0.44 0.22 304);
+    --surface:     oklch(0.00 0.000 0);
+    --card:        oklch(0.18 0.000 0 / 0.8);
+    --card-solid:  oklch(0.28 0.03 257);
+    --border:      oklch(0.37 0.03 260);
+    --fg:          oklch(1.00 0.000 0);
+    --fg-muted:    oklch(0.71 0.02 261);
+    --fg-dim:      oklch(0.55 0.03 264);
+    --accent-green:  oklch(0.79 0.21 152);
+    --accent-blue:   oklch(0.71 0.17 255);
+    --accent-yellow: oklch(0.85 0.20 92);
+    --accent-orange: oklch(0.75 0.18 56);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(to bottom right, var(--bg-gradient-from), var(--bg-gradient-to));
+    color: var(--fg);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 8px;
+  }
+
+  .app-container {
+    max-width: 28rem;
+    width: 100%;
+    background: var(--surface);
+    border-radius: 24px;
+    overflow: hidden;
+    min-height: 100vh;
+    position: relative;
+    padding-bottom: 80px;
+  }
+
+  /* ---- HEADER ---- */
+  .header {
+    padding: 16px 20px 8px;
+  }
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  .header h1 { font-size: 24px; font-weight: 700; }
+  .header .subtitle { font-size: 14px; color: var(--fg-muted); }
+
+  .icon-pill {
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    background: var(--card-solid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    color: var(--fg);
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  /* ---- SECTION TITLES ---- */
+  .section-title {
+    font-size: 18px;
+    font-weight: 700;
+    padding: 16px 20px 12px;
+  }
+
+  /* ---- GLASSMORPHIC STAT CARD ---- */
+  .stat-card {
+    background: var(--card);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    padding: 16px;
+  }
+
+  /* ---- DATA TABLE (as stat cards) ---- */
+  .data-section {
+    padding: 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .data-row {
+    background: var(--card);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: fadeInUp 300ms ease both;
+  }
+  .data-row:nth-child(1) { animation-delay: 0ms; }
+  .data-row:nth-child(2) { animation-delay: 80ms; }
+  .data-row:nth-child(3) { animation-delay: 160ms; }
+  .data-row:nth-child(4) { animation-delay: 240ms; }
+  .data-row:nth-child(5) { animation-delay: 320ms; }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .data-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+    flex-shrink: 0;
+  }
+  .data-label {
+    flex: 1;
+    font-size: 14px;
+    color: var(--fg-muted);
+  }
+  .data-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--fg);
+  }
+  .data-meta {
+    font-size: 12px;
+    color: var(--fg-dim);
+    min-width: 48px;
+    text-align: right;
+  }
+  .mini-progress {
+    width: 48px;
+    height: 6px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .mini-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 600ms ease;
+  }
+
+  /* ---- FORM INPUTS ---- */
+  .form-section {
+    padding: 0 20px;
+    margin-bottom: 16px;
+  }
+  .input-card {
+    background: var(--card);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .orbit-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .orbit-input {
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid transparent;
+    border-radius: 12px;
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .orbit-input:focus {
+    border-color: var(--accent-blue);
+  }
+  .orbit-input::placeholder {
+    color: var(--fg-dim);
+  }
+
+  .orbit-select {
+    width: 100%;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid transparent;
+    border-radius: 12px;
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%23999' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    transition: border-color 0.2s;
+  }
+  .orbit-select:focus {
+    border-color: var(--accent-green);
+  }
+  .orbit-select option {
+    background: #1e1e1e;
+    color: #fff;
+  }
+
+  /* ---- CHECKBOX ---- */
+  .controls-section {
+    padding: 0 20px;
+    margin-bottom: 16px;
+  }
+  .controls-card {
+    background: var(--card);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .checkbox-orbit {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .checkbox-orbit.checked {
+    border-color: var(--accent-green);
+    background: var(--accent-green);
+  }
+  .checkbox-orbit.checked svg {
+    display: block;
+  }
+  .checkbox-orbit svg {
+    display: none;
+    width: 12px;
+    height: 12px;
+  }
+
+  /* ---- TOGGLE ---- */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+  }
+  .toggle-track {
+    width: 44px;
+    height: 24px;
+    border-radius: 9999px;
+    background: var(--card-solid);
+    position: relative;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  .toggle-track.active {
+    background: var(--accent-green);
+  }
+  .toggle-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    background: var(--fg);
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    transition: left 0.3s;
+  }
+  .toggle-track.active .toggle-thumb {
+    left: 23px;
+  }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    max-width: 24rem;
+    width: 100%;
+    background: var(--surface);
+    border-radius: 24px;
+    padding: 24px;
+    animation: fadeInUp 300ms ease both;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .modal-title {
+    font-size: 20px;
+    font-weight: 700;
+  }
+  .modal-close {
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    background: var(--card-solid);
+    border: none;
+    color: var(--fg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+  }
+  .modal-body {
+    font-size: 14px;
+    color: var(--fg-muted);
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+  .modal-stat-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .modal-stat {
+    flex: 1;
+    background: var(--card);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+  }
+  .modal-stat-val { font-size: 24px; font-weight: 700; }
+  .modal-stat-label { font-size: 11px; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .modal-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 9999px;
+    border: none;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .modal-btn:hover { opacity: 0.85; }
+  .modal-btn-primary {
+    background: var(--accent-blue);
+    color: #000;
+    margin-bottom: 8px;
+  }
+  .modal-btn-secondary {
+    background: var(--card-solid);
+    color: var(--fg);
+  }
+
+  /* ---- OPEN MODAL BUTTON ---- */
+  .open-modal-btn {
+    margin: 0 20px 16px;
+    padding: 12px;
+    width: calc(100% - 40px);
+    border-radius: 9999px;
+    border: none;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+    color: #000;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .open-modal-btn:hover { opacity: 0.85; }
+
+  /* ---- BOTTOM NAV ---- */
+  .nav-bar {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 28rem;
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    border-top: 1px solid var(--card-solid);
+    padding: 12px 8px;
+    background: var(--surface);
+    border-radius: 0 0 24px 24px;
+    z-index: 50;
+  }
+  .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: none;
+    border: none;
+    color: var(--fg-dim);
+    cursor: pointer;
+    gap: 4px;
+    transition: color 0.2s;
+  }
+  .nav-btn.active { color: var(--fg); }
+  .nav-btn:hover { color: var(--fg); }
+  .nav-btn svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+  }
+  .nav-btn span { font-size: 11px; font-weight: 500; }
+
+  /* ---- DIVIDER ---- */
+  .section-divider {
+    height: 1px;
+    background: var(--card-solid);
+    margin: 0 20px 16px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <h1>Orbit</h1>
+      <button class="icon-pill">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+    </div>
+    <div class="subtitle">Component Showcase</div>
+  </div>
+
+  <!-- MODAL TRIGGER -->
+  <button class="open-modal-btn" onclick="openModal()">Open Dashboard Modal</button>
+
+  <!-- DATA TABLE (as colored stat rows) -->
+  <div class="section-title">Performance Metrics</div>
+  <div class="data-section">
+    <div class="data-row">
+      <div class="data-dot" style="background: var(--accent-green)"></div>
+      <span class="data-label">Uptime</span>
+      <span class="data-value">99.7%</span>
+      <div class="mini-progress"><div class="mini-progress-fill" style="width: 99%; background: var(--accent-green)"></div></div>
+    </div>
+    <div class="data-row">
+      <div class="data-dot" style="background: var(--accent-blue)"></div>
+      <span class="data-label">Latency</span>
+      <span class="data-value">42ms</span>
+      <div class="mini-progress"><div class="mini-progress-fill" style="width: 30%; background: var(--accent-blue)"></div></div>
+    </div>
+    <div class="data-row">
+      <div class="data-dot" style="background: var(--accent-yellow)"></div>
+      <span class="data-label">CPU Load</span>
+      <span class="data-value">67%</span>
+      <div class="mini-progress"><div class="mini-progress-fill" style="width: 67%; background: var(--accent-yellow)"></div></div>
+    </div>
+    <div class="data-row">
+      <div class="data-dot" style="background: var(--accent-orange)"></div>
+      <span class="data-label">Memory</span>
+      <span class="data-value">4.2GB</span>
+      <div class="mini-progress"><div class="mini-progress-fill" style="width: 52%; background: var(--accent-orange)"></div></div>
+    </div>
+    <div class="data-row">
+      <div class="data-dot" style="background: var(--accent-green)"></div>
+      <span class="data-label">Disk I/O</span>
+      <span class="data-value">128MB/s</span>
+      <div class="mini-progress"><div class="mini-progress-fill" style="width: 45%; background: var(--accent-green)"></div></div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- INPUT + SELECT -->
+  <div class="section-title">Configuration</div>
+  <div class="form-section">
+    <div class="input-card">
+      <div>
+        <div class="orbit-label">Instance Name</div>
+        <input type="text" class="orbit-input" placeholder="Enter instance name...">
+      </div>
+      <div>
+        <div class="orbit-label">Region</div>
+        <select class="orbit-select">
+          <option value="">Select region...</option>
+          <option value="us-east">US East (Virginia)</option>
+          <option value="us-west">US West (Oregon)</option>
+          <option value="eu-west">EU West (Ireland)</option>
+          <option value="ap-south">AP South (Mumbai)</option>
+          <option value="ap-east">AP East (Tokyo)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider"></div>
+
+  <!-- CHECKBOX + TOGGLE -->
+  <div class="section-title">Controls</div>
+  <div class="controls-section">
+    <div class="controls-card">
+      <div class="checkbox-row" onclick="toggleCheckbox(this)">
+        <div class="checkbox-orbit checked">
+          <svg viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2"><path d="M2.5 6l2.5 2.5 4.5-5"/></svg>
+        </div>
+        <span>Auto-scaling enabled</span>
+      </div>
+      <div class="checkbox-row" onclick="toggleCheckbox(this)">
+        <div class="checkbox-orbit">
+          <svg viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2"><path d="M2.5 6l2.5 2.5 4.5-5"/></svg>
+        </div>
+        <span>Alert notifications</span>
+      </div>
+      <div class="checkbox-row" onclick="toggleCheckbox(this)">
+        <div class="checkbox-orbit checked">
+          <svg viewBox="0 0 12 12" fill="none" stroke="#000" stroke-width="2"><path d="M2.5 6l2.5 2.5 4.5-5"/></svg>
+        </div>
+        <span>Redundancy failover</span>
+      </div>
+
+      <div style="height: 1px; background: var(--card-solid);"></div>
+
+      <div class="toggle-row">
+        <span style="color: var(--fg-muted)">Real-time monitoring</span>
+        <div class="toggle-track active" onclick="toggleSwitch(this)">
+          <div class="toggle-thumb"></div>
+        </div>
+      </div>
+      <div class="toggle-row">
+        <span style="color: var(--fg-muted)">Debug logging</span>
+        <div class="toggle-track" onclick="toggleSwitch(this)">
+          <div class="toggle-thumb"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="height: 40px;"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">System Status</div>
+      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      All systems are running within normal parameters. The next scheduled maintenance window is in 14 days.
+    </div>
+    <div class="modal-stat-row">
+      <div class="modal-stat">
+        <div class="modal-stat-val" style="color: var(--accent-green)">99.7<span style="font-size: 14px">%</span></div>
+        <div class="modal-stat-label">Uptime</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-val" style="color: var(--accent-blue)">42<span style="font-size: 14px">ms</span></div>
+        <div class="modal-stat-label">Latency</div>
+      </div>
+      <div class="modal-stat">
+        <div class="modal-stat-val" style="color: var(--accent-yellow)">67<span style="font-size: 14px">%</span></div>
+        <div class="modal-stat-label">CPU</div>
+      </div>
+    </div>
+    <button class="modal-btn modal-btn-primary" onclick="closeModal()">Acknowledge</button>
+    <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Dismiss</button>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="nav-bar">
+  <button class="nav-btn active">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+    <span>Home</span>
+  </button>
+  <button class="nav-btn">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <span>Discover</span>
+  </button>
+  <button class="nav-btn">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+    <span>Messages</span>
+  </button>
+  <button class="nav-btn">
+    <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Profile</span>
+  </button>
+</div>
+
+<script>
+function openModal() {
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+function toggleCheckbox(row) {
+  var box = row.querySelector('.checkbox-orbit');
+  box.classList.toggle('checked');
+}
+function toggleSwitch(track) {
+  track.classList.toggle('active');
+}
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Opus Cabinet - Component Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:             oklch(0.06 0.000 0);
+    --bg-surface:     oklch(0.12 0.000 0);
+    --bg-card:        oklch(0.13 0.000 0);
+    --bg-elevated:    oklch(0.15 0.000 0);
+    --bg-header:      oklch(0.18 0.000 0);
+    --stripe-a:       oklch(0.12 0.000 0);
+    --stripe-b:       oklch(0.14 0.000 0);
+    --wood-frame:     oklch(0.27 0.050 50);
+    --wood-highlight: oklch(0.37 0.060 50);
+    --gold:           oklch(0.73 0.100 78);
+    --gold-dim:       oklch(0.55 0.090 75);
+    --copper:         oklch(0.47 0.030 195);
+    --silver:         oklch(0.70 0.000 0);
+    --royal-blue:     oklch(0.31 0.070 250);
+    --parchment:      oklch(0.78 0.060 70);
+    --iron-dark:      oklch(0.32 0.040 240);
+    --iron-darker:    oklch(0.16 0.010 240);
+    --iron-border:    oklch(0.43 0.030 230);
+    --iron-text:      oklch(0.83 0.020 240);
+    --text:           oklch(0.90 0.000 0);
+    --text-dim:       oklch(0.57 0.000 0);
+    --text-muted:     oklch(0.40 0.000 0);
+    --border:         oklch(0.27 0.000 0);
+    --border-hover:   oklch(0.55 0.090 75);
+  }
+
+  body {
+    background:
+      linear-gradient(rgba(10,10,10,0.9), rgba(10,10,10,0.9)),
+      repeating-linear-gradient(
+        90deg,
+        var(--stripe-a),
+        var(--stripe-a) 20px,
+        var(--stripe-b) 20px,
+        var(--stripe-b) 40px
+      );
+    color: var(--text);
+    font-family: 'Cinzel', serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 20px;
+  }
+
+  /* ===== WOOD FRAME ===== */
+  .ui-container {
+    width: 900px;
+    max-width: 100%;
+    position: relative;
+    background: var(--bg-surface);
+    padding: 50px;
+    border: 1px solid #000;
+    box-shadow:
+      0 0 0 4px var(--bg-elevated),
+      0 0 0 8px var(--gold-dim),
+      0 0 0 12px var(--bg-elevated),
+      0 0 0 30px var(--wood-frame),
+      0 0 0 32px #000,
+      0 0 50px rgba(0,0,0,0.8),
+      inset 0 0 60px rgba(0,0,0,1);
+  }
+  .ui-container::before {
+    content: '';
+    position: absolute;
+    top: 15px; left: 15px; right: 15px; bottom: 15px;
+    border: 1px solid var(--gold-dim);
+    opacity: 0.3;
+    pointer-events: none;
+  }
+
+  /* ===== CORNER BRACKETS ===== */
+  .corner-deco {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--gold);
+  }
+  .corner-deco.tl { top: 20px; left: 20px; border-right: none; border-bottom: none; }
+  .corner-deco.tr { top: 20px; right: 20px; border-left: none; border-bottom: none; }
+  .corner-deco.bl { bottom: 20px; left: 20px; border-right: none; border-top: none; }
+  .corner-deco.br { bottom: 20px; right: 20px; border-left: none; border-top: none; }
+
+  /* ===== HEADER ===== */
+  .main-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 25px;
+    position: relative;
+  }
+  .main-header h1 {
+    font-family: 'Cinzel Decorative', cursive;
+    font-size: 2.8rem;
+    letter-spacing: 8px;
+    margin: 0;
+    background: linear-gradient(to bottom, #fff, var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .main-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 25%;
+    width: 50%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+  .subtitle {
+    color: var(--gold);
+    letter-spacing: 12px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    opacity: 0.8;
+    margin-top: 8px;
+  }
+
+  /* ===== NAV ===== */
+  .stone-nav {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 40px;
+  }
+  .nav-btn {
+    background: linear-gradient(to bottom, #2a2a2a, var(--bg-elevated));
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 16px 5px;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    transition: all 0.4s ease;
+  }
+  .nav-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 2px;
+    background: var(--gold);
+    transform: scaleX(0);
+    transition: transform 0.4s ease;
+  }
+  .nav-btn:hover {
+    color: var(--gold);
+    border-color: var(--gold-dim);
+    background: linear-gradient(to bottom, #333, #1f1f1f);
+    box-shadow: 0 0 15px rgba(197, 160, 89, 0.1);
+  }
+  .nav-btn:hover::before { transform: scaleX(1); }
+
+  /* ===== SECTION LABEL ===== */
+  .section-label {
+    font-size: 0.65rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  /* ===== MODAL TRIGGER ===== */
+  .modal-trigger-btn {
+    background: linear-gradient(to bottom, #2a2a2a, var(--bg-elevated));
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    padding: 14px 32px;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .modal-trigger-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 2px;
+    background: var(--gold);
+    transform: scaleX(0);
+    transition: transform 0.4s ease;
+  }
+  .modal-trigger-btn:hover {
+    box-shadow: 0 0 20px rgba(197, 160, 89, 0.2);
+    border-color: var(--gold);
+  }
+  .modal-trigger-btn:hover::before { transform: scaleX(1); }
+
+  /* ===== DATA TABLE (Iron material) ===== */
+  .table-card {
+    background: linear-gradient(135deg, var(--iron-dark), var(--iron-darker));
+    border: 1px solid var(--iron-border);
+    color: var(--iron-text);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .table-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    border-color: var(--gold-dim);
+  }
+  .table-card .card-header {
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .opus-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+  }
+  .opus-table th {
+    text-align: left;
+    padding: 10px 18px;
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--silver);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    font-weight: 700;
+  }
+  .opus-table td {
+    padding: 10px 18px;
+    border-bottom: 1px dashed rgba(255,255,255,0.05);
+    color: var(--iron-text);
+  }
+  .opus-table tr:last-child td { border-bottom: none; }
+  .opus-table .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 0.55rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+  }
+
+  /* ===== FORM CARD (gold material) ===== */
+  .form-card {
+    background: radial-gradient(circle at center, var(--wood-frame), var(--bg-elevated));
+    border: 1px solid var(--gold-dim);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .form-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .form-card .card-header {
+    padding: 14px 18px;
+    color: var(--gold);
+    border-bottom: 1px solid rgba(197, 160, 89, 0.2);
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
+    background: var(--bg-header);
+  }
+  .form-card .card-body {
+    padding: 20px;
+  }
+  .form-label {
+    display: block;
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    font-weight: 700;
+  }
+  .form-input {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: none;
+    border-bottom: 1px solid var(--gold-dim);
+    padding: 10px 8px;
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: var(--text);
+    outline: none;
+    margin-bottom: 18px;
+    transition: border-color 0.3s;
+  }
+  .form-input:focus { border-bottom-color: var(--gold); }
+  .form-input::placeholder { color: var(--text-muted); }
+
+  .form-select {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--gold-dim);
+    padding: 10px 8px;
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+    margin-bottom: 18px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    transition: border-color 0.3s;
+  }
+  .form-select:focus { border-color: var(--gold); }
+  .form-select option { background: #121212; color: var(--text); }
+
+  /* ===== CONTROLS CARD (parchment) ===== */
+  .controls-card {
+    background: var(--parchment);
+    color: #2e2e2e;
+    border: 4px double var(--wood-highlight);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .controls-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .controls-card .card-header {
+    padding: 14px 18px;
+    background: rgba(0,0,0,0.1);
+    color: var(--wood-frame);
+    border-bottom: 1px solid rgba(62, 43, 31, 0.3);
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .controls-card .card-body {
+    padding: 20px;
+  }
+
+  /* Parchment checkbox */
+  .parch-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 8px 0;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    color: #2e2e2e;
+    border-bottom: 1px solid rgba(62,43,31,0.15);
+  }
+  .parch-checkbox:last-of-type { border-bottom: none; }
+  .parch-cb-box {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--wood-highlight);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.3s;
+    background: rgba(255,255,255,0.3);
+  }
+  .parch-cb-box.checked {
+    border-color: var(--wood-frame);
+    background: rgba(62,43,31,0.15);
+  }
+  .parch-cb-box .mark {
+    display: none;
+    color: var(--wood-frame);
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .parch-cb-box.checked .mark { display: block; }
+
+  /* Parchment toggle */
+  .parch-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(62,43,31,0.15);
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+  }
+  .parch-toggle-row:last-child { border-bottom: none; }
+  .parch-toggle-track {
+    width: 40px;
+    height: 20px;
+    background: rgba(0,0,0,0.08);
+    border: 2px solid var(--wood-highlight);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .parch-toggle-track.active {
+    border-color: var(--wood-frame);
+    background: rgba(62,43,31,0.1);
+  }
+  .parch-toggle-knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    background: var(--wood-highlight);
+    transition: all 0.3s;
+  }
+  .parch-toggle-track.active .parch-toggle-knob {
+    left: 22px;
+    background: var(--wood-frame);
+  }
+
+  /* ===== SIGIL CONTAINER ===== */
+  .sigil-container {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .sigil {
+    width: 50px;
+    height: 50px;
+    fill: none;
+    stroke-width: 1.5;
+    overflow: visible;
+  }
+
+  /* ===== STAT GRID ===== */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    margin-top: 15px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 12px;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.6rem;
+    letter-spacing: 1px;
+    opacity: 0.8;
+    text-align: center;
+    text-transform: uppercase;
+  }
+  .stat span {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-top: 5px;
+  }
+
+  /* ===== PULSE ===== */
+  @keyframes pulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+  }
+  .pulsing { animation: pulse 4s infinite ease-in-out; }
+
+  /* ===== FOOTER ===== */
+  .main-footer {
+    margin-top: 40px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    padding-top: 30px;
+  }
+  .footer-ribbon {
+    display: inline-block;
+    padding: 10px 40px;
+    border: 1px solid var(--gold-dim);
+    background: linear-gradient(90deg, transparent, var(--bg-elevated), transparent);
+  }
+  .footer-ribbon h2 {
+    font-family: 'Cinzel Decorative', cursive;
+    letter-spacing: 6px;
+    color: var(--gold);
+    font-size: 1rem;
+    margin: 0;
+    text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+  }
+  .footer-sub {
+    margin-top: 10px;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,10,0.92);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal-frame {
+    position: relative;
+    background: var(--bg-surface);
+    padding: 40px;
+    border: 1px solid #000;
+    box-shadow:
+      0 0 0 4px var(--bg-elevated),
+      0 0 0 8px var(--gold-dim),
+      0 0 0 12px var(--bg-elevated),
+      0 0 0 24px var(--wood-frame),
+      0 0 0 26px #000,
+      0 0 40px rgba(0,0,0,0.8),
+      inset 0 0 40px rgba(0,0,0,1);
+    max-width: 500px;
+    width: 100%;
+    text-align: center;
+    animation: modalFade 0.3s ease;
+  }
+  @keyframes modalFade {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .modal-frame::before {
+    content: '';
+    position: absolute;
+    top: 12px; left: 12px; right: 12px; bottom: 12px;
+    border: 1px solid var(--gold-dim);
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .modal-corner { position: absolute; width: 16px; height: 16px; border: 1px solid var(--gold); }
+  .modal-corner.tl { top: 16px; left: 16px; border-right: none; border-bottom: none; }
+  .modal-corner.tr { top: 16px; right: 16px; border-left: none; border-bottom: none; }
+  .modal-corner.bl { bottom: 16px; left: 16px; border-right: none; border-top: none; }
+  .modal-corner.br { bottom: 16px; right: 16px; border-left: none; border-top: none; }
+
+  .modal-frame h2 {
+    font-family: 'Cinzel Decorative', cursive;
+    font-size: 1.6rem;
+    letter-spacing: 6px;
+    background: linear-gradient(to bottom, #fff, var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .modal-frame .modal-sub {
+    color: var(--gold);
+    font-size: 0.7rem;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .modal-frame p {
+    font-size: 0.85rem;
+    line-height: 1.8;
+    color: var(--text-dim);
+    margin-bottom: 25px;
+  }
+  .modal-frame .gold-rule {
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 0 auto 20px;
+  }
+  .modal-btn-row {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+  }
+  .modal-btn {
+    background: linear-gradient(to bottom, #2a2a2a, var(--bg-elevated));
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    padding: 10px 24px;
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .modal-btn:hover {
+    border-color: var(--gold);
+    box-shadow: 0 0 15px rgba(197, 160, 89, 0.2);
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 700px) {
+    .ui-container { padding: 30px 20px; }
+    .stone-nav { grid-template-columns: 1fr 1fr; }
+    .main-header h1 { font-size: 2rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="ui-container">
+  <div class="corner-deco tl"></div>
+  <div class="corner-deco tr"></div>
+  <div class="corner-deco bl"></div>
+  <div class="corner-deco br"></div>
+
+  <!-- HEADER -->
+  <header class="main-header">
+    <h1>Opus Cabinet</h1>
+    <div class="subtitle">Cabinet of Curiosities</div>
+  </header>
+
+  <!-- NAV -->
+  <nav class="stone-nav">
+    <button class="nav-btn">Specimens</button>
+    <button class="nav-btn">Elements</button>
+    <button class="nav-btn">Archives</button>
+    <button class="nav-btn">Rituals</button>
+  </nav>
+
+  <!-- MODAL TRIGGER -->
+  <div style="text-align: center; margin-bottom: 40px;">
+    <button class="modal-trigger-btn" id="openModal">Open Specimen Vault</button>
+  </div>
+
+  <!-- DATA TABLE (Iron Card) -->
+  <div style="margin-bottom: 30px;">
+    <div class="section-label">Specimen Registry</div>
+    <div class="table-card">
+      <div class="card-header">
+        <span>Catalogued Specimens</span>
+        <div class="sigil-container" style="width: 30px; height: 30px;">
+          <svg viewBox="0 0 50 50" style="width: 24px; height: 24px; fill: none; stroke: var(--silver); stroke-width: 1.5; filter: drop-shadow(0 0 3px rgba(255,255,255,0.2));">
+            <circle cx="25" cy="25" r="18" />
+            <line x1="25" y1="7" x2="25" y2="43" />
+            <line x1="7" y1="25" x2="43" y2="25" />
+          </svg>
+        </div>
+      </div>
+      <table class="opus-table">
+        <thead>
+          <tr>
+            <th>Specimen</th>
+            <th>Origin</th>
+            <th>Class</th>
+            <th>Potency</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Lunar Aether</td>
+            <td>Silver Veil</td>
+            <td><span class="badge">Sacred</span></td>
+            <td>IX</td>
+          </tr>
+          <tr>
+            <td>Iron Cordial</td>
+            <td>Deep Forge</td>
+            <td><span class="badge">Volatile</span></td>
+            <td>VII</td>
+          </tr>
+          <tr>
+            <td>Amber Resin</td>
+            <td>Old Growth</td>
+            <td><span class="badge">Stable</span></td>
+            <td>V</td>
+          </tr>
+          <tr>
+            <td>Void Salt</td>
+            <td>Obsidian Rift</td>
+            <td><span class="badge">Sacred</span></td>
+            <td>VIII</td>
+          </tr>
+          <tr>
+            <td>Copper Ash</td>
+            <td>Furnace Ward</td>
+            <td><span class="badge">Inert</span></td>
+            <td>III</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FORM (Gold Card) -->
+  <div style="margin-bottom: 30px;">
+    <div class="section-label">Inscription</div>
+    <div class="form-card">
+      <div class="card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="sigil-container pulsing" style="width: 30px; height: 30px;">
+            <svg viewBox="0 0 50 50" style="width: 24px; height: 24px; fill: none; stroke: var(--gold); stroke-width: 1.5; filter: drop-shadow(0 0 5px rgba(197,160,89,0.4));">
+              <circle cx="25" cy="25" r="8" fill="var(--gold)" />
+              <circle cx="25" cy="25" r="18" stroke-dasharray="2 4" />
+            </svg>
+          </div>
+          Catalogue Entry
+        </div>
+      </div>
+      <div class="card-body">
+        <label class="form-label">Specimen Name</label>
+        <input type="text" class="form-input" placeholder="Name of the specimen...">
+
+        <label class="form-label">Region of Origin</label>
+        <select class="form-select">
+          <option>Select region...</option>
+          <option>Silver Veil</option>
+          <option>Deep Forge</option>
+          <option>Old Growth</option>
+          <option>Obsidian Rift</option>
+          <option>Furnace Ward</option>
+        </select>
+
+        <div class="stat-grid" style="border-top: 1px solid rgba(197,160,89,0.2); margin-top: 0;">
+          <div class="stat" style="color: var(--text-dim);">Potency<span style="color: var(--gold);">VII</span></div>
+          <div class="stat" style="color: var(--text-dim);">Stability<span style="color: var(--gold);">94%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROLS (Parchment Card) -->
+  <div style="margin-bottom: 30px;">
+    <div class="section-label">Apparatus Controls</div>
+    <div class="controls-card">
+      <div class="card-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <svg viewBox="0 0 50 50" style="width: 22px; height: 22px; fill: none; stroke: var(--wood-frame); stroke-width: 1.5;">
+            <path d="M25,5 A18,18 0 1,0 25,45 A12,12 0 1,1 25,5" />
+          </svg>
+          Settings &amp; Wards
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="parch-checkbox" onclick="toggleOpusCb(this)">
+          <div class="parch-cb-box checked"><span class="mark">&#10003;</span></div>
+          <span>Enable preservation ward</span>
+        </div>
+        <div class="parch-checkbox" onclick="toggleOpusCb(this)">
+          <div class="parch-cb-box"><span class="mark">&#10003;</span></div>
+          <span>Seal display cabinet</span>
+        </div>
+        <div class="parch-checkbox" onclick="toggleOpusCb(this)">
+          <div class="parch-cb-box checked"><span class="mark">&#10003;</span></div>
+          <span>Illuminate sigil markers</span>
+        </div>
+
+        <div style="margin-top: 12px;">
+          <div class="parch-toggle-row">
+            <span>Alchemical resonance</span>
+            <div class="parch-toggle-track active" onclick="toggleOpusSwitch(this)">
+              <div class="parch-toggle-knob"></div>
+            </div>
+          </div>
+          <div class="parch-toggle-row">
+            <span>Containment field</span>
+            <div class="parch-toggle-track" onclick="toggleOpusSwitch(this)">
+              <div class="parch-toggle-knob"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="main-footer">
+    <div class="footer-ribbon">
+      <h2>Finis Opus</h2>
+    </div>
+    <div class="footer-sub">Curated &bull; Preserved &bull; Sealed</div>
+  </footer>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-frame">
+    <div class="modal-corner tl"></div>
+    <div class="modal-corner tr"></div>
+    <div class="modal-corner bl"></div>
+    <div class="modal-corner br"></div>
+
+    <div class="sigil-container pulsing" style="margin: 0 auto 16px;">
+      <svg class="sigil" viewBox="0 0 50 50" style="stroke: var(--gold); filter: drop-shadow(0 0 8px rgba(197,160,89,0.4));">
+        <circle cx="25" cy="25" r="8" fill="var(--gold)" />
+        <circle cx="25" cy="25" r="18" stroke-dasharray="2 4" stroke-width="2" />
+        <line x1="25" y1="5" x2="25" y2="45" stroke-width="1" />
+        <line x1="5" y1="25" x2="45" y2="25" stroke-width="1" />
+      </svg>
+    </div>
+
+    <h2>Specimen Vault</h2>
+    <div class="modal-sub">Restricted Access</div>
+    <div class="gold-rule"></div>
+    <p>
+      This vault contains specimens of sacred and volatile classification.
+      Approach with reverence. The preservation wards will disengage upon
+      confirmation. Handle with alchemical gloves only.
+    </p>
+    <div class="modal-btn-row">
+      <button class="modal-btn" onclick="closeModal()">Unseal Vault</button>
+      <button class="modal-btn" onclick="closeModal()">Withdraw</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Modal
+  var overlay = document.getElementById('modalOverlay');
+  document.getElementById('openModal').addEventListener('click', function() {
+    overlay.classList.add('open');
+  });
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) closeModal();
+  });
+  function closeModal() {
+    overlay.classList.remove('open');
+  }
+
+  // Checkbox
+  function toggleOpusCb(el) {
+    var box = el.querySelector('.parch-cb-box');
+    box.classList.toggle('checked');
+  }
+
+  // Toggle
+  function toggleOpusSwitch(el) {
+    el.classList.toggle('active');
+  }
+</script>
+</body>
+</html>

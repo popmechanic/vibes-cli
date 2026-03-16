@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mesh Void - Theme Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --void:        oklch(0.07 0.000 0);
+    --panel:       oklch(0.10 0.000 0);
+    --fg:          oklch(1.00 0.000 0);
+    --fg-muted:    oklch(0.49 0.000 0);
+    --fg-dim:      oklch(0.30 0.000 0);
+    --border:      oklch(1.00 0.000 0 / 0.15);
+    --hover:       oklch(0.13 0.000 0);
+    --accent:      oklch(0.87 0.28 145);
+    --ring:        oklch(0.36 0.000 0);
+    --font-mono:   'JetBrains Mono', monospace;
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--void);
+    color: var(--fg);
+    font-family: 'Inter', -apple-system, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ---- MAIN GRID ---- */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 60% 40%;
+    min-height: 100vh;
+    border-bottom: 1px solid var(--border);
+  }
+  .col-left {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    position: relative;
+  }
+  .col-right {
+    position: relative;
+    background: radial-gradient(circle at center, #111 0%, #000 100%);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ---- HUD HEADER ---- */
+  .header-hud {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    height: 60px;
+    align-items: center;
+  }
+  .hud-item {
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+    border-right: 1px solid var(--border);
+    color: var(--fg-muted);
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent);
+  }
+
+  /* ---- HERO ---- */
+  .hero-section {
+    padding: 6vh 4vw;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+  }
+  h1.hero-title {
+    font-size: clamp(3rem, 8vw, 9rem);
+    line-height: 0.85;
+    letter-spacing: -0.04em;
+    font-weight: 400;
+    text-transform: uppercase;
+    mix-blend-mode: difference;
+    margin-bottom: 32px;
+  }
+  .hero-label {
+    font-family: var(--font-mono);
+    color: var(--fg-muted);
+    font-size: 12px;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ---- COMPONENT SECTION ---- */
+  .component-section {
+    border-top: 1px solid var(--border);
+    padding: 40px 4vw;
+  }
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 24px;
+  }
+
+  /* ---- SPEC GRID (TABLE) ---- */
+  .specs-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--border);
+  }
+  .spec-box {
+    padding: 24px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+  }
+  .spec-label {
+    font-size: 10px;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+  .spec-value {
+    font-size: 16px;
+    color: var(--fg);
+  }
+
+  /* ---- DATA TABLE ---- */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  .data-table th {
+    text-align: left;
+    font-size: 10px;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+  }
+  .data-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg);
+  }
+  .data-table tr:hover td {
+    background: var(--hover);
+  }
+  .data-table .status-active {
+    color: var(--accent);
+  }
+  .data-table .status-idle {
+    color: var(--fg-muted);
+  }
+
+  /* ---- FORM INPUTS ---- */
+  .void-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    padding: 12px 0;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.3s;
+  }
+  .void-input:focus {
+    border-bottom-color: var(--fg);
+  }
+  .void-input::placeholder {
+    color: var(--fg-dim);
+  }
+
+  .void-select {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    padding: 12px 0;
+    width: 100%;
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .void-select:focus {
+    border-bottom-color: var(--fg);
+  }
+  .select-wrapper {
+    position: relative;
+  }
+  .select-wrapper::after {
+    content: '\2193';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--fg-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    pointer-events: none;
+  }
+  .void-select option {
+    background: #0a0a0a;
+    color: #fff;
+  }
+
+  /* ---- CHECKBOX ---- */
+  .void-check {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .check-box {
+    width: 16px; height: 16px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.2s;
+  }
+  .check-box.checked {
+    border-color: var(--fg);
+  }
+  .check-box .mark {
+    display: none;
+    color: var(--fg);
+    font-size: 11px;
+    line-height: 1;
+  }
+  .check-box.checked .mark { display: block; }
+
+  /* ---- TOGGLE ---- */
+  .void-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .toggle-track {
+    width: 36px; height: 18px;
+    border: 1px solid var(--border);
+    position: relative;
+    transition: border-color 0.3s;
+  }
+  .toggle-thumb {
+    width: 12px; height: 12px;
+    background: var(--fg-muted);
+    position: absolute;
+    top: 2px; left: 2px;
+    transition: left 0.2s, background 0.2s;
+  }
+  .toggle-track.on {
+    border-color: var(--accent);
+  }
+  .toggle-track.on .toggle-thumb {
+    left: 20px;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  /* ---- CTA BAR ---- */
+  .cta-container {
+    padding: 40px 4vw;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  .cta-container:hover { background: var(--hover); }
+  .btn-text { font-size: 20px; letter-spacing: -0.02em; }
+  .arrow-icon { font-family: var(--font-mono); font-size: 20px; }
+
+  /* ---- CROSSHAIR ---- */
+  .crosshair {
+    position: absolute;
+    width: 15px; height: 15px;
+    pointer-events: none;
+  }
+  .crosshair::before, .crosshair::after {
+    content: '';
+    position: absolute;
+    background: var(--fg);
+    opacity: 0.3;
+  }
+  .crosshair::before { width: 1px; height: 100%; left: 50%; }
+  .crosshair::after { width: 100%; height: 1px; top: 50%; }
+
+  /* ---- SCAN LINES ---- */
+  .scan-lines {
+    background: repeating-linear-gradient(
+      0deg,
+      rgba(255,255,255,0.03), rgba(255,255,255,0.03) 1px,
+      transparent 1px, transparent 4px
+    );
+    position: absolute; inset: 0;
+    pointer-events: none;
+  }
+
+  /* ---- VISUALIZATION PANEL ---- */
+  .viz-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 30px;
+    position: relative;
+    z-index: 2;
+  }
+  .ui-badge {
+    background: var(--fg);
+    color: var(--void);
+    padding: 4px 8px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    font-weight: bold;
+    align-self: flex-start;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .ui-coords {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--fg-muted);
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  /* ---- WIREFRAME (CSS) ---- */
+  .wireframe-container {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+  }
+  .wireframe {
+    width: 260px; height: 260px;
+    position: relative;
+    transform-style: preserve-3d;
+    animation: spin 20s linear infinite;
+  }
+  .wire-face {
+    position: absolute;
+    width: 200px; height: 200px;
+    border: 1px solid rgba(255,255,255,0.15);
+    top: 30px; left: 30px;
+  }
+  .wire-face:nth-child(1) { transform: translateZ(100px); }
+  .wire-face:nth-child(2) { transform: translateZ(-100px); }
+  .wire-face:nth-child(3) { transform: rotateY(90deg) translateZ(100px); }
+  .wire-face:nth-child(4) { transform: rotateY(90deg) translateZ(-100px); }
+  .wire-face:nth-child(5) { transform: rotateX(90deg) translateZ(100px); }
+  .wire-face:nth-child(6) { transform: rotateX(90deg) translateZ(-100px); }
+
+  @keyframes spin {
+    0% { transform: rotateX(-20deg) rotateY(0deg); }
+    100% { transform: rotateX(-20deg) rotateY(360deg); }
+  }
+
+  /* Orbital ring */
+  .orbital-ring {
+    position: absolute;
+    width: 320px; height: 320px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    margin-top: -160px; margin-left: -160px;
+    animation: orbit 15s linear infinite;
+  }
+  .orbital-ring:nth-child(2) {
+    width: 280px; height: 280px;
+    margin-top: -140px; margin-left: -140px;
+    animation: orbit2 12s linear infinite;
+    border-color: rgba(255,255,255,0.05);
+  }
+  @keyframes orbit { 0% { transform: rotateZ(0deg) rotateX(60deg); } 100% { transform: rotateZ(360deg) rotateX(60deg); } }
+  @keyframes orbit2 { 0% { transform: rotateZ(0deg) rotateX(-30deg); } 100% { transform: rotateZ(-360deg) rotateX(-30deg); } }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+  }
+  .modal-content {
+    position: relative;
+    z-index: 101;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    max-width: 500px;
+    width: 90%;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-header h2 {
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    color: var(--fg-muted);
+    font-family: var(--font-mono);
+    font-size: 16px;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 4px;
+  }
+  .modal-close:hover { color: var(--fg); }
+  .modal-body {
+    padding: 24px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--fg-muted);
+    line-height: 1.8;
+  }
+  .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+  .modal-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--fg);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 8px 24px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  .modal-btn:hover { border-color: var(--fg); background: var(--hover); }
+  .modal-btn.primary { background: var(--fg); color: var(--void); border-color: var(--fg); }
+  .modal-btn.primary:hover { opacity: 0.9; }
+
+  .form-group {
+    margin-bottom: 20px;
+  }
+  .form-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .controls-row {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 768px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .col-right { min-height: 50vh; }
+  }
+</style>
+</head>
+<body>
+
+<div class="main-grid">
+  <!-- LEFT COLUMN -->
+  <div class="col-left">
+    <div class="crosshair" style="position:absolute;bottom:-7px;right:-7px;z-index:5;"></div>
+    <div class="crosshair" style="position:absolute;top:-7px;left:-7px;z-index:5;"></div>
+
+    <!-- HUD HEADER -->
+    <header class="header-hud">
+      <div class="hud-item">
+        <span>MESH OS</span>
+        <span class="status-dot"></span>
+      </div>
+      <div class="hud-item"><span>V. 3.07</span></div>
+      <div class="hud-item" style="cursor:pointer;" onclick="openModal()"><span>MODAL +</span></div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero-section">
+      <div class="hero-label">Component Showcase</div>
+      <h1 class="hero-title">Mesh<br>Void</h1>
+    </section>
+
+    <!-- DATA TABLE -->
+    <div class="component-section" style="padding-bottom:0;">
+      <div class="section-label">Data Registry / 5 Nodes</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Node</th>
+            <th>Region</th>
+            <th>Latency</th>
+            <th>Throughput</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>MESH-01</td>
+            <td>us-east-1</td>
+            <td>4ms</td>
+            <td>2.4 GB/s</td>
+            <td class="status-active">ACTIVE</td>
+          </tr>
+          <tr>
+            <td>MESH-02</td>
+            <td>eu-west-2</td>
+            <td>12ms</td>
+            <td>1.8 GB/s</td>
+            <td class="status-active">ACTIVE</td>
+          </tr>
+          <tr>
+            <td>MESH-03</td>
+            <td>ap-south-1</td>
+            <td>38ms</td>
+            <td>960 MB/s</td>
+            <td class="status-idle">IDLE</td>
+          </tr>
+          <tr>
+            <td>MESH-04</td>
+            <td>us-west-2</td>
+            <td>8ms</td>
+            <td>3.1 GB/s</td>
+            <td class="status-active">ACTIVE</td>
+          </tr>
+          <tr>
+            <td>MESH-05</td>
+            <td>eu-north-1</td>
+            <td>22ms</td>
+            <td>1.2 GB/s</td>
+            <td class="status-idle">IDLE</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- FORM INPUTS -->
+    <div class="component-section">
+      <div class="section-label">Input Interface</div>
+      <div style="display:flex;gap:32px;flex-wrap:wrap;">
+        <div class="form-group" style="flex:1;min-width:200px;">
+          <label class="form-label">Node Identifier</label>
+          <input class="void-input" type="text" placeholder="Enter node ID...">
+        </div>
+        <div class="form-group" style="flex:1;min-width:200px;">
+          <label class="form-label">Target Region</label>
+          <div class="select-wrapper">
+            <select class="void-select">
+              <option>us-east-1</option>
+              <option>eu-west-2</option>
+              <option>ap-south-1</option>
+              <option>us-west-2</option>
+              <option>eu-north-1</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="controls-row" style="margin-top: 16px;">
+        <div class="void-check" onclick="toggleCheck(this)">
+          <div class="check-box"><span class="mark">&#10003;</span></div>
+          <span>Auto-scale</span>
+        </div>
+        <div class="void-check" onclick="toggleCheck(this)">
+          <div class="check-box checked"><span class="mark">&#10003;</span></div>
+          <span>Redundancy</span>
+        </div>
+        <div class="void-toggle" onclick="toggleSwitch(this)">
+          <div class="toggle-track on">
+            <div class="toggle-thumb"></div>
+          </div>
+          <span>Live sync</span>
+        </div>
+        <div class="void-toggle" onclick="toggleSwitch(this)">
+          <div class="toggle-track">
+            <div class="toggle-thumb"></div>
+          </div>
+          <span>Debug mode</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA -->
+    <div class="cta-container" onclick="openModal()">
+      <span class="btn-text">Initialize Environment</span>
+      <span class="arrow-icon">&rarr;</span>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN: VISUALIZATION -->
+  <div class="col-right">
+    <div class="scan-lines"></div>
+    <div class="wireframe-container">
+      <div class="wireframe">
+        <div class="wire-face"></div>
+        <div class="wire-face"></div>
+        <div class="wire-face"></div>
+        <div class="wire-face"></div>
+        <div class="wire-face"></div>
+        <div class="wire-face"></div>
+      </div>
+      <div class="orbital-ring"></div>
+      <div class="orbital-ring"></div>
+    </div>
+    <div class="viz-panel">
+      <div class="ui-badge">RENDER: LIVE</div>
+      <div class="ui-coords">
+        X: 0.00<br>
+        Y: 0.00<br>
+        Z: 14.20<br>
+        <br>
+        FACES: 12<br>
+        VERTS: 8
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-backdrop" onclick="closeModal()"></div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>System Configuration</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom:16px;">
+        Mesh Void environment initialized. All nodes reporting nominal status. The computational void is ready for topology generation.
+      </p>
+      <div style="border-left:1px solid var(--fg-dim);padding-left:16px;margin-bottom:16px;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">System Specs</div>
+        <div>Polygons/Sec: 45,000,000</div>
+        <div>Latency: &lt; 12ms</div>
+        <div>Export: GLTF / USDZ / OBJ</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="status-dot"></span>
+        <span style="color:var(--accent);font-size:11px;">ALL SYSTEMS OPERATIONAL</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn" onclick="closeModal()">CANCEL</button>
+      <button class="modal-btn primary" onclick="closeModal()">CONFIRM</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openModal() {
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+function toggleCheck(el) {
+  var box = el.querySelector('.check-box');
+  box.classList.toggle('checked');
+}
+
+function toggleSwitch(el) {
+  var track = el.querySelector('.toggle-track');
+  track.classList.toggle('on');
+}
+
+// Keyboard close
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+</script>
+</body>
+</html>

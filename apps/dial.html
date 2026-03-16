@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dial Apparatus — Component Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --comp-bg: oklch(0.24 0.01 260);
+    --comp-text: oklch(0.64 0.02 250);
+    --comp-border: oklch(0.19 0.01 260 / 0.5);
+    --comp-accent: oklch(0.62 0.24 28);
+    --comp-accent-text: oklch(0.10 0 0);
+    --comp-muted: oklch(0.64 0.02 250 / 0.5);
+    --color-background: oklch(0.00 0 0);
+    --dial-chassis: oklch(0.24 0.01 260);
+    --dial-chassis-dark: oklch(0.19 0.01 260);
+    --dial-surface-matte: oklch(0.28 0.01 260);
+    --dial-screen-bg: oklch(0.10 0 0);
+    --dial-screen-glass: oklch(0.14 0.005 260);
+    --dial-led-active: oklch(0.62 0.24 28);
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-ui: 'Inter', sans-serif;
+    --inset-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.4);
+    --inset-highlight: inset 0 1px 1px rgba(255, 255, 255, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--color-background);
+    min-height: 100vh;
+    font-family: var(--font-ui);
+    color: var(--comp-text);
+    overflow-x: hidden;
+  }
+
+  .device-chassis {
+    width: 100%;
+    min-height: 100vh;
+    background: linear-gradient(145deg, var(--dial-surface-matte), var(--dial-chassis));
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    box-shadow: inset 0 0 80px rgba(0, 0, 0, 0.5);
+  }
+
+  .brand-label {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    opacity: 0.6;
+    transform: rotate(90deg);
+    transform-origin: right top;
+  }
+
+  /* Speaker Grille Header */
+  .speaker-section {
+    height: 80px;
+    width: 100%;
+    border-radius: 8px;
+    background: var(--dial-chassis-dark);
+    box-shadow: var(--inset-shadow), var(--inset-highlight);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    margin-bottom: 20px;
+    flex-shrink: 0;
+  }
+  .grill-mesh {
+    width: 90%;
+    height: 80%;
+    background-image: radial-gradient(oklch(0.07 0 0) 25%, transparent 26%);
+    background-size: 8px 8px;
+    opacity: 0.8;
+    border-radius: 4px;
+  }
+
+  /* Screen Bezel */
+  .screen-bezel {
+    width: 100%;
+    background: oklch(0.15 0.005 260);
+    border-radius: 6px;
+    padding: 4px;
+    box-shadow: 0 2px 4px rgba(255, 255, 255, 0.05), inset 0 2px 10px rgba(0, 0, 0, 0.8);
+    margin-bottom: 20px;
+    flex-shrink: 0;
+  }
+
+  .lcd-glass {
+    width: 100%;
+    background: radial-gradient(circle at 50% 30%, oklch(0.18 0.005 260), var(--dial-screen-bg));
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+    padding: 16px 20px;
+    font-family: var(--font-mono);
+    color: var(--comp-accent);
+    text-shadow: 0 0 8px oklch(0.62 0.24 28 / 0.4);
+  }
+  .lcd-glass::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 40%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03), transparent);
+    pointer-events: none;
+  }
+
+  .screen-top-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .main-display {
+    text-align: center;
+    font-size: 36px;
+    line-height: 1;
+    font-weight: 400;
+    letter-spacing: -1px;
+  }
+  .sub-display {
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 4px;
+  }
+
+  .status-dots {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #333;
+  }
+  .status-dot.active {
+    background: var(--comp-accent);
+    box-shadow: 0 0 5px var(--comp-accent);
+  }
+
+  /* Component Sections */
+  .component-section {
+    background: var(--dial-chassis-dark);
+    border-radius: 8px;
+    box-shadow: var(--inset-shadow), var(--inset-highlight);
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.5;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Data Table */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-mono);
+  }
+  .data-table thead th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--comp-accent);
+    text-shadow: 0 0 8px oklch(0.62 0.24 28 / 0.3);
+    padding: 6px 8px;
+    border-bottom: 1px solid oklch(0.19 0.01 260 / 0.8);
+    font-weight: 400;
+  }
+  .data-table tbody td {
+    font-size: 12px;
+    padding: 8px 8px;
+    border-bottom: 1px solid oklch(0.19 0.01 260 / 0.3);
+    color: var(--comp-text);
+  }
+  .data-table tbody tr:hover td {
+    color: var(--comp-accent);
+    text-shadow: 0 0 4px oklch(0.62 0.24 28 / 0.2);
+  }
+  .data-table .accent-val {
+    color: var(--comp-accent);
+    text-shadow: 0 0 6px oklch(0.62 0.24 28 / 0.3);
+  }
+
+  /* Form Controls */
+  .dial-input {
+    width: 100%;
+    background: var(--dial-screen-bg);
+    border: 1px solid oklch(0.19 0.01 260 / 0.5);
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--comp-accent);
+    text-shadow: 0 0 6px oklch(0.62 0.24 28 / 0.3);
+    outline: none;
+    box-shadow: var(--inset-shadow);
+  }
+  .dial-input::placeholder {
+    color: var(--comp-muted);
+    text-shadow: none;
+  }
+  .dial-input:focus {
+    border-color: var(--comp-accent);
+    box-shadow: var(--inset-shadow), 0 0 8px oklch(0.62 0.24 28 / 0.15);
+  }
+
+  .dial-select {
+    width: 100%;
+    background: var(--dial-screen-bg);
+    border: 1px solid oklch(0.19 0.01 260 / 0.5);
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--comp-accent);
+    outline: none;
+    box-shadow: var(--inset-shadow);
+    appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6' fill='none' stroke='%23ff4d2e' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  .dial-select option {
+    background: #1a1a1c;
+    color: #ff4d2e;
+  }
+  .dial-select:focus {
+    border-color: var(--comp-accent);
+    box-shadow: var(--inset-shadow), 0 0 8px oklch(0.62 0.24 28 / 0.15);
+  }
+
+  /* Checkbox */
+  .dial-checkbox-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .dial-checkbox {
+    width: 20px;
+    height: 20px;
+    background: var(--dial-screen-bg);
+    border: 1px solid oklch(0.19 0.01 260 / 0.5);
+    border-radius: 3px;
+    box-shadow: var(--inset-shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.2s;
+  }
+  .dial-checkbox.checked {
+    border-color: var(--comp-accent);
+  }
+  .dial-checkbox.checked::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: var(--comp-accent);
+    border-radius: 1px;
+    box-shadow: 0 0 6px var(--comp-accent);
+  }
+
+  /* Toggle Switch */
+  .dial-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .dial-toggle {
+    width: 48px;
+    height: 24px;
+    background: var(--dial-screen-bg);
+    border: 1px solid oklch(0.19 0.01 260 / 0.5);
+    border-radius: 12px;
+    box-shadow: var(--inset-shadow);
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .dial-toggle .knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--comp-text);
+    transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s, box-shadow 0.2s;
+  }
+  .dial-toggle.on {
+    border-color: var(--comp-accent);
+  }
+  .dial-toggle.on .knob {
+    transform: translateX(24px);
+    background: var(--comp-accent);
+    box-shadow: 0 0 8px var(--comp-accent);
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .modal-overlay.open {
+    display: flex;
+  }
+  .modal-chassis {
+    width: 90%;
+    max-width: 500px;
+    background: linear-gradient(145deg, var(--dial-surface-matte), var(--dial-chassis));
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), inset 0 0 40px rgba(0, 0, 0, 0.3);
+    padding: 4px;
+    position: relative;
+  }
+  .modal-inner {
+    background: var(--dial-chassis-dark);
+    border-radius: 8px;
+    box-shadow: var(--inset-shadow);
+    padding: 24px;
+  }
+  .modal-screen {
+    background: radial-gradient(circle at 50% 30%, oklch(0.18 0.005 260), var(--dial-screen-bg));
+    border-radius: 4px;
+    padding: 20px;
+    font-family: var(--font-mono);
+    color: var(--comp-accent);
+    text-shadow: 0 0 8px oklch(0.62 0.24 28 / 0.4);
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .modal-screen::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 40%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03), transparent);
+    pointer-events: none;
+    border-radius: 4px 4px 0 0;
+  }
+  .modal-screen h2 {
+    font-size: 20px;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+    font-weight: 400;
+  }
+  .modal-screen p {
+    font-size: 12px;
+    opacity: 0.8;
+    letter-spacing: 1px;
+    line-height: 1.6;
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+  .modal-btn {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: var(--dial-screen-bg);
+    border: 1px solid oklch(0.19 0.01 260 / 0.5);
+    color: var(--comp-text);
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: var(--inset-shadow);
+    transition: all 0.1s;
+  }
+  .modal-btn:hover {
+    border-color: var(--comp-accent);
+    color: var(--comp-accent);
+    text-shadow: 0 0 6px oklch(0.62 0.24 28 / 0.3);
+  }
+  .modal-btn.primary {
+    border-color: var(--comp-accent);
+    color: var(--comp-accent);
+    text-shadow: 0 0 6px oklch(0.62 0.24 28 / 0.3);
+  }
+
+  /* Open Modal Button */
+  .open-modal-btn {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid oklch(0.19 0.01 260 / 0.5);
+    color: var(--comp-accent);
+    text-shadow: 0 0 6px oklch(0.62 0.24 28 / 0.3);
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .open-modal-btn:hover {
+    border-color: var(--comp-accent);
+    box-shadow: 0 0 12px oklch(0.62 0.24 28 / 0.15);
+  }
+
+  /* Controls Row */
+  .controls-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .control-group label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.5;
+  }
+
+  /* Bottom Labels */
+  .bottom-labels {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 16px 4px 0;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--comp-text);
+    opacity: 0.5;
+    flex-shrink: 0;
+  }
+
+  /* Feedback Overlay */
+  .feedback-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle, oklch(0.62 0.24 28 / 0.1) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 10;
+  }
+  .feedback-overlay.active {
+    opacity: 1;
+  }
+
+  .inline-controls {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+</style>
+</head>
+<body>
+
+<div class="feedback-overlay" id="feedback"></div>
+
+<div class="device-chassis">
+  <span class="brand-label">MOD. 007</span>
+
+  <!-- Speaker Grille -->
+  <div class="speaker-section">
+    <div class="grill-mesh"></div>
+  </div>
+
+  <!-- LCD Screen -->
+  <div class="screen-bezel">
+    <div class="lcd-glass">
+      <div class="screen-top-row">
+        <span>MODE: SHOWCASE</span>
+        <div class="status-dots">
+          <div class="status-dot active"></div>
+          <div class="status-dot"></div>
+          <div class="status-dot"></div>
+        </div>
+      </div>
+      <div class="main-display">DIAL</div>
+      <div class="sub-display">APPARATUS COMPONENTS</div>
+    </div>
+  </div>
+
+  <!-- Modal Trigger -->
+  <div class="component-section">
+    <div class="section-label">
+      <span>SYS / MODAL</span>
+      <button class="open-modal-btn" onclick="openModal()">OPEN MODAL</button>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="component-section">
+    <div class="section-label"><span>DAT / TABLE</span></div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>PARAMETER</th>
+          <th>VALUE</th>
+          <th>STATUS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="accent-val">01</td>
+          <td>FREQUENCY</td>
+          <td class="accent-val">440 Hz</td>
+          <td>ACTIVE</td>
+        </tr>
+        <tr>
+          <td class="accent-val">02</td>
+          <td>AMPLITUDE</td>
+          <td class="accent-val">-12 dB</td>
+          <td>NOMINAL</td>
+        </tr>
+        <tr>
+          <td class="accent-val">03</td>
+          <td>WAVEFORM</td>
+          <td class="accent-val">SINE</td>
+          <td>LOCKED</td>
+        </tr>
+        <tr>
+          <td class="accent-val">04</td>
+          <td>PHASE</td>
+          <td class="accent-val">0.00 DEG</td>
+          <td>SYNC</td>
+        </tr>
+        <tr>
+          <td class="accent-val">05</td>
+          <td>RESONANCE</td>
+          <td class="accent-val">0.72 Q</td>
+          <td>TUNED</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Text Input & Dropdown -->
+  <div class="controls-row">
+    <div class="component-section" style="margin-bottom:0;">
+      <div class="control-group">
+        <label>INPUT / TEXT</label>
+        <input type="text" class="dial-input" placeholder="ENTER VALUE...">
+      </div>
+    </div>
+    <div class="component-section" style="margin-bottom:0;">
+      <div class="control-group">
+        <label>SELECT / MODE</label>
+        <select class="dial-select">
+          <option>SINE WAVE</option>
+          <option>SQUARE WAVE</option>
+          <option>SAW TOOTH</option>
+          <option>TRIANGLE</option>
+          <option>WHITE NOISE</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkbox & Toggle -->
+  <div class="component-section">
+    <div class="section-label"><span>CTL / SWITCHES</span></div>
+    <div class="inline-controls">
+      <div class="dial-checkbox-wrap" onclick="toggleCheckbox(this)">
+        <div class="dial-checkbox"></div>
+        <span>AUTO-SYNC</span>
+      </div>
+      <div class="dial-checkbox-wrap" onclick="toggleCheckbox(this)">
+        <div class="dial-checkbox checked"></div>
+        <span>MONITOR OUT</span>
+      </div>
+      <div class="dial-toggle-wrap">
+        <span>BYPASS</span>
+        <div class="dial-toggle" onclick="toggleSwitch(this)">
+          <div class="knob"></div>
+        </div>
+      </div>
+      <div class="dial-toggle-wrap">
+        <span>STEREO</span>
+        <div class="dial-toggle on" onclick="toggleSwitch(this)">
+          <div class="knob"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-labels">
+    <span>DIAL APPARATUS</span>
+    <span>MOD. 007 / REV. 03</span>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+  <div class="modal-chassis">
+    <div class="modal-inner">
+      <div class="modal-screen">
+        <h2>SYSTEM DIALOG</h2>
+        <p>CONFIRM PARAMETER RESET? ALL OSCILLATOR<br>SETTINGS WILL RETURN TO FACTORY DEFAULTS.<br>THIS ACTION CANNOT BE UNDONE.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn" onclick="closeModal()">CANCEL</button>
+        <button class="modal-btn primary" onclick="confirmModal()">CONFIRM</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openModal() {
+    document.getElementById('modalOverlay').classList.add('open');
+    flash();
+  }
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+  function closeModalOutside(e) {
+    if (e.target === e.currentTarget) closeModal();
+  }
+  function confirmModal() {
+    closeModal();
+    flash();
+  }
+  function toggleCheckbox(wrap) {
+    const box = wrap.querySelector('.dial-checkbox');
+    box.classList.toggle('checked');
+    flash();
+  }
+  function toggleSwitch(el) {
+    el.classList.toggle('on');
+    flash();
+  }
+  function flash() {
+    const fb = document.getElementById('feedback');
+    fb.classList.add('active');
+    setTimeout(() => fb.classList.remove('active'), 300);
+  }
+</script>
+</body>
+</html>

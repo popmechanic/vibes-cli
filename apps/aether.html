@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aether Brass — Component Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Homemade+Apple&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --parchment: #dcbfa6;
+    --parchment-dark: #c4a482;
+    --ink: #3e2723;
+    --leather: #2a1d15;
+    --brass-light: #fdf5bb;
+    --brass-mid: #cfa562;
+    --brass-dark: #745428;
+    --amber: #ffaa00;
+    --amber-glow: rgba(255, 170, 0, 0.4);
+  }
+
+  body {
+    font-family: 'Special Elite', monospace;
+    background-color: var(--parchment);
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    position: relative;
+  }
+
+  /* Parchment noise texture */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.12'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Radial vignette */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(42, 29, 21, 0.35) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Blueprint grid overlay */
+  .blueprint-grid {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(42, 29, 21, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(42, 29, 21, 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .layout {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 10;
+  }
+
+  /* ---- BRASS GRADIENT TEXT ---- */
+  .brass-text {
+    background: linear-gradient(135deg, var(--brass-mid), var(--brass-light) 40%, var(--brass-mid) 60%, var(--brass-dark));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 900;
+  }
+
+  /* ---- BRASS RULE ---- */
+  .brass-rule {
+    width: 100px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--brass-mid), transparent);
+    margin: 0 auto;
+  }
+
+  /* ---- HEADER ---- */
+  .page-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding-bottom: 1.5rem;
+  }
+  .page-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 2.4rem;
+    font-weight: 900;
+    letter-spacing: 3px;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+  .page-subtitle {
+    font-family: 'Homemade Apple', cursive;
+    font-size: 0.95rem;
+    color: var(--brass-dark);
+    margin-top: 0.5rem;
+    transform: rotate(-1.5deg);
+    display: inline-block;
+  }
+
+  /* ---- GAUGE HERO ---- */
+  .gauge-hero {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 2.5rem;
+    position: relative;
+  }
+  .gauge-ring {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    border: 6px solid var(--brass-mid);
+    background: radial-gradient(circle, rgba(42, 29, 21, 0.15) 0%, rgba(42, 29, 21, 0.05) 60%, transparent 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow:
+      0 0 0 3px var(--brass-dark),
+      0 0 20px rgba(207, 165, 98, 0.3),
+      inset 0 0 30px rgba(42, 29, 21, 0.2);
+  }
+  .gauge-inner {
+    text-align: center;
+  }
+  .gauge-value {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 2.2rem;
+    font-weight: 900;
+  }
+  .gauge-label {
+    font-family: 'Homemade Apple', cursive;
+    font-size: 0.7rem;
+    color: var(--brass-dark);
+    transform: rotate(-2deg);
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* Orbit ring */
+  .orbit-ring {
+    position: absolute;
+    width: 240px;
+    height: 240px;
+    border: 2px dashed var(--brass-mid);
+    border-radius: 50%;
+    opacity: 0.5;
+    animation: orbitSpin 60s linear infinite;
+  }
+  @keyframes orbitSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .orbit-ring::before,
+  .orbit-ring::after {
+    content: "";
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 8px var(--amber-glow), 0 0 16px var(--amber-glow);
+  }
+  .orbit-ring::before { top: -4px; left: 50%; transform: translateX(-50%); }
+  .orbit-ring::after { bottom: -4px; left: 50%; transform: translateX(-50%); }
+
+  /* Status lights */
+  .status-lights {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+  .status-light {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--ink);
+  }
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 6px var(--amber-glow), 0 0 12px var(--amber-glow);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .status-dot.off {
+    background: var(--brass-dark);
+    box-shadow: none;
+    animation: none;
+    opacity: 0.5;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* ---- MEDALLION ICONS ---- */
+  .medallion-row {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+  }
+  .medallion {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--brass-mid), var(--brass-light), var(--brass-dark));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(42, 29, 21, 0.3);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .medallion:hover {
+    transform: scale(1.08);
+    box-shadow: 0 4px 10px rgba(42, 29, 21, 0.3), 0 0 12px var(--amber-glow);
+  }
+  .medallion-glass {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #4a3a2a, #1a120c);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    color: var(--brass-light);
+  }
+
+  /* ---- SECTION LABEL ---- */
+  .section-label {
+    font-family: 'Homemade Apple', cursive;
+    font-size: 0.85rem;
+    color: var(--brass-dark);
+    margin-bottom: 1rem;
+    transform: rotate(-1deg);
+    display: inline-block;
+  }
+
+  /* ---- CONTROL PANEL ---- */
+  .control-panel {
+    background: var(--parchment);
+    border: 3px solid var(--leather);
+    border-radius: 6px;
+    padding: 2rem 1.75rem;
+    margin-bottom: 2rem;
+    position: relative;
+    box-shadow:
+      0 8px 24px rgba(42, 29, 21, 0.25),
+      inset 0 0 20px rgba(42, 29, 21, 0.08);
+  }
+
+  /* Brass screws */
+  .control-panel::before,
+  .control-panel::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, var(--brass-light), var(--brass-mid) 50%, var(--brass-dark));
+    box-shadow: 0 2px 4px rgba(42, 29, 21, 0.4), inset 0 1px 1px rgba(255,255,255,0.3);
+  }
+  .control-panel::before { top: 10px; left: 10px; }
+  .control-panel::after { top: 10px; right: 10px; }
+  .screw-bl, .screw-br {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, var(--brass-light), var(--brass-mid) 50%, var(--brass-dark));
+    box-shadow: 0 2px 4px rgba(42, 29, 21, 0.4), inset 0 1px 1px rgba(255,255,255,0.3);
+  }
+  .screw-bl { bottom: 10px; left: 10px; }
+  .screw-br { bottom: 10px; right: 10px; }
+  /* Screw slot lines */
+  .control-panel::before,
+  .control-panel::after,
+  .screw-bl::after,
+  .screw-br::after {
+    background-image:
+      linear-gradient(135deg, transparent 45%, rgba(42,29,21,0.4) 45%, rgba(42,29,21,0.4) 55%, transparent 55%);
+  }
+  .screw-bl::after, .screw-br::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, transparent 42%, rgba(42,29,21,0.35) 42%, rgba(42,29,21,0.35) 58%, transparent 58%);
+  }
+
+  /* ---- DATA TABLE ---- */
+  .table-wrap {
+    border: 2px solid var(--leather);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    box-shadow: 0 6px 16px rgba(42, 29, 21, 0.2);
+  }
+  .table-header {
+    padding: 0.75rem 1rem;
+    background: var(--leather);
+    color: var(--brass-light);
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .table-header .badge {
+    font-family: 'Special Elite', monospace;
+    font-size: 0.65rem;
+    color: var(--amber);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  th {
+    text-align: left;
+    padding: 0.65rem 1rem;
+    font-family: 'Homemade Apple', cursive;
+    font-size: 0.7rem;
+    color: var(--brass-dark);
+    border-bottom: 2px solid var(--leather);
+    font-weight: normal;
+  }
+  td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid rgba(42, 29, 21, 0.15);
+    color: var(--ink);
+  }
+  tr:last-child td { border-bottom: none; }
+  td .pressure-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border: 1px solid var(--brass-mid);
+    border-radius: 3px;
+    font-size: 0.7rem;
+    color: var(--brass-dark);
+    background: rgba(207, 165, 98, 0.12);
+  }
+  td .pressure-badge.critical {
+    border-color: var(--amber);
+    color: #8b5e00;
+    background: rgba(255, 170, 0, 0.15);
+  }
+
+  /* ---- FORM ELEMENTS ---- */
+  .form-group { margin-bottom: 1.25rem; }
+  .form-label {
+    display: block;
+    font-family: 'Homemade Apple', cursive;
+    font-size: 0.72rem;
+    color: var(--brass-dark);
+    margin-bottom: 0.5rem;
+    transform: rotate(-0.8deg);
+  }
+  .form-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid rgba(42, 29, 21, 0.25);
+    padding: 0.6rem 0;
+    font-family: 'Special Elite', monospace;
+    font-size: 0.95rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.3s;
+    letter-spacing: 0.5px;
+  }
+  .form-input:focus {
+    border-bottom-color: var(--brass-mid);
+  }
+  .form-input::placeholder {
+    color: rgba(62, 39, 35, 0.35);
+  }
+
+  /* ---- SELECT ---- */
+  .form-select-wrap { position: relative; }
+  .form-select {
+    width: 100%;
+    background: rgba(42, 29, 21, 0.05);
+    border: 2px solid rgba(42, 29, 21, 0.25);
+    border-radius: 4px;
+    padding: 0.6rem 2.5rem 0.6rem 0.75rem;
+    font-family: 'Special Elite', monospace;
+    font-size: 0.9rem;
+    color: var(--ink);
+    outline: none;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    transition: border-color 0.3s;
+  }
+  .form-select:focus, .form-select:hover {
+    border-color: var(--brass-mid);
+  }
+  .form-select option {
+    background: var(--parchment);
+    color: var(--ink);
+  }
+  .select-arrow {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--brass-mid);
+    font-size: 0.65rem;
+  }
+
+  /* ---- CHECKBOX ---- */
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--ink);
+    margin-bottom: 0.6rem;
+  }
+  .checkbox-box {
+    width: 22px;
+    height: 22px;
+    border: 2px solid rgba(42, 29, 21, 0.4);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    background: transparent;
+  }
+  .checkbox-box.checked {
+    border-color: var(--brass-mid);
+    background: linear-gradient(135deg, var(--brass-mid), var(--amber));
+  }
+  .checkbox-box svg {
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .checkbox-box.checked svg {
+    opacity: 1;
+  }
+
+  /* ---- TOGGLE SWITCH ---- */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    cursor: pointer;
+    font-size: 0.88rem;
+    color: var(--ink);
+    margin-top: 0.75rem;
+  }
+  .toggle-track {
+    width: 50px;
+    height: 26px;
+    border-radius: 13px;
+    background: var(--leather);
+    position: relative;
+    flex-shrink: 0;
+    transition: all 0.3s;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+  }
+  .toggle-track.on {
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 0 10px var(--amber-glow);
+  }
+  .toggle-knob {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--brass-light), var(--brass-mid), var(--brass-dark));
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 4px rgba(42, 29, 21, 0.4), inset 0 1px 1px rgba(255,255,255,0.3);
+  }
+  .toggle-track.on .toggle-knob {
+    transform: translateX(24px);
+    background: linear-gradient(135deg, var(--brass-light), var(--amber), var(--brass-mid));
+    box-shadow: 0 2px 4px rgba(42, 29, 21, 0.4), 0 0 8px var(--amber-glow);
+  }
+
+  /* ---- BUTTONS ---- */
+  .btn-brass {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--leather);
+    background: linear-gradient(135deg, var(--brass-mid), var(--brass-light) 40%, var(--brass-mid) 70%, var(--brass-dark));
+    border: 2px solid var(--brass-dark);
+    border-radius: 4px;
+    padding: 0.7rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 8px rgba(42, 29, 21, 0.25);
+  }
+  .btn-brass:hover {
+    box-shadow: 0 4px 8px rgba(42, 29, 21, 0.25), 0 0 12px var(--amber-glow);
+    transform: translateY(-1px);
+  }
+  .btn-brass:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(42, 29, 21, 0.25);
+  }
+  .btn-leather {
+    font-family: 'Special Elite', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    color: var(--brass-light);
+    background: var(--leather);
+    border: 1px solid var(--brass-dark);
+    border-radius: 4px;
+    padding: 0.6rem 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 2px 6px rgba(42, 29, 21, 0.3);
+  }
+  .btn-leather:hover {
+    background: #3a2a1e;
+  }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(42, 29, 21, 0.7);
+    display: none;
+    place-items: center;
+    z-index: 1000;
+    padding: 1.5rem;
+  }
+  .modal-overlay.open { display: grid; }
+
+  .modal-box {
+    background: var(--parchment);
+    border: 4px solid var(--leather);
+    border-radius: 6px;
+    width: 100%;
+    max-width: 480px;
+    position: relative;
+    box-shadow:
+      0 20px 40px rgba(42, 29, 21, 0.5),
+      inset 0 0 20px rgba(42, 29, 21, 0.06);
+    animation: modalIn 0.3s ease;
+    overflow: hidden;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Brass frame accents on modal */
+  .modal-frame-top {
+    height: 4px;
+    background: linear-gradient(90deg, var(--brass-dark), var(--brass-mid), var(--brass-light), var(--brass-mid), var(--brass-dark));
+  }
+  .modal-frame-bottom {
+    height: 4px;
+    background: linear-gradient(90deg, var(--brass-dark), var(--brass-mid), var(--brass-light), var(--brass-mid), var(--brass-dark));
+  }
+
+  .modal-header {
+    padding: 0.85rem 1.25rem;
+    background: var(--leather);
+    color: var(--brass-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .modal-close {
+    color: var(--brass-mid);
+    cursor: pointer;
+    font-family: 'Special Elite', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    transition: color 0.2s;
+  }
+  .modal-close:hover { color: var(--amber); }
+
+  .modal-body {
+    padding: 2rem 1.75rem;
+    text-align: center;
+  }
+  .modal-body h2 {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: 2px;
+    margin-bottom: 0.75rem;
+  }
+  .modal-body p {
+    font-size: 0.85rem;
+    line-height: 1.8;
+    color: var(--ink);
+    margin-bottom: 1.25rem;
+    opacity: 0.85;
+  }
+  .modal-actions {
+    padding: 1rem 1.75rem 1.5rem;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+  }
+
+  /* ---- LAYOUT STACK ---- */
+  .content-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ---- FOOTER ---- */
+  .page-footer {
+    margin-top: 3rem;
+    text-align: center;
+    padding: 1.5rem 0;
+    opacity: 0.7;
+  }
+  .footer-text {
+    font-family: 'Homemade Apple', cursive;
+    font-size: 0.75rem;
+    color: var(--brass-dark);
+    transform: rotate(-1deg);
+    display: inline-block;
+  }
+</style>
+</head>
+<body>
+
+<div class="blueprint-grid"></div>
+
+<div class="layout">
+
+  <!-- HEADER -->
+  <header class="page-header">
+    <div class="brass-rule" style="margin-bottom: 0.75rem;"></div>
+    <h1 class="page-title brass-text">Aether Brass</h1>
+    <span class="page-subtitle">Steampunk Apparatus Workshop</span>
+    <div class="brass-rule" style="margin-top: 0.75rem;"></div>
+  </header>
+
+  <!-- GAUGE HERO -->
+  <div class="gauge-hero">
+    <div class="orbit-ring"></div>
+    <div class="gauge-ring">
+      <div class="gauge-inner">
+        <div class="gauge-value brass-text">1847</div>
+        <span class="gauge-label">Aether Units</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATUS LIGHTS -->
+  <div class="status-lights">
+    <div class="status-light"><span class="status-dot"></span>Boiler Active</div>
+    <div class="status-light"><span class="status-dot"></span>Valve Open</div>
+    <div class="status-light"><span class="status-dot off"></span>Overpressure</div>
+  </div>
+
+  <!-- MEDALLION ICONS -->
+  <div class="medallion-row">
+    <div class="medallion"><div class="medallion-glass">&#9881;</div></div>
+    <div class="medallion"><div class="medallion-glass">&#9878;</div></div>
+    <div class="medallion"><div class="medallion-glass">&#9883;</div></div>
+    <div class="medallion"><div class="medallion-glass">&#9730;</div></div>
+  </div>
+
+  <!-- MODAL TRIGGER -->
+  <div style="text-align: center; margin-bottom: 2rem;">
+    <button class="btn-brass" id="openModal">Open Modal</button>
+  </div>
+
+  <!-- DATA TABLE -->
+  <div>
+    <span class="section-label">Workshop Apparatus Registry</span>
+    <div class="table-wrap">
+      <div class="table-header">
+        <span>Active Apparatus</span>
+        <span class="badge">5 Units</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Apparatus</th>
+            <th>Chamber</th>
+            <th>Pressure (atm)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Aether Condenser Mk.III</td>
+            <td>East Wing</td>
+            <td>12.4</td>
+            <td><span class="pressure-badge critical">Critical</span></td>
+          </tr>
+          <tr>
+            <td>Brass Oscillator</td>
+            <td>Main Hall</td>
+            <td>7.8</td>
+            <td><span class="pressure-badge">Nominal</span></td>
+          </tr>
+          <tr>
+            <td>Steam Turbine No. 7</td>
+            <td>Boiler Room</td>
+            <td>9.2</td>
+            <td><span class="pressure-badge">Nominal</span></td>
+          </tr>
+          <tr>
+            <td>Pneumatic Relay</td>
+            <td>West Wing</td>
+            <td>3.1</td>
+            <td><span class="pressure-badge">Idle</span></td>
+          </tr>
+          <tr>
+            <td>Clockwork Regulator</td>
+            <td>Tower</td>
+            <td>5.6</td>
+            <td><span class="pressure-badge">Nominal</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FORM CONTROLS PANEL -->
+  <div class="control-panel">
+    <div class="screw-bl"></div>
+    <div class="screw-br"></div>
+    <span class="section-label">Apparatus Configuration</span>
+
+    <!-- Text Input -->
+    <div class="form-group">
+      <label class="form-label">Operator Name</label>
+      <input type="text" class="form-input" placeholder="Enter designation...">
+    </div>
+
+    <!-- Dropdown / Select -->
+    <div class="form-group">
+      <label class="form-label">Chamber Assignment</label>
+      <div class="form-select-wrap">
+        <select class="form-select">
+          <option>Select chamber...</option>
+          <option>East Wing Laboratory</option>
+          <option>Main Hall Foundry</option>
+          <option>Boiler Room Alpha</option>
+          <option>West Wing Storage</option>
+          <option>Clock Tower Observatory</option>
+        </select>
+        <span class="select-arrow">&#9662;</span>
+      </div>
+    </div>
+
+    <!-- Checkbox -->
+    <div class="form-group">
+      <div class="checkbox-row" onclick="toggleCheckbox(this)">
+        <div class="checkbox-box">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2a1d15" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <span>Confirm pressure safety compliance</span>
+      </div>
+      <div class="checkbox-row" onclick="toggleCheckbox(this)">
+        <div class="checkbox-box checked">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2a1d15" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>
+        </div>
+        <span>Enable automatic pressure relief</span>
+      </div>
+    </div>
+
+    <!-- Toggle Switch -->
+    <div class="form-group">
+      <div class="toggle-row" onclick="toggleSwitch(this)">
+        <div class="toggle-track">
+          <div class="toggle-knob"></div>
+        </div>
+        <span>Aether flow regulator</span>
+      </div>
+      <div class="toggle-row" onclick="toggleSwitch(this)">
+        <div class="toggle-track on">
+          <div class="toggle-knob"></div>
+        </div>
+        <span>Steam whistle alerts</span>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 1.25rem;">
+      <button class="btn-brass">Submit Configuration</button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="page-footer">
+    <div class="brass-rule" style="margin-bottom: 0.75rem;"></div>
+    <span class="footer-text">Royal Patent Office &mdash; Est. MDCCCXLVII</span>
+  </footer>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <div class="modal-frame-top"></div>
+    <div class="modal-header">
+      Aether Report
+      <span class="modal-close" id="closeModal">&#10006; Close</span>
+    </div>
+    <div class="modal-body">
+      <div class="brass-rule" style="margin-bottom: 1.25rem;"></div>
+      <h2 class="brass-text">Workshop Dispatch</h2>
+      <p>The Aether Brass theme is warm and mechanical. Parchment background with noise texture, brass metallic gradients, Victorian typewriter fonts, and amber glow accents create a steampunk apparatus aesthetic.</p>
+      <div class="brass-rule"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-leather" onclick="closeModal()">Cancel</button>
+      <button class="btn-brass" onclick="closeModal()">Acknowledge</button>
+    </div>
+    <div class="modal-frame-bottom"></div>
+  </div>
+</div>
+
+<script>
+  // Modal
+  var overlay = document.getElementById('modalOverlay');
+  document.getElementById('openModal').addEventListener('click', function() {
+    overlay.classList.add('open');
+  });
+  document.getElementById('closeModal').addEventListener('click', closeModal);
+  function closeModal() {
+    overlay.classList.remove('open');
+  }
+
+  // Checkbox
+  function toggleCheckbox(el) {
+    var box = el.querySelector('.checkbox-box');
+    box.classList.toggle('checked');
+  }
+
+  // Toggle Switch
+  function toggleSwitch(el) {
+    var track = el.querySelector('.toggle-track');
+    track.classList.toggle('on');
+  }
+</script>
+</body>
+</html>
