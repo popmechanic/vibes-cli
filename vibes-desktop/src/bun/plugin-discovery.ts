@@ -62,7 +62,7 @@ export async function discoverVibesPlugin(
 	}
 
 	// Dev mode: walk up from main script to find plugin root
-	// In dev builds, process.argv[1] is inside vibes-desktop/build/... which is inside vibes-skill/
+	// In dev builds, process.argv[1] is inside vibes-desktop/build/... which is inside VibesOS/
 	const mainScript = process.argv[1] || "";
 	if (mainScript) {
 		const devRoot = findPluginRootUpward(dirname(mainScript));

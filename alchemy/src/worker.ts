@@ -88,7 +88,7 @@ let oidcClientsEnsured = false;
 
 const VIBES_OIDC_CLIENT = {
   id: "6c154be6-e6fa-47f3-ad2b-31740cedc1f1",
-  name: "vibes-cli",
+  name: "VibesOS",
   callbackURLs: [
     "http://localhost/callback",
     "http://127.0.0.1/callback",

@@ -4,8 +4,8 @@ set -euo pipefail
 # Vibes installer — installs Bun, Claude Code, the Vibes marketplace, and the Vibes plugin
 # Usage: curl -sSL https://install.vibesos.com | bash
 
-REPO="popmechanic/vibes-cli"
-MARKETPLACE="vibes-cli"
+REPO="popmechanic/VibesOS"
+MARKETPLACE="VibesOS"
 PLUGIN="vibes"
 
 # Colors (disable if not a terminal)

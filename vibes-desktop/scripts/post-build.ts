@@ -6,7 +6,7 @@ import { cpSync, existsSync, mkdirSync, rmSync } from "fs";
 import { join, dirname } from "path";
 
 const cwd = process.cwd();
-const repoRoot = dirname(cwd); // vibes-desktop/ → vibes-skill/
+const repoRoot = dirname(cwd); // vibes-desktop/ → VibesOS/
 const appBase = join(cwd, "build", "stable-macos-arm64", "VibesOS.app");
 const appResources = join(appBase, "Contents", "Resources");
 const appBun = join(appResources, "app", "bun");

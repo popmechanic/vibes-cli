@@ -17,13 +17,13 @@ Your data lives locally in the browser, encrypted and portable. It syncs across 
 In Claude Code, register the marketplace first:
 
 ```
-/plugin marketplace add popmechanic/vibes-cli
+/plugin marketplace add popmechanic/VibesOS
 ```
 
 Then install the plugin:
 
 ```
-/plugin install vibes@vibes-cli
+/plugin install vibes@VibesOS
 ```
 
 Restart Claude Code after installation.

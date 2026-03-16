@@ -258,7 +258,7 @@ name: vibes-skill
     const pluginsDir = join(tmpBase, '.claude', 'plugins');
     mkdirSync(pluginsDir, { recursive: true });
     writeFileSync(join(pluginsDir, 'installed_plugins.json'), JSON.stringify({
-      'vibes@vibes-cli': { installPath: vibesInstall }
+      'vibes@VibesOS': { installPath: vibesInstall }
     }));
 
     const result = discoverPluginSkills(tmpBase);

@@ -24,7 +24,7 @@ export default {
     if (isCurl) {
       // CLI users still get the shell script
       return Response.redirect(
-        "https://raw.githubusercontent.com/popmechanic/vibes-cli/main/scripts/install.sh",
+        "https://raw.githubusercontent.com/popmechanic/VibesOS/main/scripts/install.sh",
         302
       );
     }

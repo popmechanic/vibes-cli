@@ -48,7 +48,7 @@ export function getBundledPluginPath(): string | null {
 	// Navigate: bun/ → app/ → Resources/ → vibes-plugin/
 	const candidates = [
 		join(import.meta.dir, "..", "..", "vibes-plugin"),    // production .app
-		join(import.meta.dir, "..", "..", "..", ".."),         // dev mode (vibes-skill root)
+		join(import.meta.dir, "..", "..", "..", ".."),         // dev mode (VibesOS root)
 	];
 
 	for (const candidate of candidates) {

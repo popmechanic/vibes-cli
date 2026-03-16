@@ -145,7 +145,7 @@ The plugin uses JSX with Babel runtime transpilation. See `source-templates/base
 
 ```bash
 claude --plugin .                        # From the plugin directory
-claude --plugin /path/to/vibes-skill     # Or with absolute path
+claude --plugin /path/to/VibesOS     # Or with absolute path
 ```
 
 ## Restarting the Preview Server
@@ -220,7 +220,7 @@ Update `README.md` (Skills section).
 
 Update version in **both** files — they must match:
 1. `.claude-plugin/plugin.json` — `"name": "vibes"`
-2. `.claude-plugin/marketplace.json` — top-level `"name": "vibes-cli"`, plugin entry `"name": "vibes"`
+2. `.claude-plugin/marketplace.json` — top-level `"name": "VibesOS"`, plugin entry `"name": "vibes"`
 
 ## Commit Messages
 

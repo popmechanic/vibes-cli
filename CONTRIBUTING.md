@@ -1,6 +1,6 @@
-# Contributing to Vibes CLI
+# Contributing to VibesOS
 
-This guide covers how to develop, test, and contribute to the Vibes CLI plugin.
+This guide covers how to develop, test, and contribute to the VibesOS plugin.
 
 ## Development Setup
 
@@ -13,8 +13,8 @@ This guide covers how to develop, test, and contribute to the Vibes CLI plugin.
 ### Clone and Install
 
 ```bash
-git clone https://github.com/popmechanic/vibes-cli.git
-cd vibes-cli
+git clone https://github.com/popmechanic/VibesOS.git
+cd VibesOS
 cd scripts && npm install
 ```
 
@@ -32,7 +32,7 @@ This loads skills and commands from your local checkout, so you can test changes
 ## Project Structure
 
 ```
-vibes-cli/
+VibesOS/
 ├── .claude-plugin/          # Plugin manifest
 │   ├── plugin.json          # Main config (version here)
 │   └── marketplace.json     # Marketplace metadata (version here too)
@@ -162,4 +162,4 @@ open index.html
 ## Questions?
 
 - [Discord](https://discord.gg/vnpWycj4Ta) - Join the community
-- [GitHub Issues](https://github.com/popmechanic/vibes-cli/issues) - Report bugs
+- [GitHub Issues](https://github.com/popmechanic/VibesOS/issues) - Report bugs

@@ -2,7 +2,7 @@
   "name": "vibes-scripts",
   "version": "1.0.0",
   "type": "module",
-  "description": "Build and deploy scripts for vibes-cli plugin",
+  "description": "Build and deploy scripts for VibesOS plugin",
   "scripts": {
     "start": "bun run server.ts",
     "test": "vitest",
