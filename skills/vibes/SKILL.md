@@ -771,6 +771,48 @@ The hook is available on `window.useSharing` after the auth provider loads. Chec
   `/vibes:vibes`, even for test or diagnostic apps. The skill generates code that's
   compatible with the template by construction. Hand-written code may include imports
   or patterns that conflict with the template's runtime setup.
+- **DON'T** call `database.put()` inside a `useEffect` that runs on mount (component initialization).
+  The database's internal stores may not be initialized yet, causing `Cannot read properties of undefined (reading 'stores')` errors in the Connect write queue. Use user-triggered actions (button clicks, form submissions) instead, or defer with a generous `setTimeout`. The "Load Demo Data" button pattern avoids this by design.
+  ```jsx
+  // BAD — races against store initialization
+  React.useEffect(() => {
+    if (docs.length === 0) {
+      DEFAULTS.forEach(item => database.put(item));
+    }
+  }, [docs.length]);
+
+  // GOOD — user-triggered, stores are ready by then
+  const seedDemo = async () => {
+    if (docs.length > 0) return;
+    for (const item of DEFAULTS) {
+      await database.put(item);
+    }
+  };
+  return <button onClick={seedDemo}>Load Demo Data</button>;
+  ```
+- **DON'T** call `useFireproofClerk()` in a component that renders before the user
+  passes a login/name-entry gate. Split into a gate component (no Fireproof) and
+  a content component (with Fireproof) so the database only initializes after the gate.
+  ```jsx
+  // BAD — Fireproof initializes even while showing login screen
+  function App() {
+    const { database } = useFireproofClerk("my-db");
+    const [user, setUser] = useState("");
+    if (!user) return <LoginScreen onLogin={setUser} />;
+    return <MainContent database={database} />;
+  }
+
+  // GOOD — Fireproof only mounts after login
+  function App() {
+    const [user, setUser] = useState("");
+    if (!user) return <LoginScreen onLogin={setUser} />;
+    return <AppContent user={user} />;
+  }
+  function AppContent({ user }) {
+    const { database } = useFireproofClerk("my-db");
+    // ...
+  }
+  ```
 
 ---
 

@@ -9,8 +9,8 @@
  * Deploy API Worker, which handles Cloudflare deployment, KV, secrets, and assets.
  */
 
-import { readFileSync, existsSync, unlinkSync } from "fs";
-import { resolve, join } from "path";
+import { readFileSync, existsSync, unlinkSync, readdirSync, statSync } from "fs";
+import { resolve, join, relative, extname, dirname } from "path";
 import { validateName, getApp, setApp } from './lib/registry.js';
 import { getAccessToken } from './lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL } from './lib/auth-constants.js';
@@ -126,6 +126,37 @@ async function main() {
       const p = resolve(faviconDir, n);
       if (existsSync(p)) files[`assets/vibes-favicon/${n}`] = 'base64:' + readFileSync(p).toString('base64');
     }
+  }
+
+  // Include app-level assets (assets/ directory next to the app file)
+  const appDir = appIdx !== -1
+    ? dirname(resolve(process.cwd(), args[appIdx + 1]))
+    : fileIdx !== -1
+      ? dirname(resolve(process.cwd(), args[fileIdx + 1]))
+      : process.cwd();
+  const appAssetsDir = resolve(appDir, 'assets');
+  if (existsSync(appAssetsDir) && statSync(appAssetsDir).isDirectory()) {
+    const BINARY_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.woff', '.woff2', '.ttf', '.otf', '.avif']);
+    function walkDir(dir, base) {
+      for (const entry of readdirSync(dir)) {
+        const full = resolve(dir, entry);
+        const rel = base ? `${base}/${entry}` : entry;
+        if (statSync(full).isDirectory()) {
+          walkDir(full, rel);
+        } else {
+          const key = `assets/${rel}`;
+          if (!(key in files)) {
+            if (BINARY_EXTS.has(extname(entry).toLowerCase())) {
+              files[key] = 'base64:' + readFileSync(full).toString('base64');
+            } else {
+              files[key] = readFileSync(full, 'utf8');
+            }
+          }
+        }
+      }
+    }
+    walkDir(appAssetsDir, '');
+    console.log(`Included ${Object.keys(files).filter(k => k.startsWith('assets/')).length} asset file(s)`);
   }
 
   console.log(`Deploying ${name} to Cloudflare Workers via Deploy API...`);

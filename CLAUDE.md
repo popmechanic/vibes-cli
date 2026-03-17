@@ -207,10 +207,35 @@ Then `npm run test:e2e:server` and open `http://test-app.local:3000`.
 | `scripts/lib/paths.js` | Centralized path resolution for all plugin paths |
 | `skills/launch/LAUNCH-REFERENCE.md` | Launch dependency graph, timing, skip modes |
 | `skills/launch/prompts/builder.md` | Builder agent prompt template with {placeholder} markers |
+| `scripts/deploy-cloudflare.js` (asset discovery) | Auto-discovers app-level `assets/` directory and includes files in deploy payload |
 
 ## Cloudflare Deployment
 
 All apps deploy to Cloudflare Workers via the shared Deploy API Worker — no wrangler or user CF tokens needed. Connect is provisioned server-side on first app deploy. Connect metadata is stored in the Deploy API's KV (`subdomain:{name}` records). Local registry at `~/.vibes/deployments.json` caches Connect URLs from the Deploy API response.
+
+### App-Level Static Assets
+
+Apps can include static assets (images, fonts, etc.) by placing them in an `assets/` directory next to the app file:
+
+```
+~/.vibes/apps/my-app/
+├── app.jsx
+├── assets/
+│   ├── logo.png
+│   └── icons/
+│       └── favicon.svg
+└── index.html
+```
+
+The deploy script auto-discovers files in `assets/` and includes them in the deployed worker. Binary files (PNG, JPG, GIF, WebP, ICO, WOFF/WOFF2, TTF, OTF, AVIF) are base64-encoded; text files are included as-is. Assets are served at their path relative to domain root (e.g., `/assets/logo.png`).
+
+Reference assets in app code with absolute paths:
+
+```jsx
+<img src="/assets/logo.png" alt="Logo" />
+```
+
+**Size limit:** All assets are embedded in the worker script. Cloudflare Workers have a 10 MB script size limit, and base64 encoding adds ~33% overhead, so keep total asset size reasonable.
 
 ### Resetting Connect State
 

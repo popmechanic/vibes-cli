@@ -36,6 +36,8 @@ bun "$VIBES_ROOT/scripts/deploy-cloudflare.js" --name myapp --file index.html
 
 On first run, a browser window opens for Pocket ID authentication. Tokens are cached for subsequent deploys.
 
+**Static Assets:** Place images, fonts, or other static files in an `assets/` directory next to the app file. The deploy script auto-discovers and includes them (binary files are base64-encoded). Reference in code with absolute paths like `/assets/logo.png`.
+
 ### Deploy with AI enabled
 
 ```bash
