@@ -2895,7 +2895,7 @@
             <textarea class="chat-input" id="chatInput" placeholder="Describe changes to your app..." rows="1"
               onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
             <div class="chat-btn-spacer"></div>
-            <button class="chat-send" id="sendBtn" onclick="sendMessage()">
+            <button class="chat-send" id="sendBtn" onmousedown="event.preventDefault()" onclick="sendMessage()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           </div>
@@ -3512,6 +3512,7 @@
             <div class="deploy-menu-header">
               <label>App Name</label>
               <input type="text" id="deployNameInput" placeholder="my-app"
+                autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
                 onclick="event.stopPropagation()"
                 onkeydown="event.stopPropagation()"
                 oninput="var p=this.selectionStart;var v=this.value.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');var d=this.value.length-v.length;this.value=v;this.setSelectionRange(Math.max(0,p-d),Math.max(0,p-d));" />

@@ -17,6 +17,7 @@ void hideZoomButton(void) {
         if (!window) return;
 
         @try {
+            [[window standardWindowButton:NSWindowCloseButton] setHidden:YES];
             [[window standardWindowButton:NSWindowZoomButton] setHidden:YES];
             [[window standardWindowButton:NSWindowMiniaturizeButton] setHidden:YES];
         } @catch (NSException *exception) {

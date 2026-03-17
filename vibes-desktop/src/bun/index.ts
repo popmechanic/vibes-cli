@@ -310,7 +310,7 @@ async function main() {
 		{
 			label: "View",
 			submenu: [
-				{ label: "Reload", action: "reload", accelerator: "r" },
+				{ label: "Reload", action: "reload", accelerator: "Command+r" },
 				{ label: "Developer Tools", action: "devtools", accelerator: "Option+Command+I" },
 			],
 		},
