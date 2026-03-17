@@ -224,6 +224,28 @@ function serveThemes(ctx: ServerContext): Response {
   return json(result);
 }
 
+async function serveThemePreview(ctx: ServerContext, url: URL): Promise<Response> {
+  const id = (url.searchParams.get('id') || '').replace(/[^a-z0-9-]/gi, '');
+  if (!id) return new Response('Missing id', { status: 400, headers: corsHeaders() });
+  const imgPath = join(ctx.themeDir, `${id}.png`);
+  const file = Bun.file(imgPath);
+  if (!(await file.exists())) return new Response('No preview', { status: 404, headers: corsHeaders() });
+  return new Response(file, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'no-cache', ...corsHeaders() } });
+}
+
+async function saveThemePreview(ctx: ServerContext, req: Request, url: URL): Promise<Response> {
+  const id = (url.searchParams.get('id') || '').replace(/[^a-z0-9-]/gi, '');
+  if (!id) return new Response('Missing id', { status: 400, headers: corsHeaders() });
+  try {
+    const body = await readBodyWithLimit(req, MAX_SCREENSHOT_SIZE);
+    writeFileSync(join(ctx.themeDir, `${id}.png`), body);
+    return json({ ok: true });
+  } catch (err: any) {
+    if (err.status === 413) return json({ error: 'Preview too large (max 5MB)' }, 413);
+    return json({ error: err.message }, 400);
+  }
+}
+
 function serveHasKey(ctx: ServerContext): Response {
   return json({ hasKey: !!ctx.openRouterKey });
 }
@@ -598,6 +620,8 @@ export function createRouter(ctx: ServerContext) {
       case 'GET /app.jsx':                   return serveAppJsx(ctx);
       case 'GET /themes':                    return serveThemes(ctx);
       case 'GET /themes/has-key':            return serveHasKey(ctx);
+      case 'GET /themes/preview':             return serveThemePreview(ctx, url);
+      case 'POST /themes/preview':            return saveThemePreview(ctx, req, url);
       case 'GET /animations':               return serveAnimations(ctx);
       case 'GET /skills':                    return serveSkills(ctx);
       case 'GET /app-frame':                return serveAppFrame(ctx);

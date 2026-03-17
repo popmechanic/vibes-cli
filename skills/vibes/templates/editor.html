@@ -739,7 +739,7 @@
     /* Theme carousel */
     .theme-carousel {
       display: flex;
-      align-items: center;
+      align-items: stretch;
       gap: 10px;
       width: 100%;
     }
@@ -755,7 +755,6 @@
     }
     .theme-carousel-arrow {
       width: 28px;
-      height: 28px;
       min-width: 28px;
       display: flex;
       align-items: center;
@@ -768,6 +767,7 @@
       padding: 0;
       opacity: 0.6;
       transition: opacity 0.2s;
+      align-self: center;
     }
     .theme-carousel-arrow:hover { opacity: 1; }
     .theme-carousel-viewport {
@@ -785,21 +785,37 @@
       flex-shrink: 0;
       width: calc((100% - 8px - 2 * 12px) / 3);
       box-sizing: border-box;
-      padding: 0.5rem 0.75rem;
+      padding: 0;
       border: 2px solid var(--vibes-near-black);
       border-radius: 8px;
       background: var(--vibes-cream);
       font-family: inherit;
-      font-size: 0.8125rem;
+      cursor: pointer;
+      overflow: hidden;
+      position: relative;
+      transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+    .theme-carousel-btn .theme-thumb {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      background: #333;
+      overflow: hidden;
+      position: relative;
+      border-bottom: 2px solid var(--vibes-near-black);
+      pointer-events: none;
+    }
+    .theme-carousel-btn .theme-name {
+      padding: 0.35rem 0.5rem;
+      font-size: 0.6875rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
-      cursor: pointer;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      position: relative;
-      transition: background 0.2s, transform 0.2s;
+      text-align: center;
     }
     .theme-carousel-btn::after {
       content: '';
@@ -807,7 +823,7 @@
       bottom: 0;
       left: 0;
       right: 0;
-      height: 4px;
+      height: 3px;
     }
     .theme-carousel-btn:nth-child(3n+1)::after { background: var(--vibes-blue); }
     .theme-carousel-btn:nth-child(3n+2)::after { background: var(--vibes-red); }
@@ -2037,13 +2053,25 @@
       background: var(--vibes-cream);
       border: 2px solid var(--vibes-near-black);
       border-radius: 8px;
-      padding: 0.75rem;
+      padding: 0;
       cursor: pointer;
       transition: all 0.15s;
       box-shadow: 4px 4px 0px 0px var(--vibes-blue), 4px 4px 0px 2px var(--vibes-near-black);
+      overflow: hidden;
+    }
+    .theme-card-thumb {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #333;
+      overflow: hidden;
+      pointer-events: none;
+      border-bottom: 2px solid var(--vibes-near-black);
+    }
+    .theme-card-body {
+      padding: 0.5rem 0.75rem 0.6rem;
     }
     .theme-card-delete {
-      position: absolute; top: 4px; right: 4px;
+      position: absolute; top: 4px; right: 4px; z-index: 2;
       width: 20px; height: 20px; border-radius: 50%;
       border: 1.5px solid var(--vibes-near-black);
       background: var(--vibes-cream); color: var(--vibes-near-black);
@@ -3744,14 +3772,20 @@
     }
   }
 
+  function themeThumbHtml(id, context) {
+    const cls = context === 'card' ? 'theme-card-thumb' : 'theme-thumb';
+    if (!id) return `<div class="${cls}" style="display:flex;align-items:center;justify-content:center;background:var(--vibes-near-black);color:var(--vibes-cream);font-size:1.5rem;">✦</div>`;
+    return `<div class="${cls}"><img src="/themes/preview?id=${id}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='var(--vibes-near-black)';this.remove();" /></div>`;
+  }
+
   function buildThemeCarousel() {
     const track = document.getElementById('themeCarouselTrack');
     if (!track) return;
     // "Auto" + all themes
     const items = [{ id: '', name: 'Auto' }, ...themes];
-    track.innerHTML = items.map((t, i) =>
-      `<button class="theme-carousel-btn${t.id === selectedThemeId ? ' active' : ''}" data-theme-id="${t.id}" onclick="selectThemeCarousel('${t.id}')">${t.name}</button>`
-    ).join('');
+    track.innerHTML = items.map((t, i) => {
+      return `<button class="theme-carousel-btn${t.id === selectedThemeId ? ' active' : ''}" data-theme-id="${t.id}" onclick="selectThemeCarousel('${t.id}')">${themeThumbHtml(t.id, 'carousel')}<span class="theme-name">${t.name}</span></button>`;
+    }).join('');
     requestAnimationFrame(() => updateCarouselPosition());
   }
 
@@ -5293,10 +5327,13 @@
     function cardHtml(t) {
       return `<div class="theme-card${t.recommended ? ' recommended' : ''}" onclick="selectTheme('${t.id}')">
         <button class="theme-card-delete" onclick="event.stopPropagation();confirmDeleteTheme('${t.id}','${t.name.replace(/'/g, "\\'")}')" title="Delete theme">&times;</button>
-        ${swatchHtml(t.colors)}
-        <div class="theme-card-name">${t.name}${t.recommended ? '<span class="theme-card-badge">recommended</span>' : ''}</div>
-        <div class="theme-card-mood">${t.mood}</div>
-        <div class="theme-card-for">${t.bestFor}</div>
+        ${themeThumbHtml(t.id, 'card')}
+        <div class="theme-card-body">
+          ${swatchHtml(t.colors)}
+          <div class="theme-card-name">${t.name}${t.recommended ? '<span class="theme-card-badge">recommended</span>' : ''}</div>
+          <div class="theme-card-mood">${t.mood}</div>
+          <div class="theme-card-for">${t.bestFor}</div>
+        </div>
       </div>`;
     }
 
@@ -5371,7 +5408,7 @@
     } else if (badge) {
       badge.style.display = 'none';
     }
-    setTimeout(() => search.focus(), 100);
+    setTimeout(() => { search.focus(); }, 100);
   }
 
   function closeThemeModal() {
@@ -5430,7 +5467,7 @@
     if (stageEl && stage) stageEl.textContent = stage;
   }
 
-  function onThemeCreated(themeId, themeName) {
+  async function onThemeCreated(themeId, themeName) {
     document.getElementById('saveThemeBtn').disabled = false;
 
     // Set the new theme as the current active theme
@@ -5453,21 +5490,153 @@
       if (Date.now() < end) requestAnimationFrame(frame);
     })();
 
-    reloadThemes().then(() => {
-      // After reload, select the newly saved theme in carousel
-      selectThemeCarousel(themeId);
-      // Update the current theme badge in modal
-      const badge = document.getElementById('currentThemeBadge');
-      if (badge) { badge.textContent = 'Current: ' + themeName; badge.style.display = ''; }
-    });
+    // Capture preview in background (don't block UI)
+    captureThemePreview(themeId);
 
-    // Fade out toast and close modal after 2.5s
+    // Reset save mode UI back to browse
+    saveMode = false;
+    document.getElementById('saveThemeSection').style.display = 'none';
+    document.getElementById('themeSearch').style.display = '';
+    document.getElementById('themeGrid').style.display = '';
+    document.getElementById('saveThemeToggle').textContent = 'Save Theme';
+    document.getElementById('saveThemeName').value = '';
+    document.getElementById('saveThemeStatus').innerHTML = '';
+
+    // Close modal, reload themes, carousel will update
+    closeThemeModal();
+
+    await reloadThemes();
+    selectThemeCarousel(themeId);
+
+    // Fade toast
     setTimeout(() => {
       toast.style.opacity = '0';
       setTimeout(() => toast.remove(), 300);
-      closeThemeModal();
-      saveMode = false;
-    }, 2500);
+    }, 1500);
+  }
+
+  async function captureThemePreview(themeId) {
+    try {
+      // Read current theme colors from the preview iframe
+      const pf = document.getElementById('previewFrame');
+      const pdoc = pf?.contentDocument;
+      if (!pdoc) return;
+      const cs = getComputedStyle(pdoc.documentElement);
+      const v = (name) => cs.getPropertyValue(name)?.trim() || '';
+      const bg = v('--comp-bg') || '#1a1a2e';
+      const text = v('--comp-text') || '#eee';
+      const border = v('--comp-border') || '#333';
+      const accent = v('--comp-accent') || '#e94560';
+      const accentText = v('--comp-accent-text') || '#fff';
+      const muted = v('--comp-muted') || '#888';
+      const pageBg = v('--color-background') || '#0f0f23';
+
+      // Draw showcase directly to canvas — no iframes or external libs needed
+      const W = 800, H = 500;
+      const canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      // Helper functions
+      const roundRect = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+      const fillRect = (x, y, w, h, color) => { ctx.fillStyle = color; ctx.fillRect(x, y, w, h); };
+
+      // Page background
+      fillRect(0, 0, W, H, pageBg);
+
+      // Header
+      ctx.fillStyle = text; ctx.font = 'bold 22px system-ui'; ctx.fillText('Theme Preview', 24, 40);
+      ctx.fillStyle = muted; ctx.font = '10px system-ui'; ctx.fillText('SHOWCASE', 680, 38);
+      ctx.strokeStyle = border; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(24, 52); ctx.lineTo(W - 24, 52); ctx.stroke();
+
+      // Card — table
+      const cardY = 66, cardH = 180;
+      roundRect(24, cardY, W - 48, cardH, 8); ctx.fillStyle = bg; ctx.fill();
+      roundRect(24, cardY, W - 48, cardH, 8); ctx.strokeStyle = border; ctx.stroke();
+
+      // Table header
+      ctx.fillStyle = muted; ctx.font = '9px system-ui';
+      const cols = ['ITEM', 'CATEGORY', 'VALUE', 'STATUS'];
+      const colX = [40, 250, 440, 580];
+      cols.forEach((c, i) => ctx.fillText(c, colX[i], cardY + 28));
+      ctx.strokeStyle = border; ctx.beginPath(); ctx.moveTo(40, cardY + 35); ctx.lineTo(W - 40, cardY + 35); ctx.stroke();
+
+      // Table rows
+      const rows = [
+        ['Alpha Module', 'Core', '92', 'Active'],
+        ['Beta System', 'Util', '85', 'Stable'],
+        ['Gamma Process', 'Data', '78', 'Pending'],
+      ];
+      rows.forEach((row, ri) => {
+        const ry = cardY + 56 + ri * 42;
+        ctx.fillStyle = text; ctx.font = '14px system-ui';
+        ctx.fillText(row[0], colX[0], ry); ctx.fillText(row[1], colX[1], ry);
+        ctx.font = 'bold 20px system-ui'; ctx.fillText(row[2], colX[2], ry + 2);
+        if (row[3] === 'Active') {
+          roundRect(colX[3], ry - 12, 60, 20, 3); ctx.fillStyle = accent; ctx.fill();
+          ctx.fillStyle = accentText; ctx.font = 'bold 11px system-ui'; ctx.fillText(row[3], colX[3] + 8, ry + 2);
+        } else {
+          ctx.fillStyle = text; ctx.font = '14px system-ui'; ctx.fillText(row[3], colX[3], ry);
+        }
+        if (ri < rows.length - 1) {
+          ctx.strokeStyle = border + '33'; ctx.beginPath(); ctx.moveTo(40, ry + 16); ctx.lineTo(W - 40, ry + 16); ctx.stroke();
+        }
+      });
+
+      // Bottom row — two cards side by side
+      const row2Y = cardY + cardH + 16, row2H = 190, gap = 16, cw = (W - 48 - gap) / 2;
+
+      // Left card — form
+      roundRect(24, row2Y, cw, row2H, 8); ctx.fillStyle = bg; ctx.fill();
+      roundRect(24, row2Y, cw, row2H, 8); ctx.strokeStyle = border; ctx.stroke();
+      ctx.fillStyle = muted; ctx.font = '9px system-ui'; ctx.fillText('SEARCH', 40, row2Y + 28);
+      roundRect(40, row2Y + 34, cw - 32, 28, 4); ctx.fillStyle = pageBg; ctx.fill();
+      roundRect(40, row2Y + 34, cw - 32, 28, 4); ctx.strokeStyle = border; ctx.stroke();
+      ctx.fillStyle = muted; ctx.font = '13px system-ui'; ctx.fillText('Filter items...', 50, row2Y + 53);
+      ctx.fillStyle = muted; ctx.font = '9px system-ui'; ctx.fillText('CATEGORY', 40, row2Y + 82);
+      roundRect(40, row2Y + 88, cw - 32, 28, 4); ctx.fillStyle = pageBg; ctx.fill();
+      roundRect(40, row2Y + 88, cw - 32, 28, 4); ctx.strokeStyle = border; ctx.stroke();
+      ctx.fillStyle = text; ctx.font = '13px system-ui'; ctx.fillText('All', 50, row2Y + 107);
+      // Buttons
+      roundRect(40, row2Y + 132, 80, 32, 4); ctx.fillStyle = accent; ctx.fill();
+      ctx.fillStyle = accentText; ctx.font = 'bold 11px system-ui'; ctx.fillText('APPLY', 56, row2Y + 152);
+      roundRect(130, row2Y + 132, 80, 32, 4); ctx.strokeStyle = border; ctx.stroke();
+      ctx.fillStyle = text; ctx.font = 'bold 11px system-ui'; ctx.fillText('RESET', 146, row2Y + 152);
+
+      // Right card — controls
+      const rcX = 24 + cw + gap;
+      roundRect(rcX, row2Y, cw, row2H, 8); ctx.fillStyle = bg; ctx.fill();
+      roundRect(rcX, row2Y, cw, row2H, 8); ctx.strokeStyle = border; ctx.stroke();
+      const ctrlItems = [
+        { label: 'Show details', checked: true },
+        { label: 'Include archived', checked: false },
+      ];
+      ctrlItems.forEach((item, i) => {
+        const cy = row2Y + 28 + i * 32;
+        roundRect(rcX + 16, cy, 16, 16, 3);
+        if (item.checked) { ctx.fillStyle = accent; ctx.fill(); ctx.fillStyle = accentText; ctx.font = 'bold 12px system-ui'; ctx.fillText('✓', rcX + 19, cy + 13); }
+        else { ctx.strokeStyle = border; ctx.stroke(); }
+        ctx.fillStyle = text; ctx.font = '13px system-ui'; ctx.fillText(item.label, rcX + 40, cy + 13);
+      });
+      // Toggles
+      const toggleItems = [{ label: 'Live updates', on: true }, { label: 'Compact view', on: false }];
+      toggleItems.forEach((item, i) => {
+        const ty = row2Y + 100 + i * 32;
+        roundRect(rcX + 16, ty, 36, 18, 9);
+        ctx.fillStyle = item.on ? accent : border; ctx.fill();
+        ctx.beginPath(); ctx.arc(item.on ? rcX + 40 : rcX + 28, ty + 9, 6, 0, Math.PI * 2);
+        ctx.fillStyle = item.on ? accentText : text; ctx.fill();
+        ctx.fillStyle = text; ctx.font = '13px system-ui'; ctx.fillText(item.label, rcX + 60, ty + 14);
+      });
+
+      // Convert to blob and upload
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+      if (!blob || blob.size < 100) return;
+      await fetch('/themes/preview?id=' + encodeURIComponent(themeId), { method: 'POST', body: blob });
+      console.log('[ThemePreview] Saved preview for', themeId);
+    } catch (err) {
+      console.warn('[ThemePreview] Failed:', err);
+    }
   }
 
   async function reloadThemes() {
