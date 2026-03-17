@@ -236,8 +236,7 @@ RULES:
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
 - Never change Fireproof document types or query filters${useAI ? AI_INSTRUCTIONS : ''}`;
 
-  const maxTurns = skillId ? 16 : (animationId || effects.length > 0 || reference) ? 12 : 8;
-  await runOneShot(prompt, { lockType: 'chat', maxTurns, model, cwd: currentAppDir(ctx) || ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent, ctx.projectRoot);
+  await runOneShot(prompt, { lockType: 'chat', model, cwd: currentAppDir(ctx) || ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent, ctx.projectRoot);
 
   sanitizeAppJsx(currentAppDir(ctx) || ctx.projectRoot);
 }

@@ -310,6 +310,8 @@ export async function runOneShot(
     const isMaxTurns = stderrBuffer.includes('max_turns') || stderrBuffer.includes('maxTurns');
     if (isMaxTurns) {
       console.log(`[OneShot] Hit max_turns (hasEdited=${hasEdited}) — treating as success`);
+      // Append a notice so the user knows the agent ran out of turns
+      resultText = (resultText || '') + '\n\n*[Ran out of turns — send another message to continue where I left off]*';
     } else if (!errorSent) {
       onEvent({ type: 'error', message: stderrBuffer.slice(0, 500) || `Claude exited with code ${exitCode}` });
       return null;
