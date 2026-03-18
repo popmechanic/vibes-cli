@@ -21,6 +21,7 @@ import { isSetupComplete, runSetup, getBundledPluginPath } from "./setup.ts";
 import { SETUP_HTML } from "./setup-html.ts";
 import { checkClaudeAuth, startClaudeLogin, waitForClaudeAuth, jsStr, type ClaudeAuthResult } from "./claude-auth.ts";
 import { waitForSetupAction, stopSetupIpc } from "./setup-ipc.ts";
+import { checkAndPromptForUpdate } from "./update-check.ts";
 
 // --- Debug logging (~/Library/Logs/VibesOS/desktop.log) ---
 const LOG_DIR = join(homedir(), "Library", "Logs", "VibesOS");
@@ -219,6 +220,15 @@ async function main() {
 	} else {
 		log(`[vibes-desktop] Authenticated as ${authCheck.email}`);
 	}
+
+	// --- Update check (non-blocking, 5-second timeout) ---
+	log("[vibes-desktop] Checking for updates...");
+	const updateResult = await checkAndPromptForUpdate(mainWindow, appVersion, log);
+	if (updateResult.applied) {
+		// applyUpdate() restarts the app — we shouldn't reach here, but just in case:
+		return;
+	}
+	log(`[vibes-desktop] Update check complete (skipped: ${updateResult.skipped})`);
 
 	// Expose resolved Claude path for server subprocess spawning
 	process.env.CLAUDE_BIN = claudeBin;
