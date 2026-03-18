@@ -18,9 +18,10 @@ if (typeof Bun === 'undefined') { console.error('This server requires Bun. Insta
 
 import { loadConfig, type ServerContext } from './server/config.ts';
 import { createRouter } from './server/router.ts';
-import { createWsHandler, type WsData } from './server/ws.ts';
+import { createWsHandler, broadcast, type WsData } from './server/ws.ts';
 import { killProcessOnPort, waitForPort } from './server/lifecycle.ts';
 import { cancelCurrent } from './server/claude-bridge.ts';
+import { createHmrWatcher, type HmrWatcher } from './server/hmr.ts';
 
 export interface StartServerOptions {
   port?: number;
@@ -34,6 +35,7 @@ export interface StartServerResult {
   server: ReturnType<typeof Bun.serve>;
   ctx: ServerContext;
   shutdown: () => void;
+  hmrWatcher?: HmrWatcher | null;
 }
 
 export async function startServer(options?: StartServerOptions): Promise<StartServerResult> {
@@ -56,7 +58,8 @@ export async function startServer(options?: StartServerOptions): Promise<StartSe
   process.argv = origArgv;
 
   const router = createRouter(ctx);
-  const wsHandler = createWsHandler(ctx);
+  const hmrWatcher = ctx.mode === 'editor' ? createHmrWatcher(ctx, broadcast) : null;
+  const wsHandler = createWsHandler(ctx, hmrWatcher);
 
   if (await killProcessOnPort(ctx.port)) {
     console.log(`Port ${ctx.port} in use — taking over from previous server...`);
@@ -90,6 +93,7 @@ export async function startServer(options?: StartServerOptions): Promise<StartSe
   const shutdownFn = () => {
     if (shuttingDown) return;
     shuttingDown = true;
+    if (hmrWatcher) hmrWatcher.stop();
     cancelCurrent();
     server.stop(true);
   };
@@ -115,7 +119,7 @@ export async function startServer(options?: StartServerOptions): Promise<StartSe
   console.log(`  Anims:  ${ctx.animations.length} loaded`);
   if (!options?.managed) console.log(`  Press Ctrl+C to stop\n`);
 
-  return { server, ctx, shutdown: shutdownFn };
+  return { server, ctx, shutdown: shutdownFn, hmrWatcher };
 }
 
 // --- CLI entry point ---
