@@ -117,9 +117,11 @@ export function createHmrWatcher(
   function stop(): void {
     active = false;
     stopPolling();
+    // Flush any pending check — don't discard it, the last write matters most
     if (debounceTimer) {
       clearTimeout(debounceTimer);
       debounceTimer = null;
+      checkAndPush();
     }
     lastSnapshot = '';
   }
