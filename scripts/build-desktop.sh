@@ -106,24 +106,26 @@ do {
     # The app icon gets Apple's automatic squircle mask via .iconset, but the
     # DMG icon is set via resource fork and needs manual masking.
     MASKED_PNG="/tmp/dmg-icon-masked.png"
-    swift -e "
+    swift -e '
 import AppKit
 let size = 1024
-let radius = CGFloat(size) * 0.225
-let srcImage = NSImage(contentsOfFile: \"$DMG_ICON_PNG\")!
+let inset = CGFloat(size) * 0.035
+let contentSize = CGFloat(size) - inset * 2
+let radius = contentSize * 0.225
+let srcImage = NSImage(contentsOfFile: "'"$DMG_ICON_PNG"'")!
 let output = NSImage(size: NSSize(width: size, height: size))
 output.lockFocusFlipped(false)
 NSGraphicsContext.current!.imageInterpolation = .high
-let path = NSBezierPath(roundedRect: NSRect(x: 0, y: 0, width: size, height: size), xRadius: radius, yRadius: radius)
+let path = NSBezierPath(roundedRect: NSRect(x: inset, y: inset, width: contentSize, height: contentSize), xRadius: radius, yRadius: radius)
 path.addClip()
-srcImage.draw(in: NSRect(x: 0, y: 0, width: size, height: size))
+srcImage.draw(in: NSRect(x: inset, y: inset, width: contentSize, height: contentSize))
 output.unlockFocus()
 let cgImage = output.cgImage(forProposedRect: nil, context: nil, hints: nil)!
 let rep = NSBitmapImageRep(cgImage: cgImage)
 rep.size = NSSize(width: size, height: size)
 let png = rep.representation(using: .png, properties: [:])!
-try! png.write(to: URL(fileURLWithPath: \"$MASKED_PNG\"))
-" 2>/dev/null && DMG_ICON_SRC="$MASKED_PNG" || DMG_ICON_SRC="$DMG_ICON_PNG"
+try! png.write(to: URL(fileURLWithPath: "'"$MASKED_PNG"'"))
+' 2>/dev/null && DMG_ICON_SRC="$MASKED_PNG" || DMG_ICON_SRC="$DMG_ICON_PNG"
 
     DMG_ICONSET="/tmp/dmg-icon.iconset"
     rm -rf "$DMG_ICONSET"
