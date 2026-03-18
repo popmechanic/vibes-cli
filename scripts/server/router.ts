@@ -7,6 +7,8 @@
 
 import { readFileSync, existsSync, readdirSync, mkdirSync, copyFileSync, statSync, writeFileSync } from 'fs';
 import { join, extname, resolve } from 'path';
+import { homedir } from 'os';
+import { resolveClaudeBin, cleanEnv } from '../lib/claude-subprocess.js';
 import type { ServerContext } from './config.ts';
 import { getRecommendedThemeIds, loadOpenRouterKey } from './config.ts';
 import { currentAppDir, resolveAppJsxPath } from './app-context.js';
@@ -353,6 +355,44 @@ function editorAuthLogout(): Response {
   return json({ ok: true });
 }
 
+function editorClaudeAuthStatus(): Response {
+  try {
+    const configPath = join(homedir(), '.vibes', 'claude-config', '.claude.json');
+    if (!existsSync(configPath)) {
+      return json({ loggedIn: false, email: null });
+    }
+    const data = JSON.parse(readFileSync(configPath, 'utf-8'));
+    const email = data?.oauthAccount?.emailAddress || null;
+    return json({ loggedIn: !!email, email });
+  } catch {
+    return json({ loggedIn: false, email: null });
+  }
+}
+
+function editorClaudeLogout(ctx: ServerContext): Response {
+  try {
+    const claudeBin = resolveClaudeBin();
+    const env = cleanEnv();
+    const result = Bun.spawnSync({
+      cmd: [claudeBin, 'auth', 'logout'],
+      env: env as Record<string, string>,
+      timeout: 10_000,
+    });
+    if (result.exitCode !== 0) {
+      const stderr = result.stderr ? new TextDecoder().decode(result.stderr) : '';
+      console.error('[Claude Logout] Failed:', stderr);
+      return json({ ok: false, error: stderr || 'Logout failed' }, 500);
+    }
+    if (ctx.managed && ctx.onClaudeReauth) {
+      ctx.onClaudeReauth();
+    }
+    return json({ ok: true });
+  } catch (err: any) {
+    console.error('[Claude Logout] Error:', err.message);
+    return json({ ok: false, error: err.message }, 500);
+  }
+}
+
 function editorInitialPrompt(ctx: ServerContext): Response {
   return json({ prompt: ctx.initialPrompt });
 }
@@ -628,6 +668,8 @@ export function createRouter(ctx: ServerContext) {
       case 'GET /editor/status':            return editorStatus(ctx);
       case 'POST /editor/auth/login':       return editorAuthLogin(ctx);
       case 'POST /editor/auth/logout':      return editorAuthLogout();
+      case 'GET /editor/claude-auth':       return editorClaudeAuthStatus();
+      case 'POST /editor/claude-logout':    return editorClaudeLogout(ctx);
       case 'GET /editor/initial-prompt':    return editorInitialPrompt(ctx);
       case 'GET /editor/app-exists':        return editorAppExists(ctx);
       case 'GET /editor/apps':              return editorListApps(ctx);
