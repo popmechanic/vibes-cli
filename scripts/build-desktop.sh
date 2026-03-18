@@ -102,19 +102,42 @@ do {
 
   # Set custom icon on the .dmg file itself (Finder display)
   if [ -f "$DMG_ICON_PNG" ]; then
+    # Apply macOS-style rounded rect mask to remove dark corner artifacts.
+    # The app icon gets Apple's automatic squircle mask via .iconset, but the
+    # DMG icon is set via resource fork and needs manual masking.
+    MASKED_PNG="/tmp/dmg-icon-masked.png"
+    swift -e "
+import AppKit
+let size = 1024
+let radius = CGFloat(size) * 0.225
+let srcImage = NSImage(contentsOfFile: \"$DMG_ICON_PNG\")!
+let output = NSImage(size: NSSize(width: size, height: size))
+output.lockFocusFlipped(false)
+NSGraphicsContext.current!.imageInterpolation = .high
+let path = NSBezierPath(roundedRect: NSRect(x: 0, y: 0, width: size, height: size), xRadius: radius, yRadius: radius)
+path.addClip()
+srcImage.draw(in: NSRect(x: 0, y: 0, width: size, height: size))
+output.unlockFocus()
+let cgImage = output.cgImage(forProposedRect: nil, context: nil, hints: nil)!
+let rep = NSBitmapImageRep(cgImage: cgImage)
+rep.size = NSSize(width: size, height: size)
+let png = rep.representation(using: .png, properties: [:])!
+try! png.write(to: URL(fileURLWithPath: \"$MASKED_PNG\"))
+" 2>/dev/null && DMG_ICON_SRC="$MASKED_PNG" || DMG_ICON_SRC="$DMG_ICON_PNG"
+
     DMG_ICONSET="/tmp/dmg-icon.iconset"
     rm -rf "$DMG_ICONSET"
     mkdir -p "$DMG_ICONSET"
-    sips -z 1024 1024 "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_512x512@2x.png" 2>/dev/null
-    sips -z 512  512  "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_512x512.png"    2>/dev/null
-    sips -z 512  512  "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_256x256@2x.png" 2>/dev/null
-    sips -z 256  256  "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_256x256.png"    2>/dev/null
-    sips -z 256  256  "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_128x128@2x.png" 2>/dev/null
-    sips -z 128  128  "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_128x128.png"    2>/dev/null
-    sips -z 64   64   "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_32x32@2x.png"   2>/dev/null
-    sips -z 32   32   "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_32x32.png"      2>/dev/null
-    sips -z 32   32   "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_16x16@2x.png"   2>/dev/null
-    sips -z 16   16   "$DMG_ICON_PNG" --out "$DMG_ICONSET/icon_16x16.png"      2>/dev/null
+    sips -z 1024 1024 "$DMG_ICON_SRC" --out "$DMG_ICONSET/icon_512x512@2x.png" 2>/dev/null
+    sips -z 512  512  "$DMG_ICON_SRC" --out "$DMG_ICONSET/icon_512x512.png"    2>/dev/null
+    sips -z 512  512  "$DMG_ICON_SRC" --out "$DMG_ICONSET/icon_256x256@2x.png" 2>/dev/null
+    sips -z 256  256  "$DMG_ICON_SRC" --out "$DMG_ICONSET/icon_256x256.png"    2>/dev/null
+    sips -z 256  256  "$DMG_ICON_SRC" --out "$DMG_ICONSET/icon_128x128@2x.png" 2>/dev/null
+    sips -z 128  128  "$DMG_ICON_SRC" --out "$DMG_ICONSET/icon_128x128.png"    2>/dev/null
+    sips -z 64   64   "$DMG_ICON_SRC" --out "$DMG_ICONSET/icon_32x32@2x.png"   2>/dev/null
+    sips -z 32   32   "$DMG_ICON_SRC" --out "$DMG_ICONSET/icon_32x32.png"      2>/dev/null
+    sips -z 32   32   "$DMG_ICON_SRC" --out "$DMG_ICONSET/icon_16x16@2x.png"   2>/dev/null
+    sips -z 16   16   "$DMG_ICON_SRC" --out "$DMG_ICONSET/icon_16x16.png"      2>/dev/null
     DMG_ICNS="/tmp/dmg-icon.icns"
     iconutil -c icns "$DMG_ICONSET" -o "$DMG_ICNS"
     sips -i "$DMG_ICNS" 2>/dev/null || true
@@ -125,7 +148,7 @@ do {
       rm -f /tmp/dmg-icon.rsrc
       echo "  DMG file icon set from dmg-icon.png"
     fi
-    rm -rf "$DMG_ICONSET" "$DMG_ICNS"
+    rm -rf "$DMG_ICONSET" "$DMG_ICNS" "$MASKED_PNG"
   fi
 
   echo "  DMG created: $ORIG_DMG"
