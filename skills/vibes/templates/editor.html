@@ -4468,23 +4468,33 @@
     const frame = document.getElementById('previewFrame');
     console.log('[reloadPreview] pendingThemeId:', pendingThemeId);
 
-    if (pendingThemeId) {
-      const themeToSet = pendingThemeId;
-      pendingThemeId = null;
-      frame.onload = () => {
-        try {
-          const iframeDoc = frame.contentDocument || frame.contentWindow.document;
-          frame.contentWindow.localStorage.setItem('vibes-theme', themeToSet);
-          iframeDoc.dispatchEvent(new CustomEvent('vibes-design-request', { detail: { theme: themeToSet } }));
-          console.log('[reloadPreview] Theme dispatched:', themeToSet);
-        } catch (e) {
-          console.warn('[Preview] Could not dispatch theme event:', e);
-        }
-        frame.onload = null;
-      };
-    }
+    // Fetch assembled HTML and swap via blob URL for smooth transition (no blank flash)
+    fetch('/app-frame?t=' + Date.now()).then(r => r.text()).then(html => {
+      if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
+      const blob = new Blob([html], { type: 'text/html' });
+      lastBlobUrl = URL.createObjectURL(blob);
 
-    frame.src = '/app-frame?t=' + Date.now();
+      if (pendingThemeId) {
+        const themeToSet = pendingThemeId;
+        pendingThemeId = null;
+        frame.onload = () => {
+          try {
+            const iframeDoc = frame.contentDocument || frame.contentWindow.document;
+            frame.contentWindow.localStorage.setItem('vibes-theme', themeToSet);
+            iframeDoc.dispatchEvent(new CustomEvent('vibes-design-request', { detail: { theme: themeToSet } }));
+            console.log('[reloadPreview] Theme dispatched:', themeToSet);
+          } catch (e) {
+            console.warn('[Preview] Could not dispatch theme event:', e);
+          }
+          frame.onload = null;
+        };
+      }
+
+      frame.src = lastBlobUrl;
+    }).catch(() => {
+      // Fallback to direct reload if fetch fails
+      frame.src = '/app-frame?t=' + Date.now();
+    });
   }
 
   function updateDeployButtons() {
