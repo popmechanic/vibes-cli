@@ -20,7 +20,7 @@ DMG_ICON_PNG="$DESKTOP_DIR/dmg-icon.png"
 
 # 1. Sync version from plugin.json → electrobun.config.ts
 PLUGIN_VERSION=$(grep '"version"' "$PLUGIN_JSON" | head -1 | sed 's/.*"version": *"\([^"]*\)".*/\1/')
-echo "[1/4] Syncing version: $PLUGIN_VERSION"
+echo "[1/5] Syncing version: $PLUGIN_VERSION"
 
 # Use bun to update the version in electrobun.config.ts
 bun -e "
@@ -32,22 +32,89 @@ bun -e "
 "
 
 # 2. Compile native dylib (if source is newer than output)
-echo "[2/4] Compiling native dylib..."
+echo "[2/5] Compiling native dylib..."
 if [ ! -f "$DYLIB_OUT" ] || [ "$DYLIB_SRC" -nt "$DYLIB_OUT" ]; then
   bash "$DESKTOP_DIR/native/macos/build-window-controls.sh"
 else
   echo "  Dylib up to date, skipping."
 fi
 
-# 3. Build ElectroBun app (clean build — ElectroBun caches compiled TS)
-echo "[3/4] Building ElectroBun app (includes plugin bundling)..."
+# 3. Pre-mask app icon PNGs with macOS squircle to prevent corner fringing.
+#    macOS applies its own squircle mask to .icns icons at display time, but
+#    anti-aliasing at the boundary of non-transparent content creates dark
+#    corner artifacts. Pre-masking makes the corners transparent so macOS
+#    clips only transparent pixels.
+echo "[3/5] Pre-masking app icon..."
+ICONSET_DIR="$DESKTOP_DIR/icon.iconset"
+swift -e '
+import AppKit
+import CoreGraphics
+
+let iconsetDir = "'"$ICONSET_DIR"'"
+let fm = FileManager.default
+let files = try! fm.contentsOfDirectory(atPath: iconsetDir).filter { $0.hasSuffix(".png") }
+
+for file in files {
+    let filePath = "\(iconsetDir)/\(file)"
+    guard let dataProvider = CGDataProvider(filename: filePath),
+          let cgImage = CGImage(pngDataProviderSource: dataProvider, decode: nil, shouldInterpolate: true, intent: .defaultIntent)
+    else { continue }
+
+    let w = cgImage.width
+    let h = cgImage.height
+
+    // macOS icon mask is a continuous-corner (squircle) rounded rect at ~22.37%.
+    // Use slightly larger radius to ensure our mask exceeds the system mask.
+    let radius = CGFloat(w) * 0.23
+
+    // Use CGPath with continuous corners (squircle) — matches macOS icon shape.
+    // NSBezierPath uses circular arc corners which do NOT match the system mask.
+    let rect = CGRect(x: 0, y: 0, width: w, height: h)
+    let squirclePath = CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil)
+
+    let colorSpace = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(data: nil, width: w, height: h,
+                              bitsPerComponent: 8, bytesPerRow: 0,
+                              space: colorSpace,
+                              bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+    else { continue }
+
+    // Disable anti-aliasing on the clip to avoid semi-transparent edge pixels.
+    // Semi-transparent gray pixels appear as a dark border when composited against
+    // dark backgrounds. macOS applies its own anti-aliased mask at display time.
+    ctx.setShouldAntialias(false)
+    ctx.addPath(squirclePath)
+    ctx.clip()
+    ctx.setShouldAntialias(true)
+    ctx.draw(cgImage, in: rect)
+
+    guard let masked = ctx.makeImage() else { continue }
+
+    let url = URL(fileURLWithPath: filePath) as CFURL
+    guard let dest = CGImageDestinationCreateWithURL(url, "public.png" as CFString, 1, nil) else { continue }
+    CGImageDestinationAddImage(dest, masked, nil)
+    CGImageDestinationFinalize(dest)
+}
+print("  Masked \(files.count) icon PNGs")
+'
+
+# 4. Build ElectroBun app (clean build — ElectroBun caches compiled TS)
+echo "[4/5] Building ElectroBun app (includes plugin bundling)..."
 rm -rf "$DESKTOP_DIR/build"
 cd "$DESKTOP_DIR"
-bunx electrobun build --env=stable
+# Patch generation may fail on first build with baseUrl (no previous version to diff).
+# The build, signing, and notarization still succeed — allow non-zero exit.
+bunx electrobun build --env=stable || echo "  (electrobun build exited non-zero — patch generation may have failed, continuing)"
 
-# 4. Create polished DMG with create-dmg
+# Extract .app from tar (ElectroBun packages it during notarize/staple)
+if [ -f "$BUILD_DIR/$APP_NAME.app.tar" ] && [ ! -d "$BUILD_DIR/$APP_NAME.app" ]; then
+  echo "  Extracting .app from tar..."
+  cd "$BUILD_DIR" && tar xf "$APP_NAME.app.tar" && cd "$REPO_ROOT"
+fi
+
+# 5. Create polished DMG with create-dmg
 # (Plugin files are bundled by postBuild/postWrap hooks before signing)
-echo "[4/4] Creating DMG..."
+echo "[5/5] Creating DMG..."
 ORIG_DMG="$ARTIFACTS_DIR/stable-macos-arm64-VibesOS.dmg"
 rm -f "$ORIG_DMG"
 
