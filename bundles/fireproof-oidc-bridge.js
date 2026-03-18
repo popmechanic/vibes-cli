@@ -624,8 +624,20 @@ OIDCTokenStrategy.prototype.waitForToken = function (_sthis, _logger, _deviceId,
     ? opts.context.get("appId") : null)
     || ("oidc-" + (typeof window !== "undefined" ? window.location.host : "app") + "-" + _deviceId);
 
-  // Ensure user exists in dashboard database first (required before any other API calls)
-  return self._dashApi.ensureUser({}).then(function (rUser) {
+  // Ensure user exists in dashboard database first (required before any other API calls).
+  // Retry once after a delay — newly provisioned dashboard Workers can take a few seconds
+  // to propagate on Cloudflare, causing 401 on the first attempt.
+  function _ensureUserWithRetry(attempt) {
+    return self._dashApi.ensureUser({}).then(function (rUser) {
+      if (rUser.isErr() && attempt < 2) {
+        console.warn("[vibes-oidc] ensureUser attempt " + attempt + " failed, retrying in 3s...");
+        return new Promise(function (resolve) { setTimeout(resolve, 3000); })
+          .then(function () { return _ensureUserWithRetry(attempt + 1); });
+      }
+      return rUser;
+    });
+  }
+  return _ensureUserWithRetry(1).then(function (rUser) {
     if (rUser.isErr()) {
       console.error("[vibes-oidc] ensureUser failed:", rUser.Err());
       return undefined;
