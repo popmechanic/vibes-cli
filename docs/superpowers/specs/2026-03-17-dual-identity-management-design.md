@@ -37,7 +37,7 @@ The Claude email is fetched from a new server endpoint on panel open. While load
 
 ### Server Endpoints
 
-**`GET /editor/auth-status`**
+**`GET /editor/claude-auth`**
 
 Reads `~/.vibes/claude-config/.claude.json`, extracts the `oauthAccount.emailAddress` field (camelCase, matching Claude CLI's config format). This direct file-read approach avoids subprocess overhead on every panel open. Field names must stay in sync with `checkClaudeAuth()` in `vibes-desktop/src/bun/claude-auth.ts`.
 
@@ -72,7 +72,7 @@ ctx.onClaudeReauth = () => {
 
 After successful re-auth:
 - Desktop app reloads the editor URL
-- Editor re-fetches `/editor/auth-status` to display the new account
+- Editor re-fetches `/editor/claude-auth` to display the new account
 
 ### Sign-Out Flow (Complete)
 
