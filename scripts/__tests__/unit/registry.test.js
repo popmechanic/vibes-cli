@@ -7,7 +7,6 @@
  * - getCloudflareConfig / setCloudflareConfig
  * - isFirstDeploy
  * - deriveConnectUrls
- * - migrateFromLegacy
  *
  * Uses VIBES_HOME env var override + vi.resetModules() for test isolation.
  */
@@ -246,48 +245,4 @@ describe('registry', () => {
     });
   });
 
-  describe('migrateFromLegacy', () => {
-    it('creates app entry from legacy env vars and connect data', () => {
-      const envVars = {
-        VITE_OIDC_AUTHORITY: 'https://auth.example.com',
-        VITE_OIDC_CLIENT_ID: 'test-client-id',
-        VITE_API_URL: 'https://studio.exe.xyz/api/',
-        VITE_CLOUD_URL: 'fpcloud://studio.exe.xyz?protocol=wss'
-      };
-      const connectData = {
-        studio: 'my-legacy-app',
-        api_url: 'https://studio.exe.xyz/api/',
-        cloud_url: 'fpcloud://studio.exe.xyz?protocol=wss'
-      };
-
-      const entry = registry.migrateFromLegacy(envVars, connectData);
-      expect(entry.name).toBe('my-legacy-app');
-      expect(entry.oidc.authority).toBe('https://auth.example.com');
-      expect(entry.oidc.clientId).toBe('test-client-id');
-      expect(entry.connect.apiUrl).toBe('https://studio.exe.xyz/api/');
-      expect(entry.connect.cloudUrl).toBe('fpcloud://studio.exe.xyz?protocol=wss');
-
-      // Verify persisted
-      const loaded = registry.getApp('my-legacy-app');
-      expect(loaded.name).toBe('my-legacy-app');
-    });
-
-    it('falls back to connectData keys when envVars are missing', () => {
-      const envVars = {};
-      const connectData = {
-        studio: 'fallback-app',
-        api_url: 'https://fb.exe.xyz/api/',
-        cloud_url: 'fpcloud://fb.exe.xyz?protocol=wss'
-      };
-
-      const entry = registry.migrateFromLegacy(envVars, connectData);
-      expect(entry.oidc.authority).toBe('');
-      expect(entry.connect.apiUrl).toBe('https://fb.exe.xyz/api/');
-    });
-
-    it('defaults app name to "legacy" when no studio name', () => {
-      const entry = registry.migrateFromLegacy({}, {});
-      expect(entry.name).toBe('legacy');
-    });
-  });
 });

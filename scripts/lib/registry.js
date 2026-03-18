@@ -177,26 +177,3 @@ export function deriveConnectUrls(cloudBackendHttpsUrl) {
   };
 }
 
-/**
- * Migrate legacy .env + .connect data to registry format.
- * Creates an app entry from old-style environment variables and connect config.
- */
-export function migrateFromLegacy(envVars, connectData) {
-  const appName = connectData.studio || 'legacy';
-  const entry = {
-    name: appName,
-    createdAt: new Date().toISOString(),
-    oidc: {
-      authority: envVars.VITE_OIDC_AUTHORITY || '',
-      clientId: envVars.VITE_OIDC_CLIENT_ID || ''
-    },
-    connect: {
-      stage: appName,
-      apiUrl: envVars.VITE_API_URL || connectData.api_url || '',
-      cloudUrl: envVars.VITE_CLOUD_URL || connectData.cloud_url || '',
-      deployedAt: new Date().toISOString()
-    }
-  };
-  setApp(appName, entry);
-  return entry;
-}

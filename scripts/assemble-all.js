@@ -13,7 +13,6 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { TEMPLATES } from './lib/paths.js';
-import { populateConnectConfig } from './lib/env-utils.js';
 import { APP_PLACEHOLDER, loadAndValidateTemplate } from './lib/assembly-utils.js';
 
 const templatePath = TEMPLATES.vibesBasic;
@@ -26,7 +25,6 @@ try {
   console.error(err.message);
   process.exit(1);
 }
-const envVars = {};
 
 // Get riff directories from args
 const riffDirs = process.argv.slice(2);
@@ -48,8 +46,7 @@ const results = await Promise.all(
 
     try {
       const appCode = readFileSync(appPath, 'utf8').trim();
-      const assembled = template.replace(APP_PLACEHOLDER, appCode);
-      const output = populateConnectConfig(assembled, envVars);
+      const output = template.replace(APP_PLACEHOLDER, appCode);
       writeFileSync(outputPath, output);
       return { dir, success: true };
     } catch (e) {

@@ -151,30 +151,7 @@ multiSelect: false
 
 Store as `appName` (URL-safe slug: lowercase, hyphens, no special chars).
 
-Now resolve the Cloudflare Workers URL:
-
-```bash
-bun "{pluginRoot}/scripts/lib/resolve-workers-url.js" --name "{appName}"
-```
-
-The script outputs the full URL, e.g., `wedding-photos.marcus-e.workers.dev`. Store this as `domain`.
-
-**Fallback**: If the script fails (e.g., wrangler not authenticated), ask the user:
-
-```
-Question: "What's your Cloudflare Workers subdomain? (Run `bunx wrangler whoami` to find your account name)"
-Header: "CF subdomain"
-Options:
-- Label: "Let me check"
-  Description: "I'll run wrangler whoami and tell you"
-- Label: "I know it"
-  Description: "I'll type my subdomain (e.g., marcus-e)"
-multiSelect: false
-```
-
-Then construct: `{appName}.{subdomain}.workers.dev` and store as `domain`.
-
-The user can configure a custom domain later (see Step 5.2).
+The app will be deployed via the Deploy API (`/vibes:cloudflare`), which assigns the domain automatically. Store `{appName}.vibes.diy` as `domain`.
 
 ---
 

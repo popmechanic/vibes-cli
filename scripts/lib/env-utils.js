@@ -30,12 +30,6 @@ export function validateOIDCClientId(id) {
   return typeof id === 'string' && id.length > 0;
 }
 
-/**
- * Validate that an OpenRouter API key has the correct format
- */
-export function validateOpenRouterKey(key) {
-  return typeof key === 'string' && key.startsWith('sk-or-');
-}
 
 /**
  * Replace Connect config placeholders with values from env vars object
@@ -54,25 +48,6 @@ export function validateConnectUrl(url, type) {
   if (type === 'api') return url.startsWith('https://');
   if (type === 'cloud') return url.startsWith('fpcloud://');
   return false;
-}
-
-/**
- * Derive Connect URLs from a studio name (legacy exe.dev pattern).
- * NOTE: registry.js has a different deriveConnectUrls for Cloudflare Workers URLs.
- * @param {string} studioName - Studio name or full hostname
- * @returns {{ apiUrl: string, cloudUrl: string }}
- */
-export function deriveStudioUrls(studioName) {
-  if (!studioName || typeof studioName !== 'string') {
-    throw new Error('Studio name is required');
-  }
-  const name = studioName.trim();
-  // If it already contains dots, treat as full hostname
-  const host = name.includes('.') ? name : `${name}.exe.xyz`;
-  return {
-    apiUrl: `https://${host}/api/`,
-    cloudUrl: `fpcloud://${host}?protocol=wss`,
-  };
 }
 
 

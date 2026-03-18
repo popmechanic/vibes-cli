@@ -3,27 +3,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { validateOpenRouterKey, validateConnectUrl, deriveStudioUrls } from '../../lib/env-utils.js';
-
-describe('validateOpenRouterKey', () => {
-  it('accepts valid OpenRouter keys', () => {
-    expect(validateOpenRouterKey('sk-or-v1-abc123')).toBe(true);
-    expect(validateOpenRouterKey('sk-or-something-else')).toBe(true);
-  });
-
-  it('rejects keys without sk-or- prefix', () => {
-    expect(validateOpenRouterKey('sk-abc123')).toBe(false);
-    expect(validateOpenRouterKey('pk_test_abc')).toBe(false);
-    expect(validateOpenRouterKey('openrouter-key')).toBe(false);
-  });
-
-  it('rejects non-string values', () => {
-    expect(validateOpenRouterKey(null)).toBe(false);
-    expect(validateOpenRouterKey(undefined)).toBe(false);
-    expect(validateOpenRouterKey(123)).toBe(false);
-    expect(validateOpenRouterKey('')).toBe(false);
-  });
-});
+import { validateConnectUrl } from '../../lib/env-utils.js';
 
 
 describe('validateConnectUrl', () => {
@@ -46,26 +26,3 @@ describe('validateConnectUrl', () => {
     expect(validateConnectUrl(null, 'cloud')).toBe(false);
   });
 });
-
-describe('deriveStudioUrls', () => {
-  it('derives URLs from simple studio name', () => {
-    const urls = deriveStudioUrls('my-studio');
-    expect(urls.apiUrl).toBe('https://my-studio.exe.xyz/api/');
-    expect(urls.cloudUrl).toBe('fpcloud://my-studio.exe.xyz?protocol=wss');
-  });
-  it('handles full hostnames (with dots)', () => {
-    const urls = deriveStudioUrls('custom.example.com');
-    expect(urls.apiUrl).toBe('https://custom.example.com/api/');
-    expect(urls.cloudUrl).toBe('fpcloud://custom.example.com?protocol=wss');
-  });
-  it('trims whitespace', () => {
-    const urls = deriveStudioUrls('  my-studio  ');
-    expect(urls.apiUrl).toBe('https://my-studio.exe.xyz/api/');
-  });
-  it('throws on empty input', () => {
-    expect(() => deriveStudioUrls('')).toThrow();
-    expect(() => deriveStudioUrls(null)).toThrow();
-    expect(() => deriveStudioUrls(undefined)).toThrow();
-  });
-});
-
