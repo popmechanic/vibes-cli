@@ -112,3 +112,56 @@ describe('SKILL.md frontmatter integrity', () => {
     });
   }
 });
+
+describe('SKILL.md source-of-truth consistency', () => {
+  // Read the authoritative import map once
+  const templatePath = join(PLUGIN_ROOT, 'source-templates', 'base', 'template.html');
+  const templateHtml = readFileSync(templatePath, 'utf8');
+  const importMapMatch = templateHtml.match(/<script\s+type="importmap">\s*([\s\S]*?)\s*<\/script>/);
+  const authoritativeImports = JSON.parse(importMapMatch[1]).imports;
+
+  // Extract React version from authoritative import map
+  const reactVersionMatch = authoritativeImports['react'].match(/react@([\d.]+)/);
+  const reactVersion = reactVersionMatch[1];
+
+  // Extract Fireproof version
+  const fpVersionMatch = authoritativeImports['@fireproof/core'].match(/use-fireproof@([\d.]+)/);
+  const fpVersion = fpVersionMatch[1];
+
+  it('sell SKILL.md does not hardcode stale esm.sh URLs', () => {
+    const content = readFileSync(join(PLUGIN_ROOT, 'skills', 'sell', 'SKILL.md'), 'utf8');
+    // After our edit, the import map section should use !`command`, not hardcoded URLs
+    // But if there are any remaining esm.sh URLs in the import map section, they should match
+    const importMapSection = content.split('## Import Map')[1]?.split('---')[0] || '';
+    const esmUrls = importMapSection.match(/esm\.sh\/stable\/\S+/g) || [];
+    for (const url of esmUrls) {
+      // Any remaining esm.sh URL should match the authoritative version
+      if (url.includes('react@')) {
+        expect(url).toContain(`react@${reactVersion}`);
+      }
+      if (url.includes('use-fireproof@')) {
+        expect(url).toContain(`use-fireproof@${fpVersion}`);
+      }
+    }
+  });
+
+  it('OIDC constants in auth-constants.js match expected format', () => {
+    // This test guards against accidental changes to the constants file
+    const constantsPath = join(PLUGIN_ROOT, 'scripts', 'lib', 'auth-constants.js');
+    const constants = readFileSync(constantsPath, 'utf8');
+
+    expect(constants).toContain("OIDC_AUTHORITY = 'https://vibesos.com'");
+    expect(constants).toContain("OIDC_CLIENT_ID = '");
+    expect(constants).toContain("DEPLOY_API_URL = 'https://share.vibesos.com'");
+  });
+
+  it('plugin.json version is a valid semver string', () => {
+    const pluginJson = JSON.parse(readFileSync(join(PLUGIN_ROOT, '.claude-plugin', 'plugin.json'), 'utf8'));
+    expect(pluginJson.version).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  it('base template import map has ?external=react,react-dom on @fireproof/core', () => {
+    // This is a critical invariant documented in .claude/rules/react-singleton.md
+    expect(authoritativeImports['@fireproof/core']).toContain('?external=react,react-dom');
+  });
+});
