@@ -18,7 +18,7 @@ import { discoverVibesPlugin } from "./plugin-discovery.ts";
 import { CLAUDE_BIN, refreshClaudePath, isClaudeInstalled, VIBES_CONFIG_DIR } from "./auth.ts";
 import { hideZoomButton } from "./window-controls.ts";
 import { isSetupComplete, runSetup, getBundledPluginPath } from "./setup.ts";
-import { SETUP_HTML } from "./setup-html.ts";
+import { SETUP_HTML, LOADING_HTML } from "./setup-html.ts";
 import { checkClaudeAuth, startClaudeLogin, waitForClaudeAuth, jsStr, type ClaudeAuthResult } from "./claude-auth.ts";
 import { waitForSetupAction, stopSetupIpc } from "./setup-ipc.ts";
 import { checkAndPromptForUpdate } from "./update-check.ts";
@@ -147,10 +147,8 @@ async function main() {
 			Closable: false,
 			Miniaturizable: true,
 		},
-		// Start with setup page or dark blank — server URL loaded after ready
-		html: needsSetup
-			? SETUP_HTML
-			: "<html><body style='background:#0a0a0a'></body></html>",
+		// Start with setup page or loading splash — server URL loaded after ready
+		html: needsSetup ? SETUP_HTML : LOADING_HTML,
 		frame: { width: 1280, height: 820 },
 	});
 
