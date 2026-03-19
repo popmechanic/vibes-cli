@@ -710,7 +710,7 @@ export const SETUP_HTML = `<!DOCTYPE html>
               <span class="btn-highlight">└──────────────────────────────┘</span>
             </button>
             <span id="auth-hint" style="display:none; font-size:11px; color:var(--text-muted); opacity:0.5; padding-left: 4px;">↑ opens your browser</span>
-            <button class="ascii-btn" id="continue-btn" onclick="fetch('http://localhost:3335/continue').catch(function(){})"
+            <button class="ascii-btn" id="continue-btn" onclick="onContinueClick()"
               style="margin-top: 8px;">
               <span class="btn-highlight">┌──────────────────────────────┐</span>
               <br>
@@ -718,6 +718,10 @@ export const SETUP_HTML = `<!DOCTYPE html>
               <br>
               <span class="btn-highlight">└──────────────────────────────┘</span>
             </button>
+            <div class="term-line step-line active" id="starting-line" style="display: none; margin-top: 12px;">
+              <span class="line-prefix"><span class="term-spinner">|</span></span>
+              <span class="line-content">Starting editor...</span>
+            </div>
             <button class="ascii-btn" id="retry-btn" onclick="fetch('http://localhost:3335/retry').catch(function(){})">
               <span class="btn-highlight">┌─────────────┐</span>
               <br>
@@ -906,6 +910,13 @@ function showReady() {
   document.getElementById('status-label').textContent = 'Ready';
   document.getElementById('ready-prompt').style.display = 'flex';
   document.getElementById('continue-btn').style.display = 'inline-block';
+}
+
+function onContinueClick() {
+  document.getElementById('continue-btn').style.display = 'none';
+  document.getElementById('ready-prompt').style.display = 'none';
+  document.getElementById('starting-line').style.display = 'flex';
+  fetch('http://localhost:3335/continue').catch(function(){});
 }
 
 function showWaitingForAuth() {
