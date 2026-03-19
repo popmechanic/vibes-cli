@@ -185,15 +185,17 @@ async function serveHtml(ctx: ServerContext): Promise<Response> {
   return new Response(file, { headers: { 'Content-Type': 'text/html', ...corsHeaders() } });
 }
 
-async function serveAppJsx(ctx: ServerContext): Promise<Response> {
-  const appPath = resolveAppJsxPath(ctx);
+async function serveAppJsx(ctx: ServerContext, url: URL): Promise<Response> {
+  const appName = sanitizeAppName(url.searchParams.get('app') || '');
+  const appPath = resolveAppJsxPath(ctx, appName || undefined);
   const file = Bun.file(appPath);
   if (!(await file.exists())) return new Response('// app.jsx not yet generated\n', { headers: { 'Content-Type': 'text/javascript', ...corsHeaders() } });
   return new Response(file, { headers: { 'Content-Type': 'text/javascript', ...corsHeaders() } });
 }
 
-function serveThemes(ctx: ServerContext): Response {
-  const recommended = getRecommendedThemeIds(ctx);
+function serveThemes(ctx: ServerContext, url: URL): Response {
+  const appName = sanitizeAppName(url.searchParams.get('app') || '');
+  const recommended = getRecommendedThemeIds(ctx, appName || undefined);
   const result = ctx.themes.map((t: any) => ({ ...t, recommended: recommended.has(t.id), colors: ctx.themeColors[t.id] || null }));
   return json(result);
 }
@@ -239,8 +241,9 @@ function serveSkills(ctx: ServerContext): Response {
   return json(catalog);
 }
 
-function serveAppFrame(ctx: ServerContext): Response {
-  const appDir = currentAppDir(ctx);
+function serveAppFrame(ctx: ServerContext, url: URL): Response {
+  const appName = sanitizeAppName(url.searchParams.get('app') || '');
+  const appDir = currentAppDir(ctx, appName || undefined);
   const appPath = appDir ? join(appDir, 'app.jsx') : null;
   if (!appPath || !existsSync(appPath)) {
     return new Response(`<!DOCTYPE html>
@@ -252,7 +255,7 @@ function serveAppFrame(ctx: ServerContext): Response {
       headers: { 'Content-Type': 'text/html', ...corsHeaders() },
     });
   }
-  const assembled = assembleAppFrame(ctx);
+  const assembled = assembleAppFrame(ctx, appName);
   return new Response(assembled, { headers: { 'Content-Type': 'text/html', ...corsHeaders() } });
 }
 
@@ -369,8 +372,9 @@ function editorInitialPrompt(ctx: ServerContext): Response {
   return json({ prompt: ctx.initialPrompt });
 }
 
-function editorAppExists(ctx: ServerContext): Response {
-  return json({ exists: existsSync(resolveAppJsxPath(ctx)) });
+function editorAppExists(ctx: ServerContext, url: URL): Response {
+  const appName = sanitizeAppName(url.searchParams.get('app') || '');
+  return json({ exists: existsSync(resolveAppJsxPath(ctx, appName || undefined)) });
 }
 
 async function editorSaveCredentials(ctx: ServerContext, req: Request): Promise<Response> {
@@ -543,21 +547,20 @@ function editorLoadApp(ctx: ServerContext, url: URL): Response {
       copyFileSync(exampleScreenshot, join(dest, 'screenshot.png'));
     }
   }
-  ctx.currentApp = name;
   return json({ ok: true, currentApp: name });
 }
 
 function editorSaveApp(ctx: ServerContext, url: URL): Response {
   const name = sanitizeAppName(url.searchParams.get('name') || '');
   if (!name) return new Response('Missing name', { status: 400, headers: corsHeaders() });
-  const appSrc = resolveAppJsxPath(ctx);
+  const appName = sanitizeAppName(url.searchParams.get('app') || '') || undefined;
+  const appSrc = resolveAppJsxPath(ctx, appName);
   if (!existsSync(appSrc)) return new Response('No app.jsx to save', { status: 404, headers: corsHeaders() });
   const dest = join(ctx.appsDir, name);
   mkdirSync(dest, { recursive: true });
   if (resolve(appSrc) !== resolve(join(dest, 'app.jsx'))) {
     copyFileSync(appSrc, join(dest, 'app.jsx'));
   }
-  ctx.currentApp = name;
   return json({ ok: true });
 }
 
@@ -576,9 +579,10 @@ async function editorSaveScreenshot(ctx: ServerContext, req: Request, url: URL):
   }
 }
 
-async function editorWriteApp(ctx: ServerContext, req: Request): Promise<Response> {
+async function editorWriteApp(ctx: ServerContext, req: Request, url: URL): Promise<Response> {
   try {
-    const appPath = resolveAppJsxPath(ctx);
+    const appName = sanitizeAppName(url.searchParams.get('app') || '') || undefined;
+    const appPath = resolveAppJsxPath(ctx, appName);
     const body = await readBodyWithLimit(req, MAX_APP_WRITE_SIZE);
     writeFileSync(appPath, body.toString('utf-8'));
     return json({ ok: true });
@@ -629,21 +633,21 @@ export function createRouter(ctx: ServerContext) {
     switch (key) {
       case 'GET /':
       case 'GET /index.html':               return serveHtml(ctx);
-      case 'GET /app.jsx':                   return serveAppJsx(ctx);
-      case 'GET /themes':                    return serveThemes(ctx);
+      case 'GET /app.jsx':                   return serveAppJsx(ctx, url);
+      case 'GET /themes':                    return serveThemes(ctx, url);
       case 'GET /themes/has-key':            return serveHasKey(ctx);
       case 'GET /themes/preview':             return serveThemePreview(ctx, url);
       case 'POST /themes/preview':            return saveThemePreview(ctx, req, url);
       case 'GET /animations':               return serveAnimations(ctx);
       case 'GET /skills':                    return serveSkills(ctx);
-      case 'GET /app-frame':                return serveAppFrame(ctx);
+      case 'GET /app-frame':                return serveAppFrame(ctx, url);
       case 'GET /editor/status':            return editorStatus(ctx);
       case 'POST /editor/auth/login':       return editorAuthLogin(ctx);
       case 'POST /editor/auth/logout':      return editorAuthLogout();
       case 'GET /editor/claude-auth':       return editorClaudeAuthStatus();
       case 'POST /editor/claude-logout':    return editorClaudeLogout(ctx);
       case 'GET /editor/initial-prompt':    return editorInitialPrompt(ctx);
-      case 'GET /editor/app-exists':        return editorAppExists(ctx);
+      case 'GET /editor/app-exists':        return editorAppExists(ctx, url);
       case 'GET /editor/apps':              return editorListApps(ctx);
       case 'GET /editor/apps/screenshot':   return editorGetScreenshot(ctx, url);
       case 'GET /editor/assets/screen-saver.png': return serveScreenSaver(ctx);
@@ -653,7 +657,7 @@ export function createRouter(ctx: ServerContext) {
       case 'POST /editor/apps/load':        return editorLoadApp(ctx, url);
       case 'POST /editor/apps/save':        return editorSaveApp(ctx, url);
       case 'POST /editor/apps/screenshot':  return editorSaveScreenshot(ctx, req, url);
-      case 'POST /editor/apps/write':       return editorWriteApp(ctx, req);
+      case 'POST /editor/apps/write':       return editorWriteApp(ctx, req, url);
       case 'GET /editor/deployments':       return editorListDeployments(ctx);
     }
 

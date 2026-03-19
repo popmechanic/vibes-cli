@@ -208,8 +208,8 @@ export function getAnimationInstructions(ctx, animationId) {
 /**
  * Recommend themes based on app.jsx content keywords.
  */
-export function getRecommendedThemeIds(ctx) {
-  const appDir = currentAppDir(ctx);
+export function getRecommendedThemeIds(ctx, appName?: string) {
+  const appDir = currentAppDir(ctx, appName);
   if (!appDir) return new Set();
   const appPath = join(appDir, 'app.jsx');
   if (!existsSync(appPath)) return new Set();
