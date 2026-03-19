@@ -4132,8 +4132,9 @@
     ws.send(JSON.stringify({ type: 'save_app', name, app: name }));
     lastSavedVersion = versionIndex;
     addMessage('system', 'Saving "' + name + '"...');
+    const savingBubble = document.getElementById('chatMessages').lastElementChild;
     savedPromise.then(() => captureScreenshot().then(() => {
-      addMessage('system', 'Saved "' + name + '".');
+      if (savingBubble) savingBubble.textContent = 'Saved "' + name + '".';
     }));
     setTimeout(() => { if (_appSavedResolve) { _appSavedResolve(); _appSavedResolve = null; } }, 2000);
   }
