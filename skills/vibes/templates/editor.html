@@ -4206,6 +4206,7 @@
         .then(() => {
           currentAppName = newName;
           updateAppNameDisplay(currentPhase === 'edit');
+          checkExistingApps();
         })
         .catch(err => {
           alert('Rename failed: ' + err.message);
