@@ -119,7 +119,7 @@ export function createWsHandler(ctx: ServerContext, hmrWatcher?: HmrWatcher | nu
           case 'chat':
             if (hmrWatcher) hmrWatcher.start();
             try {
-              await handleChat(ctx, onEvent, msg.message, msg.effects || [], msg.animationId || null, msg.model, msg.reference || null, msg.skillId || null, !!msg.useAI);
+              await handleChat(ctx, onEvent, msg.message, msg.effects || [], msg.animationId || null, msg.model, msg.reference || null, msg.skillId || null);
             } finally {
               if (hmrWatcher) hmrWatcher.stop();
             }

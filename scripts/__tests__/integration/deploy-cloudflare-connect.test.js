@@ -29,40 +29,6 @@ describe('deploy-cloudflare connect integration', () => {
     delete process.env.VIBES_HOME;
   });
 
-  describe('first-deploy detection', () => {
-    it('detects first deploy for unknown app', () => {
-      expect(registry.isFirstDeploy('brand-new-app')).toBe(true);
-    });
-
-    it('detects first deploy for app without connect config', () => {
-      registry.setApp('partial-app', {
-        name: 'partial-app',
-        oidc: { authority: 'https://auth.example.com', clientId: 'test-id' }
-      });
-      expect(registry.isFirstDeploy('partial-app')).toBe(true);
-    });
-
-    it('detects first deploy for app with empty connect object', () => {
-      registry.setApp('empty-connect', {
-        name: 'empty-connect',
-        connect: {}
-      });
-      expect(registry.isFirstDeploy('empty-connect')).toBe(true);
-    });
-
-    it('skips connect provisioning on update deploy', () => {
-      registry.setApp('existing-app', {
-        name: 'existing-app',
-        connect: {
-          stage: 'existing-app',
-          apiUrl: 'https://fireproof-dashboard-existing-app.acct.workers.dev',
-          cloudUrl: 'fpcloud://fireproof-cloud-existing-app.acct.workers.dev?protocol=wss'
-        }
-      });
-      expect(registry.isFirstDeploy('existing-app')).toBe(false);
-    });
-  });
-
   describe('registry update after deploy', () => {
     it('stores connect metadata on first deploy', () => {
       const connectResult = {

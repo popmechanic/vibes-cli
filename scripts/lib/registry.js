@@ -133,15 +133,6 @@ export function setCloudflareConfig(config) {
 }
 
 /**
- * Check if this is the first deploy for a given app name.
- * Returns true if the app doesn't exist or has no connect.apiUrl configured.
- */
-export function isFirstDeploy(name) {
-  const app = getApp(name);
-  return !app || !app.connect || !app.connect.apiUrl;
-}
-
-/**
  * Validate a deployment name to prevent shell injection.
  * Names must be lowercase alphanumeric with optional hyphens (not at start/end).
  *
@@ -161,19 +152,4 @@ export function validateName(name) {
   return name;
 }
 
-/**
- * Transform an HTTPS cloud backend URL to fpcloud:// protocol URL.
- * Used for Cloudflare Workers-based Connect backends.
- *
- * Input:  'https://fireproof-cloud-myapp.acct.workers.dev'
- * Output: { cloudUrl: 'fpcloud://fireproof-cloud-myapp.acct.workers.dev?protocol=wss',
- *           apiUrl: 'https://fireproof-cloud-myapp.acct.workers.dev' }
- */
-export function deriveConnectUrls(cloudBackendHttpsUrl) {
-  const url = new URL(cloudBackendHttpsUrl);
-  return {
-    cloudUrl: `fpcloud://${url.host}?protocol=wss`,
-    apiUrl: cloudBackendHttpsUrl
-  };
-}
 

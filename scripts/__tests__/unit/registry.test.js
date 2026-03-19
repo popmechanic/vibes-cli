@@ -5,8 +5,6 @@
  * - loadRegistry / saveRegistry
  * - getApp / setApp
  * - getCloudflareConfig / setCloudflareConfig
- * - isFirstDeploy
- * - deriveConnectUrls
  *
  * Uses VIBES_HOME env var override + vi.resetModules() for test isolation.
  */
@@ -186,30 +184,6 @@ describe('registry', () => {
     });
   });
 
-  describe('isFirstDeploy', () => {
-    it('returns true for unknown app', () => {
-      expect(registry.isFirstDeploy('new-app')).toBe(true);
-    });
-
-    it('returns true for app without connect config', () => {
-      registry.setApp('partial', { name: 'partial', clerk: { publishableKey: 'pk_test_x' } });
-      expect(registry.isFirstDeploy('partial')).toBe(true);
-    });
-
-    it('returns true for app with empty connect', () => {
-      registry.setApp('empty-connect', { name: 'empty-connect', connect: {} });
-      expect(registry.isFirstDeploy('empty-connect')).toBe(true);
-    });
-
-    it('returns false for registered app with connect apiUrl', () => {
-      registry.setApp('existing', {
-        name: 'existing',
-        connect: { stage: 'existing', apiUrl: 'https://existing.workers.dev' }
-      });
-      expect(registry.isFirstDeploy('existing')).toBe(false);
-    });
-  });
-
   describe('validateName', () => {
     it('accepts valid names', () => {
       expect(registry.validateName('my-app')).toBe('my-app');
@@ -223,25 +197,6 @@ describe('registry', () => {
       expect(() => registry.validateName('bad-')).toThrow();
       expect(() => registry.validateName('Has Caps')).toThrow();
       expect(() => registry.validateName(null)).toThrow();
-    });
-  });
-
-  describe('deriveConnectUrls', () => {
-    it('transforms HTTPS cloud backend URL to fpcloud:// protocol', () => {
-      const urls = registry.deriveConnectUrls('https://fireproof-cloud-myapp.acct.workers.dev');
-      expect(urls.cloudUrl).toBe('fpcloud://fireproof-cloud-myapp.acct.workers.dev?protocol=wss');
-      expect(urls.apiUrl).toBe('https://fireproof-cloud-myapp.acct.workers.dev');
-    });
-
-    it('handles URL with path', () => {
-      const urls = registry.deriveConnectUrls('https://example.com/api');
-      expect(urls.cloudUrl).toBe('fpcloud://example.com?protocol=wss');
-      expect(urls.apiUrl).toBe('https://example.com/api');
-    });
-
-    it('handles URL with port', () => {
-      const urls = registry.deriveConnectUrls('https://localhost:8787');
-      expect(urls.cloudUrl).toBe('fpcloud://localhost:8787?protocol=wss');
     });
   });
 

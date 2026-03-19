@@ -201,10 +201,8 @@ describe('TASK_PROFILES', () => {
     }
   });
 
-  it('has at least one stream-json profile and one non-stream-json profile', () => {
-    const formats = Object.values(TASK_PROFILES).map(p => p.outputFormat);
-    expect(formats).toContain('stream-json');
-    expect(formats.some(f => f !== 'stream-json')).toBe(true);
+  it('riffGenerate uses json output format', () => {
+    expect(TASK_PROFILES.riffGenerate.outputFormat).toBe('json');
   });
 });
 

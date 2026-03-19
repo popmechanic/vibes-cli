@@ -15,7 +15,7 @@ import { join } from "path";
 import { appendFileSync, mkdirSync, readFileSync } from "fs";
 import { homedir } from "os";
 import { discoverVibesPlugin } from "./plugin-discovery.ts";
-import { CLAUDE_BIN, refreshClaudePath, isClaudeInstalled, VIBES_CONFIG_DIR } from "./auth.ts";
+import { CLAUDE_BIN, isClaudeInstalled, VIBES_CONFIG_DIR } from "./auth.ts";
 import { hideZoomButton } from "./window-controls.ts";
 import { isSetupComplete, runSetup, getBundledPluginPath } from "./setup.ts";
 import { SETUP_HTML } from "./setup-html.ts";

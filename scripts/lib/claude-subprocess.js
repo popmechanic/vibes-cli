@@ -10,12 +10,6 @@
  * All tasks get unrestricted tool access (no --tools flag).
  */
 export const TASK_PROFILES = {
-  chatEdit:         { outputFormat: 'stream-json', maxTurns: 8 },
-  chatEditAnimated: { outputFormat: 'stream-json', maxTurns: 12 },
-  themeCreative:    { outputFormat: 'stream-json', maxTurns: 5 },
-  themeLegacy:      { outputFormat: 'stream-json', maxTurns: 8 },
-  generate:         { outputFormat: 'stream-json', maxTurns: 5 },
-  themeExtract:     { outputFormat: 'stream-json', maxTurns: 5, timeoutMs: 120_000 },
   riffGenerate:     { outputFormat: 'json', maxTurns: 1 },
 };
 

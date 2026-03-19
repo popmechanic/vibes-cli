@@ -1,7 +1,7 @@
 /**
  * Shared environment/config utilities
  *
- * OIDC config validation and Connect config population.
+ * Connect config population.
  */
 
 
@@ -10,25 +10,6 @@ export const CONFIG_PLACEHOLDERS = {
   '__VITE_API_URL__': 'VITE_API_URL',
   '__VITE_CLOUD_URL__': 'VITE_CLOUD_URL',
 };
-
-
-/**
- * Validate that an OIDC authority URL is valid (must be HTTPS)
- * @param {string} url - The OIDC authority URL
- * @returns {boolean}
- */
-export function validateOIDCAuthority(url) {
-  return typeof url === 'string' && url.startsWith('https://');
-}
-
-/**
- * Validate that an OIDC client ID is a non-empty string
- * @param {string} id - The OIDC client ID
- * @returns {boolean}
- */
-export function validateOIDCClientId(id) {
-  return typeof id === 'string' && id.length > 0;
-}
 
 
 /**
