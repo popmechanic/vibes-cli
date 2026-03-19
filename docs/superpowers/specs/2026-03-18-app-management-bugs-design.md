@@ -35,6 +35,7 @@ Add `POST /editor/apps/rename?from=old-name&to=new-name` to `router.ts`:
 - Check source directory exists, destination does not
 - Use `fs.renameSync()` to atomically move the directory
 - Update `ctx.currentApp = newName`
+- Update deployment registry: if `registry.apps[oldName]` exists, move it to `registry.apps[newName]` and delete the old key. This preserves Connect infrastructure association so the next deploy doesn't re-provision.
 - Return `{ ok: true, name: newName }`
 
 Update `promptRenameApp()` in `editor.html` to call the new endpoint instead of `doSave(newName)`:
@@ -43,7 +44,7 @@ Update `promptRenameApp()` in `editor.html` to call the new endpoint instead of 
 - On success: update `currentAppName`, call `updateAppNameDisplay()`
 - On failure: revert `currentAppName` to `oldName`, show error
 
-**Files**: `scripts/server/router.ts`, `skills/vibes/templates/editor.html`
+**Files**: `scripts/server/router.ts`, `scripts/lib/registry.js`, `skills/vibes/templates/editor.html`
 
 ### Fix 2: Gallery Refresh on Navigation Home
 
@@ -80,6 +81,8 @@ function useExistingApp() {
 
 When `currentAppName` is set, delegate to `loadSavedApp()` which awaits `POST /editor/apps/load` before calling `loadPreview()` — guaranteeing `ctx.currentApp` is correct. The fallback preserves existing behavior for anonymous/unsaved apps.
 
+**Behavioral change**: Delegating to `loadSavedApp()` also resets `versionHistory` and `versionIndex`, which the current `useExistingApp()` does not do. This is desirable — it gives a clean undo/redo slate when resuming an app from the gallery.
+
 **Files**: `skills/vibes/templates/editor.html`
 
 ### Fix 4: Screenshot Capture
@@ -105,7 +108,9 @@ Replace `console.warn` with a system message:
 }
 ```
 
-**Files**: `scripts/server/router.ts` (route), `scripts/server/assets/` or `assets/` (vendored JS), `skills/vibes/templates/editor.html` (injection URL + error message)
+**Note**: `captureScreenshot()` is also called after `deploy_complete` (line 3814). A screenshot failure message right after "Deployed!" could be confusing. Only show the failure message when `captureScreenshot()` is called from `doSave()`, not from deploy. The simplest way: add an optional `silent` parameter to `captureScreenshot(silent)` — deploy calls it with `silent=true`.
+
+**Files**: `scripts/server/router.ts` (explicit route at `GET /vendor/dom-to-image-more.min.js`), `assets/vendor/dom-to-image-more.min.js` (new, vendored library under project root so the route can serve it), `skills/vibes/templates/editor.html` (injection URL + conditional error message)
 
 ## Testing
 
@@ -116,8 +121,15 @@ Replace `console.warn` with a system message:
 | useExistingApp desync | Generate app, save, go home, click "Continue current app" card, verify correct app loads in preview |
 | Screenshot | Save an app, verify screenshot.png is created in `~/.vibes/apps/{name}/`, verify thumbnail appears in gallery |
 
+## Edge Cases
+
+- **Rename destination already exists**: The rename endpoint checks that the destination directory doesn't exist before renaming. Return 409 Conflict if it does.
+- **Save & Go race condition**: The "Save & Go" dialog calls `saveApp()` then `navigateHome()` synchronously. The save is async (WebSocket), so the gallery may refresh before the save completes. The newly saved app will appear on the next home visit. Acceptable tradeoff — no additional complexity needed.
+- **Name sanitization asymmetry**: The server's `sanitizeAppName()` strips non-`[a-z0-9-]` chars, while the client dialog replaces them with hyphens. Pre-existing issue, not introduced here. The rename endpoint receives already-sanitized names from the client dialog.
+
 ## Files Changed
 
 - `scripts/server/router.ts` — rename endpoint, vendor route
+- `scripts/lib/registry.js` — rename updates deployment registry entries
 - `skills/vibes/templates/editor.html` — `navigateHome()`, `useExistingApp()`, `promptRenameApp()`, `captureScreenshot()`
-- `scripts/server/assets/dom-to-image-more.min.js` (new) — vendored library
+- `assets/vendor/dom-to-image-more.min.js` (new) — vendored library
