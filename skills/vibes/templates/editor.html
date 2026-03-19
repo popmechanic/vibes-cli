@@ -3310,7 +3310,7 @@
         if (data.ok) {
           currentAppName = name;
           if (ws && ws.readyState === 1) {
-            ws.send(JSON.stringify({ type: 'save_app', name }));
+            ws.send(JSON.stringify({ type: 'save_app', name, app: name }));
           }
         }
       }).catch(() => {});
@@ -3512,6 +3512,7 @@
   function navigateHome() {
     closeEditSettings();
     setPhase('generate');
+    checkExistingApps();
   }
 
   function showUnsavedDialog() {
@@ -3811,7 +3812,7 @@
         setThinking(false);
         if (msg.name) { currentAppName = msg.name; updateAppNameDisplay(currentPhase === 'edit'); }
         addMessage('deploy-success', 'Deployed! ' + (msg.url || ''));
-        captureScreenshot();
+        captureScreenshot(true);
       } else if (msg.type === 'theme_created') {
         setThinking(false);
         onThemeCreated(msg.themeId, msg.themeName);
@@ -3920,7 +3921,8 @@
 
   async function populateThemeSelect() {
     try {
-      const res = await fetch('/themes');
+      const appParam = currentAppName ? '?app=' + encodeURIComponent(currentAppName) : '';
+      const res = await fetch('/themes' + appParam);
       themes = await res.json();
       // Populate hidden select for JS compat
       const select = document.getElementById('themeSelect');
@@ -4102,7 +4104,7 @@
     // For unnamed apps, the user will be prompted when they click Save.
     if (!currentAppName) return;
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'save_app', name: currentAppName }));
+      ws.send(JSON.stringify({ type: 'save_app', name: currentAppName, app: currentAppName }));
       lastSavedVersion = versionIndex;
     }
   }
@@ -4127,7 +4129,7 @@
 
   function doSave(name) {
     const savedPromise = new Promise(resolve => { _appSavedResolve = resolve; });
-    ws.send(JSON.stringify({ type: 'save_app', name }));
+    ws.send(JSON.stringify({ type: 'save_app', name, app: name }));
     lastSavedVersion = versionIndex;
     addMessage('system', 'Saved as "' + name + '".');
     savedPromise.then(() => captureScreenshot());
@@ -4193,16 +4195,22 @@
     promptAppName((newName) => {
       if (!newName || newName === currentAppName) return;
       const oldName = currentAppName;
-      currentAppName = newName;
-      updateAppNameDisplay(currentPhase === 'edit');
-      // Save under new name
-      if (ws && ws.readyState === WebSocket.OPEN) {
-        doSave(newName);
-      }
+      fetch('/editor/apps/rename?from=' + encodeURIComponent(oldName) + '&to=' + encodeURIComponent(newName), { method: 'POST' })
+        .then(r => {
+          if (!r.ok) throw new Error(r.status === 409 ? 'An app with that name already exists' : 'Rename failed');
+          return r.json();
+        })
+        .then(() => {
+          currentAppName = newName;
+          updateAppNameDisplay(currentPhase === 'edit');
+        })
+        .catch(err => {
+          alert('Rename failed: ' + err.message);
+        });
     });
   }
 
-  async function captureScreenshot() {
+  async function captureScreenshot(silent) {
     if (!currentAppName) return;
     try {
       const frame = document.getElementById('previewFrame');
@@ -4228,7 +4236,7 @@
       if (typeof iframeWin.domtoimage === 'undefined') {
         await new Promise((resolve, reject) => {
           const script = doc.createElement('script');
-          script.src = 'https://cdn.jsdelivr.net/npm/dom-to-image-more@3/dist/dom-to-image-more.min.js';
+          script.src = '/vendor/dom-to-image-more.min.js';
           script.onload = resolve;
           script.onerror = reject;
           doc.head.appendChild(script);
@@ -4257,6 +4265,7 @@
       console.log('[Screenshot] Saved for', currentAppName);
     } catch (err) {
       console.warn('[Screenshot] Capture failed:', err);
+      if (!silent) addMessage('system', 'Screenshot capture failed — thumbnail may not update.');
     }
   }
 
@@ -4327,7 +4336,7 @@
     const hasReference = !!genReferenceFile;
     // Skip theme in custom mode (user toggle or reference attached)
     const skipTheme = customThemeMode || hasReference;
-    const payload = { type: 'generate', prompt, themeId: skipTheme ? null : (themeId || null), model: getModel(), useAI: genAIEnabled };
+    const payload = { type: 'generate', prompt, themeId: skipTheme ? null : (themeId || null), model: getModel(), useAI: genAIEnabled, previousApp: currentAppName };
     if (hasReference) {
       payload.reference = {
         name: genReferenceFile.name,
@@ -4348,16 +4357,21 @@
   }
 
   function useExistingApp() {
-    document.getElementById('chatMessages').innerHTML = '';
-    setPhase('edit');
-    loadPreview();
-    versionPush();
+    if (currentAppName) {
+      loadSavedApp(currentAppName);
+    } else {
+      document.getElementById('chatMessages').innerHTML = '';
+      setPhase('edit');
+      loadPreview();
+      versionPush();
+    }
   }
 
   // === Version History (Undo/Redo) ===
   async function versionPush() {
     try {
-      const res = await fetch('/app.jsx');
+      const appParam = currentAppName ? '?app=' + encodeURIComponent(currentAppName) : '';
+      const res = await fetch('/app.jsx' + appParam);
       if (!res.ok) return;
       const content = await res.text();
 
@@ -4436,7 +4450,8 @@
   // === Phase 3: Edit + Deploy ===
   function loadPreview() {
     const frame = document.getElementById('previewFrame');
-    frame.src = '/app-frame?t=' + Date.now();
+    const appParam = currentAppName ? 'app=' + encodeURIComponent(currentAppName) + '&' : '';
+    frame.src = '/app-frame?' + appParam + 't=' + Date.now();
   }
 
   function reloadPreview() {
@@ -4460,7 +4475,8 @@
       };
     }
 
-    frame.src = '/app-frame?t=' + Date.now();
+    const appParam = currentAppName ? 'app=' + encodeURIComponent(currentAppName) + '&' : '';
+    frame.src = '/app-frame?' + appParam + 't=' + Date.now();
   }
 
   function updateDeployButtons() {
@@ -4555,7 +4571,7 @@
     if (isThinking || !ws || ws.readyState !== WebSocket.OPEN) return;
     document.getElementById('deployMenu').classList.remove('open');
     addMessage('user', 'Publishing update to "' + appName + '"');
-    ws.send(JSON.stringify({ type: 'deploy', target: 'cloudflare', name: appName }));
+    ws.send(JSON.stringify({ type: 'deploy', target: 'cloudflare', name: appName, app: currentAppName }));
   }
 
   function startDeploy(target) {
@@ -4570,7 +4586,7 @@
     nameInput.style.borderColor = 'var(--vibes-near-black)';
     document.getElementById('deployMenu').classList.remove('open');
     addMessage('user', 'Publishing "' + name + '" to the web');
-    ws.send(JSON.stringify({ type: 'deploy', target, name }));
+    ws.send(JSON.stringify({ type: 'deploy', target, name, app: currentAppName }));
   }
 
   // Close deploy menu on outside click, Escape key, or scroll
@@ -5344,7 +5360,7 @@
     addMessage('user', displayText);
 
     const defaultMsg = refIntent === 'none' ? '' : 'Style the app to match the attached reference';
-    const payload = { type: 'chat', message: text || defaultMsg, model: getModel() };
+    const payload = { type: 'chat', message: text || defaultMsg, model: getModel(), app: currentAppName };
     if (activeAnimationId) payload.animationId = activeAnimationId;
     if (activeSkillId) payload.skillId = activeSkillId;
     if (referenceFile) {
@@ -5554,7 +5570,7 @@
     pendingThemeId = themeId;
     currentThemeId = themeId;
     setThinking(true, 0, 'Switching theme...');
-    ws.send(JSON.stringify({ type: 'theme', themeId, model: getModel() }));
+    ws.send(JSON.stringify({ type: 'theme', themeId, model: getModel(), app: currentAppName }));
     closeThemeModal();
   }
 
@@ -5644,7 +5660,7 @@
         </div>
       </div>`;
 
-    ws.send(JSON.stringify({ type: 'save_theme', name, model: getModel() }));
+    ws.send(JSON.stringify({ type: 'save_theme', name, model: getModel(), app: currentAppName }));
   }
 
   function updateSaveThemeProgress(progress, stage, elapsed) {
@@ -5832,7 +5848,8 @@
 
   async function reloadThemes() {
     try {
-      const res = await fetch('/themes');
+      const appParam = currentAppName ? '?app=' + encodeURIComponent(currentAppName) : '';
+      const res = await fetch('/themes' + appParam);
       themes = await res.json();
       // Refresh the generate-phase select dropdown
       const select = document.getElementById('themeSelect');
@@ -6138,7 +6155,7 @@
     // Send all palette slots dynamically
     const colors = {};
     PALETTE_SLOTS.forEach(s => { colors[s.cssVar] = paletteState[s.key]; });
-    ws.send(JSON.stringify({ type: 'palette_theme', colors, model: getModel() }));
+    ws.send(JSON.stringify({ type: 'palette_theme', colors, model: getModel(), app: currentAppName }));
     addMessage('user', 'Apply custom color palette');
     closePalette();
   }
