@@ -3990,7 +3990,7 @@
   async function checkExistingApps() {
     try {
       const [existsRes, appsRes] = await Promise.all([
-        fetch('/editor/app-exists').then(r => r.json()).catch(() => ({ exists: false })),
+        fetch('/editor/app-exists' + (currentAppName ? '?app=' + encodeURIComponent(currentAppName) : '')).then(r => r.json()).catch(() => ({ exists: false })),
         fetch('/editor/apps').then(r => r.json()).catch(() => []),
       ]);
 
@@ -4399,7 +4399,7 @@
     versionIndex = index;
     isVersionNav = true;
     try {
-      await fetch('/editor/apps/write', {
+      await fetch('/editor/apps/write' + (currentAppName ? '?app=' + encodeURIComponent(currentAppName) : ''), {
         method: 'POST',
         body: versionHistory[versionIndex],
       });
