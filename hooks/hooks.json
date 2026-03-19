@@ -1,3 +1,14 @@
 {
-  "hooks": {}
+  "hooks": {
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '## Critical Context (re-injected on compaction)\n- Fireproof API: use useFireproofClerk() not useFireproof(). Never use _files API.\n- Template build: bun scripts/merge-templates.js --force (after editing base template or deltas)\n- Deploy: bun scripts/deploy-cloudflare.js --name <app> --file index.html (no wrangler needed)\n- Auth: cached at ~/.vibes/auth.json via Pocket ID. Auto-opens browser on first deploy.\n- React singleton: any esm.sh package depending on React MUST use ?external=react,react-dom\n- Skills are atomic: never decompose into sub-steps\n- Database names must stay stable across iterations\n- Desktop build: bash scripts/build-desktop.sh'"
+          }
+        ]
+      }
+    ]
+  }
 }

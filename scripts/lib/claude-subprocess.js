@@ -82,10 +82,7 @@ export function buildClaudeArgs(config = {}) {
   // Pass permissionMode: false to omit the flag entirely.
   const mode = config.permissionMode !== undefined
     ? config.permissionMode
-    : (config.bypassPermissions === true ? 'bypassPermissions'
-       : config.bypassPermissions === false ? false
-       : config.tools ? 'bypassPermissions'
-       : 'dontAsk');
+    : (config.tools ? 'bypassPermissions' : 'dontAsk');
   if (mode) {
     args.push('--permission-mode', mode);
   }

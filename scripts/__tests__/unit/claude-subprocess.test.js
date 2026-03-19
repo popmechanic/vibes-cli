@@ -172,17 +172,6 @@ describe('buildClaudeArgs', () => {
       expect(args).not.toContain('--permission-mode');
     });
 
-    it('backward compat: bypassPermissions true maps to bypassPermissions mode', () => {
-      const args = buildClaudeArgs({ bypassPermissions: true });
-      const idx = args.indexOf('--permission-mode');
-      expect(idx).toBeGreaterThan(-1);
-      expect(args[idx + 1]).toBe('bypassPermissions');
-    });
-
-    it('backward compat: bypassPermissions false omits --permission-mode', () => {
-      const args = buildClaudeArgs({ bypassPermissions: false });
-      expect(args).not.toContain('--permission-mode');
-    });
   });
 });
 
