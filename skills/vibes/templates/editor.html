@@ -4263,6 +4263,8 @@
         body: blob,
       });
       console.log('[Screenshot] Saved for', currentAppName);
+      // Refresh gallery so thumbnail appears immediately
+      checkExistingApps();
     } catch (err) {
       console.warn('[Screenshot] Capture failed:', err);
       if (!silent) addMessage('system', 'Screenshot capture failed — thumbnail may not update.');
