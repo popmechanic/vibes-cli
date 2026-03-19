@@ -13,7 +13,6 @@
     "preview": "bun run server.ts"
   },
   "dependencies": {
-    "@babel/parser": "^7.26.0",
     "esbuild": "^0.24.0"
   },
   "devDependencies": {
