@@ -16,7 +16,7 @@ import { TEMPLATES } from '../../lib/paths.js';
 import { currentAppDir, slugifyPrompt, resolveAppName } from '../app-context.js';
 import { AI_INSTRUCTIONS_GENERATE, THEME_SECTION_MARKERS } from '../ai-instructions.ts';
 
-export async function handleGenerate(ctx: ServerContext, onEvent: EventCallback, userPrompt: string, themeId: string | undefined, model: string | undefined, reference: any = null, useAI: boolean = false) {
+export async function handleGenerate(ctx: ServerContext, onEvent: EventCallback, userPrompt: string, themeId: string | undefined, model: string | undefined, reference: any = null, useAI: boolean = false, previousApp: string | undefined = undefined) {
   if (!userPrompt) {
     onEvent({ type: 'error', message: 'Please describe what you want to build.' });
     return;
@@ -25,15 +25,15 @@ export async function handleGenerate(ctx: ServerContext, onEvent: EventCallback,
   console.log(`[Generate] ▸ START prompt="${userPrompt.slice(0, 60)}" themeId=${themeId || '(auto)'}`);
 
   // Auto-save previous app before switching
-  if (ctx.currentApp) {
+  if (previousApp) {
     try {
-      const prevDir = currentAppDir(ctx);
+      const prevDir = currentAppDir(ctx, previousApp);
       const prevIndexPath = join(prevDir, 'index.html');
-      const assembled = assembleAppFrame(ctx);
+      const assembled = assembleAppFrame(ctx, previousApp);
       writeFileSync(prevIndexPath, assembled);
-      console.log(`[Generate] Auto-saved index.html for "${ctx.currentApp}"`);
+      console.log(`[Generate] Auto-saved index.html for "${previousApp}"`);
     } catch (e) {
-      console.warn(`[Generate] Auto-save failed for "${ctx.currentApp}": ${e.message}`);
+      console.warn(`[Generate] Auto-save failed for "${previousApp}": ${e.message}`);
     }
   }
 
@@ -42,7 +42,6 @@ export async function handleGenerate(ctx: ServerContext, onEvent: EventCallback,
   const appName = resolveAppName(ctx.appsDir, slug);
   const appDir = join(ctx.appsDir, appName);
   mkdirSync(appDir, { recursive: true });
-  ctx.currentApp = appName;
   onEvent({ type: 'app_created', name: appName });
   console.log(`[Generate] Created app directory: ${appName}`);
 
@@ -218,9 +217,9 @@ DATABASE:
 
     const maxTurns = isHtmlRef ? 5 : 8;
     console.log(`[Generate] Starting (reference path) — ref: ${reference.name} (${intent}), prompt: ${(refPrompt.length / 1024).toFixed(1)}KB`);
-    await runOneShot(refPrompt, { lockType: 'generate', skipChat: true, maxTurns, model, cwd: currentAppDir(ctx), tools: isHtmlRef ? 'Write' : 'Write,Read' }, onEvent, ctx.projectRoot);
+    await runOneShot(refPrompt, { lockType: 'generate', skipChat: true, maxTurns, model, cwd: appDir, tools: isHtmlRef ? 'Write' : 'Write,Read' }, onEvent, ctx.projectRoot);
 
-    sanitizeAppJsx(currentAppDir(ctx));
+    sanitizeAppJsx(appDir);
     return;
   }
 
@@ -330,16 +329,16 @@ DATABASE:
   onEvent({ type: 'theme_selected', themeId, themeName, themeBackground: themeColors?.bg || null });
 
   console.log(`[Generate] Starting — theme: ${themeId} (${themeName}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
-  await runOneShot(prompt, { lockType: 'generate', skipChat: true, maxTurns: 5, model, cwd: currentAppDir(ctx), tools: 'Write' }, onEvent, ctx.projectRoot);
+  await runOneShot(prompt, { lockType: 'generate', skipChat: true, maxTurns: 5, model, cwd: appDir, tools: 'Write' }, onEvent, ctx.projectRoot);
 
-  sanitizeAppJsx(currentAppDir(ctx));
+  sanitizeAppJsx(appDir);
 }
 
 /**
  * Assemble app.jsx into the vibes template with Fireproof bundle + OIDC auth.
  * Used by the /app-frame route.
  */
-export function assembleAppFrame(ctx) {
+export function assembleAppFrame(ctx, appName?: string) {
   const templatePath = TEMPLATES.vibesBasic;
   if (!existsSync(templatePath)) {
     return `<html><body><h1>Template not found</h1><p>${templatePath}</p></body></html>`;
@@ -347,7 +346,7 @@ export function assembleAppFrame(ctx) {
 
   let template = readFileSync(templatePath, 'utf-8');
 
-  const appDir = currentAppDir(ctx);
+  const appDir = currentAppDir(ctx, appName);
   if (!appDir) {
     return `<html><body><h1>No app active</h1></body></html>`;
   }
