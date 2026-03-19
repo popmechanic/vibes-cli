@@ -169,29 +169,36 @@ do {
 
   # Set custom icon on the .dmg file itself (Finder display)
   if [ -f "$DMG_ICON_PNG" ]; then
-    # Apply macOS-style rounded rect mask to remove dark corner artifacts.
-    # The app icon gets Apple's automatic squircle mask via .iconset, but the
-    # DMG icon is set via resource fork and needs manual masking.
+    # Apply macOS squircle mask to the DMG icon — same CGPath continuous-corner
+    # approach used for the app icon (step 3). Without this, the resource-fork
+    # icon shows dark corner fringing because Finder doesn't auto-mask DMG icons.
     MASKED_PNG="/tmp/dmg-icon-masked.png"
     swift -e '
-import AppKit
+import CoreGraphics
+import ImageIO
 let size = 1024
-let inset = CGFloat(size) * 0.035
-let contentSize = CGFloat(size) - inset * 2
-let radius = contentSize * 0.225
-let srcImage = NSImage(contentsOfFile: "'"$DMG_ICON_PNG"'")!
-let output = NSImage(size: NSSize(width: size, height: size))
-output.lockFocusFlipped(false)
-NSGraphicsContext.current!.imageInterpolation = .high
-let path = NSBezierPath(roundedRect: NSRect(x: inset, y: inset, width: contentSize, height: contentSize), xRadius: radius, yRadius: radius)
-path.addClip()
-srcImage.draw(in: NSRect(x: inset, y: inset, width: contentSize, height: contentSize))
-output.unlockFocus()
-let cgImage = output.cgImage(forProposedRect: nil, context: nil, hints: nil)!
-let rep = NSBitmapImageRep(cgImage: cgImage)
-rep.size = NSSize(width: size, height: size)
-let png = rep.representation(using: .png, properties: [:])!
-try! png.write(to: URL(fileURLWithPath: "'"$MASKED_PNG"'"))
+let radius = CGFloat(size) * 0.23
+let srcUrl = URL(fileURLWithPath: "'"$DMG_ICON_PNG"'")
+guard let provider = CGDataProvider(url: srcUrl as CFURL),
+      let srcImage = CGImage(pngDataProviderSource: provider, decode: nil, shouldInterpolate: true, intent: .defaultIntent)
+else { exit(1) }
+let rect = CGRect(x: 0, y: 0, width: size, height: size)
+let squirclePath = CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil)
+let colorSpace = CGColorSpaceCreateDeviceRGB()
+guard let ctx = CGContext(data: nil, width: size, height: size,
+                          bitsPerComponent: 8, bytesPerRow: 0, space: colorSpace,
+                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+else { exit(1) }
+ctx.setShouldAntialias(false)
+ctx.addPath(squirclePath)
+ctx.clip()
+ctx.setShouldAntialias(true)
+ctx.draw(srcImage, in: rect)
+guard let masked = ctx.makeImage() else { exit(1) }
+let outUrl = URL(fileURLWithPath: "'"$MASKED_PNG"'") as CFURL
+guard let dest = CGImageDestinationCreateWithURL(outUrl, "public.png" as CFString, 1, nil) else { exit(1) }
+CGImageDestinationAddImage(dest, masked, nil)
+CGImageDestinationFinalize(dest)
 ' 2>/dev/null && DMG_ICON_SRC="$MASKED_PNG" || DMG_ICON_SRC="$DMG_ICON_PNG"
 
     DMG_ICONSET="/tmp/dmg-icon.iconset"
