@@ -3,6 +3,7 @@ import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { parseSkillFrontmatter } from '../../server/config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SCRIPTS_DIR = join(__dirname, '..', '..');
@@ -89,4 +90,25 @@ describe('sell SKILL.md import map consistency', () => {
     const importMapSection = content.split('## Import Map')[1]?.split('##')[0] || '';
     expect(importMapSection).not.toMatch(/esm\.sh\/stable\/react@[\d.]+/);
   });
+});
+
+const ALL_SKILLS = ['vibes', 'cloudflare', 'sell', 'launch', 'test', 'upload-dmg', 'design', 'riff'];
+
+describe('SKILL.md frontmatter integrity', () => {
+  for (const skill of ALL_SKILLS) {
+    it(`${skill}/SKILL.md has valid frontmatter with name field`, () => {
+      const skillPath = join(PLUGIN_ROOT, 'skills', skill, 'SKILL.md');
+      const content = readFileSync(skillPath, 'utf8');
+      const frontmatter = parseSkillFrontmatter(content);
+      expect(frontmatter.name).toBe(skill);
+    });
+
+    it(`${skill}/SKILL.md has a non-empty description`, () => {
+      const skillPath = join(PLUGIN_ROOT, 'skills', skill, 'SKILL.md');
+      const content = readFileSync(skillPath, 'utf8');
+      const frontmatter = parseSkillFrontmatter(content);
+      expect(frontmatter.description).toBeTruthy();
+      expect(frontmatter.description.length).toBeGreaterThan(10);
+    });
+  }
 });
