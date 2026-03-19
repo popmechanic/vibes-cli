@@ -5,8 +5,9 @@
  * The CLI just sends files and reads back Connect URLs from the response.
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, statSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
 import { join } from 'path';
+import { buildPlatformFiles } from '../../lib/deploy-files.js';
 import { getAccessToken } from '../../lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL } from '../../lib/auth-constants.js';
 import { getApp, setApp } from '../../lib/registry.js';
@@ -133,44 +134,8 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
   // Build the files map for the Deploy API
   const files: Record<string, string> = {
     'index.html': readFileSync(indexHtmlPath, 'utf8'),
+    ...buildPlatformFiles(ctx.projectRoot),
   };
-
-  // Include the OIDC bridge bundle so it's served alongside the app
-  const bridgePath = join(ctx.projectRoot, 'bundles/fireproof-oidc-bridge.js');
-  if (existsSync(bridgePath)) {
-    files['fireproof-oidc-bridge.js'] = readFileSync(bridgePath, 'utf8');
-  }
-
-  // Include the AI hook bundle
-  const aiBundlePath = join(ctx.projectRoot, 'bundles/vibes-ai.js');
-  if (existsSync(aiBundlePath)) {
-    files['vibes-ai.js'] = readFileSync(aiBundlePath, 'utf8');
-  }
-
-  // Include auth card SVG assets for deployed apps
-  const authCardsDir = join(ctx.projectRoot, 'assets/auth-cards');
-  if (existsSync(authCardsDir)) {
-    for (const name of ['card-1.svg', 'card-2.svg', 'card-3.svg', 'card-4.svg']) {
-      const p = join(authCardsDir, name);
-      if (existsSync(p)) files[`assets/auth-cards/${name}`] = readFileSync(p, 'utf8');
-    }
-  }
-
-  // Include favicon assets for deployed apps
-  const faviconDir = join(ctx.projectRoot, 'assets/vibes-favicon');
-  if (existsSync(faviconDir)) {
-    const textAssets = ['favicon.svg', 'site.webmanifest'];
-    const binaryAssets = ['favicon-96x96.png', 'favicon.ico', 'apple-touch-icon.png',
-                          'web-app-manifest-192x192.png', 'web-app-manifest-512x512.png'];
-    for (const name of textAssets) {
-      const p = join(faviconDir, name);
-      if (existsSync(p)) files[`assets/vibes-favicon/${name}`] = readFileSync(p, 'utf8');
-    }
-    for (const name of binaryAssets) {
-      const p = join(faviconDir, name);
-      if (existsSync(p)) files[`assets/vibes-favicon/${name}`] = 'base64:' + readFileSync(p).toString('base64');
-    }
-  }
 
   // Deploy via the Deploy API
   let deployUrl = '';

@@ -9,8 +9,9 @@
  * Deploy API Worker, which handles Cloudflare deployment, KV, secrets, and assets.
  */
 
-import { readFileSync, existsSync, unlinkSync, readdirSync, statSync } from "fs";
-import { resolve, join, relative, extname, dirname } from "path";
+import { readFileSync, existsSync, unlinkSync } from "fs";
+import { resolve, dirname } from "path";
+import { buildPlatformFiles, addAppAssets } from './lib/deploy-files.js';
 import { validateName, getApp, setApp } from './lib/registry.js';
 import { getAccessToken } from './lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL } from './lib/auth-constants.js';
@@ -89,44 +90,8 @@ async function main() {
 
   const files = {
     'index.html': htmlContent,
+    ...buildPlatformFiles(PLUGIN_ROOT),
   };
-
-  // Add OIDC bridge bundle if present
-  const bridgePath = resolve(PLUGIN_ROOT, 'bundles/fireproof-oidc-bridge.js');
-  if (existsSync(bridgePath)) {
-    files['fireproof-oidc-bridge.js'] = readFileSync(bridgePath, 'utf8');
-  }
-
-  // Add AI hook bundle if present
-  const aiBundlePath = resolve(PLUGIN_ROOT, 'bundles/vibes-ai.js');
-  if (existsSync(aiBundlePath)) {
-    files['vibes-ai.js'] = readFileSync(aiBundlePath, 'utf8');
-  }
-
-  // Include auth card SVGs
-  const authCardsDir = resolve(PLUGIN_ROOT, 'assets/auth-cards');
-  if (existsSync(authCardsDir)) {
-    for (let i = 1; i <= 4; i++) {
-      const p = resolve(authCardsDir, `card-${i}.svg`);
-      if (existsSync(p)) files[`assets/auth-cards/card-${i}.svg`] = readFileSync(p, 'utf8');
-    }
-  }
-
-  // Include favicon assets
-  const faviconDir = resolve(PLUGIN_ROOT, 'assets/vibes-favicon');
-  if (existsSync(faviconDir)) {
-    const textAssets = ['favicon.svg', 'site.webmanifest'];
-    const binaryAssets = ['favicon-96x96.png', 'favicon.ico', 'apple-touch-icon.png',
-                          'web-app-manifest-192x192.png', 'web-app-manifest-512x512.png'];
-    for (const n of textAssets) {
-      const p = resolve(faviconDir, n);
-      if (existsSync(p)) files[`assets/vibes-favicon/${n}`] = readFileSync(p, 'utf8');
-    }
-    for (const n of binaryAssets) {
-      const p = resolve(faviconDir, n);
-      if (existsSync(p)) files[`assets/vibes-favicon/${n}`] = 'base64:' + readFileSync(p).toString('base64');
-    }
-  }
 
   // Include app-level assets (assets/ directory next to the app file)
   const appDir = appIdx !== -1
@@ -134,30 +99,9 @@ async function main() {
     : fileIdx !== -1
       ? dirname(resolve(process.cwd(), args[fileIdx + 1]))
       : process.cwd();
-  const appAssetsDir = resolve(appDir, 'assets');
-  if (existsSync(appAssetsDir) && statSync(appAssetsDir).isDirectory()) {
-    const BINARY_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.woff', '.woff2', '.ttf', '.otf', '.avif']);
-    function walkDir(dir, base) {
-      for (const entry of readdirSync(dir)) {
-        const full = resolve(dir, entry);
-        const rel = base ? `${base}/${entry}` : entry;
-        if (statSync(full).isDirectory()) {
-          walkDir(full, rel);
-        } else {
-          const key = `assets/${rel}`;
-          if (!(key in files)) {
-            if (BINARY_EXTS.has(extname(entry).toLowerCase())) {
-              files[key] = 'base64:' + readFileSync(full).toString('base64');
-            } else {
-              files[key] = readFileSync(full, 'utf8');
-            }
-          }
-        }
-      }
-    }
-    walkDir(appAssetsDir, '');
-    console.log(`Included ${Object.keys(files).filter(k => k.startsWith('assets/')).length} asset file(s)`);
-  }
+  addAppAssets(resolve(appDir, 'assets'), files);
+  const assetCount = Object.keys(files).filter(k => k.startsWith('assets/')).length;
+  if (assetCount > 0) console.log(`Included ${assetCount} asset file(s)`);
 
   console.log(`Deploying ${name} to Cloudflare Workers via Deploy API...`);
 

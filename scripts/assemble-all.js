@@ -14,6 +14,8 @@ import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { APP_PLACEHOLDER, loadAndValidateTemplate } from './lib/assembly-utils.js';
+import { stripForTemplate } from './lib/strip-code.js';
+import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL, AI_PROXY_URL } from './lib/auth-constants.js';
 
 const templatePath = TEMPLATES.vibesBasic;
 
@@ -46,7 +48,12 @@ const results = await Promise.all(
 
     try {
       const appCode = readFileSync(appPath, 'utf8').trim();
-      const output = template.replace(APP_PLACEHOLDER, appCode);
+      const cleanedCode = stripForTemplate(appCode, { stripReactHooks: true });
+      let output = template.replace(APP_PLACEHOLDER, cleanedCode);
+      output = output.replaceAll('__VITE_OIDC_AUTHORITY__', OIDC_AUTHORITY);
+      output = output.replaceAll('__VITE_OIDC_CLIENT_ID__', OIDC_CLIENT_ID);
+      output = output.replaceAll('__VITE_DEPLOY_API_URL__', DEPLOY_API_URL);
+      output = output.replaceAll('__VITE_AI_PROXY_URL__', AI_PROXY_URL);
       writeFileSync(outputPath, output);
       return { dir, success: true };
     } catch (e) {
