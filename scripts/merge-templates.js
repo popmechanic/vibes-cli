@@ -13,6 +13,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { mergeTemplate as mergeTemplateCore } from "./lib/template-merge.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -75,33 +76,7 @@ function mergeTemplate(skill, baseTemplate, components, designTokensCSS) {
     return null;
   }
 
-  // Start with base template
-  let merged = baseTemplate;
-
-  // Replace title placeholder
-  merged = merged.replace("__TITLE__", skill.title);
-
-  // Inject design tokens CSS at placeholder
-  if (designTokensCSS) {
-    merged = merged.replace(
-      "/* === DESIGN_TOKENS_PLACEHOLDER === */",
-      designTokensCSS
-    );
-  }
-
-  // Inject components at placeholder
-  merged = merged.replace(
-    "// === COMPONENTS_PLACEHOLDER ===",
-    components
-  );
-
-  // Inject delta at placeholder
-  merged = merged.replace(
-    "<!-- === DELTA_PLACEHOLDER === -->",
-    delta
-  );
-
-  return merged;
+  return mergeTemplateCore(skill, baseTemplate, components, delta, designTokensCSS);
 }
 
 /**

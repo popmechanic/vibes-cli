@@ -26,36 +26,8 @@ const MAX_APP_WRITE_SIZE = 5 * 1024 * 1024; // 5MB for app.jsx writes (inline SV
 const MAX_SCREENSHOT_SIZE = 5 * 1024 * 1024; // 5MB
 
 export async function parseJsonBody(req: Request, maxSize = MAX_BODY_SIZE): Promise<any> {
-  // Fast-path optimization: reject obviously oversized bodies before reading.
-  // Not a security boundary — the streaming accumulator below is the actual enforcement.
-  const contentLength = parseInt(req.headers.get('content-length') || '0', 10);
-  if (contentLength > maxSize) {
-    throw Object.assign(new Error('Request body too large'), { status: 413 });
-  }
-
-  const reader = req.body?.getReader();
-  if (!reader) throw new Error('No request body');
-
-  const chunks: Uint8Array[] = [];
-  let totalBytes = 0;
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      totalBytes += value.byteLength;
-      if (totalBytes > maxSize) {
-        reader.cancel();
-        throw Object.assign(new Error('Request body too large'), { status: 413 });
-      }
-      chunks.push(value);
-    }
-  } finally {
-    reader.releaseLock();
-  }
-
-  const body = new TextDecoder().decode(Buffer.concat(chunks));
-  return JSON.parse(body);
+  const buf = await readBodyWithLimit(req, maxSize);
+  return JSON.parse(new TextDecoder().decode(buf));
 }
 
 export async function readBodyWithLimit(req: Request, maxSize: number): Promise<Buffer> {

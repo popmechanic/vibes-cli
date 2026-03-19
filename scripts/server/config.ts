@@ -86,32 +86,7 @@ export function loadConfig(): ServerContext {
   console.log(`Parsed colors for ${Object.keys(themeColors).length} themes`);
 
   // Extract :root CSS blocks
-  const themeRootCss = {};
-  for (const t of themes) {
-    const txtFile = join(themeDir, `${t.id}.txt`);
-    const mdFile = join(themeDir, `${t.id}.md`);
-    const filePath = existsSync(txtFile) ? txtFile : existsSync(mdFile) ? mdFile : null;
-    if (!filePath) continue;
-    const content = readFileSync(filePath, 'utf-8');
-    const rootMatch = content.match(/:root\s*\{[\s\S]*?\}/);
-    if (rootMatch) {
-      themeRootCss[t.id] = rootMatch[0];
-    } else {
-      const c = themeColors[t.id];
-      if (c) {
-        const lines = [];
-        if (c.bg) lines.push(`  --comp-bg: ${c.bg};`);
-        if (c.text) lines.push(`  --comp-text: ${c.text};`);
-        if (c.border) lines.push(`  --comp-border: ${c.border};`);
-        if (c.accent) lines.push(`  --comp-accent: ${c.accent};`);
-        if (c.text) lines.push(`  --comp-accent-text: ${c.bg || 'oklch(1.00 0 0)'};`);
-        if (c.muted) lines.push(`  --comp-muted: ${c.muted};`);
-        if (c.bg) lines.push(`  --color-background: ${c.bg};`);
-        lines.push(`  --grid-color: transparent;`);
-        if (lines.length > 1) themeRootCss[t.id] = ':root {\n' + lines.join('\n') + '\n}';
-      }
-    }
-  }
+  const themeRootCss = buildThemeRootCss(themes, themeDir, themeColors);
   console.log(`Extracted :root CSS for ${Object.keys(themeRootCss).length} themes`);
 
   // Discover plugin skills
@@ -155,18 +130,26 @@ export function reloadThemes(ctx) {
   }
 
   // Rebuild :root CSS blocks
-  ctx.themeRootCss = {};
-  for (const t of ctx.themes) {
-    const txtFile = join(ctx.themeDir, `${t.id}.txt`);
-    const mdFile = join(ctx.themeDir, `${t.id}.md`);
+  ctx.themeRootCss = buildThemeRootCss(ctx.themes, ctx.themeDir, ctx.themeColors);
+
+  console.log(`Reloaded ${ctx.themes.length} themes (${Object.keys(ctx.themeColors).length} with colors)`);
+}
+
+// --- Internal helpers ---
+
+function buildThemeRootCss(themes, themeDir, themeColors) {
+  const result = {};
+  for (const t of themes) {
+    const txtFile = join(themeDir, `${t.id}.txt`);
+    const mdFile = join(themeDir, `${t.id}.md`);
     const filePath = existsSync(txtFile) ? txtFile : existsSync(mdFile) ? mdFile : null;
     if (!filePath) continue;
     const content = readFileSync(filePath, 'utf-8');
     const rootMatch = content.match(/:root\s*\{[\s\S]*?\}/);
     if (rootMatch) {
-      ctx.themeRootCss[t.id] = rootMatch[0];
+      result[t.id] = rootMatch[0];
     } else {
-      const c = ctx.themeColors[t.id];
+      const c = themeColors[t.id];
       if (c) {
         const lines = [];
         if (c.bg) lines.push(`  --comp-bg: ${c.bg};`);
@@ -177,15 +160,12 @@ export function reloadThemes(ctx) {
         if (c.muted) lines.push(`  --comp-muted: ${c.muted};`);
         if (c.bg) lines.push(`  --color-background: ${c.bg};`);
         lines.push(`  --grid-color: transparent;`);
-        if (lines.length > 1) ctx.themeRootCss[t.id] = ':root {\n' + lines.join('\n') + '\n}';
+        if (lines.length > 1) result[t.id] = ':root {\n' + lines.join('\n') + '\n}';
       }
     }
   }
-
-  console.log(`Reloaded ${ctx.themes.length} themes (${Object.keys(ctx.themeColors).length} with colors)`);
+  return result;
 }
-
-// --- Internal helpers ---
 
 export function loadOpenRouterKey(projectRoot) {
   const candidates = [

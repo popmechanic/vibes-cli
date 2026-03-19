@@ -43,7 +43,7 @@ describe('parseJsonBody', () => {
   it('rejects body exceeding 1MB via Content-Length header (fast path)', async () => {
     // Declare a Content-Length larger than 1MB but send a small body
     const req = makeRequest('{}', 2 * 1024 * 1024);
-    await expect(parseJsonBody(req)).rejects.toThrow('Request body too large');
+    await expect(parseJsonBody(req)).rejects.toThrow('Body too large');
   });
 
   it('rejects body exceeding custom limit', async () => {
@@ -68,7 +68,7 @@ describe('parseJsonBody', () => {
     const bigPayload = JSON.stringify({ data: 'x'.repeat(limit * 2) });
     // Set Content-Length to a small value that passes the fast-path check
     const req = makeRequest(bigPayload, 10);
-    await expect(parseJsonBody(req, limit)).rejects.toThrow('Request body too large');
+    await expect(parseJsonBody(req, limit)).rejects.toThrow('Body too large');
   });
 });
 
