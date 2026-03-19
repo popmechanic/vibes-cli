@@ -14,55 +14,7 @@ import { APP_PLACEHOLDER } from '../../lib/assembly-utils.js';
 import { populateConnectConfig } from '../../lib/env-utils.js';
 import { TEMPLATES } from '../../lib/paths.js';
 import { currentAppDir, slugifyPrompt, resolveAppName } from '../app-context.js';
-
-/**
- * Generate a new app from a user prompt.
- */
-const AI_INSTRUCTIONS = `
-=== AI FEATURES ===
-
-This app needs AI capabilities. Use the global \`useAI\` hook (available as window.useAI — NO import needed).
-
-\`\`\`jsx
-// Non-streaming (simple request/response):
-const { callAI, loading, error } = useAI();
-
-const response = await callAI({
-  model: "anthropic/claude-sonnet-4",
-  messages: [
-    { role: "system", content: "You are a helpful assistant." },
-    { role: "user", content: userMessage }
-  ],
-  temperature: 0.7,
-  max_tokens: 1000
-});
-const aiText = response.choices[0].message.content;
-
-// Streaming (for chat UIs — shows tokens as they arrive):
-const { ask, answer, loading, error } = useAI();
-
-// ask() starts streaming; answer updates reactively
-ask({
-  model: "anthropic/claude-sonnet-4",
-  messages: [{ role: "user", content: userMessage }]
-});
-// Render: <div>{answer}</div>  — updates live as tokens stream in
-
-// Error handling:
-if (error?.code === 'LIMIT_EXCEEDED') { /* show upgrade message */ }
-if (error?.code === 'API_ERROR') { /* show retry button */ }
-\`\`\`
-
-RULES for AI features:
-- useAI() is a React hook — call it at the top of your component (not inside callbacks)
-- callAI() is async — await it. ask() is fire-and-forget (answer updates reactively)
-- Prefer streaming (ask/answer) for chat interfaces, callAI for one-shot operations
-- Use Fireproof to persist AI conversations: save user messages and AI responses to the database
-- Show a loading indicator while \`loading\` is true
-- Handle errors gracefully — show user-friendly messages, not raw error objects
-- Do NOT use fetch() to call AI APIs directly — always use useAI()
-- Do NOT simulate or hardcode AI responses — use the real API via useAI()
-`;
+import { AI_INSTRUCTIONS_GENERATE } from '../ai-instructions.ts';
 
 export async function handleGenerate(ctx: ServerContext, onEvent: EventCallback, userPrompt: string, themeId: string | undefined, model: string | undefined, reference: any = null, useAI: boolean = false) {
   if (!userPrompt) {
@@ -303,7 +255,7 @@ DATABASE:
   merge({text:"new"}) to update fields, submit() to save as new doc, save() to upsert by _id
   For forms: merge() on each keystroke, submit() when done. NEVER use setDoc — it doesn't exist.
 - useLiveQuery("type",{key:"item"}) returns { docs, isLoading }
-- database.put({...doc, field:"val"}) for direct writes, database.del(doc) to delete${useAI ? AI_INSTRUCTIONS : ''}`;
+- database.put({...doc, field:"val"}) for direct writes, database.del(doc) to delete${useAI ? AI_INSTRUCTIONS_GENERATE : ''}`;
 
     onEvent({ type: 'theme_selected', themeId: 'custom-ref', themeName: 'Custom Reference' });
 
@@ -458,7 +410,7 @@ DATABASE:
   merge({text:"new"}) to update fields, submit() to save as new doc, save() to upsert by _id
   For forms: merge() on each keystroke, submit() when done. NEVER use setDoc — it doesn't exist.
 - useLiveQuery("type",{key:"item"}) returns { docs, isLoading }
-- database.put({...doc, field:"val"}) for direct writes, database.del(doc) to delete${useAI ? AI_INSTRUCTIONS : ''}`;
+- database.put({...doc, field:"val"}) for direct writes, database.del(doc) to delete${useAI ? AI_INSTRUCTIONS_GENERATE : ''}`;
 
   const themeColors = ctx.themeColors[themeId] || null;
   onEvent({ type: 'theme_selected', themeId, themeName, themeBackground: themeColors?.bg || null });

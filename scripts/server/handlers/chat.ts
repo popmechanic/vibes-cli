@@ -10,6 +10,7 @@ import { sanitizeAppJsx } from '../post-process.ts';
 import { getAnimationInstructions } from '../config.ts';
 import type { ServerContext } from '../config.ts';
 import { currentAppDir } from '../app-context.js';
+import { AI_INSTRUCTIONS_CHAT } from '../ai-instructions.ts';
 
 const EFFECT_INSTRUCTIONS = {
   '3d': `MANDATORY: Use WebGL or CSS 3D transforms (perspective, rotateX/Y/Z, preserve-3d) for this feature. Create actual 3D depth — not flat elements with shadows. Consider: rotating 3D cards, perspective grids, WebGL scenes with Three.js-style raw GL, isometric layouts, parallax depth layers. Use useRef + useEffect for any canvas/WebGL setup with proper cleanup.`,
@@ -18,27 +19,6 @@ const EFFECT_INSTRUCTIONS = {
   'particles': `MANDATORY: Add a Canvas 2D particle system background. Use useRef + useEffect with requestAnimationFrame. Create floating particles that drift, connect particles with lines when close, add mouse-reactive displacement. Use devicePixelRatio for retina, keep count under 100 for mobile. The particles should be behind content with position:fixed, zIndex:0, pointerEvents:none.`,
   'shader': `MANDATORY: Add a WebGL fragment shader background. Create a fullscreen quad with vertex shader, pass u_time/u_resolution/u_mouse uniforms. Use effects like: aurora (sine wave color mixing), plasma (layered sine interference), noise gradient mesh (hash-based noise with mouse reactivity), or animated color fields. Use precision mediump float. Graceful fallback if WebGL unavailable.`,
 };
-
-const AI_INSTRUCTIONS = `\n\nAI FEATURES — the useAI hook is available as a global (NO import needed):
-
-\`\`\`jsx
-// Non-streaming:
-const { callAI, loading, error } = useAI();
-const response = await callAI({
-  model: "anthropic/claude-sonnet-4",
-  messages: [{ role: "user", content: userMessage }]
-});
-const aiText = response.choices[0].message.content;
-
-// Streaming (for chat UIs):
-const { ask, answer, loading, error } = useAI();
-ask({ model: "anthropic/claude-sonnet-4", messages: [{ role: "user", content: userMessage }] });
-// answer updates reactively as tokens stream in
-\`\`\`
-
-Rules: useAI() at component top level, callAI() is async, ask() is fire-and-forget.
-Use Fireproof to persist conversations. Show loading state. Handle errors.
-Do NOT use fetch() for AI calls — always useAI(). Do NOT simulate AI responses.`;
 
 export async function handleChat(ctx: ServerContext, onEvent: EventCallback, message: string, effects: string[] = [], animationId: string | null = null, model: string | undefined, reference: any = null, skillId: string | null = null, _useAI: boolean = false) {
   // Auto-detect useAI from existing app code — no manual toggle needed for chat
@@ -234,7 +214,7 @@ RULES:
 - Preserve all components, hooks, state, data models, __VIBES_THEMES__, useVibesTheme()
 - Do NOT add imports, do NOT use TypeScript, keep export default App
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
-- Never change Fireproof document types or query filters${useAI ? AI_INSTRUCTIONS : ''}`;
+- Never change Fireproof document types or query filters${useAI ? AI_INSTRUCTIONS_CHAT : ''}`;
 
   await runOneShot(prompt, { lockType: 'chat', model, cwd: currentAppDir(ctx) || ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent, ctx.projectRoot);
 

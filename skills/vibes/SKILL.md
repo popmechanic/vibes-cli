@@ -422,180 +422,29 @@ Lighten/darken using L value:
 
 Fireproof is a local-first database - no loading or error states required, just empty data states. Data persists across sessions and syncs in real-time when Connect is configured.
 
+**For complete examples (Form + List, Demo Data patterns), read `${CLAUDE_SKILL_DIR}/fireproof-patterns.md`.**
+
 ### Setup
 ```jsx
 import { useFireproofClerk } from "use-fireproof";
-
 const { database, useLiveQuery, useDocument, syncStatus } = useFireproofClerk("my-app-db");
 ```
 
-**Note**: The template wraps your App in an auth provider (Pocket ID), enabling authenticated cloud sync automatically. Your code just uses `useFireproofClerk`.
+The template wraps your App in an auth provider (Pocket ID), enabling authenticated cloud sync automatically.
 
 ### Choosing Your Pattern
 
-**useDocument** = Form-like editing. Accumulate changes with `merge()`, then save with `submit()` or `save()`. Best for: text inputs, multi-field forms, editing workflows.
+- **useDocument** = Form-like editing. `merge()` to accumulate, `submit()` to save + reset, `save()` to save in place. Best for: forms, text inputs.
+- **database.put()** = Immediate writes. Best for: counters, toggles, buttons, batch creation (demo data).
+- **useLiveQuery** = Real-time queries. `useLiveQuery("type", { key: "item" })` for filtered lists, `useLiveQuery("_id", { descending: true })` for recent-first.
 
-**database.put() + useLiveQuery** = Immediate state changes. Each action writes directly. Best for: counters, toggles, buttons, any single-action updates.
+**WARNING — merge() + submit() timing trap:** Never `merge()` a computed value and call `submit()` in the same handler. React batches state, so `submit()` reads stale data. Use `database.put()` with explicit fields + `reset()` instead.
 
-```jsx
-// FORM PATTERN: User types, then submits
-const { doc, merge, submit } = useDocument({ title: "", body: "", type: "post" });
-// merge({ title: "..." }) on each keystroke, submit() when done
-
-// IMMEDIATE PATTERN: Each click is a complete action
-const { docs } = useLiveQuery("_id", { key: "counter" });
-const count = docs[0]?.value || 0;
-const increment = () => database.put({ _id: "counter", value: count + 1 });
-```
-
-**WARNING — merge() + submit() timing trap:** Never `merge()` a computed value (like `Date.now()` or `crypto.randomUUID()`) and call `submit()` in the same event handler. React batches state updates, so `submit()` reads stale state and the merged field may be missing from the saved document. Use `database.put()` with explicit fields instead:
-
-```jsx
-// BAD — ts may not be saved due to React batching
-merge({ ts: Date.now() });
-submit();
-
-// GOOD — all fields written atomically
-await database.put({ text: doc.text, ts: Date.now(), type: "item" });
-reset();
-```
-
-### useDocument - Form State (NOT useState)
-
-**IMPORTANT**: Don't use `useState()` for form data. Use `merge()` and `submit()` from `useDocument`. Only use `useState` for ephemeral UI state (active tabs, open/closed panels).
-
-```jsx
-// Create new documents (auto-generated _id recommended)
-const { doc, merge, submit, reset } = useDocument({ text: "", type: "item" });
-
-// Edit existing document by known _id
-const { doc, merge, save } = useDocument({ _id: "user-profile:abc@example.com" });
-
-// Methods:
-// - merge(updates) - update fields: merge({ text: "new value" })
-// - submit(e) - save + reset (for forms creating new items)
-// - save() - save without reset (for editing existing items)
-// - reset() - discard changes
-```
-
-### useLiveQuery - Real-time Lists
-
-```jsx
-// Simple: query by field value
-const { docs } = useLiveQuery("type", { key: "item" });
-
-// Recent items (_id is roughly temporal - great for simple sorting)
-const { docs } = useLiveQuery("_id", { descending: true, limit: 100 });
-
-// Range query
-const { docs } = useLiveQuery("rating", { range: [3, 5] });
-```
-
-**CRITICAL**: Custom index functions are SANDBOXED and CANNOT access external variables. Query all, filter in render:
-
-```jsx
-// GOOD: Query all, filter in render
-const { docs: allItems } = useLiveQuery("type", { key: "item" });
-const filtered = allItems.filter(d => d.category === selectedCategory);
-```
-
-### Direct Database Operations
-```jsx
-// Create/update
-const { id } = await database.put({ text: "hello", type: "item" });
-
-// Delete
-await database.del(item._id);
-```
-
-### Common Pattern - Form + List
-```jsx
-import React from "react";
-import { useFireproofClerk } from "use-fireproof";
-
-export default function App() {
-  const { database, useLiveQuery, useDocument, syncStatus } = useFireproofClerk("my-db");
-
-  // Form for new items (submit resets for next entry)
-  const { doc, merge, submit } = useDocument({ text: "", type: "item" });
-
-  // Live list of all items of type "item"
-  const { docs } = useLiveQuery("type", { key: "item" });
-
-  return (
-    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-text)] p-4">
-      {/* Optional sync status indicator */}
-      <div className="text-xs text-gray-500 mb-2">Sync: {syncStatus}</div>
-      <form onSubmit={submit} className="mb-4">
-        <input
-          value={doc.text}
-          onChange={(e) => merge({ text: e.target.value })}
-          className="w-full px-4 py-3 border-4 border-[var(--app-border)]"
-        />
-        <button type="submit" className="mt-2 px-4 py-2 bg-[var(--app-accent)] text-white hover:bg-[var(--app-accent-hover)]">
-          Add
-        </button>
-      </form>
-      {docs.map(item => (
-        <div key={item._id} className="p-2 mb-2 bg-[var(--app-surface)] border-4 border-[var(--app-border)]">
-          {item.text}
-          <button onClick={() => database.del(item._id)} className="ml-2 text-[var(--vibes-red-accent)]">
-            Delete
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-}
-```
-
-### Common Pattern - Demo Data & Empty States
-
-Every generated app should include a "Load Demo Data" button visible only when the database is empty. This lets users immediately see the app working with realistic data instead of staring at a blank screen.
-
-```jsx
-import React from "react";
-import { useFireproofClerk } from "use-fireproof";
-
-export default function App() {
-  const { database, useLiveQuery, useDocument, syncStatus } = useFireproofClerk("my-db");
-  const { doc, merge, submit } = useDocument({ title: "", priority: "medium", type: "task" });
-  const { docs } = useLiveQuery("type", { key: "task" });
-
-  const seedDemo = async () => {
-    if (docs.length > 0) return; // guard: only seed when empty
-    await database.put({ title: "Design landing page", priority: "high", done: false, type: "task" });
-    await database.put({ title: "Write API documentation", priority: "medium", done: false, type: "task" });
-    await database.put({ title: "Fix mobile nav overflow", priority: "high", done: true, type: "task" });
-    await database.put({ title: "Add dark mode toggle", priority: "low", done: false, type: "task" });
-  };
-
-  return (
-    <div className="min-h-screen bg-[var(--app-bg)] text-[var(--app-text)] p-4">
-      {docs.length === 0 && (
-        <button
-          onClick={seedDemo}
-          className="mb-4 px-4 py-2 bg-[var(--app-accent)] text-white rounded hover:bg-[var(--app-accent-hover)]"
-        >
-          Load Demo Data
-        </button>
-      )}
-      {/* ... rest of app */}
-    </div>
-  );
-}
-```
-
-**Rules:**
-- Demo data names/content must be plausible for the app's domain (not "test1", "test2")
-- Use `database.put()` directly (not `merge`/`submit`) — this is batch creation
-- Guard condition (`docs.length > 0`) and render condition (`docs.length === 0`) must match
-- Seed 3–5 documents with enough variety to populate all views and demonstrate features
-- If the app has related document types, seed them with cross-references using returned `id` values:
-  ```jsx
-  const { id: projectId } = await database.put({ name: "Website Redesign", type: "project" });
-  await database.put({ title: "Update hero section", projectId, type: "task" });
-  ```
+### Key Rules
+- **Don't use `useState()` for form data** — use `useDocument` with `merge()`/`submit()`
+- **Custom index functions are SANDBOXED** — cannot access external variables. Query all, filter in render.
+- **Every app needs a "Load Demo Data" button** — visible only when database is empty, using `database.put()` directly (not `useEffect` on mount)
+- **Demo data must be realistic** for the app's domain, 3–5 documents with enough variety to populate all views
 
 ---
 
@@ -822,6 +671,7 @@ The shipped default files contain detailed reference material. Read them when th
 
 | Need | Signal in Prompt | Read This |
 |------|------------------|-----------|
+| Fireproof code examples | form + list, demo data, useDocument/useLiveQuery details | `${CLAUDE_SKILL_DIR}/fireproof-patterns.md` |
 | Design tokens & theming | colors, theme, tokens, brand colors, styling | `${CLAUDE_PLUGIN_ROOT}/build/design-tokens.txt` |
 | File uploads | "upload", "images", "photos", "attachments" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Working with Images" |
 | Auth / sync config | "Pocket ID", "Connect", "cloud sync", "login" | `${CLAUDE_PLUGIN_ROOT}/docs/fireproof.txt` → "Auth Config" |
