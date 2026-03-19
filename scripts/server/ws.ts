@@ -18,7 +18,6 @@ import { handleGenerate } from './handlers/generate.ts';
 import { handleDeploy } from './handlers/deploy.ts';
 import { handleSaveTheme } from './handlers/create-theme.ts';
 import { handleGenerateImage } from './handlers/image-gen.ts';
-import type { HmrWatcher } from './hmr.ts';
 
 // --- Types ---
 
@@ -61,12 +60,8 @@ export function translateEvent(event: any): object[] {
 /**
  * Create an onEvent callback that forwards translated events to a WebSocket.
  */
-export function createEventAdapter(ws: ServerWebSocket<WsData>, hmrWatcher?: HmrWatcher | null): EventCallback {
+export function createEventAdapter(ws: ServerWebSocket<WsData>): EventCallback {
   return (event: any) => {
-    // Forward tool_result to HMR watcher before translateEvent strips _toolName/_filePath
-    if (hmrWatcher && event.type === 'tool_result') {
-      hmrWatcher.onToolResult(event);
-    }
     try {
       for (const msg of translateEvent(event)) {
         ws.send(JSON.stringify(msg));
@@ -92,14 +87,14 @@ export function broadcast(msg: object): void {
 
 // --- WebSocket Handler ---
 
-export function createWsHandler(ctx: ServerContext, hmrWatcher?: HmrWatcher | null) {
+export function createWsHandler(ctx: ServerContext) {
   return {
     maxPayloadLength: 50 * 1024 * 1024, // 50MB for image refs
     idleTimeout: 255,
 
     open(ws: ServerWebSocket<WsData>) {
       console.log('[WS] Client connected');
-      ws.data.onEvent = createEventAdapter(ws, hmrWatcher);
+      ws.data.onEvent = createEventAdapter(ws);
       connectedClients.add(ws);
     },
 
@@ -117,21 +112,11 @@ export function createWsHandler(ctx: ServerContext, hmrWatcher?: HmrWatcher | nu
       try {
         switch (msg.type) {
           case 'chat':
-            if (hmrWatcher) hmrWatcher.start();
-            try {
-              await handleChat(ctx, onEvent, msg.message, msg.effects || [], msg.animationId || null, msg.model, msg.reference || null, msg.skillId || null, !!msg.useAI);
-            } finally {
-              if (hmrWatcher) hmrWatcher.stop();
-            }
+            await handleChat(ctx, onEvent, msg.message, msg.effects || [], msg.animationId || null, msg.model, msg.reference || null, msg.skillId || null, !!msg.useAI);
             break;
 
           case 'generate':
-            if (hmrWatcher) hmrWatcher.start();
-            try {
-              await handleGenerate(ctx, onEvent, msg.prompt, msg.themeId, msg.model, msg.reference || null, !!msg.useAI);
-            } finally {
-              if (hmrWatcher) hmrWatcher.stop();
-            }
+            await handleGenerate(ctx, onEvent, msg.prompt, msg.themeId, msg.model, msg.reference || null, !!msg.useAI);
             break;
 
           case 'theme':

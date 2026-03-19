@@ -1646,7 +1646,6 @@
       transition: opacity 0.3s ease;
     }
     .preview-overlay.hidden { opacity: 0; pointer-events: none; }
-    .preview-overlay.has-content { background: rgba(0,0,0,0.4); }
     .preview-overlay .preview-progress-label {
       font-size: 0.8125rem; color: #999; margin-bottom: 0.5rem; font-weight: 600;
     }
@@ -2857,7 +2856,6 @@
     <!-- Preview -->
     <div class="preview-panel" id="previewPanel" style="position:relative;">
       <div class="preview-overlay hidden" id="previewOverlay">
-        <div class="preview-live-badge" style="display:none" id="previewLiveBadge">LIVE</div>
         <svg class="vibes-logo-loader" xmlns="http://www.w3.org/2000/svg" viewBox="0 118 600 185" fill="currentColor" style="width:120px;">
           <path fill-rule="evenodd" clip-rule="evenodd" fill="#000" d="M293.353,298.09c-41.038,0-82.078,0.125-123.115-0.077c-11.993-0.06-24.011-0.701-35.964-1.703c-15.871-1.331-29.73-7.937-41.948-17.946c-16.769-13.736-27.207-31.417-30.983-52.7c-4.424-24.93,1.404-47.685,16.506-67.913c11.502-15.407,26.564-26.1,45.258-30.884c7.615-1.949,15.631-2.91,23.501-3.165c20.08-0.652,40.179-0.853,60.271-0.879c69.503-0.094,139.007-0.106,208.51,0.02c14.765,0.026,29.583,0.097,44.28,1.313c36.984,3.059,61.78,23.095,74.653,57.301c17.011,45.199-8.414,96.835-54.29,111.864c-7.919,2.595-16.165,3.721-24.434,3.871c-25.614,0.467-51.234,0.742-76.853,0.867C350.282,298.197,321.817,298.09,293.353,298.09z"/>
           <path fill="#fff" fill-rule="evenodd" clip-rule="evenodd" d="M165.866,285.985c-7.999-0.416-19.597-0.733-31.141-1.687c-15.692-1.297-28.809-8.481-40.105-19.104c-12.77-12.008-20.478-26.828-22.714-44.177c-3.048-23.644,3.384-44.558,19.646-62.143c9.174-9.92,20.248-17.25,33.444-20.363c7.786-1.837,15.944-2.399,23.973-2.828c9.988-0.535,121.023-0.666,131.021-0.371c10.191,0.301,20.433,0.806,30.521,2.175c12.493,1.696,23.132,7.919,32.552,16.091c14.221,12.337,22.777,27.953,25.184,46.594c2.822,21.859-2.605,41.617-16.777,58.695c-9.494,11.441-21.349,19.648-35.722,23.502c-6.656,1.785-13.724,2.278-20.647,2.77C286.914,285.721,177.682,285.667,165.866,285.985z"/>
@@ -3135,7 +3133,6 @@
   const WS_MAX_DELAY = 30000;
   let isThinking = false;
   let isGenerating = false;
-  let lastBlobUrl = null;
   let themes = [];
   let currentPhase = 'loading';
   let deployTargets = { cloudflare: false };
@@ -3762,21 +3759,6 @@
           errEl.style.display = '';
         }
         addMessage('error', msg.message);
-      } else if (msg.type === 'hmr_update') {
-        // Live preview update — replace iframe content via blob URL
-        const frame = document.getElementById('previewFrame');
-        if (frame && msg.html) {
-          if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl);
-          const blob = new Blob([msg.html], { type: 'text/html' });
-          lastBlobUrl = URL.createObjectURL(blob);
-          frame.src = lastBlobUrl;
-          // Show live content — make overlay semi-transparent and show LIVE badge
-          const overlay = document.getElementById('previewOverlay');
-          if (overlay) {
-            overlay.classList.add('has-content');
-            document.getElementById('previewLiveBadge').style.display = '';
-          }
-        }
       } else if (msg.type === 'cancelled') {
         setThinking(false);
         if (isGenerating) {
@@ -5440,8 +5422,7 @@
 
   function showPreviewOverlay() {
     const overlay = document.getElementById('previewOverlay');
-    overlay.classList.remove('hidden', 'has-content');
-    document.getElementById('previewLiveBadge').style.display = 'none';
+    overlay.classList.remove('hidden');
     document.getElementById('previewProgressLabel').textContent = 'Starting Claude...';
     document.getElementById('previewProgressFill').style.width = '0%';
     if (window.__selectedThemeBg) {
@@ -5454,10 +5435,6 @@
   function hidePreviewOverlay() {
     const overlay = document.getElementById('previewOverlay');
     overlay.classList.add('hidden');
-    if (lastBlobUrl) {
-      URL.revokeObjectURL(lastBlobUrl);
-      lastBlobUrl = null;
-    }
   }
 
   function updatePreviewOverlay(progress, stage) {
