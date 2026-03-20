@@ -1,0 +1,8 @@
+name = "vibes-connect-dispatcher"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+account_id = "e33948793047032de7f5e18ec342a7d1"
+
+[[dispatch_namespaces]]
+binding = "DISPATCHER"
+namespace = "vibes-connect"
