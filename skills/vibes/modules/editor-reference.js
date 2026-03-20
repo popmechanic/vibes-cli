@@ -10,6 +10,7 @@
 (function() {
   // contexts: { edit: { file, elements, callbacks, opts }, generate: { ... } }
   const contexts = {};
+  const intentAbortControllers = {};
   let escapeHtml = function(s) { return s; };
 
   /**
@@ -117,8 +118,12 @@
       ctx.elements.refBtn.classList.add('active');
     }
 
-    // Event delegation for intent buttons and clear button
-    row.addEventListener('click', _intentPickerClickHandler.bind(null, contextName));
+    // Event delegation for intent buttons and clear button.
+    // Abort previous listener to prevent accumulation across multiple showIntentPicker calls.
+    if (intentAbortControllers[contextName]) intentAbortControllers[contextName].abort();
+    intentAbortControllers[contextName] = new AbortController();
+    row.addEventListener('click', _intentPickerClickHandler.bind(null, contextName),
+      { signal: intentAbortControllers[contextName].signal });
   }
 
   /** Internal: handle clicks within the intent picker via delegation. */

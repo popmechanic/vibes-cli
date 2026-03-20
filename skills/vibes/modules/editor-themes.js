@@ -318,7 +318,7 @@
         name,
         model: callbacks.getModel ? callbacks.getModel() : undefined,
         app: callbacks.getCurrentAppName ? callbacks.getCurrentAppName() : undefined
-      }));
+      });
     }
   }
 
