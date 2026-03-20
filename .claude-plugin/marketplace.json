@@ -1,6 +1,6 @@
 {
   "name": "VibesOS",
-  "description": "Vibes is a vibe coding framework for people who use Claude Code, but don't know how to code",
+  "description": "Vibes is for people who use Claude Code, but don't know how to code.",
   "owner": {
     "name": "Marcus Estes",
     "email": "marcus@vibes.diy"
@@ -9,7 +9,7 @@
     {
       "name": "vibes",
       "source": "./",
-      "description": "Vibes is a vibe coding framework for people who use Claude Code, but don't know how to code",
+      "description": "Vibes is for people who use Claude Code, but don't know how to code.",
       "version": "0.1.95",
       "author": {
         "name": "Marcus Estes",
