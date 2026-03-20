@@ -184,12 +184,43 @@ export async function createUserGroup(
   return (await res.json()) as { id: string };
 }
 
+/**
+ * Get current members of a user group.
+ */
+export async function getGroupMembers(
+  fetcher: PocketIdFetcher,
+  apiKey: string,
+  groupId: string
+): Promise<string[]> {
+  const res = await fetcher.fetch(
+    `https://pocket-id/api/user-groups/${groupId}`,
+    {
+      headers: { "X-API-Key": apiKey, Accept: "application/json" },
+    }
+  );
+
+  if (!res.ok) return [];
+
+  const group = (await res.json()) as { users?: Array<{ id: string }> };
+  return (group.users || []).map((u) => u.id);
+}
+
+/**
+ * Add users to a group, preserving existing members.
+ *
+ * Pocket ID's PUT /user-groups/{id}/users REPLACES the entire membership
+ * list. We must read current members first and merge to avoid evicting them.
+ */
 export async function addUsersToGroup(
   fetcher: PocketIdFetcher,
   apiKey: string,
   groupId: string,
   userIds: string[]
 ): Promise<void> {
+  // Read existing members so the PUT doesn't evict them
+  const existing = await getGroupMembers(fetcher, apiKey, groupId);
+  const merged = [...new Set([...existing, ...userIds])];
+
   const res = await fetcher.fetch(
     `https://pocket-id/api/user-groups/${groupId}/users`,
     {
@@ -199,7 +230,7 @@ export async function addUsersToGroup(
         "Content-Type": "application/json",
         Accept: "application/json",
       },
-      body: JSON.stringify({ userIds }),
+      body: JSON.stringify({ userIds: merged }),
     }
   );
 
