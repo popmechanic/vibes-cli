@@ -27,6 +27,8 @@ import { generateCodeVerifier, generateCodeChallenge } from "./pkce";
 import { discoverLedgerId } from "./ledger-discovery";
 import { base64UrlDecode } from "./base64url";
 
+const APP_NAMESPACE = 'vibes-apps';
+
 // ---------------------------------------------------------------------------
 // JWT Verification — Dynamic JWKS
 // ---------------------------------------------------------------------------
@@ -209,72 +211,6 @@ function userOwnsOrCanCreate(record: SubdomainRecord | null, userId: string): bo
 // Cloudflare Workers API Deploy
 // ---------------------------------------------------------------------------
 
-// Cache the account's workers.dev subdomain (never changes for an account)
-let cachedWorkersSubdomain: string | null = null;
-
-async function getWorkersSubdomain(accountId: string, apiToken: string): Promise<string | null> {
-  if (cachedWorkersSubdomain) return cachedWorkersSubdomain;
-
-  try {
-    const res = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/subdomain`,
-      { headers: { Authorization: `Bearer ${apiToken}` } }
-    );
-    if (!res.ok) return null;
-    const data = (await res.json()) as { result?: { subdomain?: string } };
-    if (data.result?.subdomain) {
-      cachedWorkersSubdomain = data.result.subdomain;
-      return cachedWorkersSubdomain;
-    }
-  } catch {
-    // Fall through to null
-  }
-  return null;
-}
-
-/**
- * Assign a custom domain to a deployed worker via the CF Workers Domains API.
- * Idempotent — re-calling with the same hostname updates the existing mapping.
- */
-async function assignCustomDomain(
-  accountId: string,
-  apiToken: string,
-  zoneId: string,
-  appName: string,
-  hostname: string
-): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const res = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/domains`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${apiToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          hostname,
-          service: appName,
-          zone_id: zoneId,
-          environment: "production",
-        }),
-      }
-    );
-
-    if (!res.ok) {
-      const body = await res.text();
-      console.error(`Custom domain assignment failed (${res.status}): ${body}`);
-      return { ok: false, error: `Custom domain failed (${res.status})` };
-    }
-
-    console.log(`Custom domain assigned: ${hostname} → ${appName}`);
-    return { ok: true };
-  } catch (err) {
-    console.error("Custom domain assignment error:", err);
-    return { ok: false, error: "Custom domain assignment error" };
-  }
-}
-
 /**
  * Deploy a multi-file app as a CF Worker that serves static files.
  */
@@ -360,8 +296,8 @@ export default {
     "index.js"
   );
 
-  // Upload the worker
-  const uploadUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${appName}`;
+  // Upload the worker to the dispatch namespace
+  const uploadUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/dispatch/namespaces/${APP_NAMESPACE}/scripts/${appName}`;
   const uploadRes = await fetch(uploadUrl, {
     method: "PUT",
     headers: { Authorization: `Bearer ${apiToken}` },
@@ -374,29 +310,7 @@ export default {
     return { ok: false, url: "", error: `Deploy failed (${uploadRes.status}). Please try again.` };
   }
 
-  // Enable workers.dev subdomain
-  const subdomainUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${appName}/subdomain`;
-  const subdomainRes = await fetch(subdomainUrl, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ enabled: true }),
-  });
-
-  if (!subdomainRes.ok) {
-    // Non-fatal: the worker is deployed, subdomain routing just might not be enabled
-    console.error(`Subdomain enable failed (${subdomainRes.status}): ${await subdomainRes.text()}`);
-  }
-
-  // Get the account's workers.dev subdomain for the correct URL
-  const subdomain = await getWorkersSubdomain(accountId, apiToken);
-  const url = subdomain
-    ? `https://${appName}.${subdomain}.workers.dev`
-    : `https://${appName}.workers.dev`;
-
-  return { ok: true, url };
+  return { ok: true, url: `https://${appName}.vibesos.com` };
 }
 
 // ---------------------------------------------------------------------------
@@ -603,14 +517,7 @@ app.post("/deploy", async (c) => {
 
   if (c.env.POCKET_ID_API_KEY) {
     // Build the canonical deploy URL for OIDC callback registration
-    const deployUrl = c.env.CF_ZONE_ID
-      ? `https://${name}.vibesos.com`
-      : (() => {
-          const subdomain = cachedWorkersSubdomain;
-          return subdomain
-            ? `https://${name}.${subdomain}.workers.dev`
-            : `https://${name}.workers.dev`;
-        })();
+    const deployUrl = `https://${name}.vibesos.com`;
 
     const registration = await registerAppInPocketId(
       c.env.POCKET_ID,
@@ -649,7 +556,6 @@ app.post("/deploy", async (c) => {
         r2AccessKeyId: c.env.R2_ACCESS_KEY_ID,
         r2SecretAccessKey: c.env.R2_SECRET_ACCESS_KEY,
         serviceApiKey: c.env.SERVICE_API_KEY,
-        zoneId: c.env.CF_ZONE_ID,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Connect provisioning failed";
@@ -696,26 +602,7 @@ app.post("/deploy", async (c) => {
     return c.json({ ok: false, error: result.error }, 502);
   }
 
-  // Assign custom domain: {name}.vibesos.com
-  const customHostname = `${name}.vibesos.com`;
-  if (c.env.CF_ZONE_ID) {
-    const domainResult = await assignCustomDomain(
-      c.env.CF_ACCOUNT_ID,
-      c.env.CF_API_TOKEN,
-      c.env.CF_ZONE_ID,
-      name,
-      customHostname
-    );
-    if (!domainResult.ok) {
-      // Non-fatal: worker is deployed, custom domain just didn't attach
-      console.error(`Custom domain assignment failed for ${customHostname}: ${domainResult.error}`);
-    }
-  }
-
-  // Canonical URL uses vibesos.com; fall back to workers.dev if zone ID not configured
-  const deployedUrl = c.env.CF_ZONE_ID
-    ? `https://${customHostname}`
-    : result.url;
+  const deployedUrl = `https://${name}.vibesos.com`;
 
   // Update registry KV
   const now = new Date().toISOString();
@@ -860,60 +747,6 @@ app.post("/admin/repair-groups", async (c) => {
   return c.json({ repaired: results.filter(r => r.status === "OK").length, total: results.length, results });
 });
 
-// Admin: assign custom domains to all existing dashboard Workers (one-time migration)
-app.post("/admin/migrate-dashboard-domains", async (c) => {
-  const authHeader = c.req.header("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return c.json({ error: "auth required" }, 401);
-  const payload = await verifyJWT(authHeader.slice(7), c.env.OIDC_ISSUER, c.env.POCKET_ID);
-  if (!payload) return c.json({ error: "invalid token" }, 401);
-  if (!c.env.CF_ZONE_ID) return c.json({ error: "CF_ZONE_ID not configured" }, 500);
-
-  // List all subdomain: keys from REGISTRY_KV
-  const keys: string[] = [];
-  let cursor: string | undefined;
-  do {
-    const list = await c.env.REGISTRY_KV.list({ prefix: "subdomain:", cursor, limit: 100 });
-    keys.push(...list.keys.map(k => k.name));
-    cursor = list.list_complete ? undefined : list.cursor;
-  } while (cursor);
-
-  const results: Array<{ app: string; status: string }> = [];
-  for (const key of keys) {
-    const appName = key.replace("subdomain:", "");
-    const dashboardName = `fireproof-dashboard-${appName}`;
-    const hostname = `connect-${appName}.vibesos.com`;
-
-    const domainResult = await assignCustomDomain(
-      c.env.CF_ACCOUNT_ID, c.env.CF_API_TOKEN, c.env.CF_ZONE_ID,
-      dashboardName, hostname
-    );
-
-    // Also update the KV record's apiUrl to use the custom domain
-    if (domainResult.ok) {
-      const raw = await c.env.REGISTRY_KV.get(key);
-      if (raw) {
-        try {
-          const record = JSON.parse(raw) as SubdomainRecord;
-          if (record.connect?.apiUrl && !record.connect.apiUrl.includes("connect-")) {
-            record.connect.apiUrl = `https://${hostname}/api`;
-            record.connect.dashboardUrl = `https://${hostname}`;
-            await c.env.REGISTRY_KV.put(key, JSON.stringify(record));
-            results.push({ app: appName, status: `OK — domain + KV updated` });
-          } else {
-            results.push({ app: appName, status: `OK — domain assigned (KV already correct)` });
-          }
-        } catch {
-          results.push({ app: appName, status: `OK — domain assigned (KV parse error)` });
-        }
-      }
-    } else {
-      results.push({ app: appName, status: `FAILED: ${domainResult.error}` });
-    }
-  }
-
-  return c.json({ migrated: results.length, results });
-});
-
 // Admin: reset Connect state for an app (deletes cloud-backend + dashboard Workers,
 // clears connectProvisioned flag so next deploy re-provisions fresh)
 app.post("/admin/reset-connect/:name", async (c) => {
@@ -1022,14 +855,7 @@ app.post("/apps/:name/invite", async (c) => {
     );
 
     // Build the app URL
-    const appUrl = c.env.CF_ZONE_ID
-      ? `https://${name}.vibesos.com`
-      : await (async () => {
-          const subdomain = await getWorkersSubdomain(c.env.CF_ACCOUNT_ID, c.env.CF_API_TOKEN);
-          return subdomain
-            ? `https://${name}.${subdomain}.workers.dev`
-            : `https://${name}.workers.dev`;
-        })();
+    const appUrl = `https://${name}.vibesos.com`;
 
     const inviteUrl = `${appUrl}?ota=${encodeURIComponent(ota.token)}`;
 
@@ -1410,9 +1236,7 @@ app.get("/join/callback", async (c) => {
     await setSubdomain(c.env.REGISTRY_KV, state.app, updatedRecord);
 
     // 5. Redirect to the app (with OTA for seamless sign-in if available)
-    const appUrl = c.env.CF_ZONE_ID
-      ? `https://${state.app}.vibesos.com`
-      : `https://${state.app}.workers.dev`;
+    const appUrl = `https://${state.app}.vibesos.com`;
 
     let redirectUrl = `${appUrl}?joined=true`;
     try {

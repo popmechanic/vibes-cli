@@ -8,6 +8,7 @@ import { generateSessionTokens, generateDeviceCAKeys } from './crypto';
 import type { ConnectInfo } from './types';
 
 const CF_API = 'https://api.cloudflare.com/client/v4';
+const CONNECT_NAMESPACE = 'vibes-connect';
 
 interface ProvisionParams {
   accountId: string;
@@ -22,8 +23,6 @@ interface ProvisionParams {
   r2SecretAccessKey: string;
   /** Service API key for machine-to-machine auth (public link join flow) */
   serviceApiKey?: string;
-  /** CF zone ID for custom domain assignment (vibesos.com) */
-  zoneId?: string;
 }
 
 interface CFApiResponse<T = unknown> {
@@ -329,6 +328,7 @@ async function uploadWorker(
   scriptName: string,
   scriptContent: string,
   metadata: Record<string, unknown>,
+  namespace?: string,
 ): Promise<void> {
   const form = new FormData();
 
@@ -342,8 +342,11 @@ async function uploadWorker(
     'worker.js',
   );
 
+  const basePath = namespace
+    ? `${CF_API}/accounts/${accountId}/workers/dispatch/namespaces/${namespace}/scripts/${scriptName}`
+    : `${CF_API}/accounts/${accountId}/workers/scripts/${scriptName}`;
   const res = await fetch(
-    `${CF_API}/accounts/${accountId}/workers/scripts/${scriptName}`,
+    basePath,
     {
       method: 'PUT',
       headers: { Authorization: `Bearer ${apiToken}` },
@@ -358,7 +361,7 @@ async function uploadWorker(
     if ((json.errors?.[0]?.code === 10079 || json.errors?.[0]?.code === 10074) && metadata.migrations) {
       const retryMeta = { ...metadata };
       delete retryMeta.migrations;
-      return uploadWorker(accountId, apiToken, scriptName, scriptContent, retryMeta);
+      return uploadWorker(accountId, apiToken, scriptName, scriptContent, retryMeta, namespace);
     }
     throw new Error(`Worker upload failed for ${scriptName}: ${JSON.stringify(json.errors)}`);
   }
@@ -399,12 +402,16 @@ async function getWorkersSubdomain(accountId: string, apiToken: string): Promise
 
 // --- Delete Worker ---
 
-async function deleteWorker(accountId: string, apiToken: string, scriptName: string): Promise<boolean> {
-  const res = await cfApi(
-    `/accounts/${accountId}/workers/scripts/${scriptName}`,
-    apiToken,
-    { method: 'DELETE' },
-  );
+async function deleteWorker(
+  accountId: string,
+  apiToken: string,
+  scriptName: string,
+  namespace?: string,
+): Promise<boolean> {
+  const path = namespace
+    ? `/accounts/${accountId}/workers/dispatch/namespaces/${namespace}/scripts/${scriptName}`
+    : `/accounts/${accountId}/workers/scripts/${scriptName}`;
+  const res = await cfApi(path, apiToken, { method: 'DELETE' });
   // Success or 10007 ("script not found") are both fine
   return res.success || res.errors?.[0]?.code === 10007;
 }
@@ -434,15 +441,22 @@ export async function resetConnect(
   const deleted: string[] = [];
   const errors: string[] = [];
 
-  // Delete Workers (clears Durable Object state)
-  for (const name of [cloudBackendName, dashboardName]) {
-    try {
-      const ok = await deleteWorker(accountId, apiToken, name);
-      if (ok) deleted.push(name);
-      else errors.push(`${name}: delete returned false`);
-    } catch (e) {
-      errors.push(`${name}: ${e instanceof Error ? e.message : String(e)}`);
-    }
+  // Delete cloud-backend (standalone worker — has Durable Objects)
+  try {
+    const ok = await deleteWorker(accountId, apiToken, cloudBackendName);
+    if (ok) deleted.push(cloudBackendName);
+    else errors.push(`${cloudBackendName}: delete returned false`);
+  } catch (e) {
+    errors.push(`${cloudBackendName}: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  // Delete dashboard (namespace worker)
+  try {
+    const ok = await deleteWorker(accountId, apiToken, dashboardName, CONNECT_NAMESPACE);
+    if (ok) deleted.push(dashboardName);
+    else errors.push(`${dashboardName}: delete returned false`);
+  } catch (e) {
+    errors.push(`${dashboardName}: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   // Delete D1 databases (clears corrupted CRDT metadata)
@@ -534,7 +548,7 @@ export async function provisionConnect(params: ProvisionParams): Promise<Connect
   });
   await enableWorkerSubdomain(accountId, apiToken, cloudBackendName);
 
-  // 6. Deploy dashboard Worker
+  // 6. Deploy dashboard Worker (into vibes-connect namespace)
   await uploadWorker(accountId, apiToken, dashboardName, dashboardBundle, {
     main_module: 'worker.js',
     compatibility_date: '2025-02-24',
@@ -561,42 +575,13 @@ export async function provisionConnect(params: ProvisionParams): Promise<Connect
       // Service auth for machine-to-machine API calls (public link join flow)
       ...(serviceApiKey ? [{ type: 'secret_text' as const, name: 'SERVICE_API_KEY', text: serviceApiKey }] : []),
     ],
-  });
-  await enableWorkerSubdomain(accountId, apiToken, dashboardName);
+  }, CONNECT_NAMESPACE);
 
-  // 7. Assign custom domain to dashboard Worker for Worker-to-Worker access
-  // (.workers.dev URLs fail with error 1042 when fetched from another Worker on the same account)
-  const dashboardHostname = `connect-${stage}.vibesos.com`;
-  let dashboardCustomDomain = false;
-  if (params.zoneId) {
-    try {
-      const domainRes = await fetch(`${CF_API}/accounts/${accountId}/workers/domains`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${apiToken}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          hostname: dashboardHostname,
-          service: dashboardName,
-          zone_id: params.zoneId,
-          environment: "production",
-        }),
-      });
-      dashboardCustomDomain = domainRes.ok;
-      if (!domainRes.ok) {
-        console.error(`[connect] Dashboard custom domain failed for ${dashboardHostname}: ${await domainRes.text().catch(() => "")}`);
-      }
-    } catch (e) {
-      console.error(`[connect] Dashboard custom domain error:`, e);
-    }
-  }
-
-  // 8. Get workers.dev subdomain for URL construction
+  // 7. Get workers.dev subdomain for cloud-backend URL (stays standalone)
   const workersSubdomain = await getWorkersSubdomain(accountId, apiToken);
 
   const cloudBackendUrl = `https://${cloudBackendName}.${workersSubdomain}.workers.dev`;
-  // Use custom domain if available (required for Worker-to-Worker fetch), fall back to .workers.dev
-  const dashboardUrl = dashboardCustomDomain
-    ? `https://${dashboardHostname}`
-    : `https://${dashboardName}.${workersSubdomain}.workers.dev`;
+  const dashboardUrl = `https://connect-${stage}.vibesos.com`;
 
   return {
     cloudBackendUrl,
