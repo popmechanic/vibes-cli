@@ -1,0 +1,23 @@
+name = "vibes-sync-dispatcher"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+account_id = "e33948793047032de7f5e18ec342a7d1"
+
+[vars]
+OIDC_JWKS_URL = "https://vibesos.com/.well-known/jwks.json"
+
+[[durable_objects.bindings]]
+name = "APP_SYNC"
+class_name = "AppSyncDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["AppSyncDO"]
+
+[[kv_namespaces]]
+binding = "APP_META"
+id = "215847e525304ab29b9127c70672fc86"
+
+[[dispatch_namespaces]]
+binding = "DISPATCH"
+namespace = "vibes-apps"
