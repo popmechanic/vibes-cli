@@ -273,10 +273,9 @@ const STYLE = `
 `;
 
 export default function App() {
-  const { isReady, isSyncing, user } = useApp();
+  const { isSyncing, user } = useApp();
   // ... component logic using TinyBase hooks (useRowIds, useCell, useAddRowCallback, etc.)
-
-  if (!isReady) return <div>Loading...</div>;
+  // Note: isReady is always true here — the template gates rendering automatically
 
   return (
     <>
@@ -445,8 +444,8 @@ useSetValueCallback
 **Status check with useApp():**
 ```jsx
 const { isReady, isSyncing, user } = useApp();
-if (!isReady) return <div>Loading...</div>;
 ```
+The template gates rendering until the store is ready. `useApp().isReady` is always `true` inside your App component — the template shows a loading state automatically. You can still destructure it for explicitness, but forgetting it won't crash the app.
 
 **Fine-grained reactivity — each component calls its own hooks:**
 ```jsx
@@ -534,7 +533,7 @@ const deleteTodo = useDelRowCallback('todos', id);
 - **Every app needs a "Load Demo Data" button** — visible only when the table is empty (`useRowCount('tableName') === 0`), using `useAddRowCallback` (not `useEffect` on mount)
 - **Demo data must be realistic** for the app's domain, 3-5 rows with enough variety to populate all views
 - **Cells are scalars only** — strings, numbers, booleans. Do NOT put objects or arrays in cells (cell-level last-writer-wins loses concurrent edits to different fields inside a nested object)
-- **Always check `isReady`** from `useApp()` before rendering data — the store may not be hydrated yet
+- **`isReady` check is now handled by the template** — your App component only renders after the store is hydrated. You can still use `const { isReady } = useApp()` for explicitness but it's always `true`.
 
 ---
 
@@ -595,15 +594,12 @@ function AIChatInput({ onSend }) {
 
 // Main app — TinyBase hooks for data, AI in child component
 export default function App() {
-  const { isReady } = useApp();
   const messageIds = useRowIds('messages');
 
   const addMessage = useAddRowCallback(
     'messages',
     (msg) => ({ role: msg.role, content: msg.content, timestamp: Date.now() }),
   );
-
-  if (!isReady) return <div>Loading...</div>;
 
   return (
     <div>
@@ -707,6 +703,107 @@ Sharing is handled at the deployment level — the WebSocket sync room is scoped
 
 ---
 
+## Reference App
+
+Complete working example — a shared grocery list. Study this pattern before generating code:
+
+```jsx
+export default function App() {
+  const { user } = useApp();
+  return (
+    <div className="max-w-md mx-auto p-4">
+      <h1 className="text-xl font-bold mb-4">Grocery List</h1>
+      <AddItem user={user} />
+      <ItemList />
+    </div>
+  );
+}
+
+function AddItem({ user }) {
+  const [input, setInput] = useState('');
+  const addItem = useAddRowCallback(
+    'items',
+    (text) => ({
+      name: text ?? '',
+      bought: false,
+      addedBy: user?.name ?? 'someone',
+      createdAt: Date.now(),
+    }),
+    [user],
+  );
+  const handleAdd = () => {
+    if (input.trim()) {
+      addItem(input.trim());
+      setInput('');
+    }
+  };
+  return (
+    <div className="flex gap-2 mb-4">
+      <input
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && handleAdd()}
+        className="flex-1 border rounded px-3 py-2"
+        placeholder="Add item..."
+      />
+      <button onClick={handleAdd} className="btn">Add</button>
+    </div>
+  );
+}
+
+function ItemList() {
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 25;
+  const totalItems = useRowCount('items');
+  const itemIds = useSortedRowIds('items', 'createdAt', true, page * PAGE_SIZE, PAGE_SIZE);
+  return (
+    <div>
+      {itemIds.map(id => <GroceryItem key={id} id={id} />)}
+      {totalItems > (page + 1) * PAGE_SIZE && (
+        <button onClick={() => setPage(p => p + 1)} className="w-full py-2 text-sm opacity-60">
+          Load more
+        </button>
+      )}
+    </div>
+  );
+}
+
+function GroceryItem({ id }) {
+  const name = useCell('items', id, 'name');
+  const bought = useCell('items', id, 'bought');
+  const addedBy = useCell('items', id, 'addedBy');
+  const toggleBought = useSetCellCallback(
+    'items', id, 'bought',
+    (_e) => (current) => !current,
+  );
+  const remove = useDelRowCallback('items', id);
+
+  return (
+    <div className="flex items-center gap-2 py-2 border-b">
+      <button onClick={toggleBought} className="w-6 h-6 flex items-center justify-center">
+        {bought ? '✓' : '○'}
+      </button>
+      <span className={bought ? 'line-through opacity-40 flex-1' : 'flex-1'}>
+        {name}
+      </span>
+      <span className="text-xs opacity-50">{addedBy}</span>
+      <button onClick={remove} className="text-red-400 text-sm">x</button>
+    </div>
+  );
+}
+```
+
+**Key patterns demonstrated:**
+- `useApp()` for user context (isReady is always true — template gates rendering)
+- `useAddRowCallback` with deps array including `user`
+- `useSortedRowIds` with pagination (PAGE_SIZE 25)
+- `useCell` in child components for fine-grained reactivity (not useTable)
+- `useSetCellCallback` with MapCell pattern for toggles
+- `useDelRowCallback` for deletion
+- No imports, no store access, no schema
+
+---
+
 ## Common Mistakes to Avoid
 
 - **DON'T** use `useTable` on large tables — it re-renders on ANY cell change. Use `useRowIds` to get IDs, then `useCell` in child components for fine-grained reactivity.
@@ -737,7 +834,7 @@ Sharing is handled at the deployment level — the WebSocket sync room is scoped
   ```
 - **DON'T** use `useSetRowCallback` when you only need to update some cells — it replaces the entire row, deleting any cells you omit. Use `useSetPartialRowCallback` instead.
 - **DON'T** put objects or arrays in cells — TinyBase cells are scalars (string, number, boolean). Cell-level last-writer-wins means concurrent edits to different fields inside a nested object will lose data. Flatten your data model.
-- **DON'T** forget `isReady` check from `useApp()` — the store may not be hydrated yet. Always gate rendering on `isReady`.
+- `isReady` check is now handled by the template — your App component only renders after the store is hydrated. You can still use `const { isReady } = useApp()` for explicitness but it's always `true`.
 - **DON'T** use white text on light backgrounds
 - **DON'T** use `fetch()` to call AI APIs directly — use `useAI` hook instead (it handles auth and proxying)
 - **DON'T** write `import` statements — all hooks and React are globals provided by the template
