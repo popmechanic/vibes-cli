@@ -55,7 +55,10 @@ async function verifyJwt(token: string, jwksUrl: string): Promise<boolean> {
 
     const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
     const now = Math.floor(Date.now() / 1000);
-    return typeof payload.exp === 'number' && payload.exp > now;
+    if (typeof payload.exp !== 'number' || payload.exp <= now) return false;
+    if (payload.iss !== 'https://vibesos.com') return false;
+    if (typeof payload.iat === 'number' && payload.iat > now + 60) return false;
+    return true;
   } catch {
     return false;
   }
@@ -82,14 +85,14 @@ export default {
 
     if (request.headers.get('upgrade')?.toLowerCase() === 'websocket') {
       const appName = url.pathname.slice(1);
-      if (!appName) {
-        return new Response('Missing app name in path', { status: 400 });
+      if (!appName || !/^[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$|^[a-z0-9]$/.test(appName)) {
+        return new Response('Invalid app name', { status: 400 });
       }
 
       const appMeta = await env.APP_META.get(`app-meta:${appName}`, { type: 'json' }) as
         { public?: boolean } | null;
 
-      if (appMeta && !appMeta.public) {
+      if (appMeta?.public !== true) {
         const token = getTokenFromRequest(request);
         if (!token) return new Response('Unauthorized', { status: 401 });
         const valid = await verifyJwt(token, env.OIDC_JWKS_URL);
