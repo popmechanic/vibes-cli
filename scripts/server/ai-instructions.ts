@@ -55,22 +55,24 @@ Rules:
 export const AI_INSTRUCTIONS_CHAT = `\n\nAI FEATURES — the useAI hook is available as a global (NO import needed):
 
 \`\`\`jsx
+const { callAI, streamAI, loading, error } = useAI();
+
 // Non-streaming:
-const { callAI, loading, error } = useAI();
-const response = await callAI({
+const text = await callAI({
   model: "anthropic/claude-sonnet-4",
   messages: [{ role: "user", content: userMessage }]
 });
-const aiText = response.choices[0].message.content;
+if (!text) return; // error state set automatically
 
 // Streaming (for chat UIs):
-const { ask, answer, loading, error } = useAI();
-ask({ model: "anthropic/claude-sonnet-4", messages: [{ role: "user", content: userMessage }] });
-// answer updates reactively as tokens stream in
+const stream = streamAI({ model: "anthropic/claude-sonnet-4", messages: [...] });
+if (!stream) return;
+let result = "";
+for await (const chunk of stream) { result += chunk; setResponse(result); }
 \`\`\`
 
-Rules: useAI() at component top level, callAI() is async, ask() is fire-and-forget.
-Use Fireproof to persist conversations. Show loading state. Handle errors.
+Rules: useAI() at component top level. callAI() is async, returns text or null. streamAI() returns async iterator or null. Neither throws.
+Use Fireproof to persist conversations. Show loading state. Handle errors via null checks.
 Do NOT use fetch() for AI calls — always useAI(). Do NOT simulate AI responses.`;
 
 /** Detailed AI instructions for generation context (new apps). */
@@ -80,42 +82,47 @@ export const AI_INSTRUCTIONS_GENERATE = `
 This app needs AI capabilities. Use the global \`useAI\` hook (available as window.useAI — NO import needed).
 
 \`\`\`jsx
-// Non-streaming (simple request/response):
-const { callAI, loading, error } = useAI();
+const { callAI, streamAI, loading, error } = useAI();
 
-const response = await callAI({
+// Non-streaming (simple request/response):
+const text = await callAI({
   model: "anthropic/claude-sonnet-4",
   messages: [
     { role: "system", content: "You are a helpful assistant." },
     { role: "user", content: userMessage }
-  ],
-  temperature: 0.7,
-  max_tokens: 1000
+  ]
 });
-const aiText = response.choices[0].message.content;
+if (!text) return; // error state set automatically
+// text is a string — use it directly
 
 // Streaming (for chat UIs — shows tokens as they arrive):
-const { ask, answer, loading, error } = useAI();
-
-// ask() starts streaming; answer updates reactively
-ask({
+const stream = streamAI({
   model: "anthropic/claude-sonnet-4",
   messages: [{ role: "user", content: userMessage }]
 });
-// Render: <div>{answer}</div>  — updates live as tokens stream in
+if (!stream) return; // error state set
+
+let accumulated = "";
+for await (const chunk of stream) {
+  accumulated += chunk;
+  setResponse(accumulated); // update UI as tokens arrive
+}
 
 // Error handling:
-if (error?.code === 'LIMIT_EXCEEDED') { /* show upgrade message */ }
-if (error?.code === 'API_ERROR') { /* show retry button */ }
+if (error) {
+  // error.code: "RATE_LIMITED" | "API_ERROR" | "NETWORK_ERROR" | "AUTH_REQUIRED"
+  // error.message: human-readable string
+}
 \`\`\`
 
 RULES for AI features:
 - useAI() is a React hook — call it at the top of your component (not inside callbacks)
-- callAI() is async — await it. ask() is fire-and-forget (answer updates reactively)
-- Prefer streaming (ask/answer) for chat interfaces, callAI for one-shot operations
+- callAI() is async — returns text string on success, null on error. NEVER throws.
+- streamAI() returns an async iterator on success, null on error. Use for await...of to consume.
+- Prefer streamAI for chat interfaces, callAI for one-shot operations
 - Use Fireproof to persist AI conversations: save user messages and AI responses to the database
 - Show a loading indicator while \`loading\` is true
-- Handle errors gracefully — show user-friendly messages, not raw error objects
+- Handle errors via null checks — callAI and streamAI return null when something goes wrong
 - Do NOT use fetch() to call AI APIs directly — always use useAI()
 - Do NOT simulate or hardcode AI responses — use the real API via useAI()
 `;
