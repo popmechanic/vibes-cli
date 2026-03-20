@@ -54,11 +54,13 @@ async function main() {
   let output = template.replace(APP_PLACEHOLDER, cleanedAppCode);
 
   // Inject hardcoded OIDC constants (same for every app) — replaceAll for templates
-  // with multiple occurrences of the same placeholder
-  output = output.replaceAll('__VITE_OIDC_AUTHORITY__', OIDC_AUTHORITY);
-  output = output.replaceAll('__VITE_OIDC_CLIENT_ID__', OIDC_CLIENT_ID);
-  output = output.replaceAll('__VITE_DEPLOY_API_URL__', DEPLOY_API_URL);
-  output = output.replaceAll('__VITE_AI_PROXY_URL__', AI_PROXY_URL);
+  // with multiple occurrences of the same placeholder.
+  // App-specific config (__APP_NAME__, __WS_URL__, __APP_PUBLIC__) is injected at
+  // deploy time by the Deploy API, NOT here.
+  output = output.replaceAll('__OIDC_AUTHORITY__', OIDC_AUTHORITY);
+  output = output.replaceAll('__OIDC_CLIENT_ID__', OIDC_CLIENT_ID);
+  output = output.replaceAll('__DEPLOY_API_URL__', DEPLOY_API_URL);
+  output = output.replaceAll('__AI_PROXY_URL__', AI_PROXY_URL);
 
   // Validate output
   const validationErrors = validateAssembly(output, appCode);

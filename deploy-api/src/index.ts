@@ -7,10 +7,7 @@
 
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import type { Env, DeployRequest, DeployResponse, JWTPayload, SubdomainRecord, ConnectInfo } from "./types";
-import { provisionConnect, resetConnect } from "./connect";
-import CLOUD_BACKEND_BUNDLE from "../bundles/cloud-backend.txt";
-import DASHBOARD_BUNDLE from "../bundles/dashboard.txt";
+import type { Env, DeployRequest, DeployResponse, JWTPayload, SubdomainRecord } from "./types";
 import {
   createApp,
   getApp,
@@ -24,7 +21,6 @@ import {
   createOneTimeAccessToken,
 } from "./pocket-id";
 import { generateCodeVerifier, generateCodeChallenge } from "./pkce";
-import { discoverLedgerId } from "./ledger-discovery";
 import { base64UrlDecode } from "./base64url";
 
 const APP_NAMESPACE = 'vibes-apps';
@@ -416,7 +412,7 @@ async function registerAppInPocketId(
 
 /**
  * Inject per-app oidcClientId into assembled HTML.
- * Replaces the placeholder or shared client ID in window.__VIBES_CONFIG__.
+ * Replaces the placeholder or shared client ID in window.__APP_CONFIG__.
  */
 function injectClientId(html: string, clientId: string): string {
   return html.replace(
@@ -539,62 +535,22 @@ app.post("/deploy", async (c) => {
     }
   }
 
-  // --- Connect provisioning (first deploy only) ---
-  let connectInfo: ConnectInfo | undefined;
-  const isFirstDeploy = !existing?.connectProvisioned || !existing?.connect?.apiUrl;
+  // --- App config injection (app-specific values set at deploy time) ---
+  const wsUrl = `wss://sync.vibesos.com/${name}`;
+  const isPublic = body.public ?? true;
 
-  if (isFirstDeploy) {
-    try {
-      connectInfo = await provisionConnect({
-        accountId: c.env.CF_ACCOUNT_ID,
-        apiToken: c.env.CF_API_TOKEN,
-        stage: name,
-        oidcAuthority: c.env.OIDC_ISSUER,
-        oidcServiceWorkerName: "pocket-id",
-        cloudBackendBundle: CLOUD_BACKEND_BUNDLE,
-        dashboardBundle: DASHBOARD_BUNDLE,
-        r2AccessKeyId: c.env.R2_ACCESS_KEY_ID,
-        r2SecretAccessKey: c.env.R2_SECRET_ACCESS_KEY,
-        serviceApiKey: c.env.SERVICE_API_KEY,
-      });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Connect provisioning failed";
-      console.error(`[connect] Provisioning failed for ${name}:`, err);
-      return c.json({ ok: false, error: `Connect provisioning failed: ${msg}` }, 502);
-    }
-  } else {
-    connectInfo = existing?.connect;
-  }
-
-  // Inject Connect URLs into HTML
-  if (connectInfo?.apiUrl && connectInfo?.cloudUrl && files["index.html"]) {
+  if (files["index.html"]) {
     files["index.html"] = files["index.html"]
-      .replace(/tokenApiUri:\s*"[^"]*"/, `tokenApiUri: "${connectInfo.apiUrl}"`)
-      .replace(/cloudBackendUrl:\s*"[^"]*"/, `cloudBackendUrl: "${connectInfo.cloudUrl}"`);
+      .replaceAll('__APP_NAME__', name)
+      .replaceAll('__WS_URL__', wsUrl)
+      .replaceAll('__APP_PUBLIC__', String(isPublic));
   }
 
-  // Inject shared ledger ID if known (from previous deploys or join discovery)
-  let sharedLedgerId = existing?.connect?.ledgerId;
-  if (!sharedLedgerId && connectInfo?.d1DashboardId) {
-    // Try D1 discovery for apps that have been used but not yet cached
-    sharedLedgerId = await discoverLedgerId({
-      apiUrl: connectInfo.apiUrl ? `${connectInfo.apiUrl}` : `https://${name}-dashboard.vibesos.com/api`,
-      serviceToken: `${c.env.SERVICE_API_KEY}|${existing?.owner || userId}|`,
-      appName: name,
-      d1Fallback: {
-        accountId: c.env.CF_ACCOUNT_ID,
-        apiToken: c.env.CF_API_TOKEN,
-        d1DatabaseId: connectInfo.d1DashboardId,
-      },
-    }) ?? undefined;
-    if (sharedLedgerId) {
-      console.log(`[deploy] Discovered shared ledger for ${name}: ${sharedLedgerId}`);
-    }
-  }
-  if (sharedLedgerId && files["index.html"]) {
-    files["index.html"] = files["index.html"]
-      .replace(/window\.__VIBES_SHARED_LEDGER__\s*=\s*null/, `window.__VIBES_SHARED_LEDGER__ = "${sharedLedgerId}"`);
-  }
+  // Write app metadata to KV for the dispatch worker's auth gate
+  await c.env.REGISTRY_KV.put(`app-meta:${name}`, JSON.stringify({
+    public: isPublic,
+    oidcClientId,
+  }));
 
   // Deploy via CF API
   const result = await deployCFWorker(c.env.CF_ACCOUNT_ID, c.env.CF_API_TOKEN, name, files);
@@ -611,17 +567,15 @@ app.post("/deploy", async (c) => {
         ...existing,
         oidcClientId,
         userGroupId,
-        connectProvisioned: true,
-        connect: { ...(connectInfo || existing.connect), ...(sharedLedgerId ? { ledgerId: sharedLedgerId } : {}) },
+        sync: { wsUrl, public: isPublic },
         updatedAt: now,
       }
     : {
         owner: userId,
         collaborators: [],
-        connectProvisioned: !!connectInfo,
-        connect: { ...connectInfo, ...(sharedLedgerId ? { ledgerId: sharedLedgerId } : {}) },
         oidcClientId,
         userGroupId,
+        sync: { wsUrl, public: isPublic },
         createdAt: now,
         updatedAt: now,
       };
@@ -640,7 +594,7 @@ app.post("/deploy", async (c) => {
     ok: true,
     url: deployedUrl,
     name,
-    connect: connectInfo ? { apiUrl: connectInfo.apiUrl, cloudUrl: connectInfo.cloudUrl } : undefined,
+    wsUrl,
   };
   return c.json(response);
 });
@@ -652,36 +606,6 @@ app.get("/status/:name", async (c) => {
   if (!record) return c.json({ exists: false }, 404);
   // Full record for debugging — TODO: restrict after share link debugging
   return c.json({ exists: true, ...record });
-});
-
-// Debug: test discoverLedgerId for an app (requires auth as owner)
-app.get("/debug/discover-ledger/:name", async (c) => {
-  const authHeader = c.req.header("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return c.json({ error: "auth required" }, 401);
-  const token = authHeader.slice(7);
-  const payload = await verifyJWT(token, c.env.OIDC_ISSUER, c.env.POCKET_ID);
-  if (!payload) return c.json({ error: "invalid token" }, 401);
-
-  const name = c.req.param("name");
-  const record = await getSubdomain(c.env.REGISTRY_KV, name);
-  if (!record) return c.json({ error: "app not found" }, 404);
-  if (record.owner !== payload.sub) return c.json({ error: "not owner" }, 403);
-  if (!record.connect?.apiUrl || !c.env.SERVICE_API_KEY) {
-    return c.json({ error: "missing connect or service key", hasApiUrl: !!record.connect?.apiUrl, hasKey: !!c.env.SERVICE_API_KEY });
-  }
-
-  const serviceToken = `${c.env.SERVICE_API_KEY}|${record.owner}|`;
-  const ledgerId = await discoverLedgerId({
-    apiUrl: record.connect.apiUrl,
-    serviceToken,
-    appName: name,
-    d1Fallback: record.connect.d1DashboardId ? {
-      accountId: c.env.CF_ACCOUNT_ID,
-      apiToken: c.env.CF_API_TOKEN,
-      d1DatabaseId: record.connect.d1DashboardId,
-    } : undefined,
-  });
-  return c.json({ ledgerId, owner: record.owner, apiUrl: record.connect.apiUrl, cachedLedgerId: record.connect.ledgerId || null });
 });
 
 // Debug: check OIDC client config in Pocket ID
@@ -747,44 +671,9 @@ app.post("/admin/repair-groups", async (c) => {
   return c.json({ repaired: results.filter(r => r.status === "OK").length, total: results.length, results });
 });
 
-// Admin: reset Connect state for an app (deletes cloud-backend + dashboard Workers,
-// clears connectProvisioned flag so next deploy re-provisions fresh)
+// Admin: reset-connect is no longer needed (Connect has been replaced by TinyBase sync)
 app.post("/admin/reset-connect/:name", async (c) => {
-  const authHeader = c.req.header("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return c.json({ error: "auth required" }, 401);
-  const payload = await verifyJWT(authHeader.slice(7), c.env.OIDC_ISSUER, c.env.POCKET_ID);
-  if (!payload) return c.json({ error: "invalid token" }, 401);
-
-  const name = c.req.param("name");
-  const kvKey = `subdomain:${name}`;
-  const raw = await c.env.REGISTRY_KV.get(kvKey);
-  if (!raw) return c.json({ error: "app not found" }, 404);
-
-  const record = JSON.parse(raw) as SubdomainRecord;
-
-  // Only the app owner can reset
-  if (record.owner !== payload.sub) {
-    return c.json({ error: "not owner" }, 403);
-  }
-
-  // Delete Workers (Durable Object state) and D1 databases (corrupted CRDT metadata)
-  const result = await resetConnect(c.env.CF_ACCOUNT_ID, c.env.CF_API_TOKEN, name, {
-    d1BackendId: record.connect?.d1BackendId,
-    d1DashboardId: record.connect?.d1DashboardId,
-  });
-
-  // Clear the connectProvisioned flag so next deploy re-provisions
-  record.connectProvisioned = false;
-  delete record.connect;
-  await c.env.REGISTRY_KV.put(kvKey, JSON.stringify(record));
-
-  return c.json({
-    ok: true,
-    app: name,
-    deleted: result.deleted,
-    errors: result.errors,
-    message: "Connect state cleared. Next deploy will re-provision fresh.",
-  });
+  return c.json({ ok: false, error: "Connect has been removed. TinyBase sync state is managed per-app." }, 410);
 });
 
 // Invite endpoint — add user to app's Pocket ID group
@@ -1106,123 +995,7 @@ app.get("/join/callback", async (c) => {
       steps.push("no userGroupId, skipped group");
     }
 
-    // 2. Create Connect invite via dashboard API (service auth)
-    if (record.connect?.apiUrl && c.env.SERVICE_API_KEY) {
-      const serviceToken = `${c.env.SERVICE_API_KEY}|${record.owner}|`;
-      const d1Fallback = record.connect.d1DashboardId ? {
-        accountId: c.env.CF_ACCOUNT_ID,
-        apiToken: c.env.CF_API_TOKEN,
-        d1DatabaseId: record.connect.d1DashboardId,
-      } : undefined;
-
-      // Discover ledgerId lazily (created on first app sync, not at deploy time)
-      let ledgerId = record.connect.ledgerId;
-      if (!ledgerId) {
-        steps.push("discovering ledger");
-        ledgerId = await discoverLedgerId({
-          apiUrl: record.connect.apiUrl,
-          serviceToken,
-          appName: state.app,
-          d1Fallback,
-        }) ?? undefined;
-        if (ledgerId) {
-          updatedRecord.connect = { ...record.connect, ledgerId };
-          steps.push(`ledger discovered: ${ledgerId}`);
-        }
-      }
-
-      if (!ledgerId) {
-        steps.push("no ledger found — skipping connect invite");
-      } else {
-        // Try dashboard HTTP API first (works via custom domain), fall back to D1
-        steps.push("creating invite");
-        let inviteCreated = false;
-
-        // Dashboard HTTP attempt
-        try {
-          const inviteRes = await fetch(record.connect.apiUrl, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type: "reqInviteUser",
-              auth: { type: "service", token: serviceToken },
-              ticket: {
-                query: { byEmail: email },
-                invitedParams: {
-                  ledger: {
-                    id: ledgerId,
-                    role: "member",
-                    right: record.publicInvite.right || "write",
-                  },
-                },
-              },
-            }),
-          });
-          if (inviteRes.ok) {
-            inviteCreated = true;
-            steps.push(`invite OK (dashboard)`);
-          } else {
-            const errBody = await inviteRes.text().catch(() => "");
-            steps.push(`dashboard invite ${inviteRes.status}, trying D1`);
-          }
-        } catch (e) {
-          steps.push(`dashboard invite failed, trying D1`);
-        }
-
-        // D1 fallback
-        if (!inviteCreated && d1Fallback) {
-          try {
-            const inviteId = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
-            const now = new Date().toISOString();
-            const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-            const normalizedEmail = email.trim().toLowerCase();
-            const ownerLookup = await fetch(
-              `https://api.cloudflare.com/client/v4/accounts/${d1Fallback.accountId}/d1/database/${d1Fallback.d1DatabaseId}/query`,
-              {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${d1Fallback.apiToken}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  sql: "SELECT userId FROM UserByProviders WHERE providerUserId = ? LIMIT 1",
-                  params: [record.owner],
-                }),
-              }
-            );
-            const ownerData = await ownerLookup.json() as { result: Array<{ results: Array<{ userId: string }> }> };
-            const ownerUserId = ownerData.result?.[0]?.results?.[0]?.userId;
-            if (!ownerUserId) {
-              steps.push("owner not found in dashboard DB");
-            } else {
-              const right = record.publicInvite.right || "write";
-              const invitedParams = JSON.stringify({ ledger: { role: "member", right } });
-              const insertRes = await fetch(
-                `https://api.cloudflare.com/client/v4/accounts/${d1Fallback.accountId}/d1/database/${d1Fallback.d1DatabaseId}/query`,
-                {
-                  method: "POST",
-                  headers: { "Authorization": `Bearer ${d1Fallback.apiToken}`, "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    sql: `INSERT INTO InviteTickets (inviteId, inviterUserId, status, statusReason, queryEmail, invitedLedgerId, invitedParams, sendEmailCount, expiresAfter, createdAt, updatedAt)
-                          VALUES (?, ?, 'pending', 'join link', ?, ?, ?, 0, ?, ?, ?)`,
-                    params: [inviteId, ownerUserId, normalizedEmail, ledgerId, invitedParams, expires, now, now],
-                  }),
-                }
-              );
-              if (insertRes.ok) {
-                steps.push(`invite OK (D1: ${inviteId})`);
-              } else {
-                const errText = await insertRes.text().catch(() => "");
-                steps.push(`D1 invite failed ${insertRes.status}: ${errText.slice(0, 200)}`);
-              }
-            }
-          } catch (inviteErr) {
-            steps.push(`D1 invite error: ${inviteErr instanceof Error ? inviteErr.message : String(inviteErr)}`);
-          }
-        }
-      }
-    } else {
-      steps.push(`no connect (apiUrl=${!!record.connect?.apiUrl}, key=${!!c.env.SERVICE_API_KEY})`);
-    }
-
-    // 3. Add collaborator to record (written in single KV write below)
+    // 2. Add collaborator to record (written in single KV write below)
     steps.push("updating collaborators");
     const collaborators = updatedRecord.collaborators || [];
     if (!collaborators.some((col) => col.userId === userId)) {
@@ -1231,11 +1004,11 @@ app.get("/join/callback", async (c) => {
     }
     steps.push("collaborators OK");
 
-    // 4. Single KV write with all mutations
+    // 3. Single KV write with all mutations
     updatedRecord.updatedAt = new Date().toISOString();
     await setSubdomain(c.env.REGISTRY_KV, state.app, updatedRecord);
 
-    // 5. Redirect to the app (with OTA for seamless sign-in if available)
+    // 4. Redirect to the app (with OTA for seamless sign-in if available)
     const appUrl = `https://${state.app}.vibesos.com`;
 
     let redirectUrl = `${appUrl}?joined=true`;

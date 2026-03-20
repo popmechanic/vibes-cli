@@ -17,7 +17,10 @@ const PLACEHOLDER = APP_PLACEHOLDER;
 const SAFE_PLACEHOLDER_PATTERNS = [
   '__PURE__',
   '__esModule',
-  '__VIBES_CONFIG__',
+  '__APP_CONFIG__',
+  '__APP_NAME__',
+  '__WS_URL__',
+  '__APP_PUBLIC__',
   '__OIDC_LOAD_ERROR__',
   '__VIBES_SYNC_STATUS__',
   '__VIBES_APP_CODE__',
@@ -140,7 +143,7 @@ describe('validateSellTemplate (pre-injection)', () => {
   });
 
   it('allows safe placeholder patterns', () => {
-    const html = '<html>/*#__PURE__*/ __esModule __VIBES_CONFIG__ __OIDC_LOAD_ERROR__</html>';
+    const html = '<html>/*#__PURE__*/ __esModule __APP_CONFIG__ __OIDC_LOAD_ERROR__</html>';
     expect(validateSellTemplate(html)).toEqual([]);
   });
 

@@ -245,6 +245,12 @@ output = output.split('__VITE_AI_PROXY_URL__').join(AI_PROXY_URL);
 const SAFE_PLACEHOLDER_PATTERNS = [
   '__PURE__',
   '__esModule',
+  '__APP_CONFIG__',
+  '__APP_NAME__',
+  '__WS_URL__',
+  '__APP_PUBLIC__',
+  '__DEPLOY_API_URL__',
+  '__AI_PROXY_URL__',
   '__VIBES_CONFIG__',
   '__VIBES_OIDC_TOKEN__',
   '__OIDC_LOAD_ERROR__',

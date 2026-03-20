@@ -117,23 +117,11 @@ async function main() {
 
   const deployedUrl = result.url || `https://${name}.vibesos.com`;
 
-  // Save Connect info from Deploy API response
-  if (result.connect) {
-    setApp(name, {
-      name,
-      connect: {
-        apiUrl: result.connect.apiUrl,
-        cloudUrl: result.connect.cloudUrl,
-        deployedAt: new Date().toISOString(),
-      },
-    });
-    console.log(`Connect provisioned: ${result.connect.apiUrl}`);
-  }
-
   // Save app metadata to registry
   setApp(name, {
     name,
     app: { workerName: name, url: deployedUrl },
+    wsUrl: result.wsUrl,
   });
 
   console.log(`\nDeployed to ${deployedUrl}`);
