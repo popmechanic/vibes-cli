@@ -1,8 +1,8 @@
 /**
  * Deploy handlers — assemble + deploy via the Deploy API.
  *
- * Connect provisioning is handled server-side by the Deploy API Worker.
- * The CLI just sends files and reads back Connect URLs from the response.
+ * Sync is handled by TinyBase Durable Objects (auto-created on first WebSocket connection).
+ * The CLI sends files and reads back the wsUrl from the response.
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, statSync } from 'fs';
@@ -31,7 +31,7 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
     return;
   }
   // Cloudflare limits worker names with previews to 54 chars.
-  // Longest prefix is "fireproof-dashboard-" (20 chars), so stage name max is 34.
+  // Keep max at 34 for safety with namespace prefixes.
   if (appName.length > 34) {
     onEvent({ type: 'error', message: `App name "${appName}" is ${appName.length} chars — max is 34 for Cloudflare worker names. Use a shorter name.` });
     return;
@@ -166,19 +166,15 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
     const result: any = await response.json();
     deployUrl = result.url || '';
 
-    // Save Connect info from Deploy API response
-    if (result.connect) {
+    // Save sync info from Deploy API response
+    if (result.wsUrl) {
       const appEntry = getApp(appName) || { name: appName };
       setApp(appName, {
         ...appEntry,
         name: appName,
-        connect: {
-          apiUrl: result.connect.apiUrl,
-          cloudUrl: result.connect.cloudUrl,
-          deployedAt: new Date().toISOString(),
-        },
+        wsUrl: result.wsUrl,
       });
-      console.log(`[Deploy] Connect provisioned: ${result.connect.apiUrl}`);
+      console.log(`[Deploy] Sync URL: ${result.wsUrl}`);
     }
   } catch (err: any) {
     onEvent({ type: 'error', message: `Deploy failed: ${err.message}` });

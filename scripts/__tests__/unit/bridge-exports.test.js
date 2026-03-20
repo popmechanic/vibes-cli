@@ -1,8 +1,9 @@
 /**
- * Structural tests for the fireproof-oidc-bridge module.
+ * Structural tests for the fireproof-oidc-bridge module (OIDC auth only)
+ * and TinyBase import map entries in templates.
  *
- * Validates that the bridge exports the required symbols and that
- * generated templates contain the supporting import map entries.
+ * The bridge still provides OIDC components for private app auth.
+ * Fireproof data/sync imports have been replaced by TinyBase.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -17,18 +18,6 @@ const bridgeSource = readFileSync(BRIDGE_PATH, 'utf8');
 const baseTemplate = readFileSync(BASE_TEMPLATE_PATH, 'utf8');
 
 describe('fireproof-oidc-bridge exports', () => {
-  it('exports useFireproofOIDC function', () => {
-    expect(bridgeSource).toContain('export function useFireproofOIDC');
-  });
-
-  it('exports useFireproofClerk as backward-compat alias', () => {
-    expect(bridgeSource).toContain('useFireproofOIDC as useFireproofClerk');
-  });
-
-  it('exports useFireproof (aliased from useFireproofOIDC)', () => {
-    expect(bridgeSource).toContain('useFireproofOIDC as useFireproof');
-  });
-
   it('exports OIDCProvider component', () => {
     expect(bridgeSource).toContain('export function OIDCProvider');
   });
@@ -56,50 +45,46 @@ describe('fireproof-oidc-bridge exports', () => {
   it('exports useOIDCContext hook', () => {
     expect(bridgeSource).toContain('export function useOIDCContext');
   });
+});
 
-  it('imports from @fireproof/core (not use-fireproof-core)', () => {
-    expect(bridgeSource).toContain('from "@fireproof/core"');
+describe('TinyBase import map entries', () => {
+  it('base template has TinyBase entries', () => {
+    expect(baseTemplate).toContain('"tinybase"');
+    expect(baseTemplate).toContain('"tinybase/mergeable-store"');
+    expect(baseTemplate).toContain('"tinybase/ui-react"');
   });
 
-  it('does not re-export from @fireproof/clerk (legacy)', () => {
-    expect(bridgeSource).not.toContain('from "@fireproof/clerk"');
+  it('base template does NOT have Fireproof import map entries', () => {
+    expect(baseTemplate).not.toContain('"use-fireproof"');
+    expect(baseTemplate).not.toContain('"@fireproof/core"');
   });
 });
 
-describe('import map entries', () => {
-  it('maps use-fireproof to the OIDC bridge module', () => {
-    expect(baseTemplate).toContain('"use-fireproof": "/fireproof-oidc-bridge.js"');
-  });
-
-  it('has @fireproof/core entry pointing to esm.sh', () => {
-    expect(baseTemplate).toMatch(/"@fireproof\/core":\s*"https:\/\/esm\.sh\/stable\/use-fireproof@/);
-  });
-
-  it('uses ?external=react,react-dom on @fireproof/core', () => {
-    const match = baseTemplate.match(/"@fireproof\/core":\s*"([^"]+)"/);
-    expect(match).toBeTruthy();
-    expect(match[1]).toContain('?external=react,react-dom');
-  });
-});
-
-describe('generated templates contain import map entries', () => {
+describe('generated templates contain TinyBase import map entries', () => {
   const templatePaths = [
     'skills/vibes/templates/index.html',
     'skills/riff/templates/index.html',
-    'skills/sell/templates/unified.html',
   ];
 
   for (const relPath of templatePaths) {
-    const name = relPath.split('/')[1]; // vibes, riff, sell
+    const name = relPath.split('/')[1]; // vibes, riff
 
-    it(`${name} template has @fireproof/core entry`, () => {
+    it(`${name} template has TinyBase entries`, () => {
       const html = readFileSync(resolve(ROOT, relPath), 'utf8');
-      expect(html).toContain('@fireproof/core');
+      expect(html).toContain('"tinybase"');
+      expect(html).toContain('"tinybase/ui-react"');
     });
 
-    it(`${name} template maps use-fireproof to OIDC bridge`, () => {
+    it(`${name} template does NOT have Fireproof import map entries`, () => {
       const html = readFileSync(resolve(ROOT, relPath), 'utf8');
-      expect(html).toContain('"use-fireproof": "/fireproof-oidc-bridge.js"');
+      expect(html).not.toContain('"use-fireproof"');
+      expect(html).not.toContain('"@fireproof/core"');
     });
   }
+
+  // sell template still uses old patterns (migration pending)
+  it('sell template exists', () => {
+    const html = readFileSync(resolve(ROOT, 'skills/sell/templates/unified.html'), 'utf8');
+    expect(html).toBeTruthy();
+  });
 });

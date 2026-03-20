@@ -7,7 +7,7 @@
 | Task | Read First |
 |------|------------|
 | Working on skills | The specific `skills/*/SKILL.md` file |
-| Generating app code | SKILL.md has patterns; for advanced features, read `docs/fireproof.txt` |
+| Generating app code | SKILL.md has TinyBase patterns and common hooks |
 | Working on scripts | `scripts/package.json` for deps |
 | Debugging React errors | `.claude/rules/react-singleton.md` loads automatically; also `skills/vibes/SKILL.md` Common Mistakes |
 | Deploying to Cloudflare | `skills/cloudflare/SKILL.md` |
@@ -16,18 +16,11 @@
 | Editing templates or build system | `.claude/rules/template-build.md` loads automatically |
 | Working on sharing/invites | `.claude/rules/sharing-architecture.md` loads automatically |
 
-### Fireproof API Reference
+### TinyBase API Reference
 
-SKILL.md provides common patterns (useDocument, useLiveQuery, database.put/del) and critical gotchas.
+SKILL.md provides common patterns (useTable, useRow, useAddRowCallback, store.setRow/delRow) and critical gotchas.
 
-**Read `docs/fireproof.txt` when the user's app needs:**
-
-| Feature | Signal in prompt |
-|---------|------------------|
-| User authentication | "login", "auth", "accounts", "Pocket ID" |
-| Sync status indicators | "connection status", "online/offline" |
-| User context/identity | "user name", "profile", "who is logged in" |
-| Complete example | "full example", "show me how" |
+TinyBase hooks are exposed as `window.*` globals in the template (useTable, useRow, useCell, useRowIds, useSortedRowIds, useAddRowCallback, etc.). The `useApp()` hook provides `{ isReady, isSyncing, user }` context.
 
 ### Environment Variables in SKILL.md
 
@@ -56,7 +49,7 @@ Each skill is ONE plan step — never decompose into sub-steps. Always invoke th
 
 ## Package Versions
 
-The import map in `source-templates/base/template.html` is the authoritative source for current package versions (`esm.sh/stable/` URLs, `oauth4webapi`, React 19.2.4). The OIDC bridge (`bundles/fireproof-oidc-bridge.js`) is loaded as a local bundle, not from esm.sh.
+The import map in `source-templates/base/template.html` is the authoritative source for current package versions (TinyBase from esm.sh, `oauth4webapi`, React 19.2.4). The OIDC bridge (`bundles/fireproof-oidc-bridge.js`) is loaded as a local bundle for private app auth.
 
 ## Deploy Workflow
 
@@ -68,11 +61,9 @@ bun scripts/deploy-cloudflare.js --name <app> --file index.html
 
 Auth happens automatically: the CLI opens a browser for Pocket ID login and caches credentials at `~/.vibes/auth.json`. The Deploy API accepts the assembled HTML plus an OIDC token and handles all Cloudflare API calls server-side, including:
 
-- **Connect provisioning** (first deploy): Creates per-app R2 bucket, D1 databases, cloud-backend Worker (Durable Objects + WebSocket), and dashboard Worker — all via the CF REST API using the platform's `CF_API_TOKEN`.
-- **Connect URL injection**: The Deploy API injects `tokenApiUri` and `cloudBackendUrl` into the app HTML before deploying.
-- **Subsequent deploys**: Reads existing Connect metadata from KV, skips provisioning.
-
-Pre-built Connect Worker bundles live in `deploy-api/bundles/` (rebuilt via `bash deploy-api/scripts/build-connect-bundles.sh` from upstream Fireproof source at `~/.vibes/upstream/fireproof/`).
+- **Worker deployment**: Deploys the app as a Worker in a Workers for Platforms namespace.
+- **WebSocket URL injection**: The Deploy API injects the `wsUrl` for TinyBase sync into the app HTML before deploying.
+- **Sync**: Handled by TinyBase Durable Objects via the dispatch worker (`dispatch-worker/`). The DO auto-creates on first WebSocket connection — no provisioning step needed.
 
 ## Desktop App
 
@@ -196,11 +187,9 @@ Then `npm run test:e2e:server` and open `http://test-app.local:3000`.
 
 | File | Why it matters |
 |------|---------------|
-| `bundles/fireproof-oidc-bridge.js` | ES module bridge wrapping OIDC auth -- sync status, ledger routing, invite redemption |
-| `deploy-api/` | Deploy API Worker — accepts HTML + OIDC token, deploys to CF Workers server-side, provisions Connect |
-| `deploy-api/src/connect.ts` | Server-side Connect provisioning + reset via CF REST API (R2, D1, Workers) |
-| `deploy-api/src/crypto.ts` | Web Crypto token generation for Connect (EC P-256, base58, JWT certs) |
-| `deploy-api/bundles/` | Pre-built cloud-backend + dashboard Worker bundles (text modules) |
+| `bundles/fireproof-oidc-bridge.js` | ES module bridge wrapping OIDC auth for private app sign-in |
+| `deploy-api/` | Deploy API Worker — accepts HTML + OIDC token, deploys to CF Workers server-side |
+| `dispatch-worker/` | TinyBase sync dispatch worker with Durable Object for WebSocket-based sync |
 | `scripts/lib/cli-auth.js` | CLI OIDC authentication with localhost callback, token caching |
 | `scripts/lib/auth-constants.js` | Hardcoded OIDC authority and client ID (shared Pocket ID instance) |
 | `scripts/lib/env-utils.js` | Shared .env loading, Connect config |
@@ -211,7 +200,7 @@ Then `npm run test:e2e:server` and open `http://test-app.local:3000`.
 
 ## Cloudflare Deployment
 
-All apps deploy to Cloudflare Workers via the shared Deploy API Worker — no wrangler or user CF tokens needed. Connect is provisioned server-side on first app deploy. Connect metadata is stored in the Deploy API's KV (`subdomain:{name}` records). Local registry at `~/.vibes/deployments.json` caches Connect URLs from the Deploy API response.
+All apps deploy to Cloudflare Workers via the shared Deploy API Worker — no wrangler or user CF tokens needed. App metadata is stored in the Deploy API's KV (`subdomain:{name}` records). Local registry at `~/.vibes/deployments.json` caches deploy info from the Deploy API response. Sync is handled by TinyBase Durable Objects (auto-created on first WebSocket connection).
 
 ### App-Level Static Assets
 
@@ -237,36 +226,16 @@ Reference assets in app code with absolute paths:
 
 **Size limit:** All assets are embedded in the worker script. Cloudflare Workers have a 10 MB script size limit, and base64 encoding adds ~33% overhead, so keep total asset size reasonable.
 
-### Resetting Connect State
+### Resetting App Sync State
 
-**Diagnosis:** If a user reports `missing block` or `failed to advance head` errors in the browser console:
+TinyBase sync state lives in a Durable Object (one per app). To reset sync state:
 
-1. **Try incognito/private window first.** If errors disappear → local IndexedDB is corrupted, clear site data.
-2. **If errors persist in incognito** → the corruption is server-side. Changing the Fireproof database name in `useFireproofClerk()` will NOT help — Connect routes by app subdomain, not database name.
-3. **Server-side reset is needed** (see below).
-
-**Before resetting, warn the user:** This destroys ALL synced data for the app across all devices. The data cannot be recovered. Every user on every device must also clear their browser's site data for the app URL afterward (IndexedDB holds stale CRDT blocks that will re-corrupt the fresh state).
-
-**Reset command:**
-
-```bash
-VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(pwd)}"
-TOKEN=$(bun --input-type=module -e "
-import { getAccessToken } from '$VIBES_ROOT/scripts/lib/cli-auth.js';
-import { OIDC_AUTHORITY, OIDC_CLIENT_ID } from '$VIBES_ROOT/scripts/lib/auth-constants.js';
-const tokens = await getAccessToken({ authority: OIDC_AUTHORITY, clientId: OIDC_CLIENT_ID });
-process.stdout.write(tokens.accessToken);
-")
-curl -s -X POST "https://vibes-deploy-api.marcus-e.workers.dev/admin/reset-connect/<app-name>" \
-  -H "Authorization: Bearer $TOKEN"
-```
-
-**What it deletes:** Cloud-backend Worker (Durable Object sync state), dashboard Worker, and both D1 databases (CRDT metadata + dashboard data). The KV record's `connectProvisioned` flag is cleared so the next deploy re-provisions all four resources fresh. Only the app owner can call this endpoint.
+1. **Try incognito/private window first.** If errors disappear, the issue is local — clear site data (localStorage).
+2. **If errors persist in incognito**, the Durable Object state needs resetting. Delete and re-create the DO by redeploying the dispatch worker, or use the Cloudflare dashboard to delete the DO's storage.
 
 **After resetting:**
-1. Redeploy the app from the desktop app or CLI
-2. **Every user** must clear site data for the app URL (desktop: DevTools → Application → Clear site data; mobile Safari: Settings → Safari → Advanced → Website Data → find and delete the domain)
-3. Verify in an incognito window first — if errors persist, the reset did not fully take effect
+1. Redeploy the app
+2. Users should clear site data for the app URL (DevTools > Application > Clear site data) to remove stale local TinyBase state
 
 ## Adding or Removing Skills
 

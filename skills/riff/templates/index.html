@@ -951,7 +951,7 @@
       // Auto-generated vibes menu components
 // Run: bun scripts/build-components.js --force to regenerate
 // Source: components/
-// Generated: 2026-03-10T08:09:51.719Z
+// Generated: 2026-03-20T08:44:21.136Z
 // Components: 26/26
 
 // === useMobile ===
@@ -3353,166 +3353,208 @@ if (typeof window !== 'undefined') {
     </script>
     <script type="module" src="/vibes-ai.js"></script>
     <script type="text/babel" data-type="module">
-      import React, { useState, useEffect, useRef, useCallback, useMemo, useContext, Fragment } from "react";
-      import ReactDOMClient from "react-dom/client";
-      import { useFireproofClerk } from "use-fireproof";
+  import React, { useState, useEffect, useRef, useCallback, useMemo, useContext, createContext, Fragment } from "react";
+  import ReactDOMClient from "react-dom/client";
+  import { createMergeableStore } from "tinybase/mergeable-store";
+  import { createLocalPersister } from "tinybase/persisters/persister-browser";
+  import { createWsSynchronizer } from "tinybase/synchronizers/synchronizer-ws-client";
+  import { Provider, useTable, useRow, useCell, useValue, useValues, useRowIds, useSortedRowIds, useRowCount, useAddRowCallback, useSetCellCallback, useSetRowCallback, useSetPartialRowCallback, useDelRowCallback, useDelCellCallback, useSetValueCallback } from "tinybase/ui-react";
 
-      // __VIBES_APP_CODE__
+  // Expose TinyBase hooks as globals for generated app code
+  window.useTable = useTable;
+  window.useRow = useRow;
+  window.useCell = useCell;
+  window.useValue = useValue;
+  window.useValues = useValues;
+  window.useRowIds = useRowIds;
+  window.useSortedRowIds = useSortedRowIds;
+  window.useRowCount = useRowCount;
+  window.useAddRowCallback = useAddRowCallback;
+  window.useSetCellCallback = useSetCellCallback;
+  window.useSetRowCallback = useSetRowCallback;
+  window.useSetPartialRowCallback = useSetPartialRowCallback;
+  window.useDelRowCallback = useDelRowCallback;
+  window.useDelCellCallback = useDelCellCallback;
+  window.useSetValueCallback = useSetValueCallback;
 
-      // Use shared error components from base template
-      const ConfigError = window.ConfigError;
-      const LoadingError = window.LoadingError;
+  // --- App Context ---
+  const AppContext = createContext(null);
+  function useApp() { return useContext(AppContext); }
+  window.useApp = useApp;
 
-      // App wrapper with OIDC auth gate (always required)
-      function AppWrapper() {
-        const config = window.__VIBES_CONFIG__;
+  // --- Reconnecting WebSocket Synchronizer ---
+  function createReconnectingSynchronizer(store, wsUrl, onStatusChange) {
+    let synchronizer = null;
+    let backoff = 1000;
+    let destroyed = false;
+    let reconnectTimer = null;
 
-        // Hook must be called unconditionally at top of component (Rules of Hooks)
-        window.useVibesPanelEvents('Riff');
+    function scheduleReconnect() {
+      if (destroyed || reconnectTimer) return;
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, Math.min(backoff *= 2, 30000));
+    }
 
-        // Check for configuration errors
-        if (!config?.oidcAuthority || config.oidcAuthority.startsWith('__') ||
-            !config?.oidcClientId || config.oidcClientId.startsWith('__')) {
-          return <ConfigError message="Missing OIDC configuration. Apps require authentication." />;
+    async function connect() {
+      if (destroyed) return;
+      try {
+        const ws = new WebSocket(wsUrl);
+        synchronizer = await createWsSynchronizer(store, ws);
+        await synchronizer.startSync();
+        backoff = 1000;
+        onStatusChange(true);
+        ws.addEventListener('error', () => {});
+        ws.addEventListener('close', () => {
+          onStatusChange(false);
+          scheduleReconnect();
+        });
+      } catch {
+        scheduleReconnect();
+      }
+    }
+
+    connect();
+    return () => {
+      destroyed = true;
+      clearTimeout(reconnectTimer);
+      synchronizer?.destroy();
+    };
+  }
+
+  // __VIBES_APP_CODE__
+
+  // --- App Shell ---
+  const config = window.__APP_CONFIG__;
+
+  // Create MergeableStore with unique client ID
+  const clientId = localStorage.getItem('tinybase_client_id')
+    ?? (localStorage.setItem('tinybase_client_id', crypto.randomUUID()),
+       localStorage.getItem('tinybase_client_id'));
+  const store = createMergeableStore(clientId);
+
+  // Use shared error components from base template
+  const ConfigError = window.ConfigError;
+  const LoadingError = window.LoadingError;
+
+  function AppShell() {
+    const [isReady, setIsReady] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [user, setUser] = useState(null);
+
+    // Hook must be called unconditionally (Rules of Hooks)
+    window.useVibesPanelEvents('Riff');
+
+    useEffect(() => {
+      let destroySync = null;
+
+      async function init() {
+        // 1. Local persistence
+        const persister = createLocalPersister(store, `tinybase_${config.appName}`);
+        await persister.startAutoPersisting([{}, {}]);
+        setIsReady(true);
+
+        // 2. Sync (if wsUrl configured)
+        if (config.wsUrl && !config.wsUrl.startsWith('__')) {
+          destroySync = createReconnectingSynchronizer(
+            store,
+            config.wsUrl,
+            (syncing) => {
+              setIsSyncing(syncing);
+              window.__VIBES_SYNC_STATUS__ = syncing ? 'synced' : 'reconnecting';
+              window.dispatchEvent(new Event('vibes-sync-status-change'));
+            },
+          );
         }
-
-        // Warn if Connect URLs are unreplaced placeholders (assembly bug)
-        // Empty URLs are expected pre-deploy — sync configures on first deploy via alchemy
-        if (config?.tokenApiUri?.startsWith('__') || config?.cloudBackendUrl?.startsWith('__')) {
-          console.warn('[riff] Connect URL placeholders not replaced — check assembly.',
-            'tokenApiUri:', config?.tokenApiUri, 'cloudBackendUrl:', config?.cloudBackendUrl);
-        } else if (!config?.tokenApiUri || !config?.cloudBackendUrl) {
-          console.info('[riff] Sync will be configured on first deploy.');
-        }
-
-        // Check if OIDC bridge loaded
-        if (!window.OIDCProvider) {
-          return <LoadingError error={window.__OIDC_LOAD_ERROR__ || 'OIDC components not available'} />;
-        }
-
-        const { OIDCProvider, SignedIn, SignedOut, SignInButton } = window.OIDCComponents;
-
-        // Use shared components from window
-        const AuthScreen = window.AuthScreen;
-        const VibesButton = window.VibesButton;
-        const RED = window.RED;
-
-        // AuthGate shown when user is not signed in
-        const isJoined = window.__VIBES_JOINED__;
-        const AuthGate = () => (
-          <AuthScreen
-            title={isJoined ? "Welcome! You've been invited to collaborate." : "Sign in to continue"}
-            message={isJoined ? "Sign in to get started." : "This app uses cloud sync and requires authentication."}
-            showCard={true}
-          >
-            <SignInButton>
-              <VibesButton variant={RED} buttonType="form">
-                Sign In
-              </VibesButton>
-            </SignInButton>
-          </AuthScreen>
-        );
-
-        return (
-          <>
-            <SyncStatusDot />
-            <OIDCProvider
-              authority={config.oidcAuthority}
-              clientId={config.oidcClientId}
-              config={{
-                apiUrl: config.tokenApiUri,
-                cloudUrl: config.cloudBackendUrl
-              }}
-            >
-              <SignedOut>
-                <AuthGate />
-              </SignedOut>
-              <SignedIn>
-                <SharingBridge />
-                <HiddenMenuWrapper menuContent={<VibesPanel />}>
-                  <App />
-                </HiddenMenuWrapper>
-              </SignedIn>
-            </OIDCProvider>
-          </>
-        );
       }
 
-      // Load OIDC bridge components (required for all apps)
-      async function initApp() {
-        try {
-          // Dynamic import of OIDC bridge (mapped via import map to fireproof-oidc-bridge.js)
-          const oidcModule = await import("@fireproof/clerk");
-          window.OIDCProvider = oidcModule.OIDCProvider;
-          window.OIDCComponents = {
-            OIDCProvider: oidcModule.OIDCProvider,
-            SignedIn: oidcModule.SignedIn,
-            SignedOut: oidcModule.SignedOut,
-            SignInButton: oidcModule.SignInButton,
-            UserButton: oidcModule.UserButton
-          };
-          // Export for user's App code
-          window.SignedIn = oidcModule.SignedIn;
-          window.SignedOut = oidcModule.SignedOut;
-          window.SignInButton = oidcModule.SignInButton;
-          window.UserButton = oidcModule.UserButton;
-          window.useUser = oidcModule.useUser;
-          // Export OIDC context for SharingBridge and user code
-          window.useOIDCContext = oidcModule.useOIDCContext;
-          if (oidcModule.useSharing) window.useSharing = oidcModule.useSharing;
-          // Export Fireproof hook for user's App code, with sync status bridge
-          var _originalUseFireproofClerk = oidcModule.useFireproofClerk;
-          window.useFireproofClerk = function(name, opts) {
-            var result = _originalUseFireproofClerk(name, opts);
-            var syncVal = result.syncStatus || 'idle';
-            React.useEffect(function() {
-              if (window.__VIBES_SYNC_STATUS__ !== syncVal) {
-                window.__VIBES_SYNC_STATUS__ = syncVal;
-                window.dispatchEvent(new CustomEvent('vibes-sync-status-change'));
-              }
-            }, [syncVal]);
-            // Workaround: Fireproof's fast-forward path sets clock.head without
-            // firing onTock. Poll allDocs and kick notifications when data appears.
-            React.useEffect(function() {
-              if (syncVal !== 'synced') return;
-              var db = result.database;
-              var kicked = false;
-              var poll = function() {
-                if (kicked) return;
-                db.allDocs().then(function(res) {
-                  if (kicked) return;
-                  if (res.rows.length > 0) {
-                    kicked = true;
-                    try {
-                      db.ledger.crdt.clock.noPayloadWatchers.forEach(function(fn) { fn(); });
-                      console.debug('[vibes] Kicked onTock after detecting', res.rows.length, 'docs');
-                    } catch (e) {
-                      console.debug('[vibes] onTock kick failed:', e);
-                    }
-                  } else if (!kicked) {
-                    setTimeout(poll, 2000);
-                  }
-                }).catch(function() {
-                  if (!kicked) setTimeout(poll, 2000);
-                });
-              };
-              var start = setTimeout(poll, 2000);
-              var max = setTimeout(function() { kicked = true; }, 20000);
-              return function() { kicked = true; clearTimeout(start); clearTimeout(max); };
-            }, [syncVal, result.database]);
-            return result;
-          };
-        } catch (err) {
-          console.error('Failed to load OIDC components:', err);
-          window.__OIDC_LOAD_ERROR__ = err.message || String(err);
-        }
+      init();
+      return () => { if (destroySync) destroySync(); };
+    }, []);
 
-        const rootElement = document.getElementById("container");
-        ReactDOMClient.createRoot(rootElement).render(<AppWrapper />);
-      }
+    // Riff always requires OIDC auth
+    const hasOidc = !!(config?.oidcAuthority && !config.oidcAuthority.startsWith('__') &&
+      config?.oidcClientId && !config.oidcClientId.startsWith('__'));
 
-      initApp();
-    </script>
+    if (!hasOidc) {
+      return <ConfigError message="Missing OIDC configuration. Riff apps require authentication." />;
+    }
+
+    if (!window.OIDCProvider) {
+      return <LoadingError error={window.__OIDC_LOAD_ERROR__ || 'OIDC components not available'} />;
+    }
+
+    const { OIDCProvider, SignedIn, SignedOut, SignInButton } = window.OIDCComponents;
+    const AuthScreen = window.AuthScreen;
+    const VibesButton = window.VibesButton;
+    const RED = window.RED;
+
+    const isJoined = window.__VIBES_JOINED__;
+    const AuthGate = () => (
+      <AuthScreen
+        title={isJoined ? "Welcome! You've been invited to collaborate." : "Sign in to continue"}
+        message={isJoined ? "Sign in to get started." : "This app uses cloud sync and requires authentication."}
+        showCard={true}
+      >
+        <SignInButton>
+          <VibesButton data-vibes-signin variant={RED} buttonType="form">
+            Sign In
+          </VibesButton>
+        </SignInButton>
+      </AuthScreen>
+    );
+
+    return (
+      <Provider store={store}>
+        <SyncStatusDot />
+        <OIDCProvider authority={config.oidcAuthority} clientId={config.oidcClientId}>
+          <SignedOut>
+            <AuthGate />
+          </SignedOut>
+          <SignedIn>
+            <SharingBridge />
+            <AppContext.Provider value={{ isReady, isSyncing, user }}>
+              <HiddenMenuWrapper menuContent={<VibesPanel />}>
+                <App />
+              </HiddenMenuWrapper>
+            </AppContext.Provider>
+          </SignedIn>
+        </OIDCProvider>
+      </Provider>
+    );
+  }
+
+  // Load OIDC components for riff apps (always required)
+  async function initApp() {
+    try {
+      const oidcModule = await import("/fireproof-oidc-bridge.js");
+      window.OIDCProvider = oidcModule.OIDCProvider;
+      window.OIDCComponents = {
+        OIDCProvider: oidcModule.OIDCProvider,
+        SignedIn: oidcModule.SignedIn,
+        SignedOut: oidcModule.SignedOut,
+        SignInButton: oidcModule.SignInButton,
+        UserButton: oidcModule.UserButton,
+      };
+      window.SignedIn = oidcModule.SignedIn;
+      window.SignedOut = oidcModule.SignedOut;
+      window.SignInButton = oidcModule.SignInButton;
+      window.UserButton = oidcModule.UserButton;
+      window.useUser = oidcModule.useUser;
+      window.useOIDCContext = oidcModule.useOIDCContext;
+      if (oidcModule.useSharing) window.useSharing = oidcModule.useSharing;
+    } catch (err) {
+      console.error('Failed to load OIDC components:', err);
+      window.__OIDC_LOAD_ERROR__ = err.message || String(err);
+    }
+
+    const rootElement = document.getElementById("container");
+    ReactDOMClient.createRoot(rootElement).render(<AppShell />);
+  }
+
+  initApp();
+</script>
 
   </body>
 </html>

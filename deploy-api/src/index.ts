@@ -599,7 +599,7 @@ app.post("/deploy", async (c) => {
   return c.json(response);
 });
 
-// Status endpoint — returns deploy + Connect provisioning status
+// Status endpoint — returns deploy status
 app.get("/status/:name", async (c) => {
   const name = c.req.param("name");
   const record = await getSubdomain(c.env.REGISTRY_KV, name);

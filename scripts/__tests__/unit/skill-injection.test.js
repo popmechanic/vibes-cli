@@ -19,8 +19,8 @@ describe('extract-import-map.js', () => {
 
     // Key entries exist
     expect(parsed).toHaveProperty('react');
-    expect(parsed).toHaveProperty('@fireproof/core');
-    expect(parsed['@fireproof/core']).toContain('?external=react,react-dom');
+    expect(parsed).toHaveProperty('tinybase');
+    expect(parsed).toHaveProperty('tinybase/ui-react');
 
     // Matches the template exactly
     const templatePath = join(PLUGIN_ROOT, 'source-templates', 'base', 'template.html');
