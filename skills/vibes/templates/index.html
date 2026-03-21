@@ -3520,9 +3520,15 @@ if (typeof window !== 'undefined') {
 
         // 2. Sync (if wsUrl configured)
         if (config.wsUrl && !config.wsUrl.startsWith('__')) {
+          // For private apps, append OIDC access token for dispatch worker auth
+          let syncUrl = config.wsUrl;
+          if (!config.public) {
+            const token = sessionStorage.getItem('vibes_oidc_access_token');
+            if (token) syncUrl += (syncUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
+          }
           destroySync = createReconnectingSynchronizer(
             store,
-            config.wsUrl,
+            syncUrl,
             (syncing) => {
               setIsSyncing(syncing);
               window.__VIBES_SYNC_STATUS__ = syncing ? 'synced' : 'reconnecting';
