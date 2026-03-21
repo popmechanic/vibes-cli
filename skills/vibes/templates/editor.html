@@ -1354,26 +1354,29 @@
 
     /* Choice buttons inside assistant bubbles */
     .chat-bubble.choice {
+      align-self: flex-start;
       padding: 0.5rem 0.75rem;
       margin-top: 0.25rem;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 6px;
-      color: #e0e0e0;
+      background: var(--vibes-cream);
+      color: var(--vibes-near-black);
+      box-shadow: 4px 4px 0px 0px var(--vibes-yellow), 4px 4px 0px 2px var(--vibes-near-black);
+      border: 2px solid var(--vibes-near-black);
+      border-radius: 12px;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
+      transition: background 0.15s, transform 0.1s;
     }
     .chat-bubble.choice:hover {
-      background: rgba(255, 255, 255, 0.12);
-      border-color: rgba(255, 255, 255, 0.3);
+      background: var(--vibes-yellow);
+      transform: translateY(-1px);
     }
     .chat-bubble.choice:active {
-      background: rgba(255, 255, 255, 0.18);
+      transform: translateY(0);
     }
     .chat-bubble.choice.chosen {
-      border-color: var(--vibes-green, #4CAF50);
-      background: rgba(76, 175, 80, 0.15);
+      background: var(--vibes-green);
+      color: white;
+      border-color: var(--vibes-near-black);
       cursor: default;
     }
     .chat-bubble.choice.dismissed {
