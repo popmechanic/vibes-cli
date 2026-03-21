@@ -217,7 +217,19 @@ DATABASE (TinyBase — all hooks are pre-existing globals, NO imports needed):
 - useDelRowCallback('tableName', rowId) for deletion
 - useValue('key') / useSetValueCallback('key', () => value) for app-level settings
 - useApp() returns { isReady, isSyncing, user }
-- NO import statements. NO createStore. NO direct store.* calls. Use callback hooks only.${useAI ? AI_INSTRUCTIONS_GENERATE : ''}`;
+- NO import statements. NO createStore. NO direct store.* calls. Use callback hooks only.
+
+EXAMPLE — a todo list (copy this pattern):
+  const ids = useRowIds('todos');
+  const addTodo = useAddRowCallback('todos', (text) => ({ text, done: false, createdAt: Date.now() }), []);
+  // In child: const text = useCell('todos', id, 'text');
+  // Toggle: useSetCellCallback('todos', id, 'done', (_e) => (curr) => !curr);
+  // Delete: useDelRowCallback('todos', id);
+
+CRITICAL: Table names MUST be simple string literals ('todos', 'items', 'notes').
+NEVER use variables, constants, or template literals for table names.
+WRONG: useRowIds(tableName)  useRowIds('\${tableId}')  useRowIds(TABLE_NAME)
+RIGHT: useRowIds('todos')    useCell('todos', id, 'text')${useAI ? AI_INSTRUCTIONS_GENERATE : ''}`;
 
     onEvent({ type: 'theme_selected', themeId: 'custom-ref', themeName: 'Custom Reference' });
 
@@ -334,7 +346,19 @@ DATABASE (TinyBase — all hooks are pre-existing globals, NO imports needed):
 - useDelRowCallback('tableName', rowId) for deletion
 - useValue('key') / useSetValueCallback('key', () => value) for app-level settings
 - useApp() returns { isReady, isSyncing, user }
-- NO import statements. NO createStore. NO direct store.* calls. Use callback hooks only.${useAI ? AI_INSTRUCTIONS_GENERATE : ''}`;
+- NO import statements. NO createStore. NO direct store.* calls. Use callback hooks only.
+
+EXAMPLE — a todo list (copy this pattern):
+  const ids = useRowIds('todos');
+  const addTodo = useAddRowCallback('todos', (text) => ({ text, done: false, createdAt: Date.now() }), []);
+  // In child: const text = useCell('todos', id, 'text');
+  // Toggle: useSetCellCallback('todos', id, 'done', (_e) => (curr) => !curr);
+  // Delete: useDelRowCallback('todos', id);
+
+CRITICAL: Table names MUST be simple string literals ('todos', 'items', 'notes').
+NEVER use variables, constants, or template literals for table names.
+WRONG: useRowIds(tableName)  useRowIds('\${tableId}')  useRowIds(TABLE_NAME)
+RIGHT: useRowIds('todos')    useCell('todos', id, 'text')${useAI ? AI_INSTRUCTIONS_GENERATE : ''}`;
 
   const themeColors = ctx.themeColors[themeId] || null;
   onEvent({ type: 'theme_selected', themeId, themeName, themeBackground: themeColors?.bg || null });

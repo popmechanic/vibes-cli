@@ -216,7 +216,8 @@ RULES:
 - TinyBase hooks (useRowIds, useCell, useAddRowCallback, etc.) are PRE-EXISTING GLOBALS. NEVER import, redeclare, or alias them.
 - useApp() returns { isReady, isSyncing, user }.
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
-- Never rename table names or cell names — users would lose data${useAI ? AI_INSTRUCTIONS_CHAT : ''}`;
+- Never rename table names or cell names — users would lose data
+- Table names are always simple string literals ('todos', 'items'). Never refactor them into variables or constants.${useAI ? AI_INSTRUCTIONS_CHAT : ''}`;
 
   await runOneShot(prompt, { lockType: 'chat', model, cwd: currentAppDir(ctx, appName) || ctx.projectRoot, tools: 'Read,Edit,Write,Glob,Grep' }, onEvent, ctx.projectRoot);
 

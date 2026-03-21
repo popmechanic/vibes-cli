@@ -140,6 +140,7 @@ Do not default to ambient mood generators, floating orbs, or meditation apps unl
 - **Minimize external dependencies** - Implement dynamic components (autocomplete, drag-and-drop, modals) yourself instead of pulling in libraries. Every esm.sh dependency risks the React singleton problem and adds load time. Only use external packages when the functionality is truly essential.
 - **Data must be visible** - Every document type the app saves must be browseable in the UI. Lists should be on the main page, not hidden behind navigation. List items should be clickable for details. Never build a form that saves data the user can't find.
 - **Keep code concise** - Shorter files mean faster iteration in the editor. Don't pad with comments or verbose abstractions.
+- **Simple string table names** - Always use string literals for table names: `useRowIds('todos')`, `useCell('items', id, 'name')`. NEVER abstract table names into variables, constants, or template literals. Each table name should be a plain string that appears directly in the hook call.
 
 ## Generation Process
 
@@ -164,6 +165,21 @@ Before writing code, reason about the design in `<design>` tags:
 - What visual style matches the purpose? (minimal, bold, playful, professional)
 </design>
 ```
+
+### Step 1.1: Table Design
+
+Before writing code, plan your TinyBase tables in the `<design>` block:
+
+```
+Tables:
+- 'items' — main data (cells: name, description, createdAt, done)
+- 'categories' — grouping (cells: name, color)
+
+Values:
+- 'sortOrder' — current sort preference
+```
+
+Use descriptive, lowercase, plural names. These exact strings appear in every hook call — `useRowIds('items')`, `useCell('items', id, 'name')`.
 
 ### Step 1.5: Read Design Tokens (MANDATORY)
 
@@ -823,6 +839,26 @@ function GroceryItem({ id }) {
     const text = useCell('todos', id, 'text');
     return <div>{text}</div>;
   }
+  ```
+- **DON'T** abstract table names into variables or use template literals:
+  ```jsx
+  // BAD — variable table name
+  const TABLE = 'todos';
+  const ids = useRowIds(TABLE);
+
+  // BAD — template literal inside wrong quotes
+  const ids = useRowIds('${tableId}');
+
+  // GOOD — simple string literal directly in hook call
+  const ids = useRowIds('todos');
+  ```
+- **DON'T** create wrapper functions around TinyBase hooks:
+  ```jsx
+  // BAD — unnecessary abstraction
+  function useItems() { return useRowIds('items'); }
+
+  // GOOD — direct hook call
+  const itemIds = useRowIds('items');
   ```
 - **DON'T** forget deps in `useAddRowCallback` — stale closures will capture old values:
   ```jsx
