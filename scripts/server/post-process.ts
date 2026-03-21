@@ -52,14 +52,19 @@ export function sanitizeCssEscapes(code: string): string {
 
 /**
  * Strip redeclared globals that collide with template-provided identifiers.
- * Common builder mistake: subprocess creates a mock useFireproofClerk fallback
- * that shadows the real global from the import map.
+ * Common builder mistake: subprocess creates fallback wrappers that shadow template globals
+ * that shadow the real global from the import map.
  */
 export function stripRedeclaredGlobals(code) {
   // Remove `const { useFireproofClerk } = React.useMemo(...)` blocks
   // These are mock fallback wrappers that collide with the real global
   const pattern = /const\s*\{\s*useFireproofClerk\s*\}\s*=\s*React\.useMemo\(\s*\(\)\s*=>\s*\{[\s\S]*?\}\s*,\s*\[\s*\]\s*\);\s*\n?/g;
-  return code.replace(pattern, '');
+  let result = code.replace(pattern, '');
+
+  // Remove TinyBase hook re-declarations (e.g., const useCell = window.useCell)
+  result = result.replace(/^const\s+(useCell|useRow|useTable|useRowIds|useSortedRowIds|useRowCount|useAddRowCallback|useSetCellCallback|useSetRowCallback|useSetPartialRowCallback|useDelRowCallback|useDelCellCallback|useSetValueCallback|useValue|useValues|useApp)\s*=\s*window\.\1\s*;?\s*$/gm, '');
+
+  return result;
 }
 
 /**
@@ -76,7 +81,7 @@ export function sanitizeAppJsx(projectRoot: string): void {
   if (cssClean !== code) { code = cssClean; changed = true; console.log('[PostProcess] Sanitized CSS unicode escapes'); }
 
   const globalClean = stripRedeclaredGlobals(code);
-  if (globalClean !== code) { code = globalClean; changed = true; console.log('[PostProcess] Stripped redeclared useFireproofClerk fallback'); }
+  if (globalClean !== code) { code = globalClean; changed = true; console.log('[PostProcess] Stripped redeclared globals'); }
 
   if (changed) writeFileSync(appPath, code, 'utf-8');
 }

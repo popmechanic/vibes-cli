@@ -14,31 +14,39 @@ import { createBackup, restoreFromBackup } from '../../lib/backup.js';
 import { currentAppDir } from '../app-context.js';
 
 /**
- * Extract Fireproof data schema from app.jsx for prompt context.
+ * Extract data schema from app.jsx for prompt context.
  */
 function extractDataSchema(appCode) {
   if (!appCode) return '';
   const schemas = [];
 
-  const queryMatches = appCode.matchAll(/useLiveQuery\s*\(\s*(['"`])([^'"`]*)\1[^)]*(?:,\s*\{[^}]*type:\s*(['"`])([^'"`]*)\3)?/g);
+  // TinyBase table usage
+  const tableMatches = appCode.matchAll(/use(?:RowIds|SortedRowIds|RowCount|Table|AddRowCallback)\s*\(\s*['"]([^'"]+)['"]/g);
+  for (const m of tableMatches) {
+    schemas.push(`  - Table: "${m[1]}"`);
+  }
+
+  // TinyBase cell usage
+  const cellMatches = appCode.matchAll(/useCell\s*\(\s*['"]([^'"]+)['"]\s*,\s*\w+\s*,\s*['"]([^'"]+)['"]/g);
+  for (const m of cellMatches) {
+    schemas.push(`  - Table "${m[1]}" has cell: "${m[2]}"`);
+  }
+
+  // TinyBase value usage
+  const valueMatches = appCode.matchAll(/useValue\s*\(\s*['"]([^'"]+)['"]/g);
+  for (const m of valueMatches) {
+    schemas.push(`  - Value: "${m[1]}"`);
+  }
+
+  // Legacy Fireproof patterns (for existing apps not yet migrated)
+  const queryMatches = appCode.matchAll(/useLiveQuery\s*\(\s*(['"`])([^'"`]*)\1/g);
   for (const m of queryMatches) {
-    if (m[4]) schemas.push(`  - useLiveQuery("${m[2]}") filters by type: "${m[4]}"`);
-    else schemas.push(`  - useLiveQuery("${m[2]}")`);
-  }
-
-  const putMatches = appCode.matchAll(/(?:database|db)\.put\s*\(\s*\{[^}]*type:\s*(['"`])([^'"`]*)\1/g);
-  for (const m of putMatches) {
-    schemas.push(`  - database.put() creates documents with type: "${m[2]}"`);
-  }
-
-  const typeMatches = appCode.matchAll(/(?:doc|item|row|entry|record)\.type\s*===?\s*(['"`])([^'"`]*)\1/g);
-  for (const m of typeMatches) {
-    schemas.push(`  - Documents filtered by type: "${m[2]}"`);
+    schemas.push(`  - Legacy useLiveQuery("${m[2]}")`);
   }
 
   const unique = [...new Set(schemas)];
   if (unique.length === 0) return '';
-  return `\nDATA SCHEMA (these document types have user data in IndexedDB — do NOT rename or change them):\n${unique.join('\n')}\n`;
+  return `\nDATA SCHEMA (these tables/cells have user data — do NOT rename them):\n${unique.join('\n')}\n`;
 }
 
 /**
