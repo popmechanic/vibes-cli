@@ -18,7 +18,7 @@ if (typeof Bun === 'undefined') { console.error('This server requires Bun. Insta
 
 import { loadConfig, type ServerContext } from './server/config.ts';
 import { createRouter } from './server/router.ts';
-import { createWsHandler, broadcast, type WsData } from './server/ws.ts';
+import { createWsHandler, killSessionBridge, broadcast, type WsData } from './server/ws.ts';
 import { killProcessOnPort, waitForPort } from './server/lifecycle.ts';
 import { cancelCurrent } from './server/claude-bridge.ts';
 
@@ -90,6 +90,7 @@ export async function startServer(options?: StartServerOptions): Promise<StartSe
   const shutdownFn = () => {
     if (shuttingDown) return;
     shuttingDown = true;
+    killSessionBridge();
     cancelCurrent();
     server.stop(true);
   };
