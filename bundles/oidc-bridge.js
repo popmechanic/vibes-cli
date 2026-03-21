@@ -457,7 +457,7 @@ export function SignedOut(props) {
 // ─── SignInButton ────────────────────────────────────────────────────────
 
 export function SignInButton(props) {
-  var config = window.__VIBES_CONFIG__ || {};
+  var config = window.__APP_CONFIG__ || window.__VIBES_CONFIG__ || {};
   var _s = React.useState(false);
   var isLoading = _s[0];
   var setIsLoading = _s[1];
