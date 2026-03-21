@@ -67,20 +67,6 @@ async function main() {
   output = output.replaceAll('__DEPLOY_API_URL__', DEPLOY_API_URL);
   output = output.replaceAll('__AI_PROXY_URL__', AI_PROXY_URL);
 
-  // TODO(tinybase-deploy): TEMPORARY — inject safe defaults for TinyBase app config
-  // so assembled HTML works standalone without the Deploy API replacing placeholders.
-  // REMOVE THIS BLOCK after the updated Deploy API is deployed to Cloudflare and
-  // merged to main. The Deploy API should handle __APP_NAME__, __WS_URL__, and
-  // __APP_PUBLIC__ injection at deploy time — see deploy-api/src/index.ts.
-  // Tracked in: docs/superpowers/plans/2026-03-20-tinybase-vibes-integration.md
-  // (Post-Implementation Note #4: "Deploy the dispatch worker")
-  const appName = resolvedOutputPath.match(/([^/]+)\/index\.html$/)?.[1]
-    || resolvedAppPath.match(/([^/]+)\.jsx$/)?.[1]
-    || 'vibes-app';
-  output = output.replaceAll('__APP_NAME__', appName);
-  output = output.replaceAll('__WS_URL__', '__WS_URL__');  // left as placeholder = sync skipped
-  output = output.replaceAll('__APP_PUBLIC__', 'true');     // default to public (no auth gate)
-
   // Validate output
   const validationErrors = validateAssembly(output, appCode);
   if (validationErrors.length > 0) {

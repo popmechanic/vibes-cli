@@ -88,15 +88,6 @@ async function main() {
     htmlContent = readFileSync(srcFile, 'utf8');
   }
 
-  // TODO(tinybase-deploy): TEMPORARY — inject TinyBase app config defaults into HTML
-  // before sending to the Deploy API. The old Deploy API doesn't know about these
-  // placeholders yet. REMOVE THIS BLOCK after the updated Deploy API is deployed to
-  // Cloudflare. The Deploy API should handle this injection — see deploy-api/src/index.ts.
-  htmlContent = htmlContent
-    .replaceAll('__APP_NAME__', name)
-    .replaceAll('__WS_URL__', `wss://sync.vibesos.com/${name}`)
-    .replaceAll('__APP_PUBLIC__', 'true');
-
   const files = {
     'index.html': htmlContent,
     ...buildPlatformFiles(PLUGIN_ROOT),
