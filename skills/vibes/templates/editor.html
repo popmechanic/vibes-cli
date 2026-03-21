@@ -3337,6 +3337,11 @@ window.escapeHtml = function(str) {
   let pendingThemeId = null;
   let currentThemeId = null;
   let currentAppName = null;
+  try { currentAppName = localStorage.getItem('vibes_current_app') || null; } catch {}
+  function setCurrentAppName(name) {
+    currentAppName = name;
+    try { if (name) localStorage.setItem('vibes_current_app', name); else localStorage.removeItem('vibes_current_app'); } catch {}
+  }
 
   // === Streaming State ===
   let streamingText = '';        // Accumulated assistant text for current streaming turn
@@ -3532,7 +3537,7 @@ window.escapeHtml = function(str) {
       .then(r => r.json())
       .then(data => {
         if (data.ok) {
-          currentAppName = name;
+          setCurrentAppName(name);
           if (ws && ws.readyState === 1) {
             ws.send(JSON.stringify({ type: 'save_app', name, app: name }));
           }
@@ -4008,7 +4013,7 @@ window.escapeHtml = function(str) {
         finalizeStreaming();
         addMessage(msg.role, msg.content);
       } else if (msg.type === 'app_created') {
-        currentAppName = msg.name;
+        setCurrentAppName(msg.name);
         // Persist private state for newly created app
         if (privateEnabled && currentAppName) {
           try { localStorage.setItem('vibes_private_' + currentAppName, '1'); } catch {}
@@ -4103,11 +4108,11 @@ window.escapeHtml = function(str) {
         document.getElementById('welcomeError').style.display = 'none';
         return;
       } else if (msg.type === 'app_saved') {
-        if (msg.name) { currentAppName = msg.name; updateAppNameDisplay(currentPhase === 'edit'); }
+        if (msg.name) { setCurrentAppName(msg.name); updateAppNameDisplay(currentPhase === 'edit'); }
         if (_appSavedResolve) { _appSavedResolve(); _appSavedResolve = null; }
       } else if (msg.type === 'deploy_complete') {
         setThinking(false);
-        if (msg.name) { currentAppName = msg.name; updateAppNameDisplay(currentPhase === 'edit'); }
+        if (msg.name) { setCurrentAppName(msg.name); updateAppNameDisplay(currentPhase === 'edit'); }
         addMessage('deploy-success', 'Deployed! ' + (msg.url || ''));
         captureScreenshot(true);
       } else if (msg.type === 'theme_created') {
@@ -4396,7 +4401,7 @@ window.escapeHtml = function(str) {
     try {
       const res = await fetch('/editor/apps/load?name=' + encodeURIComponent(name), { method: 'POST' });
       if (!res.ok) throw new Error('Failed to load app');
-      currentAppName = name;
+      setCurrentAppName(name);
       restorePrivateState(name);
       document.getElementById('chatMessages').innerHTML = '';
       // Tell the server to switch apps and load chat history
@@ -4432,7 +4437,7 @@ window.escapeHtml = function(str) {
       // First save — ask for a name
       promptAppName((name) => {
         if (!name) return;
-        currentAppName = name;
+        setCurrentAppName(name);
         updateAppNameDisplay(currentPhase === 'edit');
         doSave(name);
       });
@@ -4518,7 +4523,7 @@ window.escapeHtml = function(str) {
           return r.json();
         })
         .then(() => {
-          currentAppName = newName;
+          setCurrentAppName(newName);
           updateAppNameDisplay(currentPhase === 'edit');
           checkExistingApps();
         })
@@ -4629,7 +4634,7 @@ window.escapeHtml = function(str) {
 
   function startGenerate() {
     // Clear stale app name so auto-save creates a new entry from the prompt
-    currentAppName = null;
+    setCurrentAppName(null);
     const prompt = document.getElementById('generatePrompt').value.trim();
     if (!prompt) {
       const errEl = document.getElementById('generateError');
