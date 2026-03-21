@@ -1353,34 +1353,30 @@
     .chat-bubble.assistant p:last-child { margin-bottom: 0; }
 
     /* Choice buttons inside assistant bubbles */
-    .chat-bubble .choice-btn {
-      display: block;
-      width: 100%;
+    .chat-bubble.choice {
       padding: 0.5rem 0.75rem;
-      margin-top: 0.375rem;
+      margin-top: 0.25rem;
       background: rgba(255, 255, 255, 0.06);
       border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: 6px;
       color: #e0e0e0;
-      font-family: inherit;
-      font-size: 0.8125rem;
       font-weight: 600;
-      text-align: left;
       cursor: pointer;
       transition: background 0.15s, border-color 0.15s;
     }
-    .chat-bubble .choice-btn:hover {
+    .chat-bubble.choice:hover {
       background: rgba(255, 255, 255, 0.12);
       border-color: rgba(255, 255, 255, 0.3);
     }
-    .chat-bubble .choice-btn:active {
+    .chat-bubble.choice:active {
       background: rgba(255, 255, 255, 0.18);
     }
-    .chat-bubble .choice-btn.chosen {
+    .chat-bubble.choice.chosen {
       border-color: var(--vibes-green, #4CAF50);
       background: rgba(76, 175, 80, 0.15);
+      cursor: default;
     }
-    .chat-bubble .choice-btn.dismissed {
+    .chat-bubble.choice.dismissed {
       display: none;
     }
 
@@ -5092,8 +5088,8 @@ window.escapeHtml = function(str) {
     if ((!text && !referenceFile) || isThinking || !ws || ws.readyState !== WebSocket.OPEN) return;
 
     // Dismiss any pending choice buttons when user types manually
-    document.querySelectorAll('.choice-container').forEach(c => {
-      c.querySelectorAll('.choice-btn').forEach(b => b.classList.add('dismissed'));
+    document.querySelectorAll('.chat-bubble.choice:not(.chosen)').forEach(b => {
+      b.classList.add('dismissed');
     });
 
     const activeAnimationId = EditorAnimations.getActiveId();
@@ -5144,12 +5140,12 @@ window.escapeHtml = function(str) {
   }
 
   function convertChoiceMarkers(bubble) {
-    // Handle both plain-text bubbles (from addMessage) and HTML bubbles (from streaming)
-    const isHtml = bubble.style.whiteSpace === 'normal';
+    // Extract ▸ prefixed lines from the bubble and render as separate choice bubbles
     const choices = [];
 
+    const isHtml = bubble.style.whiteSpace === 'normal';
     if (isHtml) {
-      // Streamed bubble: choice markers are in <p> elements with ▸ prefix
+      // Streamed bubble: check <p> elements and bare text
       const paragraphs = bubble.querySelectorAll('p');
       const toRemove = [];
       paragraphs.forEach(p => {
@@ -5159,21 +5155,16 @@ window.escapeHtml = function(str) {
           toRemove.push(p);
         }
       });
-      // Also check for bare text nodes (not wrapped in <p>)
       if (choices.length === 0) {
         const text = bubble.textContent || '';
         if (!text.includes('\u25b8 ')) return;
-        const lines = text.split('\n');
-        for (const line of lines) {
-          if (line.trim().startsWith('\u25b8 ')) {
-            choices.push(line.trim().slice(2));
-          }
+        for (const line of text.split('\n')) {
+          if (line.trim().startsWith('\u25b8 ')) choices.push(line.trim().slice(2));
         }
       } else {
         toRemove.forEach(el => el.remove());
       }
     } else {
-      // Plain-text bubble: split by newlines
       const text = bubble.textContent || '';
       if (!text.includes('\u25b8 ')) return;
       const lines = text.split('\n');
@@ -5191,23 +5182,27 @@ window.escapeHtml = function(str) {
 
     if (choices.length === 0) return;
 
-    const choiceContainer = document.createElement('div');
-    choiceContainer.className = 'choice-container';
-    choiceContainer.style.marginTop = '0.5rem';
+    // Insert each choice as a separate bubble after the question bubble
+    const container = document.getElementById('chatMessages');
+    let insertAfter = bubble;
     for (const choice of choices) {
-      const btn = document.createElement('button');
-      btn.className = 'choice-btn';
-      btn.textContent = choice;
-      btn.onclick = () => {
+      const choiceBubble = document.createElement('div');
+      choiceBubble.className = 'chat-bubble choice';
+      choiceBubble.textContent = choice;
+      choiceBubble.onclick = () => {
         sendChatMessage(choice);
-        btn.classList.add('chosen');
-        choiceContainer.querySelectorAll('.choice-btn').forEach(b => {
-          if (b !== btn) b.classList.add('dismissed');
-        });
+        choiceBubble.classList.add('chosen');
+        // Dismiss other choice bubbles in this group
+        let sib = bubble.nextElementSibling;
+        while (sib && sib.classList.contains('choice')) {
+          if (sib !== choiceBubble) sib.classList.add('dismissed');
+          sib = sib.nextElementSibling;
+        }
       };
-      choiceContainer.appendChild(btn);
+      insertAfter.after(choiceBubble);
+      insertAfter = choiceBubble;
     }
-    bubble.appendChild(choiceContainer);
+    container.scrollTop = container.scrollHeight;
   }
 
   // === Lightweight Markdown Renderer ===
