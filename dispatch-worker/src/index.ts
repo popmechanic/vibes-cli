@@ -107,7 +107,11 @@ export default {
       return env.APP_SYNC.get(doId).fetch(request);
     }
 
-    const appName = getSubdomain(url.hostname);
-    return env.DISPATCH.get(appName).fetch(request);
+    // This worker only handles WebSocket upgrades for TinyBase sync.
+    // Non-WebSocket requests (health checks, crawlers, etc.) get a simple response.
+    return new Response('TinyBase sync endpoint. WebSocket connections only.', {
+      status: 426,
+      headers: { 'Upgrade': 'websocket' },
+    });
   },
 };
