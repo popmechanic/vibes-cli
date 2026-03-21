@@ -49,7 +49,7 @@ Each skill is ONE plan step — never decompose into sub-steps. Always invoke th
 
 ## Package Versions
 
-The import map in `source-templates/base/template.html` is the authoritative source for current package versions (TinyBase from esm.sh, `oauth4webapi`, React 19.2.4). The OIDC bridge (`bundles/fireproof-oidc-bridge.js`) is loaded as a local bundle for private app auth.
+The import map in `source-templates/base/template.html` is the authoritative source for current package versions (TinyBase from esm.sh, `oauth4webapi`, React 19.2.4). The OIDC bridge (`bundles/oidc-bridge.js`) is loaded as a local bundle for private app auth.
 
 ## Deploy Workflow
 
@@ -187,7 +187,7 @@ Then `npm run test:e2e:server` and open `http://test-app.local:3000`.
 
 | File | Why it matters |
 |------|---------------|
-| `bundles/fireproof-oidc-bridge.js` | ES module bridge wrapping OIDC auth for private app sign-in |
+| `bundles/oidc-bridge.js` | ES module bridge wrapping OIDC auth for private app sign-in |
 | `deploy-api/` | Deploy API Worker — accepts HTML + OIDC token, deploys to CF Workers server-side |
 | `dispatch-worker/` | TinyBase sync dispatch worker with Durable Object for WebSocket-based sync |
 | `scripts/lib/cli-auth.js` | CLI OIDC authentication with localhost callback, token caching |

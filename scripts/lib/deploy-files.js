@@ -20,9 +20,9 @@ export function buildPlatformFiles(projectRoot) {
   const files = {};
 
   // OIDC bridge bundle
-  const bridgePath = join(projectRoot, 'bundles/fireproof-oidc-bridge.js');
+  const bridgePath = join(projectRoot, 'bundles/oidc-bridge.js');
   if (existsSync(bridgePath)) {
-    files['fireproof-oidc-bridge.js'] = readFileSync(bridgePath, 'utf8');
+    files['oidc-bridge.js'] = readFileSync(bridgePath, 'utf8');
   }
 
   // AI hook bundle

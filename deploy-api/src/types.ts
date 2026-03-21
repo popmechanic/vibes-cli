@@ -19,7 +19,7 @@ export interface Env {
 
 export interface DeployRequest {
   name: string;
-  files: Record<string, string>; // path → content, e.g. { "index.html": "<html>...", "fireproof-oidc-bridge.js": "..." }
+  files: Record<string, string>; // path → content, e.g. { "index.html": "<html>...", "oidc-bridge.js": "..." }
   html?: string; // legacy single-file format (wrapped as { "index.html": html })
   public?: boolean; // whether the app is publicly accessible (default: true)
 }

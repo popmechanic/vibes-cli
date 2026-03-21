@@ -3528,7 +3528,7 @@ if (typeof window !== 'undefined') {
   // Load OIDC components for riff apps (always required)
   async function initApp() {
     try {
-      const oidcModule = await import("/fireproof-oidc-bridge.js");
+      const oidcModule = await import("/oidc-bridge.js");
       window.OIDCProvider = oidcModule.OIDCProvider;
       window.OIDCComponents = {
         OIDCProvider: oidcModule.OIDCProvider,

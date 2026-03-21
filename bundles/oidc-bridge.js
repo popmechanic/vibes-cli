@@ -241,6 +241,10 @@ var OIDCContext = React.createContext({
   dashApi: null
 });
 
+// Detect iframe/preview mode once at module level
+var _isPreviewMode = false;
+try { _isPreviewMode = window.self !== window.top; } catch (e) { _isPreviewMode = true; }
+
 /**
  * OIDCProvider — manages token lifecycle, provides auth context.
  * Props: authority (string), clientId (string), config ({ apiUrl, cloudUrl })
@@ -563,8 +567,4 @@ export function useOIDCContext() {
 }
 // Expose for SharingBridge in base template
 window.useOIDCContext = useOIDCContext;
-
-// Detect iframe/preview mode once at module level
-var _isPreviewMode = false;
-try { _isPreviewMode = window.self !== window.top; } catch (e) { _isPreviewMode = true; }
 

@@ -3600,7 +3600,7 @@ if (typeof window !== 'undefined') {
   async function initApp() {
     if (hasOidc && !config.public) {
       try {
-        const oidcModule = await import("/fireproof-oidc-bridge.js");
+        const oidcModule = await import("/oidc-bridge.js");
         window.OIDCProvider = oidcModule.OIDCProvider;
         window.OIDCComponents = {
           OIDCProvider: oidcModule.OIDCProvider,

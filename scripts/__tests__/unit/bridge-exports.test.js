@@ -1,5 +1,5 @@
 /**
- * Structural tests for the fireproof-oidc-bridge module (OIDC auth only)
+ * Structural tests for the oidc-bridge module (OIDC auth only)
  * and TinyBase import map entries in templates.
  *
  * The bridge still provides OIDC components for private app auth.
@@ -11,13 +11,13 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 const ROOT = resolve(__dirname, '../../..');
-const BRIDGE_PATH = resolve(ROOT, 'bundles/fireproof-oidc-bridge.js');
+const BRIDGE_PATH = resolve(ROOT, 'bundles/oidc-bridge.js');
 const BASE_TEMPLATE_PATH = resolve(ROOT, 'source-templates/base/template.html');
 
 const bridgeSource = readFileSync(BRIDGE_PATH, 'utf8');
 const baseTemplate = readFileSync(BASE_TEMPLATE_PATH, 'utf8');
 
-describe('fireproof-oidc-bridge exports', () => {
+describe('oidc-bridge exports', () => {
   it('exports OIDCProvider component', () => {
     expect(bridgeSource).toContain('export function OIDCProvider');
   });
@@ -44,6 +44,11 @@ describe('fireproof-oidc-bridge exports', () => {
 
   it('exports useOIDCContext hook', () => {
     expect(bridgeSource).toContain('export function useOIDCContext');
+  });
+
+  it('does NOT import from @fireproof/core', () => {
+    expect(bridgeSource).not.toContain('from "@fireproof/core"');
+    expect(bridgeSource).not.toContain("from '@fireproof/core'");
   });
 });
 
