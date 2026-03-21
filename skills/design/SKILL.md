@@ -24,7 +24,7 @@ metadata:
 
 # Design Reference Transformer
 
-Transform a complete design reference HTML file into a working Vibes app with Fireproof data persistence.
+Transform a complete design reference HTML file into a working Vibes app with TinyBase reactive data.
 
 ---
 
@@ -32,7 +32,7 @@ Transform a complete design reference HTML file into a working Vibes app with Fi
 
 > **Preserve and adapt, don't interpret and recreate.**
 
-The design reference is **source code to transform**, not inspiration to interpret. When given a complete HTML file with styles, your job is to make **minimal surgical changes** to connect it to React/Fireproof—not to recreate it from your understanding of its aesthetic.
+The design reference is **source code to transform**, not inspiration to interpret. When given a complete HTML file with styles, your job is to make **minimal surgical changes** to connect it to React/TinyBase—not to recreate it from your understanding of its aesthetic.
 
 ---
 
@@ -48,7 +48,7 @@ Use this skill when:
 
 ## The Transformation is Mechanical
 
-The conversion from design HTML to React/Fireproof is **deterministic, not creative**:
+The conversion from design HTML to React/TinyBase is **deterministic, not creative**:
 
 | Transformation | Rule | Example |
 |----------------|------|---------|
@@ -94,14 +94,13 @@ Typical dynamic elements:
 
 ```jsx
 import React from "react";
-import { useFireproofClerk } from "use-fireproof";
 
 export default function App() {
-  const { database, useLiveQuery, useDocument } = useFireproofClerk("app-db");
-
-  // Hooks for dynamic data
-  const { doc, merge, submit } = useDocument({ /* initial shape */ });
-  const { docs } = useLiveQuery("type", { key: "item" });
+  // TinyBase hooks are globals — no initialization call needed
+  const rowIds = useRowIds('items');
+  const handleAdd = useAddRowCallback('items', (e) => ({
+    text: '', type: 'item', created: Date.now()
+  }));
 
   return (
     <>
@@ -223,15 +222,21 @@ After assembly:
 </ul>
 ```
 
-**React with Fireproof:**
+**React with TinyBase:**
 ```jsx
-const { docs } = useLiveQuery("type", { key: "item" });
+const rowIds = useRowIds('items');
 
 <ul className="item-list">
-  {docs.map(item => (
-    <li key={item._id} className="item">{item.text}</li>
+  {rowIds.map(id => (
+    <ItemRow key={id} id={id} />
   ))}
 </ul>
+
+// Child component uses useCell for reactive per-row data
+function ItemRow({ id }) {
+  const text = useCell('items', id, 'text');
+  return <li className="item">{text}</li>;
+}
 ```
 
 Note: Only the content changed. The classes, structure, and styling are identical.
@@ -248,17 +253,20 @@ Note: Only the content changed. The classes, structure, and styling are identica
 </form>
 ```
 
-**React with Fireproof:**
+**React with TinyBase:**
 ```jsx
-const { doc, merge, submit } = useDocument({ text: "", type: "item" });
+const [text, setText] = useState('');
+const handleAdd = useAddRowCallback('items', () => ({
+  text, type: 'item', created: Date.now()
+}));
 
-<form onSubmit={submit}>
+<form onSubmit={(e) => { e.preventDefault(); handleAdd(); setText(''); }}>
   <input
     type="text"
     className="input"
     placeholder="Enter text..."
-    value={doc.text}
-    onChange={(e) => merge({ text: e.target.value })}
+    value={text}
+    onChange={(e) => setText(e.target.value)}
   />
   <button type="submit" className="btn">Submit</button>
 </form>
@@ -281,8 +289,8 @@ bun "$VIBES_ROOT/scripts/assemble.js" app.jsx index.html
 The assembly script:
 - Inserts your JSX into the Vibes template
 - Handles OIDC authentication wrapper (via Pocket ID)
-- Sets up import maps for React and Fireproof
-- Configures Connect URLs if present (auth is automatic via Pocket ID)
+- Sets up import maps for React and TinyBase
+- Configures sync URLs if present (auth is automatic via Pocket ID)
 
 ---
 

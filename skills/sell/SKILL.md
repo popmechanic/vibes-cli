@@ -8,6 +8,8 @@ metadata:
   author: "Marcus Estes"
 ---
 
+> **NOTE:** This skill is being updated for TinyBase. Data patterns below use TinyBase hooks where possible. Multi-tenant database isolation is handled differently with TinyBase (single store per app, rooms via Durable Objects).
+
 > **Plan mode**: If you are planning work, this entire skill is ONE plan step: "Invoke /vibes:sell". Do not decompose the steps below into separate plan tasks.
 
 **Display this ASCII art immediately when starting:**
@@ -36,7 +38,7 @@ metadata:
 
 ---
 
-> **Assembly: transform (strip)** — `assemble-sell.js` receives a vibes-generated app.jsx and adapts it for the sell template. It strips `import` statements, `export default`, React destructuring, and template constants — because the sell template already provides all of these. All dependencies (`React`, `useFireproofClerk`, `useTenant`, `useState`, etc.) are available as globals.
+> **Assembly: transform (strip)** — `assemble-sell.js` receives a vibes-generated app.jsx and adapts it for the sell template. It strips `import` statements, `export default`, React destructuring, and template constants — because the sell template already provides all of these. All dependencies (`React`, TinyBase hooks, `useTenant`, `useState`, etc.) are available as globals.
 
 ## ⛔ CRITICAL RULES - READ FIRST ⛔
 
@@ -67,13 +69,13 @@ bun "$VIBES_ROOT/scripts/deploy-cloudflare.js" ...
 
 # Sell - Transform Vibes to SaaS
 
-This skill uses `assemble-sell.js` to inject the user's app into a pre-built template. The template contains security checks, Pocket ID auth integration, and Fireproof patterns.
+This skill uses `assemble-sell.js` to inject the user's app into a pre-built template. The template contains security checks, Pocket ID auth integration, and TinyBase data patterns.
 
 Convert your Vibes app into a multi-tenant SaaS product with:
 - Subdomain-based tenancy (alice.yourdomain.com)
 - Pocket ID authentication (with passkeys, automatic on deploy)
 - Subscription gating (Stripe billing is phase 2)
-- Per-tenant Fireproof database isolation
+- Per-tenant data isolation via TinyBase rooms (Durable Objects)
 - Marketing landing page
 - Admin dashboard
 
@@ -231,21 +233,16 @@ Auth is automatic via Pocket ID — no `.env` credential setup is needed. On fir
 
 ### 4.2 Update App for Tenant Context
 
-The user's app needs to use `useTenant()` for database scoping. Check if their app has a hardcoded database name:
+The user's app needs to use `useTenant()` for tenant-scoped data. TinyBase uses a single store per app with rooms via Durable Objects for multi-tenant isolation — no database name parameter is needed.
 
 ```jsx
-// BEFORE: Hardcoded name
-const { useLiveQuery } = useFireproofClerk("my-app");
+// TinyBase hooks are globals — no initialization call needed.
+// useTenant() provides tenant context for routing/display.
+const { subdomain } = useTenant();
 
-// AFTER: Tenant-aware
-const { dbName } = useTenant();
-const { useLiveQuery } = useFireproofClerk(dbName);
+// Use TinyBase hooks directly:
+const rowIds = useRowIds('items');
 ```
-
-If the app uses a hardcoded name, update it:
-1. Find the `useFireproofClerk("...")` call
-2. Add `const { dbName } = useTenant();` before it
-3. Change to `useFireproofClerk(dbName)`
 
 `useTenant()` is a **template global** (injected by AppWrapper in the sell template), NOT an importable module. Call it directly — do NOT write `import { useTenant } from ...` anywhere in app.jsx.
 
@@ -556,11 +553,11 @@ https://{domain}?subdomain=admin → Admin dashboard
 
 ## Import Map
 
-The unified template uses React 19 with the OIDC bridge for auth and Fireproof sync. The current authoritative import map (from `source-templates/base/template.html`):
+The unified template uses React 19 with the OIDC bridge for auth and TinyBase sync. The current authoritative import map (from `source-templates/base/template.html`):
 
 !`bun scripts/lib/extract-import-map.js`
 
-Note: `use-fireproof` maps to the local OIDC bridge (`/fireproof-oidc-bridge.js`), and `@fireproof/core` uses `?external=react,react-dom` to prevent the React singleton problem.
+Note: TinyBase is loaded via the import map with `?external=react,react-dom` to prevent the React singleton problem.
 
 ---
 
@@ -572,7 +569,7 @@ Note: `use-fireproof` maps to the local OIDC bridge (`/fireproof-oidc-bridge.js`
 
 ### "Cannot read properties of null (reading 'useEffect')"
 - React version mismatch between packages
-- Ensure Fireproof imports have `?external=react,react-dom`
+- Ensure TinyBase imports have `?external=react,react-dom`
 
 ### "Subscription Required" loop
 - Check that admin user ID is correct and in the `ADMIN_USER_IDS` array
@@ -588,9 +585,9 @@ Note: `use-fireproof` maps to the local OIDC bridge (`/fireproof-oidc-bridge.js`
 - Check Pocket ID admin panel for the correct user ID
 - Re-run assembly with correct --admin-ids
 
-### Database not isolated
+### Data not isolated between tenants
 - Verify `useTenant()` is used in the App component
-- Check `useFireproofClerk(dbName)` uses the tenant database name
+- TinyBase uses rooms via Durable Objects for tenant isolation — ensure the tenant routing is correct
 
 ### Registry returns HTML instead of JSON
 - The Worker may not have deployed correctly — redeploy with `deploy-cloudflare.js`

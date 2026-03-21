@@ -44,8 +44,8 @@ T1 (build) runs in parallel with SaaS config collection (Phase 0.4). Both conver
 
 Scan app.jsx for these before assembly:
 
-1. **Hardcoded database name**: `useFireproofClerk("some-name")` → must use `useFireproofClerk(dbName)` with `const { dbName } = useTenant()`
+1. **Unnecessary data initialization**: TinyBase hooks are globals — no initialization call needed. Remove any `useFireproofClerk(...)` calls. Use `useTenant()` for tenant context (subdomain, appName).
 2. **TypeScript syntax**: Remove type annotations, interface declarations, `as` casts
 3. **Missing export default**: Must have `export default function App()`
 4. **Import statements for React**: Remove — React is globally available
-5. **Import statements for Fireproof**: Must use `import { useFireproofClerk } from "use-fireproof"`
+5. **Import statements for TinyBase**: TinyBase hooks (`useRowIds`, `useCell`, `useAddRowCallback`, etc.) are available as globals — do not import them

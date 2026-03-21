@@ -80,10 +80,10 @@ AskUserQuestion:
   Question: "Which fixture to test?"
   Header: "Fixture"
   Options:
-  - Label: "fireproof-basic (Recommended)"
-    Description: "Fireproof CRUD with React singleton — the standard integration test"
+  - Label: "basic (Recommended)"
+    Description: "TinyBase data operations with React singleton — the standard integration test"
   - Label: "minimal"
-    Description: "Template + Babel + import map only — fastest, no Fireproof"
+    Description: "Template + Babel + import map only — fastest, no data layer"
   - Label: "sell-ready"
     Description: "useTenant() + multi-tenant routing — tests sell assembly path"
   - Label: "ai-proxy"
@@ -352,14 +352,14 @@ Proceed to Phase 6.
 
 Print the live URL and what to check:
 
-**For minimal / fireproof-basic:**
+**For minimal / basic:**
 ```
 Deployed! Open in your browser:
   https://vibes-test.<account>.workers.dev
 
 What to verify:
 - Page loads without console errors
-- (fireproof-basic) CRUD operations work — add, edit, delete items
+- (basic) TinyBase data operations work — add, edit, delete items
 - Settings gear icon opens the menu
 ```
 
@@ -445,7 +445,7 @@ Ask the user to describe the issue. Then work through these diagnostic steps. Sk
 |---------------|-------------|------------|
 | `Cannot read properties of null (reading 'useContext')` | Duplicate React instances | `source-templates/base/template.html` import map |
 | `Failed to fetch` / CORS errors | Deploy script wrong URL or missing CORS headers | `scripts/deploy-cloudflare.js` |
-| `Fireproof is not defined` | Missing import map entry | `source-templates/base/template.html` import map |
+| `TinyBase is not defined` / hooks not found | Missing import map entry | `source-templates/base/template.html` import map |
 | `Unexpected token '<'` | Babel script block malformed | `scripts/assemble.js` |
 | 404 on `/api/` routes | Connect not provisioned or Worker misconfigured | `scripts/deploy-cloudflare.js` |
 

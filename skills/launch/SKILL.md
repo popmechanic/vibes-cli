@@ -271,7 +271,7 @@ Send `shutdown_request` to "builder" (if spawned). Wait for response. Clean up t
 
 ### What's deployed:
 - Cloudflare Worker via Deploy API
-- Fireproof Connect for real-time sync (auto-provisioned)
+- TinyBase sync via WebSocket + Durable Object (auto-provisioned)
 - Pocket ID authentication with passkeys
 - Subdomain-based multi-tenancy
 
