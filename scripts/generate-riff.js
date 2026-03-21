@@ -52,7 +52,7 @@ First, reason about the design in <reasoning> tags:
 Then output your complete code in <code> tags.
 
 CRITICAL: Use plain JavaScript only. NEVER use TypeScript syntax:
-- NO generics: useState<T>, useDocument<T>, Array<T>
+- NO generics: useState<T>, Array<T>
 - NO type annotations: const x: string, function(x: number)
 - NO interfaces or type aliases
 - NO "as" assertions: (x as any)
@@ -88,7 +88,7 @@ Requirements:
 - Use useAddRowCallback to insert, useSetRowCallback to update, useDelRowCallback to delete
 - Include meaningful CRUD operations
 - Make it visually distinctive and immersive
-- Include a seedDemo function that populates 3-5 realistic sample documents with database.put() and a "Load Demo Data" button that only renders when the primary useLiveQuery returns zero docs`;
+- Include a seedDemo function that populates 3-5 realistic sample rows using useAddRowCallback and a "Load Demo Data" button that only renders when useRowCount returns zero`;
 
 try {
   const args = buildClaudeArgs(TASK_PROFILES.riffGenerate);
