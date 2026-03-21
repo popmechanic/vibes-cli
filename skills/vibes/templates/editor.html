@@ -2721,8 +2721,9 @@
                   </div>
                 </div>
               </div>
-              <button class="theme-mode-chip" id="themeModeChip" onclick="toggleThemeMode()">Themed</button>
-              <button class="theme-mode-chip" id="genAiChip" onclick="toggleGenAI()">Use AI</button>
+              <button class="theme-mode-chip" id="useThemeChip" onclick="toggleUseTheme()">Use theme?</button>
+              <button class="theme-mode-chip" id="privateChip" onclick="togglePrivate()">Private?</button>
+              <button class="theme-mode-chip" id="useAiChip" onclick="toggleUseAI()" style="display:none;">Use AI?</button>
               <button class="generate-submit-btn" id="generateBtn" onclick="startGenerate()" title="Generate">&#8593;</button>
             </div>
           </div>
@@ -3975,6 +3976,17 @@ window.escapeHtml = function(str) {
     document.querySelectorAll('.theme-carousel-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.themeId === id);
     });
+    // Auto-activate "Use theme" when a theme is selected
+    if (!useThemeEnabled) {
+      useThemeEnabled = true;
+      const chip = document.getElementById('useThemeChip');
+      if (chip) {
+        chip.textContent = 'Use theme';
+        chip.classList.add('active');
+      }
+      const carousel = document.getElementById('themeCarousel');
+      if (carousel) carousel.classList.remove('custom-mode');
+    }
   }
 
   function themeCarouselPrev() {
@@ -4354,9 +4366,9 @@ window.escapeHtml = function(str) {
 
     const genRefFile = EditorReference.getFile('generate');
     const hasReference = !!genRefFile;
-    // Skip theme in custom mode (user toggle or reference attached)
-    const skipTheme = customThemeMode || hasReference;
-    const payload = { type: 'generate', prompt, themeId: skipTheme ? null : (themeId || null), model: getModel(), useAI: genAIEnabled, previousApp: currentAppName };
+    // Skip theme when not enabled or reference attached
+    const skipTheme = !useThemeEnabled || hasReference;
+    const payload = { type: 'generate', prompt, themeId: skipTheme ? null : (themeId || null), model: getModel(), useAI: useAIEnabled, isPrivate: privateEnabled, previousApp: currentAppName };
     if (hasReference) {
       payload.reference = {
         name: genRefFile.name,
@@ -4591,7 +4603,7 @@ window.escapeHtml = function(str) {
     if (isThinking || !ws || ws.readyState !== WebSocket.OPEN) return;
     document.getElementById('deployMenu').classList.remove('open');
     addMessage('user', 'Publishing update to "' + appName + '"');
-    ws.send(JSON.stringify({ type: 'deploy', target: 'cloudflare', name: appName, app: currentAppName }));
+    ws.send(JSON.stringify({ type: 'deploy', target: 'cloudflare', name: appName, app: currentAppName, isPrivate: privateEnabled }));
   }
 
   function startDeploy(target) {
@@ -4606,7 +4618,7 @@ window.escapeHtml = function(str) {
     nameInput.style.borderColor = 'var(--vibes-near-black)';
     document.getElementById('deployMenu').classList.remove('open');
     addMessage('user', 'Publishing "' + name + '" to the web');
-    ws.send(JSON.stringify({ type: 'deploy', target, name, app: currentAppName }));
+    ws.send(JSON.stringify({ type: 'deploy', target, name, app: currentAppName, isPrivate: privateEnabled }));
   }
 
   // Close deploy menu on outside click, Escape key, or scroll
@@ -4661,31 +4673,59 @@ window.escapeHtml = function(str) {
 
   // === Generate-phase reference & image gen === (extracted to editor-reference.js and editor-imggen.js)
 
-  let customThemeMode = false;
-  let genAIEnabled = false;
+  let useThemeEnabled = false;
+  let privateEnabled = false;
+  let useAIEnabled = false;
 
-  function toggleGenAI() {
-    genAIEnabled = !genAIEnabled;
-    const chip = document.getElementById('genAiChip');
-    if (chip) chip.classList.toggle('active', genAIEnabled);
+  function toggleUseTheme() {
+    useThemeEnabled = !useThemeEnabled;
+    const chip = document.getElementById('useThemeChip');
+    const carousel = document.getElementById('themeCarousel');
+    if (chip) {
+      chip.textContent = useThemeEnabled ? 'Use theme' : 'Use theme?';
+      chip.classList.toggle('active', useThemeEnabled);
+    }
+    if (carousel) carousel.classList.toggle('custom-mode', !useThemeEnabled);
   }
 
-  function setThemeMode(custom) {
-    customThemeMode = custom;
-    const carousel = document.getElementById('themeCarousel');
-    const chip = document.getElementById('themeModeChip');
-    if (carousel) carousel.classList.toggle('custom-mode', custom);
+  function togglePrivate() {
+    privateEnabled = !privateEnabled;
+    const chip = document.getElementById('privateChip');
+    const aiChip = document.getElementById('useAiChip');
     if (chip) {
-      chip.textContent = custom ? 'Custom' : 'Themed';
-      chip.classList.toggle('custom', custom);
+      chip.textContent = privateEnabled ? 'Private' : 'Private?';
+      chip.classList.toggle('active', privateEnabled);
+    }
+    if (!privateEnabled) {
+      // Deselect and hide Use AI when Private is turned off
+      useAIEnabled = false;
+      if (aiChip) {
+        aiChip.style.display = 'none';
+        aiChip.textContent = 'Use AI?';
+        aiChip.classList.remove('active');
+      }
+    } else {
+      if (aiChip) aiChip.style.display = '';
     }
   }
 
-  function toggleThemeMode() {
-    setThemeMode(!customThemeMode);
+  function toggleUseAI() {
+    if (!privateEnabled) return; // Can't enable AI without Private
+    useAIEnabled = !useAIEnabled;
+    const chip = document.getElementById('useAiChip');
+    if (chip) {
+      chip.textContent = useAIEnabled ? 'Use AI' : 'Use AI?';
+      chip.classList.toggle('active', useAIEnabled);
+    }
   }
 
-  // Legacy compat
+  // Legacy compat — theme carousel uses this
+  function setThemeMode(custom) {
+    if (custom && !useThemeEnabled) return; // don't override if theme not enabled
+    const carousel = document.getElementById('themeCarousel');
+    if (carousel) carousel.classList.toggle('custom-mode', custom);
+  }
+
   function setThemeCarouselOverridden(overridden) {
     setThemeMode(overridden);
   }
