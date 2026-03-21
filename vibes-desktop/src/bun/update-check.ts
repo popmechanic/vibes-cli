@@ -30,6 +30,17 @@ function setSkippedHash(hash: string): void {
 	writeFileSync(SKIP_FILE, JSON.stringify({ hash }));
 }
 
+/** Compare semver strings — returns true if `available` is newer than `current`. */
+function isNewerVersion(available: string, current: string): boolean {
+	const parse = (v: string) => (v.match(/^(\d+)\.(\d+)\.(\d+)/) || []).slice(1).map(Number);
+	const [aM, am, ap] = parse(available);
+	const [cM, cm, cp] = parse(current);
+	if (isNaN(aM) || isNaN(cM)) return false; // unparseable — don't treat as update
+	if (aM !== cM) return aM > cM;
+	if (am !== cm) return am > cm;
+	return (ap || 0) > (cp || 0);
+}
+
 export interface UpdateCheckResult {
 	/** Whether an update was applied (app will relaunch) */
 	applied: boolean;
@@ -82,6 +93,13 @@ export async function checkAndPromptForUpdate(
 	const newVersion = updateInfo.version || "new version";
 	log(`[update] Update available: ${newVersion} (hash: ${updateInfo.hash})`);
 
+	// Guard against stale/corrupt latest.txt pointing to an older version.
+	// ElectroBun only compares hashes — a different hash doesn't mean newer.
+	if (newVersion !== "new version" && !isNewerVersion(newVersion, currentVersion)) {
+		log(`[update] Ignoring — available ${newVersion} is not newer than installed ${currentVersion}`);
+		return { applied: false, skipped: false };
+	}
+
 	// Check skip tracking
 	const skippedHash = getSkippedHash();
 	if (skippedHash && skippedHash === updateInfo.hash) {
@@ -89,7 +107,16 @@ export async function checkAndPromptForUpdate(
 		return { applied: false, skipped: true };
 	}
 
-	// Show update prompt UI
+	// Show update prompt UI.
+	// Wait for the webview to finish initializing before loading new HTML —
+	// after a silent upgrade the initial LOADING_HTML may still be rendering
+	// ("delayed loadHTML"), and a second loadHTML call can race, leaving about:blank.
+	await new Promise<void>(resolve => {
+		const onReady = () => { resolve(); };
+		mainWindow.webview.on("dom-ready", onReady);
+		// Fallback if dom-ready already fired or never fires
+		setTimeout(resolve, 1500);
+	});
 	mainWindow.webview.loadHTML((await import("./setup-html.ts")).SETUP_HTML);
 	await new Promise(r => setTimeout(r, 300));
 	mainWindow.webview.executeJavascript(

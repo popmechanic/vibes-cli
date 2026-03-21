@@ -4,7 +4,7 @@ export default {
 	app: {
 		name: "VibesOS",
 		identifier: "com.vibes.os",
-		version: "0.1.95",
+		version: "0.1.97",
 	},
 	build: {
 		mac: { bundleCEF: false, codesign: true, notarize: true },
