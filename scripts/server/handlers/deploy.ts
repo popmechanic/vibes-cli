@@ -131,6 +131,20 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
 
   onEvent({ type: 'progress', progress: 30, stage: 'Deploying...', elapsed: getElapsed() });
 
+  // TODO(tinybase-deploy): TEMPORARY — inject TinyBase app config into assembled HTML
+  // before sending to the Deploy API. The old Deploy API doesn't handle these placeholders.
+  // REMOVE THIS BLOCK after the updated Deploy API is deployed to Cloudflare.
+  try {
+    let assembled = readFileSync(indexHtmlPath, 'utf8');
+    assembled = assembled
+      .replaceAll('__APP_NAME__', appName)
+      .replaceAll('__WS_URL__', `wss://sync.vibesos.com/${appName}`)
+      .replaceAll('__APP_PUBLIC__', 'true');
+    writeFileSync(indexHtmlPath, assembled);
+  } catch (e: any) {
+    console.warn('[Deploy] Config injection failed:', e.message);
+  }
+
   // Build the files map for the Deploy API
   const files: Record<string, string> = {
     'index.html': readFileSync(indexHtmlPath, 'utf8'),
