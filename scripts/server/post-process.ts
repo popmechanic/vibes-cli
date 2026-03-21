@@ -83,19 +83,5 @@ export function sanitizeAppJsx(projectRoot: string): void {
   const globalClean = stripRedeclaredGlobals(code);
   if (globalClean !== code) { code = globalClean; changed = true; console.log('[PostProcess] Stripped redeclared globals'); }
 
-  // Fix broken table name references: '${tableId}' is a common builder mistake
-  // where a template literal was used inside regular quotes. Replace with the
-  // most common real table name found in the code, or 'items' as fallback.
-  if (code.includes("'${tableId}'") || code.includes('"${tableId}"')) {
-    const realTables = [...code.matchAll(/use(?:RowIds|AddRowCallback|Cell|SortedRowIds|RowCount|DelRowCallback|SetCellCallback|SetPartialRowCallback)\s*\(\s*'([a-z][a-zA-Z0-9_-]*)'/g)]
-      .map(m => m[1])
-      .filter(t => t !== '${tableId}');
-    const replacement = realTables[0] || 'items';
-    code = code.replace(/'\$\{tableId\}'/g, `'${replacement}'`);
-    code = code.replace(/"\$\{tableId\}"/g, `'${replacement}'`);
-    changed = true;
-    console.log(`[PostProcess] Fixed \${tableId} references → '${replacement}'`);
-  }
-
   if (changed) writeFileSync(appPath, code, 'utf-8');
 }

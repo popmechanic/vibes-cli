@@ -160,6 +160,13 @@ The goal: the generated app should look like the image was its design spec.
 
     const refPrompt = `${referenceBlock}You are an expert React app designer. Generate a beautiful, creative app.
 
+=== NON-NEGOTIABLE DATA RULES ===
+This app uses TinyBase for persistent, synced data. All TinyBase hooks are pre-existing globals.
+Every table name MUST be a simple string literal like 'todos', 'items', 'scores'.
+NEVER use variables or template literals for table names: useRowIds(tableName) and useRowIds('\${tableId}') are BROKEN.
+Always write: useRowIds('todos'), useCell('todos', id, 'text'), useAddRowCallback('todos', ...).
+Store ALL user data in TinyBase tables — not in useState. useState is only for UI state (form inputs, modals, selections).
+
 USER REQUEST: "${userPrompt}"
 
 Your app.jsx MUST start with these EXACT lines (copy-paste, do not modify):
@@ -279,6 +286,13 @@ RIGHT: useRowIds('todos')    useCell('todos', id, 'text')${useAI ? AI_INSTRUCTIO
   if (themeEssentials.length > 4000) themeEssentials = themeEssentials.slice(0, 4000) + '\n...';
 
   const prompt = `You are an expert React app designer. Generate a beautiful, creative app.
+
+=== NON-NEGOTIABLE DATA RULES ===
+This app uses TinyBase for persistent, synced data. All TinyBase hooks are pre-existing globals.
+Every table name MUST be a simple string literal like 'todos', 'items', 'scores'.
+NEVER use variables or template literals for table names: useRowIds(tableName) and useRowIds('\${tableId}') are BROKEN.
+Always write: useRowIds('todos'), useCell('todos', id, 'text'), useAddRowCallback('todos', ...).
+Store ALL user data in TinyBase tables — not in useState. useState is only for UI state (form inputs, modals, selections).
 
 USER REQUEST: "${userPrompt}"
 
