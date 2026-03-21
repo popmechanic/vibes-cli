@@ -66,7 +66,7 @@ describe('event-translator', () => {
     expect(translateStreamEvent(event)).toEqual([{ type: 'status', status: 'retrying', attempt: 2 }]);
   });
 
-  it('translates assistant message with text and tool_use blocks', () => {
+  it('drops assistant messages to avoid duplication with streaming', () => {
     const event = {
       type: 'assistant',
       message: {
@@ -76,19 +76,6 @@ describe('event-translator', () => {
         ],
       },
     };
-    const result = translateStreamEvent(event);
-    expect(result).toEqual([
-      { type: 'token', text: 'Let me read that file.' },
-      { type: 'tool_start', name: 'Read', id: 'tu_1' },
-    ]);
-  });
-
-  it('handles assistant tool_use with missing id', () => {
-    const event = {
-      type: 'assistant',
-      message: { content: [{ type: 'tool_use', name: 'Read' }] },
-    };
-    const result = translateStreamEvent(event);
-    expect(result[0].id).toBeNull();
+    expect(translateStreamEvent(event)).toEqual([]);
   });
 });

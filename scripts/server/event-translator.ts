@@ -92,18 +92,11 @@ export function translateStreamEvent(event: any): object[] {
     return [{ type: 'status', status: 'rate_limited' }];
   }
 
-  // assistant messages with complete content blocks (non-streaming)
-  if (event.type === 'assistant' && event.message?.content) {
-    const msgs: object[] = [];
-    for (const block of event.message.content) {
-      if (block.type === 'text' && block.text) {
-        msgs.push({ type: 'token', text: block.text });
-      }
-      if (block.type === 'tool_use') {
-        msgs.push({ type: 'tool_start', name: block.name, id: block.id ?? null });
-      }
-    }
-    return msgs;
+  // assistant messages with complete content blocks — drop when streaming is active
+  // (with --include-partial-messages, text arrives via stream_event text_delta AND
+  // again as complete assistant blocks, causing duplication)
+  if (event.type === 'assistant') {
+    return [];
   }
 
   return [];
