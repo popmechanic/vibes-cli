@@ -3699,6 +3699,9 @@ window.escapeHtml = function(str) {
                 onclick="event.stopPropagation()"
                 onkeydown="event.stopPropagation();if(event.key===' '){event.preventDefault();var i=this,p=i.selectionStart;i.value=i.value.slice(0,p)+'-'+i.value.slice(i.selectionEnd);i.setSelectionRange(p+1,p+1);}" />
             </div>
+            <div style="padding:0 12px 8px">
+              <button class="theme-mode-chip" id="deployPrivateChip" onclick="togglePrivate()" style="font-size:12px"></button>
+            </div>
             <button class="deploy-publish-btn" id="deployCf" onclick="startDeploy('cloudflare')">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
                 <path d="M8 1l5 5h-3.25v5h-3.5V6H3L8 1z" fill="currentColor"/>
@@ -4554,6 +4557,12 @@ window.escapeHtml = function(str) {
     menu.classList.toggle('open');
     if (opening) {
       deployMenuOpenTime = Date.now();
+      // Sync private chip state
+      const dChip = document.getElementById('deployPrivateChip');
+      if (dChip) {
+        dChip.textContent = privateEnabled ? 'Private' : 'Private?';
+        dChip.classList.toggle('active', privateEnabled);
+      }
       // Position below the deploy button
       const btn = document.querySelector('#deployDropdown button');
       const rect = btn.getBoundingClientRect();
@@ -4722,11 +4731,15 @@ window.escapeHtml = function(str) {
   function togglePrivate() {
     privateEnabled = !privateEnabled;
     const chip = document.getElementById('privateChip');
+    const deployChip = document.getElementById('deployPrivateChip');
     const aiChip = document.getElementById('useAiChip');
-    if (chip) {
-      chip.textContent = privateEnabled ? 'Private' : 'Private?';
-      chip.classList.toggle('active', privateEnabled);
-    }
+    // Sync both chips (generate form + deploy menu)
+    [chip, deployChip].forEach(function(c) {
+      if (c) {
+        c.textContent = privateEnabled ? 'Private' : 'Private?';
+        c.classList.toggle('active', privateEnabled);
+      }
+    });
     if (!privateEnabled) {
       // Deselect and hide Use AI when Private is turned off
       useAIEnabled = false;
