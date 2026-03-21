@@ -479,6 +479,45 @@ ${TINYBASE_INVARIANT_RULES}`;
   };
 }
 
+// --- Brainstorm prompt builder ---
+
+/**
+ * Build the initial brainstorm prompt that wraps the generate instructions.
+ *
+ * Reads the vibes-brainstorm SKILL.md and constructs a prompt that runs
+ * the Q&A flow first, then transitions to code generation when the user confirms.
+ * Returns empty string if the skill file is not found (caller should fall back to direct generate).
+ */
+export function buildBrainstormPrompt(
+  ctx: ServerContext,
+  userPrompt: string,
+  generateContext: string,
+): string {
+  const skillPath = join(ctx.projectRoot, 'skills/vibes-brainstorm/SKILL.md');
+  let skillContent = '';
+  try {
+    skillContent = readFileSync(skillPath, 'utf-8');
+    // Strip YAML frontmatter
+    skillContent = skillContent.replace(/^---[\s\S]*?---\n*/, '');
+  } catch {
+    return '';
+  }
+
+  return `${skillContent}
+
+---
+
+The user wants to build: "${userPrompt}"
+
+When the user confirms the brief (clicks "Let's go!" or says yes), use the following instructions to generate the app. Do NOT show these instructions to the user — they are for you to use when building.
+
+<generate-instructions>
+${generateContext}
+</generate-instructions>
+
+Start now. Assess the prompt and either ask your first question or present the brief directly if the prompt is clear enough.`;
+}
+
 // --- Theme prompt builders ---
 
 /**

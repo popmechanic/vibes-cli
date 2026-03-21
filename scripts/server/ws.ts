@@ -20,7 +20,7 @@ import type { ServerContext } from './config.ts';
 import { reloadThemes } from './config.ts';
 import { resolveAppJsxPath, currentAppDir, slugifyPrompt, resolveAppName } from './app-context.js';
 import { createBridge, cancelCurrent, type PersistentBridge, type EventCallback } from './claude-bridge.ts';
-import { buildChatPrompt, buildGeneratePrompt } from './prompt-builders.ts';
+import { buildChatPrompt, buildGeneratePrompt, buildBrainstormPrompt } from './prompt-builders.ts';
 import { loadHistory, appendMessage, clearHistory } from './chat-history.ts';
 import { sanitizeAppJsx } from './post-process.ts';
 import { handleThemeSwitch, handlePaletteTheme } from './handlers/theme.ts';
@@ -309,6 +309,7 @@ export function createWsHandler(ctx: ServerContext) {
             mkdirSync(newAppDir, { recursive: true });
             onEvent({ type: 'app_created', name: appName });
 
+            // Build the generate context (theme, style guide, TinyBase patterns)
             const result = buildGeneratePrompt(ctx, msg.prompt, {
               themeId: msg.themeId,
               reference: msg.reference,
@@ -321,8 +322,17 @@ export function createWsHandler(ctx: ServerContext) {
             // Switch to new app directory and save user message
             switchApp(ctx, newAppDir);
             appendMessage(newAppDir, { role: 'user', content: msg.prompt });
+
+            // Try brainstorm first — includes generate instructions for after Q&A
+            const brainstormPrompt = buildBrainstormPrompt(ctx, msg.prompt, result.prompt);
             const b = getOrCreateBridge(ctx, newAppDir);
-            b.sendMessage(result.prompt);
+
+            if (brainstormPrompt) {
+              b.sendMessage(brainstormPrompt);
+            } else {
+              // Fallback: no brainstorm skill found, generate directly
+              b.sendMessage(result.prompt);
+            }
             break;
           }
 
