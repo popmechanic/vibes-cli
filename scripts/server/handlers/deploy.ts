@@ -19,7 +19,7 @@ import { currentAppDir } from '../app-context.js';
 /**
  * Assemble and deploy an app via the Deploy API.
  */
-export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, target: string, name: string, token?: string, appNameOverride: string | undefined = undefined) {
+export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, target: string, name: string, token?: string, appNameOverride: string | undefined = undefined, isPrivate: boolean = false) {
   if (!target || target !== 'cloudflare') {
     onEvent({ type: 'error', message: 'Invalid deploy target. Use "cloudflare".' });
     return;
@@ -152,7 +152,7 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({ name: appName, files }),
+      body: JSON.stringify({ name: appName, files, public: !isPrivate }),
     });
 
     clearInterval(progressInterval);

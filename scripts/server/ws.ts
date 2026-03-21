@@ -130,7 +130,7 @@ export function createWsHandler(ctx: ServerContext) {
             break;
 
           case 'deploy':
-            await handleDeploy(ctx, onEvent, msg.target, msg.name, undefined, msg.app || undefined);
+            await handleDeploy(ctx, onEvent, msg.target, msg.name, undefined, msg.app || undefined, !!msg.isPrivate);
             break;
 
           case 'save_theme': {
