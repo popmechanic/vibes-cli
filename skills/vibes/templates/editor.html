@@ -1466,9 +1466,8 @@
     }
 
     /* Status bar */
-    .editor-status-bar {
-      display: flex;
-      align-items: center;
+    .editor-status-bar { display: none; }
+    .editor-status-bar-unused {
       justify-content: space-between;
       padding: 0.2rem 0.6rem;
       font-size: 0.625rem;
@@ -5428,33 +5427,8 @@ window.escapeHtml = function(str) {
     streamingToolId = null;
   }
 
-  function updateStatusBar(model, usage) {
-    let bar = document.getElementById('editorStatusBar');
-    if (!bar) {
-      // Create status bar if it doesn't exist
-      const chatPanel = document.getElementById('chatPanel');
-      if (!chatPanel) return;
-      bar = document.createElement('div');
-      bar.className = 'editor-status-bar';
-      bar.id = 'editorStatusBar';
-      bar.innerHTML = '<span class="status-model" id="statusModel"></span><span class="status-usage" id="statusUsage"></span>';
-      // Insert before chat-composer
-      const composer = chatPanel.querySelector('.chat-composer');
-      if (composer) {
-        chatPanel.insertBefore(bar, composer);
-      } else {
-        chatPanel.appendChild(bar);
-      }
-    }
-    if (model) {
-      document.getElementById('statusModel').textContent = model;
-    }
-    if (usage) {
-      const parts = [];
-      if (usage.input_tokens) parts.push(`${(usage.input_tokens / 1000).toFixed(1)}K in`);
-      if (usage.output_tokens) parts.push(`${(usage.output_tokens / 1000).toFixed(1)}K out`);
-      document.getElementById('statusUsage').textContent = parts.join(' / ');
-    }
+  function updateStatusBar() {
+    // Status bar removed — no longer displayed
   }
 
   function addMessage(role, content) {
