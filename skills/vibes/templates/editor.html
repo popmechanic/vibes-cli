@@ -3932,6 +3932,8 @@ window.escapeHtml = function(str) {
 
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
+      // DEBUG: log all incoming WS events
+      if (msg.type !== 'token') console.log('[WS-IN]', msg.type, msg.type === 'tool_result' ? msg.name : '', msg.type === 'complete' ? 'usage:' + JSON.stringify(msg.usage) : '');
 
       if (msg.type === 'status') {
         if (msg.status === 'saving_theme') {
@@ -4397,6 +4399,10 @@ window.escapeHtml = function(str) {
       currentAppName = name;
       restorePrivateState(name);
       document.getElementById('chatMessages').innerHTML = '';
+      // Tell the server to switch apps and load chat history
+      if (ws && ws.readyState === 1) {
+        ws.send(JSON.stringify({ type: 'switch_app', name: name }));
+      }
       setPhase('edit');
       loadPreview();
       versionHistory = [];

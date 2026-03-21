@@ -106,11 +106,11 @@ let currentAppDirPath: string | null = null;
 let graceTimer: ReturnType<typeof setTimeout> | null = null;
 const GRACE_PERIOD_MS = 30_000;
 
-/** The most recently connected WebSocket — only this client can send messages. */
-let primarySender: ServerWebSocket<WsData> | null = null;
-
 /** Track app.jsx mtime for reassembly detection. */
 let lastAppJsxMtime: number = 0;
+
+/** Accumulate streaming tokens for chat history. */
+let streamingTextBuffer: string = '';
 
 // --- Bridge Management ---
 
@@ -131,10 +131,26 @@ function getOrCreateBridge(ctx: ServerContext, appDir: string): PersistentBridge
     // Snapshot app.jsx mtime before bridge starts
     snapshotAppJsxMtime(appDir);
 
+    streamingTextBuffer = '';
     bridge = createBridge(appDir, (event: any) => {
-      // Check for app.jsx edits on tool_result (reassembly trigger)
+      // Accumulate streaming text for chat history (Bug 4 fix)
+      if (event.type === 'token' && event.text) {
+        streamingTextBuffer += event.text;
+      }
+
+      // Check for app.jsx edits on tool_result
       if (event.type === 'tool_result' && !event.is_error) {
         checkAndReassemble(ctx, appDir);
+      }
+
+      // On completion: final reassembly check + save full response to chat history
+      if (event.type === 'complete') {
+        checkAndReassemble(ctx, appDir);
+        const fullResponse = streamingTextBuffer || event.result || '';
+        if (fullResponse) {
+          appendMessage(appDir, { role: 'assistant', content: fullResponse });
+        }
+        streamingTextBuffer = '';
       }
 
       // Forward to all connected clients
@@ -166,6 +182,7 @@ function checkAndReassemble(ctx: ServerContext, appDir: string): void {
   const appPath = join(appDir, 'app.jsx');
   try {
     const currentMtime = statSync(appPath).mtimeMs;
+    console.log(`[WS] checkAndReassemble: mtime=${currentMtime} last=${lastAppJsxMtime} changed=${currentMtime > lastAppJsxMtime}`);
     if (currentMtime > lastAppJsxMtime) {
       lastAppJsxMtime = currentMtime;
       console.log(`[WS] app.jsx modified — running post-process and reassembly`);
@@ -232,8 +249,6 @@ export function createWsHandler(ctx: ServerContext) {
         console.log('[WS] Reconnected within grace period — bridge preserved');
       }
 
-      // Most recently connected client becomes primary sender
-      primarySender = ws;
     },
 
     async message(ws: ServerWebSocket<WsData>, message: string | Buffer) {
@@ -259,13 +274,6 @@ export function createWsHandler(ctx: ServerContext) {
           }
           console.log(`[WS] Replayed ${events.length} events since seq ${lastSeq}`);
         }
-        return;
-      }
-
-      // Write-gating: only primary sender can send bridge messages
-      const isBridgeMessage = msg.type === 'chat' || msg.type === 'generate' || msg.type === 'theme' || msg.type === 'cancel' || msg.type === 'reset';
-      if (isBridgeMessage && ws !== primarySender) {
-        onEvent({ type: 'error', message: 'Another client is the active sender. Reconnect to take control.' });
         return;
       }
 
@@ -310,8 +318,9 @@ export function createWsHandler(ctx: ServerContext) {
             const themeColors = ctx.themeColors[result.themeId] || null;
             onEvent({ type: 'theme_selected', themeId: result.themeId, themeName: result.themeName, themeBackground: themeColors?.bg || null });
 
-            // Switch to new app directory
+            // Switch to new app directory and save user message
             switchApp(ctx, newAppDir);
+            appendMessage(newAppDir, { role: 'user', content: msg.prompt });
             const b = getOrCreateBridge(ctx, newAppDir);
             b.sendMessage(result.prompt);
             break;
@@ -442,11 +451,6 @@ export function createWsHandler(ctx: ServerContext) {
     close(ws: ServerWebSocket<WsData>) {
       console.log('[WS] Client disconnected');
       connectedClients.delete(ws);
-
-      // If the primary sender disconnected, clear it
-      if (primarySender === ws) {
-        primarySender = null;
-      }
 
       // If no more clients, start grace period instead of immediate teardown
       if (connectedClients.size === 0) {
