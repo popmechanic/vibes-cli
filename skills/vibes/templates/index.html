@@ -951,7 +951,7 @@
       // Auto-generated vibes menu components
 // Run: bun scripts/build-components.js --force to regenerate
 // Source: components/
-// Generated: 2026-03-20T08:44:21.136Z
+// Generated: 2026-03-20T16:42:32.032Z
 // Components: 26/26
 
 // === useMobile ===
@@ -3361,7 +3361,21 @@ if (typeof window !== 'undefined') {
   import { Provider, useTable, useRow, useCell, useValue, useValues, useRowIds, useSortedRowIds, useRowCount, useAddRowCallback, useSetCellCallback, useSetRowCallback, useSetPartialRowCallback, useDelRowCallback, useDelCellCallback, useSetValueCallback } from "tinybase/ui-react";
 
   // Expose TinyBase hooks as globals for generated app code
-  window.useTable = useTable;
+  // useTable warning wrapper — alerts when table has >100 rows
+  const _rawUseTable = useTable;
+  window.useTable = function useTableWithWarning(tableId) {
+    const table = _rawUseTable(tableId);
+    if (typeof table === 'object' && table !== null) {
+      const rowCount = Object.keys(table).length;
+      if (rowCount > 100) {
+        console.warn(
+          `[vibes] useTable('${tableId}') returned ${rowCount} rows. ` +
+          `For better performance, use useRowIds('${tableId}') + useCell() in child components.`
+        );
+      }
+    }
+    return table;
+  };
   window.useRow = useRow;
   window.useCell = useCell;
   window.useValue = useValue;
@@ -3438,6 +3452,34 @@ if (typeof window !== 'undefined') {
   const ConfigError = window.ConfigError;
   const LoadingError = window.LoadingError;
 
+  // --- Error Boundary ---
+  class AppErrorBoundary extends React.Component {
+    constructor(props) { super(props); this.state = { error: null }; }
+    static getDerivedStateFromError(error) { return { error }; }
+    componentDidCatch(error, info) { console.error('[vibes] App error:', error, info); }
+    render() {
+      if (this.state.error) {
+        return (
+          <div style={{ padding: '2rem', textAlign: 'center', fontFamily: 'system-ui' }}>
+            <h2>Something went wrong</h2>
+            <p style={{ color: '#666' }}>{this.state.error.message}</p>
+            <button onClick={() => this.setState({ error: null })}
+              style={{ marginTop: '1rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
+              Try Again
+            </button>
+            <details style={{ marginTop: '1rem', textAlign: 'left', fontSize: '0.8rem' }}>
+              <summary>Technical details</summary>
+              <pre style={{ overflow: 'auto', padding: '0.5rem', background: '#f5f5f5' }}>
+                {this.state.error.stack}
+              </pre>
+            </details>
+          </div>
+        );
+      }
+      return this.props.children;
+    }
+  }
+
   function AppShell() {
     const [isReady, setIsReady] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
@@ -3473,6 +3515,15 @@ if (typeof window !== 'undefined') {
       return () => { if (destroySync) destroySync(); };
     }, []);
 
+    // Template-level isReady gate — App never sees !isReady
+    if (!isReady) {
+      return (
+        <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.5, fontFamily: 'system-ui' }}>
+          Loading...
+        </div>
+      );
+    }
+
     const hasOidc = !!(config?.oidcAuthority && !config.oidcAuthority.startsWith('__') &&
       config?.oidcClientId && !config.oidcClientId.startsWith('__'));
 
@@ -3482,7 +3533,7 @@ if (typeof window !== 'undefined') {
         <Provider store={store}>
           <AppContext.Provider value={{ isReady, isSyncing, user: null }}>
             <HiddenMenuWrapper menuContent={<VibesPanel />}>
-              <App />
+              <AppErrorBoundary><App /></AppErrorBoundary>
             </HiddenMenuWrapper>
           </AppContext.Provider>
         </Provider>
@@ -3515,7 +3566,7 @@ if (typeof window !== 'undefined') {
           <SignedIn>
             <AppContext.Provider value={{ isReady, isSyncing, user }}>
               <HiddenMenuWrapper menuContent={<VibesPanel />}>
-                <App />
+                <AppErrorBoundary><App /></AppErrorBoundary>
               </HiddenMenuWrapper>
             </AppContext.Provider>
           </SignedIn>
