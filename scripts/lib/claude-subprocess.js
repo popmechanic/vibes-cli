@@ -84,6 +84,30 @@ export function buildClaudeArgs(config = {}) {
   return args;
 }
 
+/**
+ * Build CLI args for a persistent bidirectional claude session.
+ *
+ * Unlike buildClaudeArgs (one-shot `-p -`), this uses stream-json for
+ * both input and output, keeps stdin open for multi-turn conversation,
+ * and has no max-turns or session-persistence restrictions.
+ *
+ * @param {object} [config]
+ * @param {string} [config.model] - --model value (e.g. 'haiku', 'sonnet')
+ * @returns {string[]} CLI args array
+ */
+export function buildPersistentArgs(config = {}) {
+  const args = ['-p',
+    '--output-format', 'stream-json',
+    '--input-format', 'stream-json',
+    '--include-partial-messages',
+    '--dangerously-skip-permissions',
+    '--verbose',
+  ];
+  if (config.model) args.push('--model', config.model);
+  // No --tools restriction, no --max-turns, no --no-session-persistence
+  return args;
+}
+
 import { existsSync } from 'fs';
 import { spawnSync } from 'child_process';
 import { join } from 'path';
