@@ -12,7 +12,7 @@ import { join } from 'path';
 import { mkdirSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 
-describe('deploy-cloudflare connect integration', () => {
+describe('deploy-cloudflare sync integration', () => {
   let registry;
   let TEST_DIR;
 
@@ -30,11 +30,9 @@ describe('deploy-cloudflare connect integration', () => {
   });
 
   describe('registry update after deploy', () => {
-    it('stores connect metadata on first deploy', () => {
-      const connectResult = {
-        apiUrl: 'https://fireproof-dashboard-my-app.acct.workers.dev',
-        cloudUrl: 'fpcloud://fireproof-cloud-my-app.acct.workers.dev?protocol=wss',
-        stage: 'my-app'
+    it('stores sync metadata on first deploy', () => {
+      const syncResult = {
+        wsUrl: 'wss://sync-my-app.acct.workers.dev',
       };
 
       registry.setApp('my-app', {
@@ -43,25 +41,23 @@ describe('deploy-cloudflare connect integration', () => {
           authority: 'https://auth.example.com',
           clientId: 'test-client-id'
         },
-        connect: {
-          ...connectResult,
+        sync: {
+          ...syncResult,
           deployedAt: new Date().toISOString()
         }
       });
 
       const loaded = registry.getApp('my-app');
-      expect(loaded.connect.apiUrl).toBe(connectResult.apiUrl);
-      expect(loaded.connect.cloudUrl).toBe(connectResult.cloudUrl);
-      expect(loaded.connect.stage).toBe('my-app');
-      expect(loaded.connect.deployedAt).toBeDefined();
+      expect(loaded.sync.wsUrl).toBe(syncResult.wsUrl);
+      expect(loaded.sync.deployedAt).toBeDefined();
       expect(loaded.oidc.authority).toBe('https://auth.example.com');
     });
 
     it('stores app metadata after Deploy API call', () => {
-      // Simulate first-deploy connect metadata
+      // Simulate first-deploy sync metadata
       registry.setApp('my-app', {
         name: 'my-app',
-        connect: { stage: 'my-app', apiUrl: 'https://dash.workers.dev' }
+        sync: { wsUrl: 'wss://sync.workers.dev' }
       });
 
       // Simulate post-deploy app metadata update
@@ -77,18 +73,16 @@ describe('deploy-cloudflare connect integration', () => {
       const loaded = registry.getApp('my-app');
       expect(loaded.app.workerName).toBe('my-app');
       expect(loaded.app.url).toBe('https://my-app.vibesos.com');
-      // Connect metadata should still be present
-      expect(loaded.connect.apiUrl).toBe('https://dash.workers.dev');
+      // Sync metadata should still be present
+      expect(loaded.sync.wsUrl).toBe('wss://sync.workers.dev');
     });
 
-    it('preserves connect metadata across update deploys', () => {
-      // First deploy: set connect + app
+    it('preserves sync metadata across update deploys', () => {
+      // First deploy: set sync + app
       registry.setApp('my-app', {
         name: 'my-app',
-        connect: {
-          stage: 'my-app',
-          apiUrl: 'https://dash.workers.dev',
-          cloudUrl: 'fpcloud://cloud.workers.dev?protocol=wss',
+        sync: {
+          wsUrl: 'wss://sync.workers.dev',
           deployedAt: '2025-01-01T00:00:00.000Z'
         },
         app: {
@@ -112,25 +106,23 @@ describe('deploy-cloudflare connect integration', () => {
       const loaded = registry.getApp('my-app');
       // App URL updated
       expect(loaded.app.url).toBe('https://my-app.v2.workers.dev');
-      // Connect metadata preserved (not overwritten)
-      expect(loaded.connect.apiUrl).toBe('https://dash.workers.dev');
-      expect(loaded.connect.deployedAt).toBe('2025-01-01T00:00:00.000Z');
+      // Sync metadata preserved (not overwritten)
+      expect(loaded.sync.wsUrl).toBe('wss://sync.workers.dev');
+      expect(loaded.sync.deployedAt).toBe('2025-01-01T00:00:00.000Z');
     });
 
-    it('retrieves existing connect info on update deploy', () => {
+    it('retrieves existing sync info on update deploy', () => {
       registry.setApp('existing', {
         name: 'existing',
-        connect: {
-          stage: 'existing',
-          apiUrl: 'https://fireproof-dashboard-existing.acct.workers.dev',
-          cloudUrl: 'fpcloud://fireproof-cloud-existing.acct.workers.dev?protocol=wss'
+        sync: {
+          wsUrl: 'wss://sync-existing.acct.workers.dev',
         }
       });
 
       // Simulate the update-deploy path: get existing app for logging
       const existing = registry.getApp('existing');
-      expect(existing.connect).toBeDefined();
-      expect(existing.connect.apiUrl).toBe('https://fireproof-dashboard-existing.acct.workers.dev');
+      expect(existing.sync).toBeDefined();
+      expect(existing.sync.wsUrl).toBe('wss://sync-existing.acct.workers.dev');
     });
   });
 });

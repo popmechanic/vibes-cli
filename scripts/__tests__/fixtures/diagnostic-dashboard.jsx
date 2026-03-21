@@ -11,24 +11,24 @@ const STATUS_COLORS = {
 
 const STATUS_LABELS = {
   idle:          "Idle",
-  connecting:    "Connecting…",
+  connecting:    "Connecting...",
   synced:        "Synced",
-  reconnecting:  "Reconnecting…",
+  reconnecting:  "Reconnecting...",
   error:         "Error",
 };
 
 // ── AI Proxy status ──
 const AI_STATUS_COLORS = {
-  unconfigured:  "oklch(0.55 0.0 0)",      // gray — can't reach server
-  checking:      "oklch(0.75 0.16 85)",    // amber — probing
-  not_deployed:  "oklch(0.75 0.16 85)",    // amber — endpoint exists but not configured
+  unconfigured:  "oklch(0.55 0.0 0)",      // gray
+  checking:      "oklch(0.75 0.16 85)",    // amber
+  not_deployed:  "oklch(0.75 0.16 85)",    // amber
   available:     "oklch(0.72 0.19 145)",   // green
-  error:         "oklch(0.62 0.22 25)",    // red — deployed but broken
+  error:         "oklch(0.62 0.22 25)",    // red
 };
 
 const AI_STATUS_LABELS = {
   unconfigured:  "Not Configured",
-  checking:      "Checking…",
+  checking:      "Checking...",
   not_deployed:  "Not Deployed",
   available:     "Available",
   error:         "Error",
@@ -132,7 +132,7 @@ function Check({ label, ok }) {
         fontSize: "11px",
         fontWeight: 700,
         color: "#0f172a",
-      }}>{ok ? "✓" : "✗"}</span>
+      }}>{ok ? "\u2713" : "\u2717"}</span>
       <span style={{
         fontFamily: "'IBM Plex Mono', monospace",
         fontSize: "13px",
@@ -142,38 +142,74 @@ function Check({ label, ok }) {
   );
 }
 
+// ── NoteRow: renders one note using TinyBase cell hooks ──
+function NoteRow({ noteId, onDelete }) {
+  const text = useCell("notes", noteId, "text") || "(empty)";
+  const author = useCell("notes", noteId, "author");
+  const ts = useCell("notes", noteId, "ts");
+
+  return (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "8px 12px",
+      background: "#f8fafc",
+      border: "2px solid #e2e8f0",
+    }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
+        <span style={{
+          fontSize: "14px",
+          fontWeight: 600,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}>{text}</span>
+        <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+          {author && <span style={{ fontWeight: 600, color: "#64748b" }}>{author}</span>}
+          {author && " \u00b7 "}
+          {ts ? new Date(ts).toLocaleTimeString() : "\u2014"}
+        </span>
+      </div>
+      <button
+        onClick={() => onDelete(noteId)}
+        style={{
+          width: 28,
+          height: 28,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "transparent",
+          border: "2px solid #e2e8f0",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          fontSize: "14px",
+          fontWeight: 700,
+          color: "#94a3b8",
+          flexShrink: 0,
+        }}
+        aria-label={`Delete ${text}`}
+      >\u2715</button>
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════
-//  Main App — adaptive: useTenant() in sell template, fallback in vibes
+//  Main App — uses TinyBase hooks for data, useApp for status
 // ═══════════════════════════════════════════════
 export default function App() {
-  const _tenant = typeof useTenant === "function"
-    ? useTenant()
-    : { dbName: "diagnostics-db", subdomain: null };
-  const { dbName, subdomain } = _tenant;
-  const {
-    database, useLiveQuery, useDocument,
-    syncStatus, isSyncing, lastSyncError,
-  } = useFireproofClerk(dbName);
-  const { user } = useUser();
-  const userEmail = user?.primaryEmailAddress?.emailAddress || null;
-  const [text, setText] = useState("");
-  const [ledgerId, setLedgerId] = useState(function() {
-    var map = window.__VIBES_LEDGER_MAP__ || {};
-    return map[dbName] || window.__VIBES_SHARED_LEDGER__ || null;
-  });
-  const { docs } = useLiveQuery("type", { key: "note" });
+  const { isReady, isSyncing } = useApp();
 
-  // Poll for ledger ID (set async by UnifiedAccessGate after /resolve)
-  useEffect(() => {
-    const id = setInterval(() => {
-      var map = window.__VIBES_LEDGER_MAP__ || {};
-      var current = map[dbName] || window.__VIBES_SHARED_LEDGER__ || null;
-      if (current && current !== ledgerId) {
-        setLedgerId(current);
-      }
-    }, 2000);
-    return () => clearInterval(id);
-  }, [ledgerId, dbName]);
+  // TinyBase data hooks
+  const noteIds = useRowIds("notes");
+  const addNote = useAddRowCallback("notes", (text, author) => ({
+    text,
+    author,
+    ts: Date.now(),
+  }));
+  const deleteNote = useDelRowCallback("notes");
+
+  const [text, setText] = useState("");
 
   // Uptime timer
   const [uptime, setUptime] = useState(0);
@@ -193,6 +229,9 @@ export default function App() {
   const [aiError, setAiError] = useState(null);
   const [vibeResult, setVibeResult] = useState(null);
   const [vibeLoading, setVibeLoading] = useState(false);
+
+  // Derive sync status from useApp
+  const status = isSyncing ? "synced" : "idle";
 
   // Probe AI proxy on mount
   useEffect(() => {
@@ -225,18 +264,20 @@ export default function App() {
     return () => { cancelled = true; };
   }, []);
 
-  // Normalize (hook always returns a string, but guard against undefined)
-  const status = syncStatus || "idle";
-  const syncing = isSyncing ?? false;
-  const syncError = lastSyncError ?? null;
-  const connectUrl = window.__VIBES_CONFIG__?.cloudBackendUrl || null;
-
   // Diagnostics
   const reactOk = typeof React.useState === "function";
-  const queryOk = Array.isArray(docs);
-  const integrityOk = docs.every((d) => typeof d.ts === "number" && d.ts > 0);
+  const queryOk = Array.isArray(noteIds);
   const syncOk = Object.keys(STATUS_COLORS).includes(status);
   const aiOk = aiStatus === "available";
+
+  const isPulsing = status === "connecting" || status === "reconnecting";
+
+  const syncColor = STATUS_COLORS[status] || STATUS_COLORS.idle;
+  const syncLabel = {
+    idle: '', connecting: 'connecting', synced: 'synced',
+    reconnecting: 'reconnecting', error: 'offline',
+  }[status] || '';
+  const showBar = status !== 'idle';
 
   // Vibe Check function
   const checkVibes = async () => {
@@ -255,12 +296,10 @@ export default function App() {
 - Line 2: A 1-2 sentence observation about the system state. Reference specific diagnostics.
 - Line 3: A recommendation.
 
-Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
-- Database: ${dbName}
+Diagnostics:
 - Sync: ${status}
-- Documents stored: ${docs.length}
-- Uptime: ${fmtTime(uptime)}
-- Errors: ${syncError ? String(syncError) : "none"}`
+- Notes stored: ${noteIds.length}
+- Uptime: ${fmtTime(uptime)}`
           }],
           max_tokens: 150,
         }),
@@ -284,15 +323,6 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
       setVibeLoading(false);
     }
   };
-
-  const isPulsing = status === "connecting" || status === "reconnecting";
-
-  const syncColor = STATUS_COLORS[status] || STATUS_COLORS.idle;
-  const syncLabel = {
-    idle: '', connecting: 'connecting', synced: 'synced',
-    reconnecting: 'reconnecting', error: 'offline',
-  }[status] || '';
-  const showBar = status !== 'idle';
 
   return (
     <>
@@ -332,7 +362,7 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
               color: "#94a3b8",
               fontSize: "12px",
               fontWeight: 400,
-            }}>{subdomain ? `${subdomain} \u00b7 ${dbName}` : dbName}</span>
+            }}>diagnostics</span>
           </div>
 
           {/* ── Status pill (inside sticky header) ── */}
@@ -350,10 +380,10 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
               letterSpacing: "0.01em",
               userSelect: "none",
             }}>
-              {/* docs */}
+              {/* notes count */}
               <span style={{ padding: "6px 12px", color: "#94a3b8", display: "flex", gap: 4 }}>
-                <span>docs</span>
-                <span style={{ color: "#ffffff" }}>{docs.length}</span>
+                <span>notes</span>
+                <span style={{ color: "#ffffff" }}>{noteIds.length}</span>
               </span>
               <span style={{ width: 1, height: 14, background: "rgba(255,255,255,0.15)" }} />
               {/* uptime */}
@@ -415,7 +445,7 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                     {STATUS_LABELS[status] || status}
                   </div>
                   <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
-                    syncStatus: "{status}"
+                    isSyncing: {String(isSyncing)}
                   </div>
                 </div>
               </div>
@@ -427,32 +457,12 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                 gap: "6px 16px",
                 fontSize: "13px",
               }}>
-                <span style={{ color: "#64748b" }}>user</span>
-                <span style={{ fontWeight: 600 }}>{userEmail || "not signed in"}</span>
-                <span style={{ color: "#64748b" }}>database</span>
-                <span style={{ fontWeight: 600 }}>{dbName}</span>
-                <span style={{ color: "#64748b" }}>ledger</span>
-                <span style={{ fontWeight: 600, fontSize: "12px", wordBreak: "break-all" }}>
-                  {ledgerId || "default (no shared ledger)"}
-                </span>
+                <span style={{ color: "#64748b" }}>isReady</span>
+                <span style={{ fontWeight: 600 }}>{String(isReady)}</span>
                 <span style={{ color: "#64748b" }}>isSyncing</span>
-                <span style={{ fontWeight: 600 }}>{String(syncing)}</span>
-                <span style={{ color: "#64748b" }}>lastSyncError</span>
-                <span style={{
-                  fontWeight: 600,
-                  color: syncError ? "oklch(0.62 0.22 25)" : "#0f172a",
-                  wordBreak: "break-all",
-                }}>
-                  {syncError ? String(syncError) : "none"}
-                </span>
-                <span style={{ color: "#64748b" }}>connectUrl</span>
-                <span style={{
-                  fontWeight: 600,
-                  wordBreak: "break-all",
-                  fontSize: "12px",
-                }}>
-                  {connectUrl || "not configured"}
-                </span>
+                <span style={{ fontWeight: 600 }}>{String(isSyncing)}</span>
+                <span style={{ color: "#64748b" }}>notes</span>
+                <span style={{ fontWeight: 600 }}>{noteIds.length}</span>
               </div>
 
               {/* Legend */}
@@ -494,8 +504,7 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!text.trim()) return;
-                  const username = userEmail ? userEmail.split("@")[0] : "anonymous";
-                  database.put({ text, type: "note", ts: Date.now(), author: username });
+                  addNote(text, "anonymous");
                   setText("");
                 }}
                 style={{ display: "flex", gap: "8px" }}
@@ -503,7 +512,7 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                 <input
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder="Type something…"
+                  placeholder="Type something..."
                   style={{
                     flex: 1,
                     padding: "10px 14px",
@@ -528,7 +537,7 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                 }}>Save</button>
               </form>
 
-              {/* Doc list */}
+              {/* Note list */}
               <div style={{
                 maxHeight: "260px",
                 overflowY: "auto",
@@ -536,7 +545,7 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                 flexDirection: "column",
                 gap: "6px",
               }}>
-                {docs.length === 0 && (
+                {noteIds.length === 0 && (
                   <div style={{
                     padding: "24px",
                     textAlign: "center",
@@ -544,57 +553,16 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                     fontSize: "13px",
                     border: "2px dashed #cbd5e1",
                   }}>
-                    No documents yet. Save one above.
+                    No notes yet. Save one above.
                   </div>
                 )}
-                {[...docs].sort((a, b) => (b.ts || 0) - (a.ts || 0)).map((d) => (
-                  <div key={d._id} style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "8px 12px",
-                    background: "#f8fafc",
-                    border: "2px solid #e2e8f0",
-                  }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
-                      <span style={{
-                        fontSize: "14px",
-                        fontWeight: 600,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}>{d.text || "(empty)"}</span>
-                      <span style={{ fontSize: "11px", color: "#94a3b8" }}>
-                        {d.author && <span style={{ fontWeight: 600, color: "#64748b" }}>{d.author}</span>}
-                        {d.author && " · "}
-                        {d.ts ? new Date(d.ts).toLocaleTimeString() : "—"}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => database.del(d._id)}
-                      style={{
-                        width: 28,
-                        height: 28,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        background: "transparent",
-                        border: "2px solid #e2e8f0",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                        fontSize: "14px",
-                        fontWeight: 700,
-                        color: "#94a3b8",
-                        flexShrink: 0,
-                      }}
-                      aria-label={`Delete ${d.text}`}
-                    >✕</button>
-                  </div>
+                {[...noteIds].reverse().map((noteId) => (
+                  <NoteRow key={noteId} noteId={noteId} onDelete={deleteNote} />
                 ))}
               </div>
 
               <div style={{ textAlign: "right" }}>
-                <Badge label="total" value={docs.length} />
+                <Badge label="total" value={noteIds.length} />
               </div>
             </div>
           </Panel>
@@ -619,8 +587,7 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                   </div>
                   {aiStatus === "not_deployed" && (
                     <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px", lineHeight: 1.4 }}>
-                      The AI proxy hasn't been set up for this app yet.
-                      Deploy with <code style={{ background: "#f1f5f9", padding: "1px 4px", fontSize: "11px" }}>--ai-key</code> to enable it, then hit "Check Vibes" to test.
+                      The AI proxy has not been set up for this app yet.
                     </div>
                   )}
                   {aiStatus === "error" && aiError && (
@@ -630,7 +597,7 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                   )}
                   {aiStatus === "unconfigured" && (
                     <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px" }}>
-                      Couldn't reach the server.
+                      Could not reach the server.
                     </div>
                   )}
                 </div>
@@ -655,7 +622,7 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                   opacity: vibeLoading ? 0.7 : 1,
                 }}
               >
-                {vibeLoading ? "Analyzing…" : "Check Vibes"}
+                {vibeLoading ? "Analyzing..." : "Check Vibes"}
               </button>
 
               {/* Vibe result card */}
@@ -714,8 +681,7 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
               gap: "4px 24px",
             }}>
               <Check label="React Singleton" ok={reactOk} />
-              <Check label="useLiveQuery" ok={queryOk} />
-              <Check label="Data Integrity" ok={integrityOk} />
+              <Check label="useRowIds" ok={queryOk} />
               <Check label="Sync Status" ok={syncOk} />
               {/* AI Proxy: gray circle if unconfigured, green check if available, red X if error */}
               <div style={{
@@ -736,7 +702,7 @@ Diagnostics:${subdomain ? `\n- Tenant: ${subdomain}` : ""}
                   fontSize: "11px",
                   fontWeight: 700,
                   color: aiOk ? "#0f172a" : aiStatus === "error" ? "#ffffff" : "#0f172a",
-                }}>{aiOk ? "✓" : aiStatus === "error" ? "✗" : "○"}</span>
+                }}>{aiOk ? "\u2713" : aiStatus === "error" ? "\u2717" : "\u25CB"}</span>
                 <span style={{
                   fontFamily: "'IBM Plex Mono', monospace",
                   fontSize: "13px",

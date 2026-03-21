@@ -235,7 +235,7 @@ function App() {}`;
 });
 
 describe('stripWindowDestructuring', () => {
-  it('removes single-line window destructuring', () => {
+  it('removes single-line window destructuring (Fireproof)', () => {
     const code = `const { useFireproofClerk } = window;
 function App() {}`;
     const result = stripWindowDestructuring(code);
@@ -243,7 +243,15 @@ function App() {}`;
     expect(result).toContain('function App');
   });
 
-  it('removes multi-name window destructuring', () => {
+  it('removes single-line window destructuring (TinyBase useApp)', () => {
+    const code = `const { useApp } = window;
+function App() {}`;
+    const result = stripWindowDestructuring(code);
+    expect(result).not.toContain('const { useApp } = window');
+    expect(result).toContain('function App');
+  });
+
+  it('removes multi-name window destructuring (Fireproof)', () => {
     const code = `const { useFireproofClerk, useSharing } = window;
 function App() {}`;
     const result = stripWindowDestructuring(code);
@@ -251,7 +259,17 @@ function App() {}`;
     expect(result).toContain('function App');
   });
 
-  it('removes multi-line window destructuring', () => {
+  it('removes multi-name window destructuring (TinyBase hooks)', () => {
+    const code = `const { useApp, useRowIds, useAddRowCallback } = window;
+function App() {}`;
+    const result = stripWindowDestructuring(code);
+    expect(result).not.toContain('useApp');
+    expect(result).not.toContain('useRowIds');
+    expect(result).not.toContain('useAddRowCallback');
+    expect(result).toContain('function App');
+  });
+
+  it('removes multi-line window destructuring (Fireproof)', () => {
     const code = `const {
   useFireproofClerk,
   useSharing
@@ -259,6 +277,22 @@ function App() {}`;
 function App() {}`;
     const result = stripWindowDestructuring(code);
     expect(result).not.toContain('useFireproofClerk');
+    expect(result).toContain('function App');
+  });
+
+  it('removes multi-line window destructuring (TinyBase hooks)', () => {
+    const code = `const {
+  useApp,
+  useTable,
+  useRowIds,
+  useAddRowCallback,
+  useDelRowCallback
+} = window;
+function App() {}`;
+    const result = stripWindowDestructuring(code);
+    expect(result).not.toContain('useApp');
+    expect(result).not.toContain('useTable');
+    expect(result).not.toContain('useRowIds');
     expect(result).toContain('function App');
   });
 
@@ -270,11 +304,19 @@ const { doc, merge } = useDocument();`;
     expect(result).toContain('const { doc, merge } = useDocument()');
   });
 
-  it('handles missing semicolon', () => {
+  it('handles missing semicolon (Fireproof)', () => {
     const code = `const { useFireproofClerk } = window
 function App() {}`;
     const result = stripWindowDestructuring(code);
     expect(result).not.toContain('const { useFireproofClerk } = window');
+    expect(result).toContain('function App');
+  });
+
+  it('handles missing semicolon (TinyBase)', () => {
+    const code = `const { useApp } = window
+function App() {}`;
+    const result = stripWindowDestructuring(code);
+    expect(result).not.toContain('const { useApp } = window');
     expect(result).toContain('function App');
   });
 });
@@ -321,7 +363,7 @@ function App() {}`;
     expect(result).toContain('function App');
   });
 
-  it('strips window destructuring alongside imports', () => {
+  it('strips window destructuring alongside imports (Fireproof)', () => {
     const code = `const { useFireproofClerk } = window;
 function App() {
   const { database } = useFireproofClerk("mydb");
@@ -332,6 +374,24 @@ export default App;`;
     expect(result).not.toContain('const { useFireproofClerk } = window');
     expect(result).not.toContain('export default');
     expect(result).toContain('const { database } = useFireproofClerk("mydb")');
+    expect(result).toContain('function App');
+  });
+
+  it('strips window destructuring alongside imports (TinyBase)', () => {
+    const code = `import React from "react";
+const { useApp, useRowIds, useAddRowCallback } = window;
+function App() {
+  const { isReady } = useApp();
+  const noteIds = useRowIds("notes");
+  return <div>{noteIds.length} notes</div>;
+}
+export default App;`;
+    const result = stripForTemplate(code);
+    expect(result).not.toContain('import React');
+    expect(result).not.toContain('const { useApp, useRowIds, useAddRowCallback } = window');
+    expect(result).not.toContain('export default');
+    expect(result).toContain('const { isReady } = useApp()');
+    expect(result).toContain('useRowIds("notes")');
     expect(result).toContain('function App');
   });
 });

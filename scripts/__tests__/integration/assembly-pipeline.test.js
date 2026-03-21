@@ -86,7 +86,7 @@ describe('Assembly Pipeline', () => {
   });
 
   describe('fireproof-basic.jsx', () => {
-    it('assembles with useFireproofClerk present', () => {
+    it('assembles with TinyBase hooks present', () => {
       const fixture = join(FIXTURES_DIR, 'fireproof-basic.jsx');
       const appJsx = join(workDir, 'app.jsx');
       const output = join(workDir, 'index.html');
@@ -99,7 +99,8 @@ describe('Assembly Pipeline', () => {
 
       const html = readFileSync(output, 'utf8');
       expect(html).not.toContain('__VIBES_APP_CODE__');
-      expect(html).toContain('useFireproofClerk');
+      expect(html).toContain('useApp');
+      expect(html).toContain('useRowIds');
     });
   });
 
