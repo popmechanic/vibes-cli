@@ -962,6 +962,7 @@ function GroceryItem({ id }) {
   ```
 - **DON'T** use `useSetRowCallback` when you only need to update some cells — it replaces the entire row, deleting any cells you omit. Use `useSetPartialRowCallback` instead.
 - **DON'T** put objects or arrays in cells — TinyBase cells are scalars (string, number, boolean). Cell-level last-writer-wins means concurrent edits to different fields inside a nested object will lose data. Flatten your data model.
+- **DON'T** assume `useValue()` or `useCell()` returns a string — they can return `undefined`, `number`, or `boolean`. Always guard before calling string methods: `String(useValue('playerId') || '')` not `useValue('playerId').split('@')`. This crashes when the value hasn't been set yet or is a non-string type.
 - `isReady` check is now handled by the template — your App component only renders after the store is hydrated. You can still use `const { isReady } = useApp()` for explicitness but it's always `true`.
 - **DON'T** use white text on light backgrounds
 - **DON'T** use `fetch()` to call AI APIs directly — use `useAI` hook instead (it handles auth and proxying)
