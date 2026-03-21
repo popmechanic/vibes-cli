@@ -92,7 +92,11 @@ export default {
       const appMeta = await env.APP_META.get(`app-meta:${appName}`, { type: 'json' }) as
         { public?: boolean } | null;
 
-      if (appMeta?.public !== true) {
+      // TODO(tinybase-deploy): TEMPORARY — default to public when no app-meta key exists.
+      // The Deploy API hasn't been redeployed yet, so it doesn't write app-meta: keys.
+      // REVERT to `appMeta?.public !== true` (default-deny) after the Deploy API is
+      // deployed and writes app-meta: keys during deploy. See deploy-api/src/index.ts:550.
+      if (appMeta && appMeta.public === false) {
         const token = getTokenFromRequest(request);
         if (!token) return new Response('Unauthorized', { status: 401 });
         const valid = await verifyJwt(token, env.OIDC_JWKS_URL);
