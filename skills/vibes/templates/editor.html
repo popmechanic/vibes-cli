@@ -3766,6 +3766,10 @@ window.escapeHtml = function(str) {
         addMessage(msg.role, msg.content);
       } else if (msg.type === 'app_created') {
         currentAppName = msg.name;
+        // Persist private state for newly created app
+        if (privateEnabled && currentAppName) {
+          try { localStorage.setItem('vibes_private_' + currentAppName, '1'); } catch {}
+        }
       } else if (msg.type === 'app_updated') {
         console.log('[app_updated] phase:', currentPhase, 'isGenerating:', isGenerating);
         setThinking(false);
@@ -4147,6 +4151,7 @@ window.escapeHtml = function(str) {
       const res = await fetch('/editor/apps/load?name=' + encodeURIComponent(name), { method: 'POST' });
       if (!res.ok) throw new Error('Failed to load app');
       currentAppName = name;
+      restorePrivateState(name);
       document.getElementById('chatMessages').innerHTML = '';
       setPhase('edit');
       loadPreview();
@@ -4728,8 +4733,8 @@ window.escapeHtml = function(str) {
     if (carousel) carousel.classList.toggle('custom-mode', !useThemeEnabled);
   }
 
-  function togglePrivate() {
-    privateEnabled = !privateEnabled;
+  function setPrivate(enabled) {
+    privateEnabled = enabled;
     const chip = document.getElementById('privateChip');
     const deployChip = document.getElementById('deployPrivateChip');
     const aiChip = document.getElementById('useAiChip');
@@ -4741,7 +4746,6 @@ window.escapeHtml = function(str) {
       }
     });
     if (!privateEnabled) {
-      // Deselect and hide Use AI when Private is turned off
       useAIEnabled = false;
       if (aiChip) {
         aiChip.style.display = 'none';
@@ -4750,6 +4754,23 @@ window.escapeHtml = function(str) {
       }
     } else {
       if (aiChip) aiChip.style.display = '';
+    }
+    // Persist per-app
+    if (currentAppName) {
+      try { localStorage.setItem('vibes_private_' + currentAppName, privateEnabled ? '1' : ''); } catch {}
+    }
+  }
+
+  function togglePrivate() {
+    setPrivate(!privateEnabled);
+  }
+
+  function restorePrivateState(appName) {
+    try {
+      const saved = localStorage.getItem('vibes_private_' + appName);
+      setPrivate(saved === '1');
+    } catch {
+      setPrivate(false);
     }
   }
 
