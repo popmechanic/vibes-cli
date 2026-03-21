@@ -464,6 +464,19 @@ const { isReady, isSyncing, user } = useApp();
 ```
 The template gates rendering until the store is ready. `useApp().isReady` is always `true` inside your App component — the template shows a loading state automatically. You can still destructure it for explicitness, but forgetting it won't crash the app.
 
+### MANDATORY: Always Call useApp()
+
+Every app MUST call `useApp()` in the root App component. This activates the sync connection. Without it, TinyBase data is local-only and never syncs across devices.
+
+```jsx
+function App() {
+  const { isReady, isSyncing, user } = useApp();
+  // ... rest of your app
+}
+```
+
+This is not optional. Never skip it. Never move it to a child component.
+
 **Fine-grained reactivity — each component calls its own hooks:**
 ```jsx
 // GOOD — only re-renders when this row changes
@@ -560,6 +573,46 @@ These are simpler than callback hooks when you need both the value and a setter.
 - **useRowIds + child components** = List all rows. Each child reads its own data via `useCell`.
 - **useSortedRowIds** = Sorted/paginated lists. Best for: tables, feeds, leaderboards.
 - **useValue / useSetValueCallback** = Read / write app-level values via callbacks.
+
+### Data Modeling for Sync
+
+**What goes in TinyBase (syncs across devices):**
+- Everything the user would expect to "still be there" when they come back
+- Scores, progress, saved items, user-created content, settings
+- In multiplayer: shared state that all users need to see
+
+**What stays in useState (ephemeral, local only):**
+- UI state: is a modal open, which tab is selected, hover state
+- In-progress form input before the user submits
+- Animations, transitions, temporary visual state
+
+**User attribution — when multiple people use the app:**
+Every row that belongs to a specific user must include `createdBy`:
+```jsx
+const addItem = useAddRowCallback(
+  'items',
+  (text) => ({
+    text,
+    createdBy: user?.email || 'anonymous',
+    createdAt: Date.now(),
+  }),
+  [user],
+);
+```
+
+To show only the current user's data, filter by `createdBy`:
+```jsx
+const allIds = useRowIds('scores');
+// Filter in the component — TinyBase syncs all rows, filter on read
+const myScores = allIds.filter(id => {
+  const owner = useCell('scores', id, 'createdBy');
+  return owner === user?.email;
+});
+```
+
+**Single-player apps:** All persistent data goes in TinyBase. No user filtering needed — sync just gives the user their data on all their devices.
+
+**Multiplayer apps:** Shared data goes in TinyBase with `createdBy` on user-owned rows. Each client sees all data; filter by user when showing "my stuff."
 
 ### Key Rules
 - **Prefer `useCell` in child components** over `useTable` — avoids re-rendering the entire list on every change
