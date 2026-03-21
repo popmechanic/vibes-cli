@@ -443,26 +443,71 @@ TinyBase is a reactive data store with fine-grained hooks. Data persists across 
 
 ### Globals Available (provided by the template)
 
-All of these are globally available — no imports needed:
+All of these are globally available — no imports needed. React globals: `React, useState, useEffect, useRef, useCallback, useMemo, createContext, useContext`. Auth (private apps only): `useUser, SignInButton, UserButton, SignedIn, SignedOut`.
+
+### TinyBase Hook API Reference
+
+Every callback hook returns a function that takes **ONE argument** (the parameter). Do NOT call with `(null, value)` — the second argument is the Store, not your value.
+
+**Reading data:**
 ```
-React, useState, useEffect, useRef, useCallback, useMemo,
-createContext, useContext,
-useApp,
-useTable, useRow, useCell, useValue, useValues,
-useRowIds, useSortedRowIds, useRowCount,
-useAddRowCallback, useSetCellCallback, useSetRowCallback,
-useSetPartialRowCallback, useDelRowCallback, useDelCellCallback,
-useSetValueCallback,
-useCellState, useRowState, useValueState
+useCell(tableId, rowId, cellId)        → Cell | undefined     (string, number, boolean, or undefined)
+useRow(tableId, rowId)                 → {cellId: Cell}       (object of all cells in the row)
+useTable(tableId)                      → {rowId: Row}         ⚠️ AVOID — re-renders on ANY change in the table
+useValue(valueId)                      → Value | undefined    (string, number, boolean, or undefined)
+useValues()                            → {valueId: Value}     (all app-level values)
+useRowIds(tableId)                     → string[]             (all row IDs in the table)
+useSortedRowIds(tableId, cellId?, descending?, offset?, limit?) → string[]
+useRowCount(tableId)                   → number
+```
+
+**Writing data — callback hooks (all return `(parameter) → void`):**
+```
+useAddRowCallback(tableId, (parameter) → Row, deps?)
+  Call:     addItem('my text')
+  Callback: (text) => ({ text, createdAt: Date.now() })
+  Returns:  the new row ID (string) via optional `then` callback
+
+useSetCellCallback(tableId, rowId, cellId, (parameter) → Cell | MapCell, deps?)
+  Call:     setName('new name')
+  Callback: (newName) => newName                          — direct value
+  Callback: (_e) => (currentValue) => !currentValue       — MapCell toggle pattern
+
+useSetValueCallback(valueId, (parameter) → Value, deps?)
+  Call:     setTheme('dark')
+  Callback: (newTheme) => newTheme
+
+useSetRowCallback(tableId, rowId, (parameter) → Row, deps?)
+  ⚠️ Replaces the ENTIRE row — cells you omit get deleted. Prefer useSetPartialRowCallback.
+
+useSetPartialRowCallback(tableId, rowId, (parameter) → Partial<Row>, deps?)
+  Call:     updateItem({ name: 'new', done: true })
+  Only updates the cells you return. Other cells preserved.
+
+useDelRowCallback(tableId, rowId)
+  Call:     deleteItem()   — no arguments needed
+
+useDelCellCallback(tableId, rowId, cellId)
+  Call:     clearName()    — no arguments needed
+```
+
+**State hooks (read + write like useState, but persisted and synced):**
+```
+useCellState(tableId, rowId, cellId)   → [Cell | undefined, (newValue: Cell) → void]
+useRowState(tableId, rowId)            → [Row, (newRow: Row) → void]
+useValueState(valueId)                 → [Value | undefined, (newValue: Value) → void]
+```
+
+**App context:**
+```
+useApp()  → { isReady: boolean, isSyncing: boolean }
+  MANDATORY in root App component — activates sync. isReady is always true (template gates rendering).
+
+useUser() → { isSignedIn: boolean, isLoaded: boolean, user: { email, id, firstName, lastName, username } }
+  Private apps only. Email is always present. Use oidcUser.email as the user identifier.
 ```
 
 ### Data Access Patterns
-
-**Status check with useApp():**
-```jsx
-const { isReady, isSyncing, user } = useApp();
-```
-The template gates rendering until the store is ready. `useApp().isReady` is always `true` inside your App component — the template shows a loading state automatically. You can still destructure it for explicitness, but forgetting it won't crash the app.
 
 ### MANDATORY: Always Call useApp()
 
