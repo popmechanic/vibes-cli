@@ -7,47 +7,12 @@ import { join } from 'path';
 import { runOneShot } from '../claude-bridge.ts';
 import type { EventCallback } from '../claude-bridge.ts';
 import { sanitizeAppJsx } from '../post-process.ts';
-import { parseThemeColors, extractPass2ThemeContext } from '../config.ts';
+import { parseThemeColors } from '../config.ts';
 import type { ServerContext } from '../config.ts';
 import { hasThemeMarkers, replaceThemeSection, extractNonThemeSections, moveVisualCSSToSurfaces } from '../../lib/theme-sections.js';
 import { createBackup, restoreFromBackup } from '../../lib/backup.js';
 import { currentAppDir } from '../app-context.js';
-
-/**
- * Extract data schema from app.jsx for prompt context.
- */
-function extractDataSchema(appCode) {
-  if (!appCode) return '';
-  const schemas = [];
-
-  // TinyBase table usage
-  const tableMatches = appCode.matchAll(/use(?:RowIds|SortedRowIds|RowCount|Table|AddRowCallback)\s*\(\s*['"]([^'"]+)['"]/g);
-  for (const m of tableMatches) {
-    schemas.push(`  - Table: "${m[1]}"`);
-  }
-
-  // TinyBase cell usage
-  const cellMatches = appCode.matchAll(/useCell\s*\(\s*['"]([^'"]+)['"]\s*,\s*\w+\s*,\s*['"]([^'"]+)['"]/g);
-  for (const m of cellMatches) {
-    schemas.push(`  - Table "${m[1]}" has cell: "${m[2]}"`);
-  }
-
-  // TinyBase value usage
-  const valueMatches = appCode.matchAll(/useValue\s*\(\s*['"]([^'"]+)['"]/g);
-  for (const m of valueMatches) {
-    schemas.push(`  - Value: "${m[1]}"`);
-  }
-
-  // Legacy Fireproof patterns (for existing apps not yet migrated)
-  const queryMatches = appCode.matchAll(/useLiveQuery\s*\(\s*(['"`])([^'"`]*)\1/g);
-  for (const m of queryMatches) {
-    schemas.push(`  - Legacy useLiveQuery("${m[2]}")`);
-  }
-
-  const unique = [...new Set(schemas)];
-  if (unique.length === 0) return '';
-  return `\nDATA SCHEMA (these tables/cells have user data — do NOT rename them):\n${unique.join('\n')}\n`;
-}
+import { buildThemePromptMultiPass, buildThemePromptLegacy } from '../prompt-builders.ts';
 
 /**
  * Replace __VIBES_THEMES__ array and useVibesTheme default in app code.
@@ -152,34 +117,7 @@ async function handleThemeSwitchMultiPass(ctx, onEvent, themeId, themeName, them
   const pass1Code = readFileSync(appJsxPath, 'utf-8');
   const beforeNonTheme = extractNonThemeSections(pass1Code);
 
-  const prompt = `Restyle ONLY the marked theme sections in app.jsx for the "${themeName}" theme.
-
-=== CURRENT app.jsx ===
-
-\`\`\`jsx
-${pass1Code}
-\`\`\`
-
-=== WHAT TO EDIT ===
-
-You MUST only edit content between these marker pairs in app.jsx:
-- \`/* @theme:surfaces */\` ... \`/* @theme:surfaces:end */\` — CSS classes for shadows, borders, backgrounds, glass effects
-- \`/* @theme:motion */\` ... \`/* @theme:motion:end */\` — @keyframes and animation definitions
-- \`{/* @theme:decoration */}\` ... \`{/* @theme:decoration:end */}\` — SVG elements and atmospheric backgrounds
-
-=== THEME PERSONALITY ===
-
-${extractPass2ThemeContext(themeContent, 12000)}
-
-=== RULES ===
-
-- Replace the content BETWEEN each marker pair. Keep the markers themselves.
-- Match the theme's personality: shadows, glass effects, gradients, animations, SVG decorations.
-- Do NOT modify anything outside the markers — no layout, no logic, no tokens, no typography.
-- If you need to change anything outside a marker, STOP and explain why instead of editing.
-- No import statements, no TypeScript, keep export default App.
-- Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
-${extractDataSchema(pass1Code)}`;
+  const prompt = buildThemePromptMultiPass(ctx, themeId, themeName, themeContent, pass1Code);
 
   console.log(`[ThemeSwitch] Pass 2: Claude creative restyle, prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
 
@@ -219,12 +157,6 @@ ${extractDataSchema(pass1Code)}`;
  * Legacy theme switch: full-file Claude restyle (no markers).
  */
 async function handleThemeSwitchLegacy(ctx, onEvent, themeId, themeName, themeContent, colors, model, appName: string | undefined = undefined) {
-  let rootCss = colors?.rootBlock || '';
-  if (!rootCss) {
-    const rootMatch = themeContent.match(/:root\s*\{[\s\S]*?\}/);
-    if (rootMatch) rootCss = rootMatch[0];
-  }
-
   const appDir = currentAppDir(ctx, appName);
   if (!appDir) {
     onEvent({ type: 'error', message: 'No app active.' });
@@ -233,45 +165,7 @@ async function handleThemeSwitchLegacy(ctx, onEvent, themeId, themeName, themeCo
   const appJsxPath = join(appDir, 'app.jsx');
   const appCode = readFileSync(appJsxPath, 'utf-8');
 
-  const prompt = `Restyle app.jsx to the "${themeName}" (${themeId}) theme.
-
-=== CURRENT app.jsx ===
-
-\`\`\`jsx
-${appCode}
-\`\`\`
-
-=== MANDATORY CSS CHANGES ===
-
-Replace the ENTIRE :root block in the <style> tag with this EXACT CSS:
-
-\`\`\`css
-${rootCss || `/* Build :root with oklch colors matching "${themeName}" */`}
-\`\`\`
-
-Replace __VIBES_THEMES__ with: [{ id: "${themeId}", name: "${themeName}" }]
-Replace useVibesTheme default with: "${themeId}"
-
-=== THEME PERSONALITY ===
-
-Study this theme to update backgrounds, shadows, borders, fonts, animations, SVGs:
-
-${extractPass2ThemeContext(themeContent, 14000)}
-
-=== RULES ===
-
-CHANGE (visual only):
-- :root CSS variables → use the EXACT block above
-- Backgrounds, shadows, borders, fonts → match theme's design principles
-- Animations, SVG elements → match theme's mood
-- __VIBES_THEMES__ and useVibesTheme default → "${themeId}"
-- Create a fresh creative layout that matches the theme personality
-
-KEEP UNCHANGED:
-- All components, hooks, functions, state, data models, layout structure
-- All Fireproof database calls, document types, query filters
-- No import statements, no TypeScript, keep export default App
-- Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.`;
+  const prompt = buildThemePromptLegacy(ctx, themeId, themeName, themeContent, appCode, colors);
 
   console.log(`[ThemeSwitch] Legacy mode for "${themeName}" (${themeId}), prompt: ${(prompt.length / 1024).toFixed(1)}KB`);
   await runOneShot(prompt, { lockType: 'theme', skipChat: true, maxTurns: 8, model, cwd: currentAppDir(ctx, appName), tools: 'Read,Edit' }, onEvent, ctx.projectRoot);

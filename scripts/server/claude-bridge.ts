@@ -1,29 +1,327 @@
 /**
- * Claude subprocess bridge — one-shot helper + operation lock.
+ * Persistent bidirectional Claude bridge.
  *
- * One-shot helper: `runOneShot()` for generate/theme/create-theme operations.
+ * Keeps a single Claude process alive with stdin open for multi-turn
+ * conversation via stream-json input/output format.
  *
- * Operation lock: global mutex preventing concurrent claude operations.
- *
- * NOTE: A persistent bridge (long-lived `claude --print --input-format stream-json`)
- * is planned for future persistent session support but not yet implemented.
+ * Also re-exports one-shot helpers and legacy symbols so existing
+ * imports from this module continue to work.
  */
 
-import { buildClaudeArgs, cleanEnv, resolveClaudeBin } from '../lib/claude-subprocess.js';
 import { createStreamParser } from '../lib/stream-parser.js';
-import { sanitizeAppJsx } from './post-process.ts';
-import type { ServerContext } from './config.ts';
+import { buildPersistentArgs, resolveClaudeBin, cleanEnv } from '../lib/claude-subprocess.js';
+import { translateStreamEvent } from './event-translator.ts';
 
 // --- Types ---
 
+export type BridgeState = 'idle' | 'streaming' | 'interrupted' | 'dead';
 export type EventCallback = (event: any) => void;
+
+export interface PersistentBridge {
+  state: BridgeState;
+  sendMessage(prompt: string): void;
+  interrupt(): void;
+  reset(): void;
+  kill(): void;
+  onEvent: EventCallback | null;
+  readonly appDir: string | null;
+  readonly eventLog: readonly SequencedEvent[];
+}
+
+export interface SequencedEvent {
+  seq: number;
+  event: any;
+}
+
+// --- Ring Buffer ---
+
+const RING_BUFFER_MAX = 1000;
+
+class RingBuffer<T> {
+  private items: T[] = [];
+  private _maxSize: number;
+
+  constructor(maxSize: number = RING_BUFFER_MAX) {
+    this._maxSize = maxSize;
+  }
+
+  push(item: T): void {
+    if (this.items.length >= this._maxSize) {
+      this.items.shift();
+    }
+    this.items.push(item);
+  }
+
+  toArray(): readonly T[] {
+    return this.items;
+  }
+
+  clear(): void {
+    this.items = [];
+  }
+
+  get length(): number {
+    return this.items.length;
+  }
+}
+
+// --- State Machine ---
+
+/**
+ * Pure state machine for bridge lifecycle.
+ * Returns the new state given a current state and action, or null if the
+ * transition is invalid.
+ */
+export type BridgeAction =
+  | 'send_message'
+  | 'result_received'
+  | 'interrupt'
+  | 'process_exit'
+  | 'kill'
+  | 'reset';
+
+export function nextState(current: BridgeState, action: BridgeAction): BridgeState | null {
+  switch (action) {
+    case 'send_message':
+      // idle or dead can start streaming (dead triggers respawn)
+      if (current === 'idle' || current === 'dead') return 'streaming';
+      return null;
+
+    case 'result_received':
+      if (current === 'streaming') return 'idle';
+      return null;
+
+    case 'interrupt':
+      if (current === 'streaming') return 'interrupted';
+      return null;
+
+    case 'process_exit':
+      // Unexpected exit from streaming = dead
+      if (current === 'streaming') return 'dead';
+      // Exit while interrupted = back to idle (expected after SIGINT)
+      if (current === 'interrupted') return 'idle';
+      return null;
+
+    case 'kill':
+      if (current === 'idle' || current === 'streaming' || current === 'interrupted') return 'dead';
+      return null;
+
+    case 'reset':
+      if (current === 'idle' || current === 'streaming' || current === 'interrupted') return 'dead';
+      return null;
+
+    default:
+      return null;
+  }
+}
+
+// --- Persistent Bridge ---
+
+export function createBridge(appDir: string, onEvent: EventCallback): PersistentBridge {
+  let state: BridgeState = 'idle';
+  let proc: ReturnType<typeof Bun.spawn> | null = null;
+  let seq = 0;
+  const eventLog = new RingBuffer<SequencedEvent>(RING_BUFFER_MAX);
+
+  function transition(action: BridgeAction): boolean {
+    const next = nextState(state, action);
+    if (next === null) {
+      console.warn(`[Bridge] Invalid transition: ${state} + ${action}`);
+      return false;
+    }
+    console.log(`[Bridge] ${state} -> ${next} (${action})`);
+    state = next;
+    return true;
+  }
+
+  function emitEvent(event: any): void {
+    const seqEvent: SequencedEvent = { seq: ++seq, event };
+    eventLog.push(seqEvent);
+    try {
+      bridge.onEvent?.(event);
+    } catch (err) {
+      console.error('[Bridge] onEvent callback error:', err);
+    }
+  }
+
+  function spawn(): void {
+    const args = buildPersistentArgs({});
+    const claudeBin = resolveClaudeBin();
+    console.log(`[Bridge] Spawning persistent process (bin: ${claudeBin}, cwd: ${appDir})`);
+    console.log(`[Bridge] Args: ${args.join(' ')}`);
+
+    proc = Bun.spawn({
+      cmd: [claudeBin, ...args],
+      cwd: appDir,
+      env: cleanEnv(),
+      stdin: 'pipe',
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+
+    console.log(`[Bridge] PID ${proc.pid} spawned`);
+
+    // Read stderr in background
+    readStderr(proc);
+
+    // Read stdout continuously via stream parser
+    readStdout(proc);
+
+    // Monitor for unexpected exit
+    monitorExit(proc);
+  }
+
+  function readStderr(p: NonNullable<typeof proc>): void {
+    (async () => {
+      const reader = p.stderr.getReader();
+      const decoder = new TextDecoder();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          console.log(`[Bridge] PID ${p.pid} STDERR: ${chunk.slice(0, 500)}`);
+        }
+      } catch (e) {
+        console.log(`[Bridge] PID ${p.pid} stderr reader error: ${e}`);
+      }
+    })();
+  }
+
+  function readStdout(p: NonNullable<typeof proc>): void {
+    const parse = createStreamParser((rawEvent: any) => {
+      // Translate raw stream-json event into UI-facing messages
+      const translated = translateStreamEvent(rawEvent);
+      for (const msg of translated) {
+        emitEvent(msg);
+      }
+
+      // Detect result event to transition back to idle
+      if (rawEvent.type === 'result') {
+        transition('result_received');
+      }
+    });
+
+    (async () => {
+      const reader = p.stdout.getReader();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          parse(value);
+        }
+      } catch (e) {
+        console.log(`[Bridge] PID ${p.pid} stdout reader error: ${e}`);
+      }
+    })();
+  }
+
+  function monitorExit(p: NonNullable<typeof proc>): void {
+    p.exited.then((exitCode) => {
+      console.log(`[Bridge] PID ${p.pid} exited with code ${exitCode}`);
+      // Only handle exit if this is still the active process
+      if (proc !== p) return;
+      proc = null;
+
+      if (state === 'streaming') {
+        transition('process_exit');
+        emitEvent({
+          type: 'error',
+          message: `Claude process exited unexpectedly (code ${exitCode})`,
+        });
+      } else if (state === 'interrupted') {
+        // Expected exit after SIGINT — transition to idle
+        transition('process_exit');
+      }
+      // If state is already 'dead' (from kill/reset), nothing to do
+    });
+  }
+
+  function killProc(): void {
+    if (!proc) return;
+    const p = proc;
+    proc = null;
+    try { p.kill('SIGTERM'); } catch {}
+    setTimeout(() => { try { p.kill('SIGKILL'); } catch {} }, 5000);
+  }
+
+  const bridge: PersistentBridge = {
+    get state() { return state; },
+    get appDir() { return appDir; },
+    get eventLog() { return eventLog.toArray(); },
+
+    onEvent: onEvent,
+
+    sendMessage(prompt: string): void {
+      // Auto-respawn if dead
+      if (state === 'dead' || (state === 'idle' && !proc)) {
+        if (state === 'dead') {
+          // Reset state to idle for the transition
+          state = 'idle';
+        }
+        spawn();
+      }
+
+      if (!transition('send_message')) return;
+
+      if (!proc) {
+        console.error('[Bridge] No process after spawn — cannot send message');
+        state = 'dead';
+        emitEvent({ type: 'error', message: 'Failed to spawn Claude process' });
+        return;
+      }
+
+      const stdinMsg = JSON.stringify({
+        type: 'user',
+        message: { role: 'user', content: prompt },
+      });
+      try {
+        proc.stdin.write(stdinMsg + '\n');
+      } catch (err) {
+        console.error('[Bridge] stdin write error:', err);
+        state = 'dead';
+        emitEvent({ type: 'error', message: 'Failed to write to Claude process' });
+      }
+    },
+
+    interrupt(): void {
+      if (!transition('interrupt')) return;
+      if (proc) {
+        try { proc.kill('SIGINT'); } catch {}
+      }
+      // After SIGINT, the process should send a result event or exit.
+      // If it exits, monitorExit transitions interrupted -> idle.
+      // Give it a moment, then force-transition to idle if still interrupted.
+      setTimeout(() => {
+        if (state === 'interrupted') {
+          console.log('[Bridge] Force-transitioning interrupted -> idle after timeout');
+          state = 'idle';
+        }
+      }, 5000);
+    },
+
+    reset(): void {
+      transition('reset');
+      killProc();
+      eventLog.clear();
+      seq = 0;
+    },
+
+    kill(): void {
+      transition('kill');
+      killProc();
+    },
+  };
+
+  return bridge;
+}
+
+// --- Operation Lock (kept for backward compatibility) ---
 
 interface OperationLock {
   type: 'chat' | 'generate' | 'theme' | 'create-theme';
   cancel: () => void;
 }
-
-// --- Operation Lock (exported for testing) ---
 
 let currentOp: OperationLock | null = null;
 
@@ -48,12 +346,8 @@ export function isLocked(): boolean {
   return currentOp !== null;
 }
 
-// --- Progress calculation ---
+// --- Progress calculation (kept for one-shot operations) ---
 
-/**
- * Compute progress percentage and stage label from elapsed time and tool usage.
- * Exported for reuse by one-shot calcProgressLocal and tests.
- */
 export function calcProgressFromCounters(
   elapsedSec: number,
   toolsUsed: number,
@@ -73,6 +367,11 @@ export function calcProgressFromCounters(
   return { progress, stage };
 }
 
+// --- One-Shot Helper (kept for generate/theme/create-theme) ---
+
+import { buildClaudeArgs } from '../lib/claude-subprocess.js';
+import { sanitizeAppJsx } from './post-process.ts';
+
 function summarizeInput(block: any): string {
   const toolName = block.name || '';
   const input = block.input || {};
@@ -82,8 +381,6 @@ function summarizeInput(block: any): string {
   if (toolName === 'Bash') return (input.command || '').slice(0, 80);
   return '';
 }
-
-// --- One-Shot Helper ---
 
 export interface OneShotOpts {
   maxTurns?: number;
@@ -132,9 +429,6 @@ export async function runOneShot(
   console.log(`[OneShot] PID ${proc.pid} stdin written and closed`);
 
   // Auto-acquire operation lock so cancelCurrent() can kill this subprocess.
-  // NOTE: The 5s SIGKILL fallback may not fire if the caller's process.exit()
-  // runs first (e.g., during server shutdown). This is acceptable — the OS
-  // reaps orphaned subprocesses, and SIGTERM is sufficient for `claude`.
   const useLock = opts.lockType !== false;
   if (useLock) {
     const lockType = (typeof opts.lockType === 'string' ? opts.lockType : 'chat');
@@ -310,7 +604,6 @@ export async function runOneShot(
     const isMaxTurns = stderrBuffer.includes('max_turns') || stderrBuffer.includes('maxTurns');
     if (isMaxTurns) {
       console.log(`[OneShot] Hit max_turns (hasEdited=${hasEdited}) — treating as success`);
-      // Append a notice so the user knows the agent ran out of turns
       resultText = (resultText || '') + '\n\n*[Ran out of turns — send another message to continue where I left off]*';
     } else if (!errorSent) {
       onEvent({ type: 'error', message: stderrBuffer.slice(0, 500) || `Claude exited with code ${exitCode}` });
@@ -337,49 +630,6 @@ export async function runOneShot(
   return resultText || null;
 }
 
-// --- Bun script runner (for deploy subprocess spawning) ---
-// Resolves bun's full path to avoid PATH issues in desktop app contexts
-// where macOS GUI apps inherit a minimal PATH.
+// --- Re-exports from legacy module ---
 
-function resolveBunBin(): string {
-  // Bun.which checks PATH
-  const fromPath = Bun.which('bun');
-  if (fromPath) return fromPath;
-  // Common install location
-  const home = process.env.HOME || '';
-  const homeBun = `${home}/.bun/bin/bun`;
-  if (home && require('fs').existsSync(homeBun)) return homeBun;
-  // Last resort — will fail with a clear error if bun truly isn't installed
-  return 'bun';
-}
-
-let _cachedBunBin: string | undefined;
-function getBunBin(): string {
-  if (!_cachedBunBin) _cachedBunBin = resolveBunBin();
-  return _cachedBunBin;
-}
-
-interface SpawnOpts {
-  cwd?: string;
-  env?: Record<string, string | undefined>;
-}
-
-export async function runBunScript(
-  script: string,
-  args: string[],
-  opts: SpawnOpts = {}
-): Promise<{ ok: boolean; stdout: string; stderr: string }> {
-  const proc = Bun.spawn({
-    cmd: [getBunBin(), 'run', script, ...args],
-    cwd: opts.cwd,
-    env: (opts.env || { ...process.env }) as Record<string, string>,
-    stdin: 'pipe',
-    stdout: 'pipe',
-    stderr: 'pipe',
-  });
-
-  const stdout = await new Response(proc.stdout).text();
-  const stderr = await new Response(proc.stderr).text();
-  const exitCode = await proc.exited;
-  return { ok: exitCode === 0, stdout, stderr };
-}
+export { runBunScript } from './claude-bridge-legacy.ts';

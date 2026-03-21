@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { buildClaudeArgs, cleanEnv, TASK_PROFILES } from '../../lib/claude-subprocess.js';
+import { buildClaudeArgs, buildPersistentArgs, cleanEnv, TASK_PROFILES } from '../../lib/claude-subprocess.js';
 
 describe('buildClaudeArgs', () => {
   describe('default config', () => {
@@ -295,5 +295,57 @@ describe('cleanEnv', () => {
     expect(process.env.CLAUDE_CONFIG_DIR).toBeUndefined();
     // Restore
     if (original !== undefined) process.env.CLAUDE_CONFIG_DIR = original;
+  });
+});
+
+describe('buildPersistentArgs', () => {
+  it('uses -p without stdin dash (persistent mode)', () => {
+    const args = buildPersistentArgs();
+    expect(args[0]).toBe('-p');
+    expect(args).not.toContain('-');
+  });
+
+  it('uses stream-json for both input and output', () => {
+    const args = buildPersistentArgs();
+    const outIdx = args.indexOf('--output-format');
+    expect(outIdx).toBeGreaterThan(-1);
+    expect(args[outIdx + 1]).toBe('stream-json');
+    const inIdx = args.indexOf('--input-format');
+    expect(inIdx).toBeGreaterThan(-1);
+    expect(args[inIdx + 1]).toBe('stream-json');
+  });
+
+  it('includes --verbose and --include-partial-messages', () => {
+    const args = buildPersistentArgs();
+    expect(args).toContain('--verbose');
+    expect(args).toContain('--include-partial-messages');
+  });
+
+  it('includes --dangerously-skip-permissions', () => {
+    const args = buildPersistentArgs();
+    expect(args).toContain('--dangerously-skip-permissions');
+  });
+
+  it('does not include --max-turns or --no-session-persistence', () => {
+    const args = buildPersistentArgs();
+    expect(args).not.toContain('--max-turns');
+    expect(args).not.toContain('--no-session-persistence');
+  });
+
+  it('does not include --tools', () => {
+    const args = buildPersistentArgs();
+    expect(args).not.toContain('--tools');
+  });
+
+  it('accepts optional model', () => {
+    const args = buildPersistentArgs({ model: 'haiku' });
+    const idx = args.indexOf('--model');
+    expect(idx).toBeGreaterThan(-1);
+    expect(args[idx + 1]).toBe('haiku');
+  });
+
+  it('omits --model when not specified', () => {
+    const args = buildPersistentArgs();
+    expect(args).not.toContain('--model');
   });
 });
