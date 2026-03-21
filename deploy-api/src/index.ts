@@ -326,29 +326,11 @@ async function registerAppInPocketId(
   userId: string,
   existing: SubdomainRecord | null
 ): Promise<{ oidcClientId: string; userGroupId: string } | null> {
-  // Already registered — verify client still exists in Pocket ID before trusting KV
+  // Already registered — trust KV record, skip Pocket ID API calls.
+  // Use /admin/repair-groups endpoint if Pocket ID state drifts.
   if (existing?.oidcClientId && existing?.userGroupId) {
-    const verified = await getApp(fetcher, apiKey, existing.oidcClientId);
-    if (verified) {
-      // Ensure isGroupRestricted is set (may be missing on clients created by older code)
-      await updateApp(fetcher, apiKey, existing.oidcClientId, { isGroupRestricted: true });
-      // Re-add deployer to group (idempotent — handles case where group membership was lost)
-      try {
-        await addUsersToGroup(fetcher, apiKey, existing.userGroupId, [userId]);
-        console.log(`[pocket-id] Added deployer ${userId} to group ${existing.userGroupId}`);
-      } catch (e) {
-        console.error(`[pocket-id] addUsersToGroup failed:`, e);
-      }
-      try {
-        await setAllowedGroups(fetcher, apiKey, existing.oidcClientId, [existing.userGroupId]);
-        console.log(`[pocket-id] Set allowed groups on client ${existing.oidcClientId}`);
-      } catch (e) {
-        console.error(`[pocket-id] setAllowedGroups failed:`, e);
-      }
-      console.log(`[pocket-id] Verified existing client=${existing.oidcClientId} (group restriction + membership ensured)`);
-      return { oidcClientId: existing.oidcClientId, userGroupId: existing.userGroupId };
-    }
-    console.warn(`[pocket-id] Stale client=${existing.oidcClientId} not found in Pocket ID, re-registering...`);
+    console.log(`[pocket-id] Using cached client=${existing.oidcClientId}, group=${existing.userGroupId}`);
+    return { oidcClientId: existing.oidcClientId, userGroupId: existing.userGroupId };
   }
 
   try {
