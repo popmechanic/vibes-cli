@@ -479,21 +479,25 @@ This is not optional. Never skip it. Never move it to a child component.
 
 ### Getting the Signed-In User
 
-`useApp().user` is **NOT** the authenticated user — it may be null. To get the signed-in user's info, use `useUser()`:
+Do NOT use `useApp().user` — it is always null. Use `useUser()` instead:
 
-```jsx
-const { user: oidcUser } = useUser();
-const userEmail = oidcUser?.email || 'anonymous';
-const userName = oidcUser?.firstName || oidcUser?.email || 'anonymous';
-```
-
-`useUser()` is a global (no import needed). It returns `{ isSignedIn, isLoaded, user }` where `user` has `.email`, `.id`, `.firstName`, `.lastName`.
-
-**For auth gating**, do NOT check `useApp().user`. Use `useUser()`:
 ```jsx
 const { user: oidcUser, isSignedIn } = useUser();
+const userEmail = oidcUser?.email;  // always a string when signed in
+const userName = oidcUser?.firstName || oidcUser?.email;
+```
+
+`useUser()` is a global (no import needed). It returns `{ isSignedIn, isLoaded, user }` where `user` has `.email`, `.id`, `.firstName`, `.lastName`, `.username`.
+
+**Email is always present** — the OIDC provider guarantees it. Use `oidcUser.email` as the user identifier. Do NOT build fallback chains like `email || username || sub || 'anonymous'` — just use email.
+
+**For auth gating:**
+```jsx
+const { isSignedIn } = useUser();
 if (!isSignedIn) return <SignInButton />;
 ```
+
+**IMPORTANT:** `useUser()` is only available in private apps (apps deployed with the Private toggle). In public apps, `useUser` is undefined — check with `typeof useUser === 'function'` before calling it.
 
 **Fine-grained reactivity — each component calls its own hooks:**
 ```jsx
