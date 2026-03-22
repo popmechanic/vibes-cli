@@ -45,6 +45,7 @@ const RESERVED_NAMES = new Set([
 
 let cachedJwks: { keys: JsonWebKey[]; fetchedAt: number } | null = null;
 const JWKS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const cryptoKeyCache = new Map<string, CryptoKey>();
 
 async function fetchJwks(fetcher: Fetcher): Promise<JsonWebKey[]> {
   if (cachedJwks && Date.now() - cachedJwks.fetchedAt < JWKS_CACHE_TTL_MS) {
@@ -55,17 +56,23 @@ async function fetchJwks(fetcher: Fetcher): Promise<JsonWebKey[]> {
   if (!res.ok) throw new Error(`JWKS fetch failed: ${res.status}`);
   const data = (await res.json()) as { keys: JsonWebKey[] };
   cachedJwks = { keys: data.keys, fetchedAt: Date.now() };
+  cryptoKeyCache.clear(); // New keys → invalidate derived CryptoKeys
   return data.keys;
 }
 
 async function importJwk(jwk: JsonWebKey): Promise<CryptoKey> {
-  return crypto.subtle.importKey(
+  const kid = (jwk as Record<string, unknown>).kid as string || "default";
+  const cached = cryptoKeyCache.get(kid);
+  if (cached) return cached;
+  const key = await crypto.subtle.importKey(
     "jwk",
     jwk,
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
     false,
     ["verify"]
   );
+  cryptoKeyCache.set(kid, key);
+  return key;
 }
 
 /**
