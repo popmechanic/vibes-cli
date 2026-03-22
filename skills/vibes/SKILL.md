@@ -690,6 +690,33 @@ const myScores = allIds.filter(id => {
 
 **Multiplayer apps:** Shared data goes in TinyBase with `createdBy` on user-owned rows. Each client sees all data; filter by user when showing "my stuff."
 
+**Multiplayer player identity — CRITICAL:**
+Use `useUser().user.email` as the unique player identifier. Every authenticated user has a distinct email from Pocket ID. NEVER generate random client IDs (localStorage UUIDs, crypto.randomUUID, etc.) for player identity — that's what authentication solves.
+
+```jsx
+// Identify the current player by email
+const { user: oidcUser } = useUser();
+const myEmail = oidcUser?.email;
+
+// Check which player slot I occupy
+const p1Email = useCell('game', 'state', 'p1Email');
+const p2Email = useCell('game', 'state', 'p2Email');
+const myRole = p1Email === myEmail ? 'p1' : p2Email === myEmail ? 'p2' : null;
+```
+
+Auto-assign players to open slots on join — don't make users manually pick a slot:
+```jsx
+// Auto-join: assign to first open slot when entering the game
+useEffect(() => {
+  if (!myEmail) return;
+  const p1 = store.getCell('game', 'state', 'p1Email');
+  const p2 = store.getCell('game', 'state', 'p2Email');
+  if (p1 === myEmail || p2 === myEmail) return; // Already joined
+  if (!p1) store.setCell('game', 'state', 'p1Email', myEmail);
+  else if (!p2) store.setCell('game', 'state', 'p2Email', myEmail);
+}, [myEmail]);
+```
+
 ### Key Rules
 - **Prefer `useCell` in child components** over `useTable` — avoids re-rendering the entire list on every change
 - **Every app needs a "Load Demo Data" button** — visible only when the table is empty (`useRowCount('tableName') === 0`), using `useAddRowCallback` (not `useEffect` on mount)
