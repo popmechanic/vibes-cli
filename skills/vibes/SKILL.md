@@ -690,32 +690,48 @@ const myScores = allIds.filter(id => {
 
 **Multiplayer apps:** Shared data goes in TinyBase with `createdBy` on user-owned rows. Each client sees all data; filter by user when showing "my stuff."
 
-**Multiplayer player identity — CRITICAL:**
-Use `useUser().user.email` as the unique player identifier. Every authenticated user has a distinct email from Pocket ID. NEVER generate random client IDs (localStorage UUIDs, crypto.randomUUID, etc.) for player identity — that's what authentication solves.
+**Multiplayer user identity — CRITICAL:**
+
+`useUser().user.email` is the unique user identifier. Every authenticated user has a distinct email from Pocket ID. NEVER generate random client IDs (localStorage UUIDs, crypto.randomUUID, etc.) for user identity — that's what authentication solves.
 
 ```jsx
-// Identify the current player by email
 const { user: oidcUser } = useUser();
 const myEmail = oidcUser?.email;
-
-// Check which player slot I occupy
-const p1Email = useCell('game', 'state', 'p1Email');
-const p2Email = useCell('game', 'state', 'p2Email');
-const myRole = p1Email === myEmail ? 'p1' : p2Email === myEmail ? 'p2' : null;
+const myName = oidcUser?.firstName || myEmail.split('@')[0];
 ```
 
-Auto-assign players to open slots on join — don't make users manually pick a slot:
+**Register users in a `players` table** — any multiplayer app needs to know who's participating. Store a row per user keyed by email, with their display name and join time. Auto-register on load:
+
 ```jsx
-// Auto-join: assign to first open slot when entering the game
 useEffect(() => {
   if (!myEmail) return;
-  const p1 = store.getCell('game', 'state', 'p1Email');
-  const p2 = store.getCell('game', 'state', 'p2Email');
-  if (p1 === myEmail || p2 === myEmail) return; // Already joined
-  if (!p1) store.setCell('game', 'state', 'p1Email', myEmail);
-  else if (!p2) store.setCell('game', 'state', 'p2Email', myEmail);
+  const existing = store.getRow('players', myEmail);
+  if (!existing?.name) {
+    store.setRow('players', myEmail, { name: myName, joinedAt: Date.now() });
+  }
 }, [myEmail]);
 ```
+
+**Identify the current user by matching against this table**, not by slot numbers or positional logic:
+```jsx
+const playerIds = useRowIds('players');    // all participants
+const myPlayer = useRow('players', myEmail); // my record
+const isMe = (email) => email === myEmail;  // ownership check for any row
+```
+
+**For turn-based or slot-based games**, auto-assign on join instead of manual slot picking:
+```jsx
+useEffect(() => {
+  if (!myEmail) return;
+  const slots = store.getTable('slots');   // { slot1: { email }, slot2: { email }, ... }
+  const taken = Object.values(slots).some(s => s.email === myEmail);
+  if (taken) return;
+  const openSlot = Object.entries(slots).find(([, s]) => !s.email);
+  if (openSlot) store.setCell('slots', openSlot[0], 'email', myEmail);
+}, [myEmail]);
+```
+
+**Display names, not emails** — show `player.name` in the UI, not raw email addresses. Store the name alongside the email when the user joins.
 
 ### Key Rules
 - **Prefer `useCell` in child components** over `useTable` — avoids re-rendering the entire list on every change
