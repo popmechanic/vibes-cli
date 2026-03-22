@@ -64,6 +64,18 @@ describe('TinyBase template', () => {
     expect(delta).toMatch(/window\.useTable\s*=\s*function useTableWithWarning/);
   });
 
+  it('base template SharingBridge is not a stub', () => {
+    const base = readFileSync(join(PLUGIN_ROOT, 'source-templates/base/template.html'), 'utf8');
+    // Should contain the working SharingBridge, not the stub
+    expect(base).toContain('SharingBridge');
+    expect(base).toContain('vibes-share-request');
+    expect(base).toContain('vibes-public-link-request');
+    expect(base).toContain('vibes-share-success');
+    expect(base).toContain('vibes-public-link-success');
+    // Should NOT contain the stub comment
+    expect(base).not.toContain('Stub — sharing will be redesigned');
+  });
+
   it('vibes delta renders SharingBridge inside SignedIn', () => {
     const delta = readFileSync(join(PLUGIN_ROOT, 'skills/vibes/template.delta.html'), 'utf8');
     expect(delta).toContain('<SharingBridge />');
