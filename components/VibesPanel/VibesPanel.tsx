@@ -64,26 +64,21 @@ export function VibesPanel({
     setMode("default");
   };
 
-  const handleGeneratePublicLink = () => {
-    setPublicLinkStatus("generating");
-    setPublicLink("");
-    setPublicLinkMessage("");
-    setPublicLinkCopied(false);
-
-    document.dispatchEvent(
-      new CustomEvent("vibes-public-link-request", {
-        detail: { right: "write" },
-      }),
-    );
-  };
-
   const handleCopyPublicLink = () => {
     if (publicLink) {
       navigator.clipboard.writeText(publicLink).then(() => {
         setPublicLinkCopied(true);
         setTimeout(() => setPublicLinkCopied(false), 2000);
       });
+      return;
     }
+    // First click: request link from SharingBridge (instant from cache)
+    setPublicLinkStatus("generating");
+    document.dispatchEvent(
+      new CustomEvent("vibes-public-link-request", {
+        detail: { right: "write" },
+      }),
+    );
   };
 
   const handleLogoutClick = () => {
@@ -138,9 +133,16 @@ export function VibesPanel({
 
     const handlePublicLinkSuccess = (event: Event) => {
       const customEvent = event as CustomEvent<{ link: string }>;
+      const link = customEvent.detail?.link || "";
       setPublicLinkStatus("success");
-      setPublicLink(customEvent.detail?.link || "");
-      setPublicLinkMessage("Public link generated!");
+      setPublicLink(link);
+      setPublicLinkMessage("Link copied!");
+      if (link) {
+        navigator.clipboard.writeText(link).then(() => {
+          setPublicLinkCopied(true);
+          setTimeout(() => setPublicLinkCopied(false), 2000);
+        });
+      }
     };
 
     const handlePublicLinkError = (event: Event) => {
@@ -261,7 +263,7 @@ export function VibesPanel({
                 {/* Public link form */}
                 <div style={getInviteFormStyle(isMobile)}>
                   <label style={getInviteLabelStyle()}>
-                    Generate public link
+                    Public link
                   </label>
                   <input
                     type="text"
@@ -272,7 +274,7 @@ export function VibesPanel({
                         ? "Generating..."
                         : publicLinkStatus === "error"
                           ? publicLinkMessage
-                          : "Click below to generate"
+                          : "Click Copy Link below"
                     }
                     onClick={publicLink ? handleCopyPublicLink : undefined}
                     style={{
@@ -282,16 +284,14 @@ export function VibesPanel({
                   />
                   <VibesButton
                     variant={YELLOW}
-                    onClick={publicLink ? handleCopyPublicLink : handleGeneratePublicLink}
+                    onClick={handleCopyPublicLink}
                     disabled={publicLinkStatus === "generating"}
                   >
                     {publicLinkStatus === "generating"
-                      ? "Generating..."
+                      ? "Copying..."
                       : publicLinkCopied
                         ? "Copied!"
-                        : publicLink
-                          ? "Copy Link"
-                          : "Generate Link"}
+                        : "Copy Link"}
                   </VibesButton>
                 </div>
               </div>

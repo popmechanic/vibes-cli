@@ -951,7 +951,7 @@
       // Auto-generated vibes menu components
 // Run: bun scripts/build-components.js --force to regenerate
 // Source: components/
-// Generated: 2026-03-20T16:42:32.032Z
+// Generated: 2026-03-22T00:42:13.219Z
 // Components: 26/26
 
 // === useMobile ===
@@ -2826,24 +2826,20 @@ function VibesPanel({
   const handleBackClick = () => {
     setMode("default");
   };
-  const handleGeneratePublicLink = () => {
-    setPublicLinkStatus("generating");
-    setPublicLink("");
-    setPublicLinkMessage("");
-    setPublicLinkCopied(false);
-    document.dispatchEvent(
-      new CustomEvent("vibes-public-link-request", {
-        detail: { right: "write" }
-      })
-    );
-  };
   const handleCopyPublicLink = () => {
     if (publicLink) {
       navigator.clipboard.writeText(publicLink).then(() => {
         setPublicLinkCopied(true);
         setTimeout(() => setPublicLinkCopied(false), 2e3);
       });
+      return;
     }
+    setPublicLinkStatus("generating");
+    document.dispatchEvent(
+      new CustomEvent("vibes-public-link-request", {
+        detail: { right: "write" }
+      })
+    );
   };
   const handleLogoutClick = () => {
     document.dispatchEvent(new CustomEvent("vibes-sync-disable"));
@@ -2885,9 +2881,16 @@ function VibesPanel({
     };
     const handlePublicLinkSuccess = (event) => {
       const customEvent = event;
+      const link = customEvent.detail?.link || "";
       setPublicLinkStatus("success");
-      setPublicLink(customEvent.detail?.link || "");
-      setPublicLinkMessage("Public link generated!");
+      setPublicLink(link);
+      setPublicLinkMessage("Link copied!");
+      if (link) {
+        navigator.clipboard.writeText(link).then(() => {
+          setPublicLinkCopied(true);
+          setTimeout(() => setPublicLinkCopied(false), 2e3);
+        });
+      }
     };
     const handlePublicLinkError = (event) => {
       const customEvent = event;
@@ -2986,13 +2989,13 @@ function VibesPanel({
           fontWeight: 600,
           fontSize: "0.85em"
         } }, linkCopied ? "Copied!" : "Copy Invite Link")))
-      )), /* @__PURE__ */ React.createElement("div", { style: getInviteDividerStyle(isMobile) }), /* @__PURE__ */ React.createElement("div", { style: getInviteFormStyle(isMobile) }, /* @__PURE__ */ React.createElement("label", { style: getInviteLabelStyle() }, "Generate public link"), /* @__PURE__ */ React.createElement(
+      )), /* @__PURE__ */ React.createElement("div", { style: getInviteDividerStyle(isMobile) }), /* @__PURE__ */ React.createElement("div", { style: getInviteFormStyle(isMobile) }, /* @__PURE__ */ React.createElement("label", { style: getInviteLabelStyle() }, "Public link"), /* @__PURE__ */ React.createElement(
         "input",
         {
           type: "text",
           readOnly: true,
           value: publicLink,
-          placeholder: publicLinkStatus === "generating" ? "Generating..." : publicLinkStatus === "error" ? publicLinkMessage : "Click below to generate",
+          placeholder: publicLinkStatus === "generating" ? "Generating..." : publicLinkStatus === "error" ? publicLinkMessage : "Click Copy Link below",
           onClick: publicLink ? handleCopyPublicLink : void 0,
           style: {
             ...getInviteInputStyle(),
@@ -3003,10 +3006,10 @@ function VibesPanel({
         VibesButton,
         {
           variant: YELLOW,
-          onClick: publicLink ? handleCopyPublicLink : handleGeneratePublicLink,
+          onClick: handleCopyPublicLink,
           disabled: publicLinkStatus === "generating"
         },
-        publicLinkStatus === "generating" ? "Generating..." : publicLinkCopied ? "Copied!" : publicLink ? "Copy Link" : "Generate Link"
+        publicLinkStatus === "generating" ? "Copying..." : publicLinkCopied ? "Copied!" : "Copy Link"
       ))), /* @__PURE__ */ React.createElement(VibesButton, { variant: GRAY, onClick: handleBackClick, icon: "back" }, "Back")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
         VibesButton,
         {
@@ -3260,9 +3263,119 @@ if (typeof window !== 'undefined') {
       window.SyncStatusDot = SyncStatusDot;
 
       // === SharingBridge ===
-      // Stub — sharing will be redesigned for TinyBase.
-      // Kept as a no-op so existing code referencing window.SharingBridge doesn't break.
+      // Listens for VibesPanel DOM events and calls Deploy API endpoints.
+      // Rendered inside OIDCProvider in delta templates — has access to useOIDCContext().
       function SharingBridge() {
+        var oidc = window.useOIDCContext ? window.useOIDCContext() : {};
+        var accessToken = oidc.accessToken;
+        var config = window.__APP_CONFIG__ || {};
+        var appName = config.appName;
+        var deployApiUrl = config.deployApiUrl;
+        var joinLinkRef = React.useRef(null);
+        var fetchedRef = React.useRef(false);
+
+        // Skip in preview mode, placeholder config, or when not signed in
+        var skip = !appName || appName === '__APP_NAME__' || !deployApiUrl ||
+                   deployApiUrl.startsWith('__') || !accessToken;
+
+        // Fetch existing public link on mount
+        React.useEffect(function() {
+          if (skip || fetchedRef.current) return;
+          fetchedRef.current = true;
+          fetch(deployApiUrl + '/status/' + encodeURIComponent(appName), {
+              headers: { 'Authorization': 'Bearer ' + accessToken }
+            })
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(data) {
+              if (data && data.publicInvite && data.publicInvite.token) {
+                joinLinkRef.current = deployApiUrl + '/join/' +
+                  encodeURIComponent(appName) + '/' + data.publicInvite.token;
+              }
+            })
+            .catch(function(err) {
+              console.warn('[SharingBridge] Failed to fetch public link:', err);
+            });
+        }, [skip]);
+
+        // Listen for share-request (email invite)
+        React.useEffect(function() {
+          if (skip) return;
+          function handleShareRequest(e) {
+            var detail = e.detail || {};
+            var email = detail.email;
+            if (!email) return;
+            fetch(deployApiUrl + '/apps/' + encodeURIComponent(appName) + '/invite', {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Bearer ' + accessToken,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ email: email })
+            })
+            .then(function(r) {
+              if (!r.ok) return r.json().then(function(err) { throw new Error(err.error || 'Invite failed'); });
+              return r.json();
+            })
+            .then(function(data) {
+              document.dispatchEvent(new CustomEvent('vibes-share-success', {
+                detail: {
+                  email: email,
+                  message: 'Invitation sent to ' + email + '!',
+                  link: data.inviteUrl || ''
+                }
+              }));
+            })
+            .catch(function(err) {
+              document.dispatchEvent(new CustomEvent('vibes-share-error', {
+                detail: { error: { message: err.message || 'Failed to send invitation.' } }
+              }));
+            });
+          }
+          document.addEventListener('vibes-share-request', handleShareRequest);
+          return function() { document.removeEventListener('vibes-share-request', handleShareRequest); };
+        }, [skip, accessToken]);
+
+        // Listen for public-link-request (copy link)
+        React.useEffect(function() {
+          if (skip) return;
+          function handlePublicLinkRequest(e) {
+            // Return cached link immediately if available
+            if (joinLinkRef.current) {
+              document.dispatchEvent(new CustomEvent('vibes-public-link-success', {
+                detail: { link: joinLinkRef.current }
+              }));
+              return;
+            }
+            // Fallback: provision a new link
+            var detail = e.detail || {};
+            fetch(deployApiUrl + '/apps/' + encodeURIComponent(appName) + '/public-link', {
+              method: 'POST',
+              headers: {
+                'Authorization': 'Bearer ' + accessToken,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ right: detail.right || 'write' })
+            })
+            .then(function(r) {
+              if (!r.ok) return r.json().then(function(err) { throw new Error(err.error || 'Failed to generate link'); });
+              return r.json();
+            })
+            .then(function(data) {
+              joinLinkRef.current = data.joinUrl;
+              document.dispatchEvent(new CustomEvent('vibes-public-link-success', {
+                detail: { link: data.joinUrl }
+              }));
+            })
+            .catch(function(err) {
+              document.dispatchEvent(new CustomEvent('vibes-public-link-error', {
+                detail: { error: err.message || 'Failed to generate public link.' }
+              }));
+            });
+          }
+          document.addEventListener('vibes-public-link-request', handlePublicLinkRequest);
+          return function() { document.removeEventListener('vibes-public-link-request', handlePublicLinkRequest); };
+        }, [skip, accessToken]);
+
         return null;
       }
       window.SharingBridge = SharingBridge;
@@ -3520,27 +3633,36 @@ if (typeof window !== 'undefined') {
 
         // 2. Sync (if wsUrl configured)
         if (config.wsUrl && !config.wsUrl.startsWith('__')) {
-          // For private apps, append OIDC access token for dispatch worker auth
-          let syncUrl = config.wsUrl;
-          if (!config.public) {
-            const token = sessionStorage.getItem('vibes_oidc_access_token');
-            if (!token) return; // Skip sync until auth completes — will connect on next mount
-            syncUrl += (syncUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
-          }
-          destroySync = createReconnectingSynchronizer(
-            store,
-            syncUrl,
-            (syncing) => {
-              setIsSyncing(syncing);
-              window.__VIBES_SYNC_STATUS__ = syncing ? 'synced' : 'reconnecting';
-              window.dispatchEvent(new Event('vibes-sync-status-change'));
-            },
-          );
+          startSync();
         }
       }
 
+      function startSync() {
+        if (destroySync) return; // Already connected
+        let syncUrl = config.wsUrl;
+        if (!config.public) {
+          const token = sessionStorage.getItem('vibes_oidc_access_token');
+          if (!token) return; // Token not yet available — will retry via vibes-oidc-ready event
+          syncUrl += (syncUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
+        }
+        destroySync = createReconnectingSynchronizer(
+          store,
+          syncUrl,
+          (syncing) => {
+            setIsSyncing(syncing);
+            window.__VIBES_SYNC_STATUS__ = syncing ? 'synced' : 'reconnecting';
+            window.dispatchEvent(new Event('vibes-sync-status-change'));
+          },
+        );
+      }
+
+      // If token wasn't available on mount, retry when OIDC completes
+      function onOidcReady() { startSync(); }
+      window.addEventListener('vibes-oidc-ready', onOidcReady);
+
       init();
       return () => {
+        window.removeEventListener('vibes-oidc-ready', onOidcReady);
         if (destroySync) destroySync();
         if (persister) persister.destroy();
       };
@@ -3592,6 +3714,7 @@ if (typeof window !== 'undefined') {
         <OIDCProvider authority={config.oidcAuthority} clientId={config.oidcClientId}>
           <SignedOut><AuthGate /></SignedOut>
           <SignedIn>
+            <SharingBridge />
             <AppContext.Provider value={{ isReady, isSyncing, user }}>
               <HiddenMenuWrapper menuContent={<VibesPanel />}>
                 <AppErrorBoundary><App /></AppErrorBoundary>

@@ -1,7 +1,7 @@
 // Auto-generated vibes menu components
 // Run: bun scripts/build-components.js --force to regenerate
 // Source: components/
-// Generated: 2026-03-20T16:42:32.032Z
+// Generated: 2026-03-22T00:42:13.219Z
 // Components: 26/26
 
 // === useMobile ===
@@ -1876,24 +1876,20 @@ function VibesPanel({
   const handleBackClick = () => {
     setMode("default");
   };
-  const handleGeneratePublicLink = () => {
-    setPublicLinkStatus("generating");
-    setPublicLink("");
-    setPublicLinkMessage("");
-    setPublicLinkCopied(false);
-    document.dispatchEvent(
-      new CustomEvent("vibes-public-link-request", {
-        detail: { right: "write" }
-      })
-    );
-  };
   const handleCopyPublicLink = () => {
     if (publicLink) {
       navigator.clipboard.writeText(publicLink).then(() => {
         setPublicLinkCopied(true);
         setTimeout(() => setPublicLinkCopied(false), 2e3);
       });
+      return;
     }
+    setPublicLinkStatus("generating");
+    document.dispatchEvent(
+      new CustomEvent("vibes-public-link-request", {
+        detail: { right: "write" }
+      })
+    );
   };
   const handleLogoutClick = () => {
     document.dispatchEvent(new CustomEvent("vibes-sync-disable"));
@@ -1935,9 +1931,16 @@ function VibesPanel({
     };
     const handlePublicLinkSuccess = (event) => {
       const customEvent = event;
+      const link = customEvent.detail?.link || "";
       setPublicLinkStatus("success");
-      setPublicLink(customEvent.detail?.link || "");
-      setPublicLinkMessage("Public link generated!");
+      setPublicLink(link);
+      setPublicLinkMessage("Link copied!");
+      if (link) {
+        navigator.clipboard.writeText(link).then(() => {
+          setPublicLinkCopied(true);
+          setTimeout(() => setPublicLinkCopied(false), 2e3);
+        });
+      }
     };
     const handlePublicLinkError = (event) => {
       const customEvent = event;
@@ -2036,13 +2039,13 @@ function VibesPanel({
           fontWeight: 600,
           fontSize: "0.85em"
         } }, linkCopied ? "Copied!" : "Copy Invite Link")))
-      )), /* @__PURE__ */ React.createElement("div", { style: getInviteDividerStyle(isMobile) }), /* @__PURE__ */ React.createElement("div", { style: getInviteFormStyle(isMobile) }, /* @__PURE__ */ React.createElement("label", { style: getInviteLabelStyle() }, "Generate public link"), /* @__PURE__ */ React.createElement(
+      )), /* @__PURE__ */ React.createElement("div", { style: getInviteDividerStyle(isMobile) }), /* @__PURE__ */ React.createElement("div", { style: getInviteFormStyle(isMobile) }, /* @__PURE__ */ React.createElement("label", { style: getInviteLabelStyle() }, "Public link"), /* @__PURE__ */ React.createElement(
         "input",
         {
           type: "text",
           readOnly: true,
           value: publicLink,
-          placeholder: publicLinkStatus === "generating" ? "Generating..." : publicLinkStatus === "error" ? publicLinkMessage : "Click below to generate",
+          placeholder: publicLinkStatus === "generating" ? "Generating..." : publicLinkStatus === "error" ? publicLinkMessage : "Click Copy Link below",
           onClick: publicLink ? handleCopyPublicLink : void 0,
           style: {
             ...getInviteInputStyle(),
@@ -2053,10 +2056,10 @@ function VibesPanel({
         VibesButton,
         {
           variant: YELLOW,
-          onClick: publicLink ? handleCopyPublicLink : handleGeneratePublicLink,
+          onClick: handleCopyPublicLink,
           disabled: publicLinkStatus === "generating"
         },
-        publicLinkStatus === "generating" ? "Generating..." : publicLinkCopied ? "Copied!" : publicLink ? "Copy Link" : "Generate Link"
+        publicLinkStatus === "generating" ? "Copying..." : publicLinkCopied ? "Copied!" : "Copy Link"
       ))), /* @__PURE__ */ React.createElement(VibesButton, { variant: GRAY, onClick: handleBackClick, icon: "back" }, "Back")) : /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement(
         VibesButton,
         {
