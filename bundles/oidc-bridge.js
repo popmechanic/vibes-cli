@@ -47,6 +47,8 @@ function storeTokens(accessToken, refreshToken, idToken, expiresIn) {
     sessionStorage.setItem(STORAGE_KEY_EXPIRY, String(expiry));
     // Expose for useAI hook and other consumers
     window.__VIBES_OIDC_TOKEN__ = accessToken;
+    // Notify sync layer that token is now available
+    window.dispatchEvent(new Event('vibes-oidc-ready'));
   } catch (e) {
     console.warn("[vibes-oidc] Failed to store tokens:", e);
   }
