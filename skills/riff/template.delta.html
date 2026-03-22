@@ -43,9 +43,17 @@
       }, Math.min(backoff *= 2, 30000));
     }
 
+    let connecting = false;
+
     async function connect() {
-      if (destroyed) return;
+      if (destroyed || connecting) return;
+      connecting = true;
       try {
+        // Destroy previous synchronizer if it exists
+        if (synchronizer) {
+          try { synchronizer.destroy(); } catch {}
+          synchronizer = null;
+        }
         const ws = new WebSocket(wsUrl);
         synchronizer = await createWsSynchronizer(store, ws);
         await synchronizer.startSync();
@@ -58,6 +66,8 @@
         });
       } catch {
         scheduleReconnect();
+      } finally {
+        connecting = false;
       }
     }
 
@@ -94,10 +104,11 @@
 
     useEffect(() => {
       let destroySync = null;
+      let persister = null;
 
       async function init() {
         // 1. Local persistence
-        const persister = createLocalPersister(store, `tinybase_${config.appName}`);
+        persister = createLocalPersister(store, `tinybase_${config.appName}`);
         await persister.startAutoPersisting([{}, {}]);
         setIsReady(true);
 
@@ -133,6 +144,7 @@
       return () => {
         window.removeEventListener('vibes-oidc-ready', onOidcReady);
         if (destroySync) destroySync();
+        if (persister) persister.destroy();
       };
     }, []);
 

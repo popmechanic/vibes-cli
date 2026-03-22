@@ -3266,11 +3266,9 @@ if (typeof window !== 'undefined') {
       // not render time, to avoid timing issues with React context and OIDC.
       function SharingBridge() {
         var joinLinkRef = React.useRef(null);
-        var fetchedRef = React.useRef(false);
 
         // Helper: read current auth + config at call time (not render time).
         // Does NOT call React hooks — safe to use in event handlers.
-        // Reads token from globals/sessionStorage set by the OIDC bridge.
         function getContext() {
           var config = window.__APP_CONFIG__ || {};
           var appName = config.appName;
@@ -3279,9 +3277,6 @@ if (typeof window !== 'undefined') {
             return null;
           }
           var accessToken = window.__VIBES_OIDC_TOKEN__;
-          var sessionToken = null;
-          try { sessionToken = sessionStorage.getItem('vibes_oidc_access_token'); } catch(e) {}
-          if (!accessToken) accessToken = sessionToken;
           if (!accessToken) return null;
           return { appName: appName, deployApiUrl: deployApiUrl, accessToken: accessToken };
         }
@@ -3290,8 +3285,6 @@ if (typeof window !== 'undefined') {
         React.useEffect(function() {
           var ctx = getContext();
           if (!ctx) return;
-          fetchedRef.current = true;
-          console.debug('[SharingBridge] Fetching public link for ' + ctx.appName);
           fetch(ctx.deployApiUrl + '/status/' + encodeURIComponent(ctx.appName), {
               headers: { 'Authorization': 'Bearer ' + ctx.accessToken }
             })
@@ -3355,53 +3348,16 @@ if (typeof window !== 'undefined') {
             });
           }
 
-          function handlePublicLinkRequest(e) {
-            console.debug('[SharingBridge] public-link-request, cached=' + !!joinLinkRef.current);
-            // Return cached link immediately if available
+          function handlePublicLinkRequest() {
             if (joinLinkRef.current) {
               document.dispatchEvent(new CustomEvent('vibes-public-link-success', {
                 detail: { link: joinLinkRef.current }
               }));
-              return;
-            }
-            var ctx = getContext();
-            if (!ctx) {
-              console.warn('[SharingBridge] public-link-request but no auth context');
+            } else {
               document.dispatchEvent(new CustomEvent('vibes-public-link-error', {
-                detail: { error: { message: 'Not signed in. Please sign in and try again.' } }
+                detail: { error: { message: 'No invite link available. Redeploy the app to generate one.' } }
               }));
-              return;
             }
-            // Fallback: provision a new link
-            var detail = e.detail || {};
-            console.debug('[SharingBridge] Provisioning new public link...');
-            fetch(ctx.deployApiUrl + '/apps/' + encodeURIComponent(ctx.appName) + '/public-link', {
-              method: 'POST',
-              headers: {
-                'Authorization': 'Bearer ' + ctx.accessToken,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ right: detail.right || 'write' })
-            })
-            .then(function(r) {
-              if (!r.ok) return r.text().then(function(t) {
-                try { var err = JSON.parse(t); throw new Error(err.error || 'Failed to generate link'); }
-                catch(e) { if (e instanceof SyntaxError) throw new Error('Failed to generate link (server error)'); throw e; }
-              });
-              return r.json();
-            })
-            .then(function(data) {
-              joinLinkRef.current = data.joinUrl;
-              document.dispatchEvent(new CustomEvent('vibes-public-link-success', {
-                detail: { link: data.joinUrl }
-              }));
-            })
-            .catch(function(err) {
-              console.error('[SharingBridge] public-link failed:', err);
-              document.dispatchEvent(new CustomEvent('vibes-public-link-error', {
-                detail: { error: { message: err.message || 'Failed to generate public link.' } }
-              }));
-            });
           }
 
           document.addEventListener('vibes-share-request', handleShareRequest);
