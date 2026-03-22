@@ -400,12 +400,15 @@ async function registerAppInPocketId(
 
 /**
  * Inject per-app oidcClientId into assembled HTML.
- * Replaces the placeholder or shared client ID in window.__APP_CONFIG__.
+ * Scoped to lines that are property assignments in config objects
+ * (indented oidcClientId: "...") to avoid replacing occurrences in user app code.
  */
 function injectClientId(html: string, clientId: string): string {
-  return html.replaceAll(
-    /oidcClientId:\s*"[^"]*"/g,
-    `oidcClientId: "${clientId}"`
+  // Match indented property assignments: `oidcClientId: "value"` (with leading whitespace)
+  // This targets config object properties and avoids matching in arbitrary JS code.
+  return html.replace(
+    /^(\s+)oidcClientId:\s*"[^"]*"/gm,
+    `$1oidcClientId: "${clientId}"`
   );
 }
 
