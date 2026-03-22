@@ -3297,9 +3297,10 @@ if (typeof window !== 'undefined') {
             })
             .then(function(r) { return r.ok ? r.json() : null; })
             .then(function(data) {
-              if (data && data.publicInvite && data.publicInvite.token) {
+              var token = data && data.publicInvite && data.publicInvite.token;
+              if (typeof token === 'string' && token.length > 0) {
                 joinLinkRef.current = ctx.deployApiUrl + '/join/' +
-                  encodeURIComponent(ctx.appName) + '/' + data.publicInvite.token;
+                  encodeURIComponent(ctx.appName) + '/' + token;
                 console.debug('[SharingBridge] Cached public link');
               }
             })

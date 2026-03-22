@@ -42,8 +42,9 @@ export async function provisionInviteLink(deployApiUrl, appName, accessToken, op
       return null;
     }
 
-    if (statusData.publicInvite?.token) {
-      const link = `${deployApiUrl}/join/${encodeURIComponent(appName)}/${statusData.publicInvite.token}`;
+    const existingToken = statusData.publicInvite?.token;
+    if (typeof existingToken === 'string' && existingToken.length > 0) {
+      const link = `${deployApiUrl}/join/${encodeURIComponent(appName)}/${existingToken}`;
       console.log(`${prefix}Invite link: ${link}`);
       return link;
     }
