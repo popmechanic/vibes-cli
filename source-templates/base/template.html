@@ -355,9 +355,8 @@
           return { appName: appName, deployApiUrl: deployApiUrl, accessToken: accessToken };
         }
 
-        // Fetch existing public link on mount (retry until context is ready)
+        // Fetch existing public link on mount
         React.useEffect(function() {
-          if (fetchedRef.current) return;
           var ctx = getContext();
           if (!ctx) return;
           fetchedRef.current = true;
@@ -376,7 +375,7 @@
             .catch(function(err) {
               console.warn('[SharingBridge] Failed to fetch public link:', err);
             });
-        });
+        }, []);
 
         // Always register event listeners — resolve state at event time
         React.useEffect(function() {

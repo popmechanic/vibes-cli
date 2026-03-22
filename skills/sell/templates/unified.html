@@ -951,7 +951,7 @@
       // Auto-generated vibes menu components
 // Run: bun scripts/build-components.js --force to regenerate
 // Source: components/
-// Generated: 2026-03-22T21:48:26.932Z
+// Generated: 2026-03-22T22:22:52.358Z
 // Components: 26/26
 
 // === useMobile ===
@@ -2889,13 +2889,6 @@ function VibesPanel({
       const link = customEvent.detail?.link || "";
       setPublicLinkStatus("success");
       setPublicLink(link);
-      setPublicLinkMessage("Link copied!");
-      if (link) {
-        navigator.clipboard.writeText(link).then(() => {
-          setPublicLinkCopied(true);
-          setTimeout(() => setPublicLinkCopied(false), 2e3);
-        });
-      }
     };
     const handlePublicLinkError = (event) => {
       const customEvent = event;
@@ -3293,9 +3286,8 @@ if (typeof window !== 'undefined') {
           return { appName: appName, deployApiUrl: deployApiUrl, accessToken: accessToken };
         }
 
-        // Fetch existing public link on mount (retry until context is ready)
+        // Fetch existing public link on mount
         React.useEffect(function() {
-          if (fetchedRef.current) return;
           var ctx = getContext();
           if (!ctx) return;
           fetchedRef.current = true;
@@ -3314,7 +3306,7 @@ if (typeof window !== 'undefined') {
             .catch(function(err) {
               console.warn('[SharingBridge] Failed to fetch public link:', err);
             });
-        });
+        }, []);
 
         // Always register event listeners — resolve state at event time
         React.useEffect(function() {

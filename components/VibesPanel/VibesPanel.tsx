@@ -142,13 +142,6 @@ export function VibesPanel({
       const link = customEvent.detail?.link || "";
       setPublicLinkStatus("success");
       setPublicLink(link);
-      setPublicLinkMessage("Link copied!");
-      if (link) {
-        navigator.clipboard.writeText(link).then(() => {
-          setPublicLinkCopied(true);
-          setTimeout(() => setPublicLinkCopied(false), 2000);
-        });
-      }
     };
 
     const handlePublicLinkError = (event: Event) => {

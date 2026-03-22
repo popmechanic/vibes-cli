@@ -1,7 +1,7 @@
 // Auto-generated vibes menu components
 // Run: bun scripts/build-components.js --force to regenerate
 // Source: components/
-// Generated: 2026-03-22T21:48:26.932Z
+// Generated: 2026-03-22T22:22:52.358Z
 // Components: 26/26
 
 // === useMobile ===
@@ -1939,13 +1939,6 @@ function VibesPanel({
       const link = customEvent.detail?.link || "";
       setPublicLinkStatus("success");
       setPublicLink(link);
-      setPublicLinkMessage("Link copied!");
-      if (link) {
-        navigator.clipboard.writeText(link).then(() => {
-          setPublicLinkCopied(true);
-          setTimeout(() => setPublicLinkCopied(false), 2e3);
-        });
-      }
     };
     const handlePublicLinkError = (event) => {
       const customEvent = event;
