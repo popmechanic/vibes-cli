@@ -3960,6 +3960,10 @@ window.escapeHtml = function(str) {
       }
       // Reset streaming state on reconnect
       finalizeStreaming();
+      // Restore app context and chat history after server restart
+      if (currentAppName) {
+        ws.send(JSON.stringify({ type: 'switch_app', name: currentAppName }));
+      }
     };
 
     ws.onmessage = (event) => {
