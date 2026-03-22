@@ -567,7 +567,7 @@ const addTodo = useAddRowCallback(
   (text) => ({
     text: text ?? '',
     done: false,
-    createdBy: user?.name ?? 'anonymous',
+    createdBy: user?.email,
     createdAt: Date.now(),
   }),
   [user],  // deps — include anything from closure that changes
@@ -659,10 +659,13 @@ These are simpler than callback hooks when you need both the value and a setter.
 - Animations, transitions, temporary visual state
 
 **User attribution — when multiple people use the app:**
+
+**Apps with multiple users MUST be deployed as private.** Private apps require sign-in, which guarantees every user has a unique email. Public apps have no user identity — `useUser` is undefined — so user attribution is impossible. NEVER use `'anonymous'` as a fallback identity; it makes all unauthenticated users look identical.
+
 Every row that belongs to a specific user must include `createdBy`. Use `useUser()` to get the email:
 ```jsx
 const { user: oidcUser } = useUser();
-const userEmail = oidcUser?.email || 'anonymous';
+const userEmail = oidcUser.email; // always present in private apps
 
 const addItem = useAddRowCallback(
   'items',
@@ -678,7 +681,7 @@ const addItem = useAddRowCallback(
 To show only the current user's data, filter by `createdBy`:
 ```jsx
 const { user: oidcUser } = useUser();
-const userEmail = oidcUser?.email || 'anonymous';
+const userEmail = oidcUser.email;
 const allIds = useRowIds('scores');
 const myScores = allIds.filter(id => {
   const owner = useCell('scores', id, 'createdBy');
@@ -688,7 +691,7 @@ const myScores = allIds.filter(id => {
 
 **Single-player apps:** All persistent data goes in TinyBase. No user filtering needed — sync just gives the user their data on all their devices.
 
-**Multiplayer apps:** Shared data goes in TinyBase with `createdBy` on user-owned rows. Each client sees all data; filter by user when showing "my stuff."
+**Multiplayer/shared apps:** MUST be private. Shared data goes in TinyBase with `createdBy` on user-owned rows. Each client sees all data; filter by user when showing "my stuff."
 
 **User identity in shared apps — CRITICAL:**
 
