@@ -351,9 +351,6 @@
           var sessionToken = null;
           try { sessionToken = sessionStorage.getItem('vibes_oidc_access_token'); } catch(e) {}
           if (!accessToken) accessToken = sessionToken;
-          console.log('[SharingBridge] getContext: globalToken=' + !!window.__VIBES_OIDC_TOKEN__ +
-            ' sessionToken=' + !!sessionToken +
-            ' appName=' + appName + ' deployApiUrl=' + !!deployApiUrl);
           if (!accessToken) return null;
           return { appName: appName, deployApiUrl: deployApiUrl, accessToken: accessToken };
         }
@@ -364,7 +361,7 @@
           var ctx = getContext();
           if (!ctx) return;
           fetchedRef.current = true;
-          console.log('[SharingBridge] Fetching public link for ' + ctx.appName);
+          console.debug('[SharingBridge] Fetching public link for ' + ctx.appName);
           fetch(ctx.deployApiUrl + '/status/' + encodeURIComponent(ctx.appName), {
               headers: { 'Authorization': 'Bearer ' + ctx.accessToken }
             })
@@ -373,7 +370,7 @@
               if (data && data.publicInvite && data.publicInvite.token) {
                 joinLinkRef.current = ctx.deployApiUrl + '/join/' +
                   encodeURIComponent(ctx.appName) + '/' + data.publicInvite.token;
-                console.log('[SharingBridge] Cached public link');
+                console.debug('[SharingBridge] Cached public link');
               }
             })
             .catch(function(err) {
@@ -395,7 +392,7 @@
             var detail = e.detail || {};
             var email = detail.email;
             if (!email) return;
-            console.log('[SharingBridge] Inviting ' + email);
+            console.debug('[SharingBridge] Inviting ' + email);
             fetch(ctx.deployApiUrl + '/apps/' + encodeURIComponent(ctx.appName) + '/invite', {
               method: 'POST',
               headers: {
@@ -428,7 +425,7 @@
           }
 
           function handlePublicLinkRequest(e) {
-            console.log('[SharingBridge] public-link-request, cached=' + !!joinLinkRef.current);
+            console.debug('[SharingBridge] public-link-request, cached=' + !!joinLinkRef.current);
             // Return cached link immediately if available
             if (joinLinkRef.current) {
               document.dispatchEvent(new CustomEvent('vibes-public-link-success', {
@@ -446,7 +443,7 @@
             }
             // Fallback: provision a new link
             var detail = e.detail || {};
-            console.log('[SharingBridge] Provisioning new public link...');
+            console.debug('[SharingBridge] Provisioning new public link...');
             fetch(ctx.deployApiUrl + '/apps/' + encodeURIComponent(ctx.appName) + '/public-link', {
               method: 'POST',
               headers: {
