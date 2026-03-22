@@ -3995,7 +3995,8 @@ window.escapeHtml = function(str) {
         console.log('[Stream] Init:', msg.model, 'session:', msg.session_id);
       } else if (msg.type === 'token') {
         // Streaming text token — append to current assistant bubble
-        streamingText += msg.text;
+        // Trim leading whitespace from first token (Claude often starts with \n)
+        streamingText += streamingText === '' ? msg.text.trimStart() : msg.text;
         updateStreamingBubble();
         // Hide stage label while text is streaming
         const stageEl = document.querySelector('.thinking-stage');
