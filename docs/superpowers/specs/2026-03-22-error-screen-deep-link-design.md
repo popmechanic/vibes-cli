@@ -18,13 +18,13 @@ The current `AppErrorBoundary` renders unstyled HTML with a raw stack trace on a
 Inject a ring buffer in `source-templates/base/template.html` as an early `<script>` block (before any other code):
 
 - `window.__VIBES_CONSOLE_LOG__` — array, max 20 entries
-- Override `console.log`, `console.warn`, `console.error` — push `{ level, message: String(args), timestamp }` to buffer, call originals
+- Override `console.log`, `console.warn`, `console.error` — push `{ level, message, timestamp }` to buffer, call originals
 - Skip `console.debug` (too noisy)
-- Stringify args with `String(arg)` to keep entries compact
+- Stringify variadic args: `[...args].map(String).join(' ')` to produce a single message string
 
 ### 2. Error Screen UI (delta templates)
 
-Redesign `AppErrorBoundary.render()` in both `skills/vibes/template.delta.html` and `skills/riff/template.delta.html`.
+Redesign `AppErrorBoundary.render()` in `skills/vibes/template.delta.html`. The riff delta does NOT currently have an `AppErrorBoundary` — it must be created and wired into the render tree (wrapping `<App />`) as part of this work.
 
 **Visual design:**
 - Full-viewport background: editor grid (`#CCCDC8`, 32px grid, `rgba(255, 255, 255, 0.5)` lines) — "back to the workshop"
@@ -46,7 +46,7 @@ Redesign `AppErrorBoundary.render()` in both `skills/vibes/template.delta.html` 
 
 **"Fix in VibesOS" button behavior:**
 1. Constructs `vibes://fix?app={name}&error={msg}&stack={stack}&componentStack={cstack}&console={logs}`
-2. Each field URL-encoded, total kept under 2KB
+2. Each field URL-encoded; `componentStack` truncated to first 3 lines, console to last 5 entries
 3. `window.location.href = url` triggers OS to launch VibesOS
 4. Falls back gracefully if no handler registered (OS shows "can't open" dialog — clipboard fallback covers this)
 
@@ -73,6 +73,8 @@ ElectroBun generates `CFBundleURLTypes` in `Info.plist` automatically. The schem
 In `vibes-desktop/src/bun/index.ts`, listen for incoming URLs:
 
 ```typescript
+let pendingFixPayload: Record<string, string | null> | null = null;
+
 Electrobun.events.on("open-url", (e) => {
   const url = new URL(e.data.url);
   if (url.protocol === "vibes:" && url.hostname === "fix") {
@@ -83,19 +85,40 @@ Electrobun.events.on("open-url", (e) => {
       componentStack: url.searchParams.get("componentStack"),
       console: url.searchParams.get("console"),
     };
-    // Send to editor via WebSocket
-    sendToEditor({ type: "fix_error", ...payload });
+
+    if (mainWindow) {
+      // Editor is open — inject directly via executeJavascript
+      mainWindow.webview.executeJavascript(
+        `window.__vibesFixError && window.__vibesFixError(${JSON.stringify(payload)})`
+      );
+    } else {
+      // Editor not open yet — queue for delivery after startup
+      pendingFixPayload = payload;
+    }
   }
 });
 ```
 
-If the editor isn't open, launch it first, then send the payload once connected.
+**Transport mechanism:** Use `mainWindow.webview.executeJavascript()` to call a global function in the editor. This matches the existing pattern used for preload injection and login flows. The editor registers `window.__vibesFixError` on load.
+
+**Queuing for early deep links:** If the `open-url` event arrives before the editor is ready (app still starting up), the payload is stored in `pendingFixPayload`. After the editor's webview fires `dom-ready`, drain the queue:
+
+```typescript
+mainWindow.webview.on("dom-ready", () => {
+  if (pendingFixPayload) {
+    mainWindow.webview.executeJavascript(
+      `window.__vibesFixError && window.__vibesFixError(${JSON.stringify(pendingFixPayload)})`
+    );
+    pendingFixPayload = null;
+  }
+});
+```
 
 ### 5. Editor Integration
 
-In `skills/vibes/templates/editor.html`, handle the `fix_error` WebSocket message:
+In `skills/vibes/templates/editor.html`, register `window.__vibesFixError` as a global function (called by the desktop app via `executeJavascript`):
 
-1. Switch to the app: `switch_app` with the app name
+1. Switch to the app: send `switch_app` via WebSocket with the app name
 2. Set phase to edit (not generate)
 3. Pre-fill chat input with structured repair prompt:
 
@@ -122,7 +145,7 @@ The path is explicit and unambiguous:
 2. **macOS** → routes to VibesOS desktop app (registered via `CFBundleURLTypes`)
 3. **Desktop app** → `open-url` event handler parses payload
 4. **Desktop app** → checks `~/.vibes/apps/{appName}/app.jsx` exists, shows error if not
-5. **Desktop app** → sends `fix_error` to editor WebSocket
+5. **Desktop app** → calls `window.__vibesFixError(payload)` via `executeJavascript` (queued if editor not ready)
 6. **Editor** → switches to app, pre-fills chat
 
 For users without the desktop app: clipboard fallback.
@@ -133,10 +156,10 @@ For users without the desktop app: clipboard fallback.
 |------|--------|
 | `source-templates/base/template.html` | Console capture ring buffer |
 | `skills/vibes/template.delta.html` | Redesigned AppErrorBoundary render |
-| `skills/riff/template.delta.html` | Same AppErrorBoundary changes |
+| `skills/riff/template.delta.html` | Create AppErrorBoundary (doesn't exist yet), wrap `<App />`, same error UI |
 | `vibes-desktop/electrobun.config.ts` | Add `urlSchemes: ["vibes"]` |
 | `vibes-desktop/src/bun/index.ts` | Handle `open-url` event, parse payload, send to editor |
-| `skills/vibes/templates/editor.html` | Handle `fix_error` message: switch app, pre-fill chat |
+| `skills/vibes/templates/editor.html` | Register `window.__vibesFixError`: switch app, pre-fill chat |
 | `build/vibes-menu.js` | Regenerated |
 | `skills/*/templates/index.html` | Regenerated |
 
