@@ -31,6 +31,24 @@ export function buildSkillAppendix(pluginRoot) {
 }
 
 /**
+ * Write skill appendix to a temp file and return the path.
+ * Uses --append-system-prompt-file instead of --append-system-prompt
+ * to avoid shell argument length limits with 30KB+ payloads.
+ */
+let _skillAppendixPath = null;
+export function writeSkillAppendixFile(pluginRoot) {
+  const content = buildSkillAppendix(pluginRoot);
+  if (!content) return null;
+  const dir = join(tmpdir(), 'vibes-skill-inject');
+  mkdirSync(dir, { recursive: true });
+  const filePath = join(dir, 'system-prompt-appendix.md');
+  writeFileSync(filePath, content, 'utf-8');
+  console.log(`[skill-inject] Wrote ${(content.length / 1024).toFixed(1)}KB to ${filePath}`);
+  _skillAppendixPath = filePath;
+  return filePath;
+}
+
+/**
  * Per-task default configurations.
  * All tasks get unrestricted tool access (no --tools flag).
  */
@@ -86,9 +104,9 @@ export function buildClaudeArgs(config = {}) {
   }
 
   if (config.pluginRoot) {
-    const appendix = buildSkillAppendix(config.pluginRoot);
-    if (appendix) {
-      args.push('--append-system-prompt', appendix);
+    const filePath = writeSkillAppendixFile(config.pluginRoot);
+    if (filePath) {
+      args.push('--append-system-prompt-file', filePath);
     }
   }
 
@@ -137,16 +155,17 @@ export function buildPersistentArgs(config = {}) {
   ];
   if (config.model) args.push('--model', config.model);
   if (config.pluginRoot) {
-    const appendix = buildSkillAppendix(config.pluginRoot);
-    if (appendix) {
-      args.push('--append-system-prompt', appendix);
+    const filePath = writeSkillAppendixFile(config.pluginRoot);
+    if (filePath) {
+      args.push('--append-system-prompt-file', filePath);
     }
   }
   // No --tools restriction, no --max-turns, no --no-session-persistence
   return args;
 }
 
-import { existsSync, readFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { tmpdir } from 'os';
 import { spawnSync } from 'child_process';
 import { join } from 'path';
 import { homedir } from 'os';
