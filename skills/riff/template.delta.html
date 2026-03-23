@@ -28,6 +28,188 @@
   function useApp() { return useContext(AppContext); }
   window.useApp = useApp;
 
+  // --- Error Boundary ---
+  // Keep in sync with vibes/template.delta.html
+  class AppErrorBoundary extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = { error: null, componentStack: null };
+    }
+    static getDerivedStateFromError(error) {
+      return { error };
+    }
+    componentDidCatch(error, info) {
+      console.error('[vibes] App error:', error, info);
+      this.setState({ componentStack: info?.componentStack || null });
+    }
+    render() {
+      if (!this.state.error) return this.props.children;
+
+      const error = this.state.error;
+      const appName = window.__APP_CONFIG__?.appName || 'unknown';
+      const errorMsg = error.message || String(error);
+      const stack = (error.stack || '').split('\n').slice(0, 5).join('\n');
+      const cStack = (this.state.componentStack || '').split('\n').filter(Boolean).slice(0, 3).join('\n');
+      const allConsoleLogs = (window.__VIBES_CONSOLE_LOG__ || []).slice(-10);
+      const allConsoleText = allConsoleLogs.map(e => `[${e.level}] ${e.message}`).join('\n');
+      // Deep link uses last 5 (URL length constraint); details section shows last 10
+      const linkConsoleText = allConsoleLogs.slice(-5).map(e => `[${e.level}] ${e.message}`).join('\n');
+
+      const deepLink = () => {
+        const params = new URLSearchParams({
+          app: appName,
+          error: errorMsg,
+          stack: stack,
+          componentStack: cStack,
+          console: linkConsoleText,
+        });
+        window.location.href = 'vibes://fix?' + params.toString();
+      };
+
+      const copyToClipboard = () => {
+        const text = [
+          'My app crashed with this error:',
+          '',
+          'Error: ' + errorMsg,
+          '',
+          cStack ? 'Component: ' + cStack : '',
+          '',
+          allConsoleText ? 'Recent console:\n' + allConsoleText : '',
+          '',
+          'Please fix this.',
+        ].filter(Boolean).join('\n');
+        navigator.clipboard.writeText(text).then(() => {
+          const btn = document.querySelector('[data-copy-error]');
+          if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'or copy error to clipboard'; }, 2000); }
+        });
+      };
+
+      // Styles — matches mockup: editor grid bg, BrutalistCard, chat bubble buttons
+      const wrapperStyle = {
+        minHeight: '100vh',
+        backgroundColor: '#CCCDC8',
+        backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+        backgroundSize: '32px 32px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '2rem',
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      };
+      const cardStyle = {
+        background: '#fffff0',
+        border: '2px solid #1a1a1a',
+        borderRadius: '12px',
+        boxShadow: '4px 4px 0px #1a1a1a',
+        maxWidth: '560px',
+        width: '100%',
+        overflow: 'hidden',
+      };
+      const titleStyle = {
+        fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+        fontWeight: 800,
+        color: '#1a1a1a',
+        textAlign: 'center',
+        padding: '1.5rem 1.5rem 0',
+        marginBottom: '0.25rem',
+      };
+      const subtitleStyle = {
+        fontSize: '0.95rem',
+        color: '#555',
+        textAlign: 'center',
+        marginBottom: '1rem',
+      };
+      const msgStyle = {
+        fontSize: '0.8rem',
+        color: '#555',
+        fontFamily: "ui-monospace, 'SF Mono', Monaco, 'Cascadia Code', monospace",
+        background: 'rgba(0,0,0,0.05)',
+        padding: '0.4rem 0.75rem',
+        borderRadius: '6px',
+        border: '1px solid rgba(0,0,0,0.08)',
+        lineHeight: 1.4,
+        margin: '0 1.5rem 1.25rem',
+      };
+      const actionsStyle = {
+        padding: '0 1.5rem 1.5rem',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.75rem',
+        alignItems: 'center',
+      };
+      const btnBase = {
+        width: '100%',
+        padding: '0.65rem 0.9rem',
+        background: '#fffff0',
+        color: '#1a1a1a',
+        border: '2px solid #1a1a1a',
+        borderRadius: '12px',
+        fontSize: '0.8125rem',
+        lineHeight: 1.5,
+        fontWeight: 600,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '0.5rem',
+        transition: '0.2s',
+      };
+      const primaryShadow = { boxShadow: '4px 4px 0px 0px #009ACE, 4px 4px 0px 2px #1a1a1a' };
+      const secondaryShadow = { boxShadow: '4px 4px 0px 0px #fedd00, 4px 4px 0px 2px #1a1a1a' };
+
+      const wrenchSvg = React.createElement('svg', { viewBox: '0 0 24 24', style: { width: 16, height: 16, fill: 'currentColor' } },
+        React.createElement('path', { d: 'M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z' })
+      );
+
+      return (
+        <div style={wrapperStyle}>
+          <div style={cardStyle}>
+            <div style={titleStyle}>Something went wrong</div>
+            <div style={subtitleStyle}>Don't worry, we can fix it.</div>
+            <div style={msgStyle}>{errorMsg}</div>
+            <div style={actionsStyle}>
+              <button onClick={deepLink} style={{ ...btnBase, ...primaryShadow }}>
+                {wrenchSvg} Fix in VibesOS
+              </button>
+              <button onClick={() => this.setState({ error: null, componentStack: null })} style={{ ...btnBase, ...secondaryShadow }}>
+                Try Again
+              </button>
+              <button data-copy-error onClick={copyToClipboard} style={{
+                fontSize: '0.8rem', color: '#555', cursor: 'pointer',
+                textDecoration: 'underline', textUnderlineOffset: '2px',
+                background: 'none', border: 'none', fontFamily: 'inherit',
+              }}>
+                or copy error to clipboard
+              </button>
+            </div>
+            <details style={{ borderTop: '1px solid rgba(0,0,0,0.1)', margin: 0 }}>
+              <summary style={{ padding: '0.75rem 1.5rem', fontSize: '0.75rem', color: '#999', cursor: 'pointer', userSelect: 'none' }}>
+                Technical details
+              </summary>
+              <pre style={{
+                margin: 0, padding: '0.75rem 1.5rem 1rem', fontSize: '0.7rem',
+                fontFamily: "ui-monospace, 'SF Mono', Monaco, 'Cascadia Code', monospace",
+                lineHeight: 1.4, color: '#666', background: 'rgba(0,0,0,0.03)',
+                overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+                borderBottomLeftRadius: '10px', borderBottomRightRadius: '10px',
+              }}>
+                {stack}
+                {allConsoleLogs.length > 0 && (
+                  <>
+                    {'\n\n'}
+                    <span style={{ fontWeight: 600, color: '#999', fontFamily: 'inherit', fontSize: '0.7rem' }}>Recent console:</span>
+                    {'\n' + allConsoleText}
+                  </>
+                )}
+              </pre>
+            </details>
+          </div>
+        </div>
+      );
+    }
+  }
+
   // --- Reconnecting WebSocket Synchronizer ---
   function createReconnectingSynchronizer(store, wsUrl, onStatusChange) {
     let synchronizer = null;
@@ -191,7 +373,7 @@
             <SharingBridge />
             <AppContext.Provider value={{ isReady, isSyncing, user }}>
               <HiddenMenuWrapper menuContent={<VibesPanel />}>
-                <App />
+                <AppErrorBoundary><App /></AppErrorBoundary>
               </HiddenMenuWrapper>
             </AppContext.Provider>
           </SignedIn>

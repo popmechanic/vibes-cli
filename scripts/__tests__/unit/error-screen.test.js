@@ -79,3 +79,24 @@ describe('Vibes error screen redesign', () => {
     expect(delta()).toContain('this.setState');
   });
 });
+
+describe('Riff error screen', () => {
+  const delta = () => readFileSync(join(PLUGIN_ROOT, 'skills/riff/template.delta.html'), 'utf8');
+
+  it('riff delta has AppErrorBoundary class', () => {
+    expect(delta()).toContain('class AppErrorBoundary');
+  });
+
+  it('riff delta wraps App in AppErrorBoundary', () => {
+    expect(delta()).toContain('<AppErrorBoundary>');
+    expect(delta()).toContain('</AppErrorBoundary>');
+  });
+
+  it('riff error screen has vibes://fix deep link', () => {
+    expect(delta()).toContain('vibes://fix');
+  });
+
+  it('riff error screen has clipboard fallback', () => {
+    expect(delta()).toContain('clipboard');
+  });
+});
