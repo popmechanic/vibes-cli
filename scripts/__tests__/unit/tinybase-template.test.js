@@ -54,6 +54,22 @@ describe('TinyBase template', () => {
     expect(delta).toContain('</AppErrorBoundary>');
   });
 
+  it('vibes delta error boundary captures componentStack', () => {
+    const delta = readFileSync(join(PLUGIN_ROOT, 'skills/vibes/template.delta.html'), 'utf8');
+    expect(delta).toContain('componentStack');
+  });
+
+  it('vibes delta error boundary has vibes://fix deep link', () => {
+    const delta = readFileSync(join(PLUGIN_ROOT, 'skills/vibes/template.delta.html'), 'utf8');
+    expect(delta).toContain('vibes://fix');
+  });
+
+  it('riff delta has AppErrorBoundary wrapping App', () => {
+    const delta = readFileSync(join(PLUGIN_ROOT, 'skills/riff/template.delta.html'), 'utf8');
+    expect(delta).toContain('class AppErrorBoundary');
+    expect(delta).toContain('<AppErrorBoundary>');
+  });
+
   it('vibes delta has template-level isReady gate', () => {
     const delta = readFileSync(join(PLUGIN_ROOT, 'skills/vibes/template.delta.html'), 'utf8');
     expect(delta).toMatch(/if\s*\(\s*!isReady\s*\)/);
