@@ -244,7 +244,18 @@ async function main() {
 			throw new Error("Plugin not found after setup — this should not happen");
 		}
 	} else {
-		// Normal startup — verify deps exist
+		// Normal startup — check for plugin content changes (same version, new code)
+		const bundledPath = getBundledPluginPath();
+		if (bundledPath) {
+			const pluginResult = await installPlugin(bundledPath);
+			if (pluginResult.skipped) {
+				log("[vibes-desktop] Plugin content unchanged, skipping reinstall");
+			} else {
+				log(`[vibes-desktop] Plugin content changed, reinstalled v${pluginResult.version}`);
+			}
+		}
+
+		// Verify deps exist
 		if (!checkClaude()) {
 			// Claude disappeared — re-trigger setup
 			log("[vibes-desktop] Claude binary missing, re-running setup");
