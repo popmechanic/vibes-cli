@@ -5,6 +5,31 @@
  * and provides per-task default profiles.
  */
 
+const CORE_REFS = ['generation-rules.md', 'data-api.md', 'style-guide.md'];
+
+const EDITOR_ENVIRONMENT = `
+EDITOR ENVIRONMENT CONSTRAINTS:
+You are running inside the Vibes web editor.
+Available tools: Read, Edit, Write, Glob, Grep. No Bash, no terminal, no Agent spawning.
+Working directory is the app project root. You are editing app.jsx.
+Prioritize Edit calls over analysis — turns are limited.`;
+
+export function buildSkillAppendix(pluginRoot) {
+  const loaded = [];
+  for (const f of CORE_REFS) {
+    const path = join(pluginRoot, 'skills/vibes/references', f);
+    if (existsSync(path)) {
+      loaded.push(readFileSync(path, 'utf-8'));
+    } else {
+      console.warn(`[skill-inject] WARNING: Core reference missing: ${path}`);
+    }
+  }
+  if (loaded.length === 0) {
+    console.error('[skill-inject] FATAL: No core reference files found. Agent will lack framework guidance.');
+  }
+  return [EDITOR_ENVIRONMENT, ...loaded].join('\n\n---\n\n');
+}
+
 /**
  * Per-task default configurations.
  * All tasks get unrestricted tool access (no --tools flag).
@@ -60,6 +85,13 @@ export function buildClaudeArgs(config = {}) {
     args.push('--model', config.model);
   }
 
+  if (config.pluginRoot) {
+    const appendix = buildSkillAppendix(config.pluginRoot);
+    if (appendix) {
+      args.push('--append-system-prompt', appendix);
+    }
+  }
+
   if (config.addDirs) {
     for (const dir of config.addDirs) {
       args.push('--add-dir', dir);
@@ -104,11 +136,17 @@ export function buildPersistentArgs(config = {}) {
     '--verbose',
   ];
   if (config.model) args.push('--model', config.model);
+  if (config.pluginRoot) {
+    const appendix = buildSkillAppendix(config.pluginRoot);
+    if (appendix) {
+      args.push('--append-system-prompt', appendix);
+    }
+  }
   // No --tools restriction, no --max-turns, no --no-session-persistence
   return args;
 }
 
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { spawnSync } from 'child_process';
 import { join } from 'path';
 import { homedir } from 'os';
