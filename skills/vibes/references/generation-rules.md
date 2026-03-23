@@ -219,13 +219,17 @@ The template scope already contains React, the store, and all TinyBase hooks. Ad
 
 **Sync Status**: `isSyncing` from `useApp()` indicates active sync. The template handles WebSocket connection and reconnection automatically.
 
-**Don't build sync/connection status UI.** The template already renders a `SyncStatusDot` in the top-right corner that shows "synced", "connecting", "reconnecting", or "offline" automatically. If your app adds its own sync indicator, users will see two overlapping status elements — yours and the built-in one. Use `isSyncing` for logic (e.g., disabling a save button while syncing) but not for rendering status text or icons.
+**Don't build sync/connection status UI — not even decorative.** The template already renders a `SyncStatusDot` in the top-right corner that shows "synced", "connecting", "reconnecting", or "offline" automatically. Any text or element that implies connection state — whether dynamic OR static — confuses users by appearing alongside the built-in indicator. Use `isSyncing` for logic (e.g., disabling a save button while syncing) but never render status text or icons.
 
+This includes **all** of the following, even as static/decorative labels:
 ```jsx
-// These all duplicate the built-in SyncStatusDot — don't render sync state:
+// NEVER render any of these — dynamic or static:
 {isSyncing && <div className="sync-badge">Syncing...</div>}
 <span className="status">{isOnline ? 'Online' : 'Offline'}</span>
 <div className="connection-status">Connected</div>
+<span>CREW ONLINE</span>        // static "online" label
+<span>LIVE</span>               // static "live" badge
+<div>● Connected</div>          // decorative connection dot
 
 // isSyncing is fine for logic, just not for display:
 const { isReady, isSyncing } = useApp();
@@ -238,7 +242,7 @@ if (!isReady) return <div>Loading...</div>;
 - WebSocket URLs, auth logic, connection handling
 - Direct `store.*` method calls — use callback hooks exclusively
 - Schema definitions or store configuration
-- Sync/connection status indicators (dots, badges, "online/offline" text, "syncing" spinners) — the built-in `SyncStatusDot` already handles this, and a custom one will visually overlap with it
+- Sync/connection status indicators — dynamic OR static (dots, badges, "online" labels, "connected" text, "LIVE" badges, "syncing" spinners, crew/user online counts) — the built-in `SyncStatusDot` already handles this
 - Skipping `useApp()` in the root App component — always call `const { isReady, isSyncing } = useApp();` to activate sync
 - `useState` for persistent data — use TinyBase tables for all data that should survive a reload; `useState` is only for ephemeral UI (modals, hover, in-progress form text)
 - Objects or arrays as cell values — cells are scalars only (string, number, boolean)

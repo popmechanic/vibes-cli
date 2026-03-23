@@ -20,7 +20,7 @@ const RECENCY_REMINDER = `
 CRITICAL REMINDERS (see system prompt for full reference):
 - NO imports. NO createStore. Hooks are pre-existing globals.
 - useApp() is mandatory in root App. Cells are scalars only (string/number/boolean).
-- No sync/connection status UI — the template provides SyncStatusDot automatically.
+- No sync/connection status UI, not even decorative ("Online", "LIVE", "Connected") — SyncStatusDot is built-in.
 - Table names must be string literals: useRowIds('todos'), never useRowIds(tableName).`;
 
 // --- Chat prompt builder ---

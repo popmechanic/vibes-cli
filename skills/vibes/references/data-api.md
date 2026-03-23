@@ -330,4 +330,4 @@ Quick checklist — for detailed explanations and code examples, read `${CLAUDE_
 - **Seed demo data via button**, not `useEffect` on mount — hydration races cause data loss or duplication
 - **Every app needs a "Load Demo Data" button** — visible when table is empty (`useRowCount('tableName') === 0`)
 - **`isReady` is always true** — the template gates rendering. Use `useApp()` for sync activation, not readiness checks.
-- **No sync/connection status UI** — the template renders a built-in `SyncStatusDot` (top-right corner) that shows synced/connecting/offline automatically. Custom sync indicators (dots, badges, "Connected", "LIVE", "Online/Offline" text, syncing spinners) will overlap with it. Use `isSyncing` for logic only (e.g., disabling a button), never for rendering status.
+- **No sync/connection status UI — not even decorative** — the template renders a built-in `SyncStatusDot` (top-right corner). Never render anything that implies connection state, including static labels like "Online", "LIVE", "Connected", "Crew Online", or user-online counts. Use `isSyncing` for logic only (e.g., disabling a button), never for display.
