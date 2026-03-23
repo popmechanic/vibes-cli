@@ -10,6 +10,22 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/vibes-favicon/apple-touch-icon.png" />
     <link rel="manifest" href="/assets/vibes-favicon/site.webmanifest" />
     <script>globalThis.process = { env: { NODE_ENV: "production" } };</script>
+    <script>
+      // Console capture ring buffer — feeds error context to AppErrorBoundary
+      (function() {
+        var MAX = 20;
+        var buf = window.__VIBES_CONSOLE_LOG__ = [];
+        var _log = console.log, _warn = console.warn, _err = console.error;
+        function capture(level, origFn, args) {
+          if (buf.length >= MAX) buf.shift();
+          buf.push({ level: level, message: [].slice.call(args).map(String).join(' '), timestamp: Date.now() });
+          origFn.apply(console, args);
+        }
+        console.log = function() { capture('log', _log, arguments); };
+        console.warn = function() { capture('warn', _warn, arguments); };
+        console.error = function() { capture('error', _err, arguments); };
+      })();
+    </script>
     <script src="https://unpkg.com/@babel/standalone@7.26.0/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <style>
