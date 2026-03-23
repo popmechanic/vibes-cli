@@ -117,7 +117,7 @@ export function nextState(current: BridgeState, action: BridgeAction): BridgeSta
 
 // --- Persistent Bridge ---
 
-export function createBridge(appDir: string, onEvent: EventCallback): PersistentBridge {
+export function createBridge(appDir: string, onEvent: EventCallback, pluginRoot?: string): PersistentBridge {
   let state: BridgeState = 'idle';
   let proc: ReturnType<typeof Bun.spawn> | null = null;
   let seq = 0;
@@ -145,7 +145,7 @@ export function createBridge(appDir: string, onEvent: EventCallback): Persistent
   }
 
   function spawn(): void {
-    const args = buildPersistentArgs({});
+    const args = buildPersistentArgs({ pluginRoot });
     const claudeBin = resolveClaudeBin();
     console.log(`[Bridge] Spawning persistent process (bin: ${claudeBin}, cwd: ${appDir})`);
     console.log(`[Bridge] Args: ${args.join(' ')}`);
@@ -407,6 +407,7 @@ export async function runOneShot(
     model: opts.model,
     tools: opts.tools,
     permissionMode: opts.permissionMode,
+    pluginRoot: projectRoot,
   });
 
   const claudeBin = resolveClaudeBin();

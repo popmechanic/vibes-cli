@@ -155,7 +155,7 @@ function getOrCreateBridge(ctx: ServerContext, appDir: string): PersistentBridge
 
       // Forward to all connected clients
       broadcast(event);
-    });
+    }, ctx.projectRoot);
     console.log(`[WS] Created persistent bridge for ${appDir}`);
   }
 
