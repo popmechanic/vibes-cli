@@ -29,6 +29,7 @@ export interface ServerContext {
   themeDir: string;
   animationDir: string;
   pluginSkills: any[];
+  vibesSkillContent: string;
   backupTimestamps: Record<string, number>;
   managed?: boolean;
   onWindowControl?: (action: string) => void;
@@ -90,7 +91,42 @@ export function loadConfig(): ServerContext {
 
   // Discover plugin skills
   const pluginSkills = discoverPluginSkills();
+
+  // Register vibes reference files as internal skills (selectable in editor)
+  const refsDir = join(projectRoot, 'skills/vibes/references');
+  if (existsSync(refsDir)) {
+    for (const file of readdirSync(refsDir).filter(f => f.endsWith('.md'))) {
+      const refPath = join(refsDir, file);
+      const content = readFileSync(refPath, 'utf-8');
+      const frontmatter = parseSkillFrontmatter(content);
+      pluginSkills.push({
+        id: `vibes/${file.replace('.md', '')}`,
+        name: frontmatter.name || file.replace('.md', '').replace(/-/g, ' '),
+        description: frontmatter.description || '',
+        pluginName: 'vibes',
+        marketplace: '',
+        skillMdPath: refPath,
+      });
+    }
+  }
+
   console.log(`Skills: ${pluginSkills.length} discovered`);
+
+  // Load vibes SKILL.md — extract TinyBase Data API section for editor prompts
+  const skillMdPath = join(projectRoot, 'skills/vibes/SKILL.md');
+  let vibesSkillContent = '';
+  if (existsSync(skillMdPath)) {
+    const fullContent = readFileSync(skillMdPath, 'utf-8');
+    const apiStart = fullContent.indexOf('## TinyBase Data API');
+    const deployStart = fullContent.indexOf('## Deployment Options');
+    if (apiStart !== -1 && deployStart !== -1) {
+      vibesSkillContent = fullContent.slice(apiStart, deployStart).trim();
+    } else if (apiStart !== -1) {
+      vibesSkillContent = fullContent.slice(apiStart).trim();
+    }
+    if (vibesSkillContent.length > 30000) vibesSkillContent = vibesSkillContent.slice(0, 30000);
+    console.log(`Loaded vibes SKILL.md TinyBase section: ${(vibesSkillContent.length / 1024).toFixed(1)}KB`);
+  }
 
   return {
     projectRoot,
@@ -107,6 +143,7 @@ export function loadConfig(): ServerContext {
     themeDir,
     animationDir,
     pluginSkills,
+    vibesSkillContent,
     backupTimestamps: {},
   };
 }

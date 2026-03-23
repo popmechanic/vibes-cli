@@ -18,10 +18,11 @@ import { AI_INSTRUCTIONS_CHAT, AI_INSTRUCTIONS_GENERATE, THEME_SECTION_MARKERS }
 
 const TINYBASE_INVARIANT_RULES = `
 ## MANDATORY (never skip)
-1. ALWAYS call useApp() in the root App component: const { isReady, isSyncing, user } = useApp(); — this activates sync.
+1. ALWAYS call useApp() in the root App component: const { isReady, isSyncing } = useApp(); — this activates sync.
 2. ALL persistent data in TinyBase tables. useState ONLY for ephemeral UI (modals, hover, in-progress form text).
-3. For shared/multiplayer apps: every user-owned row must include createdBy: user?.email || 'anonymous'.
-4. Cells are scalars only (string, number, boolean). Never objects or arrays.
+3. For user identity, use useUser() which returns { isSignedIn, user } where user has .email, .id, .firstName (private apps only).
+4. For shared/multiplayer apps: every user-owned row must include createdBy: oidcUser.email (not useApp().user which is always null).
+5. Cells are scalars only (string, number, boolean). Never objects or arrays.
 `;
 
 // --- Chat prompt builder ---
@@ -107,7 +108,19 @@ EFFECT RULES:
     skillBlock = buildSkillBlock(ctx, skillId);
   }
 
-  const prompt = `${skillBlock}${referenceBlock}The user is iterating on a React app in app.jsx. Read app.jsx first, then Edit it.
+  // Always inject vibes TinyBase baseline — gives the chat agent authoritative
+  // SKILL.md guidance and an anti-hallucination guardrail against obsolete systems
+  const vibesBaseline = ctx.vibesSkillContent
+    ? `VIBES PLATFORM CONTEXT:
+This app runs on the Vibes platform using TinyBase for data and Pocket ID (OIDC) for auth.
+Do not reference Clerk, Fireproof, Connect Studio, or VITE_* environment variables — those are obsolete.
+
+${ctx.vibesSkillContent}
+
+`
+    : '';
+
+  const prompt = `${vibesBaseline}${skillBlock}${referenceBlock}The user is iterating on a React app in app.jsx. Read app.jsx first, then Edit it.
 
 User says: "${message}"${effectBlock}
 
@@ -117,7 +130,7 @@ RULES:
 - Preserve all components, hooks, state, data models, __VIBES_THEMES__, useVibesTheme()
 - Do NOT add imports, do NOT use TypeScript, keep export default App
 - TinyBase hooks (useRowIds, useCell, useAddRowCallback, etc.) are PRE-EXISTING GLOBALS. NEVER import, redeclare, or alias them.
-- useApp() returns { isReady, isSyncing, user }.
+- useApp() returns { isReady, isSyncing }. For user identity, use useUser() which returns { isSignedIn, user } where user has .email, .id, .firstName.
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
 - Never rename table names or cell names — users would lose data
 - Table names are always simple string literals ('todos', 'items'). Never refactor them into variables or constants.${useAI ? AI_INSTRUCTIONS_CHAT : ''}
@@ -153,6 +166,23 @@ export function buildGeneratePrompt(
   } catch (e) {
     // style-prompt.txt not available
   }
+
+  // TinyBase reference sourced from SKILL.md (loaded at server startup).
+  // Replaces the previously-hardcoded DATABASE block with authoritative SKILL.md content.
+  const tinybaseRef = ctx.vibesSkillContent || `DATABASE (TinyBase — all hooks are pre-existing globals, NO imports needed):
+- useRowIds('tableName') → string[], useCell('tableName', rowId, 'cellName') → value
+- useSortedRowIds('tableName', 'sortCell', desc?, offset?, limit?) → string[]
+- useRowCount('tableName') → number
+- useAddRowCallback('tableName', (param) => ({ cell: val }), [deps]) — creates rows
+- useSetCellCallback('tableName', rowId, 'cellName', (param) => newValue) — updates cells
+- useSetPartialRowCallback('tableName', rowId, (param) => ({ cell: val })) — partial updates
+- useDelRowCallback('tableName', rowId) — deletes rows
+- useValue('key') / useSetValueCallback('key', () => value) — app-level settings
+- useCellState('table', rowId, 'cell') → [value, setter] — like useState but persisted
+- useValueState('key') → [value, setter] — like useState but persisted
+- useApp() → { isReady, isSyncing } — call in root App component to activate sync
+- NO imports. NO createStore. NO direct store.* calls. Use callback hooks only.
+Table names MUST be simple string literals. NEVER use variables or template literals for table names.`;
 
   // Design reference path — skip theme resolution, let the reference guide design
   const hasRef = reference && reference.name && reference.dataUrl;
@@ -307,33 +337,7 @@ Write the complete app to app.jsx. Rules:
 
 ${THEME_SECTION_MARKERS}
 
-DATABASE (TinyBase — all hooks are pre-existing globals, NO imports needed):
-- useRowIds('tableName') returns array of row IDs
-- useCell('tableName', rowId, 'cellName') returns a single cell value
-- useSortedRowIds('tableName', 'sortCell', descending, offset, limit) for paginated lists
-- useRowCount('tableName') returns total row count
-- useAddRowCallback('tableName', (param) => ({ cell1: val, createdAt: Date.now() }), [deps])
-- useSetCellCallback('tableName', rowId, 'cellName', (_e) => (current) => newValue) for toggles/updates
-- useSetPartialRowCallback('tableName', rowId, (param) => ({ cell: newVal })) for partial updates
-- useDelRowCallback('tableName', rowId) for deletion
-- useValue('key') / useSetValueCallback('key', () => value) for app-level settings
-- CONVENIENCE: const [val, setVal] = useCellState('table', rowId, 'cell') — read+write like useState but persisted
-- CONVENIENCE: const [val, setVal] = useValueState('key') — read+write app-level value
-- useApp() returns { isReady, isSyncing, user }
-- NO import statements. NO createStore. NO direct store.* calls. Use callback hooks only.
-- Store ALL persistent data in TinyBase (useAddRowCallback, useCellState). Use useState ONLY for ephemeral UI state (form inputs, modals, selections).
-
-EXAMPLE — a todo list (copy this pattern):
-  const ids = useRowIds('todos');
-  const addTodo = useAddRowCallback('todos', (text) => ({ text, done: false, createdAt: Date.now() }), []);
-  // In child: const text = useCell('todos', id, 'text');
-  // Toggle: useSetCellCallback('todos', id, 'done', (_e) => (curr) => !curr);
-  // Delete: useDelRowCallback('todos', id);
-
-CRITICAL: Table names MUST be simple string literals ('todos', 'items', 'notes').
-NEVER use variables, constants, or template literals for table names.
-WRONG: useRowIds(tableName)  useRowIds('\${tableId}')  useRowIds(TABLE_NAME)
-RIGHT: useRowIds('todos')    useCell('todos', id, 'text')${useAI ? AI_INSTRUCTIONS_GENERATE : ''}
+${tinybaseRef}${useAI ? AI_INSTRUCTIONS_GENERATE : ''}
 ${TINYBASE_INVARIANT_RULES}`;
 
     return {
@@ -440,33 +444,7 @@ Write the complete app to app.jsx. Rules:
 
 ${THEME_SECTION_MARKERS}
 
-DATABASE (TinyBase — all hooks are pre-existing globals, NO imports needed):
-- useRowIds('tableName') returns array of row IDs
-- useCell('tableName', rowId, 'cellName') returns a single cell value
-- useSortedRowIds('tableName', 'sortCell', descending, offset, limit) for paginated lists
-- useRowCount('tableName') returns total row count
-- useAddRowCallback('tableName', (param) => ({ cell1: val, createdAt: Date.now() }), [deps])
-- useSetCellCallback('tableName', rowId, 'cellName', (_e) => (current) => newValue) for toggles/updates
-- useSetPartialRowCallback('tableName', rowId, (param) => ({ cell: newVal })) for partial updates
-- useDelRowCallback('tableName', rowId) for deletion
-- useValue('key') / useSetValueCallback('key', () => value) for app-level settings
-- CONVENIENCE: const [val, setVal] = useCellState('table', rowId, 'cell') — read+write like useState but persisted
-- CONVENIENCE: const [val, setVal] = useValueState('key') — read+write app-level value
-- useApp() returns { isReady, isSyncing, user }
-- NO import statements. NO createStore. NO direct store.* calls. Use callback hooks only.
-- Store ALL persistent data in TinyBase (useAddRowCallback, useCellState). Use useState ONLY for ephemeral UI state (form inputs, modals, selections).
-
-EXAMPLE — a todo list (copy this pattern):
-  const ids = useRowIds('todos');
-  const addTodo = useAddRowCallback('todos', (text) => ({ text, done: false, createdAt: Date.now() }), []);
-  // In child: const text = useCell('todos', id, 'text');
-  // Toggle: useSetCellCallback('todos', id, 'done', (_e) => (curr) => !curr);
-  // Delete: useDelRowCallback('todos', id);
-
-CRITICAL: Table names MUST be simple string literals ('todos', 'items', 'notes').
-NEVER use variables, constants, or template literals for table names.
-WRONG: useRowIds(tableName)  useRowIds('\${tableId}')  useRowIds(TABLE_NAME)
-RIGHT: useRowIds('todos')    useCell('todos', id, 'text')${useAI ? AI_INSTRUCTIONS_GENERATE : ''}
+${tinybaseRef}${useAI ? AI_INSTRUCTIONS_GENERATE : ''}
 ${TINYBASE_INVARIANT_RULES}`;
 
   return {
@@ -657,7 +635,7 @@ CHANGE (visual only):
 
 KEEP UNCHANGED:
 - All components, hooks, functions, state, data models, layout structure
-- All Fireproof database calls, document types, query filters
+- All TinyBase hooks, table names, cell names, data models
 - No import statements, no TypeScript, keep export default App
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.`;
 

@@ -3473,7 +3473,7 @@ if (typeof window !== 'undefined') {
   import { createMergeableStore } from "tinybase/mergeable-store";
   import { createLocalPersister } from "tinybase/persisters/persister-browser";
   import { createWsSynchronizer } from "tinybase/synchronizers/synchronizer-ws-client";
-  import { Provider, useTable, useRow, useCell, useValue, useValues, useRowIds, useSortedRowIds, useRowCount, useAddRowCallback, useSetCellCallback, useSetRowCallback, useSetPartialRowCallback, useDelRowCallback, useDelCellCallback, useSetValueCallback, useCellState, useRowState, useValueState } from "tinybase/ui-react";
+  import { Provider, useTable, useRow, useCell, useValue, useValues, useRowIds, useSortedRowIds, useRowCount, useHasRow, useHasCell, useHasValue, useCellIds, useTableIds, useAddRowCallback, useSetCellCallback, useSetRowCallback, useSetPartialRowCallback, useDelRowCallback, useDelCellCallback, useDelTableCallback, useSetValueCallback, useDelValueCallback, useCellState, useRowState, useValueState } from "tinybase/ui-react";
 
   // Expose TinyBase hooks as globals for generated app code
   // useTable warning wrapper — alerts when table has >100 rows
@@ -3500,13 +3500,20 @@ if (typeof window !== 'undefined') {
   window.useRowIds = useRowIds;
   window.useSortedRowIds = useSortedRowIds;
   window.useRowCount = useRowCount;
+  window.useHasRow = useHasRow;
+  window.useHasCell = useHasCell;
+  window.useHasValue = useHasValue;
+  window.useCellIds = useCellIds;
+  window.useTableIds = useTableIds;
   window.useAddRowCallback = useAddRowCallback;
   window.useSetCellCallback = useSetCellCallback;
   window.useSetRowCallback = useSetRowCallback;
   window.useSetPartialRowCallback = useSetPartialRowCallback;
   window.useDelRowCallback = useDelRowCallback;
   window.useDelCellCallback = useDelCellCallback;
+  window.useDelTableCallback = useDelTableCallback;
   window.useSetValueCallback = useSetValueCallback;
+  window.useDelValueCallback = useDelValueCallback;
   // Convenience state hooks — familiar [value, setValue] pattern
   window.useCellState = useCellState;
   window.useRowState = useRowState;

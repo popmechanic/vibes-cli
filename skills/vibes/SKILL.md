@@ -24,16 +24,17 @@ metadata:
 
 ## Quick Navigation
 
-- [Terminal or Editor](#step-0-terminal-or-editor-ui) - Choose how to build (ask first!)
-- [Pre-Flight Check](#pre-flight-check) - Validate credentials before coding
-- [Core Rules](#core-rules) - Essential guidelines for app generation
-- [Generation Process](#generation-process) - Design reasoning and code output
-- [Assembly Workflow](#assembly-workflow) - Build the final app
-- [UI Style & Theming](#ui-style--theming) - OKLCH colors and design patterns
-- [TinyBase Data API](#tinybase-data-api) - Data store operations and hooks
-- [AI Features](#ai-features-optional) - Optional AI integration
-- [Common Mistakes](#common-mistakes-to-avoid) - Avoid these pitfalls
-- [Deployment Options](#deployment-options) - Where to deploy
+- [Terminal or Editor](#step-0-terminal-or-editor-ui) — Choose how to build (ask first!)
+- [Pre-Flight Check](#pre-flight-check) — Validate credentials before coding
+- [Core Rules](#core-rules) — Essential guidelines for app generation
+- [Generation Process](#generation-process) — Design reasoning and code output
+- [Assembly Workflow](#assembly-workflow) — Build the final app
+- [UI Style & Theming](#ui-style--theming) — OKLCH colors and design patterns
+- [TinyBase Data API](#tinybase-data-api) — Hook reference, patterns, architectures
+- [AI Features](#ai-features-optional) — Optional AI integration
+- [Bug Prevention](#patterns-that-prevent-bugs) — Quick checklist
+- [Extended Docs](#when-to-read-extended-docs) — Reference files for deeper patterns
+- [Deployment Options](#deployment-options) — Where to deploy
 
 ---
 
@@ -78,9 +79,9 @@ if (tokens && !isTokenExpired(tokens.expiresAt)) {
 ## Step 0: Terminal or Editor UI?
 
 **This is the very first question — ask before anything else (after auth check above).**
-**DO NOT check .env, credentials, or project state before asking this question.**
-**DO NOT invoke any other skill before asking this question.**
-**If Editor is chosen, skip ALL pre-flight checks — the editor handles everything.**
+Do not check .env, credentials, or project state before asking this question.
+Do not invoke any other skill before asking this question.
+If Editor is chosen, skip all pre-flight checks — the editor handles everything.
 
 Ask the user:
 > "How do you want to build? **Editor** (opens a browser UI with live preview, chat, and deploy button) or **Terminal** (I'll generate and deploy from here)?"
@@ -115,7 +116,7 @@ Present Editor as the first/recommended option.
 
 ## Pre-Flight Check
 
-**MANDATORY: Complete these steps BEFORE generating any app code.**
+**Complete these steps before generating any app code.**
 
 - Auth is automatic — on first deploy, a browser window opens for Pocket ID login
 - Tokens are cached at `~/.vibes/auth.json` for subsequent deploys
@@ -140,7 +141,7 @@ Do not default to ambient mood generators, floating orbs, or meditation apps unl
 - **Minimize external dependencies** - Implement dynamic components (autocomplete, drag-and-drop, modals) yourself instead of pulling in libraries. Every esm.sh dependency risks the React singleton problem and adds load time. Only use external packages when the functionality is truly essential.
 - **Data must be visible** - Every document type the app saves must be browseable in the UI. Lists should be on the main page, not hidden behind navigation. List items should be clickable for details. Never build a form that saves data the user can't find.
 - **Keep code concise** - Shorter files mean faster iteration in the editor. Don't pad with comments or verbose abstractions.
-- **Simple string table names** - Always use string literals for table names: `useRowIds('todos')`, `useCell('items', id, 'name')`. NEVER abstract table names into variables, constants, or template literals. Each table name should be a plain string that appears directly in the hook call.
+- **Simple string table names** - Use string literals for table names: `useRowIds('todos')`, `useCell('items', id, 'name')`. Do not abstract table names into variables, constants, or template literals — each table name should be a plain string that appears directly in the hook call.
 
 ## Generation Process
 
@@ -181,16 +182,16 @@ Values:
 
 Use descriptive, lowercase, plural names. These exact strings appear in every hook call — `useRowIds('items')`, `useCell('items', id, 'name')`.
 
-### Step 1.5: Read Design Tokens (MANDATORY)
+### Step 1.5: Read Design Tokens
 
-**You MUST read this file before generating code:**
+**Read this file before generating code:**
 ```
 Read file: ${CLAUDE_PLUGIN_ROOT}/build/design-tokens.txt
 ```
 The token catalog defines all available CSS custom properties: `colors`, `radius`, `shadows`, `spacing`, `typography`, `vibes-core`, `vibes-buttons`, `vibes-grid`. It also includes the VIBES_THEME_CSS with `.btn` button classes, the grid/frame page styles, and a **Component Catalog** with bare HTML structures (card, input, badge, table, tabs, accordion, dialog, etc.).
 
 **In your generated code:**
-- **ALWAYS wrap your App in a full-page container div** with `min-height: 100vh` and an explicit `background-color` — never leave the page background transparent or unstyled
+- **Wrap your App in a full-page container div** with `min-height: 100vh` and an explicit `background-color` — never leave the page background transparent or unstyled
 - Use `var(--token-name)` references — NOT hardcoded color values
 - Use `--color-*` for semantic colors, `--radius-*` for border-radius, `--shadow-brutalist-*` for neo-brutalist shadows
 - Use `className="btn"` for buttons (pre-styled neo-brutalist)
@@ -219,7 +220,7 @@ Read file: ${CLAUDE_SKILL_DIR}/themes/{selected-theme}.txt
 - Personality notes (how the theme FEELS — guide your creative choices)
 - Animation and SVG guidelines
 
-Generate one layout using the selected theme's design principles. Do NOT add `useVibesTheme()` or theme branching — theme switching is handled by the live preview wrapper, not inside the app.
+Generate one layout using the selected theme's design principles. Do not add `useVibesTheme()` or theme branching — theme switching is handled by the live preview wrapper, not inside the app.
 
 **CREATIVE LIBERTY:** Themes are mood boards, not templates. Two apps using the same theme should FEEL related but LOOK different. Use the color tokens exactly (they're the mood identity), follow the design principles, but invent unique layouts, card designs, hover effects, and decorative elements for each app. The reference CSS is ONE interpretation — don't copy it verbatim.
 
@@ -289,7 +290,7 @@ const STYLE = `
 `;
 
 export default function App() {
-  const { isSyncing, user } = useApp();
+  const { isReady, isSyncing } = useApp();
   // ... component logic using TinyBase hooks (useRowIds, useCell, useAddRowCallback, etc.)
   // Note: isReady is always true here — the template gates rendering automatically
 
@@ -318,22 +319,19 @@ export default function App() {
 - `@theme:decoration` — SVG elements, atmospheric backgrounds (in JSX)
 - **Outside markers:** ONLY pure-layout classes (display, grid, gap, padding, margin, position, width/height, flex, overflow). If a class has ANY visual property, it goes in `@theme:surfaces`.
 
-**⚠️ CRITICAL: TinyBase Hook Pattern**
+**TinyBase Hook Pattern**
 
-All TinyBase hooks are globals — never import them. The template sets up the store, persister, and synchronizer. Your code only uses hooks:
+All TinyBase hooks are globals provided by the template — no imports needed. The template creates the store, sets up persistence, and manages sync. Generated app code only needs to call hooks:
 
 ```jsx
-// ✅ CORRECT — hooks are globals, no imports needed
-const { isReady, isSyncing, user } = useApp();
+// Hooks are globals — just use them directly
+const { isReady, isSyncing } = useApp();
 const ids = useRowIds('todos');
 const text = useCell('todos', id, 'text');
 const addTodo = useAddRowCallback('todos', () => ({ text: '', done: false }));
-
-// ❌ WRONG — DO NOT USE
-import { useRow } from "tinybase/ui-react";           // WRONG - no imports
-const store = createMergeableStore();                   // WRONG - template creates the store
-store.setCell('todos', id, 'done', true);               // WRONG - use callback hooks
 ```
+
+The template scope already contains React, the store, and all TinyBase hooks. Adding `import` statements creates duplicate module instances that break React's shared context. Similarly, calling `createMergeableStore()` creates a second disconnected store — the template's store is the one connected to sync.
 
 **Sync Status**: `isSyncing` from `useApp()` indicates active sync. The template handles WebSocket connection and reconnection automatically.
 
@@ -457,22 +455,27 @@ TinyBase is a reactive data store with fine-grained hooks. Data persists across 
 
 ### Globals Available (provided by the template)
 
-All of these are globally available — no imports needed. React globals: `React, useState, useEffect, useRef, useCallback, useMemo, createContext, useContext`. Auth (private apps only): `useUser, SignInButton, UserButton, SignedIn, SignedOut`.
+All of these are globally available — no imports needed. React globals: `React, useState, useEffect, useRef, useCallback, useMemo, createContext, useContext`. Auth (private apps only): `useUser, SignInButton, UserButton, SignedIn, SignedOut`. TinyBase existence/introspection hooks: `useHasRow, useHasCell, useHasValue, useCellIds, useTableIds`.
 
 ### TinyBase Hook API Reference
 
-Every callback hook returns a function that takes **ONE argument** (the parameter). Do NOT call with `(null, value)` — the second argument is the Store, not your value.
+Every callback hook returns a function that takes **one argument** (the parameter). Do not call with `(null, value)` — the second argument is the Store, not your value.
 
 **Reading data:**
 ```
 useCell(tableId, rowId, cellId)        → Cell | undefined     (string, number, boolean, or undefined)
 useRow(tableId, rowId)                 → {cellId: Cell}       (object of all cells in the row)
-useTable(tableId)                      → {rowId: Row}         ⚠️ AVOID — re-renders on ANY change in the table
+useTable(tableId)                      → {rowId: Row}         (re-renders on ANY change — use sparingly)
 useValue(valueId)                      → Value | undefined    (string, number, boolean, or undefined)
 useValues()                            → {valueId: Value}     (all app-level values)
 useRowIds(tableId)                     → string[]             (all row IDs in the table)
 useSortedRowIds(tableId, cellId?, descending?, offset?, limit?) → string[]
 useRowCount(tableId)                   → number
+useHasRow(tableId, rowId)              → boolean          (true if row exists — use for safe detail views)
+useHasCell(tableId, rowId, cellId)     → boolean          (true if cell exists and is not undefined)
+useHasValue(valueId)                   → boolean          (true if value has been set)
+useCellIds(tableId, rowId)             → string[]         (all cell names in a row — for dynamic/flexible schemas)
+useTableIds()                          → string[]         (all table names in the store)
 ```
 
 **Writing data — callback hooks (all return `(parameter) → void`):**
@@ -492,7 +495,7 @@ useSetValueCallback(valueId, (parameter) → Value, deps?)
   Callback: (newTheme) => newTheme
 
 useSetRowCallback(tableId, rowId, (parameter) → Row, deps?)
-  ⚠️ Replaces the ENTIRE row — cells you omit get deleted. Prefer useSetPartialRowCallback.
+  Replaces the ENTIRE row — cells you omit get deleted. Prefer useSetPartialRowCallback.
 
 useSetPartialRowCallback(tableId, rowId, (parameter) → Partial<Row>, deps?)
   Call:     updateItem({ name: 'new', done: true })
@@ -503,6 +506,12 @@ useDelRowCallback(tableId, rowId)
 
 useDelCellCallback(tableId, rowId, cellId)
   Call:     clearName()    — no arguments needed
+
+useDelTableCallback(tableId)
+  Call:     clearAllTodos()  — removes every row in the table
+
+useDelValueCallback(valueId)
+  Call:     clearTheme()     — removes a stored Value
 ```
 
 **State hooks (read + write like useState, but persisted and synced):**
@@ -515,7 +524,7 @@ useValueState(valueId)                 → [Value | undefined, (newValue: Value)
 **App context:**
 ```
 useApp()  → { isReady: boolean, isSyncing: boolean }
-  MANDATORY in root App component — activates sync. isReady is always true (template gates rendering).
+  Required in root App component — activates sync. isReady is always true (template gates rendering).
 
 useUser() → { isSignedIn: boolean, isLoaded: boolean, user: { email, id, firstName, lastName, username } }
   Private apps only. Email is always present. Use oidcUser.email as the user identifier.
@@ -523,9 +532,9 @@ useUser() → { isSignedIn: boolean, isLoaded: boolean, user: { email, id, first
 
 ### Data Access Patterns
 
-### MANDATORY: Always Call useApp()
+### Always Call useApp()
 
-Every app MUST call `useApp()` in the root App component. This activates the sync connection. Without it, TinyBase data is local-only and never syncs across devices.
+Call `useApp()` in the root App component — this activates the sync connection. Without it, TinyBase data stays local-only and never syncs across devices.
 
 ```jsx
 function App() {
@@ -538,7 +547,7 @@ This is not optional. Never skip it. Never move it to a child component.
 
 ### Getting the Signed-In User
 
-Do NOT use `useApp().user` — it is always null. Use `useUser()` instead:
+Do not use `useApp().user` — it is always null. Use `useUser()` instead:
 
 ```jsx
 const { user: oidcUser, isSignedIn } = useUser();
@@ -558,363 +567,90 @@ if (!isSignedIn) return <SignInButton />;
 
 `useUser()` is only available in private apps (apps deployed with the Private toggle). In public apps, `useUser` is undefined — check with `typeof useUser === 'function'` before calling it.
 
-**Fine-grained reactivity — each component calls its own hooks:**
+For detailed code examples (reactivity, master-detail, filtering, forms, custom ordering, multi-table references), read `${CLAUDE_SKILL_DIR}/references/tinybase-patterns.md`.
+
+**Essential patterns at a glance:**
+
 ```jsx
-// GOOD — only re-renders when this row changes
-function TodoItem({ id }) {
-  const text = useCell('todos', id, 'text');
-  const done = useCell('todos', id, 'done');
-  return <div>{text}</div>;
-}
+// List rows — useRowIds + child components (fine-grained reactivity)
+const ids = useRowIds('todos');
+ids.map(id => <TodoItem key={id} id={id} />);
 
-// BAD — useTable re-renders on ANY cell change in the table
-function App() {
-  const todos = useTable('todos');
-  // ...
-}
-```
+// Read cells in child components
+const text = useCell('todos', id, 'text');
 
-**Adding rows with useAddRowCallback:**
-```jsx
-const addTodo = useAddRowCallback(
-  'todos',
-  (text) => ({
-    text: text ?? '',
-    done: false,
-    createdBy: oidcUser.email,
-    createdAt: Date.now(),
-  }),
-  [oidcUser.email],  // deps — include anything from closure that changes
-);
-```
+// Add rows
+const addTodo = useAddRowCallback('todos', (text) => ({
+  text, done: false, createdAt: Date.now(),
+}), []);
 
-**Toggling/incrementing with MapCell pattern:**
-```jsx
-const toggleDone = useSetCellCallback(
-  'todos', id, 'done',
-  (_e) => (currentValue) => !currentValue,
-);
-```
+// Toggle with MapCell pattern
+const toggleDone = useSetCellCallback('todos', id, 'done', (_e) => (cur) => !cur);
 
-**Partial updates (prefer over full row replacement):**
-```jsx
-const updateName = useSetPartialRowCallback(
-  'todos', id,
-  (newName) => ({ name: newName }),
-);
-```
+// State hooks — [value, setter] like useState but persisted
+const [name, setName] = useCellState('todos', id, 'name');
+const [theme, setTheme] = useValueState('theme');
 
-**Listing rows — use useRowIds + child components:**
-```jsx
-function TodoList() {
-  const ids = useRowIds('todos');
-  return ids.map(id => <TodoItem key={id} id={id} />);
-}
-```
+// Pagination
+const itemIds = useSortedRowIds('items', 'createdAt', true, page * 25, 25);
 
-**Pagination with useSortedRowIds:**
-```jsx
-const PAGE_SIZE = 25;
-const itemIds = useSortedRowIds('items', 'createdAt', true, page * PAGE_SIZE, PAGE_SIZE);
-```
-
-**Values for app-level state:**
-```jsx
-const theme = useValue('theme');
-const setTheme = useSetValueCallback('theme', (newTheme) => newTheme);
-// Call with ONE argument — the parameter that gets passed to the callback:
-setTheme('dark');  // callback receives 'dark', returns 'dark', stored as value
-
-// WRONG — do NOT pass (null, value):
-// setTheme(null, 'dark');  // null is the parameter, 'dark' is ignored!
-```
-
-**Deleting rows:**
-```jsx
+// Delete
 const deleteTodo = useDelRowCallback('todos', id);
 ```
 
-**Convenience state hooks — familiar `[value, setValue]` pattern:**
-```jsx
-// Read + write a single cell (like useState but persisted and synced)
-const [name, setName] = useCellState('todos', id, 'name');
-
-// Read + write an app-level value
-const [theme, setTheme] = useValueState('theme');
-
-// Read + write an entire row
-const [row, setRow] = useRowState('todos', id);
-```
-
-These are simpler than callback hooks when you need both the value and a setter. Data is persisted and synced automatically — unlike `useState`, which is ephemeral.
-
 ### Choosing Your Pattern
 
-- **useCellState** = Read + write a single cell. Best for: inline editing, toggles in simple components. Simpler than `useCell` + `useSetCellCallback` when you need both.
-- **useValueState** = Read + write an app-level value. Best for: settings, preferences. Simpler than `useValue` + `useSetValueCallback`.
-- **useCell / useRow** = Read-only access to cells or full rows. Prefer `useCell` for fine-grained reactivity.
-- **useAddRowCallback** = Create new rows with auto-generated IDs. Best for: forms, new items.
-- **useSetCellCallback** = Update a cell via event handler (supports MapCell pattern for toggles/increments). Best for: onClick handlers.
-- **useSetPartialRowCallback** = Update multiple cells without replacing the whole row. Best for: form saves.
-- **useRowIds + child components** = List all rows. Each child reads its own data via `useCell`.
+- **useCellState** = Read + write a single cell. Best for: inline editing, toggles.
+- **useValueState** = Read + write an app-level value. Best for: settings, preferences.
+- **useCell / useRow** = Read-only. Prefer `useCell` for fine-grained reactivity.
+- **useAddRowCallback** = Create new rows. Best for: forms, new items.
+- **useSetCellCallback** = Update a cell (supports MapCell toggle pattern). Best for: onClick handlers.
+- **useSetPartialRowCallback** = Update multiple cells without replacing the row. Best for: form saves.
+- **useRowIds + child components** = List all rows. Each child reads its own data.
 - **useSortedRowIds** = Sorted/paginated lists. Best for: tables, feeds, leaderboards.
 - **useValue / useSetValueCallback** = Read / write app-level values via callbacks.
 
-### Data Modeling for Sync
+### Common App Architectures
 
-**What goes in TinyBase (syncs across devices):**
-- Everything the user would expect to "still be there" when they come back
-- Scores, progress, saved items, user-created content, settings
-- In multiplayer: shared state that all users need to see
+| App Type | Tables | Key Patterns |
+|----------|--------|-------------|
+| **Todo/Task list** | `tasks` | `useRowIds` + child items, `useSetCellCallback` for toggles, `useSortedRowIds` for ordering |
+| **Kanban board** | `cards` | Status cell for columns, filter by status per column, `store.setCell` for cross-column moves |
+| **Chat / Messaging** | `messages`, `users` | `useSortedRowIds('messages', 'timestamp')`, user email as row key in `users` table, auto-scroll with `useRef` |
+| **Recipe / Content app** | `items` | Master-detail with `useState(selectedId)`, `useHasRow` for safe detail view, `useCellState` for live editing |
+| **Multiplayer game** | `players`, `board` | Email-keyed rows in `players` for per-user state, shared game state in Values, turn tracking via `useValueState('currentTurn')` |
+| **Dashboard / Analytics** | `entries` | `useSortedRowIds` with pagination, computed stats inline, `useValueState` for filter persistence |
+| **Settings / Preferences** | (Values only) | `useValueState` for each setting — persists and syncs without needing a table |
 
-**What stays in useState (ephemeral, local only):**
-- UI state: is a modal open, which tab is selected, hover state
-- In-progress form input before the user submits
-- Animations, transitions, temporary visual state
+### Game and Timer Patterns
 
-**User attribution — when multiple people use the app:**
+Timer countdown is local UI state (`useState`), scores and progress belong in TinyBase. For turn-based games, store board state as shared data and player identity as per-user rows keyed by email. Full patterns: `${CLAUDE_SKILL_DIR}/references/game-patterns.md`.
 
-**Apps with multiple users need to be private.** Private apps require sign-in, which guarantees every user has a unique email via OIDC. Public apps have no user identity (`useUser` is undefined), so user attribution is impossible. Don't use `'anonymous'` or `'Guest'` as a fallback display name — if two people both show up as "anonymous" in a chat, neither can tell who said what. The email is always present in private apps, so there's no case to fall back from.
+### Multiplayer and Shared Apps
 
-Every row that belongs to a specific user must include `createdBy`. Use `useUser()` to get the email:
-```jsx
-const { user: oidcUser } = useUser();
-const userEmail = oidcUser.email; // always present in private apps
+For multiplayer apps, read the full guide: `${CLAUDE_SKILL_DIR}/references/multiplayer-guide.md`.
 
-const addItem = useAddRowCallback(
-  'items',
-  (text) => ({
-    text,
-    createdBy: userEmail,
-    createdAt: Date.now(),
-  }),
-  [userEmail],
-);
-```
-
-To show only the current user's data, filter by `createdBy`:
-```jsx
-const { user: oidcUser } = useUser();
-const userEmail = oidcUser.email;
-const allIds = useRowIds('scores');
-const myScores = allIds.filter(id => {
-  const owner = useCell('scores', id, 'createdBy');
-  return owner === userEmail;
-});
-```
-
-**Single-player apps:** All persistent data goes in TinyBase. No user filtering needed — sync just gives the user their data on all their devices.
-
-**Multiplayer/shared apps:** MUST be private. Shared data goes in TinyBase with `createdBy` on user-owned rows. Each client sees all data; filter by user when showing "my stuff."
-
-**User identity in shared apps:**
-
-`useUser().user.email` is the unique user identifier — every authenticated user has a distinct email from Pocket ID. Authentication already solves user identity, so there's no reason to generate random client IDs (localStorage UUIDs, `crypto.randomUUID`, etc.). Similarly, don't add `?.` optional chaining on `email` — it's always present in private apps, and the optional chaining suggests to readers that a null case exists, which leads to adding fallbacks like `|| 'anonymous'` that break multi-user identity.
-
-```jsx
-const { user: oidcUser } = useUser();
-const myEmail = oidcUser.email;
-const myName = oidcUser.firstName || myEmail.split('@')[0];
-```
-
-**Every shared app needs a `users` table.** Whether it's a game, chat, collaborative doc, or kanban board — store a row per user keyed by email with their display name. Auto-register on load:
-
-```jsx
-useEffect(() => {
-  if (!myEmail) return;
-  if (!store.getCell('users', myEmail, 'name')) {
-    store.setRow('users', myEmail, { name: myName, joinedAt: Date.now() });
-  }
-}, [myEmail]);
-```
-
-**Identify the current user by email**, not by position, slot number, or index:
-```jsx
-const userIds = useRowIds('users');          // all participants
-const myRecord = useRow('users', myEmail);   // my record
-const isMe = (email) => email === myEmail;   // ownership check for any row
-```
-
-**Display names, not emails** — show the `name` field from the `users` table in the UI.
-
-**For apps with roles or slots** (game seats, assigned tasks, etc.), auto-assign on join:
-```jsx
-useEffect(() => {
-  if (!myEmail) return;
-  const slots = store.getTable('slots');
-  const taken = Object.values(slots).some(s => s.email === myEmail);
-  if (taken) return;
-  const openSlot = Object.entries(slots).find(([, s]) => !s.email);
-  if (openSlot) store.setCell('slots', openSlot[0], 'email', myEmail);
-}, [myEmail]);
-```
-
-### Key Rules
-- **Prefer `useCell` in child components** over `useTable` — avoids re-rendering the entire list on every change
-- **Every app needs a "Load Demo Data" button** — visible only when the table is empty (`useRowCount('tableName') === 0`), using `useAddRowCallback` (not `useEffect` on mount)
-- **Demo data must be realistic** for the app's domain, 3-5 rows with enough variety to populate all views
-- **Cells are scalars only** — strings, numbers, booleans. Do NOT put objects or arrays in cells (cell-level last-writer-wins loses concurrent edits to different fields inside a nested object)
-- **`isReady` check is now handled by the template** — your App component only renders after the store is hydrated. You can still use `const { isReady } = useApp()` for explicitness but it's always `true`.
+Key principles:
+- **Per-user state**: key rows by `oidcUser.email` — `useCellState('players', myEmail, 'team')`
+- **Shared state**: use Values or auto-generated row IDs — `useValueState('gameStatus')`
+- **User attribution**: add `createdBy: userEmail` to user-owned rows, filter by it to show "my stuff"
+- **Users table**: every shared app registers users on load via `useSetRowCallback('users', myEmail, ...)`
+- **Write through hooks**, not `store.*` — hooks notify React's reactivity system
+- **Private apps required** — multiplayer needs auth for user identity (`useUser()`)
+- **Direct `store.*` access**: only in `useEffect` when the row ID is determined at runtime (e.g., slot assignment)
 
 ---
 
 ## AI Features (Optional)
 
-If the user's prompt suggests AI-powered features (chatbot, summarization, content generation, etc.), the app needs AI capabilities via the `useAI` hook.
+If the user's prompt suggests AI features (chatbot, summarize, generate, analyze, recommend), read the full guide: `${CLAUDE_SKILL_DIR}/references/ai-integration.md`.
 
-### Detecting AI Requirements
-
-Look for these patterns in the user's prompt:
-- "chatbot", "chat with AI", "ask AI"
-- "summarize", "generate", "write", "create content"
-- "analyze", "classify", "recommend"
-- "AI-powered", "intelligent", "smart" (in context of features)
-
-### Collecting OpenRouter Key
-
-When AI is needed, ask the user:
-
-> This app needs AI capabilities. Please provide your OpenRouter API key.
-> Get one at: https://openrouter.ai/keys
-
-Store the key for use with the `--ai-key` flag during deployment.
-
-### Using the useAI Hook
-
-The `useAI` hook is automatically included in the template when AI features are detected.
-
-**IMPORTANT:** Isolate `useAI()` in a child component to prevent AI loading/error state changes from re-rendering your data components. Use a child component for AI interactions:
-
-```jsx
-// AI interactions in a child component — isolated from data re-renders
-function AIChatInput({ onSend }) {
-  const { callAI, loading, error } = useAI();
-  const [input, setInput] = React.useState("");
-
-  const handleSend = async () => {
-    if (!input.trim()) return;
-    const message = input;
-    setInput("");
-    onSend({ role: "user", content: message });
-
-    const aiText = await callAI({
-      model: "anthropic/claude-sonnet-4",
-      messages: [{ role: "user", content: message }]
-    });
-    if (aiText) onSend({ role: "assistant", content: aiText });
-  };
-
-  return (
-    <div>
-      <input value={input} onChange={e => setInput(e.target.value)} placeholder="Type a message..." />
-      <button onClick={handleSend} disabled={loading}>{loading ? "Thinking..." : "Send"}</button>
-      {error && <p style={{ color: "red" }}>{error.message}</p>}
-    </div>
-  );
-}
-
-// Main app — TinyBase hooks for data, AI in child component
-export default function App() {
-  const messageIds = useRowIds('messages');
-
-  const addMessage = useAddRowCallback(
-    'messages',
-    (msg) => ({ role: msg.role, content: msg.content, timestamp: Date.now() }),
-  );
-
-  return (
-    <div>
-      {messageIds.map(id => <MessageRow key={id} id={id} />)}
-      <AIChatInput onSend={addMessage} />
-    </div>
-  );
-}
-
-function MessageRow({ id }) {
-  const role = useCell('messages', id, 'role');
-  const content = useCell('messages', id, 'content');
-  return <p><b>{role}:</b> {content}</p>;
-}
-```
-
-### useAI API
-
-```jsx
-const { callAI, streamAI, loading, error, clearError } = useAI();
-```
-
-**`callAI` — non-streaming (one-shot requests):**
-
-```jsx
-const text = await callAI({
-  model: "anthropic/claude-sonnet-4",
-  messages: [
-    { role: "system", content: "You are a helpful assistant." },
-    { role: "user", content: "Hello!" }
-  ],
-});
-if (!text) return; // error state set automatically
-```
-
-Returns `string` on success, `null` on error (never throws).
-
-**`streamAI` — streaming (chat UIs):**
-
-```jsx
-const stream = streamAI({
-  model: "anthropic/claude-sonnet-4",
-  messages: [{ role: "user", content: userMessage }],
-});
-if (!stream) return; // error state set
-
-let accumulated = "";
-for await (const chunk of stream) {
-  accumulated += chunk;
-  setResponse(accumulated);
-}
-```
-
-Returns an async iterator on success, `null` on error. App controls its own state.
-
-**OpenRouter parameters** — pass any [OpenRouter API param](https://openrouter.ai/docs/api/reference/overview) directly:
-
-```jsx
-const text = await callAI({
-  messages: [...],
-  temperature: 0.7,
-  max_tokens: 1000,
-  response_format: { type: "json_object" },
-  tools: [...],
-});
-```
-
-**`raw: true`** — for tool calls or usage stats, get the full OpenRouter response object:
-
-```jsx
-const response = await callAI({ messages: [...], raw: true });
-const toolCalls = response.choices[0].message.tool_calls;
-```
-
-**Error codes:**
-
-```
-error = {
-  code: "NOT_CONFIGURED" | "AUTH_REQUIRED" | "UNAUTHORIZED" | "RATE_LIMITED" | "API_ERROR" | "NETWORK_ERROR",
-  message: "Human-readable error message"
-}
-```
-
-### Deployment with AI
-
-When deploying AI-enabled apps, include the OpenRouter key:
-
-```bash
-VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-bun "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
-  --name myapp \
-  --file index.html \
-  --ai-key "sk-or-v1-your-key"
-```
+Quick summary:
+- **Detection signals**: "chatbot", "AI", "summarize", "generate", "smart"
+- **Ask for OpenRouter key**: `https://openrouter.ai/keys`
+- **`useAI()` returns**: `{ callAI, streamAI, loading, error, clearError }`
+- **Isolate in a child component** — prevents AI loading state from re-rendering data components
+- **Deploy with**: `--ai-key "sk-or-v1-..."` flag on deploy command
 
 ---
 
@@ -930,27 +666,26 @@ Complete working example — a shared grocery list. Study this pattern before ge
 
 ```jsx
 export default function App() {
-  const { user } = useApp();
+  const { isReady, isSyncing } = useApp();
   return (
     <div className="max-w-md mx-auto p-4">
       <h1 className="text-xl font-bold mb-4">Grocery List</h1>
-      <AddItem user={user} />
+      <AddItem />
       <ItemList />
     </div>
   );
 }
 
-function AddItem({ user }) {
+function AddItem() {
   const [input, setInput] = useState('');
   const addItem = useAddRowCallback(
     'items',
     (text) => ({
       name: text ?? '',
       bought: false,
-      addedBy: user?.name ?? 'someone',
       createdAt: Date.now(),
     }),
-    [user],
+    [],
   );
   const handleAdd = () => {
     if (input.trim()) {
@@ -992,7 +727,6 @@ function ItemList() {
 function GroceryItem({ id }) {
   const name = useCell('items', id, 'name');
   const bought = useCell('items', id, 'bought');
-  const addedBy = useCell('items', id, 'addedBy');
   const toggleBought = useSetCellCallback(
     'items', id, 'bought',
     (_e) => (current) => !current,
@@ -1007,7 +741,6 @@ function GroceryItem({ id }) {
       <span className={bought ? 'line-through opacity-40 flex-1' : 'flex-1'}>
         {name}
       </span>
-      <span className="text-xs opacity-50">{addedBy}</span>
       <button onClick={remove} className="text-red-400 text-sm">x</button>
     </div>
   );
@@ -1015,105 +748,45 @@ function GroceryItem({ id }) {
 ```
 
 **Key patterns demonstrated:**
-- `useApp()` for user context (isReady is always true — template gates rendering)
-- `useAddRowCallback` with deps array including `user`
+- `useApp()` activates sync — called in root component
+- `useAddRowCallback` with deps array for closures
 - `useSortedRowIds` with pagination (PAGE_SIZE 25)
-- `useCell` in child components for fine-grained reactivity (not useTable)
-- `useSetCellCallback` with MapCell pattern for toggles
+- `useCell` in child components for fine-grained reactivity
+- `useSetCellCallback` with MapCell pattern `(_e) => (current) => !current` for toggles
 - `useDelRowCallback` for deletion
-- No imports, no store access, no schema
+- No imports, no store access, no schema — all hooks are globals
 
 ---
 
-## Common Mistakes to Avoid
+## Patterns That Prevent Bugs
 
-- **DON'T** use `useTable` on large tables — it re-renders on ANY cell change. Use `useRowIds` to get IDs, then `useCell` in child components for fine-grained reactivity.
-  ```jsx
-  // BAD — re-renders entire list when any todo changes
-  function App() {
-    const todos = useTable('todos');
-    return Object.entries(todos).map(([id, row]) => <div key={id}>{row.text}</div>);
-  }
+Quick checklist — for detailed explanations and code examples, read `${CLAUDE_SKILL_DIR}/references/bug-prevention.md`.
 
-  // GOOD — each child only re-renders when its own data changes
-  function TodoList() {
-    const ids = useRowIds('todos');
-    return ids.map(id => <TodoItem key={id} id={id} />);
-  }
-  function TodoItem({ id }) {
-    const text = useCell('todos', id, 'text');
-    return <div>{text}</div>;
-  }
-  ```
-- **DON'T** abstract table names into variables or use template literals:
-  ```jsx
-  // BAD — variable table name
-  const TABLE = 'todos';
-  const ids = useRowIds(TABLE);
-
-  // BAD — template literal inside wrong quotes
-  const ids = useRowIds('${tableId}');
-
-  // GOOD — simple string literal directly in hook call
-  const ids = useRowIds('todos');
-  ```
-- **DON'T** create wrapper functions around TinyBase hooks:
-  ```jsx
-  // BAD — unnecessary abstraction
-  function useItems() { return useRowIds('items'); }
-
-  // GOOD — direct hook call
-  const itemIds = useRowIds('items');
-  ```
-- **DON'T** forget deps in `useAddRowCallback` — stale closures will capture old values:
-  ```jsx
-  // BAD — user is stale after it changes
-  const addTodo = useAddRowCallback('todos', () => ({ createdBy: user?.name }));
-
-  // GOOD — user in deps array
-  const addTodo = useAddRowCallback('todos', () => ({ createdBy: user?.name }), [user]);
-  ```
-- **DON'T** use `useSetRowCallback` when you only need to update some cells — it replaces the entire row, deleting any cells you omit. Use `useSetPartialRowCallback` instead.
-- **DON'T** put objects or arrays in cells — TinyBase cells are scalars (string, number, boolean). Cell-level last-writer-wins means concurrent edits to different fields inside a nested object will lose data. Flatten your data model.
-- **DON'T** assume `useValue()` or `useCell()` returns a string — they can return `undefined`, `number`, or `boolean`. Always guard before calling string methods: `String(useValue('playerId') || '')` not `useValue('playerId').split('@')`. This crashes when the value hasn't been set yet or is a non-string type.
-- **DON'T** call TinyBase callbacks with `(null, value)` — callback hooks like `useSetValueCallback`, `useSetCellCallback`, and `useAddRowCallback` return a function that takes ONE argument (the parameter). The second argument is the Store object, NOT your value. `setP1Id(null, userEmail)` passes `null` as the parameter and drops `userEmail`. Correct: `setP1Id(userEmail)`. The callback receives it as the first argument: `(val) => val`.
-- `isReady` check is now handled by the template — your App component only renders after the store is hydrated. You can still use `const { isReady } = useApp()` for explicitness but it's always `true`.
-- **DON'T** use white text on light backgrounds
-- **DON'T** use `fetch()` to call AI APIs directly — use `useAI` hook instead (it handles auth and proxying)
-- **DON'T** write `import` statements — all hooks and React are globals provided by the template
-- **DON'T** call `createStore`, `createMergeableStore`, or any store constructor — the template creates and manages the store
-- **DON'T** call `store.setCell()` or other direct store methods — use callback hooks (`useSetCellCallback`, `useAddRowCallback`, etc.) which are properly bound to the store
-- **DON'T** panic if you see "Cannot read properties of null (reading 'useContext')" - the template already handles the React singleton via `?external=react,react-dom` in the import map. Check that the import map wasn't accidentally modified.
-- **DON'T** hand-write `app.jsx` and assemble it manually — always generate through
-  `/vibes:vibes`, even for test or diagnostic apps. The skill generates code that's
-  compatible with the template by construction. Hand-written code may include imports
-  or patterns that conflict with the template's runtime setup.
-- **DON'T** seed demo data in `useEffect` on mount — the store may not be ready. Use a "Load Demo Data" button with `useAddRowCallback`:
-  ```jsx
-  // BAD — races against store hydration
-  React.useEffect(() => {
-    if (useRowCount('todos') === 0) { /* seed data */ }
-  }, []);
-
-  // GOOD — user-triggered, store is ready by then
-  function App() {
-    const count = useRowCount('todos');
-    const addTodo = useAddRowCallback('todos', (item) => item, []);
-    const seedDemo = () => {
-      DEFAULTS.forEach(item => addTodo(item));
-    };
-    return count === 0 ? <button onClick={seedDemo}>Load Demo Data</button> : <TodoList />;
-  }
-  ```
+- **Use `useCell` in child components**, not `useTable` — avoids re-rendering the entire list on every change
+- **Use string literals for table names** — `useRowIds('todos')`, not variables or constants
+- **Include closure deps** in callback hooks — `[oidcUser.email]` not `[]` when using email
+- **Use `useSetPartialRowCallback`** instead of `useSetRowCallback` — preserves concurrent edits to other cells
+- **Cells are scalars only** — strings, numbers, booleans. Objects in cells break CRDT granularity
+- **Guard cell values** — `useCell`/`useValue` return `undefined` when unset; use `String(val || '')`
+- **One argument per callback** — `setVal(x)` not `setVal(null, x)`. Second arg is the Store reference.
+- **No imports, no `createStore`, no `store.*` writes** — hooks are globals, the template manages infrastructure
+- **Seed demo data via button**, not `useEffect` on mount — hydration races cause data loss or duplication
+- **Every app needs a "Load Demo Data" button** — visible when table is empty (`useRowCount('tableName') === 0`)
+- **`isReady` is always true** — the template gates rendering. Use `useApp()` for sync activation, not readiness checks.
 
 ---
 
 ## When to Read Extended Docs
 
-The shipped default files contain detailed reference material. Read them when the user's prompt matches these signals:
+Read these reference files when the user's prompt matches the signals below:
 
 | Need | Signal in Prompt | Read This |
 |------|------------------|-----------|
+| TinyBase data patterns | forms, lists, filtering, ordering, pagination, master-detail | `${CLAUDE_SKILL_DIR}/references/tinybase-patterns.md` |
+| Multiplayer / shared apps | multiplayer, collaborative, shared, multi-user, game with players | `${CLAUDE_SKILL_DIR}/references/multiplayer-guide.md` |
+| Game development | game, timer, countdown, turn-based, score | `${CLAUDE_SKILL_DIR}/references/game-patterns.md` |
+| AI-powered features | AI, chatbot, summarize, generate, openrouter | `${CLAUDE_SKILL_DIR}/references/ai-integration.md` |
+| Bug prevention reference | debugging, troubleshooting, reviewing code | `${CLAUDE_SKILL_DIR}/references/bug-prevention.md` |
 | Design tokens & theming | colors, theme, tokens, brand colors, styling | `${CLAUDE_PLUGIN_ROOT}/build/design-tokens.txt` |
 | Full Neobrute design details | detailed design system, spacing, typography | `${CLAUDE_SKILL_DIR}/defaults/style-prompt.txt` |
 | Advanced visual effects | "interactive", "animated", "3D", "particles", "shader", "canvas" | `${CLAUDE_SKILL_DIR}/defaults/advanced-effects-prompt.txt` |
@@ -1163,5 +836,5 @@ Options:
 - "Deploy" → Auto-invoke /vibes:cloudflare skill
 - "I'm done" → Confirm files saved, wish them well
 
-**Do NOT proceed to code generation until:**
+**Do not proceed to code generation until:**
 Pre-flight check is complete (auth is automatic on deploy — no credentials to collect).
