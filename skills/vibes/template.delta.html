@@ -452,6 +452,15 @@
       }
     }
 
+    // Provide safe stubs for auth hooks in public apps so generated code
+    // that calls useUser() doesn't crash with "Can't find variable".
+    if (!window.useUser) {
+      window.useUser = () => ({ email: null, name: null, sub: null });
+    }
+    if (!window.useOIDCContext) {
+      window.useOIDCContext = () => ({ user: null, isAuthenticated: false });
+    }
+
     const rootElement = document.getElementById("container");
     ReactDOMClient.createRoot(rootElement).render(<AppShell />);
   }
