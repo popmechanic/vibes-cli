@@ -39,40 +39,31 @@ Always keep the question text ABOVE the options, separated by a blank line. Each
 
 ## Question Categories
 
-Draw from these categories. Skip what the prompt already answers. Tailor options to the specific app concept — don't use generic phrasing when you can be specific.
+Draw from these categories. Skip what the prompt already answers. **Invent answer choices fresh for each app** — don't reuse canned options. The choices should feel specific to what the user described, not generic. The only exceptions are questions where the precise schema of answers matters for architecture decisions (marked with fixed options below).
 
-- **Who uses this?** — "Is this just for you, or will other people use it too?"
+- **Who uses this?** — fixed options (determines auth architecture):
 
   ▸ Just me
   ▸ Shared with a group
   ▸ Real-time with others (like a game or collaboration)
 
-- **What's the vibe?** — "What personality should this have?" — focus on mood and tone, not colors or visuals (the theme handles that)
-
-  ▸ Serious and buttoned-up
-  ▸ Casual and friendly
-  ▸ Playful and a little weird
-  ▸ Calm and focused
-
-- **Main interaction** — "What's the main thing you'll do in this app?" — options specific to the app type (e.g., "Check off items", "Drag cards between columns", "Fill in a form", "Take turns playing")
-
-- **What are you tracking?** — "What are the main things in this app?" — get specific to the domain (e.g., for a recipe app: "Recipes with ingredients and steps" vs "Just recipe names and links")
-
-- **What gets saved?** — "What should still be there when you come back tomorrow?" — options specific to the app type
-
-- **What do others see?** — if shared: "Should everyone see the same thing, or does each person have their own view?"
+- **What do others see?** — fixed options, only if shared (determines data filtering):
 
   ▸ Same view
   ▸ Personal views
   ▸ Mix of both
 
-- **How big is this?** — "How much should this do?"
+- **What's the vibe?** — What personality and tone should this have? Focus on mood, not visuals (the theme handles that). Invent options that fit the app concept.
 
-  ▸ One focused screen — do one thing well
-  ▸ A few sections or tabs
-  ▸ A full dashboard with multiple views
+- **Main interaction** — What's the main thing you do in this app? Invent options specific to the app type.
 
-- **Special features** — anything unique to the app concept that would change the architecture (timers, scoring, voting, real-time cursors, AI suggestions, etc.)
+- **What are you tracking?** — What are the main things in this app and how detailed are they? Invent options that explore the depth of content structure.
+
+- **What gets saved?** — What should still be there when you come back tomorrow? Invent options specific to the app type.
+
+- **How big is this?** — How much should this do? Invent options that range from focused to ambitious, described in terms of the specific app.
+
+- **Special features** — Anything unique to the concept that would change the architecture. Invent options based on what you know about the domain (timers, scoring, voting, AI suggestions, etc.).
 
 ## Translation Layer
 
@@ -118,83 +109,79 @@ Here's what I'll build:
 
 ## Example Flows
 
+Notice how answer choices are invented fresh for each app — they feel specific to the concept, not generic.
+
 ### "a board game"
 
-- Q: Who's going to play?
+- Q: Who's going to play? *(fixed — architecture decision)*
 
   ▸ Just me
-  ▸ 2 players
-  ▸ A group
+  ▸ Real-time with others (like a game or collaboration)
 
 - Q: How do players take turns?
 
-  ▸ Everyone moves at the same time
-  ▸ One at a time
-  ▸ Each person plays their own game
+  ▸ We go back and forth, chess-style
+  ▸ Everyone moves at once, then we see what happened
+  ▸ It's more of a party game — chaos is the point
   ▸ That's enough — let's build it!
 
 - Q: What kind of board are we talking about?
 
-  ▸ A grid (like chess or checkers)
-  ▸ A path you move along (like Monopoly)
-  ▸ Cards or tiles you place
+  ▸ A grid you place pieces on
+  ▸ A winding path you race along
+  ▸ Cards or tiles you collect and play
   ▸ That's enough — let's build it!
 
-- Q: What's the vibe?
+- Q: What personality should this have?
 
-  ▸ Classic and elegant
-  ▸ Bright and cartoony
-  ▸ Dark and strategic
+  ▸ Tense and strategic — make every move count
+  ▸ Lighthearted — trash talk encouraged
+  ▸ Cozy — more about hanging out than winning
   ▸ That's enough — let's build it!
 
-- Q: What should be saved between sessions?
+- Q: What happens between sessions?
 
-  ▸ High scores and win streaks
-  ▸ Game progress so you can resume
-  ▸ Nothing, start fresh each time
+  ▸ Track our win streaks and rivalry stats
+  ▸ Save the game so we can pick up later
+  ▸ Fresh start every time
   ▸ That's enough — let's build it!
 
-- Brief: "A 2-player turn-based grid game with a dark, strategic feel. Both players see the same board. High scores and win streaks are saved per player."
+- Brief: "A 2-player turn-based grid game with tense, strategic energy. Both players see the same board. Win streaks and rivalry stats are saved."
 
 ### "a recipe tracker"
 
-- Q: Is this just for you, or will you share recipes with others?
+- Q: Is this just for you, or will you share recipes with others? *(fixed)*
 
   ▸ Just me
-  ▸ Share with family or friends
+  ▸ Shared with a group
 
-- Q: What do you want to track for each recipe?
+- Q: How detailed do you want each recipe to be?
 
-  ▸ Just the name and a link or note
-  ▸ Full recipes with ingredients and steps
-  ▸ Ingredients, steps, photos, and ratings
+  ▸ Just a name and a quick note or link
+  ▸ Ingredients list and step-by-step instructions
+  ▸ The whole deal — ingredients, steps, cook time, ratings, maybe photos
   ▸ That's enough — let's build it!
 
-- Q: What's the vibe?
+- Q: What personality should this have?
 
-  ▸ Clean and minimal — just the recipes
-  ▸ Warm and cozy — like a kitchen notebook
-  ▸ Bold and colorful — like a food magazine
+  ▸ Like a worn-in notebook — handwritten feel
+  ▸ Magazine-quality — make the food look amazing
+  ▸ No-nonsense — just get me to the recipe fast
   ▸ That's enough — let's build it!
 
-- Q: How do you want to organize them?
+- Q: How do you want to find things later?
 
-  ▸ Simple list, search when I need something
-  ▸ Categories (breakfast, dinner, dessert, etc.)
-  ▸ Tags I create myself
+  ▸ Just scroll or search — I won't have that many
+  ▸ Sort by meal type — breakfast, lunch, dinner, dessert
+  ▸ My own tags — "weeknight quick", "impress guests", "kid-approved"
   ▸ That's enough — let's build it!
 
-- Brief: "A personal recipe collection with a warm, cozy feel. Full recipes with ingredients and steps, organized by categories. Your recipes are saved and available on all your devices."
+- Brief: "A personal recipe notebook with a worn-in, handwritten feel. Full ingredients and steps, organized by meal type. Saved across all your devices."
 
 ### "a poll"
 
-- Q: What's the vibe for this poll?
-
-  ▸ Simple and clean
-  ▸ Fun and colorful
-  ▸ That's enough — let's build it!
-
-- Brief: "A fun, colorful shared poll where anyone with the link can vote and see live results."
+- (No questions needed — clearly shared, everyone sees results)
+- Brief: "A shared poll where anyone with the link can vote and see live results."
 
 ## After Confirmation
 
