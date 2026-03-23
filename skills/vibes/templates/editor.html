@@ -5641,6 +5641,46 @@ window.escapeHtml = function(str) {
     // and will-navigate/new-window-open events in the Bun process.
   }
 
+  // === Deep link repair handler ===
+  // Called by desktop app via executeJavascript when vibes://fix deep link is received.
+  window.__vibesFixError = function(payload) {
+    if (!payload || !payload.app) return;
+
+    // Switch to the target app if not already on it
+    if (payload.app !== currentAppName) {
+      ws.send(JSON.stringify({ type: 'switch_app', name: payload.app }));
+    }
+
+    // Switch to edit phase so chat input is visible (not generate/welcome)
+    if (typeof setPhase === 'function') {
+      setPhase('edit');
+    }
+
+    // Build structured repair prompt
+    const parts = ['My app crashed with this error:', ''];
+    parts.push('Error: ' + (payload.error || 'Unknown error'));
+    if (payload.componentStack) {
+      parts.push('');
+      parts.push('Component: ' + payload.componentStack);
+    }
+    if (payload.console) {
+      parts.push('');
+      parts.push('Recent console:');
+      parts.push(payload.console);
+    }
+    parts.push('');
+    parts.push('Please fix this.');
+
+    // Pre-fill chat input (do NOT auto-send — user reviews first)
+    const input = document.getElementById('chatInput');
+    if (input) {
+      input.value = parts.join('\n');
+      input.style.height = 'auto';
+      input.style.height = input.scrollHeight + 'px';
+      input.focus();
+    }
+  };
+
   // === Init ===
 
   // Restore AI model preference from localStorage

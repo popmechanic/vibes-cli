@@ -100,3 +100,20 @@ describe('Riff error screen', () => {
     expect(delta()).toContain('clipboard');
   });
 });
+
+describe('Editor deep link handler', () => {
+  it('editor.html registers window.__vibesFixError', () => {
+    const editor = readFileSync(join(PLUGIN_ROOT, 'skills/vibes/templates/editor.html'), 'utf8');
+    expect(editor).toContain('window.__vibesFixError');
+  });
+
+  it('editor handler calls setPhase to switch to edit mode', () => {
+    const editor = readFileSync(join(PLUGIN_ROOT, 'skills/vibes/templates/editor.html'), 'utf8');
+    expect(editor).toContain("setPhase('edit')");
+  });
+
+  it('editor handler sends switch_app via WebSocket', () => {
+    const editor = readFileSync(join(PLUGIN_ROOT, 'skills/vibes/templates/editor.html'), 'utf8');
+    expect(editor).toContain('switch_app');
+  });
+});
