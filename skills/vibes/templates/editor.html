@@ -1569,46 +1569,30 @@
     /* Composer inner — flex-wrap layout */
     .chat-composer-inner {
       display: flex;
-      flex-wrap: nowrap;
+      flex-wrap: wrap;
       align-items: center;
       gap: 0.25rem;
-      padding: 0.4rem 0.5rem;
-      transition: padding 0.2s ease;
+      padding: 0.5rem;
     }
     .chat-input {
-      flex: 1;
+      width: 100%;
+      flex: none;
+      order: -1;
       min-width: 0;
       background: transparent;
       border: none;
       color: var(--vibes-cream);
-      padding: 0.35rem 0.25rem;
-      font-size: 0.875rem;
+      padding: 0.25rem 0.25rem 0.35rem;
+      font-size: 1rem;
       outline: none;
       resize: none;
       font-family: inherit;
-      min-height: 32px;
+      min-height: 56px;
       max-height: 140px;
       line-height: 1.4;
-      transition: min-height 0.2s ease, font-size 0.2s ease;
-      order: 0;
     }
-    .chat-input::placeholder { color: #666; }
-    .chat-btn-spacer { display: none; }
-    /* Expanded state on focus */
-    .chat-composer-box:focus-within .chat-composer-inner {
-      flex-wrap: wrap;
-      padding: 0.5rem;
-    }
-    .chat-composer-box:focus-within .chat-input {
-      width: 100%;
-      flex: none;
-      order: -1;
-      min-height: 56px;
-      font-size: 1rem;
-      padding: 0.25rem 0.25rem 0.35rem;
-    }
-    .chat-composer-box:focus-within .chat-input::placeholder { font-size: 1rem; }
-    .chat-composer-box:focus-within .chat-btn-spacer { display: block; flex: 1; }
+    .chat-input::placeholder { color: #666; font-size: 1rem; }
+    .chat-btn-spacer { display: block; flex: 1; }
     /* Left action buttons */
     .composer-btn {
       width: 32px;
@@ -5509,6 +5493,13 @@ window.escapeHtml = function(str) {
     interrupted = true;
     finalizeStreaming();
     setThinking(false);
+    // Replace any active tool spinners with a stop icon
+    document.querySelectorAll('.tool-block .tool-spinner').forEach(s => {
+      const stop = document.createElement('span');
+      stop.className = 'tool-error-icon';
+      stop.textContent = '◼';
+      s.replaceWith(stop);
+    });
     addMessage('system', 'Interrupted.');
   }
 
