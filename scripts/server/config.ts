@@ -29,7 +29,6 @@ export interface ServerContext {
   themeDir: string;
   animationDir: string;
   pluginSkills: any[];
-  vibesSkillContent: string;
   backupTimestamps: Record<string, number>;
   managed?: boolean;
   onWindowControl?: (action: string) => void;
@@ -99,6 +98,8 @@ export function loadConfig(): ServerContext {
       const refPath = join(refsDir, file);
       const content = readFileSync(refPath, 'utf-8');
       const frontmatter = parseSkillFrontmatter(content);
+      // Skip core references that are injected via --append-system-prompt
+      if (frontmatter.inject === 'system-prompt') continue;
       pluginSkills.push({
         id: `vibes/${file.replace('.md', '')}`,
         name: frontmatter.name || file.replace('.md', '').replace(/-/g, ' '),
@@ -111,22 +112,6 @@ export function loadConfig(): ServerContext {
   }
 
   console.log(`Skills: ${pluginSkills.length} discovered`);
-
-  // Load vibes SKILL.md — extract TinyBase Data API section for editor prompts
-  const skillMdPath = join(projectRoot, 'skills/vibes/SKILL.md');
-  let vibesSkillContent = '';
-  if (existsSync(skillMdPath)) {
-    const fullContent = readFileSync(skillMdPath, 'utf-8');
-    const apiStart = fullContent.indexOf('## TinyBase Data API');
-    const deployStart = fullContent.indexOf('## Deployment Options');
-    if (apiStart !== -1 && deployStart !== -1) {
-      vibesSkillContent = fullContent.slice(apiStart, deployStart).trim();
-    } else if (apiStart !== -1) {
-      vibesSkillContent = fullContent.slice(apiStart).trim();
-    }
-    if (vibesSkillContent.length > 30000) vibesSkillContent = vibesSkillContent.slice(0, 30000);
-    console.log(`Loaded vibes SKILL.md TinyBase section: ${(vibesSkillContent.length / 1024).toFixed(1)}KB`);
-  }
 
   return {
     projectRoot,
@@ -143,7 +128,6 @@ export function loadConfig(): ServerContext {
     themeDir,
     animationDir,
     pluginSkills,
-    vibesSkillContent,
     backupTimestamps: {},
   };
 }
@@ -562,7 +546,7 @@ export function parseSkillFrontmatter(content) {
   const block = fm[1];
   const result = {};
 
-  for (const field of ['name', 'description']) {
+  for (const field of ['name', 'description', 'inject']) {
     const value = extractYamlField(block, field);
     if (value !== null) {
       result[field] = value;

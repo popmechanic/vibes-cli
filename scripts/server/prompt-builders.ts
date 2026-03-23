@@ -16,14 +16,12 @@ import type { ServerContext } from './config.ts';
 import { currentAppDir } from './app-context.js';
 import { AI_INSTRUCTIONS_CHAT, AI_INSTRUCTIONS_GENERATE, THEME_SECTION_MARKERS } from './ai-instructions.ts';
 
-const TINYBASE_INVARIANT_RULES = `
-## MANDATORY (never skip)
-1. ALWAYS call useApp() in the root App component: const { isReady, isSyncing } = useApp(); — this activates sync.
-2. ALL persistent data in TinyBase tables. useState ONLY for ephemeral UI (modals, hover, in-progress form text).
-3. For user identity, use useUser() which returns { isSignedIn, user } where user has .email, .id, .firstName (private apps only).
-4. For shared/multiplayer apps: every user-owned row must include createdBy: oidcUser.email (not useApp().user which is always null).
-5. Cells are scalars only (string, number, boolean). Never objects or arrays.
-`;
+const RECENCY_REMINDER = `
+CRITICAL REMINDERS (see system prompt for full reference):
+- NO imports. NO createStore. Hooks are pre-existing globals.
+- useApp() is mandatory in root App. Cells are scalars only (string/number/boolean).
+- No sync/connection status UI — the template provides SyncStatusDot automatically.
+- Table names must be string literals: useRowIds('todos'), never useRowIds(tableName).`;
 
 // --- Chat prompt builder ---
 
@@ -49,6 +47,7 @@ export function buildChatPrompt(
     animationId?: string | null;
     reference?: any;
     skillId?: string | null;
+    skillBlock?: string;
     appName?: string;
   } = {},
 ): string {
@@ -103,24 +102,15 @@ EFFECT RULES:
     referenceBlock = buildReferenceBlock(ctx, reference);
   }
 
-  // Skill context — prepend SKILL.md content with environment preamble
-  if (skillId) {
-    skillBlock = buildSkillBlock(ctx, skillId);
+  // Skill context — use pre-built block or build from skillId
+  if (opts.skillBlock) {
+    skillBlock = opts.skillBlock;
+  } else if (skillId) {
+    const result = buildSkillBlock(ctx, skillId, { lastSkillId: null, messageCount: 0 });
+    skillBlock = result.block;
   }
 
-  // Always inject vibes TinyBase baseline — gives the chat agent authoritative
-  // SKILL.md guidance and an anti-hallucination guardrail against obsolete systems
-  const vibesBaseline = ctx.vibesSkillContent
-    ? `VIBES PLATFORM CONTEXT:
-This app runs on the Vibes platform using TinyBase for data and Pocket ID (OIDC) for auth.
-Do not reference Clerk, Fireproof, Connect Studio, or VITE_* environment variables — those are obsolete.
-
-${ctx.vibesSkillContent}
-
-`
-    : '';
-
-  const prompt = `${vibesBaseline}${skillBlock}${referenceBlock}The user is iterating on a React app in app.jsx. Read app.jsx first, then Edit it.
+  const prompt = `${skillBlock}${referenceBlock}The user is iterating on a React app in app.jsx. Read app.jsx first, then Edit it.
 
 User says: "${message}"${effectBlock}
 
@@ -134,7 +124,7 @@ RULES:
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters instead: → ● « etc. CSS escapes break Babel.
 - Never rename table names or cell names — users would lose data
 - Table names are always simple string literals ('todos', 'items'). Never refactor them into variables or constants.${useAI ? AI_INSTRUCTIONS_CHAT : ''}
-${TINYBASE_INVARIANT_RULES}`;
+${RECENCY_REMINDER}`;
 
   return prompt;
 }
@@ -166,23 +156,6 @@ export function buildGeneratePrompt(
   } catch (e) {
     // style-prompt.txt not available
   }
-
-  // TinyBase reference sourced from SKILL.md (loaded at server startup).
-  // Replaces the previously-hardcoded DATABASE block with authoritative SKILL.md content.
-  const tinybaseRef = ctx.vibesSkillContent || `DATABASE (TinyBase — all hooks are pre-existing globals, NO imports needed):
-- useRowIds('tableName') → string[], useCell('tableName', rowId, 'cellName') → value
-- useSortedRowIds('tableName', 'sortCell', desc?, offset?, limit?) → string[]
-- useRowCount('tableName') → number
-- useAddRowCallback('tableName', (param) => ({ cell: val }), [deps]) — creates rows
-- useSetCellCallback('tableName', rowId, 'cellName', (param) => newValue) — updates cells
-- useSetPartialRowCallback('tableName', rowId, (param) => ({ cell: val })) — partial updates
-- useDelRowCallback('tableName', rowId) — deletes rows
-- useValue('key') / useSetValueCallback('key', () => value) — app-level settings
-- useCellState('table', rowId, 'cell') → [value, setter] — like useState but persisted
-- useValueState('key') → [value, setter] — like useState but persisted
-- useApp() → { isReady, isSyncing } — call in root App component to activate sync
-- NO imports. NO createStore. NO direct store.* calls. Use callback hooks only.
-Table names MUST be simple string literals. NEVER use variables or template literals for table names.`;
 
   // Design reference path — skip theme resolution, let the reference guide design
   const hasRef = reference && reference.name && reference.dataUrl;
@@ -284,12 +257,7 @@ The goal: the generated app should look like the image was its design spec.
 
     const refPrompt = `${referenceBlock}You are an expert React app designer. Generate a beautiful, creative app.
 
-=== NON-NEGOTIABLE DATA RULES ===
-This app uses TinyBase for persistent, synced data. All TinyBase hooks are pre-existing globals.
-Every table name MUST be a simple string literal like 'todos', 'items', 'scores'.
-NEVER use variables or template literals for table names: useRowIds(tableName) and useRowIds('\${tableId}') are BROKEN.
-Always write: useRowIds('todos'), useCell('todos', id, 'text'), useAddRowCallback('todos', ...).
-Store ALL user data in TinyBase tables — not in useState. useState is only for UI state (form inputs, modals, selections).
+=== NON-NEGOTIABLE DATA RULES ===${RECENCY_REMINDER}
 
 USER REQUEST: "${userPrompt}"
 
@@ -336,9 +304,7 @@ Write the complete app to app.jsx. Rules:
 - Responsive (mobile-first with Tailwind). className="btn" for buttons, "grid-background" on root
 
 ${THEME_SECTION_MARKERS}
-
-${tinybaseRef}${useAI ? AI_INSTRUCTIONS_GENERATE : ''}
-${TINYBASE_INVARIANT_RULES}`;
+${useAI ? AI_INSTRUCTIONS_GENERATE : ''}`;
 
     return {
       prompt: refPrompt,
@@ -382,12 +348,7 @@ ${TINYBASE_INVARIANT_RULES}`;
 
   const prompt = `You are an expert React app designer. Generate a beautiful, creative app.
 
-=== NON-NEGOTIABLE DATA RULES ===
-This app uses TinyBase for persistent, synced data. All TinyBase hooks are pre-existing globals.
-Every table name MUST be a simple string literal like 'todos', 'items', 'scores'.
-NEVER use variables or template literals for table names: useRowIds(tableName) and useRowIds('\${tableId}') are BROKEN.
-Always write: useRowIds('todos'), useCell('todos', id, 'text'), useAddRowCallback('todos', ...).
-Store ALL user data in TinyBase tables — not in useState. useState is only for UI state (form inputs, modals, selections).
+=== NON-NEGOTIABLE DATA RULES ===${RECENCY_REMINDER}
 
 USER REQUEST: "${userPrompt}"
 
@@ -443,9 +404,7 @@ Write the complete app to app.jsx. Rules:
 - Responsive (mobile-first with Tailwind). className="btn" for buttons, "grid-background" on root
 
 ${THEME_SECTION_MARKERS}
-
-${tinybaseRef}${useAI ? AI_INSTRUCTIONS_GENERATE : ''}
-${TINYBASE_INVARIANT_RULES}`;
+${useAI ? AI_INSTRUCTIONS_GENERATE : ''}`;
 
   return {
     prompt,
@@ -754,36 +713,35 @@ The goal is: if you put the app and the image side by side, they should look lik
 }
 
 /**
- * Build the skill context block for chat prompts.
+ * Build the skill context block with deduplication support.
+ *
+ * Returns the full SKILL.md content on first use or when the skill changes,
+ * and a short reminder on subsequent messages with the same skill.
+ * Resets to full content every 5 messages to prevent drift.
  */
-function buildSkillBlock(ctx: ServerContext, skillId: string): string {
-  const skill = (ctx.pluginSkills || []).find(s => s.id === skillId);
-  if (!skill || !existsSync(skill.skillMdPath)) return '';
-
-  let skillContent = readFileSync(skill.skillMdPath, 'utf-8');
-  if (skillContent.length > 30000) {
-    console.warn(`[buildChatPrompt] Skill "${skill.name}" SKILL.md truncated from ${skillContent.length} to 30000 bytes`);
-    skillContent = skillContent.slice(0, 30000) + '\n\n[... truncated — skill content exceeded 30KB ...]';
+export function buildSkillBlock(
+  ctx: any,
+  skillId: string,
+  dedupState: { lastSkillId: string | null; messageCount: number },
+): { block: string; newState: { lastSkillId: string | null; messageCount: number } } {
+  const skill = (ctx.pluginSkills || []).find((s: any) => s.id === skillId);
+  if (!skill || !existsSync(skill.skillMdPath)) {
+    return { block: '', newState: dedupState };
   }
 
-  return `\n\nSKILL CONTEXT: "${skill.name}" (from ${skill.pluginName} plugin)
-The user selected this skill to guide your approach.
+  const count = dedupState.messageCount + 1;
+  const needsFull = skillId !== dedupState.lastSkillId || count >= 5;
 
-IMPORTANT — ENVIRONMENT CONSTRAINTS:
-You are running inside the Vibes web editor, which is a constrained environment.
-Your available tools are ONLY: Read, Edit, Write, Glob, Grep.
-You do NOT have access to: Bash, shell commands, terminal, Task/Agent spawning, or any other tools.
-Your working directory is the app project root. You are editing a React JSX app (app.jsx).
-If the skill instructions below reference bash commands, spawning agents, running tests,
-or using tools you don't have, adapt the guidance to what you CAN do — focus on the
-conceptual approach and any code patterns the skill recommends.
+  if (needsFull) {
+    const content = readFileSync(skill.skillMdPath, 'utf-8');
+    return {
+      block: `\nSKILL CONTEXT: "${skill.name}"\n\n${content}\n`,
+      newState: { lastSkillId: skillId, messageCount: 0 },
+    };
+  }
 
-ACTION REQUIREMENT: You MUST edit app.jsx. Read app.jsx once to understand its structure,
-then immediately start making Edit calls. Do NOT spend multiple turns analyzing or exploring
-the codebase — your turns are limited. Prioritize making changes over planning. Brief
-commentary is fine but the bulk of your work must be Edit tool calls.
-
-${skillContent}
-
-`;
+  return {
+    block: `\n(Using skill: "${skill.name}" — full guidance was provided earlier)\n`,
+    newState: { lastSkillId: skillId, messageCount: count },
+  };
 }
