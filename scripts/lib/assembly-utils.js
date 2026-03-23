@@ -77,3 +77,19 @@ export function checkForbiddenPatterns(code) {
   }
   return warnings;
 }
+
+/**
+ * Strip the OIDC dynamic import block from assembled HTML for eval-mode.
+ * Removes the `if (hasOidc && !config.public) { try { ... } catch { ... } }` block
+ * inside initApp() to prevent network requests to the OIDC authority.
+ * The eval-shim.js sets window.useUser before initApp() runs, so the
+ * fallback `if (!window.useUser)` becomes a safe no-op.
+ *
+ * This regex is coupled to the current template structure in template.delta.html (lines 432-453).
+ * If the template's OIDC block is refactored, this regex must be updated.
+ * The regex anchors on __OIDC_LOAD_ERROR__ which is unique to the OIDC catch block.
+ */
+export function stripOidcImportBlock(html) {
+  const oidcBlockPattern = /if\s*\(hasOidc\s*&&\s*!config\.public\)\s*\{[\s\S]*?window\.__OIDC_LOAD_ERROR__[\s\S]*?\}\s*\}/;
+  return html.replace(oidcBlockPattern, '// [eval-mode] OIDC import stripped');
+}

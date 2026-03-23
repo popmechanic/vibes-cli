@@ -16,7 +16,7 @@ import { resolve } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { createBackup } from './lib/backup.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL, AI_PROXY_URL } from './lib/auth-constants.js';
-import { APP_PLACEHOLDER, validateAssembly, loadAndValidateTemplate, checkForbiddenPatterns } from './lib/assembly-utils.js';
+import { APP_PLACEHOLDER, validateAssembly, loadAndValidateTemplate, checkForbiddenPatterns, stripOidcImportBlock } from './lib/assembly-utils.js';
 import { stripForTemplate } from './lib/strip-code.js';
 
 
@@ -24,6 +24,7 @@ async function main() {
   // Parse args
   const appPath = process.argv[2];
   const outputPath = process.argv[3] || 'index.html';
+  const evalMode = process.argv.includes('--eval-mode');
 
   if (!appPath) {
     throw new Error('Usage: bun scripts/assemble.js <app.jsx> [output.html]');
@@ -66,6 +67,36 @@ async function main() {
   output = output.replaceAll('__OIDC_CLIENT_ID__', OIDC_CLIENT_ID);
   output = output.replaceAll('__DEPLOY_API_URL__', DEPLOY_API_URL);
   output = output.replaceAll('__AI_PROXY_URL__', AI_PROXY_URL);
+
+  if (evalMode) {
+    // 1. Strip OIDC dynamic import to prevent 404 on /oidc-bridge.js
+    output = stripOidcImportBlock(output);
+
+    // 2. Inject eval-shim.js before the Babel script block
+    const shimPath = resolve(import.meta.dirname, '../eval/eval-shim.js');
+    if (!existsSync(shimPath)) {
+      throw new Error(`Eval shim not found: ${shimPath}. Run from plugin root.`);
+    }
+    const shimCode = readFileSync(shimPath, 'utf8');
+    output = output.replace(
+      '<script type="text/babel"',
+      `<script>\n${shimCode}\n</script>\n<script type="text/babel"`
+    );
+
+    // 3. Inject wsUrl pointing to standalone sync server (port 3334)
+    output = output.replace(
+      /__WS_URL__/g,
+      'ws://localhost:3334'
+    );
+
+    // 4. Force app to act as private (so useUser/auth gates are exercised)
+    output = output.replace(
+      /__APP_PUBLIC__/g,
+      'false'
+    );
+
+    console.log('[eval-mode] Applied: shim injected, OIDC stripped, wsUrl=localhost:3334');
+  }
 
   // Validate output
   const validationErrors = validateAssembly(output, appCode);
