@@ -192,9 +192,9 @@ const deleteTodo = useDelRowCallback('todos', id);
 | **Kanban board** | `cards` | Status cell for columns, filter by status per column, `store.setCell` for cross-column moves |
 | **Chat / Messaging** | `messages`, `users` | `useSortedRowIds('messages', 'timestamp')`, user email as row key in `users` table, auto-scroll with `useRef` |
 | **Recipe / Content app** | `items` | Master-detail with `useState(selectedId)`, `useHasRow` for safe detail view, `useCellState` for live editing |
-| **Multiplayer game** | `players`, `board` | Email-keyed rows in `players` for per-user state, shared game state in Values, turn tracking via `useValueState('currentTurn')` |
-| **Dashboard / Analytics** | `entries` | `useSortedRowIds` with pagination, computed stats inline, `useValueState` for filter persistence |
-| **Settings / Preferences** | (Values only) | `useValueState` for each setting — persists and syncs without needing a table |
+| **Multiplayer game** | `players`, `state` | Email-keyed rows in `players` for per-user state, shared game state in a `state` table row (`useCellState('state', 'shared', 'phase')`), turn tracking via shared cell |
+| **Dashboard / Analytics** | `entries`, `preferences` | `useSortedRowIds` with pagination, computed stats inline, per-user filter prefs in `preferences` table keyed by email |
+| **Settings / Preferences** | `preferences` | `useCellState('preferences', myEmail, 'theme')` for per-user settings — persists and syncs |
 
 ### Game and Timer Patterns
 
@@ -206,7 +206,7 @@ For multiplayer apps, read the full guide: `${CLAUDE_SKILL_DIR}/references/multi
 
 Key principles:
 - **Per-user state**: key rows by `oidcUser.email` — `useCellState('players', myEmail, 'team')`
-- **Shared state**: use Values or auto-generated row IDs — `useValueState('gameStatus')`
+- **Shared state**: use a table row with a well-known key — `useCellState('state', 'shared', 'gameStatus')` — or auto-generated row IDs for shared items
 - **User attribution**: add `createdBy: userEmail` to user-owned rows, filter by it to show "my stuff"
 - **Users table**: every shared app registers users on load via `useSetRowCallback('users', myEmail, ...)`
 - **Write through hooks**, not `store.*` — hooks notify React's reactivity system

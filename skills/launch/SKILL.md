@@ -3,7 +3,8 @@ name: launch
 argument-hint: "[prompt]"
 description: Self-contained SaaS pipeline — invoke directly, do not decompose.
   Generates a Vibes app, adds auth + billing, and deploys live. Uses Agent Teams
-  to parallelize for maximum speed.
+  to parallelize for maximum speed. Use when the user wants to build and ship a
+  complete SaaS product in one step, or says "launch", "ship it", "build and deploy".
 license: MIT
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion, Task, Teammate, SendMessage, TaskCreate, TaskUpdate, TaskList, TaskGet
 compatibility: Requires Claude Code with Agent Teams support
