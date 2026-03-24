@@ -71,6 +71,28 @@ function Dashboard() {
 
 Use option A when the table could be large (tasks, messages, entries). Use option B only for small, bounded tables (players, preferences, slots).
 
+### Conditional Hook Calls
+
+The same rule applies to **ternary expressions and if/else blocks**. A hook inside a conditional runs on some renders but not others — React crashes with error #310.
+
+```jsx
+// BAD — hook called conditionally, crashes when booking becomes null
+function SlotCard({ id }) {
+  const booking = useRow('bookings', id);
+  const deleteBooking = booking ? useDelRowCallback('bookings', id) : null;  // CRASH
+  // ...
+}
+
+// GOOD — call unconditionally, guard the invocation instead
+function SlotCard({ id }) {
+  const booking = useRow('bookings', id);
+  const deleteBooking = useDelRowCallback('bookings', id);  // always called
+  // Only invoke deleteBooking when booking exists:
+  const handleDelete = () => { if (booking) deleteBooking(); };
+  // ...
+}
+```
+
 ---
 
 ## Reactivity and Performance

@@ -336,7 +336,7 @@ function GroceryItem({ id }) {
 
 Quick checklist — for detailed explanations and code examples, read `${CLAUDE_SKILL_DIR}/references/bug-prevention.md`.
 
-- **NEVER call hooks inside loops** — `useCell` inside `.map()`, `.filter()`, `.forEach()` crashes when list length changes (React error #310). Render a child component per row instead, or use `useTable` for small tables.
+- **NEVER call hooks inside loops or conditionals** — `useCell` inside `.map()`, `.filter()`, `.forEach()` crashes when list length changes; hooks inside ternaries (`x ? useHook() : null`) crash when the condition flips (React error #310). Call hooks unconditionally, guard the invocation instead.
 - **Use `useCell` in child components**, not `useTable` — avoids re-rendering the entire list on every change
 - **Use string literals for table names** — `useRowIds('todos')`, not variables or constants
 - **Include closure deps** in callback hooks — `[oidcUser.email]` not `[]` when using email
