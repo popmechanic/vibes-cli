@@ -52,10 +52,22 @@ The mental model: **Values** and **Tables with auto-generated IDs** are shared b
 
 | Data Type | Storage Pattern | Example |
 |-----------|----------------|---------|
-| Shared setting | `useValueState('setting')` | Game status, room theme |
+| Shared setting (set after all join) | `useValueState('setting')` | Game phase, room theme |
+| Shared setting (set before others join) | `useCellState('state', 'shared', 'setting')` | Timer state, pre-join config |
 | Shared items | `useAddRowCallback('items', ...)` | Chat messages, shared tasks |
 | Per-user choice | `useCellState('players', myEmail, 'choice')` | Team selection, avatar, color |
 | Per-user items | `useAddRowCallback('items', (x) => ({...x, createdBy: myEmail}))` | My tasks, my scores |
+
+**Values vs Table Row for Shared State:** Values are the simplest pattern for shared state, but they can be lost during initial CRDT merge if set before a second client connects. If your shared state may be set before all users have joined (e.g., a timer one user starts before others open the app), use a single-row table instead:
+
+```jsx
+// Instead of: const [timerRunning, setTimerRunning] = useValueState('timerRunning');
+// Use a shared-state table with a well-known row ID:
+const [timerRunning, setTimerRunning] = useCellState('timer', 'shared', 'running');
+const [timerEndTime, setTimerEndTime] = useCellState('timer', 'shared', 'endTime');
+```
+
+Table rows merge more reliably because both clients have a row at the same key — the CRDT merges cell-by-cell rather than treating the entire Value as present-or-absent.
 
 ---
 
