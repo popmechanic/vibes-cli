@@ -1,17 +1,18 @@
 ---
 name: eval
 description: >
-  Run the TinyBase autoresearch eval loop — generate apps from the prompt
-  battery, test each with two simulated users via Chrome DevTools MCP,
-  score SKILL.md improvements, and iterate. Use when asked to run evals,
-  improve TinyBase docs, or start an autoresearch loop.
+  Run the TinyBase autoresearch eval loop v2 — spawn sonnet subagents to
+  generate apps from inlined reference docs, run static analysis pre-checks,
+  test with two simulated users via Chrome DevTools MCP, apply graded scoring
+  (0–4 per app, aggregate percentage), and iterate. Use when asked to run
+  evals, improve TinyBase docs, or start an autoresearch loop.
 ---
 
-# TinyBase Autoresearch Eval Loop
+# TinyBase Autoresearch Eval Loop (v2)
 
 You are running an automated improvement loop for `skills/vibes/SKILL.md`.
-Each iteration generates apps, tests them for per-user state isolation,
-and uses failures to improve the documentation.
+Each iteration generates apps via sonnet subagents, tests them for per-user
+state isolation, and uses failures to improve the documentation.
 
 ## Prerequisites Check
 
@@ -22,6 +23,8 @@ Before starting, verify:
 4. `eval/napkin.md` exists
 5. TinyBase and ws are installed in `scripts/` (`cd scripts && npm ls tinybase ws`)
 6. Sync server can start (`bun scripts/server/sync-server.ts` — should print "TinyBase sync server running")
+7. `scripts/eval-static-check.js` exists
+8. Verify eval specs exist: `ls eval/specs/*.md` should show 10 files
 
 If any prerequisite is missing, stop and inform the user.
 
@@ -36,77 +39,160 @@ If any prerequisite is missing, stop and inform the user.
 ### Phase 2: Improve SKILL.md (skip on iteration 1)
 
 Based on napkin entries with "What was missing from SKILL.md":
-1. Read the current TinyBase sections of `skills/vibes/SKILL.md`
+1. Read the 4 reference files that constitute the SKILL.md documentation:
+   - `skills/vibes/references/data-api.md`
+   - `skills/vibes/references/generation-rules.md`
+   - `skills/vibes/references/bug-prevention.md`
+   - `skills/vibes/references/multiplayer-guide.md`
 2. Make targeted edits addressing the napkin's identified gaps
 3. Keep changes focused — one concept per iteration
 
-### Phase 3: Generate and Test Each Prompt
+### Phase 3: Generate Apps via Subagents
 
 For each prompt in the battery (see `eval/config.md`):
 
-#### 3a: Self-Brainstorm (iteration 1 only, or after baseline reset)
+1. Read the 4 reference files that constitute the SKILL.md documentation:
+   - `skills/vibes/references/data-api.md`
+   - `skills/vibes/references/generation-rules.md`
+   - `skills/vibes/references/bug-prevention.md`
+   - `skills/vibes/references/multiplayer-guide.md`
 
-If `eval/specs/NN-name.md` does not exist for this prompt:
-1. Take the seed prompt from `eval/config.md`
-2. Ask yourself the brainstorm questions — select answers that produce
-   apps requiring BOTH shared and per-user state
-3. Write the spec to `eval/specs/NN-name.md`
-4. Extract hard assertions at the bottom of the spec:
-   - "User A does X -> User B's [specific UI element] should NOT change"
-   - "User A does X -> User B's store SHOULD contain the data (sync works)"
-5. Extract soft checks: console errors, reload persistence
+2. Build the generator prompt by inlining all 4 files' content between delimiters, plus the seed prompt:
 
-#### 3b: Generate App
+```
+You are generating a React web app using TinyBase for reactive data with real-time sync.
 
-1. Using the cached spec, generate app code following current SKILL.md
-2. Save to `eval/generated/iter-NN/NN-name.jsx`
+IMPORTANT: Do NOT read any files from the filesystem. Do NOT search the codebase.
+All the documentation you need is provided below. Generate code using ONLY
+the reference content in this prompt.
 
-#### 3c: Assemble and Serve
+--- BEGIN DATA API REFERENCE ---
+{content of data-api.md}
+--- END DATA API REFERENCE ---
+
+--- BEGIN GENERATION RULES ---
+{content of generation-rules.md}
+--- END GENERATION RULES ---
+
+--- BEGIN BUG PREVENTION ---
+{content of bug-prevention.md}
+--- END BUG PREVENTION ---
+
+--- BEGIN MULTIPLAYER GUIDE ---
+{content of multiplayer-guide.md}
+--- END MULTIPLAYER GUIDE ---
+
+Generate the app for this prompt:
+"{seed_prompt}"
+
+Requirements:
+- This is a PRIVATE app (requires auth). Use useUser() for identity.
+- Output ONLY the JSX code. No explanation, no markdown fences.
+- Follow every rule in the reference content exactly.
+- The app must support multiple simultaneous users.
+```
+
+3. Spawn the generator agent using the Agent tool:
+   - `model: "sonnet"`
+   - `prompt:` the constructed prompt above
+   - `description:` "Generate {app-name} app"
+
+4. Extract JSX from the agent's response, save to `eval/generated/iter-NN/NN-name.jsx`
+
+5. If the agent doesn't return within 120 seconds or returns an error, score the app 0 and log "generation timeout" or "generation error" to napkin.
+
+### Phase 4: Static Analysis
+
+For each generated `.jsx` file:
+
+1. Run: `bun scripts/eval-static-check.js eval/generated/iter-NN/NN-name.jsx`
+
+2. Parse the JSON output: `{ critical: string[], warnings: string[], passed: boolean }`
+
+3. If `passed` is false (critical failures found):
+   - Score = 0
+   - Log to napkin with format:
+     ```
+     ## Static Fail: [check ID] — [app name] (iteration [N])
+     - **Check:** [check description from output]
+     - **SKILL.md section that should prevent this:** [identify which reference file]
+     - **What was missing:** [specific gap]
+     ```
+   - Skip browser test for this app
+
+4. If `passed` is true but `warnings` is non-empty:
+   - Log warnings to napkin
+   - Continue to browser test
+
+### Phase 5: Assemble and Test
+
+For each app that passed static analysis:
+
+#### 5a: Assemble
 
 ```bash
 bun scripts/assemble.js eval/generated/iter-NN/NN-name.jsx eval/generated/iter-NN/NN-name.html --eval-mode
 ```
 
-Copy assembled HTML to project root for serving:
+#### 5b: Copy to unique filename
+
+Sync room isolation — IMPORTANT: do NOT use shared `eval-test.html`:
+
 ```bash
-cp eval/generated/iter-NN/NN-name.html ./eval-test.html
+cp eval/generated/iter-NN/NN-name.html ./eval-NN-name.html
 ```
 
-Start the preview server and sync server if not already running:
+#### 5c: Restart sync server
+
+Prevent cross-app data bleed:
+
+```bash
+lsof -ti:3334 | xargs kill 2>/dev/null
+bun scripts/server/sync-server.ts &
+sleep 2
+```
+
+#### 5d: Start preview server if not running
+
 ```bash
 bun scripts/server.ts --mode=preview &
-bun scripts/server/sync-server.ts &
 ```
 
-#### 3d: Two-Tab Testing via Chrome DevTools MCP
+#### 5e: Open two tabs in isolated browser contexts
 
-1. Open Tab 1: `http://localhost:3333/eval-test.html?testUser=alice@test.com`
-2. Open Tab 2: `http://localhost:3333/eval-test.html?testUser=bob@test.com`
-3. Wait for both tabs to load and sync to connect
+- Tab 1: `http://localhost:3333/eval-NN-name.html?testUser=alice@test.com` (isolatedContext: aliceN)
+- Tab 2: `http://localhost:3333/eval-NN-name.html?testUser=bob@test.com` (isolatedContext: bobN)
 
-**Run hard assertions:**
-- In Tab 1: perform User A's actions (click buttons, select options, submit forms)
-- Wait 2-3 seconds for sync
-- In Tab 2: check that User B's UI shows ONLY User B's state
-- Use `evaluate_script` to inspect store state:
-  `store.getTable('tableName')` — verify data synced
-  Check DOM elements — verify UI renders correct user's data
+#### 5f: Wait for both tabs to load
 
-**Run soft checks:**
-- Check console for errors (`read_console_messages`)
-- Reload Tab 2 — does state persist?
-- Have both users act simultaneously — any corruption?
+Verify no crash (take_snapshot).
 
-#### 3e: Record Results
+#### 5g: Run the interaction script from the spec
 
-**If assertions pass:** Note "PASS" in the spec file for this iteration.
+Use the spec at `eval/specs/NN-name.md`:
+- Follow each numbered step
+- Use click, type_text, press_key for actions
+- Use take_snapshot and evaluate_script for assertions
+- Wait 2-3 seconds between user actions for sync
 
-**If assertions fail:** Add a napkin entry:
+#### 5h: Score the app
+
+Based on assertion results:
+- **Score 0:** App crashed (React error, blank screen)
+- **Score 1:** App renders but sync broken (Alice's data never appears in Bob's tab)
+- **Score 2:** Sync works but per-user state leaks (Alice's action changes Bob's per-user state)
+- **Score 3:** All Basic assertions pass but at least one Edge assertion fails
+- **Score 4:** All assertions pass
+
+#### 5i: Record failures in napkin
+
+Use the standard format:
 
 ```
 ## Failure: [descriptive title]
 - **App:** [prompt-name] (iteration [N])
-- **Prompt category:** [category]
+- **Score:** [0-4]
+- **Prompt category:** [Tier 1/2/3]
 - **What happened:** [observed behavior]
 - **Root cause:** [code pattern that caused it]
 - **Pattern:** [generalized pattern name]
@@ -114,27 +200,23 @@ bun scripts/server/sync-server.ts &
 - **What was missing from SKILL.md:** [specific gap — this drives the next iteration]
 ```
 
-**If test errors/crashes:** Log with "test error" category in napkin. Note crash cause.
+#### 5j: Close both tabs before moving to the next app
 
-**If test hangs > 60s:** Abandon, log timeout to napkin, continue to next prompt.
+### Phase 6: Score and Decide
 
-### Phase 4: Score and Decide
+1. Compute aggregate: `sum(all_app_scores) / (10 * 4) * 100`
+2. Update `eval/scoreboard.md`:
+   - Fill in the iteration row with per-app scores and aggregate
+3. Compare to previous best aggregate:
+   - **Improved:** `git commit` all changes (SKILL.md refs + eval artifacts)
+   - **Worse:** `git checkout <last-good-sha> -- skills/vibes/references/`, commit eval artifacts separately
+   - **Same score, same apps pass:** Stagnation — revert, try different approach
+   - **Same score, different apps pass/fail:** Lateral movement — analyze napkin
 
-1. Count passes: `score = passes / total_prompts`
-2. Update `eval/scoreboard.md` with iteration results
-3. Compare to previous best:
-   - **Score improved:** `git commit` all changes (SKILL.md + eval artifacts)
-   - **Score worse:** `git checkout <last-good-sha> -- skills/vibes/SKILL.md`
-     then commit eval artifacts (napkin, scoreboard) separately
-   - **Same score, same prompts pass:** Stagnation — revert SKILL.md, try different approach
-   - **Same score, different prompts pass:** Lateral movement — analyze napkin,
-     decide whether the trade-off is worth keeping
+### Phase 7: Check Stopping Criteria
 
-### Phase 5: Check Stopping Criteria
-
-- 3 consecutive iterations with no improvement -> stop, summarize findings
-- All prompts pass -> add new prompts from napkin discoveries if any,
-  otherwise stop and celebrate
+- 3 consecutive iterations with no aggregate improvement -> stop, summarize findings
+- Aggregate = 100% -> add new prompts from napkin discoveries if any, otherwise stop
 - Oscillation (2+ consecutive) -> stop, surface to human
 - 30 iterations reached -> mandatory human checkpoint
 - Every 10 iterations -> pause, produce summary for human review
@@ -147,7 +229,10 @@ prompts in full detail.
 
 ## Important Rules
 
-- SKILL.md is the ONLY file that changes between iterations (besides eval artifacts)
+- SKILL.md reference files are the ONLY files that change between iterations (besides eval artifacts)
 - Napkin entries are NEVER reverted — they always persist
-- Specs are cached — reuse from iteration 1 unless after a human-approved baseline reset
-- The eval-shim, assemble --eval-mode, and sync server are stable infrastructure — do not modify them during the loop
+- Specs are cached from setup — reuse across iterations
+- The eval-shim, assemble --eval-mode, static checker, and sync server are stable infrastructure — do not modify during the loop
+- Generator agents are sonnet model, instruction-isolated, with inlined reference content
+- Each app uses a unique filename for sync room isolation
+- Sync server restarts between app tests
