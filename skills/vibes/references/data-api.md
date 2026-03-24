@@ -87,6 +87,23 @@ useUser() → { isSignedIn: boolean, isLoaded: boolean, user: { email, id, first
   Private apps only. Email is always present. Use oidcUser.email as the user identifier.
 ```
 
+### Step 0: Classify Your App Before Designing Tables
+
+Before writing any code, determine whether the app involves multiple users acting independently. This changes everything about how you structure data.
+
+**Ask:** Can two people use this app at the same time and see each other's actions?
+
+- **Single-user** (todo list, personal tracker, recipe book) — All data goes in TinyBase tables with auto-generated IDs. No user identity needed. Sync just gives the user their data on all their devices.
+
+- **Multi-user** (chat, game, shared board, auction, poll, collaborative tool) — Every piece of state needs a clear owner. Read `${CLAUDE_SKILL_DIR}/references/multiplayer-guide.md` before designing tables. Plan each table as one of:
+  - **Shared state** — all users see the same data (messages, tasks, game board). Use auto-generated row IDs or a well-known row key like `'shared'`.
+  - **Per-user state** — each user has their own version (my vote, my team, my filter preference). Key rows by `oidcUser.email`.
+  - **User-attributed items** — shared collection where each item belongs to someone (bids, inventory). Auto-generated row IDs with a `createdBy` or `owner` cell.
+
+**Common trap:** A prompt like "auction app" or "shared timer" doesn't say "multiplayer" but absolutely requires per-user vs shared state reasoning. If two users could have different views or make independent choices, it's multi-user.
+
+---
+
 ### Data Access Patterns
 
 ### Always Call useApp()
