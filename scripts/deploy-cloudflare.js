@@ -25,21 +25,40 @@ async function deployViaAPI(name, files, accessToken, options = {}) {
     body.aiKey = options.aiKey;
   }
 
-  const resp = await fetch(`${DEPLOY_API_URL}/deploy`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+  const payload = JSON.stringify(body);
+  const MAX_RETRIES = 3;
 
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({ error: resp.statusText }));
-    throw new Error(`Deploy failed: ${err.error || resp.statusText}`);
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const resp = await fetch(`${DEPLOY_API_URL}/deploy`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: payload,
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: resp.statusText }));
+        // Don't retry client errors (4xx) — only server/transport failures
+        if (resp.status >= 400 && resp.status < 500) {
+          throw new Error(`Deploy failed: ${err.error || resp.statusText}`);
+        }
+        throw new Error(`Deploy failed (${resp.status}): ${err.error || resp.statusText}`);
+      }
+
+      return resp.json();
+    } catch (e) {
+      const isLastAttempt = attempt === MAX_RETRIES;
+      if (isLastAttempt) throw e;
+
+      const delay = attempt * 2000; // 2s, 4s
+      console.log(`Deploy attempt ${attempt} failed: ${e.message}`);
+      console.log(`Retrying in ${delay / 1000}s...`);
+      await new Promise(r => setTimeout(r, delay));
+    }
   }
-
-  return resp.json();
 }
 
 async function main() {
