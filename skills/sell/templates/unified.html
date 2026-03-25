@@ -3467,10 +3467,79 @@ if (typeof window !== 'undefined') {
       window.applyVibesTheme = applyVibesTheme;
     </script>
     <script type="module" src="/vibes-ai.js"></script>
-    <!-- TODO: Migrate sell template to TinyBase. Deep multi-tenant patterns need separate task. -->
-<script type="text/babel" data-type="module">
+    <script type="text/babel" data-type="module">
       import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from "react";
       import ReactDOMClient from "react-dom/client";
+      import { createMergeableStore } from "tinybase/mergeable-store";
+      import { createLocalPersister } from "tinybase/persisters/persister-browser";
+      import { createWsSynchronizer } from "tinybase/synchronizers/synchronizer-ws-client";
+      import { Provider, useTable, useRow, useCell, useValue, useValues, useRowIds, useSortedRowIds, useRowCount, useHasRow, useHasCell, useHasValue, useCellIds, useTableIds, useAddRowCallback, useSetCellCallback, useSetRowCallback, useSetPartialRowCallback, useDelRowCallback, useDelCellCallback, useDelTableCallback, useSetValueCallback, useDelValueCallback, useCellState, useRowState, useValueState } from "tinybase/ui-react";
+
+      // Expose TinyBase hooks as globals for generated app code
+      window.useTable = useTable;
+      window.useRow = useRow;
+      window.useCell = useCell;
+      window.useValue = useValue;
+      window.useValues = useValues;
+      window.useRowIds = useRowIds;
+      window.useSortedRowIds = useSortedRowIds;
+      window.useRowCount = useRowCount;
+      window.useHasRow = useHasRow;
+      window.useHasCell = useHasCell;
+      window.useHasValue = useHasValue;
+      window.useCellIds = useCellIds;
+      window.useTableIds = useTableIds;
+      window.useAddRowCallback = useAddRowCallback;
+      window.useSetCellCallback = useSetCellCallback;
+      window.useSetRowCallback = useSetRowCallback;
+      window.useSetPartialRowCallback = useSetPartialRowCallback;
+      window.useDelRowCallback = useDelRowCallback;
+      window.useDelCellCallback = useDelCellCallback;
+      window.useDelTableCallback = useDelTableCallback;
+      window.useSetValueCallback = useSetValueCallback;
+      window.useDelValueCallback = useDelValueCallback;
+      window.useCellState = useCellState;
+      window.useRowState = useRowState;
+      window.useValueState = useValueState;
+
+      // --- App Context (TinyBase) ---
+      const AppContext = createContext(null);
+      function useApp() { return useContext(AppContext); }
+      window.useApp = useApp;
+
+      // --- Reconnecting WebSocket Synchronizer ---
+      function createReconnectingSynchronizer(store, wsUrl, onStatusChange) {
+        let synchronizer = null;
+        let backoff = 1000;
+        let destroyed = false;
+        let reconnectTimer = null;
+        function scheduleReconnect() {
+          if (destroyed || reconnectTimer) return;
+          reconnectTimer = setTimeout(() => { reconnectTimer = null; connect(); }, Math.min(backoff *= 2, 30000));
+        }
+        let connecting = false;
+        async function connect() {
+          if (destroyed || connecting) return;
+          connecting = true;
+          try {
+            if (synchronizer) { try { synchronizer.destroy(); } catch {} synchronizer = null; }
+            const ws = new WebSocket(wsUrl);
+            synchronizer = await createWsSynchronizer(store, ws);
+            await synchronizer.startSync();
+            backoff = 1000;
+            onStatusChange(true);
+            ws.addEventListener('error', () => {});
+            ws.addEventListener('close', () => { onStatusChange(false); scheduleReconnect(); });
+          } catch { scheduleReconnect(); } finally { connecting = false; }
+        }
+        connect();
+        return () => { destroyed = true; clearTimeout(reconnectTimer); synchronizer?.destroy(); };
+      }
+
+      // Create MergeableStore with unique client ID
+      let clientId = localStorage.getItem('tinybase_client_id');
+      if (!clientId) { clientId = crypto.randomUUID(); localStorage.setItem('tinybase_client_id', clientId); }
+      const store = createMergeableStore(clientId);
 
       // === Menu Components from window (defined in module script above) ===
       const HiddenMenuWrapper = window.HiddenMenuWrapper;
@@ -5084,6 +5153,61 @@ if (typeof window !== 'undefined') {
         return <SellLandingPage />;
       }
 
+      // === TinyBase Data Shell (init store, persist, sync) ===
+      function DataShell({ children }) {
+        const [isReady, setIsReady] = useState(false);
+        const [isSyncing, setIsSyncing] = useState(false);
+
+        useEffect(() => {
+          let destroySync = null;
+          let persister = null;
+
+          async function init() {
+            persister = createLocalPersister(store, `tinybase_${CONFIG.appName}`);
+            await persister.startAutoPersisting([{}, {}]);
+            setIsReady(true);
+
+            if (CONFIG.wsUrl && !CONFIG.wsUrl.startsWith('__')) {
+              startSync();
+            }
+          }
+
+          function startSync() {
+            if (destroySync) return;
+            let syncUrl = CONFIG.wsUrl;
+            const token = sessionStorage.getItem('vibes_oidc_access_token');
+            if (!token) return;
+            syncUrl += (syncUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
+            destroySync = createReconnectingSynchronizer(store, syncUrl, (syncing) => {
+              setIsSyncing(syncing);
+              window.__VIBES_SYNC_STATUS__ = syncing ? 'synced' : 'reconnecting';
+              window.dispatchEvent(new Event('vibes-sync-status-change'));
+            });
+          }
+
+          function onOidcReady() { startSync(); }
+          window.addEventListener('vibes-oidc-ready', onOidcReady);
+          init();
+          return () => {
+            window.removeEventListener('vibes-oidc-ready', onOidcReady);
+            if (destroySync) destroySync();
+            if (persister) persister.destroy();
+          };
+        }, []);
+
+        if (!isReady) {
+          return <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.5, fontFamily: 'system-ui' }}>Loading...</div>;
+        }
+
+        return (
+          <Provider store={store}>
+            <AppContext.Provider value={{ isReady, isSyncing, user: null }}>
+              {children}
+            </AppContext.Provider>
+          </Provider>
+        );
+      }
+
       // === App Wrapper with OIDC ===
       function AppWrapper() {
         // Check for OIDC configuration
@@ -5110,7 +5234,9 @@ if (typeof window !== 'undefined') {
                 cloudUrl: vibesConfig.cloudBackendUrl
               }}
             >
-              <AppRouter />
+              <DataShell>
+                <AppRouter />
+              </DataShell>
             </OIDCProvider>
           </>
         );
@@ -5138,9 +5264,6 @@ if (typeof window !== 'undefined') {
           window.useUser = oidcModule.useUser;
           // Export OIDC context for SharingBridge and user code
           window.useOIDCContext = oidcModule.useOIDCContext;
-
-          // Export Fireproof hook for user's App code (bridge provides ledger routing + invite)
-          window.useFireproofClerk = oidcModule.useFireproofClerk;
         } catch (err) {
           console.error('Failed to load OIDC components:', err);
           window.__OIDC_LOAD_ERROR__ = err.message || String(err);

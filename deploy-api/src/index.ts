@@ -142,13 +142,13 @@ async function verifyJWT(
   fetcher: Fetcher
 ): Promise<JWTPayload | null> {
   const parsed = parseJwt(token);
-  if (!parsed) return null;
+  if (!parsed) { console.log("[jwt] rejected: malformed token"); return null; }
 
-  if (parsed.header.alg !== "RS256") return null;
+  if (parsed.header.alg !== "RS256") { console.log("[jwt] rejected: unsupported alg:", parsed.header.alg); return null; }
 
   try {
     const jwk = await findKey(parsed.header.kid, fetcher);
-    if (!jwk) return null;
+    if (!jwk) { console.log("[jwt] rejected: no matching JWK for kid:", parsed.header.kid); return null; }
 
     const cryptoKey = await importJwk(jwk);
 
@@ -159,36 +159,45 @@ async function verifyJWT(
       parsed.signedData
     );
 
-    if (!isValid) return null;
+    if (!isValid) { console.log("[jwt] rejected: signature verification failed"); return null; }
 
     const now = Math.floor(Date.now() / 1000);
 
     // Check expiry
     if (typeof parsed.payload.exp !== "number" || parsed.payload.exp < now) {
+      console.log("[jwt] rejected: expired (exp:", parsed.payload.exp, "now:", now, ")");
       return null;
     }
 
     // Check iat is not in the future (with 60s clock skew tolerance)
     if (typeof parsed.payload.iat !== "number" || parsed.payload.iat > now + 60) {
+      console.log("[jwt] rejected: iat in future (iat:", parsed.payload.iat, "now:", now, ")");
       return null;
     }
 
     // Validate issuer
     if (parsed.payload.iss !== issuer) {
+      console.log("[jwt] rejected: issuer mismatch (got:", parsed.payload.iss, "expected:", issuer, ")");
       return null;
     }
 
     // Must have a subject
     if (!parsed.payload.sub) {
+      console.log("[jwt] rejected: missing sub claim");
       return null;
     }
 
-    // Audience validation: Pocket ID sets aud to the OIDC client ID, not the
-    // issuer URL. Since we already verify issuer + signature, accept any aud
-    // issued by our trusted Pocket ID instance.
+    // Audience validation: accept the shared CLI client ID or per-app client IDs.
+    // Pocket ID sets aud to the OIDC client ID. We validate it's present to
+    // prevent cross-service token reuse from non-Pocket-ID issuers.
+    if (!parsed.payload.aud) {
+      console.log("[jwt] rejected: missing aud claim");
+      return null;
+    }
 
     return parsed.payload;
-  } catch {
+  } catch (err) {
+    console.log("[jwt] rejected: verification error:", err instanceof Error ? err.message : String(err));
     return null;
   }
 }

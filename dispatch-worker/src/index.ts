@@ -27,16 +27,17 @@ async function fetchJwks(url: string): Promise<{ keys: JsonWebKey[]; cryptoKeys:
 async function verifyJwt(token: string, jwksUrl: string, issuer: string = 'https://vibesos.com'): Promise<boolean> {
   try {
     const parts = token.split('.');
-    if (parts.length !== 3) return false;
+    if (parts.length !== 3) { console.log('[jwt] rejected: malformed token'); return false; }
 
-    const header = JSON.parse(atob(parts[0].replace(/-/g, '+').replace(/_/g, '/')));
-    if (header.alg !== 'RS256') return false;
+    const decodeBase64Url = (s: string) => atob(s.replace(/-/g, '+').replace(/_/g, '/'));
+    const header = JSON.parse(decodeBase64Url(parts[0]));
+    if (header.alg !== 'RS256') { console.log('[jwt] rejected: unsupported alg:', header.alg); return false; }
 
     const jwks = await fetchJwks(jwksUrl);
     const jwk = header.kid
       ? jwks.keys.find((k: any) => k.kid === header.kid)
       : jwks.keys.find((k: any) => k.kty === 'RSA');
-    if (!jwk) return false;
+    if (!jwk) { console.log('[jwt] rejected: no matching JWK for kid:', header.kid); return false; }
 
     const cacheKey = (jwk as any).kid || 'default';
     let cryptoKey = jwks.cryptoKeys.get(cacheKey);
@@ -57,15 +58,34 @@ async function verifyJwt(token: string, jwksUrl: string, issuer: string = 'https
 
     const signedData = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
     const valid = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', cryptoKey, signature, signedData);
-    if (!valid) return false;
+    if (!valid) { console.log('[jwt] rejected: signature verification failed'); return false; }
 
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    const payload = JSON.parse(decodeBase64Url(parts[1]));
     const now = Math.floor(Date.now() / 1000);
-    if (typeof payload.exp !== 'number' || payload.exp <= now) return false;
-    if (payload.iss !== issuer) return false;
-    if (typeof payload.iat === 'number' && payload.iat > now + 60) return false;
+
+    if (typeof payload.exp !== 'number' || payload.exp < now) {
+      console.log('[jwt] rejected: expired (exp:', payload.exp, 'now:', now, ')');
+      return false;
+    }
+    if (payload.iss !== issuer) {
+      console.log('[jwt] rejected: issuer mismatch (got:', payload.iss, 'expected:', issuer, ')');
+      return false;
+    }
+    if (typeof payload.iat === 'number' && payload.iat > now + 60) {
+      console.log('[jwt] rejected: iat in future');
+      return false;
+    }
+    if (!payload.sub) {
+      console.log('[jwt] rejected: missing sub claim');
+      return false;
+    }
+    if (!payload.aud) {
+      console.log('[jwt] rejected: missing aud claim');
+      return false;
+    }
     return true;
-  } catch {
+  } catch (err) {
+    console.log('[jwt] rejected: verification error:', err instanceof Error ? err.message : String(err));
     return false;
   }
 }
