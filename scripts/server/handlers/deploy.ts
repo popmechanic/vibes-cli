@@ -56,6 +56,7 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
 
   const startTime = Date.now();
   function getElapsed() { return Math.round((Date.now() - startTime) / 1000); }
+  function logTiming(step: string) { console.log(`[Deploy] ${step} — ${Date.now() - startTime}ms`); }
 
   onEvent({ type: 'progress', progress: 5, stage: 'Assembling app...', elapsed: 0 });
 
@@ -81,6 +82,8 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
     [appJsxPath, indexHtmlPath],
     { cwd: ctx.projectRoot },
   );
+
+  logTiming('assembly complete');
 
   if (!assembleResult.ok) {
     onEvent({ type: 'error', message: `Assembly failed: ${assembleResult.stderr.slice(0, 2000)}` });
