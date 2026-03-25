@@ -94,37 +94,6 @@ function sanitizeAppName(name: string): string {
 // --- Editor API helpers ---
 
 async function checkEditorDeps(ctx: ServerContext) {
-  const reg = loadRegistry();
-  let clerkOk = false;
-  let clerkDetail = 'No Clerk keys configured';
-  let validatedPk = '';
-  let validatedSk = '';
-
-  const defaultApp = reg.apps._default;
-  const defaultPk = defaultApp?.clerk?.publishableKey || '';
-  if (defaultPk.startsWith('pk_test_') || defaultPk.startsWith('pk_live_')) {
-    clerkOk = true;
-    clerkDetail = `${defaultPk.slice(0, 12)}...`;
-    validatedPk = defaultPk;
-    const sk = defaultApp?.clerk?.secretKey || '';
-    if (sk.startsWith('sk_test_') || sk.startsWith('sk_live_')) validatedSk = sk;
-  }
-
-  if (!clerkOk) {
-    const apps = Object.entries(reg.apps).filter(([key]: [string, any]) => key !== '_default').map(([, v]: [string, any]) => v);
-    if (apps.length > 0) {
-      apps.sort((a: any, b: any) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
-      const pk = apps[0].clerk?.publishableKey || '';
-      clerkOk = pk.startsWith('pk_test_') || pk.startsWith('pk_live_');
-      if (clerkOk) {
-        clerkDetail = `${pk.slice(0, 12)}...`;
-        validatedPk = pk;
-        const sk = apps[0].clerk?.secretKey || '';
-        if (sk.startsWith('sk_test_') || sk.startsWith('sk_live_')) validatedSk = sk;
-      }
-    }
-  }
-
   const cfConfig = getCloudflareConfig();
   const cfOk = !!(cfConfig.apiToken || (cfConfig.apiKey && cfConfig.email));
   const cfDetail = cfOk
@@ -140,10 +109,6 @@ async function checkEditorDeps(ctx: ServerContext) {
       : value.slice(0, prefixLen) + '...' + value.slice(-suffixLen);
 
   const maskedKeys: Record<string, string> = {};
-  if (clerkOk && validatedPk) {
-    maskedKeys.clerkPublishableKey = maskKey(validatedPk, 12);
-    if (validatedSk) maskedKeys.clerkSecretKey = maskKey(validatedSk, 12);
-  }
   if (cfOk) {
     if (cfConfig.apiToken) maskedKeys.cloudflareApiToken = maskKey(cfConfig.apiToken, 6);
     if (cfConfig.email) {
@@ -158,7 +123,6 @@ async function checkEditorDeps(ctx: ServerContext) {
   if (openrouterOk) maskedKeys.openRouterKey = 'sk-or-...' + orKey!.slice(-6);
 
   return {
-    clerk: { ok: clerkOk, detail: clerkDetail },
     cloudflare: { ok: cfOk, detail: cfDetail },
     openrouter: {
       ok: openrouterOk,

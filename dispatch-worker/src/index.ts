@@ -7,6 +7,7 @@ interface Env {
   APP_META: KVNamespace;
   DISPATCH: { get(name: string): { fetch(request: Request): Promise<Response> } };
   OIDC_JWKS_URL: string;
+  OIDC_ISSUER: string;
 }
 
 let cachedJwks: { keys: JsonWebKey[]; cryptoKeys: Map<string, CryptoKey>; fetchedAt: number } | null = null;
@@ -23,7 +24,7 @@ async function fetchJwks(url: string): Promise<{ keys: JsonWebKey[]; cryptoKeys:
   return cachedJwks;
 }
 
-async function verifyJwt(token: string, jwksUrl: string): Promise<boolean> {
+async function verifyJwt(token: string, jwksUrl: string, issuer: string = 'https://vibesos.com'): Promise<boolean> {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return false;
@@ -61,7 +62,7 @@ async function verifyJwt(token: string, jwksUrl: string): Promise<boolean> {
     const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
     const now = Math.floor(Date.now() / 1000);
     if (typeof payload.exp !== 'number' || payload.exp <= now) return false;
-    if (payload.iss !== 'https://vibesos.com') return false;
+    if (payload.iss !== issuer) return false;
     if (typeof payload.iat === 'number' && payload.iat > now + 60) return false;
     return true;
   } catch {
@@ -99,7 +100,7 @@ export default {
       if (appMeta?.public !== true) {
         const token = getTokenFromRequest(request, url);
         if (!token) return new Response('Unauthorized', { status: 401 });
-        const valid = await verifyJwt(token, env.OIDC_JWKS_URL);
+        const valid = await verifyJwt(token, env.OIDC_JWKS_URL, env.OIDC_ISSUER);
         if (!valid) return new Response('Unauthorized', { status: 401 });
       }
 

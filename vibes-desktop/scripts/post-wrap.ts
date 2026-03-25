@@ -4,6 +4,7 @@
 // Both must happen BEFORE signing so the code signature covers everything.
 import { cpSync, existsSync, rmSync } from "fs";
 import { join, dirname } from "path";
+import { BUNDLE_EXCLUDES } from "./bundle-excludes.ts";
 
 const wrapperPath = process.env.ELECTROBUN_WRAPPER_BUNDLE_PATH;
 if (!wrapperPath) {
@@ -49,18 +50,7 @@ if (existsSync(pluginDest)) {
 
 const rsyncResult = Bun.spawnSync([
 	"rsync", "-a",
-	"--exclude=.git", "--exclude=.git-backup", "--exclude=node_modules",
-	"--exclude=vibes-desktop", "--exclude=deploy-api", "--exclude=.claude",
-	"--exclude=scripts/__tests__", "--exclude=scripts/coverage",
-	"--exclude=docs/plans", "--exclude=alchemy",
-	"--exclude=skills/cloudflare/worker", "--exclude=superpowers",
-	"--exclude=.netlify-deploy", "--exclude=.env", "--exclude=.env.*",
-	"--exclude=.connect", "--exclude=.wrangler", "--exclude=.DS_Store",
-	"--exclude=.vibes-tmp", "--exclude=.worktrees",
-	"--exclude=*.bak.*", "--exclude=*.bak.html", "--exclude=*.bak.jsx",
-	"--exclude=ai-worker", "--exclude=designs", "--exclude=dist",
-	"--exclude=examples", "--exclude=test-vibes",
-	"--exclude=.superpowers", "--exclude=wrangler.jsonc",
+	...BUNDLE_EXCLUDES,
 	`${repoRoot}/`, `${pluginDest}/`
 ]);
 

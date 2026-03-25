@@ -3,8 +3,15 @@ import { readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
 const fixturesDir = join(__dirname, '..', 'fixtures');
+
+// Only test TinyBase app fixtures — non-TinyBase fixtures (ai-proxy, minimal)
+// are intentionally exempt from useApp() and other TinyBase-specific assertions.
+const TINYBASE_FIXTURE_PREFIX = 'tinybase-';
+const TINYBASE_EXTRAS = ['diagnostic-dashboard.jsx', 'sell-ready.jsx', 'fireproof-basic.jsx'];
+
 const fixtures = readdirSync(fixturesDir)
   .filter(f => f.endsWith('.jsx'))
+  .filter(f => f.startsWith(TINYBASE_FIXTURE_PREFIX) || TINYBASE_EXTRAS.includes(f))
   .map(f => ({ name: f, content: readFileSync(join(fixturesDir, f), 'utf-8') }));
 
 describe('generation compliance', () => {

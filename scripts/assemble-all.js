@@ -50,10 +50,10 @@ const results = await Promise.all(
       const appCode = readFileSync(appPath, 'utf8').trim();
       const cleanedCode = stripForTemplate(appCode, { stripReactHooks: true });
       let output = template.replace(APP_PLACEHOLDER, cleanedCode);
-      output = output.replaceAll('__VITE_OIDC_AUTHORITY__', OIDC_AUTHORITY);
-      output = output.replaceAll('__VITE_OIDC_CLIENT_ID__', OIDC_CLIENT_ID);
-      output = output.replaceAll('__VITE_DEPLOY_API_URL__', DEPLOY_API_URL);
-      output = output.replaceAll('__VITE_AI_PROXY_URL__', AI_PROXY_URL);
+      output = output.replaceAll('__OIDC_AUTHORITY__', OIDC_AUTHORITY);
+      output = output.replaceAll('__OIDC_CLIENT_ID__', OIDC_CLIENT_ID);
+      output = output.replaceAll('__DEPLOY_API_URL__', DEPLOY_API_URL);
+      output = output.replaceAll('__AI_PROXY_URL__', AI_PROXY_URL);
       writeFileSync(outputPath, output);
       return { dir, success: true };
     } catch (e) {

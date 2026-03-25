@@ -104,7 +104,12 @@ rm -rf "$DESKTOP_DIR/build"
 cd "$DESKTOP_DIR"
 # Patch generation may fail on first build with baseUrl (no previous version to diff).
 # The build, signing, and notarization still succeed — allow non-zero exit.
-bunx electrobun build --env=stable || echo "  (electrobun build exited non-zero — patch generation may have failed, continuing)"
+bunx electrobun build --env=stable || true
+# Verify the .app was actually built before continuing
+if [ ! -d "$BUILD_DIR/$APP_NAME.app" ] && [ ! -f "$BUILD_DIR/$APP_NAME.app.tar" ]; then
+  echo "ERROR: Build failed — no .app or .app.tar found in $BUILD_DIR"
+  exit 1
+fi
 
 # Extract .app from tar (ElectroBun packages it during notarize/staple)
 if [ -f "$BUILD_DIR/$APP_NAME.app.tar" ] && [ ! -d "$BUILD_DIR/$APP_NAME.app" ]; then

@@ -162,7 +162,7 @@
       const deepLink = () => {
         // Inside editor preview iframe: send payload to parent editor frame
         if (window.parent !== window) {
-          window.parent.postMessage({ type: 'vibes-fix-error', payload: fixPayload }, '*');
+          window.parent.postMessage({ type: 'vibes-fix-error', payload: fixPayload }, window.location.origin);
           return;
         }
         // Standalone deployed app: use vibes:// URL scheme to open desktop app

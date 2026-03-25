@@ -10,7 +10,7 @@
  */
 
 import { readFileSync, existsSync, unlinkSync } from "fs";
-import { resolve, dirname } from "path";
+import { resolve, dirname, join } from "path";
 import { buildPlatformFiles, addAppAssets } from './lib/deploy-files.js';
 import { validateName, getApp, setApp } from './lib/registry.js';
 import { getAccessToken } from './lib/cli-auth.js';

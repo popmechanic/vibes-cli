@@ -5,7 +5,8 @@ import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
 import { BrowserWindow } from "electrobun/bun";
-import { SETUP_HTML } from "./setup-html.ts";
+import { makeSetupHtml } from "./setup-html.ts";
+import { getSetupSessionToken, startSetupIpc } from "./setup-ipc.ts";
 import { CLAUDE_BIN, refreshClaudePath, installClaude, isClaudeInstalled } from "./auth.ts";
 import { installPlugin } from "./plugin-installer.ts";
 import { checkClaudeAuth, startClaudeLogin, waitForClaudeAuth, jsStr } from "./claude-auth.ts";
@@ -73,7 +74,8 @@ export async function runSetup(
 	log: (...args: any[]) => void,
 ): Promise<SetupResult> {
 	// Show setup UI
-	mainWindow.webview.loadHTML(SETUP_HTML);
+	startSetupIpc();
+	mainWindow.webview.loadHTML(makeSetupHtml(getSetupSessionToken()));
 
 	// Helper to push status updates to the UI
 	const ui = {

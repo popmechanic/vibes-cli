@@ -40,7 +40,8 @@ VibesOS/
 │   ├── vibes/SKILL.md       # Core app generation
 │   ├── riff/SKILL.md        # Parallel variations
 │   ├── sell/SKILL.md        # SaaS transformation
-│   └── exe/SKILL.md         # exe.dev deployment
+│   ├── cloudflare/SKILL.md  # Cloudflare Workers deployment
+│   └── launch/SKILL.md      # End-to-end SaaS pipeline
 ├── scripts/                 # Node.js utilities
 │   ├── assemble.js          # JSX → HTML assembly
 │   └── __tests__/           # Test suite

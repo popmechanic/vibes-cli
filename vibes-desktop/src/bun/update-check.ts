@@ -117,7 +117,9 @@ export async function checkAndPromptForUpdate(
 		// Fallback if dom-ready already fired or never fires
 		setTimeout(resolve, 1500);
 	});
-	mainWindow.webview.loadHTML((await import("./setup-html.ts")).SETUP_HTML);
+	const { startSetupIpc, getSetupSessionToken } = await import("./setup-ipc.ts");
+	startSetupIpc();
+	mainWindow.webview.loadHTML((await import("./setup-html.ts")).makeSetupHtml(getSetupSessionToken()));
 	await new Promise(r => setTimeout(r, 300));
 	mainWindow.webview.executeJavascript(
 		`showUpdateScreen(${jsStr(currentVersion)}, ${jsStr(newVersion)})`

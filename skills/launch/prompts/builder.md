@@ -10,7 +10,7 @@ App name: {appName}
 This app uses TinyBase for reactive data. All hooks are globals provided by the template — no imports needed.
 
 ```jsx
-const { isReady, isSyncing, user } = useApp();
+const { isReady, isSyncing } = useApp();
 const ids = useRowIds('items');
 const addItem = useAddRowCallback('items', (data) => ({ ...data, createdAt: Date.now() }));
 ```

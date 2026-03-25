@@ -20,7 +20,7 @@
       "name": "julian",
       "source": "./plugins/julian",
       "description": "Julian project tools — deploy, manage, and interact with Julian instances",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "author": {
         "name": "Marcus Estes",
         "email": "marcus@vibes.diy"

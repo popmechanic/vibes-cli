@@ -7,20 +7,33 @@
 
 type SetupActionHandler = (action: string) => void;
 let _handler: SetupActionHandler | null = null;
+let _server: ReturnType<typeof Bun.serve> | null = null;
 
-export const setupIpc = Bun.serve({
-	port: 3335,
-	fetch(req) {
-		const action = new URL(req.url).pathname.slice(1); // '/auth' → 'auth'
-		_handler?.(action);
-		return new Response("ok", {
-			headers: {
-				"Access-Control-Allow-Origin": "*",
-				"Access-Control-Allow-Methods": "GET",
-			},
-		});
-	},
-});
+// Session token prevents cross-origin requests from triggering setup actions.
+// Injected into setup HTML templates so only our own pages can authenticate.
+const SESSION_TOKEN = crypto.randomUUID();
+
+export function getSetupSessionToken(): string {
+	return SESSION_TOKEN;
+}
+
+export function startSetupIpc() {
+	if (_server) return;
+	_server = Bun.serve({
+		port: 3335,
+		hostname: "127.0.0.1",
+		fetch(req) {
+			const url = new URL(req.url);
+			const token = url.searchParams.get("token");
+			if (token !== SESSION_TOKEN) {
+				return new Response("unauthorized", { status: 403 });
+			}
+			const action = url.pathname.slice(1); // '/auth' → 'auth'
+			_handler?.(action);
+			return new Response("ok");
+		},
+	});
+}
 
 /**
  * Wait for any of the given actions to be received from the setup UI.
@@ -39,5 +52,6 @@ export function waitForSetupAction(validActions: string[]): Promise<string> {
 
 export function stopSetupIpc() {
 	_handler = null;
-	setupIpc.stop();
+	_server?.stop();
+	_server = null;
 }

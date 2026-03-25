@@ -84,3 +84,8 @@ skill-dynamic-injection-explained.html
 # Eval infrastructure (local autoresearch, not distributed)
 eval/
 .mcp.json
+
+# Root scratch files (not part of plugin)
+/package.json
+eval-results-playground.html
+eval-test.html

@@ -93,10 +93,8 @@ Typical dynamic elements:
 ### Step 3: Create the React Component
 
 ```jsx
-import React from "react";
-
-export default function App() {
-  // TinyBase hooks are globals — no initialization call needed
+function App() {
+  // TinyBase hooks are globals — no imports, no initialization call needed
   const rowIds = useRowIds('items');
   const handleAdd = useAddRowCallback('items', (e) => ({
     text: '', type: 'item', created: Date.now()

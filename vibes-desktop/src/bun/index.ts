@@ -19,9 +19,9 @@ import { CLAUDE_BIN, isClaudeInstalled, VIBES_CONFIG_DIR } from "./auth.ts";
 import { hideZoomButton } from "./window-controls.ts";
 import { isSetupComplete, runSetup, getBundledPluginPath, markSetupComplete } from "./setup.ts";
 import { installPlugin } from "./plugin-installer.ts";
-import { SETUP_HTML, LOADING_HTML } from "./setup-html.ts";
+import { makeSetupHtml, LOADING_HTML } from "./setup-html.ts";
 import { checkClaudeAuth, startClaudeLogin, waitForClaudeAuth, jsStr, type ClaudeAuthResult } from "./claude-auth.ts";
-import { waitForSetupAction, stopSetupIpc } from "./setup-ipc.ts";
+import { waitForSetupAction, stopSetupIpc, startSetupIpc, getSetupSessionToken } from "./setup-ipc.ts";
 import { checkAndPromptForUpdate } from "./update-check.ts";
 
 // --- Debug logging (~/Library/Logs/VibesOS/desktop.log) ---
@@ -69,7 +69,8 @@ async function showLoginAndWait(
 	subtitle: string,
 ): Promise<ClaudeAuthResult> {
 	// Load setup HTML and switch to login-only view
-	mainWindow.webview.loadHTML(SETUP_HTML);
+	startSetupIpc();
+	mainWindow.webview.loadHTML(makeSetupHtml(getSetupSessionToken()));
 	await new Promise(r => setTimeout(r, 300));
 	mainWindow.webview.executeJavascript(`showLoginScreen(${jsStr(subtitle)})`);
 
@@ -150,6 +151,10 @@ Electrobun.events.on("open-url", (e) => {
 			log("[vibes-desktop] Received vibes://fix deep link for app:", payload.app);
 
 			if (payload.app) {
+				if (!/^[a-zA-Z0-9_-]+$/.test(payload.app)) {
+					log("[vibes-desktop] Invalid app name in deep link:", payload.app);
+					return;
+				}
 				const appPath = join(homedir(), ".vibes", "apps", payload.app, "app.jsx");
 				if (!existsSync(appPath)) {
 					log("[vibes-desktop] App not found locally:", payload.app, "at", appPath);
@@ -190,6 +195,9 @@ async function main() {
 		}
 	}
 
+	// Start IPC server if setup or update check will need it
+	if (needsSetup) startSetupIpc();
+
 	// Create window early — setup UI and editor both use it
 	const mainWindow = new BrowserWindow({
 		title: "Vibes Editor",
@@ -202,7 +210,7 @@ async function main() {
 			Miniaturizable: true,
 		},
 		// Start with setup page or loading splash — server URL loaded after ready
-		html: needsSetup ? SETUP_HTML : LOADING_HTML,
+		html: needsSetup ? makeSetupHtml(getSetupSessionToken()) : LOADING_HTML,
 		frame: { width: 1280, height: 820 },
 	});
 
@@ -317,12 +325,16 @@ async function main() {
 
 	// Load the editor in the window (transition from setup UI or blank page)
 	mainWindow.webview.loadURL(SERVER_URL);
-	editorLoaded = true;
 
 	// Inject preload via executeJavascript on dom-ready (preload option doesn't work)
 	mainWindow.webview.on("dom-ready", () => {
 		log("[dom-ready] Injecting link preload script");
 		mainWindow.webview.executeJavascript(LINK_PRELOAD);
+
+		// Mark editor ready only after dom-ready so deep links arriving between
+		// loadURL() and dom-ready get queued as pendingFixPayload instead of
+		// trying to executeJavascript on an unready page.
+		editorLoaded = true;
 
 		// Drain pending deep link payload after the editor page has loaded.
 		// dom-ready fires when HTML is parsed, but inline scripts (including

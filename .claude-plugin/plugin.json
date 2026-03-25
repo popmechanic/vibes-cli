@@ -9,5 +9,5 @@
   "homepage": "https://vibes.diy",
   "repository": "https://github.com/popmechanic/VibesOS",
   "license": "MIT",
-  "keywords": ["react", "fireproof", "web-app", "prototyping", "no-build"]
+  "keywords": ["react", "tinybase", "web-app", "prototyping", "no-build"]
 }

@@ -718,61 +718,12 @@ app.post("/admin/reset-connect/:name", async (c) => {
   return c.json({ ok: false, error: "Connect has been removed. TinyBase sync state is managed per-app." }, 410);
 });
 
-// Admin: force re-provision Connect for an app (migrates dashboard to namespace)
-// Data is preserved — R2/D1 reused, new session tokens + device CA generated,
-// both cloud-backend and dashboard redeployed with matching keys.
-app.post("/admin/reprovision-connect/:name", async (c) => {
-  const authHeader = c.req.header("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return c.json({ error: "auth required" }, 401);
-  const payload = await verifyJWT(authHeader.slice(7), c.env.OIDC_ISSUER, c.env.POCKET_ID);
-  if (!payload) return c.json({ error: "invalid token" }, 401);
-
-  const name = c.req.param("name");
-  const kvKey = `subdomain:${name}`;
-  const raw = await c.env.REGISTRY_KV.get(kvKey);
-  if (!raw) return c.json({ error: "app not found" }, 404);
-
-  const record = JSON.parse(raw) as SubdomainRecord;
-
-  // Only the app owner can reprovision
-  if (record.owner !== payload.sub) {
-    return c.json({ error: "not owner" }, 403);
-  }
-
-  try {
-    const connectInfo = await provisionConnect({
-      accountId: c.env.CF_ACCOUNT_ID,
-      apiToken: c.env.CF_API_TOKEN,
-      stage: name,
-      oidcAuthority: c.env.OIDC_ISSUER,
-      oidcServiceWorkerName: "pocket-id",
-      cloudBackendBundle: CLOUD_BACKEND_BUNDLE,
-      dashboardBundle: DASHBOARD_BUNDLE,
-      r2AccessKeyId: c.env.R2_ACCESS_KEY_ID,
-      r2SecretAccessKey: c.env.R2_SECRET_ACCESS_KEY,
-      serviceApiKey: c.env.SERVICE_API_KEY,
-    });
-
-    // Update KV record with new Connect info
-    record.connectProvisioned = true;
-    record.connect = connectInfo;
-    record.updatedAt = new Date().toISOString();
-    await c.env.REGISTRY_KV.put(kvKey, JSON.stringify(record));
-
-    return c.json({
-      ok: true,
-      app: name,
-      connect: {
-        apiUrl: connectInfo.apiUrl,
-        cloudUrl: connectInfo.cloudUrl,
-      },
-      message: "Connect re-provisioned. Dashboard deployed to namespace.",
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Re-provision failed";
-    console.error(`[admin] Re-provision failed for ${name}:`, err);
-    return c.json({ ok: false, error: msg }, 502);
-  }
+// /admin/reprovision-connect/:name — removed. Connect provisioning was part of
+// the pre-TinyBase Fireproof architecture. The referenced module (connect.ts),
+// bundles (CLOUD_BACKEND_BUNDLE, DASHBOARD_BUNDLE), and env vars (R2_ACCESS_KEY_ID,
+// R2_SECRET_ACCESS_KEY) no longer exist.
+app.post("/admin/reprovision-connect/:name", (c) => {
+  return c.json({ error: "endpoint removed — Connect provisioning is no longer supported" }, 410);
 });
 
 // NOTE: /admin/reprovision-all was removed — it indiscriminately re-keyed all apps,
@@ -1018,7 +969,8 @@ app.get("/join/callback", async (c) => {
   const error = c.req.query("error");
 
   if (error) {
-    return c.html(`<h1>Authentication failed: ${error}</h1>`, 400);
+    const safeError = String(error).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return c.html(`<h1>Authentication failed: ${safeError}</h1>`, 400);
   }
 
   if (!code || !stateKey) {

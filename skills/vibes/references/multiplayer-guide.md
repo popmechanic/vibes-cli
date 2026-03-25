@@ -97,15 +97,12 @@ const addItem = useAddRowCallback(
 );
 ```
 
-To show only the current user's data, filter by `createdBy`:
+To show only the current user's data, filter by `createdBy` using `useTable` (never call hooks inside `.filter()` — see bug-prevention.md):
 ```jsx
 const { user: oidcUser } = useUser();
 const userEmail = oidcUser.email;
-const allIds = useRowIds('scores');
-const myScores = allIds.filter(id => {
-  const owner = useCell('scores', id, 'createdBy');
-  return owner === userEmail;
-});
+const allScores = useTable('scores');
+const myScores = Object.entries(allScores).filter(([id, row]) => row.createdBy === userEmail);
 ```
 
 **Single-player apps:** All persistent data goes in TinyBase. No user filtering needed — sync just gives the user their data on all their devices.

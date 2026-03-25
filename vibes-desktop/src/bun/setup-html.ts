@@ -9,11 +9,13 @@
 
 import { VIBES_OS_HEADER_SVG, VIBES_OS_LOADING_SVG } from './brand-assets.ts';
 
-export const SETUP_HTML = `<!DOCTYPE html>
+export function makeSetupHtml(ipcToken: string): string {
+return `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>var IPC_BASE='http://127.0.0.1:3335';var IPC_TOKEN='${ipcToken}';function ipc(a){return fetch(IPC_BASE+'/'+a+'?token='+IPC_TOKEN).catch(function(){});}</script>
 <title>VibesOS Setup</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
 <style>
@@ -674,6 +676,7 @@ export const SETUP_HTML = `<!DOCTYPE html>
             </div>
             <div class="progress-stats">
               <span id="progress-size"></span>
+              <span id="progress-speed"></span>
             </div>
           </div>
 
@@ -691,7 +694,7 @@ export const SETUP_HTML = `<!DOCTYPE html>
 
           <!-- ASCII Buttons -->
           <div class="ascii-buttons">
-            <button class="ascii-btn" id="auth-btn" onclick="fetch('http://localhost:3335/auth').catch(function(){})">
+            <button class="ascii-btn" id="auth-btn" onclick="ipc('auth')">
               <span class="btn-highlight">┌──────────────────────────────┐</span>
               <br>
               <span class="btn-highlight">│</span>  ▸ Sign in with Anthropic    <span class="btn-highlight">│</span>
@@ -711,7 +714,7 @@ export const SETUP_HTML = `<!DOCTYPE html>
               <span class="line-prefix"><span class="term-spinner">|</span></span>
               <span class="line-content">Starting editor...</span>
             </div>
-            <button class="ascii-btn" id="retry-btn" onclick="fetch('http://localhost:3335/retry').catch(function(){})">
+            <button class="ascii-btn" id="retry-btn" onclick="ipc('retry')">
               <span class="btn-highlight">┌─────────────┐</span>
               <br>
               <span class="btn-highlight">│</span>  ▸ Retry    <span class="btn-highlight">│</span>
@@ -739,7 +742,7 @@ export const SETUP_HTML = `<!DOCTYPE html>
               without a web server. <em>It's magic.</em>
             </div>
             <div class="welcome-buttons">
-              <button class="ascii-btn" id="welcome-auth-btn" onclick="fetch('http://localhost:3335/auth').catch(function(){})" style="display: inline-block;"><span class="btn-highlight">┌────────────────────┐</span>
+              <button class="ascii-btn" id="welcome-auth-btn" onclick="ipc('auth')" style="display: inline-block;"><span class="btn-highlight">┌────────────────────┐</span>
 <span class="btn-highlight">│</span>  ▸ Sign in          <span class="btn-highlight">│</span>
 <span class="btn-highlight">└────────────────────┘</span></button>
             </div>
@@ -761,14 +764,14 @@ export const SETUP_HTML = `<!DOCTYPE html>
               </div>
             </div>
             <div class="ascii-buttons" style="margin-top: 12px;">
-              <button class="ascii-btn" id="update-now-btn" style="display: inline-block;" onclick="fetch('http://localhost:3335/update-now').catch(function(){})">
+              <button class="ascii-btn" id="update-now-btn" style="display: inline-block;" onclick="ipc('update-now')">
                 <span class="btn-highlight">┌──────────────────────────────┐</span>
                 <br>
                 <span class="btn-highlight">│</span>  ▸ Update Now                 <span class="btn-highlight">│</span>
                 <br>
                 <span class="btn-highlight">└──────────────────────────────┘</span>
               </button>
-              <button class="ascii-btn" id="update-skip-btn" style="display: inline-block;" onclick="fetch('http://localhost:3335/update-skip').catch(function(){})">
+              <button class="ascii-btn" id="update-skip-btn" style="display: inline-block;" onclick="ipc('update-skip')">
                 <span class="btn-highlight">┌─────────────┐</span>
                 <br>
                 <span class="btn-highlight">│</span>  ▸ Skip     <span class="btn-highlight">│</span>
@@ -802,7 +805,7 @@ export const SETUP_HTML = `<!DOCTYPE html>
               <span class="line-content" id="update-error-text" style="color: var(--btn-close);">Download failed</span>
             </div>
             <div class="ascii-buttons" style="margin-top: 8px;">
-              <button class="ascii-btn" id="update-error-skip-btn" style="display: inline-block;" onclick="fetch('http://localhost:3335/update-skip').catch(function(){})">
+              <button class="ascii-btn" id="update-error-skip-btn" style="display: inline-block;" onclick="ipc('update-skip')">
                 <span class="btn-highlight">┌──────────────────────────────┐</span>
                 <br>
                 <span class="btn-highlight">│</span>  ▸ Continue without updating  <span class="btn-highlight">│</span>
@@ -905,7 +908,7 @@ function onContinueClick() {
   document.getElementById('continue-btn').style.display = 'none';
   document.getElementById('ready-prompt').style.display = 'none';
   document.getElementById('starting-line').style.display = 'flex';
-  fetch('http://localhost:3335/continue').catch(function(){});
+  ipc('continue');
 }
 
 function showWaitingForAuth() {
@@ -1046,6 +1049,10 @@ function showUpdateError(errorMsg) {
 </script>
 </body>
 </html>`;
+}
+
+// Legacy export for callers that haven't migrated to makeSetupHtml()
+export const SETUP_HTML = makeSetupHtml('');
 
 // Splash screen shown to returning users while auth check, update check,
 // and server boot run. Matches the editor chrome (gray grid, cream header).

@@ -8,10 +8,13 @@ static NSWindow* getMainWindow() {
 
 extern "C" {
 
-void hideZoomButton(void) {
-    static int retryCount = 0;
-    retryCount = 0;
+static void hideZoomButtonWithRetry(int retryCount);
 
+void hideZoomButton(void) {
+    hideZoomButtonWithRetry(0);
+}
+
+static void hideZoomButtonWithRetry(int retryCount) {
     dispatch_async(dispatch_get_main_queue(), ^{
         NSWindow *window = getMainWindow();
         if (!window) return;
@@ -24,11 +27,10 @@ void hideZoomButton(void) {
             // Window not ready — _postWindowNeedsToResetDragMargins throws
             // if called before the window is fully initialized.
             if (retryCount < 5) {
-                retryCount++;
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW,
                     (int64_t)(200 * NSEC_PER_MSEC)),
                     dispatch_get_main_queue(), ^{
-                        hideZoomButton();
+                        hideZoomButtonWithRetry(retryCount + 1);
                     });
             }
         }

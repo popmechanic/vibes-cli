@@ -2,6 +2,14 @@ import { existsSync, readdirSync, readFileSync } from "fs";
 import { join, dirname } from "path";
 import { homedir } from "os";
 
+/** Compare semver strings — returns negative if a < b, 0 if equal, positive if a > b. */
+function compareSemver(a: string, b: string): number {
+	const parse = (v: string) => (v.match(/^(\d+)\.(\d+)\.(\d+)/) || []).slice(1).map(Number);
+	const [aM, am, ap] = parse(a);
+	const [bM, bm, bp] = parse(b);
+	return (aM - bM) || (am - bm) || (ap - bp);
+}
+
 export interface PluginPaths {
 	root: string;
 	assembleScript: string;
@@ -82,7 +90,7 @@ export async function discoverVibesPlugin(
 		try {
 			const versions = readdirSync(vibesPluginDir).filter(v => !v.startsWith("."));
 			if (versions.length > 0) {
-				const latestVersion = versions.sort().pop()!;
+				const latestVersion = versions.sort(compareSemver).pop()!;
 				const vibesRoot = join(vibesPluginDir, latestVersion);
 				const vibesResult = validateAndReturn(vibesRoot);
 				if (vibesResult) {
@@ -149,7 +157,7 @@ export async function discoverVibesPlugin(
 						(v) => !v.startsWith("."),
 					);
 					if (versions.length > 0) {
-						const latestVersion = versions.sort().pop()!;
+						const latestVersion = versions.sort(compareSemver).pop()!;
 						const pluginRoot = join(vibesDir, latestVersion);
 						return validateAndReturn(pluginRoot);
 					}
