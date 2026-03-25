@@ -97,12 +97,12 @@ function SlotCard({ id }) {
 
 ## Guard useUser() for Public/Preview Mode
 
-`useUser()` is only available in private (auth-enabled) apps. In public apps and during local editor preview, `useUser` is **undefined** — calling it crashes with "undefined is not an object". Since every app runs in preview mode before being deployed as private, **every use of `useUser()` must be guarded:**
+`useUser()` provides meaningful identity in **private apps only**. The template installs a `useUser` stub for public apps that returns `{ email: null }`, so `useUser` is technically always defined. Since every app runs in preview mode before being deployed as private, **every use of `useUser()` must be guarded:**
 
 ```jsx
-// BAD — crashes in public/preview mode
+// BAD — crashes in preview mode before stub is loaded
 const { user: oidcUser } = useUser();
-const userEmail = oidcUser.email;  // CRASH: useUser is undefined
+const userEmail = oidcUser.email;  // CRASH: user may be null
 
 // GOOD — works everywhere, real email when deployed private
 const oidcUser = typeof useUser === 'function' ? useUser()?.user : null;
@@ -110,6 +110,26 @@ const userEmail = oidcUser?.email || 'anonymous';
 ```
 
 This is the **only** correct pattern. Never call `useUser()` directly without the `typeof` guard.
+
+The `'anonymous'` fallback is for **preview mode only** (testing before deploy). Public apps that need per-user state must use the username gate pattern (see multiplayer-guide.md § Public Multiplayer Apps), not the anonymous fallback. If multiple users all show as `'anonymous'`, per-user state is broken.
+
+---
+
+## useUser() Stub in Public Apps
+
+`useUser` is always defined — the template installs a stub for public apps. The stub returns `{ email: null }`. This means:
+
+- **Do NOT use `typeof useUser === 'function'` as a proxy for "is this a private app"** — it's always true.
+- **Check `useUser()?.user?.email` for a truthy string** to determine if real OIDC auth is available.
+
+```jsx
+// BAD — always true, even in public apps
+if (typeof useUser === 'function') { /* "must be private" — WRONG */ }
+
+// GOOD — actually checks for real auth
+const oidcUser = typeof useUser === 'function' ? useUser()?.user : null;
+if (oidcUser?.email) { /* real OIDC user with email */ }
+```
 
 ---
 

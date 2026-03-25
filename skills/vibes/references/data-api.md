@@ -97,8 +97,13 @@ Before writing any code, determine whether the app involves multiple users actin
 
 - **Multi-user** (chat, game, shared board, auction, poll, collaborative tool) — Every piece of state needs a clear owner. Read `${CLAUDE_SKILL_DIR}/references/multiplayer-guide.md` before designing tables. Plan each table as one of:
   - **Shared state** — all users see the same data (messages, tasks, game board). Use auto-generated row IDs or a well-known row key like `'shared'`.
-  - **Per-user state** — each user has their own version (my vote, my team, my filter preference). Key rows by `oidcUser.email`.
+  - **Per-user state** — each user has their own version (my vote, my team, my filter preference). Key rows by user identity key (email for private apps, UUID for public multiplayer).
   - **User-attributed items** — shared collection where each item belongs to someone (bids, inventory). Auto-generated row IDs with a `createdBy` or `owner` cell.
+
+**For multi-user apps, also determine the identity source:**
+- **Private app** → OIDC email from `useUser()` — every user signs in and gets a unique email
+- **Public app + per-user state detected** → **public multiplayer** — generate the username gate pattern (see `${CLAUDE_SKILL_DIR}/references/multiplayer-guide.md` § Public Multiplayer Apps). UUID from localStorage becomes the identity key.
+- **Public app + single-player** → no identity needed, no gate
 
 **Common trap:** A prompt like "auction app" or "shared timer" doesn't say "multiplayer" but absolutely requires per-user vs shared state reasoning. If two users could have different views or make independent choices, it's multi-user.
 
@@ -123,7 +128,7 @@ This is not optional. Never skip it. Never move it to a child component.
 
 Do not use `useApp().user` — it is always null. Use `useUser()` instead.
 
-**IMPORTANT:** `useUser()` is only available in private (auth-enabled) apps. In public apps and during local preview, `useUser` is undefined. Apps that use user identity **must guard against this** — the app runs in public/preview mode before being deployed as private.
+**IMPORTANT:** `useUser()` provides meaningful identity in **private apps only**. The template installs a `useUser` stub for public apps that returns `{ email: null }`, so `typeof useUser === 'function'` does NOT distinguish private from public — it's always true. Check `useUser()?.user?.email` for a truthy string to determine if real auth is available.
 
 ```jsx
 // Safe pattern — works in both public preview and deployed private apps
@@ -131,6 +136,8 @@ const oidcUser = typeof useUser === 'function' ? useUser()?.user : null;
 const userEmail = oidcUser?.email || 'anonymous';
 const userName = oidcUser?.firstName || userEmail.split('@')[0];
 ```
+
+The `'anonymous'` fallback is for **preview mode only** (testing before deploy). Public apps that need per-user state must use the username gate pattern — see `${CLAUDE_SKILL_DIR}/references/multiplayer-guide.md` § Public Multiplayer Apps.
 
 `useUser()` returns `{ isSignedIn, isLoaded, user }` where `user` has `.email`, `.id`, `.firstName`, `.lastName`, `.username`. In private apps after sign-in, `email` is always a string (OIDC guarantees it).
 
@@ -209,7 +216,7 @@ Key principles:
 - **User attribution**: add `createdBy: userEmail` to user-owned rows, filter by it to show "my stuff"
 - **Users table**: every shared app registers users on load via `useSetRowCallback('users', myEmail, ...)`
 - **Write through hooks**, not `store.*` — hooks notify React's reactivity system
-- **Private apps required** — multiplayer needs auth for user identity (`useUser()`)
+- **User identity required** — private apps use `useUser()` email; public multiplayer apps use the username gate pattern (see multiplayer guide § Public Multiplayer Apps)
 - **Direct `store.*` access**: only in `useEffect` when the row ID is determined at runtime (e.g., slot assignment)
 
 ---

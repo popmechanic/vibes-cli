@@ -250,14 +250,18 @@ if (!isReady) return <div>Loading...</div>;
 
 **User Identity (when needed)**
 
-For user identity, use `useUser()` which returns `{ isSignedIn, user }` where `user` has `.email`, `.id`, `.firstName` (private apps only). **Always guard for public/preview mode:**
+Classify the app in Step 0 of data-api.md: if it's multi-user, determine the identity source (private → OIDC email, public + per-user state → username gate with UUID). See `${CLAUDE_SKILL_DIR}/references/multiplayer-guide.md` § Public Multiplayer Apps.
+
+For **private apps**, use `useUser()` which returns `{ isSignedIn, user }` where `user` has `.email`, `.id`, `.firstName`. Always guard for preview mode:
 
 ```jsx
 const oidcUser = typeof useUser === 'function' ? useUser()?.user : null;
 const userEmail = oidcUser?.email || 'anonymous';
 ```
 
-For shared/multiplayer apps: every user-owned row must include `createdBy: userEmail`.
+For **public multiplayer apps**, generate the username gate pattern — UUID from localStorage is the identity key. Do not use the `'anonymous'` fallback for public multiplayer; that's for preview mode only.
+
+For shared/multiplayer apps: every user-owned row must include `createdBy` set to the identity key (email or UUID).
 
 ## Assembly Workflow
 

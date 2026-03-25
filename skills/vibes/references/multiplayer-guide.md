@@ -79,43 +79,55 @@ Table rows merge more reliably because both clients have a row at the same key �
 
 ## User Attribution
 
-Apps with multiple users need to be private. Private apps require sign-in via Pocket ID, which guarantees every user has a unique email via OIDC. Public apps have no user identity (`useUser` is undefined), so user attribution is impossible.
+Multiplayer apps need user identity. Private apps get this from OIDC email via `useUser()`. Public apps can use the username gate pattern (see [Public Multiplayer Apps](#public-multiplayer-apps) below).
 
-Every row that belongs to a specific user must include `createdBy`. Use `useUser()` to get the email — always guard for public/preview mode:
+Every row that belongs to a specific user must include `createdBy`. The identity source depends on app type:
+
+**Private apps** — use `useUser()` to get the email:
 ```jsx
 const oidcUser = typeof useUser === 'function' ? useUser()?.user : null;
 const userEmail = oidcUser?.email || 'anonymous';
+```
 
+**Public multiplayer apps** — use the UUID from localStorage (see [Public Multiplayer Apps](#public-multiplayer-apps)):
+```jsx
+const [user, setUser] = useState(() => {
+  const stored = localStorage.getItem('vibes_user_myapp');
+  return stored ? JSON.parse(stored) : null;
+});
+const userId = user?.id; // UUID — stable identity key
+```
+
+Then use the identity key for attribution:
+```jsx
 const addItem = useAddRowCallback(
   'items',
   (text) => ({
     text,
-    createdBy: userEmail,
+    createdBy: userId, // email for private apps, UUID for public multiplayer
     createdAt: Date.now(),
   }),
-  [userEmail],
+  [userId],
 );
 ```
 
 To show only the current user's data, filter by `createdBy` using `useTable` (never call hooks inside `.filter()` — see bug-prevention.md):
 ```jsx
-const oidcUser = typeof useUser === 'function' ? useUser()?.user : null;
-const userEmail = oidcUser?.email || 'anonymous';
 const allScores = useTable('scores');
-const myScores = Object.entries(allScores).filter(([id, row]) => row.createdBy === userEmail);
+const myScores = Object.entries(allScores).filter(([id, row]) => row.createdBy === userId);
 ```
 
 **Single-player apps:** All persistent data goes in TinyBase. No user filtering needed — sync just gives the user their data on all their devices.
 
-**Multiplayer/shared apps:** These need to be private (auth required) so each user has a verifiable identity. Shared data goes in TinyBase with `createdBy` on user-owned rows. Each client sees all data; filter by user when showing "my stuff."
+**Multiplayer/shared apps:** Shared data goes in TinyBase with `createdBy` on user-owned rows. Each client sees all data; filter by user when showing "my stuff." Private apps use email as the identity key; public multiplayer apps use UUID from the username gate.
 
 ---
 
 ## User Identity in Shared Apps
 
-`useUser().user.email` is the unique user identifier — every authenticated user has a distinct email from Pocket ID. Authentication already solves user identity, so there's no reason to generate random client IDs (localStorage UUIDs, `crypto.randomUUID`, etc.).
+**Private apps:** `useUser().user.email` is the unique user identifier — every authenticated user has a distinct email from Pocket ID. Authentication already solves user identity, so there's no reason to generate random client IDs in private apps.
 
-**Always guard `useUser()` for public/preview mode** — apps run in the editor preview before being deployed as private. Without the guard, `useUser` is undefined and the app crashes:
+**Always guard `useUser()` for public/preview mode** — the template installs a `useUser` stub for public apps that returns `{ email: null }`, so `typeof useUser === 'function'` does NOT distinguish private from public. Check `useUser()?.user?.email` for a truthy string to determine if real auth is available:
 
 ```jsx
 const oidcUser = typeof useUser === 'function' ? useUser()?.user : null;
@@ -123,38 +135,40 @@ const myEmail = oidcUser?.email || 'anonymous';
 const myName = oidcUser?.firstName || myEmail.split('@')[0];
 ```
 
-Once deployed as a private app, `email` is always a real string from the OIDC provider. The `'anonymous'` fallback only applies during local preview.
+Once deployed as a private app, `email` is always a real string from the OIDC provider. The `'anonymous'` fallback is for **preview mode only** (testing before deploy) — not for public multiplayer apps.
+
+**Public multiplayer apps:** Use the username gate pattern instead — see [Public Multiplayer Apps](#public-multiplayer-apps) below.
 
 ---
 
 ## Users Table Registration
 
-**Every shared app needs a `users` table.** Whether it's a game, chat, collaborative doc, or kanban board — store a row per user keyed by email with their display name. Auto-register on load using hooks (not direct `store.*` calls):
+**Every shared app needs a `users` table.** Whether it's a game, chat, collaborative doc, or kanban board — store a row per user keyed by their identity key (email for private apps, UUID for public multiplayer) with their display name. Auto-register on load using hooks (not direct `store.*` calls):
 
 ```jsx
 // Check if user already registered (useRow returns {} for missing rows)
-const myRecord = useRow('users', myEmail);
+const myRecord = useRow('users', myId);
 const isRegistered = Object.keys(myRecord).length > 0;
 
-// Register on first load — useSetRowCallback with the email as row ID
+// Register on first load — useSetRowCallback with the identity key as row ID
 const registerUser = useSetRowCallback(
-  'users', myEmail,
+  'users', myId,
   () => ({ name: myName, joinedAt: Date.now() }),
   [myName],
 );
 
 useEffect(() => {
-  if (myEmail && !isRegistered) registerUser();
-}, [myEmail, isRegistered]);
+  if (myId && !isRegistered) registerUser();
+}, [myId, isRegistered]);
 ```
 
 **Why hooks instead of `store.setRow()`?** The `store` variable exists in the template scope, but using it directly bypasses React's reactivity — other components won't re-render when you call `store.setRow()`. Callback hooks (`useSetRowCallback`, `useSetCellCallback`, etc.) notify the reactive system so all subscribers update automatically. The rule: **always write data through hooks, never through `store.*` methods.**
 
-**Identify the current user by email**, not by position, slot number, or index:
+**Identify the current user by their identity key**, not by position, slot number, or index:
 ```jsx
 const userIds = useRowIds('users');          // all participants
-const myRecord = useRow('users', myEmail);   // my record
-const isMe = (email) => email === myEmail;   // ownership check for any row
+const myRecord = useRow('users', myId);      // my record
+const isMe = (id) => id === myId;            // ownership check for any row
 ```
 
 **Display names, not emails** — show the `name` field from the `users` table in the UI.
@@ -197,3 +211,77 @@ const isHost = hostEmail === myEmail;
 ```
 
 This is deterministic — both clients compute the same host from the same data. No race condition, no Value needed. The same pattern works for any "first user gets a role" scenario.
+
+---
+
+## Public Multiplayer Apps
+
+When a public app's prompt implies per-user state — voting, turns, "each user gets", collaborative editing, teams, scoring, polls — the agent generates a **username picker gate** before the main app. Single-player public apps (calculators, timers, dashboards) skip this entirely.
+
+### Identity Model
+
+localStorage stores a JSON object under `vibes_user_{appName}` (where `appName` is a hardcoded string derived from the app name, e.g. `vibes_user_button_poll`):
+
+```json
+{ "id": "crypto.randomUUID()", "name": "Alice" }
+```
+
+- **`id` (UUID)** — the stable identity key. Used as `createdBy` in all per-user rows and as the row key in the `users` table. Never changes.
+- **`name` (display name)** — cosmetic. Shown in UI, stored as a cell in the `users` table. Can be changed without breaking data.
+
+This mirrors private apps where email is the stable key and firstName is the display name.
+
+### Username Picker
+
+1. On first visit, the app shows a username input before the main UI.
+2. Style the picker to feel native to the app — it should feel organically part of the app, not a separate system screen.
+3. No uniqueness enforcement on display names. If two people pick the same name, they'll see the issue and one can change it.
+4. Username must be a non-empty trimmed string. Validate before accepting.
+
+### Username Picker Placement
+
+The username picker must render **inside** the `App` component, after the `useApp()` call, so TinyBase sync is active when the user registers. The pattern is a `useState` gate:
+
+```jsx
+function App() {
+  const { isReady } = useApp();
+  const [user, setUser] = useState(() => {
+    const stored = localStorage.getItem('vibes_user_myapp');
+    return stored ? JSON.parse(stored) : null;
+  });
+
+  if (!user) return <UsernamePickerUI onSubmit={(name) => {
+    const newUser = { id: crypto.randomUUID(), name: name.trim() };
+    localStorage.setItem('vibes_user_myapp', JSON.stringify(newUser));
+    setUser(newUser);
+  }} />;
+
+  return <MainAppUI user={user} />;
+}
+```
+
+This is a pattern guide — the agent adapts the actual implementation and styling to fit each app.
+
+### Users Table
+
+The `users` TinyBase table is keyed by UUID:
+
+| Row Key (UUID) | `name` | `joinedAt` |
+|---|---|---|
+| `a1b2c3...` | Alice | 1711382400000 |
+| `d4e5f6...` | Bob | 1711382401000 |
+
+All per-user rows in other tables use `createdBy: uuid` — same pattern as private apps use with email.
+
+### Return Visits
+
+1. On return visits, check localStorage first. If a user object exists (has `id` and `name`), skip the picker and go straight to the app.
+2. A "change name" affordance is available somewhere in the UI — the agent decides placement and style to fit the app. Changing the name updates only the `name` cell in the `users` table and the `name` field in localStorage. The UUID and all `createdBy` references remain stable.
+
+### Identity Resolution Summary
+
+The agent provides the current user's identifier regardless of app type:
+
+- **Private app:** `oidcUser.email` (from `useUser()`, checked via `useUser()?.user?.email` being a truthy string — not just `typeof useUser === 'function'`)
+- **Public multiplayer app:** UUID from localStorage + `users` table
+- **Public single-player app:** no identity needed, no gate shown
