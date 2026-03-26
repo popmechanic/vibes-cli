@@ -15,6 +15,12 @@
  */
 
 const MAX_TOOL_RESULT_SIZE = 10 * 1024; // 10KB cap for UI delivery
+const PROGRESS_INTERVAL = 1024; // Emit progress every ~1KB of tool input
+
+// Accumulated tool input bytes — lets the UI show a progress bar during long Write calls
+let toolInputBytes = 0;
+let lastProgressEmit = 0;
+let currentToolName = '';
 
 const DROPPED_TYPES = new Set([
   'hook_started',
@@ -50,13 +56,26 @@ export function translateStreamEvent(event: any): object[] {
       return [{ type: 'token', text: inner.delta.text }];
     }
 
-    // Tool use starting
+    // Tool use starting — reset progress tracking
     if (inner.type === 'content_block_start' && inner.content_block?.type === 'tool_use') {
+      currentToolName = inner.content_block.name;
+      toolInputBytes = 0;
+      lastProgressEmit = 0;
       return [{ type: 'tool_start', name: inner.content_block.name, id: inner.content_block.id }];
     }
 
-    // Input JSON delta — buffer internally, don't send to UI
+    // Input JSON delta — accumulate bytes, emit periodic progress for Write/Edit tools
     if (inner.type === 'content_block_delta' && inner.delta?.type === 'input_json_delta') {
+      toolInputBytes += (inner.delta.partial_json || '').length;
+      if (currentToolName === 'Write' || currentToolName === 'Edit') {
+        if (toolInputBytes - lastProgressEmit >= PROGRESS_INTERVAL) {
+          lastProgressEmit = toolInputBytes;
+          const kb = (toolInputBytes / 1024).toFixed(1);
+          // Asymptotic curve: grows visibly for typical apps (5-20KB), never hits 100%
+          const progress = Math.min(95, Math.round(100 * (1 - Math.exp(-toolInputBytes / 15000))));
+          return [{ type: 'status', progress, stage: `Writing code\u2026 ${kb} KB` }];
+        }
+      }
       return [];
     }
 
@@ -64,6 +83,10 @@ export function translateStreamEvent(event: any): object[] {
   }
 
   if (event.type === 'tool_result') {
+    // Reset progress tracking
+    currentToolName = '';
+    toolInputBytes = 0;
+    lastProgressEmit = 0;
     const raw = typeof event.content === 'string' ? event.content : JSON.stringify(event.content || '');
     const truncated = raw.length > MAX_TOOL_RESULT_SIZE;
     return [{
