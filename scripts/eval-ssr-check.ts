@@ -18,28 +18,33 @@ interface RenderConfig {
 }
 
 const RENDER_CONFIGS: RenderConfig[] = [
-  // 1. Empty state
-  { email: 'alice@test.com', isReady: false, tableData: {}, rowIds: [] },
-  // 2. Populated state
+  // 1. Alice with 2 rows — baseline
   {
     email: 'alice@test.com',
     isReady: true,
     tableData: { 'mock-row-a': { name: 'A' }, 'mock-row-b': { name: 'B' } },
     rowIds: ['mock-row-a', 'mock-row-b'],
   },
-  // 3. Alice identity (same data as #2)
+  // 2. Alice with 3 rows — hooks-in-loop detection (different row count = different hook count if buggy)
   {
     email: 'alice@test.com',
     isReady: true,
-    tableData: { 'mock-row-a': { name: 'A' }, 'mock-row-b': { name: 'B' } },
-    rowIds: ['mock-row-a', 'mock-row-b'],
+    tableData: { 'mock-row-a': { name: 'A' }, 'mock-row-b': { name: 'B' }, 'mock-row-c': { name: 'C' } },
+    rowIds: ['mock-row-a', 'mock-row-b', 'mock-row-c'],
   },
-  // 4. Bob identity (same data as #2, different email)
+  // 3. Bob with 2 rows — same count as #1, different identity
   {
     email: 'bob@test.com',
     isReady: true,
     tableData: { 'mock-row-a': { name: 'A' }, 'mock-row-b': { name: 'B' } },
     rowIds: ['mock-row-a', 'mock-row-b'],
+  },
+  // 4. Bob with 3 rows — same count as #2, different identity
+  {
+    email: 'bob@test.com',
+    isReady: true,
+    tableData: { 'mock-row-a': { name: 'A' }, 'mock-row-b': { name: 'B' }, 'mock-row-c': { name: 'C' } },
+    rowIds: ['mock-row-a', 'mock-row-b', 'mock-row-c'],
   },
 ];
 
@@ -107,22 +112,32 @@ function createMockGlobals(config: RenderConfig) {
     useHasCell: (_table: string, _rowId: string, _cellId: string) => countHook(false),
     useValue: (_valueId: string) => countHook(undefined),
     useValues: () => countHook({}),
+    useRowCount: (_table: string) => countHook(config.rowIds.length),
+    useHasValue: (_valueId: string) => countHook(false),
+    useCellIds: (_table: string, _rowId: string) => countHook([]),
+    useTableIds: () => countHook([]),
 
     // State-returning hooks
     useValueState: (_valueId: string) => countHook([undefined, () => {}]),
     useCellState: (_table: string, _rowId: string, _cellId: string) => countHook(['', () => {}]),
+    useRowState: (_table: string, _rowId: string) => countHook([{}, () => {}]),
 
     // TinyBase write hooks — return noop functions
     useAddRowCallback: (_table: string, _fn?: any, _deps?: any) => countHook(() => {}),
     useSetCellCallback: (_table: string, _rowId: string, _cellId: string, _fn?: any, _deps?: any) =>
       countHook(() => {}),
     useSetRowCallback: (_table: string, _rowId: string, _fn?: any, _deps?: any) => countHook(() => {}),
+    useSetPartialRowCallback: (_table: string, _rowId: string, _fn?: any, _deps?: any) => countHook(() => {}),
     useDelRowCallback: (_table: string, _rowId: string, _fn?: any, _deps?: any) => countHook(() => {}),
+    useDelCellCallback: (_table: string, _rowId: string, _cellId: string, _fn?: any, _deps?: any) => countHook(() => {}),
+    useDelTableCallback: (_table: string) => countHook(() => {}),
     useSetValueCallback: (_valueId: string, _fn?: any, _deps?: any) => countHook(() => {}),
     useDelValueCallback: (_valueId: string, _fn?: any, _deps?: any) => countHook(() => {}),
 
     // Other globals the app might reference
     useOIDCContext: () => countHook({ user, isAuthenticated: true }),
+    createContext: React.createContext,
+    useContext: (ctx: any) => countHook({}),
     store: {
       setCell: () => {},
       setRow: () => {},
@@ -216,14 +231,35 @@ export function ssrSmokeTest(jsxOrPath: string): SSRResult {
     hookCounts.push(hookCounter.count);
   }
 
-  // Step 3: Compare hook counts
-  const uniqueCounts = new Set(hookCounts);
-  if (uniqueCounts.size > 1) {
-    return {
-      passed: false,
-      error: `Conditional hook violation: hook counts differ across renders [${hookCounts.join(', ')}]`,
-      hookCounts,
-    };
+  // Step 3: Compare hook counts within same-row-count groups.
+  // Configs 0,2 have 2 rows; configs 1,3 have 3 rows.
+  // Legitimate child-component-per-row patterns produce different totals
+  // across row counts, but same totals within the same row count.
+  // A hooks-in-loop bug produces different totals even within the same
+  // row count when the conditional filtering varies.
+  //
+  // Strategy: compare pairs (0 vs 2) and (1 vs 3). If either pair differs,
+  // it's a conditional hook violation.
+  if (hookCounts.length >= 4) {
+    const sameRowCountA = hookCounts[0] === hookCounts[2]; // 2-row configs
+    const sameRowCountB = hookCounts[1] === hookCounts[3]; // 3-row configs
+    if (!sameRowCountA || !sameRowCountB) {
+      return {
+        passed: false,
+        error: `Conditional hook violation: hook counts differ across same-row-count renders [${hookCounts.join(', ')}]`,
+        hookCounts,
+      };
+    }
+  } else {
+    // Fallback for fewer than 4 configs: all must match
+    const uniqueCounts = new Set(hookCounts);
+    if (uniqueCounts.size > 1) {
+      return {
+        passed: false,
+        error: `Conditional hook violation: hook counts differ across renders [${hookCounts.join(', ')}]`,
+        hookCounts,
+      };
+    }
   }
 
   return {

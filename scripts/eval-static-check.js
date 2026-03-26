@@ -34,13 +34,26 @@ export function evalStaticCheck(codeOrPath) {
     critical.push('C4: Store constructor found — creates disconnected store');
   }
 
-  // W1: Hooks in loops
+  // C5: Hooks in loops — promoted from W1 to critical (guaranteed crash at runtime)
+  // Matches .filter/.map/.forEach with arrow function body, then checks only
+  // within the balanced braces of that body for hook calls.
   const iterMethods = /\.(filter|map|forEach)\s*\([^)]*=>\s*\{/g;
   let match;
   while ((match = iterMethods.exec(code)) !== null) {
-    const after = code.slice(match.index, match.index + 500);
-    if (/use(Cell|Row|HasRow|HasCell|Value)\s*\(/.test(after)) {
-      warnings.push(`W1: Hook call inside .${match[1]}() — will crash when list length changes (React #310)`);
+    // Find the opening brace position
+    const braceStart = match.index + match[0].length - 1;
+    // Count braces to find the matching close
+    let depth = 1;
+    let pos = braceStart + 1;
+    while (pos < code.length && depth > 0) {
+      if (code[pos] === '{') depth++;
+      else if (code[pos] === '}') depth--;
+      pos++;
+    }
+    // Extract just the loop body
+    const loopBody = code.slice(braceStart, pos);
+    if (/use(Cell|Row|HasRow|HasCell|Value|RowIds|SortedRowIds|Table|AddRowCallback|SetCellCallback|SetRowCallback|DelRowCallback)\s*\(/.test(loopBody)) {
+      critical.push(`C5: Hook call inside .${match[1]}() — crashes when list length changes (React #310)`);
       break;
     }
   }

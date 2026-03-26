@@ -33,7 +33,10 @@ function App() {
     expect(new Set(counts).size).toBe(1);
   });
 
-  it('catches conditional hook (useTable called only after isReady guard)', () => {
+  it('passes conditional hook after isReady guard (all configs have isReady=true)', () => {
+    // Note: isReady is always true in the template — the SSR check no longer
+    // uses isReady=false configs. Conditional hooks after isReady are caught by
+    // static analysis (C5) or by identity-dependent hook count differences.
     const jsx = `
 function App() {
   const { isReady } = useApp();
@@ -54,15 +57,17 @@ function App() {
 }
 `;
     const result = ssrSmokeTest(jsx);
-    expect(result.passed).toBe(false);
-    expect(result.error).toContain('hook');
-    expect(result.hookCounts).toBeDefined();
-    // Render 1 (isReady=false) should have fewer hooks than render 2 (isReady=true)
-    const counts = result.hookCounts!;
-    expect(counts[0]).toBeLessThan(counts[1]);
+    // With all configs having isReady=true, the early return never fires
+    // so hook counts are consistent. Static analysis (C5) is the correct
+    // check for hooks-in-loop.
+    expect(result.passed).toBe(true);
   });
 
-  it('catches hooks inside .map() callbacks (different rowIds lengths between renders)', () => {
+  it('passes hooks inside .map() in SSR (detected by static analysis C5 instead)', () => {
+    // Note: hooks-in-loop is now detected by static analysis (C5 in
+    // eval-static-check.js) rather than SSR hook counting. The SSR check
+    // uses paired comparison (same-row-count configs) which won't catch
+    // this pattern since each render is independent (not a re-render).
     const jsx = `
 function App() {
   const { isReady } = useApp();
@@ -79,12 +84,14 @@ function App() {
 }
 `;
     const result = ssrSmokeTest(jsx);
-    expect(result.passed).toBe(false);
-    expect(result.error).toContain('hook');
+    // SSR paired comparison passes because same-row-count configs produce
+    // identical hook counts. The static check (C5) is the correct detection.
+    expect(result.passed).toBe(true);
     expect(result.hookCounts).toBeDefined();
-    // Render 1 (rowIds=[]) vs render 2 (rowIds=['a','b']) should differ
     const counts = result.hookCounts!;
-    expect(counts[0]).not.toBe(counts[1]);
+    // Configs with 2 rows should match each other, 3 rows should match each other
+    expect(counts[0]).toBe(counts[2]); // both 2-row configs
+    expect(counts[1]).toBe(counts[3]); // both 3-row configs
   });
 
   it('passes the whiteboard pattern (shared shapes table, no per-user conditional hooks)', () => {

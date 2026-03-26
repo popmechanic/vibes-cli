@@ -39,7 +39,7 @@ describe('evalStaticCheck', () => {
   });
 
   describe('warning checks', () => {
-    it('W1: warns on useCell inside .filter()', () => {
+    it('C5: fails on useCell inside .filter() (promoted from W1)', () => {
       const code = [
         'function App() {',
         '  const { isReady } = useApp();',
@@ -52,8 +52,8 @@ describe('evalStaticCheck', () => {
         '}',
       ].join('\n');
       const result = evalStaticCheck(code);
-      expect(result.warnings.find(w => w.startsWith('W1'))).toBeDefined();
-      expect(result.passed).toBe(true);
+      expect(result.critical.find(c => c.startsWith('C5'))).toBeDefined();
+      expect(result.passed).toBe(false);
     });
 
     it('W2: warns on direct store.setCell', () => {

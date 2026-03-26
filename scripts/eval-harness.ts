@@ -134,10 +134,15 @@ function createRecordingMocks(email: string): { mocks: Record<string, any>; ops:
     },
 
     useValues: () => ({}),
+    useRowCount: (_table: string) => 0,
+    useHasValue: (_valueId: string) => false,
+    useCellIds: (_table: string, _rowId: string) => [],
+    useTableIds: () => [],
 
     // State-returning hooks (recording setter calls)
 
     useValueState: (valueId: string) => {
+      ops.push({ op: 'readValue', valueId });
       const setter = (val: any) => {
         ops.push({ op: 'setValueState', valueId, value: val });
       };
@@ -145,10 +150,18 @@ function createRecordingMocks(email: string): { mocks: Record<string, any>; ops:
     },
 
     useCellState: (table: string, row: string, cell: string) => {
+      ops.push({ op: 'readCell', table, row, cell });
       const setter = (val: any) => {
         ops.push({ op: 'setCellState', table, row, cell, value: val });
       };
       return ['', setter];
+    },
+
+    useRowState: (table: string, row: string) => {
+      const setter = (val: any) => {
+        ops.push({ op: 'setRow', table, row, value: val });
+      };
+      return [{}, setter];
     },
 
     // --- TinyBase write hooks (recording, return noop) ---
@@ -179,8 +192,21 @@ function createRecordingMocks(email: string): { mocks: Record<string, any>; ops:
       return () => {};
     },
 
+    useSetPartialRowCallback: (table: string, row: string, _fn?: any, _deps?: any) => {
+      ops.push({ op: 'setRow', table, row });
+      return () => {};
+    },
+
     useDelRowCallback: (table: string, row: string, _fn?: any, _deps?: any) => {
       ops.push({ op: 'delRow', table, row });
+      return () => {};
+    },
+
+    useDelCellCallback: (table: string, row: string, cell: string, _fn?: any, _deps?: any) => {
+      return () => {};
+    },
+
+    useDelTableCallback: (table: string) => {
       return () => {};
     },
 
@@ -193,6 +219,8 @@ function createRecordingMocks(email: string): { mocks: Record<string, any>; ops:
 
     // Other globals apps may reference
     useOIDCContext: () => ({ user, isAuthenticated: true }),
+    createContext: React.createContext,
+    useContext: (_ctx: any) => ({}),
 
     store: {
       setCell: () => {},
@@ -200,6 +228,7 @@ function createRecordingMocks(email: string): { mocks: Record<string, any>; ops:
       setTable: () => {},
       delRow: () => {},
       delCell: () => {},
+      delTable: () => {},
       getCell: () => '',
       getRow: () => ({}),
       getTable: () => ({}),

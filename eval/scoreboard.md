@@ -19,8 +19,11 @@
 
 ## Autoresearch Results
 
-| Gen | Best Fitness | Control | Improved | Best Variant | Plateau |
-|-----|-------------|---------|----------|-------------|---------|
+| Gen | Best Fitness | Control | Improved | Best Variant | Plateau | Notes |
+|-----|-------------|---------|----------|-------------|---------|-------|
+| 1 | 4.000 | 4.000 | -- | 0 (baseline) | 0 | Initial baseline, all variants identical |
+| 2 | 4.000 | 4.000 | No | 0 (control) | 1 | C5 hooks-in-loop check catches variant-1 (fitness 1.883); value-race variant-2 passes (needs browser tests) |
+| 3 | 4.000 | 4.000 | No | 0 (control) | 2 | All variants identical to control at 100%; battery saturation confirmed |
 
 ## v1 Final Results (preserved for reference)
 
