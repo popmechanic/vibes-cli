@@ -5547,7 +5547,14 @@ window.escapeHtml = function(str) {
       try {
         const res = await fetch('/assets/ascii/preview-ascii.json');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        cachedData = await res.json();
+        const raw = await res.json();
+        // Pre-parse color maps so we don't JSON.parse per frame at 24fps
+        for (const frame of raw.frames) {
+          if (frame.colors && typeof frame.colors.foreground === 'string') {
+            frame._colorMap = JSON.parse(frame.colors.foreground);
+          }
+        }
+        cachedData = raw;
         return cachedData;
       } catch (err) {
         console.warn('[AsciiAnimation] Failed to load animation data:', err);
@@ -5584,21 +5591,45 @@ window.escapeHtml = function(str) {
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-      ctx.fillStyle = '#ffffff';
       ctx.font = `${fontSize}px "Courier New", Courier, monospace`;
       ctx.textBaseline = 'top';
 
       const lineHeight = fontSize * LINE_HEIGHT_RATIO;
-      // Center the grid vertically
       const totalHeight = frame.content.length * lineHeight;
       const yOffset = Math.max(0, (canvasHeight - totalHeight) / 2);
-      // Center horizontally
       const charWidth = fontSize * CHAR_WIDTH_RATIO;
       const totalWidth = 110 * charWidth;
       const xOffset = Math.max(0, (canvasWidth - totalWidth) / 2);
 
-      for (let i = 0; i < frame.content.length; i++) {
-        ctx.fillText(frame.content[i], xOffset, yOffset + i * lineHeight);
+      const colorMap = frame._colorMap;
+      if (!colorMap) {
+        // No color data — draw all white
+        ctx.fillStyle = '#ffffff';
+        for (let i = 0; i < frame.content.length; i++) {
+          ctx.fillText(frame.content[i], xOffset, yOffset + i * lineHeight);
+        }
+        return;
+      }
+
+      // Batch characters by color to minimize fillStyle changes
+      const batches = {};
+      for (let row = 0; row < frame.content.length; row++) {
+        const line = frame.content[row];
+        for (let col = 0; col < line.length; col++) {
+          const ch = line[col];
+          if (ch === ' ') continue;
+          const color = colorMap[col + ',' + row] || '#ffffff';
+          if (!batches[color]) batches[color] = [];
+          batches[color].push(ch, xOffset + col * charWidth, yOffset + row * lineHeight);
+        }
+      }
+
+      for (const color in batches) {
+        ctx.fillStyle = color;
+        const arr = batches[color];
+        for (let i = 0; i < arr.length; i += 3) {
+          ctx.fillText(arr[i], arr[i + 1], arr[i + 2]);
+        }
       }
     }
 
