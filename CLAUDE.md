@@ -15,6 +15,9 @@
 | Editing auth components | `.claude/rules/auth-components.md` loads automatically |
 | Editing templates or build system | `.claude/rules/template-build.md` loads automatically |
 | Working on sharing/invites | `.claude/rules/sharing-architecture.md` loads automatically |
+| Running autoresearch | `docs/superpowers/specs/2026-03-25-parallel-autoresearch-engine-design.md` for spec; `.claude/agents/autoresearch-*.md` for agent defs |
+| Autoresearch scoring/reports | `scripts/eval-scoring.ts`, `scripts/eval-report.ts` |
+| Autoresearch test harness | `scripts/eval-ssr-check.ts` (Tier 1.5), `scripts/eval-harness.ts` (Tier 2) |
 
 ### TinyBase API Reference
 
@@ -46,6 +49,23 @@ The authoritative import map is in `source-templates/base/template.html`. After 
 ### Skills Are Atomic
 
 Each skill is ONE plan step — never decompose into sub-steps. Always invoke the skill before running its commands, even for reassembly/redeploy.
+
+## Autoresearch (Parallel Autoresearch Engine)
+
+Massively parallel SKILL.md optimization. Run with `/vibes:autoresearch` or directly:
+
+```bash
+bun scripts/eval-parallel.ts --mode=continuous
+```
+
+**Key scripts:**
+- `scripts/eval-ssr-check.ts` — Tier 1.5 SSR smoke test
+- `scripts/eval-harness.ts` — Tier 2 render-and-record data model harness
+- `scripts/eval-scoring.ts` — Triple-run scoring with consistency penalty
+- `scripts/eval-parallel.ts` — Orchestrator with generation loop
+- `scripts/eval-report.ts` — Final report generator
+
+**Agent definitions:** `.claude/agents/autoresearch-*.md` (orchestrator, mutator, generator, red-teamer, cross-pollinator)
 
 ## Package Versions
 

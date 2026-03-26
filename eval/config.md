@@ -138,3 +138,31 @@ Specs are generated on iteration 1 and reused. Regenerate only after a human che
 ## Test Timeouts
 
 60 seconds per individual app browser test. Log timeout to napkin as score = 0, continue to next prompt.
+
+## Autoresearch Configuration
+
+Parameters for the Parallel Autoresearch Engine. Override via CLI flags to `eval-parallel.ts`.
+
+| Parameter | Default | CLI Flag | Description |
+|---|---|---|---|
+| `variants` | 10 | `--variants=N` | SKILL.md mutations per generation |
+| `runs` | 3 | `--runs=N` | Independent runs per variant × prompt |
+| `maxGenerations` | 30 | `--generations=N` | Hard stop |
+| `plateauThreshold` | 3 | `--plateau=N` | Consecutive no-improvement before stop |
+| `consistencyPenalty` | 0.5 | — | Weight of std dev in fitness function |
+| `ablationFrequency` | 3 | `--ablation=N` | Run ablation every N generations |
+| `redTeamCeiling` | 300 | `--red-team-ceiling=N` | Red team timeout in seconds |
+| `sonnetCheckFrequency` | 5 | `--sonnet-check=N` | Sonnet transfer check every N generations |
+
+### Fitness Function
+
+```
+Per combination: avg(run1, run2, run3)
+Per variant: mean(all prompt averages)
+Consistency: std_dev(all individual run scores)
+Fitness: mean - (consistencyPenalty × std_dev)
+```
+
+### Static Analysis Check Reconciliation
+
+Autoresearch uses `eval-static-check.js` as Tier 1 (regex-based, proven, fast). The sophisticated checks from the v2 config (cross-user useTable scoping, setRow in useEffect guards) are handled by Tier 2's behavioral analysis via the render-and-record harness.

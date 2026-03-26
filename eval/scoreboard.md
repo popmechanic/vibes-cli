@@ -6,6 +6,7 @@
 |-----------|-----------|----|----|----|----|----|----|----|----|----|----|-----------------|
 | 1 | 92.5% | 4 | 4 | 3 | 4 | 2 | 4 | 4 | 4 | 4 | 4 | Baseline (no changes) |
 | 2 | 95.0% | 4 | 4 | 4 | 4 | 3 | 4 | 4 | 4 | 4 | 4 | Added: derive-host-from-table, never-null-values, sentinel-values |
+| 3 | 100% | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | 4 | Timer: table row for shared state, no auto-init on load |
 
 ## Scoring Key
 
@@ -15,6 +16,11 @@
 - 3 = Isolation correct (basic assertions pass, edge fails)
 - 4 = Full pass (all assertions pass)
 - Aggregate = sum / (10 * 4) * 100%
+
+## Autoresearch Results
+
+| Gen | Best Fitness | Control | Improved | Best Variant | Plateau |
+|-----|-------------|---------|----------|-------------|---------|
 
 ## v1 Final Results (preserved for reference)
 
