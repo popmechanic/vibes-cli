@@ -5673,15 +5673,16 @@ window.escapeHtml = function(str) {
     const overlay = document.getElementById('previewOverlay');
     overlay.classList.remove('hidden');
     document.getElementById('previewProgressLabel').textContent = 'Starting Claude...';
-    document.getElementById('previewProgressFill').style.width = '0%';
-    if (window.__selectedThemeBg) {
-      overlay.style.background = window.__selectedThemeBg;
-    } else {
-      overlay.style.background = '';
-    }
+    const progressFill = document.getElementById('previewProgressFill');
+    if (progressFill) progressFill.style.width = '0%';
+    // Set black background for ASCII animation (avoids theme-color flash before canvas loads)
+    overlay.style.background = '#000000';
+    // Start ASCII animation (async, non-blocking — canvas appears when data loads)
+    AsciiAnimation.start();
   }
 
   function hidePreviewOverlay() {
+    AsciiAnimation.stop();
     const overlay = document.getElementById('previewOverlay');
     overlay.classList.add('hidden');
   }
