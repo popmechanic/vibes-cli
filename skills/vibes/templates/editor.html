@@ -5537,6 +5537,7 @@ window.escapeHtml = function(str) {
     let resizeObserver = null;
     let currentFrame = 0;
     let lastFrameTime = 0;
+    let pendingStart = false;
 
     const CHAR_WIDTH_RATIO = 0.6;
     const LINE_HEIGHT_RATIO = 1.2;
@@ -5637,10 +5638,12 @@ window.escapeHtml = function(str) {
     }
 
     async function start() {
+      pendingStart = true;
       const canvas = document.getElementById('asciiCanvas');
       if (!canvas) return;
 
       const data = await fetchData();
+      if (!pendingStart) return; // stop() was called during fetch
       if (!data || !data.frames || data.frames.length === 0) return;
 
       canvas.style.display = 'block';
@@ -5648,6 +5651,7 @@ window.escapeHtml = function(str) {
     }
 
     function stop() {
+      pendingStart = false;
       if (animFrameId) {
         cancelAnimationFrame(animFrameId);
         animFrameId = null;
