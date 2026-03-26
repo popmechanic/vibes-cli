@@ -4016,11 +4016,7 @@ window.escapeHtml = function(str) {
         setThinking(true, null, label);
         addToolBlock(msg.name, msg.id);
         // Update preview overlay if generating
-        if (isGenerating) {
-          updatePreviewOverlay(null, label);
-          // Start ASCII animation on first tool use (brainstorm is over, code generation starting)
-          AsciiAnimation.start();
-        }
+        if (isGenerating) updatePreviewOverlay(null, label);
       } else if (msg.type === 'tool_result') {
         // Tool completed — update tool block with result
         updateToolResult(msg.name, msg.content, msg.is_error);
@@ -4068,6 +4064,9 @@ window.escapeHtml = function(str) {
         if (privateEnabled && currentAppName) {
           try { localStorage.setItem('vibes_private_' + currentAppName, '1'); } catch {}
         }
+      } else if (msg.type === 'app_writing') {
+        // app.jsx is being written for the first time — start ASCII animation
+        AsciiAnimation.start();
       } else if (msg.type === 'app_updated') {
         console.log('[app_updated] phase:', currentPhase, 'isGenerating:', isGenerating);
         setThinking(false);

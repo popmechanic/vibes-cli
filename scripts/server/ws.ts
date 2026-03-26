@@ -184,8 +184,14 @@ function checkAndReassemble(ctx: ServerContext, appDir: string): void {
     const currentMtime = statSync(appPath).mtimeMs;
     console.log(`[WS] checkAndReassemble: mtime=${currentMtime} last=${lastAppJsxMtime} changed=${currentMtime > lastAppJsxMtime}`);
     if (currentMtime > lastAppJsxMtime) {
+      const isFirstWrite = lastAppJsxMtime === 0;
       lastAppJsxMtime = currentMtime;
       console.log(`[WS] app.jsx modified — running post-process and reassembly`);
+
+      // Signal that app code is being written (triggers ASCII animation in editor)
+      if (isFirstWrite) {
+        broadcast({ type: 'app_writing' });
+      }
 
       // Post-process (sanitize CSS escapes, strip redeclared globals)
       sanitizeAppJsx(appDir);
