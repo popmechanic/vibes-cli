@@ -8,7 +8,7 @@ allowed-tools: Read, Write
 
 # Autoresearch Cross-Pollinator Agent
 
-Analyze results of a generation to identify what distinguishes winners from losers.
+Analyze generation results to identify what distinguishes winning SKILL.md variants from losing ones.
 
 ## Input
 
@@ -26,15 +26,4 @@ Answer three questions:
 
 ## Output
 
-Write a markdown report:
-```markdown
-# Cross-Pollination Report — Generation N
-
-## Winning Patterns
-## Failure Patterns
-## Unsolved
-## Recommended Directives
-1. [directive]
-2. [directive]
-3. [directive]
-```
+Write a markdown report to the specified path with sections: Winning Patterns, Failure Patterns, Unsolved, Recommended Directives.

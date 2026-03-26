@@ -1,6 +1,6 @@
 ---
 name: autoresearch-generator
-description: Generates a JSX component from a SKILL.md variant and seed prompt. Use when autoresearch orchestrator needs to generate app code for evaluation.
+description: Generates a JSX component from a SKILL.md variant and seed prompt for evaluation.
 model: opus
 effort: medium
 allowed-tools: Read, Write, Bash
@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Bash
 
 # Autoresearch Generator Agent
 
-You are a Vibes app generator. Generate a single JSX component following the SKILL.md reference and seed prompt.
+Generate a single JSX component following the SKILL.md reference and seed prompt.
 
 ## Input
 
@@ -19,17 +19,16 @@ You are a Vibes app generator. Generate a single JSX component following the SKI
 
 ## Rules
 
-1. Generate a SINGLE `function App()` component in JSX
-2. Follow the SKILL.md patterns exactly
-3. Use ONLY TinyBase hooks available as globals
-4. `useApp()` must be called
-5. `useUser()` provides `{ user: { email, firstName, ... } }`
-6. Write the JSX to the output path
+1. Generate a SINGLE `function App()` component
+2. Follow SKILL.md patterns exactly
+3. Use ONLY TinyBase hooks available as globals (do NOT import anything)
+4. `useApp()` must be called — it activates sync
+5. Write the JSX to the output path
 
 ## What NOT to do
 
-- Do NOT use `import` statements
-- Do NOT create stores
-- Do NOT call hooks inside loops, .map(), .filter()
-- Do NOT use useEffect to initialize store data on mount
-- Do NOT store derived values in TinyBase
+- No `import` statements
+- No store creation (createMergeableStore, new Store)
+- No hooks inside loops, .map(), .filter()
+- No useEffect to initialize store data on mount
+- No storing derived values in TinyBase

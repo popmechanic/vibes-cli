@@ -27,7 +27,7 @@ test -f "$VIBES_ROOT/scripts/eval-scoring.ts" && echo "✓ Scoring" || echo "✗
 test -f "$VIBES_ROOT/eval/config.md" && echo "✓ Config" || echo "✗ Missing eval/config.md"
 test -f "$VIBES_ROOT/eval/napkin.md" && echo "✓ Napkin" || echo "✗ Missing eval/napkin.md"
 ls "$VIBES_ROOT/eval/specs/"*.md 2>/dev/null | wc -l | xargs -I{} echo "✓ {} eval specs found"
-cd "$VIBES_ROOT/scripts" && bun -e "import React from 'react'; console.log('✓ React available')" 2>/dev/null || echo "✗ React not installed (run: cd scripts && npm install)"
+cd "$VIBES_ROOT/scripts" && bun -e "import React from 'react'; console.log('✓ React available')" 2>/dev/null || echo "✗ React not installed"
 ```
 
 If any prerequisite is missing, stop and inform the user.
@@ -36,11 +36,9 @@ If any prerequisite is missing, stop and inform the user.
 
 ### Option 1: Full Autonomous Run (Recommended)
 
-Dispatch the autoresearch orchestrator agent:
-- Read eval/config.md for parameters
-- Read eval/napkin.md for known failures
-- Read eval/scoreboard.md for history
-- Start the generation loop
+Dispatch the autoresearch orchestrator agent (`.claude/agents/autoresearch-orchestrator.md`) with context from eval/config.md, eval/napkin.md, and eval/scoreboard.md.
+
+Pass any CLI arguments from the user (e.g., `--variants=5 --generations=10`).
 
 ### Option 2: Single Eval Pipeline Test
 
@@ -59,19 +57,19 @@ bun "$VIBES_ROOT/scripts/eval-scoring.ts" "$VIBES_ROOT/eval/results/gen-N/"
 ## What It Does
 
 Each generation:
-1. **Mutate**: N independent SKILL.md variants
+1. **Mutate**: N independent SKILL.md variants (fix-targeted, structural, adversarial, etc.)
 2. **Generate**: Each variant × each prompt × 3 runs
-3. **Evaluate**: Tier 1 → 1.5 → 2 (all programmatic)
-4. **Score**: Triple-run averaging with consistency penalty
-5. **Select**: Best variant replaces current SKILL.md
-6. **Repeat**: Until plateau, max generations, or oscillation
+3. **Evaluate**: Tier 1 (static) → Tier 1.5 (SSR) → Tier 2 (data model) — all programmatic
+4. **Score**: Triple-run averaging with consistency penalty; fitness = mean - 0.5×stddev
+5. **Select**: Best variant replaces current SKILL.md; git commit on improvement
+6. **Repeat**: Until plateau (3 gens), max generations, or score oscillation
 
 ## Monitoring
 
 - `eval/results/gen-N/summary.json` — per-generation results
 - `eval/results/summaries.json` — cumulative history
 - `eval/scoreboard.md` — human-readable scoreboard
-- `eval/napkin.md` — failure log
+- `eval/napkin.md` — failure log (grows monotonically)
 
 ## Final Report
 
