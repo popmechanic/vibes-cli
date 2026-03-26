@@ -4112,16 +4112,9 @@ window.escapeHtml = function(str) {
         // Server tells us which theme was selected (including auto-selection)
         currentThemeId = msg.themeId;
         EditorThemes.setCurrentId(msg.themeId);
-        // Store theme background for preview overlay placeholder
+        // Store theme background for future use
         if (msg.themeBackground) {
           window.__selectedThemeBg = msg.themeBackground;
-          // Update overlay background if it's currently showing (generation in progress)
-          if (isGenerating) {
-            const overlay = document.getElementById('previewOverlay');
-            if (overlay && !overlay.classList.contains('hidden')) {
-              overlay.style.background = msg.themeBackground;
-            }
-          }
         }
         const theme = themes.find(t => t.id === msg.themeId);
         const name = theme ? theme.name : msg.themeName || msg.themeId;
