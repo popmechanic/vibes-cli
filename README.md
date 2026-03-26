@@ -2,7 +2,7 @@
 
 ![Vibes](assets/vibes.png)
 
-Instantly make your own small multi-user apps, without a backend. With Vibes, The front-end _is_ the app.
+Instantly make your own small multi-user apps, without a backend. For apps made with Vibes, the front-end _is_ the app.
 
 ## What is Vibes?
 
@@ -14,7 +14,9 @@ Your data lives locally in the browser, encrypted and portable. It syncs across 
 
 ## Installation
 
-In Claude Code, register the marketplace first:
+[MacOS users can download the desktop app](https://install.vibesos.com/).
+
+If you want to run it as a plugin, register the marketplace first:
 
 ```
 /plugin marketplace add popmechanic/VibesOS
@@ -28,7 +30,7 @@ Then install the plugin:
 
 Restart Claude Code after installation.
 
-## Quick Start
+## Plugin Quick Start
 
 After installation, open Claude Code and enter /launch, then choose the Editor option. Claude will then open a web GUI designed to help you produce secure, vibe coded apps. 
 
@@ -36,14 +38,6 @@ After installation, open Claude Code and enter /launch, then choose the Editor o
 
 It's still Claude Code under the hood, we just help you with a nice user interface. Use the GUI to turn your ideas into simple deployable multiplayer apps that don't require a server. (So you don't have to be a Linux genius to run a great app.)
 
-**Verify Installation:**
-```
-/help
-# Should see vibes skills like:
-# /vibes:vibes - Generate React web apps
-# /vibes:riff - Generate app variations
-# /vibes:sell - Transform to multi-tenant SaaS
-```
 
 ## Skills
 
@@ -60,67 +54,6 @@ Creates a single HTML file with inline JavaScript, TinyBase for local-first reac
 - "Build a potluck sign-up for Friendsgiving"
 - "Create a trivia game about reality TV"
 
-### `design`
-
-Have a design mockup or static HTML file? This skill mechanically transforms it into a working Vibes app while preserving the design exactly.
-
-The transformation is deterministic: CSS is copied verbatim, HTML structure is preserved, only syntax changes (class→className) and dynamic content bindings are added. No interpretation, no "improvements" - pixel-perfect fidelity to your design.
-
-**Example prompts:**
-- "Use design.html as the reference for my app"
-- "Match this mockup exactly"
-- "Convert this static HTML to a Vibes app"
-
-### `riff`
-
-Not sure what to build? Riff generates 3-10 completely different interpretations of your idea in parallel.
-
-Each variation is a genuinely different concept - not just styling changes. You'll get ranked variations with business model analysis to help you pick the winner. Great for exploring a broad idea before committing.
-
-**Example prompt:** "Make me an app that could make money"
-
-**Output:**
-```
-./
-├── index.html          # Gallery showcasing all variations
-├── RANKINGS.md         # Scored rankings with recommendations
-├── riff-1/
-│   ├── index.html      # App variation 1
-│   └── BUSINESS.md     # Business model canvas
-├── riff-2/
-│   └── ...
-```
-
-### `sell`
-
-Ready to monetize? Sell transforms your app into a multi-tenant SaaS with authentication, subscription billing, and isolated databases per customer.
-
-Each user gets their own subdomain (alice.yourapp.com) with their own data. Includes a marketing landing page, admin dashboard, and subscription gating - everything you need to start charging.
-
-![Sell: Multi-Tenant SaaS Philosophy](assets/sell-philosophy.png)
-
-**The philosophy:** Most SaaS turns every community into rows in one database. Sell turns every community into its own world. This is horizontal scaling where the unit is the tenant database—not the server fleet.
-
-**Output:** A single unified `index.html` that handles all routes:
-```
-yourdomain.com          → Landing page with pricing
-*.yourdomain.com        → Tenant app with auth gate
-admin.yourdomain.com    → Admin dashboard
-```
-
-**Example flow:**
-1. Build an app with `/vibes`
-2. Run `/sell` to transform it
-3. Configure pricing
-4. Deploy with `/cloudflare`
-
-### `test`
-
-End-to-end integration test for plugin developers. Assembles a pre-written fixture, deploys to Cloudflare Workers, and presents a live URL for browser verification.
-
-Walks you through each step interactively: fixture selection, assembly, deploy, and verification.
-
-**Example prompt:** "Test the plugin" or "Run an integration test"
 
 ## Commands
 
@@ -129,10 +62,7 @@ Commands are **user-invoked** — run them explicitly when you want a specific s
 | Command | What it does |
 |---------|-------------|
 | `/vibes` | Generate a React web app with TinyBase |
-| `/sell` | Transform an app into multi-tenant SaaS with auth and billing |
-| `/cloudflare` | Deploy a Vibes app to Cloudflare Workers |
 | `/launch` | Build and deploy a SaaS app end-to-end using Agent Teams |
-| `/test` | Run end-to-end integration test with real deployment |
 
 ## Why Vibes?
 
@@ -144,7 +74,7 @@ You've drifted out of the vibe zone.
 
 ![Vibe Zone](assets/vibezone.png)
 
-**Vibes DIY keeps things simple enough that you stay in the vibe zone.** Single-file apps. Local-first data. No server complexity. The AI can see and understand everything it needs to help you.
+**Vibes OS keeps things simple enough that you stay in the vibe zone.** Single-file apps. Local-first data. No server complexity. The AI can see and understand everything it needs to help you.
 
 ## How Data Works
 
@@ -157,35 +87,6 @@ Vibes apps use [TinyBase](https://tinybase.org), a reactive data store for local
 
 The hidden settings menu (gear icon) lets you configure sync for collaboration.
 
-## Client-Side Multi-Tenancy
-
-Traditional SaaS multi-tenancy requires backend code, database configuration, tenant isolation logic, and DevOps expertise. Setup takes weeks.
-
-Vibes eliminates these categories of work entirely.
-
-Each subdomain creates a separate data store. Tenant isolation happens automatically—tenant A cannot query tenant B's data because the stores are physically separate. Data leaks become architecturally impossible.
-
-The implementation:
-
-```javascript
-const subdomain = window.location.hostname.split('.')[0];
-// TinyBase store per tenant, synced via per-app Durable Object
-const store = createStore();
-```
-
-A few lines. No backend. No database configuration. No tenant middleware.
-
-> **Note:** Auth credentials are managed automatically. No user-provided configuration needed.
-
-### What This Enables
-
-- **Indie hackers**: Ship commercial apps in hours, not weeks
-- **Designers who code**: Build SaaS without learning DevOps
-- **Domain experts**: Package expertise as subscription software
-- **Rapid validation**: Deploy real infrastructure for customer pilots
-
-The architecture works best for per-user tools, white-label dashboards, customer portals, and micro-SaaS with independent tenants. Each tenant gets their own world.
-
 ### The Constraint Is the Feature
 
 You cannot run global queries across all tenants. Some ideas won't fit. This is groupware—tools for communities, not platforms that own them. No one can be Zuckerberg over a Vibes app. That's the point.
@@ -194,9 +95,6 @@ You cannot run global queries across all tenants. Some ideas won't fit. This is 
 
 - [vibes.diy](https://vibes.diy) - Try the web builder
 - [Discord](https://discord.gg/vnpWycj4Ta) - Join the community
-- [GitHub](https://github.com/VibesDIY) - Open source
-- [Substack](https://vibesdiy.substack.com/) - Updates and tutorials
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Development guide
 
 ## License
 
