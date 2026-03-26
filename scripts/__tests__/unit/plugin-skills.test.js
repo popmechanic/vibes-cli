@@ -248,10 +248,10 @@ description: Debug stuff
 
   it('excludes vibes plugin skills', () => {
     const vibesInstall = join(tmpBase, 'plugins', 'vibes');
-    const skillDir = join(vibesInstall, 'skills', 'vibes-skill');
+    const skillDir = join(vibesInstall, 'skills', 'vibes');
     mkdirSync(skillDir, { recursive: true });
     writeFileSync(join(skillDir, 'SKILL.md'), `---
-name: vibes-skill
+name: vibes
 ---
 # Content`);
 

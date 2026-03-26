@@ -39,7 +39,7 @@ let _skillAppendixPath = null;
 export function writeSkillAppendixFile(pluginRoot) {
   const content = buildSkillAppendix(pluginRoot);
   if (!content) return null;
-  const dir = join(tmpdir(), 'vibes-skill-inject');
+  const dir = join(tmpdir(), 'vibes-inject');
   mkdirSync(dir, { recursive: true });
   const filePath = join(dir, 'system-prompt-appendix.md');
   writeFileSync(filePath, content, 'utf-8');
