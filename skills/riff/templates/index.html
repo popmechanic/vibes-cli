@@ -878,7 +878,7 @@
       // Auto-generated vibes menu components
 // Run: bun scripts/build-components.js --force to regenerate
 // Source: components/
-// Generated: 2026-03-23T01:11:10.499Z
+// Generated: 2026-03-27T21:22:05.489Z
 // Components: 26/26
 
 // === useMobile ===
@@ -3528,23 +3528,18 @@ if (typeof window !== 'undefined') {
         });
       };
 
-      // Styles — matches mockup: editor grid bg, BrutalistCard, chat bubble buttons
       const wrapperStyle = {
         minHeight: '100vh',
-        backgroundColor: '#CCCDC8',
-        backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-        backgroundSize: '32px 32px',
+        backgroundColor: 'var(--color-background, #f5f5f4)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '2rem',
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       };
       const cardStyle = {
-        background: '#fffff0',
-        border: '2px solid #1a1a1a',
+        background: 'var(--comp-bg, #fafafa)',
+        border: '2px solid var(--comp-border, #1a1a1a)',
         borderRadius: '12px',
-        boxShadow: '4px 4px 0px #1a1a1a',
         maxWidth: '560px',
         width: '100%',
         overflow: 'hidden',
@@ -3552,25 +3547,25 @@ if (typeof window !== 'undefined') {
       const titleStyle = {
         fontSize: 'clamp(2rem, 5vw, 3.5rem)',
         fontWeight: 800,
-        color: '#1a1a1a',
+        color: 'var(--comp-text, #1a1a1a)',
         textAlign: 'center',
         padding: '1.5rem 1.5rem 0',
         marginBottom: '0.25rem',
       };
       const subtitleStyle = {
         fontSize: '0.95rem',
-        color: '#555',
+        color: 'var(--comp-text, #555)',
         textAlign: 'center',
         marginBottom: '1rem',
       };
       const msgStyle = {
         fontSize: '0.8rem',
-        color: '#555',
+        color: 'var(--comp-text, #555)',
         fontFamily: "ui-monospace, 'SF Mono', Monaco, 'Cascadia Code', monospace",
-        background: 'rgba(0,0,0,0.05)',
+        background: 'rgba(128,128,128,0.1)',
         padding: '0.4rem 0.75rem',
         borderRadius: '6px',
-        border: '1px solid rgba(0,0,0,0.08)',
+        border: '1px solid rgba(128,128,128,0.15)',
         lineHeight: 1.4,
         margin: '0 1.5rem 1.25rem',
       };
@@ -3584,9 +3579,9 @@ if (typeof window !== 'undefined') {
       const btnBase = {
         width: '100%',
         padding: '0.65rem 0.9rem',
-        background: '#fffff0',
-        color: '#1a1a1a',
-        border: '2px solid #1a1a1a',
+        background: 'var(--comp-bg, #fafafa)',
+        color: 'var(--comp-text, #1a1a1a)',
+        border: '2px solid var(--comp-border, #1a1a1a)',
         borderRadius: '12px',
         fontSize: '0.8125rem',
         lineHeight: 1.5,
@@ -3599,8 +3594,8 @@ if (typeof window !== 'undefined') {
         gap: '0.5rem',
         transition: '0.2s',
       };
-      const primaryShadow = { boxShadow: '4px 4px 0px 0px #009ACE, 4px 4px 0px 2px #1a1a1a' };
-      const secondaryShadow = { boxShadow: '4px 4px 0px 0px #fedd00, 4px 4px 0px 2px #1a1a1a' };
+      const primaryShadow = { boxShadow: '4px 4px 0px 0px var(--comp-accent, #4a90d9)', background: 'var(--comp-accent, #4a90d9)', color: 'var(--comp-accent-text, #fff)' };
+      const secondaryShadow = { boxShadow: '4px 4px 0px 0px var(--comp-border, #1a1a1a)' };
 
       const wrenchSvg = React.createElement('svg', { viewBox: '0 0 24 24', style: { width: 16, height: 16, fill: 'currentColor' } },
         React.createElement('path', { d: 'M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z' })
@@ -3620,7 +3615,7 @@ if (typeof window !== 'undefined') {
                 Try Again
               </button>
               <button data-copy-error onClick={copyToClipboard} style={{
-                fontSize: '0.8rem', color: '#555', cursor: 'pointer',
+                fontSize: '0.8rem', color: 'var(--comp-text, #555)', cursor: 'pointer',
                 textDecoration: 'underline', textUnderlineOffset: '2px',
                 background: 'none', border: 'none', fontFamily: 'inherit',
               }}>
@@ -3628,13 +3623,13 @@ if (typeof window !== 'undefined') {
               </button>
             </div>
             <details style={{ borderTop: '1px solid rgba(0,0,0,0.1)', margin: 0 }}>
-              <summary style={{ padding: '0.75rem 1.5rem', fontSize: '0.75rem', color: '#999', cursor: 'pointer', userSelect: 'none' }}>
+              <summary style={{ padding: '0.75rem 1.5rem', fontSize: '0.75rem', color: 'var(--comp-text, #999)', cursor: 'pointer', userSelect: 'none' }}>
                 Technical details
               </summary>
               <pre style={{
                 margin: 0, padding: '0.75rem 1.5rem 1rem', fontSize: '0.7rem',
                 fontFamily: "ui-monospace, 'SF Mono', Monaco, 'Cascadia Code', monospace",
-                lineHeight: 1.4, color: '#666', background: 'rgba(0,0,0,0.03)',
+                lineHeight: 1.4, color: 'var(--comp-text, #666)', background: 'rgba(128,128,128,0.05)',
                 overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
                 borderBottomLeftRadius: '10px', borderBottomRightRadius: '10px',
               }}>
@@ -3642,7 +3637,7 @@ if (typeof window !== 'undefined') {
                 {allConsoleLogs.length > 0 && (
                   <>
                     {'\n\n'}
-                    <span style={{ fontWeight: 600, color: '#999', fontFamily: 'inherit', fontSize: '0.7rem' }}>Recent console:</span>
+                    <span style={{ fontWeight: 600, color: 'var(--comp-text, #999)', fontFamily: 'inherit', fontSize: '0.7rem' }}>Recent console:</span>
                     {'\n' + allConsoleText}
                   </>
                 )}

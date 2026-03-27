@@ -146,7 +146,7 @@ Read these reference files when the user's prompt matches the signals below:
 | AI-powered features | AI, chatbot, summarize, generate, openrouter | `${CLAUDE_SKILL_DIR}/references/ai-integration.md` |
 | Bug prevention reference | debugging, troubleshooting, reviewing code | `${CLAUDE_SKILL_DIR}/references/bug-prevention.md` |
 | Design tokens & theming | colors, theme, tokens, brand colors, styling | `${CLAUDE_PLUGIN_ROOT}/build/design-tokens.txt` |
-| Full Neobrute design details | detailed design system, spacing, typography | `${CLAUDE_SKILL_DIR}/defaults/style-prompt.txt` |
+| Full design system details | detailed design system, spacing, typography | `${CLAUDE_SKILL_DIR}/defaults/style-prompt.txt` |
 | Advanced visual effects | "interactive", "animated", "3D", "particles", "shader", "canvas" | `${CLAUDE_SKILL_DIR}/defaults/advanced-effects-prompt.txt` |
 
 ---

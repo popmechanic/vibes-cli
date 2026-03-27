@@ -1,8 +1,8 @@
 /**
- * Component Catalog — Pre-styled neo-brutalist components
+ * Component Catalog — Pre-styled components
  *
- * These components come with DEFAULT CSS from design-tokens.js (cream bg,
- * dark borders, brutalist shadows, colored accents). The LLM can use them
+ * These components come with DEFAULT CSS from design-tokens.js using
+ * token-based colors, borders, and shadows. The LLM can use them
  * as-is or override styles with design tokens for custom themes.
  *
  * To update: edit here, then run:
@@ -165,16 +165,16 @@ export function generateComponentDocs() {
     ``,
     `---`,
     ``,
-    `## Component Catalog (Pre-styled Neo-Brutalist)`,
+    `## Component Catalog`,
     ``,
-    `These components have **default CSS** (cream bg, dark borders, brutalist shadows,`,
-    `colored title bars). Use them as-is or override with design tokens for custom themes.`,
+    `These components have **default CSS** with token-based colors, borders, and shadows.`,
+    `Use them as-is or override with design tokens for custom themes.`,
     ``,
     `Available components: ${availableNames}`,
     ``,
     `### How to Use`,
     ``,
-    `1. Pick components from the catalog below — they already have neo-brutalist styling`,
+    `1. Pick components from the catalog below — they already have default styling`,
     `2. Override styles with \`var(--token-name)\` references for custom themes`,
     `3. Use \`className="grid-background"\` on your app's root container for the default grid background`,
     `4. Use \`className="btn"\` for buttons (variants: \`btn-red\`, \`btn-yellow\`, \`btn-gray\`)`,
@@ -193,14 +193,14 @@ export function generateComponentDocs() {
     ``,
     `### Default Style Summary`,
     ``,
-    `All components follow the neo-brutalist vibes.diy visual style:`,
-    `- **Background**: cream (\`--comp-bg\` → \`--vibes-cream: #fffff0\`)`,
-    `- **Borders**: 2px solid dark (\`--comp-border\` → \`--vibes-near-black: #1a1a1a\`)`,
+    `All components follow a token-based default style:`,
+    `- **Background**: \`--comp-bg\` (overridable surface color)`,
+    `- **Borders**: 2px solid \`--comp-border\``,
     `- **Border radius**: 12px (cards, dialogs) or 8px (inputs, buttons)`,
-    `- **Shadows**: solid offset (\`4px 4px 0px 0px\`) — brutalist style`,
-    `- **Title bars**: colored accent (\`--comp-accent\` → \`--vibes-variant-blue\`)`,
+    `- **Shadows**: solid offset (\`4px 4px 0px 0px\`)`,
+    `- **Title bars**: colored accent (\`--comp-accent\`)`,
     `- **Typography**: uppercase, bold, letterspaced headers`,
-    `- **Focus states**: accent brutalist shadow on inputs`,
+    `- **Focus states**: accent shadow on inputs`,
     ``,
     `### Theming: Override \`--comp-*\` tokens`,
     ``,

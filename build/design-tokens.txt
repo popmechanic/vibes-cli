@@ -198,7 +198,7 @@ Example: `<button className="btn">Click Me</button>`
 1. **Use semantic `--color-*` tokens** for app surfaces, text, borders, and interactive elements.
 2. **Use `.btn` class** for buttons instead of hand-styling — add `btn-red`, `btn-yellow`, `btn-gray` for variants.
 3. **Use `--radius-*` tokens** for border-radius values.
-4. **Use `--shadow-*` tokens** for box-shadow — including `--shadow-brutalist-*` for neo-brutalist style.
+4. **Use `--shadow-*` tokens** for box-shadow — including `--shadow-brutalist-*` for bold offset shadows.
 5. **Use `--spacing-*` tokens** for padding and margin where CSS custom properties are needed.
 6. **Use `--font-*` and `--text-*` tokens** for typography.
 7. **Override `--color-*` tokens** in a `:root` style block for per-app theming (light/dark, custom palette).
@@ -210,16 +210,16 @@ Example: `<button className="btn">Click Me</button>`
 
 ---
 
-## Component Catalog (Pre-styled Neo-Brutalist)
+## Component Catalog
 
-These components have **default CSS** (cream bg, dark borders, brutalist shadows,
-colored title bars). Use them as-is or override with design tokens for custom themes.
+These components have **default CSS** with token-based colors, borders, and shadows.
+Use them as-is or override with design tokens for custom themes.
 
 Available components: button, card, input, label, textarea, badge, separator, alert, avatar, switch, checkbox, select, table, tabs, accordion, dialog, progress, skeleton, navigation-menu, dropdown-menu, tooltip, sheet
 
 ### How to Use
 
-1. Pick components from the catalog below — they already have neo-brutalist styling
+1. Pick components from the catalog below — they already have default styling
 2. Override styles with `var(--token-name)` references for custom themes
 3. Use `className="grid-background"` on your app's root container for the default grid background
 4. Use `className="btn"` for buttons (variants: `btn-red`, `btn-yellow`, `btn-gray`)
@@ -238,14 +238,14 @@ Available components: button, card, input, label, textarea, badge, separator, al
 
 ### Default Style Summary
 
-All components follow the neo-brutalist vibes.diy visual style:
-- **Background**: cream (`--comp-bg` → `--vibes-cream: #fffff0`)
-- **Borders**: 2px solid dark (`--comp-border` → `--vibes-near-black: #1a1a1a`)
+All components follow a token-based default style:
+- **Background**: `--comp-bg` (overridable surface color)
+- **Borders**: 2px solid `--comp-border`
 - **Border radius**: 12px (cards, dialogs) or 8px (inputs, buttons)
-- **Shadows**: solid offset (`4px 4px 0px 0px`) — brutalist style
-- **Title bars**: colored accent (`--comp-accent` → `--vibes-variant-blue`)
+- **Shadows**: solid offset (`4px 4px 0px 0px`)
+- **Title bars**: colored accent (`--comp-accent`)
 - **Typography**: uppercase, bold, letterspaced headers
-- **Focus states**: accent brutalist shadow on inputs
+- **Focus states**: accent shadow on inputs
 
 ### Theming: Override `--comp-*` tokens
 

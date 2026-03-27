@@ -142,7 +142,7 @@ function generateTXT() {
   lines.push("1. **Use semantic `--color-*` tokens** for app surfaces, text, borders, and interactive elements.");
   lines.push('2. **Use `.btn` class** for buttons instead of hand-styling \u2014 add `btn-red`, `btn-yellow`, `btn-gray` for variants.');
   lines.push("3. **Use `--radius-*` tokens** for border-radius values.");
-  lines.push("4. **Use `--shadow-*` tokens** for box-shadow \u2014 including `--shadow-brutalist-*` for neo-brutalist style.");
+  lines.push("4. **Use `--shadow-*` tokens** for box-shadow \u2014 including `--shadow-brutalist-*` for bold offset shadows.");
   lines.push("5. **Use `--spacing-*` tokens** for padding and margin where CSS custom properties are needed.");
   lines.push("6. **Use `--font-*` and `--text-*` tokens** for typography.");
   lines.push("7. **Override `--color-*` tokens** in a `:root` style block for per-app theming (light/dark, custom palette).");

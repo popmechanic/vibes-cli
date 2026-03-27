@@ -450,7 +450,7 @@ ${rootCss || `/* No :root block found — create one with warm oklch colors matc
 
 === THEME PERSONALITY ===
 
-${themeEssentials || 'Bold neo-brutalist: strong typography, hard shadows, playful hover effects.'}
+${themeEssentials || 'Creative, polished, and distinctive.'}
 
 === DESIGN GUIDANCE ===
 

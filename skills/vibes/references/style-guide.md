@@ -1,7 +1,7 @@
 ---
 name: Style Guide
 description: >
-  OKLCH color system, design token overrides, gradients, neobrute patterns,
+  OKLCH color system, design token overrides, gradients, bold graphic patterns,
   glass morphism, color modifications, Tailwind integration for Vibes apps.
 inject: system-prompt
 ---
@@ -50,7 +50,7 @@ className="bg-[linear-gradient(135deg_in_oklch,oklch(0.7_0.25_30),oklch(0.5_0.2_
 className="bg-[linear-gradient(180deg_in_oklch,oklch(0.2_0.05_270),oklch(0.1_0.02_250))]"
 ```
 
-### Neobrute Style (Optional)
+### Bold Graphic Style (Optional)
 
 For bold, graphic UI:
 

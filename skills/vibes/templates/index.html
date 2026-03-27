@@ -878,7 +878,7 @@
       // Auto-generated vibes menu components
 // Run: bun scripts/build-components.js --force to regenerate
 // Source: components/
-// Generated: 2026-03-23T01:11:10.499Z
+// Generated: 2026-03-27T21:22:05.489Z
 // Components: 26/26
 
 // === useMobile ===
@@ -3519,9 +3519,6 @@ if (typeof window !== 'undefined') {
 
   // --- App Shell ---
   const config = window.__APP_CONFIG__;
-  const hasOidc = !!(config?.oidcAuthority && !config.oidcAuthority.startsWith('__') &&
-    config?.oidcClientId && !config.oidcClientId.startsWith('__'));
-
   // Create MergeableStore with unique client ID
   let clientId = localStorage.getItem('tinybase_client_id');
   if (!clientId) {
@@ -3597,23 +3594,18 @@ if (typeof window !== 'undefined') {
         });
       };
 
-      // Styles — matches mockup: editor grid bg, BrutalistCard, chat bubble buttons
       const wrapperStyle = {
         minHeight: '100vh',
-        backgroundColor: '#CCCDC8',
-        backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-        backgroundSize: '32px 32px',
+        backgroundColor: 'var(--color-background, #f5f5f4)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '2rem',
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       };
       const cardStyle = {
-        background: '#fffff0',
-        border: '2px solid #1a1a1a',
+        background: 'var(--comp-bg, #fafafa)',
+        border: '2px solid var(--comp-border, #1a1a1a)',
         borderRadius: '12px',
-        boxShadow: '4px 4px 0px #1a1a1a',
         maxWidth: '560px',
         width: '100%',
         overflow: 'hidden',
@@ -3621,25 +3613,25 @@ if (typeof window !== 'undefined') {
       const titleStyle = {
         fontSize: 'clamp(2rem, 5vw, 3.5rem)',
         fontWeight: 800,
-        color: '#1a1a1a',
+        color: 'var(--comp-text, #1a1a1a)',
         textAlign: 'center',
         padding: '1.5rem 1.5rem 0',
         marginBottom: '0.25rem',
       };
       const subtitleStyle = {
         fontSize: '0.95rem',
-        color: '#555',
+        color: 'var(--comp-text, #555)',
         textAlign: 'center',
         marginBottom: '1rem',
       };
       const msgStyle = {
         fontSize: '0.8rem',
-        color: '#555',
+        color: 'var(--comp-text, #555)',
         fontFamily: "ui-monospace, 'SF Mono', Monaco, 'Cascadia Code', monospace",
-        background: 'rgba(0,0,0,0.05)',
+        background: 'rgba(128,128,128,0.1)',
         padding: '0.4rem 0.75rem',
         borderRadius: '6px',
-        border: '1px solid rgba(0,0,0,0.08)',
+        border: '1px solid rgba(128,128,128,0.15)',
         lineHeight: 1.4,
         margin: '0 1.5rem 1.25rem',
       };
@@ -3653,9 +3645,9 @@ if (typeof window !== 'undefined') {
       const btnBase = {
         width: '100%',
         padding: '0.65rem 0.9rem',
-        background: '#fffff0',
-        color: '#1a1a1a',
-        border: '2px solid #1a1a1a',
+        background: 'var(--comp-bg, #fafafa)',
+        color: 'var(--comp-text, #1a1a1a)',
+        border: '2px solid var(--comp-border, #1a1a1a)',
         borderRadius: '12px',
         fontSize: '0.8125rem',
         lineHeight: 1.5,
@@ -3668,8 +3660,8 @@ if (typeof window !== 'undefined') {
         gap: '0.5rem',
         transition: '0.2s',
       };
-      const primaryShadow = { boxShadow: '4px 4px 0px 0px #009ACE, 4px 4px 0px 2px #1a1a1a' };
-      const secondaryShadow = { boxShadow: '4px 4px 0px 0px #fedd00, 4px 4px 0px 2px #1a1a1a' };
+      const primaryShadow = { boxShadow: '4px 4px 0px 0px var(--comp-accent, #4a90d9)', background: 'var(--comp-accent, #4a90d9)', color: 'var(--comp-accent-text, #fff)' };
+      const secondaryShadow = { boxShadow: '4px 4px 0px 0px var(--comp-border, #1a1a1a)' };
 
       const wrenchSvg = React.createElement('svg', { viewBox: '0 0 24 24', style: { width: 16, height: 16, fill: 'currentColor' } },
         React.createElement('path', { d: 'M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z' })
@@ -3689,7 +3681,7 @@ if (typeof window !== 'undefined') {
                 Try Again
               </button>
               <button data-copy-error onClick={copyToClipboard} style={{
-                fontSize: '0.8rem', color: '#555', cursor: 'pointer',
+                fontSize: '0.8rem', color: 'var(--comp-text, #555)', cursor: 'pointer',
                 textDecoration: 'underline', textUnderlineOffset: '2px',
                 background: 'none', border: 'none', fontFamily: 'inherit',
               }}>
@@ -3697,13 +3689,13 @@ if (typeof window !== 'undefined') {
               </button>
             </div>
             <details style={{ borderTop: '1px solid rgba(0,0,0,0.1)', margin: 0 }}>
-              <summary style={{ padding: '0.75rem 1.5rem', fontSize: '0.75rem', color: '#999', cursor: 'pointer', userSelect: 'none' }}>
+              <summary style={{ padding: '0.75rem 1.5rem', fontSize: '0.75rem', color: 'var(--comp-text, #999)', cursor: 'pointer', userSelect: 'none' }}>
                 Technical details
               </summary>
               <pre style={{
                 margin: 0, padding: '0.75rem 1.5rem 1rem', fontSize: '0.7rem',
                 fontFamily: "ui-monospace, 'SF Mono', Monaco, 'Cascadia Code', monospace",
-                lineHeight: 1.4, color: '#666', background: 'rgba(0,0,0,0.03)',
+                lineHeight: 1.4, color: 'var(--comp-text, #666)', background: 'rgba(128,128,128,0.05)',
                 overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
                 borderBottomLeftRadius: '10px', borderBottomRightRadius: '10px',
               }}>
@@ -3711,7 +3703,7 @@ if (typeof window !== 'undefined') {
                 {allConsoleLogs.length > 0 && (
                   <>
                     {'\n\n'}
-                    <span style={{ fontWeight: 600, color: '#999', fontFamily: 'inherit', fontSize: '0.7rem' }}>Recent console:</span>
+                    <span style={{ fontWeight: 600, color: 'var(--comp-text, #999)', fontFamily: 'inherit', fontSize: '0.7rem' }}>Recent console:</span>
                     {'\n' + allConsoleText}
                   </>
                 )}
@@ -3726,9 +3718,7 @@ if (typeof window !== 'undefined') {
   function AppShell() {
     const [isReady, setIsReady] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
-    const [user, setUser] = useState(null);
 
-    // Hook must be called unconditionally (Rules of Hooks)
     window.useVibesPanelEvents('Vibes');
 
     useEffect(() => {
@@ -3736,49 +3726,30 @@ if (typeof window !== 'undefined') {
       let persister = null;
 
       async function init() {
-        // 1. Local persistence (localStorage fallback — OPFS can be added later)
         persister = createLocalPersister(store, `tinybase_${config.appName}`);
         await persister.startAutoPersisting([{}, {}]);
         setIsReady(true);
 
-        // 2. Sync (if wsUrl configured)
         if (config.wsUrl && !config.wsUrl.startsWith('__')) {
-          startSync();
+          destroySync = createReconnectingSynchronizer(
+            store,
+            config.wsUrl,
+            (syncing) => {
+              setIsSyncing(syncing);
+              window.__VIBES_SYNC_STATUS__ = syncing ? 'synced' : 'reconnecting';
+              window.dispatchEvent(new Event('vibes-sync-status-change'));
+            },
+          );
         }
       }
-
-      function startSync() {
-        if (destroySync) return; // Already connected
-        let syncUrl = config.wsUrl;
-        if (!config.public) {
-          const token = sessionStorage.getItem('vibes_oidc_access_token');
-          if (!token) return; // Token not yet available — will retry via vibes-oidc-ready event
-          syncUrl += (syncUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
-        }
-        destroySync = createReconnectingSynchronizer(
-          store,
-          syncUrl,
-          (syncing) => {
-            setIsSyncing(syncing);
-            window.__VIBES_SYNC_STATUS__ = syncing ? 'synced' : 'reconnecting';
-            window.dispatchEvent(new Event('vibes-sync-status-change'));
-          },
-        );
-      }
-
-      // If token wasn't available on mount, retry when OIDC completes
-      function onOidcReady() { startSync(); }
-      window.addEventListener('vibes-oidc-ready', onOidcReady);
 
       init();
       return () => {
-        window.removeEventListener('vibes-oidc-ready', onOidcReady);
         if (destroySync) destroySync();
         if (persister) persister.destroy();
       };
     }, []);
 
-    // Template-level isReady gate — App never sees !isReady
     if (!isReady) {
       return (
         <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.5, fontFamily: 'system-ui' }}>
@@ -3787,94 +3758,36 @@ if (typeof window !== 'undefined') {
       );
     }
 
-    // Public app or no OIDC — render directly
-    if (config.public || !hasOidc) {
-      return (
-        <Provider store={store}>
-          <AppContext.Provider value={{ isReady, isSyncing, user: null }}>
-            <HiddenMenuWrapper menuContent={<VibesPanel />}>
-              <AppErrorBoundary><App /></AppErrorBoundary>
-            </HiddenMenuWrapper>
-          </AppContext.Provider>
-        </Provider>
-      );
-    }
-
-    // Private app — OIDC gate
-    if (!window.OIDCProvider) {
-      return <LoadingError error={window.__OIDC_LOAD_ERROR__ || 'OIDC components not available'} />;
-    }
-
-    const { OIDCProvider, SignedIn, SignedOut, SignInButton } = window.OIDCComponents;
-    const AuthScreen = window.AuthScreen;
-    const VibesButton = window.VibesButton;
-    const RED = window.RED;
-
-    const AuthGate = () => (
-      <AuthScreen title="Sign in to continue" message="This app requires authentication." showCard={true}>
-        <SignInButton>
-          <VibesButton data-vibes-signin variant={RED} buttonType="form">Sign In</VibesButton>
-        </SignInButton>
-      </AuthScreen>
-    );
-
     return (
       <Provider store={store}>
         <SyncStatusDot />
-        <OIDCProvider authority={config.oidcAuthority} clientId={config.oidcClientId}>
-          <SignedOut><AuthGate /></SignedOut>
-          <SignedIn>
-            <SharingBridge />
-            <AppContext.Provider value={{ isReady, isSyncing, user }}>
-              <HiddenMenuWrapper menuContent={<VibesPanel />}>
-                <AppErrorBoundary><App /></AppErrorBoundary>
-              </HiddenMenuWrapper>
-            </AppContext.Provider>
-          </SignedIn>
-        </OIDCProvider>
+        <AppContext.Provider value={{ isReady, isSyncing, user: null }}>
+          <HiddenMenuWrapper menuContent={<VibesPanel />}>
+            <AppErrorBoundary><App /></AppErrorBoundary>
+          </HiddenMenuWrapper>
+        </AppContext.Provider>
       </Provider>
     );
   }
 
-  // Load OIDC components for private apps via the existing bridge file
-  async function initApp() {
-    if (hasOidc && !config.public) {
-      try {
-        const oidcModule = await import("/oidc-bridge.js");
-        window.OIDCProvider = oidcModule.OIDCProvider;
-        window.OIDCComponents = {
-          OIDCProvider: oidcModule.OIDCProvider,
-          SignedIn: oidcModule.SignedIn,
-          SignedOut: oidcModule.SignedOut,
-          SignInButton: oidcModule.SignInButton,
-          UserButton: oidcModule.UserButton,
-        };
-        window.SignedIn = oidcModule.SignedIn;
-        window.SignedOut = oidcModule.SignedOut;
-        window.SignInButton = oidcModule.SignInButton;
-        window.UserButton = oidcModule.UserButton;
-        window.useUser = oidcModule.useUser;
-        window.useOIDCContext = oidcModule.useOIDCContext;
-      } catch (err) {
-        console.error('Failed to load OIDC components:', err);
-        window.__OIDC_LOAD_ERROR__ = err.message || String(err);
-      }
-    }
+  // Provide safe stubs for auth hooks so generated code
+  // that calls useUser() doesn't crash in public apps.
+  if (!window.useUser) {
+    window.useUser = () => ({ email: null, name: null, sub: null });
+  }
+  if (!window.useOIDCContext) {
+    window.useOIDCContext = () => ({ user: null, isAuthenticated: false });
+  }
 
-    // Provide safe stubs for auth hooks in public apps so generated code
-    // that calls useUser() doesn't crash with "Can't find variable".
-    if (!window.useUser) {
-      window.useUser = () => ({ email: null, name: null, sub: null });
-    }
-    if (!window.useOIDCContext) {
-      window.useOIDCContext = () => ({ user: null, isAuthenticated: false });
-    }
+  // <!-- AUTH:INJECT -->
 
+  // Public app — render directly
+  if (window.__vibesPrivateInit) {
+    window.__vibesPrivateInit();
+  } else {
     const rootElement = document.getElementById("container");
     ReactDOMClient.createRoot(rootElement).render(<AppShell />);
   }
-
-  initApp();
 </script>
 
   </body>

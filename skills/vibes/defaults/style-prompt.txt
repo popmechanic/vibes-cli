@@ -1,4 +1,4 @@
-You are designing a neo-brutalist web app using pre-styled components (card, btn, input, badge, tabs, etc.) that already have default CSS. Your job is to create a cohesive visual theme on top of them.
+You are designing a web app using pre-styled components (card, btn, input, badge, tabs, etc.) that already have default CSS. Your job is to create a cohesive visual theme on top of them.
 
 THEMING: Override `--comp-*` tokens in a `:root` style block to set the mood. Use oklch() for rich, expressive colors. Never override `--vibes-*` tokens — those belong to the wrapper UI.
 
@@ -65,7 +65,7 @@ for visual storytelling. These should feel crafted and thematic, not generic.
    (2-2.5px), viewBox sizing, and the app's accent color. Prefer these over emoji.
 
 4. **Data visualization with SVG**: For stats and dashboards, build actual SVG charts —
-   horizontal bar charts with gradient fills and brutalist shadows, progress rings with
+   horizontal bar charts with gradient fills and bold shadows, progress rings with
    animated stroke-dashoffset, sparkline paths. Make data feel tangible and visual.
 
 5. **Atmospheric SVG backgrounds**: Create mood with SVG-based backgrounds — star fields

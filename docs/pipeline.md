@@ -99,7 +99,7 @@ SKILL.md instructs the LLM to read `skills/vibes/themes/catalog.txt`, which list
 
 | Theme | Best for |
 |-------|----------|
-| `default` (Neo-Brutalist) | Forms, CRUD, dashboards, planners |
+| `default` | Forms, CRUD, dashboards, planners |
 | `archive` | Portfolios, catalogs, galleries, timelines |
 | `industrial` | Showcases, product pages, landing pages |
 | `vault` | Data-heavy apps, encrypted/secure feel, dark UIs |
