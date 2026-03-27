@@ -240,7 +240,7 @@ export function buildGeneratePrompt(
     if (isHtmlRef) {
       const htmlContent = Buffer.from(base64, 'base64').toString('utf-8');
       writeFileSync(refPath, htmlContent, 'utf-8');
-      const inlined = htmlContent.length <= 30000 ? htmlContent : htmlContent.slice(0, 30000) + '\n<!-- truncated -->';
+      const inlined = htmlContent;
 
       referenceBlock = `=== DESIGN REFERENCE (HTML: "${reference.name}") ===
 
@@ -693,7 +693,7 @@ function buildReferenceBlock(ctx: ServerContext, reference: any): string {
 You MUST match this HTML file's design language — colors, typography, spacing, layout patterns, and overall aesthetic — when styling the app. Study the CSS and structure carefully and apply the same visual treatment.
 
 \`\`\`html
-${htmlContent.slice(0, 15000)}
+${htmlContent}
 \`\`\`
 
 Now update the app's CSS token system to match this HTML:
