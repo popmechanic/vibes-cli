@@ -110,9 +110,6 @@
 
   // --- App Shell ---
   const config = window.__APP_CONFIG__;
-  const hasOidc = !!(config?.oidcAuthority && !config.oidcAuthority.startsWith('__') &&
-    config?.oidcClientId && !config.oidcClientId.startsWith('__'));
-
   // Create MergeableStore with unique client ID
   let clientId = localStorage.getItem('tinybase_client_id');
   if (!clientId) {
@@ -312,9 +309,7 @@
   function AppShell() {
     const [isReady, setIsReady] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
-    const [user, setUser] = useState(null);
 
-    // Hook must be called unconditionally (Rules of Hooks)
     window.useVibesPanelEvents('Vibes');
 
     useEffect(() => {
@@ -322,49 +317,30 @@
       let persister = null;
 
       async function init() {
-        // 1. Local persistence (localStorage fallback — OPFS can be added later)
         persister = createLocalPersister(store, `tinybase_${config.appName}`);
         await persister.startAutoPersisting([{}, {}]);
         setIsReady(true);
 
-        // 2. Sync (if wsUrl configured)
         if (config.wsUrl && !config.wsUrl.startsWith('__')) {
-          startSync();
+          destroySync = createReconnectingSynchronizer(
+            store,
+            config.wsUrl,
+            (syncing) => {
+              setIsSyncing(syncing);
+              window.__VIBES_SYNC_STATUS__ = syncing ? 'synced' : 'reconnecting';
+              window.dispatchEvent(new Event('vibes-sync-status-change'));
+            },
+          );
         }
       }
-
-      function startSync() {
-        if (destroySync) return; // Already connected
-        let syncUrl = config.wsUrl;
-        if (!config.public) {
-          const token = sessionStorage.getItem('vibes_oidc_access_token');
-          if (!token) return; // Token not yet available — will retry via vibes-oidc-ready event
-          syncUrl += (syncUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
-        }
-        destroySync = createReconnectingSynchronizer(
-          store,
-          syncUrl,
-          (syncing) => {
-            setIsSyncing(syncing);
-            window.__VIBES_SYNC_STATUS__ = syncing ? 'synced' : 'reconnecting';
-            window.dispatchEvent(new Event('vibes-sync-status-change'));
-          },
-        );
-      }
-
-      // If token wasn't available on mount, retry when OIDC completes
-      function onOidcReady() { startSync(); }
-      window.addEventListener('vibes-oidc-ready', onOidcReady);
 
       init();
       return () => {
-        window.removeEventListener('vibes-oidc-ready', onOidcReady);
         if (destroySync) destroySync();
         if (persister) persister.destroy();
       };
     }, []);
 
-    // Template-level isReady gate — App never sees !isReady
     if (!isReady) {
       return (
         <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.5, fontFamily: 'system-ui' }}>
@@ -373,92 +349,34 @@
       );
     }
 
-    // Public app or no OIDC — render directly
-    if (config.public || !hasOidc) {
-      return (
-        <Provider store={store}>
-          <AppContext.Provider value={{ isReady, isSyncing, user: null }}>
-            <HiddenMenuWrapper menuContent={<VibesPanel />}>
-              <AppErrorBoundary><App /></AppErrorBoundary>
-            </HiddenMenuWrapper>
-          </AppContext.Provider>
-        </Provider>
-      );
-    }
-
-    // Private app — OIDC gate
-    if (!window.OIDCProvider) {
-      return <LoadingError error={window.__OIDC_LOAD_ERROR__ || 'OIDC components not available'} />;
-    }
-
-    const { OIDCProvider, SignedIn, SignedOut, SignInButton } = window.OIDCComponents;
-    const AuthScreen = window.AuthScreen;
-    const VibesButton = window.VibesButton;
-    const RED = window.RED;
-
-    const AuthGate = () => (
-      <AuthScreen title="Sign in to continue" message="This app requires authentication." showCard={true}>
-        <SignInButton>
-          <VibesButton data-vibes-signin variant={RED} buttonType="form">Sign In</VibesButton>
-        </SignInButton>
-      </AuthScreen>
-    );
-
     return (
       <Provider store={store}>
         <SyncStatusDot />
-        <OIDCProvider authority={config.oidcAuthority} clientId={config.oidcClientId}>
-          <SignedOut><AuthGate /></SignedOut>
-          <SignedIn>
-            <SharingBridge />
-            <AppContext.Provider value={{ isReady, isSyncing, user }}>
-              <HiddenMenuWrapper menuContent={<VibesPanel />}>
-                <AppErrorBoundary><App /></AppErrorBoundary>
-              </HiddenMenuWrapper>
-            </AppContext.Provider>
-          </SignedIn>
-        </OIDCProvider>
+        <AppContext.Provider value={{ isReady, isSyncing, user: null }}>
+          <HiddenMenuWrapper menuContent={<VibesPanel />}>
+            <AppErrorBoundary><App /></AppErrorBoundary>
+          </HiddenMenuWrapper>
+        </AppContext.Provider>
       </Provider>
     );
   }
 
-  // Load OIDC components for private apps via the existing bridge file
-  async function initApp() {
-    if (hasOidc && !config.public) {
-      try {
-        const oidcModule = await import("/oidc-bridge.js");
-        window.OIDCProvider = oidcModule.OIDCProvider;
-        window.OIDCComponents = {
-          OIDCProvider: oidcModule.OIDCProvider,
-          SignedIn: oidcModule.SignedIn,
-          SignedOut: oidcModule.SignedOut,
-          SignInButton: oidcModule.SignInButton,
-          UserButton: oidcModule.UserButton,
-        };
-        window.SignedIn = oidcModule.SignedIn;
-        window.SignedOut = oidcModule.SignedOut;
-        window.SignInButton = oidcModule.SignInButton;
-        window.UserButton = oidcModule.UserButton;
-        window.useUser = oidcModule.useUser;
-        window.useOIDCContext = oidcModule.useOIDCContext;
-      } catch (err) {
-        console.error('Failed to load OIDC components:', err);
-        window.__OIDC_LOAD_ERROR__ = err.message || String(err);
-      }
-    }
+  // Provide safe stubs for auth hooks so generated code
+  // that calls useUser() doesn't crash in public apps.
+  if (!window.useUser) {
+    window.useUser = () => ({ email: null, name: null, sub: null });
+  }
+  if (!window.useOIDCContext) {
+    window.useOIDCContext = () => ({ user: null, isAuthenticated: false });
+  }
 
-    // Provide safe stubs for auth hooks in public apps so generated code
-    // that calls useUser() doesn't crash with "Can't find variable".
-    if (!window.useUser) {
-      window.useUser = () => ({ email: null, name: null, sub: null });
-    }
-    if (!window.useOIDCContext) {
-      window.useOIDCContext = () => ({ user: null, isAuthenticated: false });
-    }
+  // <!-- AUTH:INJECT -->
 
+  // Public app — render directly
+  if (window.__vibesPrivateInit) {
+    window.__vibesPrivateInit();
+  } else {
     const rootElement = document.getElementById("container");
     ReactDOMClient.createRoot(rootElement).render(<AppShell />);
   }
-
-  initApp();
 </script>

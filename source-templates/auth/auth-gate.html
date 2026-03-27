@@ -1,0 +1,133 @@
+  // === AUTH GATE (injected for private apps only) ===
+
+  // Override AppShell for private app with OIDC gate
+  const _PublicAppShell = AppShell;
+
+  function PrivateAppShell() {
+    const [isReady, setIsReady] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [user, setUser] = useState(null);
+
+    window.useVibesPanelEvents('Vibes');
+
+    useEffect(() => {
+      let destroySync = null;
+      let persister = null;
+
+      async function init() {
+        persister = createLocalPersister(store, `tinybase_${config.appName}`);
+        await persister.startAutoPersisting([{}, {}]);
+        setIsReady(true);
+
+        if (config.wsUrl && !config.wsUrl.startsWith('__')) {
+          startSync();
+        }
+      }
+
+      function startSync() {
+        if (destroySync) return;
+        let syncUrl = config.wsUrl;
+        const token = sessionStorage.getItem('vibes_oidc_access_token');
+        if (!token) return;
+        syncUrl += (syncUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token);
+        destroySync = createReconnectingSynchronizer(
+          store,
+          syncUrl,
+          (syncing) => {
+            setIsSyncing(syncing);
+            window.__VIBES_SYNC_STATUS__ = syncing ? 'synced' : 'reconnecting';
+            window.dispatchEvent(new Event('vibes-sync-status-change'));
+          },
+        );
+      }
+
+      function onOidcReady() { startSync(); }
+      window.addEventListener('vibes-oidc-ready', onOidcReady);
+
+      init();
+      return () => {
+        window.removeEventListener('vibes-oidc-ready', onOidcReady);
+        if (destroySync) destroySync();
+        if (persister) persister.destroy();
+      };
+    }, []);
+
+    if (!isReady) {
+      return (
+        <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.5, fontFamily: 'system-ui' }}>
+          Loading...
+        </div>
+      );
+    }
+
+    if (!window.OIDCProvider) {
+      return <LoadingError error={window.__OIDC_LOAD_ERROR__ || 'OIDC components not available'} />;
+    }
+
+    const { OIDCProvider, SignedIn, SignedOut, SignInButton } = window.OIDCComponents;
+    const AuthScreen = window.AuthScreen;
+    const VibesButton = window.VibesButton;
+    const RED = window.RED;
+
+    const AuthGate = () => (
+      <AuthScreen title="Sign in to continue" message="This app requires authentication." showCard={true}>
+        <SignInButton>
+          <VibesButton data-vibes-signin variant={RED} buttonType="form">Sign In</VibesButton>
+        </SignInButton>
+      </AuthScreen>
+    );
+
+    return (
+      <Provider store={store}>
+        <SyncStatusDot />
+        <OIDCProvider authority={config.oidcAuthority} clientId={config.oidcClientId}>
+          <SignedOut><AuthGate /></SignedOut>
+          <SignedIn>
+            <SharingBridge />
+            <AppContext.Provider value={{ isReady, isSyncing, user }}>
+              <HiddenMenuWrapper menuContent={<VibesPanel />}>
+                <AppErrorBoundary><App /></AppErrorBoundary>
+              </HiddenMenuWrapper>
+            </AppContext.Provider>
+          </SignedIn>
+        </OIDCProvider>
+      </Provider>
+    );
+  }
+
+  // Private app OIDC initialization — load OIDC bridge then render with PrivateAppShell
+  async function privateInitApp() {
+    try {
+      const oidcModule = await import("/oidc-bridge.js");
+      window.OIDCProvider = oidcModule.OIDCProvider;
+      window.OIDCComponents = {
+        OIDCProvider: oidcModule.OIDCProvider,
+        SignedIn: oidcModule.SignedIn,
+        SignedOut: oidcModule.SignedOut,
+        SignInButton: oidcModule.SignInButton,
+        UserButton: oidcModule.UserButton,
+      };
+      window.SignedIn = oidcModule.SignedIn;
+      window.SignedOut = oidcModule.SignedOut;
+      window.SignInButton = oidcModule.SignInButton;
+      window.UserButton = oidcModule.UserButton;
+      window.useUser = oidcModule.useUser;
+      window.useOIDCContext = oidcModule.useOIDCContext;
+    } catch (err) {
+      console.error('Failed to load OIDC components:', err);
+      window.__OIDC_LOAD_ERROR__ = err.message || String(err);
+    }
+
+    if (!window.useUser) {
+      window.useUser = () => ({ email: null, name: null, sub: null });
+    }
+    if (!window.useOIDCContext) {
+      window.useOIDCContext = () => ({ user: null, isAuthenticated: false });
+    }
+
+    const rootElement = document.getElementById("container");
+    ReactDOMClient.createRoot(rootElement).render(<PrivateAppShell />);
+  }
+
+  // Replace the default public render — call privateInitApp instead
+  window.__vibesPrivateInit = privateInitApp;
