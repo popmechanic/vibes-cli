@@ -3381,31 +3381,30 @@ if (typeof window !== 'undefined') {
       function applyVibesTheme(themeId) {
         var preset = VIBES_THEME_PRESETS[themeId];
         if (!preset) return;
-        var root = document.documentElement;
+        // Use a <style> tag instead of inline styles so the app's own :root
+        // block can override these in the CSS cascade (inline styles always win).
+        var styleEl = document.getElementById('vibes-theme-override');
+        if (!styleEl) {
+          styleEl = document.createElement('style');
+          styleEl.id = 'vibes-theme-override';
+          document.head.appendChild(styleEl);
+        }
+        var css = ':root {\n';
         Object.keys(preset).forEach(function(key) {
-          root.style.setProperty(key, preset[key]);
+          css += '  ' + key + ': ' + preset[key] + ';\n';
         });
+        css += '}';
+        styleEl.textContent = css;
         try { localStorage.setItem('vibes-theme', themeId); } catch(e) {}
       }
 
-      // Apply saved theme on load — but defer until after the app's Babel block
-      // has run, so we can check if the app declares its own custom themes
-      // (e.g. window.__VIBES_THEMES__ = [{ id: "custom-ref" }]).
-      // If the app owns its theme, don't override with a stale localStorage value.
-      window.addEventListener('DOMContentLoaded', function() {
-        try {
-          var appThemes = window.__VIBES_THEMES__;
-          var appOwnsTheme = Array.isArray(appThemes) && appThemes.some(function(t) {
-            return t.id && !VIBES_THEME_PRESETS[t.id];
-          });
-          if (appOwnsTheme) return; // app has a custom theme — don't override
-
-          var savedTheme = localStorage.getItem('vibes-theme');
-          if (savedTheme && VIBES_THEME_PRESETS[savedTheme]) {
-            applyVibesTheme(savedTheme);
-          }
-        } catch(e) {}
-      });
+      // Apply saved theme on load
+      try {
+        var savedTheme = localStorage.getItem('vibes-theme');
+        if (savedTheme && VIBES_THEME_PRESETS[savedTheme]) {
+          applyVibesTheme(savedTheme);
+        }
+      } catch(e) {}
 
       // Listen for theme change events from VibesPanel
       document.addEventListener('vibes-design-request', function(e) {
