@@ -83,11 +83,14 @@ export function sanitizeAppJsx(projectRoot: string): void {
   const globalClean = stripRedeclaredGlobals(code);
   if (globalClean !== code) { code = globalClean; changed = true; console.log('[PostProcess] Stripped redeclared globals'); }
 
-  // Escape </script> inside string literals — the HTML parser terminates the
-  // Babel <script> block when it encounters a literal </script> in JSX output.
-  // Split into <\/script> which is valid JS and invisible to the HTML parser.
-  const scriptClean = code.replace(/<\/script>/gi, '<\\/script>');
-  if (scriptClean !== code) { code = scriptClean; changed = true; console.log('[PostProcess] Escaped </script> literals'); }
+  // Escape <script> and </script> inside string literals — the HTML parser
+  // terminates the Babel <script> block on literal </script>, and the assembler's
+  // tag-count validation fails on unmatched <script> opens in string content.
+  // Replace with <\x73cript> / <\/\x73cript> which are valid JS strings but
+  // invisible to both the HTML parser and the assembler's regex counting.
+  const scriptClean = code
+    .replace(/<(\/?)script\b/gi, (m, slash) => `<${slash}\\x73cript`);
+  if (scriptClean !== code) { code = scriptClean; changed = true; console.log('[PostProcess] Escaped <script> literals'); }
 
   if (changed) writeFileSync(appPath, code, 'utf-8');
 }
