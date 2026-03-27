@@ -72,16 +72,16 @@ Use descriptive, lowercase, plural names. These exact strings appear in every ho
 ```
 Read file: ${CLAUDE_PLUGIN_ROOT}/build/design-tokens.txt
 ```
-The token catalog defines all available CSS custom properties: `colors`, `radius`, `shadows`, `spacing`, `typography`, `vibes-core`, `vibes-buttons`, `vibes-grid`. It also includes the VIBES_THEME_CSS with `.btn` button classes, the grid/frame page styles, and a **Component Catalog** with bare HTML structures (card, input, badge, table, tabs, accordion, dialog, etc.).
+The token catalog defines all available CSS custom properties: `colors`, `radius`, `shadows`, `spacing`, `typography`, `vibes-core`, `vibes-buttons`, `vibes-grid`. It also includes the VIBES_THEME_CSS with `.btn` button classes and a **Component Catalog** with bare HTML structures (card, input, badge, table, tabs, accordion, dialog, etc.).
 
 **In your generated code:**
 - **Wrap your App in a full-page container div** with `min-height: 100vh` and an explicit `background-color` — never leave the page background transparent or unstyled
 - Use `var(--token-name)` references — NOT hardcoded color values
-- Use `--color-*` for semantic colors, `--radius-*` for border-radius, `--shadow-brutalist-*` for neo-brutalist shadows
-- Use `className="btn"` for buttons (pre-styled neo-brutalist)
-- Use `className="grid-background"` on your app's root container for the default content grid background
+- Use `--color-*` for semantic colors, `--radius-*` for border-radius
+- Use `className="btn"` for buttons (structurally styled with token-based colors)
 - **Pick components from the catalog** (card, input, badge, table, etc.), then write CSS for their class names using the design tokens
 - Override `--color-*` tokens in a `:root` style block for per-app theming
+- **Define your visual identity in CSS** — backgrounds, shadows, text-transform, animations. The template provides structure; your theme provides the look.
 
 ### Step 1.75: Select Theme
 

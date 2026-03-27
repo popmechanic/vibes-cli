@@ -101,7 +101,7 @@ LAYOUT PRINCIPLES:
 - Mobile-first: single column on phones, expand to 2-4 columns at md/lg breakpoints
 - Generous whitespace — let components breathe (gap: 1rem-2rem between sections)
 - Sticky headers or bottom navigation for key actions
-- Use `className="grid-background"` on the app root for the default content grid, or replace with a custom background
+- Define your app's background, shadows, and typography treatment in your theme CSS — the template provides no visual defaults
 
 SPACING & OVERFLOW — CRITICAL:
 - NEVER let content overflow its container — always use `overflow: hidden`, `overflow: auto`,
