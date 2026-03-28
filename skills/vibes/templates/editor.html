@@ -4833,7 +4833,6 @@ window.escapeHtml = function(str) {
       frame.onload = () => {
         try {
           const iframeDoc = frame.contentDocument || frame.contentWindow.document;
-          frame.contentWindow.localStorage.setItem('vibes-theme', themeToSet);
           iframeDoc.dispatchEvent(new CustomEvent('vibes-design-request', { detail: { theme: themeToSet } }));
           console.log('[reloadPreview] Theme dispatched:', themeToSet);
         } catch (e) {

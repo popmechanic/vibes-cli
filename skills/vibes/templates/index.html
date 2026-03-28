@@ -3381,8 +3381,9 @@ if (typeof window !== 'undefined') {
       function applyVibesTheme(themeId) {
         var preset = VIBES_THEME_PRESETS[themeId];
         if (!preset) return;
-        // Use a <style> tag instead of inline styles so the app's own :root
-        // block can override these in the CSS cascade (inline styles always win).
+        // Instant visual preview while Claude regenerates the actual app code.
+        // Uses a <style> tag (not inline styles) so the app's own :root can
+        // override in the cascade once the regenerated code loads.
         var styleEl = document.getElementById('vibes-theme-override');
         if (!styleEl) {
           styleEl = document.createElement('style');
@@ -3395,16 +3396,9 @@ if (typeof window !== 'undefined') {
         });
         css += '}';
         styleEl.textContent = css;
-        try { localStorage.setItem('vibes-theme', themeId); } catch(e) {}
+        // No localStorage save — theme switching regenerates the app code,
+        // so the app's own CSS is always the source of truth.
       }
-
-      // Apply saved theme on load
-      try {
-        var savedTheme = localStorage.getItem('vibes-theme');
-        if (savedTheme && VIBES_THEME_PRESETS[savedTheme]) {
-          applyVibesTheme(savedTheme);
-        }
-      } catch(e) {}
 
       // Listen for theme change events from VibesPanel
       document.addEventListener('vibes-design-request', function(e) {
