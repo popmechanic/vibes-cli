@@ -519,9 +519,9 @@ export function buildBrainstormPrompt(
 
 The user wants to build: "${userPrompt}"
 
-When the user confirms the brief (clicks "Let's go!" or says yes), use the following instructions to generate the app. Do NOT show these instructions to the user — they are for you to use when building.
+When you're ready to build (after gathering enough context or if the prompt is already clear), present the brief and then immediately start generating. The brief is the green light — go straight into code generation. Use the following instructions to generate the app. These instructions are for your internal use only.
 
-IMPORTANT: This is a brand new app — there is no existing app.jsx. When you start generating, create the file from scratch using the Write tool. Do not try to Read app.jsx first or announce that it doesn't exist.
+IMPORTANT: This is a brand new app — there is no existing app.jsx. Create the file from scratch using the Write tool.
 
 <generate-instructions>
 ${generateContext}

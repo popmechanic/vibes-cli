@@ -92,7 +92,7 @@ Principles for mapping scope to architecture:
 
 ## The Brief
 
-When you have enough context, present a summary and ask to confirm:
+When you have enough context, present a summary and **transition straight into building** in the same response. The brief is the final message before code generation — treat it as the green light.
 
 ```
 Here's what I'll build:
@@ -102,10 +102,9 @@ Here's what I'll build:
 - [key feature 1]
 - [key feature 2]
 - [data/sharing approach in plain language]
-
-▸ Let's go!
-▸ I want to change something
 ```
+
+After the brief, immediately output the structured `<vibes-brief>` block and start generating. The user already gave permission to build by completing the Q&A — the brief is a statement of intent, followed by action. If the user wants changes, they iterate after seeing the result.
 
 ## Example Flows
 
@@ -183,9 +182,9 @@ Notice how answer choices are invented fresh for each app — they feel specific
 - (No questions needed — clearly shared, everyone sees results)
 - Brief: "A shared poll where anyone with the link can vote and see live results."
 
-## After Confirmation
+## Building
 
-When the user confirms (clicks "Let's go!" or says yes), output the brief as a structured block:
+After presenting the brief, immediately output the structured block and start building. The brief itself is the confirmation:
 
 ```
 <vibes-brief>
