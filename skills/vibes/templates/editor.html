@@ -4924,54 +4924,99 @@ window.escapeHtml = function(str) {
     fetch('/editor/deployments').then(r => r.json()).then(allDeployments => {
       const section = document.getElementById('deployHistorySection');
       const list = document.getElementById('deployHistoryList');
+      const publishBtn = document.getElementById('deployCf');
+      const nameHeader = document.querySelector('.deploy-menu-header');
+      const privateChipWrap = document.getElementById('deployPrivateChip')?.parentElement;
       // Filter to only show deployments for the current app
       const deployments = currentAppName
         ? allDeployments.filter(d => d.name === currentAppName)
         : allDeployments;
-      if (!deployments.length) { section.style.display = 'none'; return; }
-      section.style.display = 'block';
-      list.replaceChildren();
-      deployments.forEach(d => {
-        const ago = timeAgo(d.updatedAt);
-        const row = document.createElement('div');
-        row.className = 'deploy-history-item';
-        row.addEventListener('click', e => e.stopPropagation());
 
-        const nameLink = document.createElement('a');
-        nameLink.className = 'deploy-history-name';
-        nameLink.href = d.url;
-        nameLink.target = '_blank';
-        nameLink.rel = 'noopener';
-        nameLink.title = d.url;
-        nameLink.textContent = d.name;
-        nameLink.addEventListener('click', e => {
+      if (deployments.length && currentAppName) {
+        // Already deployed — make Update the primary action
+        const d = deployments[0];
+        if (nameHeader) nameHeader.style.display = 'none';
+        if (privateChipWrap) privateChipWrap.style.display = 'none';
+        if (publishBtn) {
+          publishBtn.textContent = '';
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          svg.setAttribute('width', '16');
+          svg.setAttribute('height', '16');
+          svg.setAttribute('viewBox', '0 0 16 16');
+          svg.setAttribute('fill', 'none');
+          svg.style.flexShrink = '0';
+          svg.innerHTML = '<path d="M8 1l5 5h-3.25v5h-3.5V6H3L8 1z" fill="currentColor"/><rect x="3" y="13" width="10" height="1.5" rx="0.75" fill="currentColor"/>';
+          publishBtn.appendChild(svg);
+          publishBtn.appendChild(document.createTextNode(' Update ' + d.name));
+          publishBtn.onclick = function () { updateDeploy(d.name); };
+        }
+        // Show "Deploy as new app" as secondary option
+        section.style.display = 'block';
+        list.replaceChildren();
+        const newRow = document.createElement('div');
+        newRow.className = 'deploy-history-item';
+        newRow.style.cursor = 'pointer';
+        newRow.addEventListener('click', function (e) {
           e.stopPropagation();
+          // Restore the original publish UI
+          if (nameHeader) nameHeader.style.display = '';
+          if (privateChipWrap) privateChipWrap.style.display = '';
+          if (publishBtn) {
+            publishBtn.textContent = '';
+            const svg2 = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg2.setAttribute('width', '16');
+            svg2.setAttribute('height', '16');
+            svg2.setAttribute('viewBox', '0 0 16 16');
+            svg2.setAttribute('fill', 'none');
+            svg2.style.flexShrink = '0';
+            svg2.innerHTML = '<path d="M8 1l5 5h-3.25v5h-3.5V6H3L8 1z" fill="currentColor"/><rect x="3" y="13" width="10" height="1.5" rx="0.75" fill="currentColor"/>';
+            publishBtn.appendChild(svg2);
+            publishBtn.appendChild(document.createTextNode(' Publish to Web'));
+            publishBtn.onclick = function () { startDeploy('cloudflare'); };
+          }
+          section.style.display = 'none';
         });
+        const newLabel = document.createElement('span');
+        newLabel.style.cssText = 'font-size:0.75rem;color:#999;';
+        newLabel.textContent = 'Deploy as new app...';
+        newRow.appendChild(newLabel);
+        list.appendChild(newRow);
 
-        const time = document.createElement('span');
-        time.style.cssText = 'font-size:0.625rem;color:#999';
-        time.textContent = ago;
-
-        const btn = document.createElement('button');
-        btn.className = 'deploy-history-update';
-        btn.title = 'Deploy current code to ' + d.name;
-        btn.textContent = 'Update';
-        btn.addEventListener('click', () => updateDeploy(d.name));
-
-        const arrow = document.createElement('a');
-        arrow.className = 'deploy-history-link';
-        arrow.href = d.url;
-        arrow.target = '_blank';
-        arrow.rel = 'noopener';
-        arrow.title = d.url;
-        arrow.textContent = '↗';
-        arrow.addEventListener('click', e => {
-          e.stopPropagation();
-        });
-
-        row.append(nameLink, time, btn, arrow);
-        list.appendChild(row);
-      });
+        // Show link to live app
+        const liveRow = document.createElement('div');
+        liveRow.className = 'deploy-history-item';
+        liveRow.addEventListener('click', e => e.stopPropagation());
+        const liveLink = document.createElement('a');
+        liveLink.className = 'deploy-history-name';
+        liveLink.href = d.url;
+        liveLink.target = '_blank';
+        liveLink.rel = 'noopener';
+        liveLink.textContent = d.url.replace(/^https?:\/\//, '');
+        liveLink.addEventListener('click', e => e.stopPropagation());
+        const liveTime = document.createElement('span');
+        liveTime.style.cssText = 'font-size:0.625rem;color:#999';
+        liveTime.textContent = timeAgo(d.updatedAt);
+        liveRow.append(liveLink, liveTime);
+        list.appendChild(liveRow);
+      } else {
+        // No deployments — show original publish layout
+        if (nameHeader) nameHeader.style.display = '';
+        if (privateChipWrap) privateChipWrap.style.display = '';
+        if (publishBtn) {
+          publishBtn.textContent = '';
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          svg.setAttribute('width', '16');
+          svg.setAttribute('height', '16');
+          svg.setAttribute('viewBox', '0 0 16 16');
+          svg.setAttribute('fill', 'none');
+          svg.style.flexShrink = '0';
+          svg.innerHTML = '<path d="M8 1l5 5h-3.25v5h-3.5V6H3L8 1z" fill="currentColor"/><rect x="3" y="13" width="10" height="1.5" rx="0.75" fill="currentColor"/>';
+          publishBtn.appendChild(svg);
+          publishBtn.appendChild(document.createTextNode(' Publish to Web'));
+          publishBtn.onclick = function () { startDeploy('cloudflare'); };
+        }
+        section.style.display = 'none';
+      }
     }).catch(() => {});
   }
 
