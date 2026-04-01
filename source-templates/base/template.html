@@ -111,6 +111,48 @@
       #container {
         min-height: 100vh;
       }
+
+      /* Markdown content styling — used by <Markdown> component */
+      .vibes-markdown { line-height: 1.7; color: var(--comp-text, #111); }
+      .vibes-markdown h1 { font-size: 1.75em; font-weight: 700; margin: 1.5em 0 0.5em; }
+      .vibes-markdown h2 { font-size: 1.4em; font-weight: 600; margin: 1.4em 0 0.4em; }
+      .vibes-markdown h3 { font-size: 1.15em; font-weight: 600; margin: 1.2em 0 0.3em; }
+      .vibes-markdown h4, .vibes-markdown h5, .vibes-markdown h6 { font-size: 1em; font-weight: 600; margin: 1em 0 0.25em; }
+      .vibes-markdown p { margin: 0.75em 0; }
+      .vibes-markdown ul, .vibes-markdown ol { margin: 0.75em 0; padding-left: 1.5em; }
+      .vibes-markdown ul { list-style-type: disc; }
+      .vibes-markdown ol { list-style-type: decimal; }
+      .vibes-markdown li { margin: 0.25em 0; }
+      .vibes-markdown a { color: var(--comp-accent, #3b82f6); text-decoration: underline; }
+      .vibes-markdown blockquote {
+        border-left: 3px solid var(--comp-muted, #94a3b8);
+        padding: 0.25em 1em;
+        margin: 0.75em 0;
+        color: var(--comp-muted, #64748b);
+      }
+      .vibes-markdown code {
+        background: color-mix(in srgb, var(--comp-text, #111) 8%, transparent);
+        padding: 0.15em 0.4em;
+        border-radius: 4px;
+        font-size: 0.9em;
+      }
+      .vibes-markdown pre {
+        background: color-mix(in srgb, var(--comp-text, #111) 6%, transparent);
+        padding: 1em;
+        border-radius: 6px;
+        overflow-x: auto;
+        margin: 0.75em 0;
+      }
+      .vibes-markdown pre code { background: none; padding: 0; }
+      .vibes-markdown table { border-collapse: collapse; width: 100%; margin: 0.75em 0; }
+      .vibes-markdown th, .vibes-markdown td {
+        border: 1px solid var(--comp-border, #e5e7eb);
+        padding: 0.5em 0.75em;
+        text-align: left;
+      }
+      .vibes-markdown th { font-weight: 600; }
+      .vibes-markdown hr { border: none; border-top: 1px solid var(--comp-border, #e5e7eb); margin: 1.5em 0; }
+      .vibes-markdown img { max-width: 100%; border-radius: 6px; }
     </style>
   </head>
   <body>
