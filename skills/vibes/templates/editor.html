@@ -4776,7 +4776,8 @@ window.escapeHtml = function(str) {
         name: genRefFile.name,
         type: genRefFile.type,
         dataUrl: genRefFile.dataUrl,
-        intent: genRefFile.intent || 'match'
+        textContent: genRefFile.textContent,
+        intent: genRefFile.intent || 'content'
       };
     }
     ws.send(JSON.stringify(payload));
@@ -5223,7 +5224,7 @@ window.escapeHtml = function(str) {
     const animLabel = activeAnimationId ? EditorAnimations.getAll().find(a => a.id === activeAnimationId)?.name : null;
     const skillLabel = activeSkillId ? EditorSkills.getAll().find(s => s.id === activeSkillId)?.name : null;
     const refLabel = referenceFile ? referenceFile.name : null;
-    const intentLabels = { none: '', mood: ' (Mood)', match: ' (Match)' };
+    const intentLabels = { none: '', mood: ' (Mood)', match: ' (Match)', seed: ' (Seed Data)', content: ' (Content)', context: ' (Context)' };
     const refIntent = referenceFile ? (referenceFile.intent || 'match') : null;
     let displayText = text || (refLabel ? 'Style the app using this reference' : '');
     if (animLabel) displayText += '  [' + animLabel + ']';
@@ -5240,6 +5241,7 @@ window.escapeHtml = function(str) {
         name: referenceFile.name,
         type: referenceFile.type,
         dataUrl: referenceFile.dataUrl,
+        textContent: referenceFile.textContent,
         intent: refIntent
       };
     }
