@@ -5450,6 +5450,9 @@ window.escapeHtml = function(str) {
       } else {
         bubble.textContent = content;
       }
+    } else if (role === 'assistant') {
+      bubble.innerHTML = renderMarkdown(content);
+      bubble.style.whiteSpace = 'normal';
     } else {
       bubble.textContent = content;
     }
