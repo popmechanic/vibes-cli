@@ -5278,40 +5278,62 @@ window.escapeHtml = function(str) {
 
     const isHtml = bubble.style.whiteSpace === 'normal';
     if (isHtml) {
-      // Streamed/markdown bubble: check <p> elements for ▸ lines
+      // Streamed/markdown bubble: check <p> elements for ▸ markers
       const paragraphs = bubble.querySelectorAll('p');
       const toRemove = [];
       paragraphs.forEach(p => {
         const txt = p.textContent.trim();
         if (txt.startsWith('\u25b8 ')) {
-          choices.push(txt.slice(2));
+          choices.push(txt.slice(2).trim());
           toRemove.push(p);
-        } else if (txt.includes('\u25b8 ')) {
-          // ▸ lines mixed into the same <p> (marked wraps consecutive lines in one <p>)
-          const lines = txt.split('\n');
-          const keepLines = [];
-          for (const line of lines) {
-            if (line.trim().startsWith('\u25b8 ')) {
-              choices.push(line.trim().slice(2));
-            } else {
-              keepLines.push(line);
-            }
+        } else if (txt.includes('\u25b8')) {
+          // ▸ markers mixed into the same <p> (marked wraps consecutive lines in one <p>)
+          // Split on ▸ character — more robust than splitting on \n since HTML may normalize newlines
+          const parts = txt.split('\u25b8');
+          const preamble = parts[0].trim();
+          for (let i = 1; i < parts.length; i++) {
+            const choice = parts[i].trim();
+            if (choice) choices.push(choice);
           }
           if (choices.length > 0) {
-            if (keepLines.length === 0) {
+            if (!preamble) {
               toRemove.push(p);
             } else {
-              p.textContent = keepLines.join('\n');
+              p.textContent = preamble;
             }
           }
         }
       });
+      // Also check <li> elements in case marked converted ▸ lines to a list
       if (choices.length === 0) {
-        // Fallback: scan raw textContent
+        const listItems = bubble.querySelectorAll('li');
+        listItems.forEach(li => {
+          const txt = li.textContent.trim();
+          if (txt.startsWith('\u25b8 ')) {
+            choices.push(txt.slice(2).trim());
+            toRemove.push(li);
+          }
+        });
+        // Clean up empty <ul>/<ol> parents
+        if (choices.length > 0) {
+          toRemove.forEach(el => {
+            const parent = el.parentElement;
+            el.remove();
+            if (parent && (parent.tagName === 'UL' || parent.tagName === 'OL') && parent.children.length === 0) {
+              parent.remove();
+            }
+          });
+          toRemove.length = 0; // already removed
+        }
+      }
+      if (choices.length === 0) {
+        // Final fallback: scan raw textContent split on ▸
         const text = bubble.textContent || '';
-        if (!text.includes('\u25b8 ')) return;
-        for (const line of text.split('\n')) {
-          if (line.trim().startsWith('\u25b8 ')) choices.push(line.trim().slice(2));
+        if (!text.includes('\u25b8')) return;
+        const parts = text.split('\u25b8');
+        for (let i = 1; i < parts.length; i++) {
+          const choice = parts[i].trim();
+          if (choice) choices.push(choice);
         }
       } else {
         toRemove.forEach(el => el.remove());
