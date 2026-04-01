@@ -5276,10 +5276,6 @@ window.escapeHtml = function(str) {
     // Extract ▸ prefixed lines from the bubble and render as separate choice bubbles
     const choices = [];
 
-    console.log('[choice-debug] isHtml:', bubble.style.whiteSpace === 'normal',
-      'textContent has ▸:', (bubble.textContent || '').includes('\u25b8'),
-      'innerHTML snippet:', bubble.innerHTML.slice(0, 200));
-
     const isHtml = bubble.style.whiteSpace === 'normal';
     if (isHtml) {
       // Streamed/markdown bubble: check <p> elements for ▸ markers
@@ -5390,7 +5386,7 @@ window.escapeHtml = function(str) {
       processed = text + '\n```';
       hasUnclosed = true;
     }
-    let html = DOMPurify.sanitize(marked.parse(processed, { async: false }));
+    let html = DOMPurify.sanitize(marked.parse(processed, { async: false, breaks: true }));
     // Style the last code block as pending if unclosed (streaming indicator)
     if (hasUnclosed) {
       html = html.replace(/<pre>(?![\s\S]*<pre>)/,
