@@ -128,7 +128,9 @@
           "tinybase/ui-react": "https://esm.sh/tinybase@8/ui-react?external=react,react-dom",
           "tinybase/persisters/persister-browser": "https://esm.sh/tinybase@8/persisters/persister-browser?external=react,react-dom",
           "tinybase/synchronizers/synchronizer-ws-client": "https://esm.sh/tinybase@8/synchronizers/synchronizer-ws-client?external=react,react-dom",
-          "oauth4webapi": "https://esm.sh/stable/oauth4webapi@3.3.0"
+          "oauth4webapi": "https://esm.sh/stable/oauth4webapi@3.3.0",
+          "marked": "https://esm.sh/marked@15?bundle",
+          "dompurify": "https://esm.sh/dompurify@3?bundle"
         }
       }
     </script>
@@ -149,6 +151,8 @@
     <!-- Load React globally for menu components -->
     <script type="module">
       import * as React from "react";
+      import { marked } from "marked";
+      import DOMPurify from "dompurify";
       window.React = React;
 
       // === COMPONENTS_PLACEHOLDER ===
