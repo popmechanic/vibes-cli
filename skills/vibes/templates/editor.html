@@ -1352,6 +1352,24 @@
     .chat-bubble.assistant p { margin: 0.3rem 0; }
     .chat-bubble.assistant p:first-child { margin-top: 0; }
     .chat-bubble.assistant p:last-child { margin-bottom: 0; }
+    .chat-bubble.assistant blockquote {
+      border-left: 3px solid var(--vibes-blue);
+      padding: 0.2em 0.75em;
+      margin: 0.3rem 0;
+      color: #555;
+    }
+    .chat-bubble.assistant table { border-collapse: collapse; width: 100%; margin: 0.3rem 0; font-size: 0.85em; }
+    .chat-bubble.assistant th,
+    .chat-bubble.assistant td {
+      border: 1px solid rgba(0,0,0,0.15);
+      padding: 0.3em 0.5em;
+      text-align: left;
+    }
+    .chat-bubble.assistant th { font-weight: 700; background: rgba(0,0,0,0.04); }
+    .chat-bubble.assistant hr { border: none; border-top: 1px solid rgba(0,0,0,0.15); margin: 0.5rem 0; }
+    .chat-bubble.assistant img { max-width: 100%; border-radius: 4px; margin: 0.3rem 0; }
+    .chat-bubble.assistant ul { list-style-type: disc; }
+    .chat-bubble.assistant ol { list-style-type: decimal; }
 
     /* Choice buttons inside assistant bubbles */
     .chat-bubble.choice {
