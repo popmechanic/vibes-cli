@@ -5068,7 +5068,7 @@ window.escapeHtml = function(str) {
   function startDeploy(target) {
     if (isThinking || !ws || ws.readyState !== WebSocket.OPEN) return;
     const nameInput = document.getElementById('deployNameInput');
-    const name = (nameInput ? nameInput.value.trim() : '').replace(/[^a-z0-9-]/g, '');
+    const name = (nameInput ? nameInput.value.trim() : '').toLowerCase().replace(/[^a-z0-9-]/g, '');
     if (!name) {
       nameInput.style.borderColor = 'var(--vibes-red)';
       nameInput.focus();
