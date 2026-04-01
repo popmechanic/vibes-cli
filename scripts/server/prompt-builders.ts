@@ -682,7 +682,7 @@ KEEP UNCHANGED:
 function buildReferenceBlock(ctx: ServerContext, reference: any): string {
   const isHtml = /\.html?$/i.test(reference.name);
   const intent = reference.intent || 'match';
-  const base64 = reference.dataUrl.split(',')[1];
+  const base64 = reference.dataUrl ? reference.dataUrl.split(',')[1] : null;
   const tmpDir = join(ctx.projectRoot, '.vibes-tmp');
   mkdirSync(tmpDir, { recursive: true });
   const refPath = join(tmpDir, reference.name);
@@ -708,7 +708,51 @@ Now update the app's CSS token system to match this HTML:
 `;
   }
 
-  // Save image to disk so Claude can read it visually
+  // Text files — sent as plain text, not base64
+  if (reference.textContent) {
+    const textContent = reference.textContent;
+    writeFileSync(refPath, textContent, 'utf-8');
+
+    if (intent === 'seed') {
+      return `FILE REFERENCE: "${reference.name}" (intent: Seed Data)
+
+The user uploaded this file to populate the app's database. Parse the data and design an appropriate TinyBase table schema. Use useAddRowCallback or store.setRow to seed rows on first load (guard with a check so data isn't duplicated on reload).
+
+\`\`\`
+${textContent.slice(0, 50000)}
+\`\`\`
+${textContent.length > 50000 ? '\n(Content truncated — full file at ' + refPath + ')\n' : ''}
+`;
+    }
+
+    if (intent === 'content') {
+      return `FILE REFERENCE: "${reference.name}" (intent: Content)
+
+The user uploaded this file as content the app should display or reference. Use the <Markdown> component if the content is text/markdown. For structured data (JSON, CSV), design an appropriate UI to present it.
+
+\`\`\`
+${textContent.slice(0, 50000)}
+\`\`\`
+${textContent.length > 50000 ? '\n(Content truncated — full file at ' + refPath + ')\n' : ''}
+`;
+    }
+
+    // intent === 'context' (default for text files)
+    return `FILE REFERENCE: "${reference.name}" (intent: Context)
+
+The user uploaded this file as background context. Use it to inform your design decisions, but do NOT include this content directly in the app.
+
+\`\`\`
+${textContent.slice(0, 50000)}
+\`\`\`
+${textContent.length > 50000 ? '\n(Content truncated — full file at ' + refPath + ')\n' : ''}
+`;
+  }
+
+  // Save image/binary to disk so Claude can read it visually
+  if (!base64) {
+    return `The user attached a file: ${reference.name}. No content was provided.\n\n`;
+  }
   writeFileSync(refPath, Buffer.from(base64, 'base64'));
 
   if (intent === 'none') {
