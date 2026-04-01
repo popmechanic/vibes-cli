@@ -5315,142 +5315,24 @@ window.escapeHtml = function(str) {
     container.scrollTop = container.scrollHeight;
   }
 
-  // === Lightweight Markdown Renderer ===
+  // === Markdown Renderer (marked + DOMPurify) ===
   function renderMarkdown(text) {
-    // Split into blocks by code fences
-    const parts = [];
-    let remaining = text;
-    const fenceRe = /```(\w*)\n([\s\S]*?)```/g;
-    let match;
-    let lastIndex = 0;
-    fenceRe.lastIndex = 0;
-    while ((match = fenceRe.exec(remaining)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push({ type: 'text', content: remaining.slice(lastIndex, match.index) });
-      }
-      parts.push({ type: 'code', lang: match[1], content: match[2] });
-      lastIndex = match.index + match[0].length;
+    if (!text) return '';
+    // Pre-pass: close unclosed code fences for streaming
+    const fenceCount = (text.match(/^```/gm) || []).length;
+    let processed = text;
+    let hasUnclosed = false;
+    if (fenceCount % 2 !== 0) {
+      processed = text + '\n```';
+      hasUnclosed = true;
     }
-    if (lastIndex < remaining.length) {
-      // Check for unclosed code fence — don't render partial code blocks as text
-      const tail = remaining.slice(lastIndex);
-      const unclosedIdx = tail.indexOf('```');
-      if (unclosedIdx !== -1) {
-        // Text before the unclosed fence
-        if (unclosedIdx > 0) {
-          parts.push({ type: 'text', content: tail.slice(0, unclosedIdx) });
-        }
-        // Unclosed code block
-        const afterFence = tail.slice(unclosedIdx + 3);
-        const langMatch = afterFence.match(/^(\w*)\n([\s\S]*)$/);
-        if (langMatch) {
-          parts.push({ type: 'pending_code', lang: langMatch[1], content: langMatch[2] });
-        } else {
-          // Just the opening fence, no newline yet
-          parts.push({ type: 'pending_code', lang: '', content: afterFence });
-        }
-      } else {
-        parts.push({ type: 'text', content: tail });
-      }
+    let html = DOMPurify.sanitize(marked.parse(processed, { async: false }));
+    // Style the last code block as pending if unclosed (streaming indicator)
+    if (hasUnclosed) {
+      html = html.replace(/<pre>(?![\s\S]*<pre>)/,
+        '<pre style="opacity:0.5;border-style:dashed;">');
     }
-
-    return parts.map(part => {
-      if (part.type === 'code') {
-        const escaped = escapeHtml(part.content);
-        return `<pre><code>${escaped}</code></pre>`;
-      }
-      if (part.type === 'pending_code') {
-        // Show as dimmed code block while still streaming
-        const escaped = escapeHtml(part.content);
-        return `<pre style="opacity:0.5;border-style:dashed;"><code>${escaped}</code></pre>`;
-      }
-      return renderInlineMarkdown(part.content);
-    }).join('');
-  }
-
-  function renderInlineMarkdown(text) {
-    // Split into lines and process
-    const lines = text.split('\n');
-    let html = '';
-    let inList = false;
-    let listType = '';
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // Headers
-      const headerMatch = line.match(/^(#{1,3})\s+(.+)/);
-      if (headerMatch) {
-        if (inList) { html += listType === 'ul' ? '</ul>' : '</ol>'; inList = false; }
-        const level = headerMatch[1].length;
-        html += `<h${level}>${inlineFormat(escapeHtml(headerMatch[2]))}</h${level}>`;
-        continue;
-      }
-
-      // Unordered list items
-      const ulMatch = line.match(/^[\s]*[-*]\s+(.+)/);
-      if (ulMatch) {
-        if (!inList || listType !== 'ul') {
-          if (inList) html += listType === 'ul' ? '</ul>' : '</ol>';
-          html += '<ul>';
-          inList = true;
-          listType = 'ul';
-        }
-        html += `<li>${inlineFormat(escapeHtml(ulMatch[1]))}</li>`;
-        continue;
-      }
-
-      // Ordered list items
-      const olMatch = line.match(/^[\s]*\d+\.\s+(.+)/);
-      if (olMatch) {
-        if (!inList || listType !== 'ol') {
-          if (inList) html += listType === 'ul' ? '</ul>' : '</ol>';
-          html += '<ol>';
-          inList = true;
-          listType = 'ol';
-        }
-        html += `<li>${inlineFormat(escapeHtml(olMatch[1]))}</li>`;
-        continue;
-      }
-
-      // Close list if we hit a non-list line
-      if (inList) {
-        html += listType === 'ul' ? '</ul>' : '</ol>';
-        inList = false;
-      }
-
-      // Empty line = paragraph break
-      if (line.trim() === '') {
-        html += '<br>';
-        continue;
-      }
-
-      // Normal paragraph text
-      html += `<p>${inlineFormat(escapeHtml(line))}</p>`;
-    }
-
-    if (inList) html += listType === 'ul' ? '</ul>' : '</ol>';
     return html;
-  }
-
-  function inlineFormat(text) {
-    // Inline code first (protect code content from further formatting)
-    text = text.replace(/`([^`]+)`/g, function(_, code) {
-      return '<code>' + code + '</code>';
-    });
-    // Bold: **text** or __text__
-    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    text = text.replace(/__(.+?)__/g, '<strong>$1</strong>');
-    // Italic: *text* or _text_ (but not inside words like file_name_here)
-    text = text.replace(/(?<!\w)\*(.+?)\*(?!\w)/g, '<em>$1</em>');
-    text = text.replace(/(?<!\w)_(.+?)_(?!\w)/g, '<em>$1</em>');
-    // Links: [text](url)
-    text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-    return text;
-  }
-
-  function escapeHtml(text) {
-    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
   // === Streaming Helpers ===
