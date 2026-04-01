@@ -11,7 +11,7 @@
 
 import { readFileSync, existsSync, unlinkSync } from "fs";
 import { resolve, dirname, join } from "path";
-import { buildPlatformFiles, addAppAssets } from './lib/deploy-files.js';
+import { buildPlatformFiles, addAppAssets, separateBySize } from './lib/deploy-files.js';
 import { validateName, getApp, setApp } from './lib/registry.js';
 import { getAccessToken } from './lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL } from './lib/auth-constants.js';
@@ -132,8 +132,32 @@ async function main() {
     clientId: OIDC_CLIENT_ID,
   });
 
-  // Deploy via API
-  const result = await deployViaAPI(name, files, tokens.accessToken, { aiKey });
+  // Separate large files for R2 upload
+  const { embed, r2: r2Files } = separateBySize(files);
+  if (Object.keys(r2Files).length > 0) {
+    console.log(`Uploading ${Object.keys(r2Files).length} large asset(s) to R2...`);
+    try {
+      const r2Resp = await fetch(`${DEPLOY_API_URL}/apps/${name}/assets`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${tokens.accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ files: r2Files }),
+      });
+      if (r2Resp.ok) {
+        console.log('R2 assets uploaded successfully');
+      } else {
+        const errText = await r2Resp.text();
+        console.warn(`R2 upload warning: ${errText}`);
+      }
+    } catch (e) {
+      console.warn(`R2 upload warning: ${e.message}`);
+    }
+  }
+
+  // Deploy with only embedded files (small files stay in worker script)
+  const result = await deployViaAPI(name, embed, tokens.accessToken, { aiKey });
 
   const deployedUrl = result.url || `https://${name}.vibesos.com`;
 

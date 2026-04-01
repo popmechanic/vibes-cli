@@ -10,6 +10,7 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'fs';
 import { join, extname } from 'path';
 
 const BINARY_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.ico', '.woff', '.woff2', '.ttf', '.otf', '.avif']);
+export const R2_THRESHOLD = 100 * 1024; // 100 KB — files larger than this go to R2
 
 /**
  * Build the standard deploy files map (bundles + platform assets).
@@ -86,4 +87,31 @@ export function addAppAssets(assetsDir, files) {
     }
   }
   walk(assetsDir, '');
+}
+
+/**
+ * Separate files into embedded (small) and R2 (large) based on size threshold.
+ * index.html is always embedded regardless of size.
+ * @param {Record<string, string>} files - Files map
+ * @param {number} threshold - Size threshold in bytes (default: R2_THRESHOLD)
+ * @returns {{ embed: Record<string, string>, r2: Record<string, string> }}
+ */
+export function separateBySize(files, threshold = R2_THRESHOLD) {
+  const embed = {};
+  const r2 = {};
+  for (const [path, content] of Object.entries(files)) {
+    if (path === 'index.html') {
+      embed[path] = content;
+      continue;
+    }
+    const size = typeof content === 'string' && content.startsWith('base64:')
+      ? Buffer.from(content.slice(7), 'base64').length
+      : Buffer.byteLength(content, 'utf8');
+    if (size >= threshold) {
+      r2[path] = content;
+    } else {
+      embed[path] = content;
+    }
+  }
+  return { embed, r2 };
 }
