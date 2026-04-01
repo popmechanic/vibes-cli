@@ -492,6 +492,21 @@
       }
       window.SharingBridge = SharingBridge;
 
+      // === Markdown Renderer ===
+      // Renders markdown text as styled HTML using marked (GFM) + DOMPurify.
+      // Usage in generated apps: <Markdown text={someString} />
+      function Markdown({ text }) {
+        if (!text) return null;
+        var html = React.useMemo(function() {
+          return DOMPurify.sanitize(marked.parse(String(text)));
+        }, [text]);
+        return React.createElement('div', {
+          className: 'vibes-markdown',
+          dangerouslySetInnerHTML: { __html: html }
+        });
+      }
+      window.Markdown = Markdown;
+
       // === VibesPanel Event Handler Hook ===
       function useVibesPanelEvents(logPrefix) {
         React.useEffect(() => {
