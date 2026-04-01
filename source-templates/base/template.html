@@ -540,7 +540,7 @@
       function Markdown({ text }) {
         if (!text) return null;
         var html = React.useMemo(function() {
-          return DOMPurify.sanitize(marked.parse(String(text)));
+          return DOMPurify.sanitize(marked.parse(String(text), { async: false }));
         }, [text]);
         return React.createElement('div', {
           className: 'vibes-markdown',
