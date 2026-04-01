@@ -110,7 +110,7 @@
     row.innerHTML = `<div class="ref-intent-picker">
       <span class="ref-intent-label">${escapeHtml(display)}</span>
       ${intentBtns}
-      <button class="clear-btn ref-clear-trigger" title="Remove reference" style="background:none;border:none;cursor:pointer;font-size:0.875rem;font-weight:800;opacity:0.6;padding:0 0 0 0.2rem;color:${clearColor}">&times;</button>
+      <button class="ref-intent-btn ref-clear-trigger" title="Remove reference" style="color:var(--vibes-red);border-color:var(--vibes-red);">&times; Remove</button>
     </div>`;
     row.classList.add('visible');
 
