@@ -5278,7 +5278,7 @@ window.escapeHtml = function(str) {
 
     const isHtml = bubble.style.whiteSpace === 'normal';
     if (isHtml) {
-      // Streamed bubble: check <p> elements and bare text
+      // Streamed/markdown bubble: check <p> elements for ▸ lines
       const paragraphs = bubble.querySelectorAll('p');
       const toRemove = [];
       paragraphs.forEach(p => {
@@ -5286,9 +5286,28 @@ window.escapeHtml = function(str) {
         if (txt.startsWith('\u25b8 ')) {
           choices.push(txt.slice(2));
           toRemove.push(p);
+        } else if (txt.includes('\u25b8 ')) {
+          // ▸ lines mixed into the same <p> (marked wraps consecutive lines in one <p>)
+          const lines = txt.split('\n');
+          const keepLines = [];
+          for (const line of lines) {
+            if (line.trim().startsWith('\u25b8 ')) {
+              choices.push(line.trim().slice(2));
+            } else {
+              keepLines.push(line);
+            }
+          }
+          if (choices.length > 0) {
+            if (keepLines.length === 0) {
+              toRemove.push(p);
+            } else {
+              p.textContent = keepLines.join('\n');
+            }
+          }
         }
       });
       if (choices.length === 0) {
+        // Fallback: scan raw textContent
         const text = bubble.textContent || '';
         if (!text.includes('\u25b8 ')) return;
         for (const line of text.split('\n')) {
