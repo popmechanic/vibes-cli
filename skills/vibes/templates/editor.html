@@ -1576,6 +1576,8 @@
       opacity: 0.6;
     }
     .ref-badge .clear-btn:hover { opacity: 1; color: var(--vibes-red); }
+    .ref-badge-clickable { cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s; }
+    .ref-badge-clickable:hover { border-color: var(--vibes-blue); }
     /* Intent picker for image references */
     .ref-intent-picker { display:flex; align-items:center; gap:0.5rem; padding:0.4rem 0.75rem; }
     .ref-intent-picker .ref-intent-label { font-size:0.7rem; font-weight:700; text-transform:uppercase; white-space:nowrap; color:var(--vibes-cream); }
@@ -5989,6 +5991,7 @@ window.escapeHtml = function(str) {
     refFileInput: document.getElementById('refFileInput'),
     refBadgeRow: document.getElementById('refBadgeRow'),
     refBtn: document.getElementById('refBtn'),
+    inputEl: document.getElementById('chatInput'),
   }, {}, { showContextIntent: true, clearBtnColor: 'var(--vibes-near-black)' });
 
   // Reference (generate phase)
@@ -5996,6 +5999,7 @@ window.escapeHtml = function(str) {
     refFileInput: document.getElementById('genRefFileInput'),
     refBadgeRow: document.getElementById('genRefBadgeRow'),
     refBtn: null,
+    inputEl: document.getElementById('generatePrompt'),
   }, {
     onRefAttached() { setThemeCarouselOverridden(true); },
     onClear() { setThemeCarouselOverridden(false); },

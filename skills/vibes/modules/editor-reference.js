@@ -15,6 +15,15 @@
 
   const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
   const TEXT_EXTS = /\.(txt|md|csv|tsv|json|xml|rtf)$/i;
+  const INTENT_PLACEHOLDERS = {
+    seed: 'Build an app using this data, or describe what to do with it...',
+    content: 'Describe how to display this content, or just hit send...',
+    context: 'Describe what to build \u2014 the file will inform the design...',
+    mood: 'Describe the app \u2014 the image sets the visual mood...',
+    match: 'Describe the app \u2014 the image sets the layout and style...',
+    none: 'Describe changes to your app...',
+  };
+  const DEFAULT_PLACEHOLDER = 'Describe changes to your app...';
 
   /**
    * Register a context.
@@ -62,9 +71,17 @@
     if (ctx.elements.refBtn) {
       ctx.elements.refBtn.classList.remove('active');
     }
+    _setPlaceholder(contextName, null);
     if (ctx.callbacks.onClear) {
       ctx.callbacks.onClear();
     }
+  }
+
+  /** Internal: update the textarea placeholder based on intent. */
+  function _setPlaceholder(contextName, intent) {
+    const ctx = contexts[contextName];
+    if (!ctx || !ctx.elements.inputEl) return;
+    ctx.elements.inputEl.placeholder = intent ? (INTENT_PLACEHOLDERS[intent] || DEFAULT_PLACEHOLDER) : DEFAULT_PLACEHOLDER;
   }
 
   /** Read a File and show intent picker or badge. */
@@ -205,6 +222,7 @@
     ctx.file.intent = intent;
     const intentLabels = { none: '', mood: ' (Mood)', match: ' (Match)', seed: ' (Seed Data)', content: ' (Content)', context: ' (Context)' };
     _showBadge(contextName, ctx.file.name, intentLabels[intent] || '');
+    _setPlaceholder(contextName, intent);
 
     if (ctx.callbacks.onRefAttached) {
       ctx.callbacks.onRefAttached(ctx.file.dataUrl || ctx.file.textContent);
@@ -214,7 +232,7 @@
     }
   }
 
-  /** Internal: render the reference badge. */
+  /** Internal: render the reference badge. Clicking the label reopens the picker. */
   function _showBadge(contextName, name, intentSuffix) {
     const ctx = contexts[contextName];
     if (!ctx) return;
@@ -225,7 +243,7 @@
     const row = ctx.elements.refBadgeRow;
     if (!row) return;
 
-    row.innerHTML = `<span class="ref-badge">
+    row.innerHTML = `<span class="ref-badge ref-badge-clickable" data-tooltip="Click to change intent">
       <span class="ref-badge-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span>
       <span class="ref-badge-label">${label}</span>
       <button class="clear-btn ref-clear-trigger" title="Remove reference">&times;</button>
@@ -236,10 +254,35 @@
       ctx.elements.refBtn.classList.add('active');
     }
 
-    // Delegation for clear button in badge
-    row.querySelector('.ref-clear-trigger').addEventListener('click', () => {
+    // Click badge label to reopen intent picker
+    const badge = row.querySelector('.ref-badge');
+    badge.addEventListener('click', (e) => {
+      // Don't reopen if user clicked the X button
+      if (e.target.closest('.ref-clear-trigger')) return;
+      _reopenPicker(contextName);
+    });
+
+    // X button removes the file
+    row.querySelector('.ref-clear-trigger').addEventListener('click', (e) => {
+      e.stopPropagation();
       clear(contextName);
     });
+  }
+
+  /** Internal: reopen the appropriate intent picker for the current file. */
+  function _reopenPicker(contextName) {
+    const ctx = contexts[contextName];
+    if (!ctx || !ctx.file) return;
+    const isText = TEXT_EXTS.test(ctx.file.name);
+    const isImage = ctx.file.type && ctx.file.type.startsWith('image/');
+    // Create a minimal file-like object for the picker functions
+    const fakeFile = { name: ctx.file.name, type: ctx.file.type };
+    if (isText) {
+      showTextIntentPicker(contextName, fakeFile);
+    } else if (isImage) {
+      showIntentPicker(contextName, fakeFile);
+    }
+    // HTML and binary files don't have intent pickers
   }
 
   /** Get the current reference file for a context. */
