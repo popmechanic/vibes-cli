@@ -2964,7 +2964,7 @@
             <textarea class="generate-textarea" id="generatePrompt" placeholder="Describe your vibe to make it an app. Tip: starting with a reference image gives better results!"
               onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();startGenerate();}"></textarea>
             <div class="gen-toolbar">
-              <button class="gen-toolbar-btn" onclick="EditorReference.pick('generate')" data-tooltip="Add image reference">
+              <button class="gen-toolbar-btn" onclick="EditorReference.pick('generate')" data-tooltip="Add file reference">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
               <div class="gen-imggen-wrap">
@@ -3206,7 +3206,7 @@
             </span>
           </div>
           <div class="chat-composer-inner">
-            <button class="composer-btn" id="refBtn" onclick="EditorReference.pick('edit')" data-tooltip="Add image or HTML reference">
+            <button class="composer-btn" id="refBtn" onclick="EditorReference.pick('edit')" data-tooltip="Add file reference">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </button>
             <div class="model-picker-wrap">
@@ -3263,8 +3263,8 @@
           </div>
         </div>
       </div>
-      <input type="file" id="refFileInput" accept="image/*,.html,.htm" style="display:none" onchange="EditorReference.handleFile('edit', event)" />
-      <input type="file" id="genRefFileInput" accept="image/*,.html,.htm" style="display:none" onchange="EditorReference.handleFile('generate', event)" />
+      <input type="file" id="refFileInput" accept="image/*,.html,.htm,.txt,.md,.csv,.tsv,.json,.xml,.pdf,.doc,.docx,.rtf" style="display:none" onchange="EditorReference.handleFile('edit', event)" />
+      <input type="file" id="genRefFileInput" accept="image/*,.html,.htm,.txt,.md,.csv,.tsv,.json,.xml,.pdf,.doc,.docx,.rtf" style="display:none" onchange="EditorReference.handleFile('generate', event)" />
       <!-- Palette Sidebar (replaces chat content when active) -->
       <div id="paletteSidebar" class="palette-sidebar" style="display:none;">
         <div class="palette-sidebar-header">
