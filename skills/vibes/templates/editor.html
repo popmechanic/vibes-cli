@@ -1101,12 +1101,12 @@
       border: none;
     }
 
-    /* Undo/Redo bar */
+    /* Undo/Redo bar — hidden until there's history to navigate */
     .version-bar {
       position: absolute;
       bottom: 12px;
       left: 12px;
-      display: flex;
+      display: none;
       align-items: center;
       gap: 4px;
       z-index: 10;
@@ -1117,13 +1117,12 @@
       font-size: 0.6875rem;
       font-family: inherit;
       backdrop-filter: blur(4px);
-      opacity: 0;
+      opacity: 0.6;
       transition: opacity 0.2s;
     }
-    .preview-panel:hover .version-bar,
+    .version-bar.has-history { display: flex; }
+    .preview-panel:hover .version-bar.has-history,
     .version-bar:focus-within { opacity: 1; }
-    .version-bar.has-history { opacity: 0.6; }
-    .preview-panel:hover .version-bar.has-history { opacity: 1; }
     .version-btn {
       background: none;
       border: none;
