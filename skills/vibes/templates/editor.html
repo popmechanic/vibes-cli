@@ -1062,6 +1062,19 @@
       display: none; position: fixed; top: 64px; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.4); z-index: 900;
     }
+    /* Apps slide panel (edit phase) */
+    .edit-apps-panel {
+      position: fixed; top: 64px; right: 0; bottom: 0; width: 380px; max-width: 90vw;
+      background: #1a1a1a; box-shadow: -4px 0 24px rgba(0,0,0,0.5); z-index: 901;
+      overflow-y: auto; padding: 2rem; display: none;
+    }
+    .edit-apps-backdrop {
+      display: none; position: fixed; top: 64px; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4); z-index: 900;
+    }
+    .edit-apps-panel .gallery-title { margin-bottom: 1rem; }
+    .edit-apps-panel .app-card { margin-bottom: 0.75rem; }
+    .edit-apps-panel .app-list { margin-top: 0.5rem; }
     .go-home-btn {
       display: flex; align-items: center; justify-content: center; gap: 0.5rem;
       width: 100%; padding: 0.875rem 1rem; margin-top: 2rem;
@@ -3318,6 +3331,19 @@
     </button>
   </div>
 
+  <!-- Edit-phase Apps Panel (slide-in) -->
+  <div class="edit-apps-backdrop" id="editAppsBackdrop" onclick="closeEditApps()"></div>
+  <div class="edit-apps-panel" id="editAppsPanel">
+    <div class="gallery-title">Your Apps</div>
+    <div class="app-gallery-grid" id="editAppsGrid"></div>
+    <hr class="gallery-divider" id="editAppsDivider" style="display:none;">
+    <div class="app-list" id="editAppsOlder"></div>
+    <button class="go-home-btn" onclick="closeEditApps(); goHome();">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Back to Home
+    </button>
+  </div>
+
   <!-- Theme Modal -->
   <div class="modal-overlay" id="themeModal">
     <div class="modal">
@@ -3621,7 +3647,7 @@ window.escapeHtml = function(str) {
     closeAccountPanel();
     // Close any settings panel that might be open
     if (activeRightPanel === 'settings') toggleRightPanel('settings');
-    if (editSettingsOpen) closeEditSettings();
+    if (getSettingsPanel().isOpen) closeEditSettings();
     // Load the app, then trigger deploy
     fetch('/editor/apps/load', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) })
       .then(r => r.json())
@@ -3758,24 +3784,86 @@ window.escapeHtml = function(str) {
     }
   }
 
-  // === Edit-phase Settings Panel (slide animation) ===
-  let editSettingsOpen = false;
-
-  function toggleEditSettings() {
-    if (editSettingsOpen) { closeEditSettings(); return; }
-    openEditSettings();
+  // === Reusable slide panel (edit-phase overlays) ===
+  function createSlidePanel(panelId, backdropId) {
+    const state = { isOpen: false };
+    const panel = document.getElementById(panelId);
+    const backdrop = document.getElementById(backdropId);
+    return {
+      get isOpen() { return state.isOpen; },
+      open() {
+        backdrop.style.display = 'block';
+        panel.style.display = 'block';
+        panel.style.animation = 'slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+        state.isOpen = true;
+      },
+      close() {
+        if (!state.isOpen) return;
+        panel.style.animation = 'slideOutRight 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
+        panel.addEventListener('animationend', function handler() {
+          panel.removeEventListener('animationend', handler);
+          panel.style.display = 'none';
+          panel.style.animation = '';
+        });
+        backdrop.style.display = 'none';
+        state.isOpen = false;
+      },
+      toggle() { state.isOpen ? this.close() : this.open(); }
+    };
   }
 
+  // === Shared app card renderer ===
+  function renderAppCards(apps, { onClick, showMeta = true, highlightCurrent = false } = {}) {
+    const topApps = apps.slice(0, 8);
+    const olderApps = apps.slice(8);
+    let gridHtml = '';
+    let listHtml = '';
+
+    for (const app of topApps) {
+      const thumb = app.hasScreenshot
+        ? `<img src="/editor/apps/screenshot?name=${encodeURIComponent(app.name)}&t=${Date.now()}" alt="${escapeHtml(app.name)}" loading="eager">`
+        : `<img src="/editor/assets/screen-saver.png" alt="App preview" loading="eager">`;
+      const isCurrent = highlightCurrent && app.name === currentAppName;
+      const clickAttr = onClick ? onClick(app.name) : `loadSavedApp('${escapeHtml(app.name)}')`;
+      const meta = showMeta ? `<div class="app-card-meta">${app.example ? 'Example' : timeAgo(new Date(app.modified))}${app.themeName ? ' \u00b7 ' + escapeHtml(app.themeName) : ''}</div>` : '';
+      gridHtml += `<div class="app-card${isCurrent ? ' current' : ''}" onclick="${clickAttr}">
+        <div class="app-card-thumb">${thumb}</div>
+        <div class="app-card-info">
+          <div class="app-card-name">${escapeHtml(app.name)}${isCurrent ? ' <span style="opacity:0.5;font-size:0.7em;">(current)</span>' : ''}</div>
+          ${meta}
+        </div>
+      </div>`;
+    }
+
+    for (const app of olderApps) {
+      const clickAttr = onClick ? onClick(app.name) : `loadSavedApp('${escapeHtml(app.name)}')`;
+      const meta = showMeta ? `<div class="app-item-meta">${app.example ? 'Example' : timeAgo(new Date(app.modified))}${app.themeName ? ' \u00b7 ' + escapeHtml(app.themeName) : ''}</div>` : '';
+      listHtml += `<button class="app-item" onclick="${clickAttr}">
+        <div>
+          <div class="app-item-name">${escapeHtml(app.name)}</div>
+          ${meta}
+        </div>
+        <span style="font-size:1.2rem">&#8594;</span>
+      </button>`;
+    }
+
+    return { gridHtml, listHtml, hasOlder: olderApps.length > 0 };
+  }
+
+  // === Edit-phase Settings Panel ===
+  let settingsPanel;
+  function getSettingsPanel() {
+    if (!settingsPanel) settingsPanel = createSlidePanel('editSettingsPanel', 'editSettingsBackdrop');
+    return settingsPanel;
+  }
   function openEditSettings() {
     if (!currentUser) return;
-    const panel = document.getElementById('editSettingsPanel');
-    const backdrop = document.getElementById('editSettingsBackdrop');
+    closeEditApps();
     document.getElementById('accountNameEdit').textContent = currentUser.name || 'User';
     document.getElementById('accountEmailEdit').textContent = currentUser.email || '';
     const avatar = document.getElementById('accountAvatarEdit');
     if (currentUser.picture) { avatar.src = currentUser.picture; avatar.style.display = ''; }
     else { avatar.style.display = 'none'; }
-    // Fetch deployments
     fetch('/editor/deployments').then(r => r.json()).then(deps => {
       const container = document.getElementById('accountDeploymentsEdit');
       if (!deps.length) {
@@ -3797,23 +3885,41 @@ window.escapeHtml = function(str) {
         '<div style="color:#888;font-size:0.875rem;">Could not load deployments.</div>';
     });
     fetchClaudeAuthStatus('');
-    backdrop.style.display = 'block';
-    panel.style.display = 'block';
-    panel.style.animation = 'slideInRight 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-    editSettingsOpen = true;
+    getSettingsPanel().open();
   }
+  function closeEditSettings() { getSettingsPanel().close(); }
+  function toggleEditSettings() { getSettingsPanel().toggle(); }
 
-  function closeEditSettings() {
-    const panel = document.getElementById('editSettingsPanel');
-    const backdrop = document.getElementById('editSettingsBackdrop');
-    panel.style.animation = 'slideOutRight 0.35s cubic-bezier(0.4, 0, 0.2, 1)';
-    panel.addEventListener('animationend', function handler() {
-      panel.removeEventListener('animationend', handler);
-      panel.style.display = 'none';
-      panel.style.animation = '';
-    });
-    backdrop.style.display = 'none';
-    editSettingsOpen = false;
+  // === Edit-phase Apps Panel ===
+  let appsPanel;
+  function getAppsPanel() {
+    if (!appsPanel) appsPanel = createSlidePanel('editAppsPanel', 'editAppsBackdrop');
+    return appsPanel;
+  }
+  async function openEditApps() {
+    closeEditSettings();
+    const grid = document.getElementById('editAppsGrid');
+    const older = document.getElementById('editAppsOlder');
+    const divider = document.getElementById('editAppsDivider');
+    try {
+      const apps = await fetch('/editor/apps').then(r => r.json());
+      const savedApps = Array.isArray(apps) ? apps : [];
+      const { gridHtml, listHtml, hasOlder } = renderAppCards(savedApps, {
+        onClick: (name) => `closeEditApps(); loadSavedApp('${escapeHtml(name)}')`,
+        highlightCurrent: true,
+      });
+      grid.innerHTML = gridHtml;
+      older.innerHTML = listHtml;
+      divider.style.display = hasOlder ? '' : 'none';
+    } catch(e) {
+      grid.innerHTML = '<div style="color:#888;font-size:0.875rem;">Could not load apps.</div>';
+    }
+    getAppsPanel().open();
+  }
+  function closeEditApps() { getAppsPanel().close(); }
+  function toggleEditApps() {
+    if (getAppsPanel().isOpen) { closeEditApps(); return; }
+    openEditApps();
   }
 
   // === Go Home with unsaved-changes guard ===
@@ -3830,6 +3936,7 @@ window.escapeHtml = function(str) {
 
   function navigateHome() {
     closeEditSettings();
+    closeEditApps();
     setPhase('generate');
     checkExistingApps();
   }
@@ -3871,14 +3978,9 @@ window.escapeHtml = function(str) {
     // Update app name in header
     updateAppNameDisplay(phase === 'edit');
 
-    // Close edit settings panel if open
-    if (editSettingsOpen) {
-      const ep = document.getElementById('editSettingsPanel');
-      const eb = document.getElementById('editSettingsBackdrop');
-      ep.style.display = 'none'; ep.style.animation = '';
-      eb.style.display = 'none';
-      editSettingsOpen = false;
-    }
+    // Close edit-phase panels if open
+    closeEditSettings();
+    closeEditApps();
 
     // Reset right panel state and progress bar when entering generate phase
     if (phase === 'generate') {
@@ -3929,6 +4031,20 @@ window.escapeHtml = function(str) {
     } else if (phase === 'edit') {
       headerRight.innerHTML = settingsButtonHtml + `
         <div class="navbar-button-wrapper">
+          <button style="background:var(--vibes-yellow)" onclick="toggleEditApps()">
+            <div class="navbar-button-icon">
+              <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="17.5" cy="17.5" r="17.5" fill="#231F20"/>
+                <rect x="9" y="9" width="7" height="7" rx="1.5" fill="var(--vibes-cream)"/>
+                <rect x="19" y="9" width="7" height="7" rx="1.5" fill="var(--vibes-cream)"/>
+                <rect x="9" y="19" width="7" height="7" rx="1.5" fill="var(--vibes-cream)"/>
+                <rect x="19" y="19" width="7" height="7" rx="1.5" fill="var(--vibes-cream)"/>
+              </svg>
+            </div>
+            <div class="navbar-button-label" style="color:var(--vibes-near-black)">Apps</div>
+          </button>
+        </div>
+        <div class="navbar-button-wrapper">
           <button style="background:#5398c9" onclick="EditorThemes.open()">
             <div class="navbar-button-icon">
               <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -3943,7 +4059,7 @@ window.escapeHtml = function(str) {
           </button>
         </div>
         <div class="navbar-button-wrapper">
-          <button style="background:var(--vibes-yellow)" onclick="saveApp()">
+          <button style="background:#DA291C" onclick="saveApp()">
             <div class="navbar-button-icon">
               <svg width="35" height="35" viewBox="0 0 35 35" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="17.5" cy="17.5" r="17.5" fill="#231F20"/>
@@ -3953,7 +4069,7 @@ window.escapeHtml = function(str) {
                 <rect x="13.5" y="22" width="5" height="1" rx="0.5" fill="var(--vibes-cream)" opacity="0.6"/>
               </svg>
             </div>
-            <div class="navbar-button-label" style="color:var(--vibes-near-black)">Save</div>
+            <div class="navbar-button-label">Save</div>
           </button>
         </div>
         <div class="navbar-button-wrapper deploy-dropdown" id="deployDropdown">
@@ -4449,44 +4565,15 @@ window.escapeHtml = function(str) {
         </div>`;
       }
 
-      // Top 8 recent apps get cards with screenshots
-      // Filter out the matched "current" app to avoid duplicate cards
+      // Render remaining apps via shared renderer
       const filteredApps = currentMatchName ? savedApps.filter(a => a.name !== currentMatchName) : savedApps;
-      const recentApps = filteredApps.slice(0, 8);
-      const olderApps = filteredApps.slice(8);
-
-      for (const app of recentApps) {
-        const meta = app.example ? 'Example' : timeAgo(new Date(app.modified));
-        const themeLabel = app.themeName ? ' \u00b7 ' + escapeHtml(app.themeName) : '';
-        const thumbContent = app.hasScreenshot
-          ? `<img src="/editor/apps/screenshot?name=${encodeURIComponent(app.name)}&t=${Date.now()}" alt="${escapeHtml(app.name)}" loading="eager">`
-          : `<img src="/editor/assets/screen-saver.png" alt="App preview" loading="eager">`;
-        gridHtml += `<div class="app-card" onclick="loadSavedApp('${escapeHtml(app.name)}')">
-          <div class="app-card-thumb">${thumbContent}</div>
-          <div class="app-card-info">
-            <div class="app-card-name">${escapeHtml(app.name)}</div>
-            <div class="app-card-meta">${meta}${themeLabel}</div>
-          </div>
-        </div>`;
-      }
-
-      // Older apps get compact list items
-      for (const app of olderApps) {
-        const meta = app.example ? 'Example' : timeAgo(new Date(app.modified));
-        const themeLabel = app.themeName ? ' \u00b7 ' + escapeHtml(app.themeName) : '';
-        listHtml += `<button class="app-item" onclick="loadSavedApp('${escapeHtml(app.name)}')">
-          <div>
-            <div class="app-item-name">${escapeHtml(app.name)}</div>
-            <div class="app-item-meta">${meta}${themeLabel}</div>
-          </div>
-          <span style="font-size:1.2rem">&#8594;</span>
-        </button>`;
-      }
+      const rendered = renderAppCards(filteredApps);
+      gridHtml += rendered.gridHtml;
 
       grid.innerHTML = gridHtml;
-      if (listHtml) {
+      if (rendered.listHtml) {
         divider.style.display = '';
-        olderList.innerHTML = listHtml;
+        olderList.innerHTML = rendered.listHtml;
       }
 
       // Add the apps navbar button now that content is populated
