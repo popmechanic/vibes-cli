@@ -147,11 +147,15 @@ async function refreshTokens({ authority, clientId, refreshToken }) {
     refresh_token: refreshToken,
   });
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
   const res = await fetch(tokenUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
+    signal: controller.signal,
   });
+  clearTimeout(timeout);
 
   if (!res.ok) {
     const text = await res.text();
