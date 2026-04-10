@@ -6348,8 +6348,21 @@ window.escapeHtml = function(str) {
   connectWs();
   checkExistingApps();
 
-  // Restore project dir from localStorage — update button and server state
+  // Restore project dir from localStorage — enable prompt immediately, validate in background
   if (currentProjectDir) {
+    // Optimistic: enable prompt and show folder name right away
+    const folderName = currentProjectDir.split('/').pop() || 'Project';
+    const chip = document.getElementById('projectChip');
+    const textarea = document.getElementById('generatePrompt');
+    if (chip) {
+      chip.textContent = folderName;
+      chip.classList.add('connected');
+    }
+    if (textarea) {
+      textarea.disabled = false;
+      textarea.placeholder = 'Describe what you want to build...';
+    }
+    // Background: sync with server and validate folder still exists
     fetch('/editor/open-project', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -6358,10 +6371,9 @@ window.escapeHtml = function(str) {
       if (data.ok) {
         setProjectDir(data.projectDir, data.config);
       } else {
-        // Project folder no longer exists — clear stale state
         clearProjectDir();
       }
-    }).catch(() => clearProjectDir());
+    }).catch(() => {}); // Keep optimistic state on network error — server may not be ready yet
   } else {
     initProjectGate();
   }
