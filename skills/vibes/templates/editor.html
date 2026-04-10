@@ -3985,14 +3985,11 @@ window.escapeHtml = function(str) {
     dialog.querySelector('#unsavedDiscard').onclick = () => { overlay.remove(); navigateHome(); };
     dialog.querySelector('#unsavedSave').onclick = () => {
       overlay.remove();
-      // Wait for save + screenshot before navigating
-      const savedPromise = new Promise(resolve => { _appSavedResolve = resolve; });
-      if (currentAppName && ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'save_app', name: currentAppName, app: currentAppName }));
+      if (currentAppName) {
+        doSave(currentAppName, { silent: true, onComplete: () => navigateHome() });
+      } else {
+        navigateHome();
       }
-      lastSavedVersion = versionIndex;
-      savedPromise.then(() => captureScreenshot().then(() => navigateHome()).catch(() => navigateHome()));
-      setTimeout(() => { if (_appSavedResolve) { _appSavedResolve(); _appSavedResolve = null; } }, 2000);
     };
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
   }
@@ -4669,18 +4666,39 @@ window.escapeHtml = function(str) {
     }
   }
 
-  function autoSaveApp() {
-    // Only auto-save if the app already has a name.
-    // For unnamed apps, the user will be prompted when they click Save.
-    if (!currentAppName) return;
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'save_app', name: currentAppName, app: currentAppName }));
-      lastSavedVersion = versionIndex;
+  // Resolves when the server confirms save — used to sequence screenshot after save
+  let _appSavedResolve = null;
+
+  /**
+   * Single save path: sends save_app, waits for confirmation, captures screenshot.
+   * @param {string} name - App name
+   * @param {object} opts - { silent: boolean, onComplete: function }
+   *   silent: skip chat messages (for auto-save)
+   *   onComplete: called after save + screenshot finish
+   */
+  function doSave(name, opts = {}) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    const savedPromise = new Promise(resolve => { _appSavedResolve = resolve; });
+    ws.send(JSON.stringify({ type: 'save_app', name, app: name }));
+    lastSavedVersion = versionIndex;
+    let savingBubble = null;
+    if (!opts.silent) {
+      addMessage('system', 'Saving "' + name + '"...');
+      savingBubble = document.getElementById('chatMessages').lastElementChild;
     }
+    savedPromise.then(() => captureScreenshot(opts.silent).then(() => {
+      if (savingBubble) savingBubble.textContent = 'Saved "' + name + '".';
+      if (opts.onComplete) opts.onComplete();
+    }).catch(() => {
+      if (opts.onComplete) opts.onComplete();
+    }));
+    setTimeout(() => { if (_appSavedResolve) { _appSavedResolve(); _appSavedResolve = null; } }, 2000);
   }
 
-  // Resolves when the server confirms save — used by saveApp to sequence screenshot after save
-  let _appSavedResolve = null;
+  function autoSaveApp() {
+    if (!currentAppName) return;
+    doSave(currentAppName, { silent: true });
+  }
 
   function saveApp() {
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
@@ -4695,18 +4713,6 @@ window.escapeHtml = function(str) {
       return;
     }
     doSave(currentAppName);
-  }
-
-  function doSave(name) {
-    const savedPromise = new Promise(resolve => { _appSavedResolve = resolve; });
-    ws.send(JSON.stringify({ type: 'save_app', name, app: name }));
-    lastSavedVersion = versionIndex;
-    addMessage('system', 'Saving "' + name + '"...');
-    const savingBubble = document.getElementById('chatMessages').lastElementChild;
-    savedPromise.then(() => captureScreenshot().then(() => {
-      if (savingBubble) savingBubble.textContent = 'Saved "' + name + '".';
-    }));
-    setTimeout(() => { if (_appSavedResolve) { _appSavedResolve(); _appSavedResolve = null; } }, 2000);
   }
 
   function updateAppNameDisplay(show) {
