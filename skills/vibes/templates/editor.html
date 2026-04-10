@@ -3985,9 +3985,14 @@ window.escapeHtml = function(str) {
     dialog.querySelector('#unsavedDiscard').onclick = () => { overlay.remove(); navigateHome(); };
     dialog.querySelector('#unsavedSave').onclick = () => {
       overlay.remove();
-      saveApp();
+      // Wait for save + screenshot before navigating
+      const savedPromise = new Promise(resolve => { _appSavedResolve = resolve; });
+      if (currentAppName && ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'save_app', name: currentAppName, app: currentAppName }));
+      }
       lastSavedVersion = versionIndex;
-      navigateHome();
+      savedPromise.then(() => captureScreenshot().then(() => navigateHome()).catch(() => navigateHome()));
+      setTimeout(() => { if (_appSavedResolve) { _appSavedResolve(); _appSavedResolve = null; } }, 2000);
     };
     overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
   }
