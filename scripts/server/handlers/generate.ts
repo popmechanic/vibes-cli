@@ -3,7 +3,8 @@
  */
 
 import { readFileSync, existsSync, writeFileSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { join, basename } from 'path';
+import { readVibesJson } from '../../lib/vibes-json.js';
 import { runOneShot } from '../claude-bridge.ts';
 import type { EventCallback } from '../claude-bridge.ts';
 import { sanitizeAppJsx } from '../post-process.ts';
@@ -37,13 +38,23 @@ export async function handleGenerate(ctx: ServerContext, onEvent: EventCallback,
     }
   }
 
-  // Create app directory from prompt
-  const slug = slugifyPrompt(userPrompt);
-  const appName = resolveAppName(ctx.appsDir, slug);
-  const appDir = join(ctx.appsDir, appName);
-  mkdirSync(appDir, { recursive: true });
+  let appDir: string;
+  let appName: string;
+
+  if (ctx.projectDir) {
+    // Project folder mode: use the selected directory directly
+    appDir = ctx.projectDir;
+    const config = readVibesJson(ctx.projectDir);
+    appName = config?.name || basename(ctx.projectDir);
+  } else {
+    // Legacy mode: create slug-based directory under ~/.vibes/apps/
+    const slug = slugifyPrompt(userPrompt);
+    appName = resolveAppName(ctx.appsDir, slug);
+    appDir = join(ctx.appsDir, appName);
+    mkdirSync(appDir, { recursive: true });
+  }
   onEvent({ type: 'app_created', name: appName });
-  console.log(`[Generate] Created app directory: ${appName}`);
+  console.log(`[Generate] ${ctx.projectDir ? 'Using project' : 'Created app'} directory: ${appName}`);
 
   // Build the prompt
   const result = buildGeneratePrompt(ctx, userPrompt, { themeId, reference, useAI });
