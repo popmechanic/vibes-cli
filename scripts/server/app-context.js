@@ -40,6 +40,16 @@ export function throttledBackup(filePath, appName, timestamps) {
   timestamps[appName] = now;
 }
 
+/**
+ * Returns the active project directory.
+ * Prefers ctx.projectDir (new folder-based projects).
+ * Falls back to currentAppDir(ctx, appName) for legacy apps.
+ */
+export function resolveProjectDir(ctx, appName) {
+  if (ctx.projectDir) return ctx.projectDir;
+  return currentAppDir(ctx, appName);
+}
+
 export function resolveAppName(appsDir, slug) {
   if (!existsSync(join(appsDir, slug))) return slug;
   for (let i = 2; i <= 99; i++) {

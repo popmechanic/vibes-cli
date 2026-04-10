@@ -30,6 +30,7 @@ export interface ServerContext {
   animationDir: string;
   pluginSkills: any[];
   backupTimestamps: Record<string, number>;
+  projectDir: string | null;
   managed?: boolean;
   onWindowControl?: (action: string) => void;
   onClaudeReauth?: () => void;
@@ -129,6 +130,7 @@ export function loadConfig(): ServerContext {
     animationDir,
     pluginSkills,
     backupTimestamps: {},
+    projectDir: null,
   };
 }
 
