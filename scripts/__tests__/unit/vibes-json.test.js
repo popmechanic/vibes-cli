@@ -3,6 +3,7 @@
  *
  * Tests reading, writing, and initializing vibes.json files in project directories.
  */
+import { describe, it, expect, afterEach } from 'vitest';
 
 import { mkdtempSync, writeFileSync, existsSync, rmSync, mkdirSync } from 'fs';
 import { join } from 'path';
