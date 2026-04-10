@@ -209,7 +209,7 @@ function serveSkills(ctx: ServerContext): Response {
 
 function serveAppFrame(ctx: ServerContext, url: URL): Response {
   const appName = sanitizeAppName(url.searchParams.get('app') || '');
-  const appDir = currentAppDir(ctx, appName || undefined);
+  const appDir = ctx.projectDir || currentAppDir(ctx, appName || undefined);
   const appPath = appDir ? join(appDir, 'app.jsx') : null;
   if (!appPath || !existsSync(appPath)) {
     return new Response(`<!DOCTYPE html>

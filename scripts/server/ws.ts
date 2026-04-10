@@ -282,7 +282,7 @@ export function createWsHandler(ctx: ServerContext) {
           // --- Bridge-routed messages ---
 
           case 'chat': {
-            const appDir = currentAppDir(ctx, msg.app) || ctx.projectRoot;
+            const appDir = ctx.projectDir || currentAppDir(ctx, msg.app) || ctx.projectRoot;
             const prompt = buildChatPrompt(ctx, msg.message, {
               effects: msg.effects,
               animationId: msg.animationId,
