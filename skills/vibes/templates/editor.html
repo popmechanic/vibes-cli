@@ -3956,6 +3956,7 @@ window.escapeHtml = function(str) {
   function navigateHome() {
     closeEditSettings();
     closeEditApps();
+    clearProjectDir();
     setPhase('generate');
     checkExistingApps();
   }
@@ -4876,12 +4877,14 @@ window.escapeHtml = function(str) {
   }
 
   function startGenerate() {
-    // Block if no project selected and no legacy app
-    if (!currentProjectDir && !currentAppName) {
+    // Require project folder for all new generation
+    if (!currentProjectDir) {
       const chip = document.getElementById('projectChip');
-      chip.style.animation = 'none';
-      void chip.offsetHeight;
-      chip.style.animation = 'pulse 0.3s ease 3';
+      if (chip) {
+        chip.style.animation = 'none';
+        void chip.offsetHeight;
+        chip.style.animation = 'pulse 0.3s ease 3';
+      }
       return;
     }
     // Clear stale app name so auto-save creates a new entry from the prompt
@@ -4913,7 +4916,7 @@ window.escapeHtml = function(str) {
     const hasReference = !!genRefFile;
     // Skip theme when not enabled or reference attached
     const skipTheme = !useThemeEnabled || hasReference;
-    const payload = { type: 'generate', prompt, themeId: skipTheme ? null : (themeId || null), model: getModel(), useAI: useAIEnabled, isPrivate: privateEnabled, previousApp: currentAppName };
+    const payload = { type: 'generate', prompt, themeId: skipTheme ? null : (themeId || null), model: getModel(), useAI: useAIEnabled, isPrivate: privateEnabled, projectDir: currentProjectDir };
     if (hasReference) {
       payload.reference = {
         name: genRefFile.name,
@@ -5367,6 +5370,19 @@ window.escapeHtml = function(str) {
     textarea.focus();
   }
 
+  function clearProjectDir() {
+    currentProjectDir = null;
+    const chip = document.getElementById('projectChip');
+    if (chip) {
+      chip.textContent = 'Choose a Project';
+      chip.classList.remove('connected');
+      chip.style.background = '#009ACE';
+      chip.style.color = '#fff';
+    }
+    // Re-gate the prompt
+    initProjectGate();
+  }
+
   async function openProject(path) {
     try {
       const res = await fetch('/editor/open-project', {
@@ -5401,7 +5417,7 @@ window.escapeHtml = function(str) {
   function initProjectGate() {
     const textarea = document.getElementById('generatePrompt');
     if (!textarea) return;
-    if (!currentAppName && !currentProjectDir) {
+    if (!currentProjectDir) {
       textarea.disabled = true;
       textarea.placeholder = 'Choose a project folder first...';
     }

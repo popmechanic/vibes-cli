@@ -18,7 +18,7 @@ import { join, resolve, basename } from 'path';
 import type { ServerWebSocket } from 'bun';
 import type { ServerContext } from './config.ts';
 import { reloadThemes } from './config.ts';
-import { resolveAppJsxPath, resolveProjectDir, slugifyPrompt, resolveAppName } from './app-context.js';
+import { resolveAppJsxPath, resolveProjectDir } from './app-context.js';
 import { createBridge, cancelCurrent, type PersistentBridge, type EventCallback } from './claude-bridge.ts';
 import { buildChatPrompt, buildGeneratePrompt, buildBrainstormPrompt } from './prompt-builders.ts';
 import { loadHistory, appendMessage, clearHistory } from './chat-history.ts';
@@ -302,23 +302,16 @@ export function createWsHandler(ctx: ServerContext) {
               break;
             }
 
-            // Reuse existing app directory if regenerating, otherwise create new
-            let appName: string;
-            let newAppDir: string;
-            if (ctx.projectDir) {
-              // Project folder mode
-              newAppDir = ctx.projectDir;
-              appName = basename(ctx.projectDir);
-            } else if (msg.previousApp && existsSync(join(ctx.appsDir, msg.previousApp))) {
-              appName = msg.previousApp;
-              newAppDir = join(ctx.appsDir, appName);
-              console.log(`[Generate] Regenerating into existing app: ${appName}`);
-            } else {
-              const slug = slugifyPrompt(msg.prompt);
-              appName = resolveAppName(ctx.appsDir, slug);
-              newAppDir = join(ctx.appsDir, appName);
-              mkdirSync(newAppDir, { recursive: true });
+            // Sync projectDir from client
+            ctx.projectDir = msg.projectDir || null;
+
+            if (!ctx.projectDir) {
+              onEvent({ type: 'error', message: 'Please choose a project folder first.' });
+              break;
             }
+
+            const newAppDir = ctx.projectDir;
+            const appName = basename(ctx.projectDir);
             onEvent({ type: 'app_created', name: appName });
 
             // Build the generate context (theme, style guide, TinyBase patterns)
