@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { join } from 'path';
-import { mkdirSync, writeFileSync, rmSync, readFileSync } from 'fs';
+import { mkdirSync, writeFileSync, rmSync, readFileSync, utimesSync } from 'fs';
 import { tmpdir } from 'os';
 
 describe('recent projects (registry v2)', () => {
@@ -136,6 +136,77 @@ describe('recent projects (registry v2)', () => {
       const reg = registry.loadRegistry();
       expect(reg.recentProjects).toHaveLength(1);
       expect(reg.recentProjects[0].path).toBe(dirB);
+    });
+  });
+
+  describe('populateLegacyApps', () => {
+    it('populates recents from apps dir sorted by mtime (newest first)', async () => {
+      const appsDir = join(TEST_DIR, 'apps');
+      mkdirSync(appsDir, { recursive: true });
+
+      // Create two app directories with app.jsx files
+      const app1Dir = join(appsDir, 'app-older');
+      const app2Dir = join(appsDir, 'app-newer');
+      mkdirSync(app1Dir, { recursive: true });
+      mkdirSync(app2Dir, { recursive: true });
+      writeFileSync(join(app1Dir, 'app.jsx'), '// app1');
+      writeFileSync(join(app2Dir, 'app.jsx'), '// app2');
+
+      // Set app2 to a future mtime so it's clearly "newer"
+      const future = new Date(Date.now() + 1000);
+      utimesSync(join(app2Dir, 'app.jsx'), future, future);
+
+      await registry.populateLegacyApps(appsDir);
+
+      const projects = registry.getRecentProjects();
+      expect(projects).toHaveLength(2);
+      expect(projects[0].path).toBe(app2Dir);
+      expect(projects[1].path).toBe(app1Dir);
+    });
+
+    it('skips directories without app.jsx', async () => {
+      const appsDir = join(TEST_DIR, 'apps');
+      mkdirSync(appsDir, { recursive: true });
+
+      // One dir with app.jsx, one without
+      const goodDir = join(appsDir, 'good-app');
+      const badDir = join(appsDir, 'no-jsx-app');
+      mkdirSync(goodDir, { recursive: true });
+      mkdirSync(badDir, { recursive: true });
+      writeFileSync(join(goodDir, 'app.jsx'), '// good');
+      // badDir has no app.jsx
+
+      await registry.populateLegacyApps(appsDir);
+
+      const projects = registry.getRecentProjects();
+      expect(projects).toHaveLength(1);
+      expect(projects[0].path).toBe(goodDir);
+    });
+
+    it('does not duplicate if already populated', async () => {
+      const appsDir = join(TEST_DIR, 'apps');
+      mkdirSync(appsDir, { recursive: true });
+
+      const appDir = join(appsDir, 'my-app');
+      mkdirSync(appDir, { recursive: true });
+      writeFileSync(join(appDir, 'app.jsx'), '// app');
+
+      // Call twice
+      await registry.populateLegacyApps(appsDir);
+      await registry.populateLegacyApps(appsDir);
+
+      const reg = registry.loadRegistry();
+      expect(reg.recentProjects).toHaveLength(1);
+    });
+
+    it('does nothing when appsDir does not exist', async () => {
+      const nonexistentDir = join(TEST_DIR, 'does-not-exist');
+
+      // Should not throw
+      await registry.populateLegacyApps(nonexistentDir);
+
+      const projects = registry.getRecentProjects();
+      expect(projects).toHaveLength(0);
     });
   });
 

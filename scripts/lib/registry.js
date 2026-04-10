@@ -33,7 +33,7 @@
  * }
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, chmodSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, chmodSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 
@@ -218,4 +218,44 @@ export function removeRecentProject(path) {
   const reg = loadRegistry();
   reg.recentProjects = reg.recentProjects.filter(p => p.path !== path);
   saveRegistry(reg);
+}
+
+/**
+ * Scan a legacy apps directory and populate recentProjects with found apps.
+ * Looks for subdirectories containing app.jsx. Takes the 20 most recently
+ * modified (by app.jsx mtime), sorted newest first. Skips entries already
+ * in recents.
+ *
+ * @param {string} appsDir - Directory to scan (e.g. ~/.vibes/apps/)
+ */
+export function populateLegacyApps(appsDir) {
+  if (!existsSync(appsDir)) return;
+
+  const reg = loadRegistry();
+  const existingPaths = new Set((reg.recentProjects || []).map(p => p.path));
+
+  const entries = [];
+  for (const name of readdirSync(appsDir)) {
+    const appDir = join(appsDir, name);
+    const appJsx = join(appDir, 'app.jsx');
+    try {
+      const dirStat = statSync(appDir);
+      if (!dirStat.isDirectory()) continue;
+      if (!existsSync(appJsx)) continue;
+      if (existingPaths.has(appDir)) continue;
+      const jsxStat = statSync(appJsx);
+      entries.push({ name, path: appDir, mtime: jsxStat.mtimeMs });
+    } catch {
+      continue;
+    }
+  }
+
+  // Sort newest first, take up to 20
+  entries.sort((a, b) => b.mtime - a.mtime);
+  const toAdd = entries.slice(0, 20);
+
+  // Add in reverse order so that addRecentProject's unshift leaves newest at index 0
+  for (let i = toAdd.length - 1; i >= 0; i--) {
+    addRecentProject({ path: toAdd[i].path, name: toAdd[i].name });
+  }
 }
