@@ -2818,7 +2818,8 @@
       transition: opacity 0.1s ease;
       z-index: 10000;
     }
-    [data-tooltip]:hover::after {
+    [data-tooltip]:hover::after,
+    [data-tooltip].tooltip-active::after {
       opacity: 1;
       transition-delay: 0.1s;
     }
@@ -4879,19 +4880,19 @@ window.escapeHtml = function(str) {
   function startGenerate() {
     // Require project folder for all new generation
     if (!currentProjectDir) {
-      // Pulse the project button
       const chip = document.getElementById('projectChip');
       if (chip) {
+        // Pulse animation
         chip.style.animation = 'none';
         void chip.offsetHeight;
         chip.style.animation = 'pulse 0.3s ease 3';
-      }
-      // Show inline hint
-      const errEl = document.getElementById('generateError');
-      if (errEl) {
-        errEl.textContent = 'Pick a project folder to get started.';
-        errEl.style.display = '';
-        setTimeout(() => { errEl.style.display = 'none'; }, 4000);
+        // Show tooltip
+        chip.setAttribute('data-tooltip', 'Pick a project folder first');
+        chip.classList.add('tooltip-active');
+        setTimeout(() => {
+          chip.classList.remove('tooltip-active');
+          chip.removeAttribute('data-tooltip');
+        }, 3000);
       }
       return;
     }
