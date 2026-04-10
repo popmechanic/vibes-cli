@@ -3958,6 +3958,7 @@ window.escapeHtml = function(str) {
     closeEditSettings();
     closeEditApps();
     clearProjectDir();
+    setCurrentAppName(null);
     setPhase('generate');
     checkExistingApps();
   }
@@ -5040,7 +5041,8 @@ window.escapeHtml = function(str) {
   // === Phase 3: Edit + Deploy ===
   function loadPreview() {
     const frame = document.getElementById('previewFrame');
-    const appParam = currentAppName ? 'app=' + encodeURIComponent(currentAppName) + '&' : '';
+    const name = currentProjectDir ? currentProjectDir.split('/').pop() : currentAppName;
+    const appParam = name ? 'app=' + encodeURIComponent(name) + '&' : '';
     frame.src = '/app-frame?' + appParam + 't=' + Date.now();
   }
 
