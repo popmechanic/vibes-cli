@@ -14,7 +14,7 @@
  */
 
 import { existsSync, mkdirSync, copyFileSync, unlinkSync, readFileSync, writeFileSync, statSync } from 'fs';
-import { join, resolve } from 'path';
+import { join, resolve, basename } from 'path';
 import type { ServerWebSocket } from 'bun';
 import type { ServerContext } from './config.ts';
 import { reloadThemes } from './config.ts';
@@ -305,7 +305,11 @@ export function createWsHandler(ctx: ServerContext) {
             // Reuse existing app directory if regenerating, otherwise create new
             let appName: string;
             let newAppDir: string;
-            if (msg.previousApp && existsSync(join(ctx.appsDir, msg.previousApp))) {
+            if (ctx.projectDir) {
+              // Project folder mode
+              newAppDir = ctx.projectDir;
+              appName = basename(ctx.projectDir);
+            } else if (msg.previousApp && existsSync(join(ctx.appsDir, msg.previousApp))) {
               appName = msg.previousApp;
               newAppDir = join(ctx.appsDir, appName);
               console.log(`[Generate] Regenerating into existing app: ${appName}`);
@@ -376,11 +380,18 @@ export function createWsHandler(ctx: ServerContext) {
           }
 
           case 'switch_app': {
-            const newAppDir = join(ctx.appsDir, msg.name);
+            let newAppDir: string;
+            if (msg.projectDir) {
+              // Project folder mode: projectDir is the app dir
+              newAppDir = msg.projectDir;
+              ctx.projectDir = msg.projectDir;
+            } else {
+              newAppDir = join(ctx.appsDir, msg.name);
+            }
             switchApp(ctx, newAppDir);
             const history = loadHistory(newAppDir);
             onEvent({ type: 'history', messages: history });
-            console.log(`[WS] Switched to app: ${msg.name} (${history.length} history messages)`);
+            console.log(`[WS] Switched to app: ${msg.name || basename(newAppDir)} (${history.length} history messages)`);
             break;
           }
 
@@ -444,8 +455,14 @@ export function createWsHandler(ctx: ServerContext) {
               onEvent({ type: 'error', message: 'App name is required' });
               break;
             }
-            const sourceApp = msg.app || undefined;
-            const appSrc = resolveAppJsxPath(ctx, sourceApp);
+            // Source: prefer project dir, fall back to legacy
+            let appSrc: string;
+            if (ctx.projectDir) {
+              appSrc = join(ctx.projectDir, 'app.jsx');
+            } else {
+              const sourceApp = msg.app || undefined;
+              appSrc = resolveAppJsxPath(ctx, sourceApp);
+            }
             if (!existsSync(appSrc)) {
               onEvent({ type: 'error', message: 'No app.jsx to save' });
               break;
