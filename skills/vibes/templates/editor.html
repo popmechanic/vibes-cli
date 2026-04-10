@@ -3839,7 +3839,7 @@ window.escapeHtml = function(str) {
 
     for (const app of topApps) {
       const thumb = app.hasScreenshot
-        ? `<img src="/editor/apps/screenshot?name=${encodeURIComponent(app.name)}&t=${Date.now()}" alt="${escapeHtml(app.name)}" loading="eager">`
+        ? `<img src="/editor/apps/screenshot?name=${encodeURIComponent(app.name)}${app.path ? '&path=' + encodeURIComponent(app.path) : ''}&t=${Date.now()}" alt="${escapeHtml(app.name)}" loading="eager">`
         : `<img src="/editor/assets/screen-saver.png" alt="App preview" loading="eager">`;
       const isCurrent = highlightCurrent && app.name === currentAppName;
       const clickAttr = onClick ? onClick(app.name) : `openProject('${(app.path || '').replace(/'/g, "\\'")}')`;
@@ -4605,7 +4605,7 @@ window.escapeHtml = function(str) {
         if (matchedApp) currentMatchName = matchedApp.name;
         const cardName = matchedApp ? matchedApp.name : 'Continue current app';
         const cardThumb = matchedApp && matchedApp.hasScreenshot
-          ? `<img src="/editor/apps/screenshot?name=${encodeURIComponent(matchedApp.name)}&t=${Date.now()}" alt="${escapeHtml(matchedApp.name)}" loading="eager">`
+          ? `<img src="/editor/apps/screenshot?name=${encodeURIComponent(matchedApp.name)}${matchedApp.path ? '&path=' + encodeURIComponent(matchedApp.path) : ''}&t=${Date.now()}" alt="${escapeHtml(matchedApp.name)}" loading="eager">`
           : `<img src="/editor/assets/screen-saver.png" alt="App preview" loading="eager">`;
         gridHtml += `<div class="app-card" onclick="useExistingApp()">
           <div class="app-card-thumb">${cardThumb}</div>

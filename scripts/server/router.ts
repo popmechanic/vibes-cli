@@ -446,7 +446,7 @@ function editorListApps(ctx: ServerContext): Response {
         themeId: themeMatch ? themeMatch[1] : null,
         themeName: themeMatch ? themeMatch[2] : null,
         size: st.size,
-        hasScreenshot: existsSync(join(dir, 'screenshot.png')),
+        hasScreenshot: existsSync(join(dir, 'screenshot.png')) || existsSync(join(dir, '.vibes', 'screenshot.png')),
       });
     }
     apps.sort((a, b) => new Date(b.modified).getTime() - new Date(a.modified).getTime());
@@ -482,15 +482,25 @@ function editorListApps(ctx: ServerContext): Response {
 async function editorGetScreenshot(ctx: ServerContext, url: URL): Promise<Response> {
   const name = sanitizeAppName(url.searchParams.get('name') || '');
   if (!name) return new Response('Missing name', { status: 400, headers: corsHeaders() });
-  // Check project dir, then user apps, then examples
-  let imgPath = ctx.projectDir ? join(ctx.projectDir, '.vibes', 'screenshot.png') : join(ctx.appsDir, name, 'screenshot.png');
-  let file = Bun.file(imgPath);
-  if (!(await file.exists())) {
-    imgPath = join(ctx.examplesDir, name, 'screenshot.png');
-    file = Bun.file(imgPath);
+  // Check all possible screenshot locations for this app
+  const candidates = [
+    join(ctx.appsDir, name, '.vibes', 'screenshot.png'),  // project-folder style
+    join(ctx.appsDir, name, 'screenshot.png'),             // legacy style
+    join(ctx.examplesDir, name, 'screenshot.png'),         // bundled example
+  ];
+  // If a path was provided (project folder outside ~/.vibes/apps), check it first
+  const appPath = url.searchParams.get('path');
+  if (appPath) {
+    candidates.unshift(join(appPath, '.vibes', 'screenshot.png'));
+    candidates.unshift(join(appPath, 'screenshot.png'));
   }
-  if (!(await file.exists())) return new Response('No screenshot', { status: 404, headers: corsHeaders() });
-  return new Response(file, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'no-cache', ...corsHeaders() } });
+  for (const imgPath of candidates) {
+    const file = Bun.file(imgPath);
+    if (await file.exists()) {
+      return new Response(file, { headers: { 'Content-Type': 'image/png', 'Cache-Control': 'no-cache', ...corsHeaders() } });
+    }
+  }
+  return new Response('No screenshot', { status: 404, headers: corsHeaders() });
 }
 
 function serveScreenSaver(ctx: ServerContext): Response {
