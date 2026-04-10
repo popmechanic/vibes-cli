@@ -17,6 +17,7 @@ import { getAccessToken } from './lib/cli-auth.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL } from './lib/auth-constants.js';
 import { PLUGIN_ROOT } from './lib/paths.js';
 import { provisionInviteLink } from './lib/provision-invite-link.js';
+import { readVibesJson, writeVibesJson } from './lib/vibes-json.js';
 
 async function deployViaAPI(name, files, accessToken, options = {}) {
   console.log(`Deploying ${name} (${Object.keys(files).length} file(s))...`);
@@ -68,11 +69,19 @@ async function main() {
   const appIdx = args.indexOf("--app");
   const aiKeyIdx = args.indexOf("--ai-key");
 
-  if (nameIdx === -1) {
-    throw new Error("Usage: deploy-cloudflare.js --name <app-name> (--app <app.jsx> | --file <index.html>) [--ai-key <key>]");
+  let name;
+  if (nameIdx !== -1) {
+    name = validateName(args[nameIdx + 1]);
+  } else {
+    // Try to read name from vibes.json in current directory
+    const config = readVibesJson(process.cwd());
+    if (config?.name) {
+      name = validateName(config.name);
+      console.log(`Using app name from vibes.json: ${name}`);
+    } else {
+      throw new Error("Usage: deploy-cloudflare.js --name <app-name> (--app <app.jsx> | --file <index.html>) [--ai-key <key>]");
+    }
   }
-
-  const name = validateName(args[nameIdx + 1]);
   // Cloudflare limits worker names with previews to 54 chars.
   // Longest prefix is "fireproof-dashboard-" (20 chars), so stage name max is 34.
   if (name.length > 34) {
@@ -167,6 +176,21 @@ async function main() {
     app: { workerName: name, url: deployedUrl },
     wsUrl: result.wsUrl,
   });
+
+  // Write deploy info to vibes.json if in a project folder
+  const deployDir = appIdx !== -1
+    ? dirname(resolve(process.cwd(), args[appIdx + 1]))
+    : process.cwd();
+  if (existsSync(join(deployDir, 'vibes.json'))) {
+    writeVibesJson(deployDir, {
+      deploy: {
+        url: deployedUrl,
+        workerName: `vibes-app-${name}`,
+        deployedAt: new Date().toISOString(),
+      },
+    });
+    console.log('Updated vibes.json with deploy info');
+  }
 
   // Auto-provision public invite link for private apps (fire-and-forget)
   await provisionInviteLink(DEPLOY_API_URL, name, tokens.accessToken);
