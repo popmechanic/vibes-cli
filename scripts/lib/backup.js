@@ -5,7 +5,7 @@
  * Creates timestamped backups in format: file.YYYYMMDD-HHMMSS.bak.ext
  */
 
-import { existsSync, copyFileSync, readdirSync, unlinkSync } from 'fs';
+import { existsSync, copyFileSync, readdirSync, unlinkSync, mkdirSync } from 'fs';
 import { dirname, join, basename, parse, format } from 'path';
 
 const MAX_BACKUPS = 3;
@@ -33,8 +33,18 @@ export function createBackup(filePath) {
   }
   const timestamp = getBackupTimestamp();
   const parsed = parse(filePath);
+  const dir = parsed.dir;
+
+  // Project folder mode: backup to .vibes/backups/
+  let backupDir = dir;
+  const vibesJsonPath = join(dir, 'vibes.json');
+  if (existsSync(vibesJsonPath)) {
+    backupDir = join(dir, '.vibes', 'backups');
+    if (!existsSync(backupDir)) mkdirSync(backupDir, { recursive: true });
+  }
+
   const backupPath = format({
-    dir: parsed.dir,
+    dir: backupDir,
     name: `${parsed.name}.${timestamp}.bak`,
     ext: parsed.ext || '.bak'
   });
@@ -47,19 +57,25 @@ export function createBackup(filePath) {
  * Remove old backups beyond MAX_BACKUPS, keeping the most recent ones.
  */
 function pruneOldBackups(filePath) {
-  const dir = dirname(filePath);
   const parsed = parse(filePath);
+  const dir = parsed.dir;
   const ext = parsed.ext ? `\\${parsed.ext}` : '\\.bak';
   const pattern = new RegExp(`^${parsed.name}\\.\\d{8}-\\d{6}\\.bak${ext}$`);
 
+  // Determine backup dir
+  let backupDir = dir;
+  if (existsSync(join(dir, 'vibes.json'))) {
+    backupDir = join(dir, '.vibes', 'backups');
+  }
+
   try {
-    const backups = readdirSync(dir)
+    const backups = readdirSync(backupDir)
       .filter(e => pattern.test(e))
       .sort()
       .reverse(); // Most recent first
 
     for (const old of backups.slice(MAX_BACKUPS)) {
-      unlinkSync(join(dir, old));
+      unlinkSync(join(backupDir, old));
     }
   } catch { /* ignore */ }
 }
@@ -71,28 +87,35 @@ function pruneOldBackups(filePath) {
  * @returns {string|null} - Path to most recent backup, or null if none found
  */
 export function findLatestBackup(filePath) {
-  const dir = dirname(filePath);
   const parsed = parse(filePath);
+  const dir = parsed.dir;
   const ext = parsed.ext ? `\\${parsed.ext}` : '\\.bak';
   const pattern = new RegExp(`^${parsed.name}\\.\\d{8}-\\d{6}\\.bak${ext}$`);
 
+  // Check project folder backup location first
+  let backupDir = dir;
+  if (existsSync(join(dir, 'vibes.json'))) {
+    backupDir = join(dir, '.vibes', 'backups');
+  }
+
   try {
-    const entries = readdirSync(dir);
+    const entries = readdirSync(backupDir);
     const backups = entries
       .filter(e => pattern.test(e))
       .sort()
       .reverse(); // Most recent first
 
     if (backups.length === 0) {
-      // Fall back to legacy .bak.ext format
+      // Fall back to legacy .bak.ext format (always check original dir)
       const legacyBackup = `${parsed.name}.bak${parsed.ext || '.bak'}`;
-      if (entries.includes(legacyBackup)) {
+      const dirEntries = backupDir !== dir ? readdirSync(dir) : entries;
+      if (dirEntries.includes(legacyBackup)) {
         return join(dir, legacyBackup);
       }
       return null;
     }
 
-    return join(dir, backups[0]);
+    return join(backupDir, backups[0]);
   } catch (e) {
     return null;
   }

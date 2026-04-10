@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect, afterEach } from 'vitest';
-import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync } from 'fs';
-import { join } from 'path';
+import { mkdtempSync, writeFileSync, readFileSync, existsSync, rmSync, mkdirSync } from 'fs';
+import { join, dirname } from 'path';
 import { tmpdir } from 'os';
 import { createBackup, findLatestBackup, restoreFromBackup } from '../../lib/backup.js';
 
@@ -234,5 +234,49 @@ describe('restoreFromBackup', () => {
     const result = restoreFromBackup(filePath);
     expect(result.success).toBe(true);
     expect(readFileSync(filePath, 'utf-8')).toBe(backupContent);
+  });
+});
+
+describe('project folder backup', () => {
+  it('writes backup to .vibes/backups/ when vibes.json exists', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, 'vibes.json'), '{"name":"test"}');
+    writeFileSync(join(dir, 'index.html'), '<html>content</html>');
+    mkdirSync(join(dir, '.vibes'), { recursive: true });
+
+    const backupPath = createBackup(join(dir, 'index.html'));
+    expect(backupPath).toContain(join('.vibes', 'backups'));
+    expect(existsSync(backupPath)).toBe(true);
+  });
+
+  it('creates .vibes/backups/ directory if needed', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, 'vibes.json'), '{"name":"test"}');
+    writeFileSync(join(dir, 'index.html'), '<html>content</html>');
+    // Don't pre-create .vibes/
+
+    const backupPath = createBackup(join(dir, 'index.html'));
+    expect(backupPath).toContain(join('.vibes', 'backups'));
+    expect(existsSync(backupPath)).toBe(true);
+  });
+
+  it('still writes backup alongside file when no vibes.json', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, 'index.html'), '<html>content</html>');
+
+    const backupPath = createBackup(join(dir, 'index.html'));
+    expect(backupPath).not.toContain('.vibes');
+    expect(dirname(backupPath)).toBe(dir);
+  });
+
+  it('finds backup in .vibes/backups/ for project folder', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, 'vibes.json'), '{"name":"test"}');
+    writeFileSync(join(dir, 'index.html'), '<html>content</html>');
+
+    createBackup(join(dir, 'index.html'));
+    const latest = findLatestBackup(join(dir, 'index.html'));
+    expect(latest).toContain(join('.vibes', 'backups'));
+    expect(existsSync(latest)).toBe(true);
   });
 });
