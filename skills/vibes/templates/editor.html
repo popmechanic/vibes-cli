@@ -3125,6 +3125,9 @@
         <div class="app-gallery-grid" id="appGalleryGrid"></div>
         <hr class="gallery-divider" id="galleryDivider" style="display:none;">
         <div class="app-list" id="appListOlder"></div>
+        <button class="app-item" onclick="pickProjectFolder()" style="border:1px dashed rgba(255,255,255,0.2);justify-content:center;margin-top:12px;color:rgba(255,255,255,0.5);font-size:0.8rem;">
+          + Browse for project folder...
+        </button>
       </div>
       <!-- Settings content -->
       <div id="rightPanelSettings" style="display:none;">
@@ -3838,23 +3841,25 @@ window.escapeHtml = function(str) {
         ? `<img src="/editor/apps/screenshot?name=${encodeURIComponent(app.name)}&t=${Date.now()}" alt="${escapeHtml(app.name)}" loading="eager">`
         : `<img src="/editor/assets/screen-saver.png" alt="App preview" loading="eager">`;
       const isCurrent = highlightCurrent && app.name === currentAppName;
-      const clickAttr = onClick ? onClick(app.name) : `loadSavedApp('${escapeHtml(app.name)}')`;
+      const clickAttr = onClick ? onClick(app.name) : (app.isProject ? `openProject('${app.path.replace(/'/g, "\\'")}')` : `loadSavedApp('${escapeHtml(app.name)}')`);
+      const displayName = app.displayName || app.name;
       const meta = showMeta ? `<div class="app-card-meta">${app.example ? 'Example' : timeAgo(new Date(app.modified))}${app.themeName ? ' \u00b7 ' + escapeHtml(app.themeName) : ''}</div>` : '';
       gridHtml += `<div class="app-card${isCurrent ? ' current' : ''}" onclick="${clickAttr}">
         <div class="app-card-thumb">${thumb}</div>
         <div class="app-card-info">
-          <div class="app-card-name">${escapeHtml(app.name)}${isCurrent ? ' <span style="opacity:0.5;font-size:0.7em;">(current)</span>' : ''}</div>
+          <div class="app-card-name">${escapeHtml(displayName)}${isCurrent ? ' <span style="opacity:0.5;font-size:0.7em;">(current)</span>' : ''}</div>
           ${meta}
         </div>
       </div>`;
     }
 
     for (const app of olderApps) {
-      const clickAttr = onClick ? onClick(app.name) : `loadSavedApp('${escapeHtml(app.name)}')`;
+      const clickAttr = onClick ? onClick(app.name) : (app.isProject ? `openProject('${app.path.replace(/'/g, "\\'")}')` : `loadSavedApp('${escapeHtml(app.name)}')`);
+      const displayName = app.displayName || app.name;
       const meta = showMeta ? `<div class="app-item-meta">${app.example ? 'Example' : timeAgo(new Date(app.modified))}${app.themeName ? ' \u00b7 ' + escapeHtml(app.themeName) : ''}</div>` : '';
       listHtml += `<button class="app-item" onclick="${clickAttr}">
         <div>
-          <div class="app-item-name">${escapeHtml(app.name)}</div>
+          <div class="app-item-name">${escapeHtml(displayName)}</div>
           ${meta}
         </div>
         <span style="font-size:1.2rem">&#8594;</span>
@@ -4540,17 +4545,45 @@ window.escapeHtml = function(str) {
     track.style.transform = `translateX(-${offset}px)`;
   }
 
+  async function loadRecentProjects() {
+    try {
+      const res = await fetch('/editor/recent-projects');
+      const data = await res.json();
+      if (!data.ok) return [];
+      return data.projects;
+    } catch {
+      return [];
+    }
+  }
+
   async function checkExistingApps() {
     try {
-      const [existsRes, appsRes] = await Promise.all([
+      const [existsRes, appsRes, projectsRes] = await Promise.all([
         fetch('/editor/app-exists' + (currentAppName ? '?app=' + encodeURIComponent(currentAppName) : '')).then(r => r.json()).catch(() => ({ exists: false })),
         fetch('/editor/apps').then(r => r.json()).catch(() => []),
+        fetch('/editor/recent-projects').then(r => r.json()).catch(() => ({ projects: [] })),
       ]);
 
       const hasCurrentApp = existsRes.exists;
       const savedApps = Array.isArray(appsRes) ? appsRes : [];
+      const recentProjects = (projectsRes.projects || []);
 
-      if (!hasCurrentApp && savedApps.length === 0) return;
+      // Merge: include recent projects that aren't already in savedApps
+      const savedNames = new Set(savedApps.map(a => a.name));
+      const projectEntries = recentProjects
+        .filter(p => !savedNames.has(p.name))
+        .map(p => ({
+          name: p.name,
+          displayName: p.displayName || p.name,
+          path: p.path,
+          modified: p.lastOpened,
+          isProject: true,
+        }));
+
+      // Combine: recent projects first, then legacy apps
+      const allApps = [...projectEntries, ...savedApps];
+
+      if (!hasCurrentApp && allApps.length === 0) return;
 
       // Populate grid content but keep panel hidden until toggled
       const grid = document.getElementById('appGalleryGrid');
@@ -4580,7 +4613,7 @@ window.escapeHtml = function(str) {
       }
 
       // Render remaining apps via shared renderer
-      const filteredApps = currentMatchName ? savedApps.filter(a => a.name !== currentMatchName) : savedApps;
+      const filteredApps = currentMatchName ? allApps.filter(a => a.name !== currentMatchName) : allApps;
       const rendered = renderAppCards(filteredApps);
       gridHtml += rendered.gridHtml;
 
@@ -5332,6 +5365,36 @@ window.escapeHtml = function(str) {
     textarea.disabled = false;
     textarea.placeholder = 'Describe what you want to build...';
     textarea.focus();
+  }
+
+  async function openProject(path) {
+    try {
+      const res = await fetch('/editor/open-project', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        console.error('Failed to open project:', data.error);
+        return;
+      }
+
+      setProjectDir(data.projectDir, data.config);
+
+      if (data.hasApp) {
+        // Existing project — load the app
+        setCurrentAppName(data.config?.name || path.split('/').pop());
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'switch_app', name: data.config?.name, projectDir: path }));
+        }
+        setPhase('edit');
+        loadPreview();
+      }
+      // If no app, stay on generate phase (prompt is now enabled via setProjectDir)
+    } catch (err) {
+      console.error('Failed to open project:', err);
+    }
   }
 
   // Disable prompt until project is selected (unless legacy app is loaded)
