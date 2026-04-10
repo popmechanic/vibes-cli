@@ -4571,6 +4571,7 @@ window.escapeHtml = function(str) {
           displayName: p.displayName || p.name,
           path: p.path,
           modified: p.lastOpened,
+          hasScreenshot: p.hasScreenshot || false,
         }));
 
       // Combine: recent projects first, then all apps

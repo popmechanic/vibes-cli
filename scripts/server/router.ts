@@ -660,7 +660,10 @@ async function editorPickFolder(ctx: ServerContext): Promise<Response> {
 }
 
 function editorRecentProjects(): Response {
-  const projects = getRecentProjects();
+  const projects = getRecentProjects().map(p => ({
+    ...p,
+    hasScreenshot: existsSync(join(p.path, '.vibes', 'screenshot.png')) || existsSync(join(p.path, 'screenshot.png')),
+  }));
   return json({ ok: true, projects });
 }
 
