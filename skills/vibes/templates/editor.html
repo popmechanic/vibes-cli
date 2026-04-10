@@ -889,6 +889,19 @@
       color: var(--vibes-cream);
       border-color: var(--vibes-near-black);
     }
+    #projectChip {
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+      cursor: pointer;
+    }
+    #projectChip.connected {
+      background: #2a5a2a !important;
+      color: #8fdf8f !important;
+      border-color: #4a8a4a !important;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
     .theme-select { display: none; }
     .theme-select-row { display: none; }
     .theme-select-label { display: none; }
@@ -3014,6 +3027,7 @@
               <button class="theme-mode-chip" id="useThemeChip" onclick="toggleUseTheme()">Use theme?</button>
               <button class="theme-mode-chip" id="privateChip" onclick="togglePrivate()">Private?</button>
               <button class="theme-mode-chip" id="useAiChip" onclick="toggleUseAI()" style="display:none;">Use AI?</button>
+              <button class="theme-mode-chip" id="projectChip" onclick="pickProjectFolder()" style="background:#009ACE;color:#fff;border:1px solid transparent;">Choose a Project</button>
               <button class="generate-submit-btn" id="generateBtn" onclick="startGenerate()" data-tooltip="Generate">&#8593;</button>
             </div>
           </div>
@@ -4829,6 +4843,14 @@ window.escapeHtml = function(str) {
   }
 
   function startGenerate() {
+    // Block if no project selected and no legacy app
+    if (!currentProjectDir && !currentAppName) {
+      const chip = document.getElementById('projectChip');
+      chip.style.animation = 'none';
+      void chip.offsetHeight;
+      chip.style.animation = 'pulse 0.3s ease 3';
+      return;
+    }
     // Clear stale app name so auto-save creates a new entry from the prompt
     setCurrentAppName(null);
     const prompt = document.getElementById('generatePrompt').value.trim();
@@ -5280,6 +5302,44 @@ window.escapeHtml = function(str) {
     if (chip) {
       chip.textContent = useAIEnabled ? 'Use AI' : 'Use AI?';
       chip.classList.toggle('active', useAIEnabled);
+    }
+  }
+
+  let currentProjectDir = null;
+
+  async function pickProjectFolder() {
+    try {
+      const res = await fetch('/editor/pick-folder', { method: 'POST' });
+      const data = await res.json();
+      if (!data.ok) return;
+      setProjectDir(data.projectDir, data.config);
+    } catch (err) {
+      console.error('Failed to pick folder:', err);
+    }
+  }
+
+  function setProjectDir(path, config) {
+    currentProjectDir = path;
+    const chip = document.getElementById('projectChip');
+    const textarea = document.getElementById('generatePrompt');
+    const folderName = path.split('/').pop();
+    const displayName = config?.displayName || folderName;
+
+    chip.textContent = displayName;
+    chip.classList.add('connected');
+
+    // Enable prompt
+    textarea.disabled = false;
+    textarea.placeholder = 'Describe what you want to build...';
+    textarea.focus();
+  }
+
+  // Disable prompt until project is selected (unless legacy app is loaded)
+  function initProjectGate() {
+    const textarea = document.getElementById('generatePrompt');
+    if (!currentAppName && !currentProjectDir) {
+      textarea.disabled = true;
+      textarea.placeholder = 'Choose a project folder first...';
     }
   }
 
@@ -6204,6 +6264,7 @@ window.escapeHtml = function(str) {
 
   connectWs();
   checkExistingApps();
+  initProjectGate();
 
   // Check auth → decide welcome vs generate/edit
   // Timeout prevents blank screen if token refresh hangs (e.g., cold network on wake)
