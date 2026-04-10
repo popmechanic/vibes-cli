@@ -5371,7 +5371,8 @@ window.escapeHtml = function(str) {
       const res = await fetch('/editor/pick-folder', { method: 'POST' });
       const data = await res.json();
       if (!data.ok) return;
-      setProjectDir(data.projectDir, data.config);
+      // Delegate to openProject — handles existing app detection and phase switching
+      openProject(data.projectDir);
     } catch (err) {
       console.error('Failed to pick folder:', err);
     }
