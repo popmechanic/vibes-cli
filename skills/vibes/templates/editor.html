@@ -5342,6 +5342,7 @@ window.escapeHtml = function(str) {
   }
 
   let currentProjectDir = null;
+  try { currentProjectDir = localStorage.getItem('vibes_project_dir') || null; } catch {}
 
   async function pickProjectFolder() {
     try {
@@ -5356,6 +5357,7 @@ window.escapeHtml = function(str) {
 
   function setProjectDir(path, config) {
     currentProjectDir = path;
+    try { localStorage.setItem('vibes_project_dir', path); } catch {}
     const chip = document.getElementById('projectChip');
     const textarea = document.getElementById('generatePrompt');
     const folderName = path.split('/').pop();
@@ -5372,6 +5374,7 @@ window.escapeHtml = function(str) {
 
   function clearProjectDir() {
     currentProjectDir = null;
+    try { localStorage.removeItem('vibes_project_dir'); } catch {}
     const chip = document.getElementById('projectChip');
     if (chip) {
       chip.textContent = 'Choose a Project';
@@ -6344,7 +6347,24 @@ window.escapeHtml = function(str) {
 
   connectWs();
   checkExistingApps();
-  initProjectGate();
+
+  // Restore project dir from localStorage — update button and server state
+  if (currentProjectDir) {
+    fetch('/editor/open-project', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: currentProjectDir }),
+    }).then(r => r.json()).then(data => {
+      if (data.ok) {
+        setProjectDir(data.projectDir, data.config);
+      } else {
+        // Project folder no longer exists — clear stale state
+        clearProjectDir();
+      }
+    }).catch(() => clearProjectDir());
+  } else {
+    initProjectGate();
+  }
 
   // Check auth → decide welcome vs generate/edit
   // Timeout prevents blank screen if token refresh hangs (e.g., cold network on wake)
