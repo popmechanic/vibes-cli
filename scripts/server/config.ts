@@ -11,6 +11,7 @@ import { homedir } from 'os';
 import { parseThemeCatalog } from '../lib/parse-theme-catalog.js';
 import { parseAnimationCatalog } from '../lib/parse-animation-catalog.js';
 import { currentAppDir } from './app-context.js';
+import { getRecentProjects, populateLegacyApps } from '../lib/registry.js';
 
 // --- Types ---
 
@@ -57,6 +58,11 @@ export function loadConfig(): ServerContext {
   const appsDir = join(homedir(), '.vibes', 'apps');
   if (!existsSync(appsDir)) mkdirSync(appsDir, { recursive: true });
   const examplesDir = join(projectRoot, 'examples');
+
+  // One-time migration: populate recent projects from legacy apps
+  if (getRecentProjects().length === 0) {
+    populateLegacyApps(appsDir);
+  }
 
   // Load OpenRouter API key
   const openRouterKey = loadOpenRouterKey(projectRoot);
