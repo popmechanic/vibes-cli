@@ -4160,7 +4160,7 @@ window.escapeHtml = function(str) {
       finalizeStreaming();
       // Restore app context and chat history after server restart
       if (currentAppName) {
-        ws.send(JSON.stringify({ type: 'switch_app', name: currentAppName }));
+        ws.send(JSON.stringify({ type: 'switch_app', name: currentAppName, projectDir: currentProjectDir || undefined }));
       }
     };
 

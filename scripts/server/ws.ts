@@ -382,10 +382,14 @@ export function createWsHandler(ctx: ServerContext) {
           case 'switch_app': {
             let newAppDir: string;
             if (msg.projectDir) {
-              // Project folder mode: projectDir is the app dir
+              // Explicit project folder from client
               newAppDir = msg.projectDir;
               ctx.projectDir = msg.projectDir;
+            } else if (ctx.projectDir) {
+              // Preserve existing project folder context (e.g., reconnect)
+              newAppDir = ctx.projectDir;
             } else {
+              // Legacy: resolve from app name
               newAppDir = join(ctx.appsDir, msg.name);
             }
             switchApp(ctx, newAppDir);
