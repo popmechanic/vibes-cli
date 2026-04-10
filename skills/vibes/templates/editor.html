@@ -4649,6 +4649,7 @@ window.escapeHtml = function(str) {
     try {
       const res = await fetch('/editor/apps/load?name=' + encodeURIComponent(name), { method: 'POST' });
       if (!res.ok) throw new Error('Failed to load app');
+      clearProjectDir();
       setCurrentAppName(name);
       restorePrivateState(name);
       document.getElementById('chatMessages').innerHTML = '';

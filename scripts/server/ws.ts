@@ -378,11 +378,12 @@ export function createWsHandler(ctx: ServerContext) {
               // Explicit project folder from client
               newAppDir = msg.projectDir;
               ctx.projectDir = msg.projectDir;
-            } else if (ctx.projectDir) {
-              // Preserve existing project folder context (e.g., reconnect)
+            } else if (ctx.projectDir && msg.name === basename(ctx.projectDir)) {
+              // Reconnect to current project (same name, no explicit projectDir)
               newAppDir = ctx.projectDir;
             } else {
-              // Legacy: resolve from app name
+              // Legacy app or different app — clear project context
+              ctx.projectDir = null;
               newAppDir = join(ctx.appsDir, msg.name);
             }
             switchApp(ctx, newAppDir);
