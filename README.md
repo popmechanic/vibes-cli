@@ -91,10 +91,15 @@ The hidden settings menu (gear icon) lets you configure sync for collaboration.
 
 You cannot run global queries across all tenants. Some ideas won't fit. This is groupware—tools for communities, not platforms that own them. No one can be Zuckerberg over a Vibes app. That's the point.
 
-## Links
+## We live on Github Stars, please donate yours 
 
-- [vibes.diy](https://vibes.diy) - Try the web builder
-- [Discord](https://discord.gg/vnpWycj4Ta) - Join the community
+<a href="https://www.star-history.com/?repos=popmechanic%2FVibesOS&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=popmechanic/VibesOS&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=popmechanic/VibesOS&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=popmechanic/VibesOS&type=date&legend=top-left" />
+ </picture>
+</a>
 
 ## License
 
