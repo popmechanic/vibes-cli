@@ -177,7 +177,12 @@ const replacements = {
   '__APP_TAGLINE__': options.tagline || 'SHIP FASTER.<br>LOOK BETTER.',
   '__APP_SUBTITLE__': options.subtitle || 'The first design-native framework for the next generation of SaaS. Zero config, infinite style.',
   '__REGISTRY_URL__': options.registryUrl || envVars.VITE_REGISTRY_URL || '',
-  '__PLAN_QUOTAS__': options.planQuotas || '{}'
+  '__PLAN_QUOTAS__': options.planQuotas || '{}',
+  // Factory mode: when billing is required, route AI calls through the factory
+  // worker (which emits Stripe meter events) instead of the legacy proxy.
+  // Substituted as a literal `true`/`false` (no quotes in the template).
+  '__FACTORY_MODE__': (options.billingMode === 'required') ? 'true' : 'false',
+  '__FACTORY_BASE__': 'https://factory-staging.vibesos.com'
 };
 
 // Handle JSON values - features
@@ -266,7 +271,11 @@ const SAFE_PLACEHOLDER_PATTERNS = [
   '__VIBES_REGISTRY_URL__',
   '__VITE_AI_PROXY_URL__',
   '__VIBES_JOINED__',
-  '__VIBES_CONSOLE_LOG__'
+  '__VIBES_CONSOLE_LOG__',
+  // Factory routing placeholders — substituted in `replacements` above before
+  // validation runs, but listed here defensively in case substitution is missed.
+  '__FACTORY_MODE__',
+  '__FACTORY_BASE__'
 ];
 
 // Validate template BEFORE injecting app/admin code

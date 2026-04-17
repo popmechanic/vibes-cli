@@ -100,7 +100,8 @@ const React = typeof window !== "undefined" ? window.React : undefined;
 if (React) {
   /**
    * Check if AI proxy and auth token are available.
-   * Returns { proxyUrl, token } on success, or { error, message } on failure.
+   * Returns { proxyUrl, token, factoryMode, appName, factoryBase } on success,
+   * or { error, message } on failure.
    */
   function checkReady() {
     const config = window.__APP_CONFIG__ || {};
@@ -108,7 +109,52 @@ if (React) {
     if (!proxyUrl) return { error: "NOT_CONFIGURED", message: "This app was not deployed with AI enabled. Redeploy with the 'Use AI' option to use AI features." };
     const token = window.__VIBES_OIDC_TOKEN__;
     if (!token) return { error: "NOT_AUTHENTICATED", message: "Waiting for sign-in — AI will be available after you log in." };
-    return { proxyUrl, token };
+    return {
+      proxyUrl,
+      token,
+      factoryMode: !!config.factoryMode,
+      appName: config.appName || "app",
+      factoryBase: config.factoryBase || "https://factory-staging.vibesos.com",
+    };
+  }
+
+  /**
+   * Build the request URL and headers for an AI call.
+   * - Legacy mode: POST to {proxyUrl}/v1/chat/completions
+   * - Factory mode: POST to {factoryBase}/ai/{appName}/chat with X-Instance-Slug
+   *   (slug = first non-empty path segment of window.location.pathname)
+   */
+  function buildRequest(env) {
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + env.token,
+    };
+    if (env.factoryMode) {
+      const slug = (window.location.pathname.replace(/^\//, "").split("/")[0] || "").trim();
+      if (slug) headers["X-Instance-Slug"] = slug;
+      return {
+        url: env.factoryBase + "/ai/" + env.appName + "/chat",
+        headers,
+      };
+    }
+    return {
+      url: env.proxyUrl + "/v1/chat/completions",
+      headers,
+    };
+  }
+
+  /**
+   * Handle a non-OK response. In factory mode, a 403 means the instance is
+   * frozen (subscription cancelled) — redirect to checkout. Returns true if
+   * the caller should bail out without further error reporting (redirect in
+   * progress); returns false to let the caller fall through to mapErrorResponse.
+   */
+  function handleNotOk(response, env) {
+    if (env.factoryMode && response.status === 403) {
+      window.location.href = env.factoryBase + "/checkout/" + env.appName;
+      return true;
+    }
+    return false;
   }
 
   function useAI() {
@@ -137,16 +183,15 @@ if (React) {
 
       try {
         const body = buildRequestBody(options);
-        const response = await fetch(env.proxyUrl + "/v1/chat/completions", {
+        const req = buildRequest(env);
+        const response = await fetch(req.url, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + env.token,
-          },
+          headers: req.headers,
           body: JSON.stringify(body),
         });
 
         if (!response.ok) {
+          if (handleNotOk(response, env)) return null;
           const errData = await response.json().catch(() => ({}));
           setError(mapErrorResponse(response.status, errData));
           return null;
@@ -176,16 +221,15 @@ if (React) {
 
       async function* generate() {
         try {
-          const response = await fetch(env.proxyUrl + "/v1/chat/completions", {
+          const req = buildRequest(env);
+          const response = await fetch(req.url, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": "Bearer " + env.token,
-            },
+            headers: req.headers,
             body: JSON.stringify(body),
           });
 
           if (!response.ok) {
+            if (handleNotOk(response, env)) return;
             const errData = await response.json().catch(() => ({}));
             setError(mapErrorResponse(response.status, errData));
             return;
