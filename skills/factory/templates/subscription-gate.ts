@@ -5,7 +5,7 @@
 
 export function handleSubscriptionError(status: number): void {
   const appName = (window as any).__VIBES_APP_NAME__ || "app";
-  const factoryBase = (window as any).__VIBES_FACTORY_BASE__ || "https://factory-staging.vibesos.com";
+  const factoryBase = (window as any).__VIBES_FACTORY_BASE__ || "https://factory.vibesos.com";
   if (status === 403) {
     window.location.href = `${factoryBase}/checkout/${appName}`;
   }

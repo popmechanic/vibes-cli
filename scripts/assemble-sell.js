@@ -182,8 +182,7 @@ const replacements = {
   // worker (which emits Stripe meter events) instead of the legacy proxy.
   // Substituted as a literal `true`/`false` (no quotes in the template).
   '__FACTORY_MODE__': (options.billingMode === 'required') ? 'true' : 'false',
-  // TODO(phase-6-cutover): parameterize via --factory-base CLI flag or env var.
-  '__FACTORY_BASE__': 'https://factory-staging.vibesos.com'
+  '__FACTORY_BASE__': 'https://factory.vibesos.com'
 };
 
 // Handle JSON values - features

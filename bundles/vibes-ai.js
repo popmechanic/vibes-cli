@@ -155,8 +155,7 @@ if (React) {
       token,
       factoryMode: !!config.factoryMode,
       appName: config.appName || "app",
-      // TODO(phase-6-cutover): switch this default to https://factory.vibesos.com.
-      factoryBase: config.factoryBase || "https://factory-staging.vibesos.com",
+      factoryBase: config.factoryBase || "https://factory.vibesos.com",
     };
   }
 

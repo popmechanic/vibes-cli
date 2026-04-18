@@ -52,7 +52,7 @@ metadata:
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
 ```
 
-**Factory API base:** `https://factory-staging.vibesos.com`
+**Factory API base:** `https://factory.vibesos.com`
 
 ---
 
@@ -100,7 +100,7 @@ ls -la app.jsx 2>/dev/null || echo "NOT_FOUND"
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
 APP_NAME="${1:-}"
 if [ -n "$APP_NAME" ]; then
-  curl -s "https://factory-staging.vibesos.com/connect/status/$APP_NAME" \
+  curl -s "https://factory.vibesos.com/connect/status/$APP_NAME" \
     -H "Authorization: Bearer $(cat ~/.vibes/auth.json | grep -o '"token":"[^"]*"' | cut -d'"' -f4)" 2>/dev/null
 fi
 ```
@@ -228,7 +228,7 @@ TOKEN=$(cat ~/.vibes/auth.json | python3 -c "import sys,json; print(json.load(sy
 
 **Create Stripe Connect account:**
 ```bash
-curl -s -X POST "https://factory-staging.vibesos.com/connect/onboard" \
+curl -s -X POST "https://factory.vibesos.com/connect/onboard" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{\"appName\": \"$APP_NAME\"}"
@@ -244,7 +244,7 @@ open "$ONBOARD_URL"  # macOS
 **Poll for completion:**
 ```bash
 while true; do
-  STATUS=$(curl -s "https://factory-staging.vibesos.com/connect/status/$APP_NAME" \
+  STATUS=$(curl -s "https://factory.vibesos.com/connect/status/$APP_NAME" \
     -H "Authorization: Bearer $TOKEN")
   COMPLETE=$(echo "$STATUS" | python3 -c "import sys,json; print(json.load(sys.stdin).get('complete', False))")
   if [ "$COMPLETE" = "True" ]; then
@@ -264,7 +264,7 @@ Store: `stripeConnectAccountId` from the response
 ### 6.1 Store Billing Configuration
 
 ```bash
-curl -s -X POST "https://factory-staging.vibesos.com/app/configure" \
+curl -s -X POST "https://factory.vibesos.com/app/configure" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
@@ -307,7 +307,7 @@ bun "$VIBES_ROOT/scripts/deploy-cloudflare.js" \
 ### 6.4 Initialize Vibe Token Engine
 
 ```bash
-curl -s -X POST "https://factory-staging.vibesos.com/token/$APP_NAME/initialize" \
+curl -s -X POST "https://factory.vibesos.com/token/$APP_NAME/initialize" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json"
 ```
@@ -354,7 +354,7 @@ Options:
 **For each invite, call the API:**
 
 ```bash
-RESULT=$(curl -s -X POST "https://factory-staging.vibesos.com/invite/create" \
+RESULT=$(curl -s -X POST "https://factory.vibesos.com/invite/create" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{\"appName\": \"$APP_NAME\", \"tokens\": $TOKEN_AMOUNT}")
@@ -380,7 +380,7 @@ Present the final summary:
 > **Your app factory is live!**
 >
 > **App URL:** `https://{appName}.vibesos.com`
-> **Dashboard:** `https://factory-staging.vibesos.com/dashboard/apps/{appName}`
+> **Dashboard:** `https://factory.vibesos.com/dashboard/apps/{appName}`
 >
 > **Configuration:**
 > - Monthly price: ${price}/mo
@@ -403,7 +403,7 @@ Question: "Your factory is deployed! What would you like to do?"
 Header: "Next"
 Options:
 - Label: "Open dashboard"
-  Description: "View your app at factory-staging.vibesos.com/dashboard"
+  Description: "View your app at factory.vibesos.com/dashboard"
 - Label: "Grant more tokens"
   Description: "Invite additional distribution partners"
 - Label: "Customize landing page"
