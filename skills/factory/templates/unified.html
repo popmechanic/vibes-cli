@@ -3826,7 +3826,7 @@ if (typeof window !== 'undefined') {
       // === Subscription Paywall (stub — billing is phase 2) ===
       function SubscriptionPaywall({ subdomain }) {
         const displayDomain = subdomain
-          ? `${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`
+          ? `${APP_DOMAIN}/${subdomain}`
           : null;
 
         return (
@@ -3861,7 +3861,7 @@ if (typeof window !== 'undefined') {
 
       // === Access Denied ===
       function AccessDenied({ subdomain }) {
-        const displayDomain = `${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`;
+        const displayDomain = `${APP_DOMAIN}/${subdomain}`;
         const landingUrl = needsQueryParamRouting() ? window.location.origin : `https://${APP_DOMAIN}`;
 
         return (
@@ -4299,7 +4299,7 @@ if (typeof window !== 'undefined') {
 
       // === Resubscribe Paywall (shown when subdomain is frozen — stub, billing is phase 2) ===
       function ResubscribePaywall({ subdomain, role }) {
-        const displayDomain = `${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`;
+        const displayDomain = `${APP_DOMAIN}/${subdomain}`;
 
         if (role === 'owner') {
           return (
@@ -4644,67 +4644,16 @@ if (typeof window !== 'undefined') {
             animation: fadeUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.4s;
         }
 
-        .landing-page .claim-bar {
-            display: inline-flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.9);
-            border-radius: 100px;
-            padding: 8px;
-            box-shadow:
-                0 20px 40px -10px rgba(0,0,0,0.1),
-                0 0 0 1px rgba(0,0,0,0.02);
-            position: relative;
-            transform: translateY(20px);
-            opacity: 0;
-            animation: fadeUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.6s;
-            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-            max-width: 100%;
-        }
-
-        .landing-page .claim-bar:hover {
-            transform: translateY(18px) scale(1.01);
-            box-shadow:
-                0 30px 60px -15px rgba(0,0,0,0.15),
-                0 0 0 1px rgba(0,0,0,0.02);
-        }
-
-        .landing-page .input-group {
+        .landing-page .subscribe-cta {
             display: flex;
-            align-items: baseline;
-            padding: 0 1.5rem;
-            position: relative;
+            align-items: center;
+            justify-content: center;
+            margin-top: 2.5rem;
         }
 
-        .landing-page input[type="text"] {
-            background: transparent;
-            border: none;
-            font-family: var(--font-heading, var(--font-primary, inherit));
-            font-size: 1.5rem;
-            color: var(--color-foreground, #111111);
-            outline: none;
-            width: 200px;
-            font-weight: 500;
-            letter-spacing: -0.03em;
-            padding: 1rem 0;
-        }
-
-        .landing-page input[type="text"]::placeholder {
-            color: #CCC;
-            font-weight: 300;
-        }
-
-        .landing-page .domain-suffix {
-            font-family: var(--font-heading, var(--font-primary, inherit));
-            font-size: 1.5rem;
-            color: #999;
-            font-weight: 400;
-            letter-spacing: -0.03em;
-            pointer-events: none;
-            margin-right: 1rem;
-            user-select: none;
+        .landing-page .subscribe-cta .btn-start[disabled] {
+            opacity: 0.6;
+            cursor: wait;
         }
 
         .landing-page .btn-start {
@@ -4825,9 +4774,6 @@ if (typeof window !== 'undefined') {
             animation: fadeUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.8s;
         }
 
-        .landing-page .status-checking { color: #999; }
-        .landing-page .status-available { color: #10b981; }
-        .landing-page .status-taken { color: #ef4444; }
         .landing-page .status-error { color: #ef4444; }
 
         .landing-page .pricing-section {
@@ -4902,27 +4848,9 @@ if (typeof window !== 'undefined') {
             .landing-page h1 {
                 font-size: 3.5rem;
             }
-            .landing-page .claim-bar {
-                flex-direction: column;
-                border-radius: 20px;
-                width: 100%;
-                padding: 1rem;
-                gap: 1rem;
-            }
-            .landing-page .input-group {
-                width: 100%;
-                justify-content: center;
-                border-bottom: 1px solid #eee;
-                padding-bottom: 1rem;
-            }
             .landing-page .btn-start {
                 width: 100%;
                 justify-content: center;
-            }
-            .landing-page input[type="text"] {
-                width: auto;
-                max-width: 120px;
-                text-align: right;
             }
             .landing-page .pricing-trust {
                 flex-direction: column;
@@ -4960,19 +4888,15 @@ if (typeof window !== 'undefined') {
         );
       }
 
-      // === Landing Page Component (design reference transformation) ===
-      function SellLandingPage() {
-        const [subdomain, setSubdomain] = useState('');
-        const [registryStatus, setRegistryStatus] = useState('checking');
-        const { available, checking, error } = useSubdomainChecker(subdomain);
+      // === Landing Page Component — Subscribe CTA ===
+      // Path-based tenancy: users do NOT pick a slug here. The slug is
+      // auto-generated from their email in factory-worker/src/routes/checkout.ts
+      // after Stripe Checkout completes. This component's only job is to
+      // trigger that flow.
+      function LandingPage() {
+        const [submitting, setSubmitting] = useState(false);
+        const [error, setError] = useState(null);
         const copyrightRef = useRef(null);
-
-        // Check registry availability on mount
-        useEffect(() => {
-          fetchRegistry().then(() => {
-            setRegistryStatus(isRegistryAvailable() ? 'available' : 'unavailable');
-          });
-        }, []);
 
         // Set copyright year
         useEffect(() => {
@@ -4981,40 +4905,37 @@ if (typeof window !== 'undefined') {
           }
         }, []);
 
-        const handleGetStarted = () => {
-          if (!subdomain || !available) return;
-          // Navigate to subdomain
-          const url = new URL(window.location.href);
-          if (needsQueryParamRouting()) {
-            url.searchParams.set('subdomain', subdomain);
-          } else {
-            url.hostname = `${subdomain}.${APP_DOMAIN}`;
+        const handleSubscribe = async () => {
+          if (submitting) return;
+          setSubmitting(true);
+          setError(null);
+          try {
+            const factoryBase = (window.__APP_CONFIG__ && window.__APP_CONFIG__.factoryBase) || '';
+            if (!factoryBase || factoryBase.startsWith('__')) {
+              throw new Error('Checkout is not configured for this deployment.');
+            }
+            const urlParams = new URLSearchParams(window.location.search);
+            const ref = urlParams.get('ref');
+            const endpoint = factoryBase.replace(/\/$/, '') +
+              '/checkout/' + encodeURIComponent(APP_NAME) +
+              (ref ? '?ref=' + encodeURIComponent(ref) : '');
+            const res = await fetch(endpoint, { method: 'POST' });
+            if (!res.ok) {
+              const body = await res.text().catch(() => '');
+              throw new Error('Checkout session failed (' + res.status + '): ' + body.slice(0, 120));
+            }
+            const data = await res.json();
+            if (!data || !data.url) throw new Error('Checkout response missing url field');
+            window.location.href = data.url;
+          } catch (err) {
+            console.error('[landing] subscribe failed:', err);
+            setError(err && err.message ? err.message : 'Unable to start checkout. Please try again.');
+            setSubmitting(false);
           }
-          window.location.href = url.toString();
-        };
-
-        const handleInputChange = (e) => {
-          setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''));
-        };
-
-        const handleKeyDown = (e) => {
-          if (e.key === 'Enter') {
-            handleGetStarted();
-          }
-        };
-
-        const getStatusIndicator = () => {
-          if (!subdomain || subdomain.length < 3) return null;
-          if (checking) return <span className="status-checking">Checking...</span>;
-          if (error) return <span className="status-error">{error}</span>;
-          if (available) return <span className="status-available">Available!</span>;
-          return <span className="status-taken">Taken</span>;
         };
 
         // Humanize app name for display (e.g., "cosmic-garden" → "Cosmic Garden")
-        const displayName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-        const isDisabled = !subdomain || !available || checking || registryStatus === 'unavailable';
+        const displayName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
 
         return (
           <>
@@ -5031,27 +4952,15 @@ if (typeof window !== 'undefined') {
                   <h1 dangerouslySetInnerHTML={{ __html: APP_TAGLINE }} />
                   <p className="subhead">{APP_SUBTITLE}</p>
 
-                  {/* Claim bar with subdomain input */}
-                  <div className="claim-bar">
-                    <div className="input-group">
-                      <input
-                        type="text"
-                        placeholder="yourname"
-                        spellCheck="false"
-                        autoFocus
-                        value={subdomain}
-                        onChange={handleInputChange}
-                        onKeyDown={handleKeyDown}
-                        disabled={registryStatus === 'unavailable'}
-                      />
-                      <span className="domain-suffix">.{needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}</span>
-                    </div>
+                  {/* Subscribe CTA — path-based tenancy, slug derived after checkout */}
+                  <div className="subscribe-cta">
                     <button
                       className="btn-start"
-                      onClick={handleGetStarted}
-                      disabled={isDisabled}
+                      onClick={handleSubscribe}
+                      disabled={submitting}
+                      aria-busy={submitting}
                     >
-                      Get Started
+                      {submitting ? 'Opening checkout…' : 'Subscribe'}
                       <svg className="arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="5" y1="12" x2="19" y2="12" />
                         <polyline points="12 5 19 12 12 19" />
@@ -5059,10 +4968,12 @@ if (typeof window !== 'undefined') {
                     </button>
                   </div>
 
-                  {/* Status indicator */}
-                  <div className="status-indicator">
-                    {registryStatus !== 'unavailable' && getStatusIndicator()}
-                  </div>
+                  {/* Error indicator */}
+                  {error ? (
+                    <div className="status-indicator">
+                      <span className="status-error">{error}</span>
+                    </div>
+                  ) : null}
                 </div>
               </main>
 
@@ -5089,7 +5000,7 @@ if (typeof window !== 'undefined') {
         if (routeInfo.route === 'tenant') {
           return <TenantApp subdomain={routeInfo.subdomain} />;
         }
-        return <SellLandingPage />;
+        return <LandingPage />;
       }
 
       // === TinyBase Data Shell (init store, persist, sync) ===
