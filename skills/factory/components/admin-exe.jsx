@@ -1,5 +1,5 @@
 // Admin Dashboard Components (Client-Side Only)
-// Injected into unified.html by assemble-sell.js
+// Injected into unified.html by assemble-factory.js
 // Uses CONFIG object and CSS variables for theming
 // NOTE: No backend API calls - uses OIDC user metadata as source of truth
 

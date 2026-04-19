@@ -20,8 +20,6 @@ export const BUILD_DIR = join(PLUGIN_ROOT, 'build');
  */
 export const TEMPLATES = {
   vibesBasic: join(PLUGIN_ROOT, 'skills/vibes/templates/index.html'),
-  sellUnified: join(PLUGIN_ROOT, 'skills/sell/templates/unified.html'),
-  adminComponent: join(PLUGIN_ROOT, 'skills/sell/components/admin-exe.jsx'),
 };
 
 /**
