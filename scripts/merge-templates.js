@@ -46,11 +46,11 @@ const SKILLS = [
     assemblyRole: "generate"    // creates riff variations
   },
   {
-    name: "sell",
-    delta: join(PLUGIN_ROOT, "skills/sell/template.delta.html"),
-    output: join(PLUGIN_ROOT, "skills/sell/templates/unified.html"),
-    title: "__APP_TITLE__",  // Sell uses dynamic title
-    assemblyMode: "strip",      // assemble-sell.js: user code adapted via stripForTemplate()
+    name: "factory",
+    delta: join(PLUGIN_ROOT, "skills/factory/template.delta.html"),
+    output: join(PLUGIN_ROOT, "skills/factory/templates/unified.html"),
+    title: "__APP_TITLE__",  // Factory uses dynamic title
+    assemblyMode: "strip",      // assemble-factory.js: user code adapted via stripForTemplate()
     assemblyRole: "transform"   // transforms a vibes artifact into SaaS
   }
 ];

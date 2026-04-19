@@ -1,7 +1,7 @@
 /**
  * Integration tests for the assembly pipeline using test fixtures.
  *
- * Runs fixture JSX files through assemble.js / assemble-sell.js and
+ * Runs fixture JSX files through assemble.js / assemble-factory.js and
  * validates the output HTML structure.
  */
 
@@ -113,7 +113,7 @@ describe('Assembly Pipeline', () => {
       copyFileSync(fixture, appJsx);
 
       const cmd = [
-        `bun ${join(SCRIPTS_DIR, 'assemble-sell.js')}`,
+        `bun ${join(SCRIPTS_DIR, 'assemble-factory.js')}`,
         `"${appJsx}" "${output}"`,
         `--app-name test-app`,
         `--app-title "Test App"`,
@@ -134,7 +134,7 @@ describe('Assembly Pipeline', () => {
       copyFileSync(fixture, appJsx);
 
       const cmd = [
-        `bun ${join(SCRIPTS_DIR, 'assemble-sell.js')}`,
+        `bun ${join(SCRIPTS_DIR, 'assemble-factory.js')}`,
         `"${appJsx}" "${output}"`,
         `--app-name test-app`,
         `--app-title "Test App"`,
@@ -156,7 +156,7 @@ describe('Assembly Pipeline', () => {
       copyFileSync(fixture, appJsx);
 
       const cmd = [
-        `bun ${join(SCRIPTS_DIR, 'assemble-sell.js')}`,
+        `bun ${join(SCRIPTS_DIR, 'assemble-factory.js')}`,
         `"${appJsx}" "${output}"`,
         `--app-name test-app`,
         `--app-title "Test App"`,
@@ -180,7 +180,7 @@ describe('Assembly Pipeline', () => {
       copyFileSync(fixture, appJsx);
 
       const cmd = [
-        `bun ${join(SCRIPTS_DIR, 'assemble-sell.js')}`,
+        `bun ${join(SCRIPTS_DIR, 'assemble-factory.js')}`,
         `"${appJsx}" "${output}"`,
         `--app-name test-app`,
         `--app-title "Test App"`,

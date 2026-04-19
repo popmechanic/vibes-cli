@@ -151,7 +151,7 @@ set -a && source test-vibes/.env && set +a
 
 **For sell-ready fixture:**
 ```bash
-bun scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html \
+bun scripts/assemble-factory.js test-vibes/app.jsx test-vibes/index.html \
   --domain vibes-test.<account>.workers.dev \
   --admin-ids '["<admin-user-id>"]'  # read OIDC_ADMIN_USER_ID from test-vibes/.env
 ```
@@ -327,7 +327,7 @@ grep -q OIDC_ADMIN_USER_ID test-vibes/.env 2>/dev/null && \
 ```bash
 set -a && source test-vibes/.env && set +a
 
-bun scripts/assemble-sell.js test-vibes/app.jsx test-vibes/index.html \
+bun scripts/assemble-factory.js test-vibes/app.jsx test-vibes/index.html \
   --domain vibes-test.<account>.workers.dev \
   --admin-ids '["<userId>"]'
 ```

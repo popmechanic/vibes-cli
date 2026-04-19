@@ -220,7 +220,7 @@ If yes: run `bun "$VIBES_ROOT/scripts/server.ts"` and tell the user to open `htt
 **Step A — Assemble:**
 ```bash
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
-bun "$VIBES_ROOT/scripts/assemble-sell.js" app.jsx index.html \
+bun "$VIBES_ROOT/scripts/assemble-factory.js" app.jsx index.html \
   --app-name "{appName}" \
   --app-title "{appTitle}" \
   --domain "{appName}.vibes.diy" \

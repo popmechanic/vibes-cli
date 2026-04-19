@@ -1,7 +1,7 @@
 /**
  * Shared assembly constants and validation utilities.
  *
- * Used by assemble.js, assemble-all.js, assemble-sell.js, and their tests.
+ * Used by assemble.js, assemble-all.js, assemble-factory.js, and their tests.
  */
 
 export const APP_PLACEHOLDER = '// __VIBES_APP_CODE__';

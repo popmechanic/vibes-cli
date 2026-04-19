@@ -2,7 +2,7 @@
  * Unit tests for assembly validation logic
  *
  * Tests the validation functions that catch errors before assembly completes.
- * These mirror the logic in assemble.js and assemble-sell.js.
+ * These mirror the logic in assemble.js and assemble-factory.js.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -12,7 +12,7 @@ const PLACEHOLDER = APP_PLACEHOLDER;
 
 /**
  * Validate sell template BEFORE app code injection
- * Mirrors the pre-injection validation in assemble-sell.js
+ * Mirrors the pre-injection validation in assemble-factory.js
  */
 const SAFE_PLACEHOLDER_PATTERNS = [
   '__PURE__',
@@ -41,7 +41,7 @@ function validateSellTemplate(html) {
 
 /**
  * Validate sell assembly output (post-injection)
- * Mirrors the post-injection validation in assemble-sell.js
+ * Mirrors the post-injection validation in assemble-factory.js
  */
 function validateSellAssembly(html, app) {
   const errors = [];
