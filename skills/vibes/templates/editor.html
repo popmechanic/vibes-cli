@@ -5365,12 +5365,34 @@ window.escapeHtml = function(str) {
         alert('Folder picker is unavailable — your Vibes plugin is out of date. Run /plugin update in Claude Code to get the latest version.');
         return;
       }
+      // Response may not be JSON (older servers returned HTML error pages on 500)
+      let data = null;
+      try { data = await res.json(); } catch {}
       if (!res.ok) {
-        console.error(`pick-folder failed: HTTP ${res.status}`);
+        if (data?.unsupported) {
+          const path = prompt(
+            'The native folder picker isn\'t supported on ' + (data.platform || 'your platform') + ' yet.\n\nEnter an absolute folder path under your home directory:'
+          );
+          if (path && path.trim()) {
+            const openRes = await fetch('/editor/open-project', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: path.trim() }),
+            });
+            const openData = await openRes.json().catch(() => null);
+            if (openRes.ok && openData?.ok) {
+              openProject(openData.projectDir);
+            } else {
+              alert('Could not open that folder: ' + (openData?.error || `HTTP ${openRes.status}`));
+            }
+          }
+          return;
+        }
+        console.error(`pick-folder failed: HTTP ${res.status}`, data);
+        alert('Folder picker failed: ' + (data?.error || `HTTP ${res.status}`));
         return;
       }
-      const data = await res.json();
-      if (!data.ok) return; // user cancelled or server declined
+      if (!data || !data.ok) return; // user cancelled or server declined
       // Delegate to openProject — handles existing app detection and phase switching
       openProject(data.projectDir);
     } catch (err) {

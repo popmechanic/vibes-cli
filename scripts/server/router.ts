@@ -663,23 +663,36 @@ async function editorUploadFile(ctx: ServerContext, req: Request): Promise<Respo
 }
 
 async function editorPickFolder(ctx: ServerContext): Promise<Response> {
-  const folderPath = await pickFolder();
-  if (!folderPath) {
-    return json({ ok: false, cancelled: true });
+  try {
+    const folderPath = await pickFolder();
+    if (!folderPath) {
+      return json({ ok: false, cancelled: true });
+    }
+
+    initVibesJson(folderPath);
+    const config = readVibesJson(folderPath);
+
+    ctx.projectDir = folderPath;
+
+    addRecentProject({
+      path: folderPath,
+      name: config?.name || basename(folderPath),
+      displayName: config?.displayName || null,
+    });
+
+    return json({ ok: true, projectDir: folderPath, config });
+  } catch (err: any) {
+    // pickFolder throws on non-Darwin; anything else (KV write, config
+    // read) also lands here instead of falling through to Bun's default
+    // HTML error page, which would break res.json() on the client.
+    const unsupported = process.platform !== 'darwin';
+    return json({
+      ok: false,
+      unsupported,
+      platform: process.platform,
+      error: err?.message || 'Folder picker failed',
+    }, 500);
   }
-
-  initVibesJson(folderPath);
-  const config = readVibesJson(folderPath);
-
-  ctx.projectDir = folderPath;
-
-  addRecentProject({
-    path: folderPath,
-    name: config?.name || basename(folderPath),
-    displayName: config?.displayName || null,
-  });
-
-  return json({ ok: true, projectDir: folderPath, config });
 }
 
 function editorRecentProjects(): Response {
