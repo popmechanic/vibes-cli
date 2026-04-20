@@ -10,7 +10,7 @@
       "name": "vibes",
       "source": "./",
       "description": "Vibes is for people who use Claude Code, but don't know how to code.",
-      "version": "0.1.98",
+      "version": "0.2.1",
       "author": {
         "name": "Marcus Estes",
         "email": "marcus@vibes.diy"
