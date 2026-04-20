@@ -4783,7 +4783,7 @@ if (typeof window !== 'undefined') {
 
         .landing-page .features-list li {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 0.75rem;
             padding: 0.75rem 0;
             font-size: 1.1rem;
@@ -4799,11 +4799,29 @@ if (typeof window !== 'undefined') {
             flex-shrink: 0;
             width: 20px;
             height: 20px;
+            margin-top: 0.25em;
             background: var(--color-foreground, #111111);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .landing-page .feature-text {
+            display: flex;
+            flex-direction: column;
+            gap: 0.125rem;
+        }
+
+        .landing-page .feature-title {
+            font-weight: 600;
+            line-height: 1.35;
+        }
+
+        .landing-page .feature-desc {
+            font-size: 0.9rem;
+            color: color-mix(in srgb, var(--color-foreground, #111111) 65%, transparent);
+            line-height: 1.4;
         }
 
         .landing-page .pricing-cta {
@@ -4847,16 +4865,34 @@ if (typeof window !== 'undefined') {
           <div className="pricing-section">
             <h2>What You Get</h2>
             <ul className="features-list">
-              {FEATURES.map((feature, i) => (
-                <li key={i}>
-                  <span className="check-icon">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </span>
-                  {feature}
-                </li>
-              ))}
+              {FEATURES.map((feature, i) => {
+                // Features may be strings or { title, description } objects.
+                // Strings render as-is; objects render title + optional
+                // description. Anything else falls through as text so React
+                // doesn't throw "objects are not valid as a React child".
+                let title, description;
+                if (typeof feature === 'string') {
+                  title = feature;
+                } else if (feature && typeof feature === 'object') {
+                  title = feature.title || feature.name || JSON.stringify(feature);
+                  description = feature.description || feature.desc;
+                } else {
+                  title = String(feature);
+                }
+                return (
+                  <li key={i}>
+                    <span className="check-icon">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    </span>
+                    <span className="feature-text">
+                      <span className="feature-title">{title}</span>
+                      {description && <span className="feature-desc">{description}</span>}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
             <p className="pricing-cta">Get started — plans start after signup</p>
             <div className="pricing-trust">
