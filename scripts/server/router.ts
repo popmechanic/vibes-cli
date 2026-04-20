@@ -665,7 +665,7 @@ async function editorUploadFile(ctx: ServerContext, req: Request): Promise<Respo
 async function editorPickFolder(ctx: ServerContext): Promise<Response> {
   const folderPath = await pickFolder();
   if (!folderPath) {
-    return json({ ok: false, error: 'No folder selected' }, 400);
+    return json({ ok: false, cancelled: true });
   }
 
   initVibesJson(folderPath);
