@@ -44,15 +44,12 @@ const SKILLS = [
     title: "Made on Vibes DIY",
     assemblyMode: "preserve",   // assemble.js: same as vibes
     assemblyRole: "generate"    // creates riff variations
-  },
-  {
-    name: "factory",
-    delta: join(PLUGIN_ROOT, "skills/factory/template.delta.html"),
-    output: join(PLUGIN_ROOT, "skills/factory/templates/unified.html"),
-    title: "__APP_TITLE__",  // Factory uses dynamic title
-    assemblyMode: "strip",      // assemble-factory.js: user code adapted via stripForTemplate()
-    assemblyRole: "transform"   // transforms a vibes artifact into SaaS
   }
+  // NOTE: factory is intentionally omitted from the auto-regeneration list.
+  // skills/factory/templates/unified.html is hand-maintained while the
+  // tracked template.delta.html drifts behind the landing-page redesign
+  // (theme tokens, Subscribe CTA, OIDC bridge fix). Re-including factory
+  // here before a proper delta re-sync would silently revert that work.
 ];
 
 /**

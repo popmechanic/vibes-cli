@@ -59,7 +59,7 @@ The session context includes a trigger table:
 |-----------|---------------|
 | "build an app", "create a..." | `/vibes:vibes` |
 | "deploy to cloudflare" | `/vibes:cloudflare` |
-| "make it SaaS" | `/vibes:sell` |
+| "make it SaaS" | `/vibes:factory` |
 | "launch" (full pipeline) | `/vibes:launch` |
 
 The LLM matches user intent to the correct skill.
@@ -436,7 +436,7 @@ Each cycle takes about 30 seconds. The LLM can also:
 - Add new features to `app.jsx`
 - Switch themes by modifying CSS token overrides
 - Add sharing/invite functionality via the VibesPanel
-- Transform the app into SaaS with `/vibes:sell`
+- Transform the app into SaaS with `/vibes:factory`
 
 ---
 

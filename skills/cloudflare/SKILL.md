@@ -22,7 +22,7 @@ Deploy your Vibes app to Cloudflare Workers via the Deploy API.
 
 ### Prerequisites
 
-1. **Assembled HTML file** (from `/vibes:vibes` or `/vibes:sell`)
+1. **Assembled HTML file** (from `/vibes:vibes` or `/vibes:factory`)
 2. **Vibes account** (browser login on first deploy)
 
 No Cloudflare account or wrangler CLI needed — the Deploy API handles infrastructure.
@@ -106,6 +106,6 @@ AskUserQuestion:
     - label: "Enable AI features"
       description: "Add OpenRouter API key for the useAI() hook"
     - label: "Add auth & SaaS features"
-      description: "Transform into SaaS with /vibes:sell, then redeploy"
+      description: "Transform into SaaS with /vibes:factory, then redeploy"
     - label: "Open in browser"
       description: "Visit the deployed URL to verify everything works"

@@ -1,6 +1,6 @@
 ---
-name: Sell Components & Troubleshooting
-description: Client-side routing, TenantContext, SubscriptionGate internals, testing routes, import map, and troubleshooting guide for the sell template.
+name: Factory Components & Troubleshooting
+description: Client-side routing, TenantContext, SubscriptionGate internals, testing routes, import map, and troubleshooting guide for the factory template.
 ---
 
 ## Key Components

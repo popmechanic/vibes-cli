@@ -218,7 +218,7 @@ Options:
 - "Keep improving" → Acknowledge and stay ready for iteration prompts. After each round of changes to app.jsx, re-run assembly and re-deploy.
 - "Apply a design reference" → Auto-invoke /vibes:design skill
 - "Explore variations" → Auto-invoke /vibes:riff skill
-- "Make it a SaaS" → Auto-invoke /vibes:sell skill
+- "Make it a SaaS" → Auto-invoke /vibes:factory skill
 - "Deploy" → Auto-invoke /vibes:cloudflare skill
 - "I'm done" → Confirm files saved, wish them well
 

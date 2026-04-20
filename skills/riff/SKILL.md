@@ -208,6 +208,6 @@ Options:
 **After user responds:**
 - "Develop #1" → Copy riff-1/app.jsx to ./app.jsx, confirm ready for vibes iteration
 - "Pick different" → Ask which riff number, then copy that one
-- "Turn into SaaS" → Copy riff-1/app.jsx, auto-invoke /vibes:sell skill
+- "Turn into SaaS" → Copy riff-1/app.jsx, auto-invoke /vibes:factory skill
 - "Deploy demo" → Ask which riff, auto-invoke /vibes:cloudflare skill with that riff's index.html
 - "I'm done" → Confirm riffs saved, provide directory listing
