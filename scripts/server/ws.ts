@@ -175,6 +175,25 @@ function snapshotAppJsxMtime(appDir: string): void {
 }
 
 /**
+ * Parse app.jsx with Bun's built-in transpiler to catch syntax errors
+ * (unterminated strings, unbalanced braces, invalid JSX) that come from
+ * truncated / malformed model output — e.g. when the upstream stream cuts
+ * off mid-token during a provider incident. Cheap, zero-dep, runs in a
+ * few ms for a typical app.
+ */
+function validateAppJsx(appDir: string): { ok: true } | { ok: false; error: string } {
+  const appPath = join(appDir, 'app.jsx');
+  try {
+    const source = readFileSync(appPath, 'utf-8');
+    const transpiler = new Bun.Transpiler({ loader: 'jsx' });
+    transpiler.transformSync(source);
+    return { ok: true };
+  } catch (err: any) {
+    return { ok: false, error: String(err?.message || err) };
+  }
+}
+
+/**
  * Check if app.jsx was modified since last snapshot. If so, run post-processing
  * and reassembly, then broadcast app_updated.
  */
@@ -186,6 +205,16 @@ function checkAndReassemble(ctx: ServerContext, appDir: string): void {
     if (currentMtime > lastAppJsxMtime) {
       lastAppJsxMtime = currentMtime;
       console.log(`[WS] app.jsx modified — running post-process and reassembly`);
+
+      // Syntax-check the generated code before we let it propagate to
+      // index.html and the preview frame's Babel transformer. Catches
+      // truncated / malformed output from upstream model incidents.
+      const syntax = validateAppJsx(appDir);
+      if (!syntax.ok) {
+        console.warn(`[WS] app.jsx has syntax errors, skipping assembly: ${syntax.error}`);
+        broadcast({ type: 'app_invalid', error: syntax.error });
+        return;
+      }
 
       // Post-process (sanitize CSS escapes, strip redeclared globals)
       sanitizeAppJsx(appDir);

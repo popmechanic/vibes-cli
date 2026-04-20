@@ -4288,6 +4288,16 @@ window.escapeHtml = function(str) {
         if (privateEnabled && currentAppName) {
           try { localStorage.setItem('vibes_private_' + currentAppName, '1'); } catch {}
         }
+      } else if (msg.type === 'app_invalid') {
+        console.warn('[app_invalid]', msg.error);
+        setThinking(false);
+        finalizeStreaming();
+        if (isGenerating) {
+          isGenerating = window.isGenerating = false;
+          hidePreviewOverlay();
+        }
+        const short = (msg.error || '').split('\n')[0].slice(0, 200);
+        alert('Generation was incomplete — the model output has a syntax error and was not saved:\n\n' + short + '\n\nThis is usually an upstream model hiccup. Try again.');
       } else if (msg.type === 'app_updated') {
         console.log('[app_updated] phase:', currentPhase, 'isGenerating:', isGenerating);
         setThinking(false);
