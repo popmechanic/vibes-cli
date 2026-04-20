@@ -283,32 +283,6 @@
         );
       }
 
-      // === Subdomain Checker Hook ===
-      function useSubdomainChecker(subdomain) {
-        const [state, setState] = useState({ available: false, checking: false, error: null });
-
-        useEffect(() => {
-          if (!subdomain || subdomain.length < 3) {
-            setState({ available: false, checking: false, error: null });
-            return;
-          }
-
-          setState(prev => ({ ...prev, checking: true, error: null }));
-          const timer = setTimeout(async () => {
-            try {
-              const result = await checkSubdomainAvailability(subdomain);
-              setState({ available: result.available, checking: false, error: null });
-            } catch (e) {
-              setState({ available: false, checking: false, error: 'Check failed' });
-            }
-          }, 300);
-
-          return () => clearTimeout(timer);
-        }, [subdomain]);
-
-        return state;
-      }
-
       // __VIBES_APP_CODE__
 
       // === Module-level gate cache (survives React remounts from OIDCProvider) ===
@@ -417,7 +391,7 @@
       // === Subscription Paywall (stub — billing is phase 2) ===
       function SubscriptionPaywall({ subdomain }) {
         const displayDomain = subdomain
-          ? `${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`
+          ? `${APP_DOMAIN}/${subdomain}`
           : null;
 
         return (
@@ -452,7 +426,7 @@
 
       // === Access Denied ===
       function AccessDenied({ subdomain }) {
-        const displayDomain = `${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`;
+        const displayDomain = `${APP_DOMAIN}/${subdomain}`;
         const landingUrl = needsQueryParamRouting() ? window.location.origin : `https://${APP_DOMAIN}`;
 
         return (
@@ -890,7 +864,7 @@
 
       // === Resubscribe Paywall (shown when subdomain is frozen — stub, billing is phase 2) ===
       function ResubscribePaywall({ subdomain, role }) {
-        const displayDomain = `${subdomain}.${needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}`;
+        const displayDomain = `${APP_DOMAIN}/${subdomain}`;
 
         if (role === 'owner') {
           return (
@@ -1137,19 +1111,18 @@
 
       // === Landing Page Styles (from design reference) ===
       const landingPageStyles = `
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Space+Grotesk:wght@300;500;700&display=swap');
-
-        :root {
-            --bg-color: #ECECEC;
-            --text-main: #111111;
-            --accent-pants: #3B282A;
-            --accent-shoe-green: #203A2E;
-            --swosh-white: #FFFFFF;
-            --easing: cubic-bezier(0.2, 0.8, 0.2, 1);
-        }
+        /*
+         * Landing page styles. Colors, typography, and surfaces come from the
+         * active theme's @theme:tokens / @theme:typography sections, which the
+         * theme system injects into :root and body on the enclosing document.
+         * Values below reference those tokens with conservative fallbacks so
+         * unthemed (default) deploys still render readably. In normal deploys
+         * the theme's values govern; the hex/name literal fallbacks only apply
+         * if the injected :root block is absent.
+         */
 
         html, body {
-            background-color: #ECECEC;
+            background-color: var(--color-background, #ECECEC);
             margin: 0;
             padding: 0;
             overflow-x: hidden;
@@ -1161,9 +1134,9 @@
         }
 
         .landing-page {
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: 'Inter', sans-serif;
+            background-color: var(--color-background, #ECECEC);
+            color: var(--color-foreground, #111111);
+            font-family: inherit;
             overflow-x: hidden;
             min-height: 100vh;
             width: 100%;
@@ -1187,7 +1160,7 @@
         }
 
         .landing-page .logo {
-            font-family: 'Space Grotesk', sans-serif;
+            font-family: var(--font-heading, var(--font-primary, inherit));
             font-weight: 700;
             font-size: 1.2rem;
             letter-spacing: -0.04em;
@@ -1212,20 +1185,20 @@
         }
 
         .landing-page h1 {
-            font-family: 'Space Grotesk', sans-serif;
+            font-family: var(--font-heading, var(--font-primary, inherit));
             font-size: clamp(3rem, 8vw, 9rem);
             line-height: 0.85;
             font-weight: 700;
             letter-spacing: -0.06em;
             margin-bottom: 2rem;
-            color: var(--text-main);
+            color: var(--color-foreground, #111111);
             transform: translateY(20px);
             opacity: 0;
-            animation: fadeUp 1s var(--easing) forwards 0.2s;
+            animation: fadeUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.2s;
         }
 
         .landing-page p.subhead {
-            font-family: 'Inter', sans-serif;
+            font-family: inherit;
             font-size: clamp(1rem, 1.5vw, 1.5rem);
             max-width: 600px;
             margin: 0 auto 4rem auto;
@@ -1233,84 +1206,33 @@
             line-height: 1.4;
             transform: translateY(20px);
             opacity: 0;
-            animation: fadeUp 1s var(--easing) forwards 0.4s;
+            animation: fadeUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.4s;
         }
 
-        .landing-page .claim-bar {
-            display: inline-flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.9);
-            border-radius: 100px;
-            padding: 8px;
-            box-shadow:
-                0 20px 40px -10px rgba(0,0,0,0.1),
-                0 0 0 1px rgba(0,0,0,0.02);
-            position: relative;
-            transform: translateY(20px);
-            opacity: 0;
-            animation: fadeUp 1s var(--easing) forwards 0.6s;
-            transition: transform 0.3s var(--easing), box-shadow 0.3s var(--easing);
-            max-width: 100%;
-        }
-
-        .landing-page .claim-bar:hover {
-            transform: translateY(18px) scale(1.01);
-            box-shadow:
-                0 30px 60px -15px rgba(0,0,0,0.15),
-                0 0 0 1px rgba(0,0,0,0.02);
-        }
-
-        .landing-page .input-group {
+        .landing-page .subscribe-cta {
             display: flex;
-            align-items: baseline;
-            padding: 0 1.5rem;
-            position: relative;
+            align-items: center;
+            justify-content: center;
+            margin-top: 2.5rem;
         }
 
-        .landing-page input[type="text"] {
-            background: transparent;
-            border: none;
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 1.5rem;
-            color: var(--text-main);
-            outline: none;
-            width: 200px;
-            font-weight: 500;
-            letter-spacing: -0.03em;
-            padding: 1rem 0;
-        }
-
-        .landing-page input[type="text"]::placeholder {
-            color: #CCC;
-            font-weight: 300;
-        }
-
-        .landing-page .domain-suffix {
-            font-family: 'Space Grotesk', sans-serif;
-            font-size: 1.5rem;
-            color: #999;
-            font-weight: 400;
-            letter-spacing: -0.03em;
-            pointer-events: none;
-            margin-right: 1rem;
-            user-select: none;
+        .landing-page .subscribe-cta .btn-start[disabled] {
+            opacity: 0.6;
+            cursor: wait;
         }
 
         .landing-page .btn-start {
-            background-color: var(--text-main);
-            color: var(--swosh-white);
+            background-color: var(--color-foreground, #111111);
+            color: var(--color-background, #FFFFFF);
             border: none;
             border-radius: 50px;
             padding: 1rem 2.5rem;
-            font-family: 'Inter', sans-serif;
+            font-family: inherit;
             font-size: 0.95rem;
             font-weight: 600;
             letter-spacing: -0.01em;
             cursor: pointer;
-            transition: all 0.4s var(--easing);
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
             position: relative;
             overflow: hidden;
             display: flex;
@@ -1330,7 +1252,7 @@
         }
 
         .landing-page .btn-start:hover {
-            background-color: var(--accent-pants);
+            background-color: var(--landing-accent, var(--color-primary, #3B282A));
             transform: scale(1.02);
             padding-right: 3rem;
         }
@@ -1345,7 +1267,7 @@
         }
 
         .landing-page .btn-start:disabled:hover {
-            background-color: var(--text-main);
+            background-color: var(--color-foreground, #111111);
             transform: none;
             padding-right: 2.5rem;
         }
@@ -1353,7 +1275,7 @@
         .landing-page .arrow-icon {
             opacity: 0;
             transform: translateX(-10px);
-            transition: all 0.4s var(--easing);
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
             position: absolute;
             right: 1.5rem;
         }
@@ -1405,7 +1327,7 @@
         }
 
         .landing-page ::selection {
-            background: var(--accent-pants);
+            background: var(--landing-accent, var(--color-primary, #3B282A));
             color: white;
         }
 
@@ -1414,12 +1336,9 @@
             font-size: 0.875rem;
             min-height: 1.5rem;
             opacity: 0;
-            animation: fadeUp 1s var(--easing) forwards 0.8s;
+            animation: fadeUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.8s;
         }
 
-        .landing-page .status-checking { color: #999; }
-        .landing-page .status-available { color: #10b981; }
-        .landing-page .status-taken { color: #ef4444; }
         .landing-page .status-error { color: #ef4444; }
 
         .landing-page .pricing-section {
@@ -1428,16 +1347,16 @@
             max-width: 700px;
             margin: 0 auto;
             opacity: 0;
-            animation: fadeUp 1s var(--easing) forwards 1s;
+            animation: fadeUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 1s;
         }
 
         .landing-page .pricing-section h2 {
-            font-family: 'Space Grotesk', sans-serif;
+            font-family: var(--font-heading, var(--font-primary, inherit));
             font-size: clamp(2rem, 4vw, 3rem);
             font-weight: 700;
             letter-spacing: -0.04em;
             margin-bottom: 3rem;
-            color: var(--text-main);
+            color: var(--color-foreground, #111111);
         }
 
         .landing-page .features-list {
@@ -1454,7 +1373,7 @@
             gap: 0.75rem;
             padding: 0.75rem 0;
             font-size: 1.1rem;
-            color: var(--text-main);
+            color: var(--color-foreground, #111111);
             border-bottom: 1px solid rgba(0,0,0,0.06);
         }
 
@@ -1466,7 +1385,7 @@
             flex-shrink: 0;
             width: 20px;
             height: 20px;
-            background: var(--text-main);
+            background: var(--color-foreground, #111111);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -1474,7 +1393,7 @@
         }
 
         .landing-page .pricing-cta {
-            font-family: 'Inter', sans-serif;
+            font-family: inherit;
             font-size: 1rem;
             color: #666;
             margin-bottom: 0.75rem;
@@ -1494,27 +1413,9 @@
             .landing-page h1 {
                 font-size: 3.5rem;
             }
-            .landing-page .claim-bar {
-                flex-direction: column;
-                border-radius: 20px;
-                width: 100%;
-                padding: 1rem;
-                gap: 1rem;
-            }
-            .landing-page .input-group {
-                width: 100%;
-                justify-content: center;
-                border-bottom: 1px solid #eee;
-                padding-bottom: 1rem;
-            }
             .landing-page .btn-start {
                 width: 100%;
                 justify-content: center;
-            }
-            .landing-page input[type="text"] {
-                width: auto;
-                max-width: 120px;
-                text-align: right;
             }
             .landing-page .pricing-trust {
                 flex-direction: column;
@@ -1552,19 +1453,15 @@
         );
       }
 
-      // === Landing Page Component (design reference transformation) ===
-      function SellLandingPage() {
-        const [subdomain, setSubdomain] = useState('');
-        const [registryStatus, setRegistryStatus] = useState('checking');
-        const { available, checking, error } = useSubdomainChecker(subdomain);
+      // === Landing Page Component — Subscribe CTA ===
+      // Path-based tenancy: users do NOT pick a slug here. The slug is
+      // auto-generated from their email in factory-worker/src/routes/checkout.ts
+      // after Stripe Checkout completes. This component's only job is to
+      // trigger that flow.
+      function LandingPage() {
+        const [submitting, setSubmitting] = useState(false);
+        const [error, setError] = useState(null);
         const copyrightRef = useRef(null);
-
-        // Check registry availability on mount
-        useEffect(() => {
-          fetchRegistry().then(() => {
-            setRegistryStatus(isRegistryAvailable() ? 'available' : 'unavailable');
-          });
-        }, []);
 
         // Set copyright year
         useEffect(() => {
@@ -1573,40 +1470,37 @@
           }
         }, []);
 
-        const handleGetStarted = () => {
-          if (!subdomain || !available) return;
-          // Navigate to subdomain
-          const url = new URL(window.location.href);
-          if (needsQueryParamRouting()) {
-            url.searchParams.set('subdomain', subdomain);
-          } else {
-            url.hostname = `${subdomain}.${APP_DOMAIN}`;
+        const handleSubscribe = async () => {
+          if (submitting) return;
+          setSubmitting(true);
+          setError(null);
+          try {
+            const factoryBase = (window.__APP_CONFIG__ && window.__APP_CONFIG__.factoryBase) || '';
+            if (!factoryBase || factoryBase.startsWith('__')) {
+              throw new Error('Checkout is not configured for this deployment.');
+            }
+            const urlParams = new URLSearchParams(window.location.search);
+            const ref = urlParams.get('ref');
+            const endpoint = factoryBase.replace(/\/$/, '') +
+              '/checkout/' + encodeURIComponent(APP_NAME) +
+              (ref ? '?ref=' + encodeURIComponent(ref) : '');
+            const res = await fetch(endpoint, { method: 'POST' });
+            if (!res.ok) {
+              const body = await res.text().catch(() => '');
+              throw new Error('Checkout session failed (' + res.status + '): ' + body.slice(0, 120));
+            }
+            const data = await res.json();
+            if (!data || !data.url) throw new Error('Checkout response missing url field');
+            window.location.href = data.url;
+          } catch (err) {
+            console.error('[landing] subscribe failed:', err);
+            setError(err && err.message ? err.message : 'Unable to start checkout. Please try again.');
+            setSubmitting(false);
           }
-          window.location.href = url.toString();
-        };
-
-        const handleInputChange = (e) => {
-          setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''));
-        };
-
-        const handleKeyDown = (e) => {
-          if (e.key === 'Enter') {
-            handleGetStarted();
-          }
-        };
-
-        const getStatusIndicator = () => {
-          if (!subdomain || subdomain.length < 3) return null;
-          if (checking) return <span className="status-checking">Checking...</span>;
-          if (error) return <span className="status-error">{error}</span>;
-          if (available) return <span className="status-available">Available!</span>;
-          return <span className="status-taken">Taken</span>;
         };
 
         // Humanize app name for display (e.g., "cosmic-garden" → "Cosmic Garden")
-        const displayName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-        const isDisabled = !subdomain || !available || checking || registryStatus === 'unavailable';
+        const displayName = APP_NAME.replace(/-/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
 
         return (
           <>
@@ -1623,27 +1517,15 @@
                   <h1 dangerouslySetInnerHTML={{ __html: APP_TAGLINE }} />
                   <p className="subhead">{APP_SUBTITLE}</p>
 
-                  {/* Claim bar with subdomain input */}
-                  <div className="claim-bar">
-                    <div className="input-group">
-                      <input
-                        type="text"
-                        placeholder="yourname"
-                        spellCheck="false"
-                        autoFocus
-                        value={subdomain}
-                        onChange={handleInputChange}
-                        onKeyDown={handleKeyDown}
-                        disabled={registryStatus === 'unavailable'}
-                      />
-                      <span className="domain-suffix">.{needsQueryParamRouting() ? APP_NAME : APP_DOMAIN}</span>
-                    </div>
+                  {/* Subscribe CTA — path-based tenancy, slug derived after checkout */}
+                  <div className="subscribe-cta">
                     <button
                       className="btn-start"
-                      onClick={handleGetStarted}
-                      disabled={isDisabled}
+                      onClick={handleSubscribe}
+                      disabled={submitting}
+                      aria-busy={submitting}
                     >
-                      Get Started
+                      {submitting ? 'Opening checkout…' : 'Subscribe'}
                       <svg className="arrow-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="5" y1="12" x2="19" y2="12" />
                         <polyline points="12 5 19 12 12 19" />
@@ -1651,10 +1533,12 @@
                     </button>
                   </div>
 
-                  {/* Status indicator */}
-                  <div className="status-indicator">
-                    {registryStatus !== 'unavailable' && getStatusIndicator()}
-                  </div>
+                  {/* Error indicator */}
+                  {error ? (
+                    <div className="status-indicator">
+                      <span className="status-error">{error}</span>
+                    </div>
+                  ) : null}
                 </div>
               </main>
 
@@ -1681,7 +1565,7 @@
         if (routeInfo.route === 'tenant') {
           return <TenantApp subdomain={routeInfo.subdomain} />;
         }
-        return <SellLandingPage />;
+        return <LandingPage />;
       }
 
       // === TinyBase Data Shell (init store, persist, sync) ===
