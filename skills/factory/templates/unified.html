@@ -4536,7 +4536,7 @@ if (typeof window !== 'undefined') {
          */
 
         html, body {
-            background-color: var(--color-background, #ECECEC);
+            background-color: var(--comp-bg, var(--color-background, #ECECEC));
             margin: 0;
             padding: 0;
             overflow-x: hidden;
@@ -4548,8 +4548,8 @@ if (typeof window !== 'undefined') {
         }
 
         .landing-page {
-            background-color: var(--color-background, #ECECEC);
-            color: var(--color-foreground, #111111);
+            background-color: var(--comp-bg, var(--color-background, #ECECEC));
+            color: var(--comp-text, var(--color-foreground, #111111));
             font-family: inherit;
             overflow-x: hidden;
             min-height: 100vh;
@@ -4605,7 +4605,7 @@ if (typeof window !== 'undefined') {
             font-weight: 700;
             letter-spacing: -0.06em;
             margin-bottom: 2rem;
-            color: var(--color-foreground, #111111);
+            color: var(--comp-text, var(--color-foreground, #111111));
             transform: translateY(20px);
             opacity: 0;
             animation: fadeUp 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards 0.2s;
@@ -4636,8 +4636,8 @@ if (typeof window !== 'undefined') {
         }
 
         .landing-page .btn-start {
-            background-color: var(--color-foreground, #111111);
-            color: var(--color-background, #FFFFFF);
+            background-color: var(--comp-accent, var(--color-foreground, #111111));
+            color: var(--comp-bg, var(--color-background, #FFFFFF));
             border: none;
             border-radius: 50px;
             padding: 1rem 2.5rem;
@@ -4666,7 +4666,7 @@ if (typeof window !== 'undefined') {
         }
 
         .landing-page .btn-start:hover {
-            background-color: var(--landing-accent, var(--color-primary, #3B282A));
+            background-color: color-mix(in srgb, var(--comp-accent, var(--landing-accent, var(--color-primary, #3B282A))) 85%, black);
             transform: scale(1.02);
             padding-right: 3rem;
         }
@@ -4681,7 +4681,7 @@ if (typeof window !== 'undefined') {
         }
 
         .landing-page .btn-start:disabled:hover {
-            background-color: var(--color-foreground, #111111);
+            background-color: var(--comp-accent, var(--color-foreground, #111111));
             transform: none;
             padding-right: 2.5rem;
         }
@@ -4741,8 +4741,8 @@ if (typeof window !== 'undefined') {
         }
 
         .landing-page ::selection {
-            background: var(--landing-accent, var(--color-primary, #3B282A));
-            color: white;
+            background: var(--comp-accent, var(--landing-accent, var(--color-primary, #3B282A)));
+            color: var(--comp-accent-text, white);
         }
 
         .landing-page .status-indicator {
@@ -4770,7 +4770,7 @@ if (typeof window !== 'undefined') {
             font-weight: 700;
             letter-spacing: -0.04em;
             margin-bottom: 3rem;
-            color: var(--color-foreground, #111111);
+            color: var(--comp-text, var(--color-foreground, #111111));
         }
 
         .landing-page .features-list {
@@ -4787,7 +4787,7 @@ if (typeof window !== 'undefined') {
             gap: 0.75rem;
             padding: 0.75rem 0;
             font-size: 1.1rem;
-            color: var(--color-foreground, #111111);
+            color: var(--comp-text, var(--color-foreground, #111111));
             border-bottom: 1px solid rgba(0,0,0,0.06);
         }
 
@@ -4800,7 +4800,7 @@ if (typeof window !== 'undefined') {
             width: 20px;
             height: 20px;
             margin-top: 0.25em;
-            background: var(--color-foreground, #111111);
+            background: var(--comp-accent, var(--color-foreground, #111111));
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -4820,7 +4820,7 @@ if (typeof window !== 'undefined') {
 
         .landing-page .feature-desc {
             font-size: 0.9rem;
-            color: color-mix(in srgb, var(--color-foreground, #111111) 65%, transparent);
+            color: color-mix(in srgb, var(--comp-text, var(--color-foreground, #111111)) 65%, transparent);
             line-height: 1.4;
         }
 
