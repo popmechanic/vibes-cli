@@ -40,6 +40,7 @@ import { populateConnectConfig } from './lib/env-utils.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL, AI_PROXY_URL } from './lib/auth-constants.js';
 import { APP_PLACEHOLDER } from './lib/assembly-utils.js';
 import { parseArgs as parseCliArgs, formatHelp } from './lib/cli-utils.js';
+import { validateFactoryTemplate, validateFactoryAssembly } from './lib/factory-assembly-validation.js';
 
 // Parse command line arguments
 const assembleFactorySchema = [
@@ -242,62 +243,8 @@ output = output.split('__VITE_AI_PROXY_URL__').join(AI_PROXY_URL);
 // __VIBES_OIDC_TOKEN__ is the runtime OIDC access token
 // __VIBES_SYNC_STATUS__ is the runtime sync status bridge variable
 // __VIBES_SYNC_ERROR__ is the runtime sync error bridge variable
-// __VIBES_THEMES__ is the runtime theme registration array set by app.jsx
-// __VIBES_SHARED_LEDGER__ is the runtime shared ledger ID bridge variable (invite URL → bundle)
-// __VIBES_LEDGER_MAP__ is the runtime per-database ledger map for multi-tenant isolation
-// __VIBES_APP_CODE__ and __ADMIN_CODE__ are injection placeholders consumed below
-// __OIDC_LOAD_ERROR__ is a runtime error variable set by initApp() on OIDC load failure
-const SAFE_PLACEHOLDER_PATTERNS = [
-  '__PURE__',
-  '__esModule',
-  '__APP_CONFIG__',
-  '__APP_NAME__',
-  '__WS_URL__',
-  '__APP_PUBLIC__',
-  '__DEPLOY_API_URL__',
-  '__AI_PROXY_URL__',
-  '__VIBES_CONFIG__',
-  '__VIBES_OIDC_TOKEN__',
-  '__OIDC_LOAD_ERROR__',
-  '__VIBES_SYNC_STATUS__',
-  '__VIBES_SYNC_ERROR__',
-  '__VIBES_THEMES__',
-  '__VIBES_SHARED_LEDGER__',
-  '__VIBES_LEDGER_MAP__',
-  '__VIBES_INVITE_ID__',
-  '__VIBES_THEME_PRESETS__',
-  '__VIBES_APP_CODE__',
-  '__ADMIN_CODE__',
-  '__VIBES_REGISTRY_URL__',
-  '__VITE_AI_PROXY_URL__',
-  '__VIBES_JOINED__',
-  '__VIBES_CONSOLE_LOG__',
-  // Factory routing placeholders — substituted in `replacements` above before
-  // validation runs, but listed here defensively in case substitution is missed.
-  '__FACTORY_MODE__',
-  '__FACTORY_BASE__',
-  // Factory Deploy API placeholders — substituted by deploy-api-factory at
-  // deploy time (not assembly time), so they legitimately pass through here.
-  '__FACTORY_API_URL__',
-  '__CHECKOUT_URL__',
-  '__BILLING_MODE__'
-];
-
-// Validate template BEFORE injecting app/admin code
-// This prevents user-generated dunder patterns from triggering false positives
-function validateFactoryTemplate(html) {
-  const errors = [];
-
-  // Check for unreplaced config placeholders using whitelist approach
-  const allMatches = html.match(/__[A-Z_]+__/g) || [];
-  const unreplaced = allMatches.filter(m => !SAFE_PLACEHOLDER_PATTERNS.includes(m));
-  if (unreplaced.length > 0) {
-    errors.push(`Unreplaced placeholders: ${[...new Set(unreplaced)].join(', ')}`);
-  }
-
-  return errors;
-}
-
+// Placeholder allow-list + validators live in scripts/lib/factory-assembly-validation.js
+// so the test suite can assert against the same source of truth.
 const templateErrors = validateFactoryTemplate(output);
 if (templateErrors.length > 0) {
   console.error('Factory assembly failed (template validation):');
@@ -336,21 +283,6 @@ if (output.includes(adminPlaceholder)) {
   output = output.replace(adminPlaceholder, adminCode);
 } else {
   console.log('Note: Template has inline admin dashboard, skipping admin component injection');
-}
-
-// Validate final output - lightweight check for App component
-function validateFactoryAssembly(html, app) {
-  const errors = [];
-
-  if (!app || app.trim().length === 0) {
-    errors.push('App code is empty');
-  }
-
-  if (!html.includes('export default function') && !html.includes('function App')) {
-    errors.push('No App component found');
-  }
-
-  return errors;
 }
 
 const validationErrors = validateFactoryAssembly(output, appCode);

@@ -2,60 +2,21 @@
  * Unit tests for assembly validation logic
  *
  * Tests the validation functions that catch errors before assembly completes.
- * These mirror the logic in assemble.js and assemble-factory.js.
+ * validateAssembly/checkForbiddenPatterns live in assembly-utils; the factory
+ * validators live in factory-assembly-validation. This test imports both real
+ * sources — do NOT re-declare local copies (historically this file had its
+ * own SAFE_PLACEHOLDER_PATTERNS that drifted behind the real one).
  */
 
 import { describe, it, expect } from 'vitest';
 import { APP_PLACEHOLDER, validateAssembly, checkForbiddenPatterns } from '../../lib/assembly-utils.js';
+import {
+  SAFE_PLACEHOLDER_PATTERNS,
+  validateFactoryTemplate,
+  validateFactoryAssembly
+} from '../../lib/factory-assembly-validation.js';
 
 const PLACEHOLDER = APP_PLACEHOLDER;
-
-/**
- * Validate factory template BEFORE app code injection
- * Mirrors the pre-injection validation in assemble-factory.js
- */
-const SAFE_PLACEHOLDER_PATTERNS = [
-  '__PURE__',
-  '__esModule',
-  '__APP_CONFIG__',
-  '__APP_NAME__',
-  '__WS_URL__',
-  '__APP_PUBLIC__',
-  '__OIDC_LOAD_ERROR__',
-  '__VIBES_SYNC_STATUS__',
-  '__VIBES_APP_CODE__',
-  '__ADMIN_CODE__'
-];
-
-function validateFactoryTemplate(html) {
-  const errors = [];
-
-  const allMatches = html.match(/__[A-Z_]+__/g) || [];
-  const unreplaced = allMatches.filter(m => !SAFE_PLACEHOLDER_PATTERNS.includes(m));
-  if (unreplaced.length > 0) {
-    errors.push(`Unreplaced placeholders: ${[...new Set(unreplaced)].join(', ')}`);
-  }
-
-  return errors;
-}
-
-/**
- * Validate factory assembly output (post-injection)
- * Mirrors the post-injection validation in assemble-factory.js
- */
-function validateFactoryAssembly(html, app) {
-  const errors = [];
-
-  if (!app || app.trim().length === 0) {
-    errors.push('App code is empty');
-  }
-
-  if (!html.includes('export default function') && !html.includes('function App')) {
-    errors.push('No App component found');
-  }
-
-  return errors;
-}
 
 // ============== Tests ==============
 
