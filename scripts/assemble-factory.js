@@ -275,7 +275,12 @@ const SAFE_PLACEHOLDER_PATTERNS = [
   // Factory routing placeholders — substituted in `replacements` above before
   // validation runs, but listed here defensively in case substitution is missed.
   '__FACTORY_MODE__',
-  '__FACTORY_BASE__'
+  '__FACTORY_BASE__',
+  // Factory Deploy API placeholders — substituted by deploy-api-factory at
+  // deploy time (not assembly time), so they legitimately pass through here.
+  '__FACTORY_API_URL__',
+  '__CHECKOUT_URL__',
+  '__BILLING_MODE__'
 ];
 
 // Validate template BEFORE injecting app/admin code
