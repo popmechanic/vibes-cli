@@ -4898,7 +4898,16 @@ if (typeof window !== 'undefined') {
             const endpoint = factoryBase.replace(/\/$/, '') +
               '/checkout/' + encodeURIComponent(APP_NAME) +
               (ref ? '?ref=' + encodeURIComponent(ref) : '');
-            const res = await fetch(endpoint, { method: 'POST' });
+            // credentials: "include" forwards the shared .vibesos.com
+            // vibes_token cookie to factory.vibesos.com so the checkout
+            // handler can attribute the subscription to the signed-in
+            // user via Stripe's client_reference_id. Safe to send
+            // unauthenticated (cookie simply absent) — factory falls
+            // back to the anonymous-checkout + email-match path.
+            const res = await fetch(endpoint, {
+              method: 'POST',
+              credentials: 'include',
+            });
             if (!res.ok) {
               const body = await res.text().catch(() => '');
               throw new Error('Checkout session failed (' + res.status + '): ' + body.slice(0, 120));
