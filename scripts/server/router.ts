@@ -843,6 +843,6 @@ export function createRouter(ctx: ServerContext) {
       return new Response(file, { headers: { 'Content-Type': MIME[ext] || 'application/octet-stream', ...corsHeaders() } });
     }
 
-    return new Response('Not found', { status: 404, headers: corsHeaders() });
+    return json({ ok: false, error: 'Not found', path: url.pathname }, 404);
   };
 }

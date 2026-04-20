@@ -5351,8 +5351,16 @@ window.escapeHtml = function(str) {
   async function pickProjectFolder() {
     try {
       const res = await fetch('/editor/pick-folder', { method: 'POST' });
+      if (res.status === 404) {
+        alert('Folder picker is unavailable — your Vibes plugin is out of date. Run /plugin update in Claude Code to get the latest version.');
+        return;
+      }
+      if (!res.ok) {
+        console.error(`pick-folder failed: HTTP ${res.status}`);
+        return;
+      }
       const data = await res.json();
-      if (!data.ok) return;
+      if (!data.ok) return; // user cancelled or server declined
       // Delegate to openProject — handles existing app detection and phase switching
       openProject(data.projectDir);
     } catch (err) {
