@@ -183,7 +183,11 @@ const replacements = {
   // worker (which emits Stripe meter events) instead of the legacy proxy.
   // Substituted as a literal `true`/`false` (no quotes in the template).
   '__FACTORY_MODE__': (options.billingMode === 'required') ? 'true' : 'false',
-  '__FACTORY_BASE__': 'https://factory.vibesos.com'
+  // factoryBase: formerly substituted by deploy-api-factory at deploy time,
+  // which left non-factory deploys (share.vibesos.com) with an unresolved
+  // literal in __APP_CONFIG__. Inject it at assembly so the value survives
+  // either deploy path.
+  '__FACTORY_API_URL__': 'https://factory.vibesos.com'
 };
 
 // Handle JSON values - features

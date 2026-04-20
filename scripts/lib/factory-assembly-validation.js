@@ -24,12 +24,12 @@
 //   OIDC load failure.
 // - __VIBES_APP_CODE__ / __ADMIN_CODE__: injection markers consumed
 //   by the assembler itself before validation — listed defensively.
-// - __FACTORY_MODE__ / __FACTORY_BASE__: substituted at assembly
+// - __FACTORY_MODE__ / __FACTORY_API_URL__: substituted at assembly
 //   time by the `replacements` map above — listed defensively in
 //   case substitution is missed.
-// - __FACTORY_API_URL__ / __CHECKOUT_URL__ / __BILLING_MODE__:
-//   substituted by deploy-api-factory at DEPLOY time, not assembly
-//   time, so they legitimately pass through the assembler untouched.
+// - __CHECKOUT_URL__ / __BILLING_MODE__: substituted by
+//   deploy-api-factory at DEPLOY time, not assembly time, so they
+//   legitimately pass through the assembler untouched.
 export const SAFE_PLACEHOLDER_PATTERNS = [
   '__PURE__',
   '__esModule',
@@ -56,7 +56,6 @@ export const SAFE_PLACEHOLDER_PATTERNS = [
   '__VIBES_JOINED__',
   '__VIBES_CONSOLE_LOG__',
   '__FACTORY_MODE__',
-  '__FACTORY_BASE__',
   '__FACTORY_API_URL__',
   '__CHECKOUT_URL__',
   '__BILLING_MODE__'
