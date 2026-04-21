@@ -136,4 +136,17 @@ describe('assemble-on-stop hook', () => {
     // Assembler should have overwritten the stale placeholder
     expect(readFileSync(join(dir, 'index.html'), 'utf-8')).not.toBe('<!-- stale -->');
   });
+
+  it('exits 2 with assembler stderr when JSX is broken', () => {
+    const dir = makeTempDir();
+    writeFileSync(join(dir, 'vibes.json'), JSON.stringify({ name: 'test-app' }) + '\n');
+    // Empty app.jsx — assemble.js validateAssembly() rejects with "App code is empty"
+    writeFileSync(join(dir, 'app.jsx'), '');
+
+    const result = runHook(dir);
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain('Vibes assembly failed');
+    // Assembler's own error surfaces through
+    expect(result.stderr.toLowerCase()).toMatch(/assembly|app component|fix/);
+  });
 });

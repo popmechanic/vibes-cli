@@ -29,7 +29,10 @@ if [ -f "$HTML" ] && [ "$HTML" -nt "$APP" ]; then
   exit 0
 fi
 
-# 3. Run assembly (failure handling added in later tasks)
+# 3. Run assembly
 cd "$PROJECT_DIR"
-bun "$VIBES_ROOT/scripts/assemble.js" app.jsx index.html >/dev/null 2>&1 || exit 0
-exit 0
+ASSEMBLE_OUTPUT=$(bun "$VIBES_ROOT/scripts/assemble.js" app.jsx index.html 2>&1) || {
+  echo "Vibes assembly failed. Fix app.jsx — the assembler will re-run when you finish your next turn." >&2
+  echo "$ASSEMBLE_OUTPUT" >&2
+  exit 2
+}
