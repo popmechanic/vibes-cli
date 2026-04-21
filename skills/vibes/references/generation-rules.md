@@ -308,7 +308,7 @@ For shared/multiplayer apps: every user-owned row must include `createdBy` set t
    - "No — deploy now" — Skip preview, go straight to deploy
 
    If yes: set `VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"` then run `bun "$VIBES_ROOT/scripts/server.ts"` and tell the user to open `http://localhost:3333`. They can chat to iterate on the design and switch themes. When satisfied, stop the server and continue.
-4. Run assembly:
+4. Assembly is automatic — the plugin's Stop hook runs `assemble.js` at end of turn whenever `app.jsx` is newer than `index.html`. To run it manually (debugging the assembler itself):
    ```bash
    VIBES_ROOT="${CLAUDE_PLUGIN_ROOT:-$(dirname "$(dirname "${CLAUDE_SKILL_DIR}")")}"
    bun "$VIBES_ROOT/scripts/assemble.js" app.jsx index.html
