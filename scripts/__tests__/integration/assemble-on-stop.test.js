@@ -122,4 +122,18 @@ describe('assemble-on-stop hook', () => {
     // The pre-existing content must be preserved (assembler would have overwritten it)
     expect(readFileSync(join(dir, 'index.html'), 'utf-8')).toBe('<!-- pre-existing -->');
   });
+
+  it('reassembles when app.jsx is newer than index.html', () => {
+    const dir = makeTempDir();
+    makeVibesProject(dir);
+
+    // Pre-populate an old index.html, then touch app.jsx so it's newer
+    writeFileSync(join(dir, 'index.html'), '<!-- stale -->');
+    ageFile(join(dir, 'index.html'), 10);
+
+    const result = runHook(dir);
+    expect(result.status).toBe(0);
+    // Assembler should have overwritten the stale placeholder
+    expect(readFileSync(join(dir, 'index.html'), 'utf-8')).not.toBe('<!-- stale -->');
+  });
 });
