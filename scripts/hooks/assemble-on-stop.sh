@@ -24,7 +24,12 @@ APP="$PROJECT_DIR/app.jsx"
 HTML="$PROJECT_DIR/index.html"
 VIBES_ROOT="${CLAUDE_PLUGIN_ROOT}"
 
-# 2. Run assembly (idempotency + failure handling added in later tasks)
+# 2. Idempotency — skip if index.html is newer than app.jsx
+if [ -f "$HTML" ] && [ "$HTML" -nt "$APP" ]; then
+  exit 0
+fi
+
+# 3. Run assembly (failure handling added in later tasks)
 cd "$PROJECT_DIR"
 bun "$VIBES_ROOT/scripts/assemble.js" app.jsx index.html >/dev/null 2>&1 || exit 0
 exit 0

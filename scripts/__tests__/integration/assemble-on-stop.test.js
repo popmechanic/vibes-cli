@@ -108,4 +108,18 @@ describe('assemble-on-stop hook', () => {
     expect(existsSync(join(projectRoot, 'index.html'))).toBe(true);
     expect(existsSync(join(nested, 'index.html'))).toBe(false);
   });
+
+  it('skips assembly when index.html is newer than app.jsx', () => {
+    const dir = makeTempDir();
+    makeVibesProject(dir);
+
+    // Pre-populate index.html and ensure its mtime is newer than app.jsx
+    ageFile(join(dir, 'app.jsx'), 10);
+    writeFileSync(join(dir, 'index.html'), '<!-- pre-existing -->');
+
+    const result = runHook(dir);
+    expect(result.status).toBe(0);
+    // The pre-existing content must be preserved (assembler would have overwritten it)
+    expect(readFileSync(join(dir, 'index.html'), 'utf-8')).toBe('<!-- pre-existing -->');
+  });
 });
