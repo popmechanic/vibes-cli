@@ -244,3 +244,31 @@ describe('extractDataSchema', () => {
     expect(extractDataSchema('')).toBe('');
   });
 });
+
+describe('buildGeneratePrompt shared constants (DRY refactor)', () => {
+  it('non-reference path contains TWO_STEP_INSTRUCTIONS and GLOBAL_STEP_RULES', () => {
+    writeFileSync(join(TMP, 'themes', 'abstract.txt'), ':root { --color-background: oklch(20% 0 0); }');
+    const ctx = makeCtx({
+      themes: [{ id: 'abstract', name: 'Abstract' }],
+      themeColors: { abstract: { bg: '#000', rootBlock: ':root { --color-background: oklch(20% 0 0); }' } },
+    });
+    const result = buildGeneratePrompt(ctx as any, 'a todo list', { themeId: 'abstract' });
+    expect(result.prompt).toContain('=== BUILD app.jsx IN TWO TOOL CALLS ===');
+    expect(result.prompt).toContain('STEP 1 — Write app.jsx');
+    expect(result.prompt).toContain('STEP 2 — Edit app.jsx');
+    expect(result.prompt).toContain('=== RULES THAT APPLY TO ALL STEPS ===');
+  });
+
+  it('reference path (HTML) contains the same TWO_STEP_INSTRUCTIONS and GLOBAL_STEP_RULES', () => {
+    const refPath = join(TMP, 'ref.html');
+    writeFileSync(refPath, '<html><body style="background:#f00">Hi</body></html>');
+    const ctx = makeCtx();
+    const result = buildGeneratePrompt(ctx as any, 'match this', {
+      reference: { name: 'ref.html', serverPath: refPath, intent: 'match' },
+    });
+    expect(result.prompt).toContain('=== BUILD app.jsx IN TWO TOOL CALLS ===');
+    expect(result.prompt).toContain('STEP 1 — Write app.jsx');
+    expect(result.prompt).toContain('STEP 2 — Edit app.jsx');
+    expect(result.prompt).toContain('=== RULES THAT APPLY TO ALL STEPS ===');
+  });
+});
