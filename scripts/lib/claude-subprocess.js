@@ -244,5 +244,12 @@ export function cleanEnv() {
   // Isolate credentials to ~/.vibes/claude-config/ so the vibes-managed
   // binary never reads/writes the user's own ~/.claude/ config.
   env.CLAUDE_CONFIG_DIR = join(homedir(), '.vibes', 'claude-config');
+  // Raise the output-token floor for generation. Vibes apps are typically
+  // produced in a single Write tool call; a 4000-line JSX file easily exceeds
+  // the model default (16K Sonnet / 32K Opus 4.6). Respect a higher user value.
+  const userMaxTokens = parseInt(env.CLAUDE_CODE_MAX_OUTPUT_TOKENS || '0', 10);
+  if (!Number.isFinite(userMaxTokens) || userMaxTokens < 64000) {
+    env.CLAUDE_CODE_MAX_OUTPUT_TOKENS = '64000';
+  }
   return env;
 }

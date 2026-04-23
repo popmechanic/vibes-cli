@@ -241,18 +241,15 @@ export function buildGeneratePrompt(
       console.log(`[prompt-builders] HTML reference: ${reference.name}, ${htmlContent.length} chars, FULL INLINE (no truncation)`);
       referenceBlock = `=== DESIGN REFERENCE (HTML: "${reference.name}") ===
 
-Study this HTML file's design — colors, typography, spacing, layout, surfaces, effects — and use it as your design spec.
+Study this HTML file's design and use it as your design spec:
 
 \`\`\`html
 ${inlined}
 \`\`\`
 
-Before extracting, quote the key CSS rules from the HTML above — the :root variables, color values, font-family declarations, and major class styles. Then extract the visual design:
-- COLOR PALETTE: map every color to oklch() values for the --comp-* tokens
-- TYPOGRAPHY: font families, weights, sizing hierarchy
-- SURFACES: border styles, shadows, gradients, glass effects
-- LAYOUT PATTERNS: spatial organization, card styles, grid/flex structure
-- MOTION/EFFECTS: animations, transitions, hover states
+Extract and apply — keep any design notes inside CSS comments in the generated file, NOT as narrative prose in the assistant message (output budget is precious):
+- COLOR PALETTE: map every color to oklch() for the --comp-* tokens
+- TYPOGRAPHY, SURFACES, LAYOUT, MOTION: mirror the reference
 - --color-background MUST match the HTML's background. Never transparent.
 
 `;
@@ -264,58 +261,39 @@ Before extracting, quote the key CSS rules from the HTML above — the :root var
       if (intent === 'mood') {
         referenceBlock = `MANDATORY FIRST STEP: Read the image at ${refPath} using the Read tool.
 
-You are extracting a COMPLETE visual theme from this image — as detailed as a professional design system.
+Extract a complete visual theme from this image and apply it to the generated app.
 
-In your <design> block, write out ALL of the following before ANY code:
+IMPORTANT: Keep any design analysis inside CSS comments in the generated <style> tag. Do NOT produce a long <design> narrative in the assistant message before the Write — output budget is precious and narrative prose counts against the same ceiling as the app code.
 
-1. MOOD: 3-4 adjectives (e.g. "warm, editorial, refined, tactile")
-2. COLOR PALETTE — extract EVERY distinct color you see, converted to oklch():
-   - Background color(s): main page bg, card bg, surface bg
-   - Text colors: primary, secondary/muted, headings
-   - Accent color(s): buttons, links, highlights
-   - Border/divider colors
-   - Any gradient stops
-   Write them as a complete :root block with --comp-bg, --comp-text, --comp-border, --comp-accent, --comp-accent-text, --comp-muted, --color-background
-3. TYPOGRAPHY: exact font families (find matching Google Fonts), weights, letter-spacing, text-transform patterns
-4. SURFACES: border-radius values, box-shadow patterns, backdrop-filter, gradients, card styles — with exact CSS
-5. SPACING RHYTHM: padding/margin/gap patterns you observe
-6. DECORATIVE ELEMENTS: background patterns, SVG shapes, dividers, icons style
-7. MOTION ENERGY: calm/lively/dramatic — what animations fit this mood
+Required extractions (apply directly, don't pre-announce):
+- COLOR PALETTE: every distinct color in oklch() — complete :root block with --comp-bg, --comp-text, --comp-border, --comp-accent, --comp-accent-text, --comp-muted, --color-background
+- TYPOGRAPHY: font families (matching Google Fonts), weights, letter-spacing
+- SURFACES: border-radius, shadows, backdrop-filter, gradients
+- DECORATIVE ELEMENTS and MOTION ENERGY: match the mood
 
-Apply the MOOD and COLOR PALETTE from this image to the app you generate.
-Use the extracted oklch() colors EXACTLY in your :root block — do not approximate or simplify.
---color-background MUST match the image's background. Never leave it transparent or unset.
+Use extracted oklch() colors EXACTLY — do not approximate.
+--color-background MUST match the image's background. Never transparent.
 
 `;
       } else {
         // intent === 'match'
         referenceBlock = `MANDATORY FIRST STEP: Read the image at ${refPath} using the Read tool.
 
-You are extracting a COMPLETE visual theme AND layout from this image — as detailed as a professional design system.
+Extract a complete visual theme AND layout from this image and apply it to the generated app.
 
-In your <design> block, write out ALL of the following before ANY code:
+IMPORTANT: Keep any design analysis inside CSS comments in the generated <style> tag. Do NOT produce a long <design> narrative in the assistant message before the Write — output budget is precious and narrative prose counts against the same ceiling as the app code.
 
-1. MOOD: 3-4 adjectives (e.g. "warm, editorial, refined, tactile")
-2. COLOR PALETTE — extract EVERY distinct color you see, converted to oklch():
-   - Background color(s): main page bg, card bg, surface bg
-   - Text colors: primary, secondary/muted, headings
-   - Accent color(s): buttons, links, highlights
-   - Border/divider colors
-   - Any gradient stops
-   Write them as a complete :root block with --comp-bg, --comp-text, --comp-border, --comp-accent, --comp-accent-text, --comp-muted, --color-background
-3. TYPOGRAPHY: exact font families (find matching Google Fonts), weights, letter-spacing, text-transform patterns
-4. SURFACES: border-radius values, box-shadow patterns, backdrop-filter, gradients, card styles — with exact CSS
-5. SPACING RHYTHM: padding/margin/gap patterns you observe
-6. LAYOUT STRUCTURE: how is the space divided? sidebar? header? grid? cards? split-pane? List each section with its approximate proportions
-7. COMPONENT ARRANGEMENT: nav position, content hierarchy, card grid, footer placement
-8. DECORATIVE ELEMENTS: background patterns, SVG shapes, dividers, icons style
-9. MOTION ENERGY: calm/lively/dramatic — what animations fit this mood
+Required extractions (apply directly, don't pre-announce):
+- COLOR PALETTE: every distinct color in oklch() — complete :root block with --comp-bg, --comp-text, --comp-border, --comp-accent, --comp-accent-text, --comp-muted, --color-background
+- TYPOGRAPHY: font families (matching Google Fonts), weights, letter-spacing
+- SURFACES: border-radius, shadows, backdrop-filter, gradients
+- LAYOUT STRUCTURE: how the space is divided (sidebar/header/grid/cards/tabs), component arrangement, spatial proportions
+- DECORATIVE ELEMENTS and MOTION ENERGY: match the mood
 
-Apply BOTH the visual style AND layout structure from this image to the app you generate.
-Use the extracted oklch() colors EXACTLY in your :root block — do not approximate or simplify.
-Match the layout structure, spatial organization, component arrangement, and visual hierarchy of the image.
---color-background MUST match the image's background. Never leave it transparent or unset.
-The goal: the generated app should look like the image was its design spec.
+Use extracted oklch() colors EXACTLY — do not approximate.
+Match the layout structure, spatial organization, and visual hierarchy.
+--color-background MUST match the image's background. Never transparent.
+Goal: the generated app should look like the image was its design spec.
 
 `;
       }
@@ -353,11 +331,10 @@ ${styleGuide}
 
 === DESIGN REASONING ===
 
-Think in a <design> block:
-- What colors, typography, and surfaces did you extract from the reference?
-- How will you map them to --comp-* tokens?
-- What custom SVG illustrations fit this app?
-- What animations and effects match the reference mood? (Canvas particles, animated SVG, scroll reveals, card tilt, cursor glow)
+Briefly note design decisions inside CSS comments in the <style> tag — not as a separate <design> narrative before the Write. Consider:
+- Colors, typography, and surfaces extracted from the reference and their mapping to --comp-* tokens
+- Custom SVG illustrations that fit
+- Animations that match the reference mood (Canvas particles, animated SVG, scroll reveals, card tilt, cursor glow)
 
 === WRITE app.jsx ===
 
@@ -456,10 +433,10 @@ ${styleGuide}
 
 === DESIGN REASONING ===
 
-Think in a <design> block:
-- How does "${themeName}" personality shape the visual choices?
-- What custom SVG illustrations fit this app?
-- What animations and effects match the theme mood? (Canvas particles, animated SVG, scroll reveals, card tilt, cursor glow)
+Briefly note design decisions inside CSS comments in the <style> tag — not as a separate <design> narrative before the Write. Consider:
+- How "${themeName}" personality shapes visual choices
+- What custom SVG illustrations fit this app
+- What animations match the theme mood (Canvas particles, animated SVG, scroll reveals, card tilt, cursor glow)
 
 === WRITE app.jsx ===
 

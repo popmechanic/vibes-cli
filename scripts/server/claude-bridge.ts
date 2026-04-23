@@ -445,6 +445,7 @@ export async function runOneShot(
   let toolsUsed = 0;
   let hasEdited = false;
   let errorSent = false;
+  let hitMaxTokens = false;
   const startTime = Date.now();
   let lastStdoutTime = Date.now();
   let killedByTimeout = false;
@@ -506,6 +507,10 @@ export async function runOneShot(
     const elapsed = getElapsed();
 
     if (event.type === 'assistant' && event.message?.content) {
+      if (event.message.stop_reason === 'max_tokens') {
+        hitMaxTokens = true;
+        console.warn(`[OneShot] PID ${proc.pid} hit max_tokens at ${getElapsed()}s (tools=${toolsUsed}, hasEdited=${hasEdited})`);
+      }
       for (const block of event.message.content) {
         if (block.type === 'tool_use') {
           toolsUsed++;
@@ -612,6 +617,24 @@ export async function runOneShot(
     }
   }
 
+  // max_tokens handling: if the assistant message was truncated at the output
+  // ceiling, surface it. When !hasEdited, the file likely never got written —
+  // treat as a hard error. When hasEdited, the file was written but trailing
+  // content (explanatory text, follow-up edits) may be missing — warn but
+  // continue so the user at least sees a working app.
+  if (hitMaxTokens && !errorSent) {
+    if (!hasEdited) {
+      onEvent({
+        type: 'error',
+        message: 'Claude hit the output token limit before writing the file. Try a simpler prompt, or raise CLAUDE_CODE_MAX_OUTPUT_TOKENS.',
+      });
+      errorSent = true;
+      return null;
+    }
+    console.warn(`[OneShot] max_tokens after file written — trailing content may be truncated`);
+    resultText = (resultText || '') + '\n\n*[Output was truncated at the token limit — the app was written but some follow-up content may be missing.]*';
+  }
+
   // Post-process
   if (hasEdited) {
     sanitizeAppJsx(projectRoot);
@@ -625,6 +648,7 @@ export async function runOneShot(
       elapsed: getElapsed(),
       hasEdited,
       skipChat: opts.skipChat,
+      maxTokensHit: hitMaxTokens,
     });
   }
 
