@@ -8,9 +8,11 @@
  * imports from this module continue to work.
  */
 
+import { basename } from 'path';
 import { createStreamParser } from '../lib/stream-parser.js';
 import { buildPersistentArgs, resolveClaudeBin, cleanEnv } from '../lib/claude-subprocess.js';
 import { translateStreamEvent } from './event-translator.ts';
+import { validateAppJsx } from '../lib/validate-app-jsx.ts';
 
 // --- Types ---
 
@@ -391,6 +393,10 @@ export interface OneShotOpts {
   permissionMode?: string;
   /** Operation type for the lock (default: 'chat'). Set to false to skip auto-locking. */
   lockType?: string | false;
+  /** Initial generation_stage, used by the tool_use counter to decide when
+   * to emit the foundation → interactions transition. Only passed by the
+   * generate handler; chat/theme paths leave it undefined. */
+  initialStage?: 'reading_reference' | 'foundation';
 }
 
 export async function runOneShot(
@@ -446,6 +452,8 @@ export async function runOneShot(
   let hasEdited = false;
   let errorSent = false;
   let hitMaxTokens = false;
+  let toolUseSeen = 0; // counts Write/Edit tool_use events; drives generation_stage transitions
+  let currentStage: 'reading_reference' | 'foundation' | 'interactions' | null = opts.initialStage ?? null;
   const startTime = Date.now();
   let lastStdoutTime = Date.now();
   let killedByTimeout = false;
@@ -522,6 +530,19 @@ export async function runOneShot(
             pendingTools.set(block.id, { name: toolName, filePath: inputSummary });
           }
 
+          // Advance the generation stage on Write/Edit boundaries. Read tool
+          // uses don't count — they're setup, not a step boundary.
+          if (toolName === 'Write' || toolName === 'Edit') {
+            toolUseSeen++;
+            if (toolUseSeen === 1 && currentStage === 'reading_reference') {
+              currentStage = 'foundation';
+              onEvent({ type: 'generation_stage', stage: 'foundation' });
+            } else if (toolUseSeen === 2) {
+              currentStage = 'interactions';
+              onEvent({ type: 'generation_stage', stage: 'interactions' });
+            }
+          }
+
           onEvent({ type: 'tool_detail', name: toolName, input_summary: inputSummary, elapsed });
           onEvent({ type: 'progress', ...calcProgressLocal(), elapsed });
         }
@@ -545,6 +566,24 @@ export async function runOneShot(
         _filePath: toolDetail?.filePath || '',
         _toolName: toolDetail?.name || event.tool_name || '',
       });
+
+      // After a successful Write/Edit to app.jsx, parse-check the file. If it
+      // parses, signal the UI to refresh the preview iframe. If it fails,
+      // surface the error without reloading — the last-known-good render stays.
+      const wasWriteOrEdit = toolDetail?.name === 'Write' || toolDetail?.name === 'Edit';
+      const targetedAppJsx = typeof toolDetail?.filePath === 'string' && basename(toolDetail.filePath) === 'app.jsx';
+      if (wasWriteOrEdit && targetedAppJsx && !event.is_error) {
+        const v = validateAppJsx(toolDetail!.filePath);
+        if (v.ok) {
+          onEvent({ type: 'preview_reload' });
+        } else {
+          onEvent({
+            type: 'preview_reload_failed',
+            stage: currentStage === 'interactions' ? 'interactions' : 'foundation',
+            error: v.error,
+          });
+        }
+      }
     } else if (event.type === 'result') {
       if (event.is_error) {
         const errMsg = event.result || 'Claude flagged the run as failed';
@@ -640,6 +679,16 @@ export async function runOneShot(
     sanitizeAppJsx(projectRoot);
   }
 
+  let appJsxValid: boolean | undefined = undefined;
+  if (hasEdited && opts.cwd) {
+    const appPath = `${opts.cwd}/app.jsx`;
+    try {
+      appJsxValid = validateAppJsx(appPath).ok;
+    } catch {
+      appJsxValid = false;
+    }
+  }
+
   if (!errorSent) {
     onEvent({
       type: 'complete',
@@ -649,6 +698,7 @@ export async function runOneShot(
       hasEdited,
       skipChat: opts.skipChat,
       maxTokensHit: hitMaxTokens,
+      appJsxValid,
     });
   }
 
