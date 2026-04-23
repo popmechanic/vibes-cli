@@ -1126,6 +1126,41 @@
       height: 100%;
       border: none;
     }
+    /* Generation overlay (Direction D multi-turn) — distinct from .preview-overlay */
+    .gen-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 10, 10, 0.55);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto; /* absorb clicks on the skeleton */
+      z-index: 10;
+      transition: opacity 120ms ease;
+    }
+    .gen-overlay[hidden] { display: none; }
+    .gen-overlay-card {
+      background: rgba(24, 24, 28, 0.9);
+      color: #eaeaea;
+      padding: 14px 20px;
+      border-radius: 10px;
+      font: 500 13px/1.4 system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .gen-overlay-card.error { background: rgba(80, 30, 30, 0.92); }
+    .gen-overlay-spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.25);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: gen-overlay-spin 0.8s linear infinite;
+    }
+    .gen-overlay-card.error .gen-overlay-spinner { display: none; }
+    @keyframes gen-overlay-spin { to { transform: rotate(360deg); } }
 
     /* Undo/Redo bar — hidden until there's history to navigate */
     .version-bar {
@@ -3172,7 +3207,15 @@
         </svg>
         <div class="preview-progress-label" id="previewProgressLabel">Starting Claude...</div>
       </div>
-      <iframe class="preview-iframe" id="previewFrame" src="about:blank"></iframe>
+      <div class="preview-container" id="previewContainer" style="position:relative; width:100%; height:100%;">
+        <iframe class="preview-iframe" id="previewFrame" src="about:blank"></iframe>
+        <div class="gen-overlay" id="genOverlay" hidden>
+          <div class="gen-overlay-card" id="genOverlayCard">
+            <div class="gen-overlay-spinner"></div>
+            <div class="gen-overlay-text" id="genOverlayText">Starting...</div>
+          </div>
+        </div>
+      </div>
       <div class="version-bar" id="versionBar">
         <button class="version-btn" id="undoBtn" onclick="versionUndo()" disabled data-tooltip="Undo">&#8592;</button>
         <span class="version-count" id="versionCount"></span>
@@ -4202,10 +4245,102 @@ window.escapeHtml = function(str) {
       }
     };
 
+    // --- Generation overlay state ---
+    const OVERLAY_COPY = {
+      reading_reference: 'Analyzing reference — extracting design...',
+      foundation: 'Step 1 of 2 — Foundation',
+      interactions: 'Step 2 of 2 — Building interactions and polish',
+      preview_reload_failed_foundation: 'Step 1 produced a syntax error — waiting for retry...',
+      preview_reload_failed_interactions: 'Step 2 produced a syntax error — continuing...',
+    };
+
+    let overlayCurrentStage = null;
+    let overlayInError = false;
+
+    function setOverlayVisible(visible) {
+      const o = document.getElementById('genOverlay');
+      if (!o) return;
+      if (visible) { o.hidden = false; } else { o.hidden = true; }
+    }
+
+    function setOverlayText(text, isError) {
+      const t = document.getElementById('genOverlayText');
+      const card = document.getElementById('genOverlayCard');
+      if (t) t.textContent = text;
+      if (card) card.classList.toggle('error', !!isError);
+    }
+
+    function handleGenerationStage(stage) {
+      overlayCurrentStage = stage;
+      if (overlayInError && stage === 'interactions') {
+        // Recovery: a new stage event clears the error state
+        overlayInError = false;
+      }
+      if (!overlayInError) {
+        setOverlayText(OVERLAY_COPY[stage] || stage, false);
+        setOverlayVisible(true);
+      }
+    }
+
+    function handlePreviewReload() {
+      // Cache-bust the preview iframe. Reuse the exact appParam derivation pattern
+      // used at the existing reload call site (around line 5066-5067 in this file)
+      // — currentProjectDir is a full path, so we derive `name` from it.
+      const frame = document.getElementById('previewFrame');
+      if (!frame) return;
+      if (overlayInError) overlayInError = false; // recovery: successful reload clears error
+      const name = currentProjectDir ? currentProjectDir.split('/').pop() : currentAppName;
+      const appParam = name ? 'app=' + encodeURIComponent(name) + '&' : '';
+      frame.src = '/app-frame?' + appParam + 't=' + Date.now();
+      // After a successful reload, restore the normal overlay copy for the current stage
+      if (overlayCurrentStage) setOverlayText(OVERLAY_COPY[overlayCurrentStage] || overlayCurrentStage, false);
+    }
+
+    function handlePreviewReloadFailed(stage) {
+      overlayInError = true;
+      const key = 'preview_reload_failed_' + stage;
+      setOverlayText(OVERLAY_COPY[key] || 'Syntax error — continuing...', true);
+    }
+
+    function handleReferencePreview(src) {
+      const frame = document.getElementById('previewFrame');
+      if (!frame) return;
+      frame.src = src;
+    }
+
+    function handleGenerationComplete(appJsxValid) {
+      setOverlayVisible(false);
+      overlayCurrentStage = null;
+      overlayInError = false;
+      if (appJsxValid === false) {
+        // Surface a persistent error chip / toast — project-specific UI hook.
+        // For now, just log; a later polish pass can attach to the existing toast system.
+        console.warn('[generate] app.jsx did not pass final validation');
+      }
+    }
+
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       // DEBUG: log all incoming WS events
       if (msg.type !== 'token') console.log('[WS-IN]', msg.type, msg.type === 'tool_result' ? msg.name : '', msg.type === 'complete' ? 'usage:' + JSON.stringify(msg.usage) : '');
+
+      // --- Direction D multi-turn generation events ---
+      if (msg.type === 'generation_stage') {
+        handleGenerationStage(msg.stage);
+        return;
+      }
+      if (msg.type === 'preview_reload') {
+        handlePreviewReload();
+        return;
+      }
+      if (msg.type === 'preview_reload_failed') {
+        handlePreviewReloadFailed(msg.stage);
+        return;
+      }
+      if (msg.type === 'reference_preview') {
+        handleReferencePreview(msg.src);
+        return;
+      }
 
       // After interrupt, ignore trailing events until the turn completes
       if (interrupted) {
@@ -4267,6 +4402,7 @@ window.escapeHtml = function(str) {
         // Return to "Thinking..." after tool completes
         setThinking(true, null, 'Thinking...');
       } else if (msg.type === 'complete') {
+        handleGenerationComplete(msg.appJsxValid);
         // Run finished — finalize streaming bubble, update status
         setThinking(false);
         if (msg.usage) {
