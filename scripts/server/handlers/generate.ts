@@ -1,91 +1,17 @@
 /**
- * Generate handler — create a new app from scratch via Claude.
+ * Preview-frame assembly — wraps app.jsx in the vibes template for the
+ * /app-frame route. The editor generate flow lives in ws.ts (`case 'generate':`)
+ * and runs through the persistent bridge — not through this file.
  */
 
-import { readFileSync, existsSync, writeFileSync } from 'fs';
-import { join, basename } from 'path';
-import { readVibesJson } from '../../lib/vibes-json.js';
-import { runOneShot } from '../claude-bridge.ts';
-import type { EventCallback } from '../claude-bridge.ts';
-import { sanitizeAppJsx } from '../post-process.ts';
-import type { ServerContext } from '../config.ts';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 import { stripForTemplate } from '../../lib/strip-code.js';
 import { APP_PLACEHOLDER, injectCode } from '../../lib/assembly-utils.js';
 import { populateConnectConfig } from '../../lib/env-utils.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL, AI_PROXY_URL } from '../../lib/auth-constants.js';
 import { TEMPLATES } from '../../lib/paths.js';
 import { resolveProjectDir } from '../app-context.js';
-import { buildGeneratePrompt } from '../prompt-builders.ts';
-
-export async function handleGenerate(ctx: ServerContext, onEvent: EventCallback, userPrompt: string, themeId: string | undefined, model: string | undefined, reference: any = null, useAI: boolean = false, previousApp: string | undefined = undefined) {
-  if (!userPrompt) {
-    onEvent({ type: 'error', message: 'Please describe what you want to build.' });
-    return;
-  }
-
-  console.log(`[Generate] ▸ START prompt="${userPrompt.slice(0, 60)}" themeId=${themeId || '(auto)'}`);
-
-  // Auto-save previous app before switching
-  if (previousApp) {
-    try {
-      const prevDir = resolveProjectDir(ctx, previousApp);
-      const prevIndexPath = join(prevDir, 'index.html');
-      const assembled = assembleAppFrame(ctx, previousApp);
-      writeFileSync(prevIndexPath, assembled);
-      console.log(`[Generate] Auto-saved index.html for "${previousApp}"`);
-    } catch (e) {
-      console.warn(`[Generate] Auto-save failed for "${previousApp}": ${e.message}`);
-    }
-  }
-
-  if (!ctx.projectDir) {
-    onEvent({ type: 'error', message: 'No project folder selected.' });
-    return;
-  }
-
-  const appDir = ctx.projectDir;
-  const config = readVibesJson(ctx.projectDir);
-  const appName = config?.name || basename(ctx.projectDir);
-  onEvent({ type: 'app_created', name: appName });
-  console.log(`[Generate] Using project directory: ${appName}`);
-
-  // Build the prompt
-  const result = buildGeneratePrompt(ctx, userPrompt, { themeId, reference, useAI });
-
-  const themeColors = ctx.themeColors[result.themeId] || null;
-  onEvent({ type: 'theme_selected', themeId: result.themeId, themeName: result.themeName, themeBackground: themeColors?.bg || null });
-
-  if (result.isReference) {
-    const maxTurns = result.isHtmlRef ? 10 : 12;
-    console.log(`[Generate] Starting (reference path) — ref: ${reference.name} (${result.referenceIntent}), prompt: ${(result.prompt.length / 1024).toFixed(1)}KB`);
-
-    // Reference preview: show the user their uploaded reference asset in the
-    // iframe while Claude is analyzing it. Only for HTML and image refs;
-    // text-file refs (seed/content/context intents) skip this — their content
-    // doesn't visualize meaningfully and the user already saw it on upload.
-    const refName = reference?.name as string | undefined;
-    const isTextRef = !!refName && /\.(txt|md|csv|tsv|json|xml|rtf)$/i.test(refName);
-    if (refName && !isTextRef) {
-      const refKind = result.isHtmlRef ? 'html' : 'image';
-      const vibesTmpPath = join(ctx.projectRoot, '.vibes-tmp', refName);
-      if (existsSync(vibesTmpPath)) {
-        onEvent({
-          type: 'reference_preview',
-          src: `/reference-frame?name=${encodeURIComponent(refName)}&kind=${refKind}`,
-        });
-      }
-    }
-
-    onEvent({ type: 'generation_stage', stage: 'reading_reference' });
-    await runOneShot(result.prompt, { lockType: 'generate', skipChat: true, maxTurns, model, cwd: appDir, tools: 'Write,Edit,Read', initialStage: 'reading_reference' }, onEvent, ctx.projectRoot);
-  } else {
-    console.log(`[Generate] Starting — theme: ${result.themeId} (${result.themeName}), prompt: ${(result.prompt.length / 1024).toFixed(1)}KB`);
-    onEvent({ type: 'generation_stage', stage: 'foundation' });
-    await runOneShot(result.prompt, { lockType: 'generate', skipChat: true, maxTurns: 10, model, cwd: appDir, tools: 'Write,Edit,Read', initialStage: 'foundation' }, onEvent, ctx.projectRoot);
-  }
-
-  sanitizeAppJsx(appDir);
-}
 
 /**
  * Assemble app.jsx into the vibes template with TinyBase boilerplate.

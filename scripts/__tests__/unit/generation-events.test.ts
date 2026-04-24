@@ -3,6 +3,14 @@
  * generation_stage, tool_detail, tool_result, preview_reload, and
  * preview_reload_failed events given synthetic stream-json input.
  *
+ * SCOPE: `dispatchStreamEvent` is the one-shot path's translator, called
+ * from `runOneShot`. That path powers theme switching, factory-assemble,
+ * and riff — NOT the editor generate / chat flow. The editor flow runs
+ * through the persistent bridge (`createBridge` in claude-bridge.ts) and
+ * its translator is `translateStreamEvent` in event-translator.ts. If
+ * you're verifying editor-side staged-preview behavior, look at
+ * event-translator.test.ts and bridge-turn-mode.test.ts, not this file.
+ *
  * This exercises the pure dispatcher lifted out of `runOneShot` — no
  * subprocess spawning, no real stdout piping. A spy `onEvent` captures
  * emissions and stub helpers supply deterministic elapsed / progress.
