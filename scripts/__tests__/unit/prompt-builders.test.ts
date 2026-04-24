@@ -271,4 +271,63 @@ describe('buildGeneratePrompt shared constants (DRY refactor)', () => {
     expect(result.prompt).toContain('STEP 2 — Edit app.jsx');
     expect(result.prompt).toContain('=== RULES THAT APPLY TO ALL STEPS ===');
   });
+
+  it('both paths emit a single === DESIGN REASONING === section via the shared helper', () => {
+    writeFileSync(join(TMP, 'themes', 'abstract.txt'), ':root { --color-background: oklch(20% 0 0); }');
+    const ctx = makeCtx({
+      themes: [{ id: 'abstract', name: 'Abstract' }],
+      themeColors: { abstract: { bg: '#000', rootBlock: ':root { --color-background: oklch(20% 0 0); }' } },
+    });
+    const nonRef = buildGeneratePrompt(ctx as any, 'a todo list', { themeId: 'abstract' });
+    const refPath = join(TMP, 'ref.html');
+    writeFileSync(refPath, '<html><body>Hi</body></html>');
+    const ref = buildGeneratePrompt(makeCtx() as any, 'match this', {
+      reference: { name: 'ref.html', serverPath: refPath, intent: 'match' },
+    });
+
+    // Exactly one DESIGN REASONING section per path (no duplicated block)
+    const countMarker = (s: string) => (s.match(/=== DESIGN REASONING ===/g) || []).length;
+    expect(countMarker(nonRef.prompt)).toBe(1);
+    expect(countMarker(ref.prompt)).toBe(1);
+
+    // The CSS-comment framing from the shared helper is present in both
+    expect(nonRef.prompt).toContain('Briefly note design decisions inside CSS comments');
+    expect(ref.prompt).toContain('Briefly note design decisions inside CSS comments');
+
+    // Path-specific wording (differentiates the helper outputs)
+    expect(nonRef.prompt).toContain('"Abstract" personality shapes visual choices');
+    expect(nonRef.prompt).toContain('theme mood');
+    expect(ref.prompt).toContain('extracted from the reference');
+    expect(ref.prompt).toContain('reference mood');
+  });
+
+  it('GLOBAL_STEP_RULES does not duplicate bullets already in RECENCY_REMINDER', () => {
+    writeFileSync(join(TMP, 'themes', 'abstract.txt'), ':root {}');
+    const ctx = makeCtx({
+      themes: [{ id: 'abstract', name: 'Abstract' }],
+      themeColors: { abstract: { bg: '#000', rootBlock: ':root {}' } },
+    });
+    const result = buildGeneratePrompt(ctx as any, 'a todo list', { themeId: 'abstract' });
+    const prompt = result.prompt;
+
+    // Locate the GLOBAL_STEP_RULES section (from its header to the next === ... === marker)
+    const rulesStart = prompt.indexOf('=== RULES THAT APPLY TO ALL STEPS ===');
+    expect(rulesStart).toBeGreaterThan(-1);
+    const rulesTail = prompt.slice(rulesStart);
+    // The block ends at the next double-newline-followed-by-=== section, or the template tail
+    const nextSectionIdx = rulesTail.slice(1).search(/\n=== /);
+    const rulesBlock = nextSectionIdx >= 0 ? rulesTail.slice(0, nextSectionIdx + 1) : rulesTail;
+
+    // These RECENCY_REMINDER bullets must NOT be repeated inside the rules block
+    expect(rulesBlock).not.toContain('NO imports. NO createStore');
+    expect(rulesBlock).not.toContain('useApp() is mandatory in root App');
+    expect(rulesBlock).not.toContain('No sync/connection status UI');
+    expect(rulesBlock).not.toContain("Table names must be string literals: useRowIds('todos')");
+
+    // These GLOBAL_STEP_RULES-specific bullets MUST still be present
+    expect(rulesBlock).toContain('NO TypeScript');
+    expect(rulesBlock).toContain('CSS unicode escapes');
+    expect(rulesBlock).toContain('mobile-first with Tailwind');
+    expect(rulesBlock).toContain('useApp() returns { isReady, isSyncing, user }');
+  });
 });

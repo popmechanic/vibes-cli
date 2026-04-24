@@ -56,18 +56,43 @@ function useVibesTheme() {
 /**
  * Cross-cutting rules that apply to every step of the 2-step generation.
  * Kept in one place so the reference and non-reference prompts share identical text.
+ *
+ * Note: rules that also appear in RECENCY_REMINDER (no imports, useApp mandatory,
+ * cells scalar, no sync UI, table names literal) are intentionally omitted here —
+ * RECENCY_REMINDER emits earlier in the prompt and already covers those invariants.
+ * This block focuses on the rules specific to the multi-step generation flow.
  */
 const GLOBAL_STEP_RULES = `=== RULES THAT APPLY TO ALL STEPS ===
 
-- NO import statements — the app runs in a Babel script block with globals
 - NO TypeScript. End the file with: export default App
 - Never use CSS unicode escapes (\\2192, \\2022, \\00BB). Use actual Unicode characters: → ● « etc. CSS escapes break Babel.
 - Responsive (mobile-first with Tailwind). Use className="btn" for buttons, className="grid-background" on the root element.
-- TinyBase hooks (useRowIds, useCell, useAddRowCallback, useSetCellCallback, useDelRowCallback, useValue, useSortedRowIds, useTable) are PRE-EXISTING GLOBALS. NEVER import, redeclare, or alias them.
-- Table names must be string literals: useRowIds('todos'), never useRowIds(tableName).
-- Cells are scalars only (string/number/boolean) — no nested objects or arrays.
-- No sync/connection status UI, not even decorative ("Online", "LIVE", "Connected") — SyncStatusDot is built-in.
-- useApp() is mandatory in root App. It returns { isReady, isSyncing, user }.`;
+- TinyBase hooks (useRowIds, useCell, useAddRowCallback, useSetCellCallback, useDelRowCallback, useValue, useSortedRowIds, useTable) are PRE-EXISTING GLOBALS — explicit names so you know what's available.
+- useApp() returns { isReady, isSyncing, user }.`;
+
+/**
+ * The "Think about design decisions inline in CSS comments" block.
+ *
+ * Shared between the reference and non-reference prompt paths. Differs only in
+ * the first two bullets (reference mentions extracted tokens; non-reference
+ * names the theme personality) and the word `reference`/`theme` in the mood
+ * phrase.
+ */
+function DESIGN_REASONING_SECTION(opts: { isReference: boolean; themeName?: string }): string {
+  const firstBullet = opts.isReference
+    ? 'Colors, typography, and surfaces extracted from the reference and their mapping to --comp-* tokens'
+    : `How "${opts.themeName}" personality shapes visual choices`;
+  const secondBullet = opts.isReference
+    ? 'Custom SVG illustrations that fit'
+    : 'What custom SVG illustrations fit this app';
+  const moodLabel = opts.isReference ? 'reference' : 'theme';
+  return `=== DESIGN REASONING ===
+
+Briefly note design decisions inside CSS comments in the <style> tag — not as a separate <design> narrative before the Write. Consider:
+- ${firstBullet}
+- ${secondBullet}
+- Animations that match the ${moodLabel} mood (Canvas particles, animated SVG, scroll reveals, card tilt, cursor glow)`;
+}
 
 /**
  * The core new behavior: tell Claude to produce the app via two tool calls.
@@ -385,12 +410,7 @@ Derive ALL :root CSS tokens from the design reference above — do NOT use any p
 
 ${styleGuide}
 
-=== DESIGN REASONING ===
-
-Briefly note design decisions inside CSS comments in the <style> tag — not as a separate <design> narrative before the Write. Consider:
-- Colors, typography, and surfaces extracted from the reference and their mapping to --comp-* tokens
-- Custom SVG illustrations that fit
-- Animations that match the reference mood (Canvas particles, animated SVG, scroll reveals, card tilt, cursor glow)
+${DESIGN_REASONING_SECTION({ isReference: true })}
 
 ${TWO_STEP_INSTRUCTIONS}
 
@@ -467,12 +487,7 @@ ${themeEssentials || 'Creative, polished, and distinctive.'}
 
 ${styleGuide}
 
-=== DESIGN REASONING ===
-
-Briefly note design decisions inside CSS comments in the <style> tag — not as a separate <design> narrative before the Write. Consider:
-- How "${themeName}" personality shapes visual choices
-- What custom SVG illustrations fit this app
-- What animations match the theme mood (Canvas particles, animated SVG, scroll reveals, card tilt, cursor glow)
+${DESIGN_REASONING_SECTION({ isReference: false, themeName })}
 
 ${TWO_STEP_INSTRUCTIONS}
 
