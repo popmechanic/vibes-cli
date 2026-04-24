@@ -146,9 +146,18 @@ function getOrCreateBridge(ctx: ServerContext, appDir: string): PersistentBridge
       // On completion: final reassembly check + save full response to chat history
       if (event.type === 'complete') {
         checkAndReassemble(ctx, appDir);
-        const fullResponse = streamingTextBuffer || event.result || '';
-        if (fullResponse) {
-          appendMessage(appDir, { role: 'assistant', content: fullResponse });
+        // If the bridge is (or was just) interrupted, we already appended
+        // an "Interrupted" system message for this turn — don't then stack
+        // the partial assistant response on top. SIGINT can take a moment
+        // to land, so Claude may still emit a final `result` after cancel;
+        // drop it here so the chat history stays consistent with what the
+        // user actually saw.
+        const interrupted = bridge && bridge.state === 'interrupted';
+        if (!interrupted) {
+          const fullResponse = streamingTextBuffer || event.result || '';
+          if (fullResponse) {
+            appendMessage(appDir, { role: 'assistant', content: fullResponse });
+          }
         }
         streamingTextBuffer = '';
       }
