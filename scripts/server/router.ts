@@ -919,7 +919,7 @@ export function createRouter(ctx: ServerContext) {
     }
 
     // Bundle files
-    if (url.pathname === '/oidc-bridge.js' || url.pathname === '/fireproof-oidc-bridge.js' || url.pathname === '/vibes-ai.js') {
+    if (url.pathname === '/oidc-bridge.js' || url.pathname === '/vibes-ai.js') {
       const bundlePath = join(ctx.projectRoot, 'bundles', url.pathname.slice(1));
       const file = Bun.file(bundlePath);
       if (await file.exists()) {

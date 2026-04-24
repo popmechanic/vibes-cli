@@ -143,6 +143,26 @@ async function main() {
 
   // Separate large files for R2 upload, then deploy only the embedded files
   const { embed, r2: r2Files } = separateBySize(files);
+
+  // Cloudflare Workers have a 10 MB compressed script-size limit. Embedded
+  // files end up in the worker bundle, and base64 assets cost ~33% extra.
+  // Bail out BEFORE uploading with a clear error message instead of letting
+  // the Deploy API reject with raw Cloudflare error text.
+  const EMBED_BUDGET_BYTES = 7.5 * 1024 * 1024; // 7.5 MB pre-base64 ≈ 10 MB after encoding
+  let embedBytes = 0;
+  for (const v of Object.values(embed)) {
+    embedBytes += typeof v === 'string' && v.startsWith('base64:')
+      ? Buffer.from(v.slice(7), 'base64').length
+      : Buffer.byteLength(v, 'utf8');
+  }
+  if (embedBytes > EMBED_BUDGET_BYTES) {
+    const mb = (embedBytes / 1024 / 1024).toFixed(1);
+    throw new Error(
+      `Total embedded assets are ${mb} MB, which exceeds Cloudflare's worker script limit. ` +
+      `Move large files (>100 KB) to the assets/ directory — they'll upload to R2 instead.`
+    );
+  }
+
   await uploadR2Assets(DEPLOY_API_URL, name, r2Files, tokens.accessToken);
   const result = await deployViaAPI(name, embed, tokens.accessToken, { aiKey });
 

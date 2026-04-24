@@ -1,9 +1,9 @@
 /**
- * Legacy helpers extracted from claude-bridge.ts.
+ * Bun subprocess helpers — runs bun CLI scripts (assemble, deploy) as
+ * short-lived child processes and returns their captured stdout/stderr.
  *
- * Contains `runBunScript` (subprocess spawning for deploy/assemble)
- * and bun binary resolution. These are unchanged — kept here so
- * the main claude-bridge module can focus on the persistent bridge.
+ * Kept separate from `claude-bridge.ts` so that module can focus on the
+ * persistent stream-json bridge; this one has no Claude-specific logic.
  */
 
 import { existsSync } from 'fs';

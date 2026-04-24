@@ -97,12 +97,18 @@ export async function startServer(options?: StartServerOptions): Promise<StartSe
 
   // Only install signal handlers if not managed by caller
   if (!options?.managed) {
+    // On fatal errors, shut down the persistent Claude bridge and HTTP
+    // server before exiting — otherwise the child subprocess is orphaned
+    // and its PID leaks until the OS reaps it. `shutdownFn` is idempotent.
     process.on('uncaughtException', (err) => {
       console.error('[Process] Uncaught exception:', err);
-      process.exit(1);
+      shutdownFn();
+      setTimeout(() => process.exit(1), 1000);
     });
     process.on('unhandledRejection', (reason) => {
       console.error('[Process] Unhandled rejection:', reason);
+      shutdownFn();
+      setTimeout(() => process.exit(1), 1000);
     });
     process.on('SIGINT', () => { shutdownFn(); setTimeout(() => process.exit(0), 1000); });
     process.on('SIGTERM', () => { shutdownFn(); setTimeout(() => process.exit(0), 1000); });

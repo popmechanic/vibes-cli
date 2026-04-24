@@ -33,7 +33,7 @@
  * }
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, chmodSync, readdirSync, statSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, chmodSync, readdirSync, statSync, renameSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 
@@ -77,13 +77,28 @@ export function loadRegistry() {
 /**
  * Save the deployment registry to disk.
  * Creates ~/.vibes/ directory if it doesn't exist.
+ *
+ * Writes atomically via a PID-suffixed temp file + rename so that two
+ * concurrent writers (e.g. CLI deploy racing with the editor's setApp)
+ * can't end up with a half-written / interleaved JSON file. This isn't
+ * full locking — the classic load→mutate→save lost-write race is still
+ * possible — but atomic rename is cheap and removes the worst case of a
+ * corrupt registry on disk.
  */
 export function saveRegistry(reg) {
   const dir = join(getVibesHome(), '.vibes');
   mkdirSync(dir, { recursive: true });
   const path = getRegistryPath();
-  writeFileSync(path, JSON.stringify(reg, null, 2), { mode: 0o600 });
-  // Also chmod in case the file already existed with broader permissions
+  const tmpPath = `${path}.${process.pid}.tmp`;
+  writeFileSync(tmpPath, JSON.stringify(reg, null, 2), { mode: 0o600 });
+  try {
+    renameSync(tmpPath, path);
+  } catch (e) {
+    // Clean up orphaned temp file if rename fails (e.g. cross-device).
+    try { unlinkSync(tmpPath); } catch {}
+    throw e;
+  }
+  // chmod in case the file already existed with broader permissions
   try { chmodSync(path, 0o600); } catch (e) { console.warn('chmod registry failed:', e.message); }
 }
 

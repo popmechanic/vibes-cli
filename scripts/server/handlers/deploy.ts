@@ -13,7 +13,7 @@ import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL } from '../../lib/auth-c
 import { provisionInviteLink } from '../../lib/provision-invite-link.js';
 import { getApp, setApp } from '../../lib/registry.js';
 import { writeVibesJson } from '../../lib/vibes-json.js';
-import { runBunScript } from '../claude-bridge.ts';
+import { runBunScript } from '../bun-subprocess.ts';
 import type { EventCallback } from '../claude-bridge.ts';
 import type { ServerContext } from '../config.ts';
 import { resolveProjectDir } from '../app-context.js';

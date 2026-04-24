@@ -23,6 +23,7 @@ import { createBridge, cancelCurrent, type PersistentBridge, type EventCallback 
 import { buildChatPrompt, buildGeneratePrompt, buildBrainstormPrompt } from './prompt-builders.ts';
 import { loadHistory, appendMessage, clearHistory } from './chat-history.ts';
 import { sanitizeAppJsx } from './post-process.ts';
+import { validateAppJsx } from '../lib/validate-app-jsx.ts';
 import { handleThemeSwitch, handlePaletteTheme } from './handlers/theme.ts';
 import { handleDeploy } from './handlers/deploy.ts';
 import { handleSaveTheme } from './handlers/create-theme.ts';
@@ -146,9 +147,18 @@ function getOrCreateBridge(ctx: ServerContext, appDir: string): PersistentBridge
       // On completion: final reassembly check + save full response to chat history
       if (event.type === 'complete') {
         checkAndReassemble(ctx, appDir);
-        const fullResponse = streamingTextBuffer || event.result || '';
-        if (fullResponse) {
-          appendMessage(appDir, { role: 'assistant', content: fullResponse });
+        // If the bridge is (or was just) interrupted, we already appended
+        // an "Interrupted" system message for this turn — don't then stack
+        // the partial assistant response on top. SIGINT can take a moment
+        // to land, so Claude may still emit a final `result` after cancel;
+        // drop it here so the chat history stays consistent with what the
+        // user actually saw.
+        const interrupted = bridge && bridge.state === 'interrupted';
+        if (!interrupted) {
+          const fullResponse = streamingTextBuffer || event.result || '';
+          if (fullResponse) {
+            appendMessage(appDir, { role: 'assistant', content: fullResponse });
+          }
         }
         streamingTextBuffer = '';
       }
@@ -181,18 +191,6 @@ function snapshotAppJsxMtime(appDir: string): void {
  * off mid-token during a provider incident. Cheap, zero-dep, runs in a
  * few ms for a typical app.
  */
-function validateAppJsx(appDir: string): { ok: true } | { ok: false; error: string } {
-  const appPath = join(appDir, 'app.jsx');
-  try {
-    const source = readFileSync(appPath, 'utf-8');
-    const transpiler = new Bun.Transpiler({ loader: 'jsx' });
-    transpiler.transformSync(source);
-    return { ok: true };
-  } catch (err: any) {
-    return { ok: false, error: String(err?.message || err) };
-  }
-}
-
 /**
  * Check if app.jsx was modified since last snapshot. If so, run post-processing
  * and reassembly, then broadcast app_updated.
@@ -209,7 +207,7 @@ function checkAndReassemble(ctx: ServerContext, appDir: string): void {
       // Syntax-check the generated code before we let it propagate to
       // index.html and the preview frame's Babel transformer. Catches
       // truncated / malformed output from upstream model incidents.
-      const syntax = validateAppJsx(appDir);
+      const syntax = validateAppJsx(join(appDir, 'app.jsx'));
       if (!syntax.ok) {
         console.warn(`[WS] app.jsx has syntax errors, skipping assembly: ${syntax.error}`);
         broadcast({ type: 'app_invalid', error: syntax.error });

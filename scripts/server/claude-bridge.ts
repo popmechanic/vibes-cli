@@ -11,7 +11,7 @@
 import { basename } from 'path';
 import { createStreamParser } from '../lib/stream-parser.js';
 import { buildPersistentArgs, resolveClaudeBin, cleanEnv } from '../lib/claude-subprocess.js';
-import { translateStreamEvent } from './event-translator.ts';
+import { createStreamTranslator } from './event-translator.ts';
 import { validateAppJsx } from '../lib/validate-app-jsx.ts';
 
 // --- Types ---
@@ -302,6 +302,9 @@ export function createBridge(appDir: string, onEvent: EventCallback, pluginRoot?
   let seq = 0;
   const eventLog = new RingBuffer<SequencedEvent>(RING_BUFFER_MAX);
   const turn: BridgeTurnState = createBridgeTurnState();
+  // Per-bridge stream translator — owns its own tool_input progress state
+  // so it doesn't leak between turns or across concurrent tool_use calls.
+  const translate = createStreamTranslator();
 
   function transition(action: BridgeAction): boolean {
     const next = nextState(state, action);
@@ -373,8 +376,10 @@ export function createBridge(appDir: string, onEvent: EventCallback, pluginRoot?
       // Staged-preview events (only fire during generate turns)
       dispatchBridgeEvent(rawEvent, turn, emitEvent);
 
-      // Translate raw stream-json event into UI-facing messages
-      const translated = translateStreamEvent(rawEvent);
+      // Translate raw stream-json event into UI-facing messages.
+      // Each bridge instance uses its own translator so per-turn progress
+      // state doesn't leak between turns.
+      const translated = translate(rawEvent);
       for (const msg of translated) {
         emitEvent(msg);
       }
@@ -474,10 +479,15 @@ export function createBridge(appDir: string, onEvent: EventCallback, pluginRoot?
       }
       // After SIGINT, the process should send a result event or exit.
       // If it exits, monitorExit transitions interrupted -> idle.
-      // Give it a moment, then force-transition to idle if still interrupted.
+      // If SIGINT was ignored, the old code only flipped state to idle —
+      // but proc was still alive and mid-turn, and the next sendMessage
+      // would write to its stdin and interleave with the previous turn.
+      // Now: also force-kill the process so the next sendMessage respawns
+      // cleanly via the `state === 'idle' && !proc` branch.
       setTimeout(() => {
         if (state === 'interrupted') {
-          console.log('[Bridge] Force-transitioning interrupted -> idle after timeout');
+          console.log('[Bridge] SIGINT did not land within 5s — force-killing process');
+          killProc();
           state = 'idle';
         }
       }, 5000);
@@ -934,9 +944,12 @@ export async function runOneShot(
     runState.resultText = (runState.resultText || '') + '\n\n*[Output was truncated at the token limit — the app was written but some follow-up content may be missing.]*';
   }
 
-  // Post-process
-  if (runState.hasEdited) {
-    sanitizeAppJsx(projectRoot);
+  // Post-process. `sanitizeAppJsx` joins its argument with 'app.jsx', so
+  // it needs the app directory (cwd), not the plugin root. Without cwd
+  // there's no file to sanitize — skip rather than silently no-op on
+  // `<plugin-root>/app.jsx`.
+  if (runState.hasEdited && opts.cwd) {
+    sanitizeAppJsx(opts.cwd);
   }
 
   let appJsxValid: boolean | undefined = undefined;
@@ -965,6 +978,3 @@ export async function runOneShot(
   return runState.resultText || null;
 }
 
-// --- Re-exports from legacy module ---
-
-export { runBunScript } from './claude-bridge-legacy.ts';

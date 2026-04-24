@@ -106,7 +106,7 @@ Build this app in two separate tool calls, in order. Each step has a specific pu
 STEP 1 — Write app.jsx: the visible skeleton.
 Produce a file that compiles and renders the app's basic shape — even without data or interactions. Include:
 - The exact __VIBES_THEMES__ + useVibesTheme code from above (unchanged)
-- A <style> tag with :root tokens and the four marker sections (/* @theme:tokens */, /* @theme:surfaces */, /* @theme:motion */, {/* @theme:decoration */}) present even when their contents are empty, plus base layout CSS
+- A <style> tag with :root tokens and the five marker sections (/* @theme:tokens */, /* @theme:typography */, /* @theme:surfaces */, /* @theme:motion */, {/* @theme:decoration */}) present even when their contents are empty, plus base layout CSS. Any @import font URLs belong inside @theme:typography — not at the top of the style tag.
 - A functioning component tree with visible elements: header with the app title, main content area, whatever structural regions fit this app (sidebar/nav/footer as needed). Components render placeholder/empty states but the layout is real.
 - Basic React hooks for local UI state (useState). NO TinyBase hooks yet. NO event handlers yet.
 - export default App

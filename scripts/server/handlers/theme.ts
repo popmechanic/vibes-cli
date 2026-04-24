@@ -124,8 +124,13 @@ async function handleThemeSwitchMultiPass(ctx, onEvent, themeId, themeName, them
   // Use skipChat in onEvent — the wsAdapter will check event.skipChat
   const claudeResult = await runOneShot(prompt, { lockType: 'theme', skipChat: true, maxTurns: 5, model, cwd: resolveProjectDir(ctx, appName), tools: 'Read,Edit' }, onEvent, ctx.projectRoot);
 
+  // Cancellation: runOneShot returns null when the user cancels. In that
+  // case Claude never ran, so the guardrail below would see unchanged
+  // code, fall through the else branch, and make the cancel look like a
+  // successful theme switch. Bail out — runOneShot has already emitted
+  // the `cancelled` event upstream.
   if (claudeResult === null) {
-    onEvent({ type: 'app_updated' });
+    return;
   }
 
   // === Post-edit validation (Layer 2 guardrail) ===

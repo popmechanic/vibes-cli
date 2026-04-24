@@ -263,6 +263,11 @@ function _startCallbackServer({ authority, clientId, authFile = DEFAULT_AUTH_FIL
         return;
       }
 
+      // We have a valid code — clear the 5-minute login timer so it
+      // can't fire mid-way through the token exchange and reject the
+      // promise with "Login timed out" after the user already succeeded.
+      clearTimeout(timer);
+
       // Exchange authorization code for tokens
       const tokenUrl = `${authority}/api/oidc/token`;
       const body = new URLSearchParams({

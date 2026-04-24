@@ -61,9 +61,11 @@ export function populateConnectConfig(html, envVars, globalReplace = false) {
     }
   }
 
-  // TinyBase app config placeholders — use provided values or safe defaults
+  // TinyBase app config placeholders — use provided values or safe defaults.
+  // `in` check (not ||) so a caller can intentionally pass '' / 'false' / '0'
+  // without silently getting the default back.
   for (const [placeholder, defaultValue] of Object.entries(APP_CONFIG_PLACEHOLDERS)) {
-    const value = envVars[placeholder] || defaultValue;
+    const value = placeholder in envVars ? envVars[placeholder] : defaultValue;
     result = result.replaceAll(placeholder, value);
   }
 

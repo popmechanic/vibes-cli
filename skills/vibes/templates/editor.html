@@ -4304,7 +4304,12 @@ window.escapeHtml = function(str) {
       const frame = document.getElementById('previewFrame');
       if (!frame) return;
       if (overlayInError) overlayInError = false; // recovery: successful reload clears error
-      const name = currentProjectDir ? currentProjectDir.split('/').pop() : currentAppName;
+      // Strip trailing separators before splitting — `.split('/').pop()` on
+      // '/path/to/app/' returns '' and the cache-bust URL loses its app= param.
+      // Also handles backslash separators so Windows paths don't silently fail.
+      const name = currentProjectDir
+        ? currentProjectDir.replace(/[\\/]+$/, '').split(/[\\/]/).pop()
+        : currentAppName;
       const appParam = name ? 'app=' + encodeURIComponent(name) + '&' : '';
       frame.src = '/app-frame?' + appParam + 't=' + Date.now();
       // After a successful reload, restore the normal overlay copy for the current stage
