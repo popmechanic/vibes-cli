@@ -17,9 +17,9 @@ import { existsSync, readFileSync, statSync } from 'fs';
 import { join, extname } from 'path';
 import type { ServerContext } from '../config.ts';
 
-function corsHeaders(): Record<string, string> {
+function corsHeaders(ctx: ServerContext): Record<string, string> {
   return {
-    'Access-Control-Allow-Origin': `http://localhost:3333`,
+    'Access-Control-Allow-Origin': `http://localhost:${ctx.port}`,
     'Vary': 'Origin',
   };
 }
@@ -48,26 +48,26 @@ export function serveReferenceFrame(ctx: ServerContext, url: URL): Response {
   const kind = url.searchParams.get('kind') || '';
 
   if (!isSafeName(name)) {
-    return new Response('Bad Request', { status: 400, headers: corsHeaders() });
+    return new Response('Bad Request', { status: 400, headers: corsHeaders(ctx) });
   }
 
   const refDir = join(ctx.projectRoot, '.vibes-tmp');
   const filePath = join(refDir, name);
   if (!filePath.startsWith(refDir + '/')) {
-    return new Response('Bad Request', { status: 400, headers: corsHeaders() });
+    return new Response('Bad Request', { status: 400, headers: corsHeaders(ctx) });
   }
   if (!existsSync(filePath) || !statSync(filePath).isFile()) {
-    return new Response('Not Found', { status: 404, headers: corsHeaders() });
+    return new Response('Not Found', { status: 404, headers: corsHeaders(ctx) });
   }
 
   if (kind === 'html') {
     const body = readFileSync(filePath, 'utf-8');
-    return new Response(body, { headers: { 'Content-Type': 'text/html; charset=utf-8', ...corsHeaders() } });
+    return new Response(body, { headers: { 'Content-Type': 'text/html; charset=utf-8', ...corsHeaders(ctx) } });
   }
 
   if (kind === 'raw') {
     const bytes = readFileSync(filePath);
-    return new Response(bytes, { headers: { 'Content-Type': contentTypeFor(name), ...corsHeaders() } });
+    return new Response(bytes, { headers: { 'Content-Type': contentTypeFor(name), ...corsHeaders(ctx) } });
   }
 
   // kind === 'image' (or default): wrap in a minimal full-bleed shell
@@ -81,5 +81,5 @@ export function serveReferenceFrame(ctx: ServerContext, url: URL): Response {
   </style>
 </head>
 <body><img src="${rawSrc}" alt="reference"></body></html>`;
-  return new Response(shell, { headers: { 'Content-Type': 'text/html; charset=utf-8', ...corsHeaders() } });
+  return new Response(shell, { headers: { 'Content-Type': 'text/html; charset=utf-8', ...corsHeaders(ctx) } });
 }

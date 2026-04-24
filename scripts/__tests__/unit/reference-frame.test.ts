@@ -9,7 +9,7 @@ import { serveReferenceFrame } from '../../server/handlers/reference-frame.ts';
 const TMP = join(import.meta.dirname, '.tmp-refframe-test');
 
 function makeCtx() {
-  return { projectRoot: TMP } as any;
+  return { projectRoot: TMP, port: 3333 } as any;
 }
 
 beforeEach(() => {
@@ -67,5 +67,13 @@ describe('serveReferenceFrame', () => {
     const url = new URL('http://localhost/reference-frame?name=nonexistent.html&kind=html');
     const res = serveReferenceFrame(makeCtx(), url);
     expect(res.status).toBe(404);
+  });
+
+  it('uses the port from ctx for the CORS Access-Control-Allow-Origin header', () => {
+    writeFileSync(join(TMP, '.vibes-tmp', 'ref.html'), '<p>hi</p>');
+    const url = new URL('http://localhost/reference-frame?name=ref.html&kind=html');
+    const ctx = { projectRoot: TMP, port: 4444 } as any;
+    const res = serveReferenceFrame(ctx, url);
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:4444');
   });
 });
