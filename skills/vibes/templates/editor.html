@@ -4256,6 +4256,11 @@ window.escapeHtml = function(str) {
 
     let overlayCurrentStage = null;
     let overlayInError = false;
+    // When the staged-preview UX is active, the legacy ASCII loader
+    // (showPreviewOverlay / updatePreviewOverlay / AsciiAnimation) must be
+    // suppressed — otherwise it renders on top of the iframe and the user
+    // never sees the skeleton preview Direction D is designed to show.
+    let stagedPreviewActive = false;
 
     function setOverlayVisible(visible) {
       const o = document.getElementById('genOverlay');
@@ -4270,7 +4275,16 @@ window.escapeHtml = function(str) {
       if (card) card.classList.toggle('error', !!isError);
     }
 
+    function takeOverLegacyOverlay() {
+      // First staged-preview signal for this generation: hide the legacy
+      // ASCII loader and stop its animation so the iframe becomes visible.
+      // Safe to call repeatedly — hidePreviewOverlay is idempotent.
+      stagedPreviewActive = true;
+      try { hidePreviewOverlay(); } catch (e) { /* legacy helper may not be defined yet during early load */ }
+    }
+
     function handleGenerationStage(stage) {
+      takeOverLegacyOverlay();
       overlayCurrentStage = stage;
       if (overlayInError && stage === 'interactions') {
         // Recovery: a new stage event clears the error state
@@ -4286,6 +4300,7 @@ window.escapeHtml = function(str) {
       // Cache-bust the preview iframe. Reuse the exact appParam derivation pattern
       // used at the existing reload call site (around line 5066-5067 in this file)
       // — currentProjectDir is a full path, so we derive `name` from it.
+      takeOverLegacyOverlay();
       const frame = document.getElementById('previewFrame');
       if (!frame) return;
       if (overlayInError) overlayInError = false; // recovery: successful reload clears error
@@ -4303,6 +4318,7 @@ window.escapeHtml = function(str) {
     }
 
     function handleReferencePreview(src) {
+      takeOverLegacyOverlay();
       const frame = document.getElementById('previewFrame');
       if (!frame) return;
       frame.src = src;
@@ -4312,6 +4328,7 @@ window.escapeHtml = function(str) {
       setOverlayVisible(false);
       overlayCurrentStage = null;
       overlayInError = false;
+      stagedPreviewActive = false;
       if (appJsxValid === false) {
         // Surface a persistent error chip / toast — project-specific UI hook.
         // For now, just log; a later polish pass can attach to the existing toast system.
@@ -4390,8 +4407,11 @@ window.escapeHtml = function(str) {
         const label = TOOL_LABELS[msg.name] || ('Running ' + msg.name + '...');
         setThinking(true, null, label);
         addToolBlock(msg.name, msg.id);
-        // Update preview overlay if generating; start animation on first Write (app.jsx)
-        if (isGenerating) {
+        // Update preview overlay if generating; start animation on first Write (app.jsx).
+        // Skip the legacy ASCII loader when the Direction D staged-preview UX has
+        // taken over — otherwise the ASCII animation and progress label occlude
+        // the iframe and hide the skeleton preview.
+        if (isGenerating && !stagedPreviewActive) {
           updatePreviewOverlay(null, label);
           if (msg.name === 'Write') AsciiAnimation.start();
         }
@@ -6339,9 +6359,20 @@ window.escapeHtml = function(str) {
     const overlay = document.getElementById('previewOverlay');
     overlay.style.background = '';
     overlay.classList.add('hidden');
+    // Generation-end paths (complete, error, app_updated, interrupt) all call
+    // hidePreviewOverlay. Piggyback on that to also clear Direction D's staged
+    // preview state — otherwise the genOverlay can stick around on error paths.
+    if (typeof stagedPreviewActive !== 'undefined' && stagedPreviewActive) {
+      stagedPreviewActive = false;
+      try { setOverlayVisible(false); } catch (e) { /* genOverlay may be absent */ }
+    }
   }
 
   function updatePreviewOverlay(progress, stage) {
+    // When Direction D's staged-preview UX has taken over the iframe, this
+    // legacy progress label must not be updated — the legacy overlay is
+    // hidden and the genOverlay is in charge of progress copy.
+    if (typeof stagedPreviewActive !== 'undefined' && stagedPreviewActive) return;
     if (stage) document.getElementById('previewProgressLabel').textContent = stage;
   }
 
