@@ -12,6 +12,34 @@
 
 ---
 
+> ## Status update — post-PR [#73](https://github.com/popmechanic/VibesOS/pull/73) / [#75](https://github.com/popmechanic/VibesOS/pull/75)
+>
+> This plan targets `scripts/server/handlers/generate.ts::handleGenerate` as
+> the site where staged-preview events are emitted and where `runOneShot`
+> is tuned. **That surface is gone in production.**
+>
+> After [#73](https://github.com/popmechanic/VibesOS/pull/73), the editor
+> generate flow runs through the **persistent bridge**
+> (`scripts/server/claude-bridge.ts::createBridge`), dispatched from
+> `scripts/server/ws.ts` at `case 'generate':`. Staged-preview events are
+> emitted by `translateStreamEvent` (in `event-translator.ts`), gated by
+> `turnMode === 'generate'`. `handleGenerate` and the one-shot-specific
+> `generation-events.test.ts` references to the editor path have been
+> cleaned up in [#75](https://github.com/popmechanic/VibesOS/pull/75);
+> only `assembleAppFrame` remains in `handlers/generate.ts` for the
+> `/app-frame` route.
+>
+> When reading task-by-task file references below, substitute:
+> - `scripts/server/handlers/generate.ts` (for emit sites) → `scripts/server/claude-bridge.ts` + `scripts/server/ws.ts`
+> - `dispatchStreamEvent` → `translateStreamEvent` (bridge path) — `dispatchStreamEvent` still exists and still powers `runOneShot` (theme / factory / riff), just not the editor
+> - `handleGenerate` → `case 'generate':` in `ws.ts`
+>
+> The prompt structure, event names and payloads, validator logic, and
+> editor-side UI plumbing are all still accurate. The routing landmine
+> is documented in `CLAUDE.md` "Generate Flow Routing."
+
+---
+
 ## File Structure
 
 ### Modified files

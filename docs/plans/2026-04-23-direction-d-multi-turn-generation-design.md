@@ -6,6 +6,30 @@
 
 ---
 
+> ## Status update — post-PR [#73](https://github.com/popmechanic/VibesOS/pull/73) / [#75](https://github.com/popmechanic/VibesOS/pull/75)
+>
+> This document describes a design where the staged-preview events
+> (`generation_stage`, `preview_reload`, `reference_preview`) are emitted from
+> `scripts/server/handlers/generate.ts::handleGenerate` via `runOneShot` /
+> `dispatchStreamEvent`. **That is not where they live in production.**
+>
+> After [#73](https://github.com/popmechanic/VibesOS/pull/73), the editor
+> generate flow runs through the **persistent bridge**
+> (`scripts/server/claude-bridge.ts::createBridge`), dispatched from
+> `scripts/server/ws.ts` at `case 'generate':`. The bridge emits the staged
+> preview events via `translateStreamEvent`, gated by
+> `turnMode === 'generate'`. `handleGenerate` was removed in
+> [#75](https://github.com/popmechanic/VibesOS/pull/75); only
+> `assembleAppFrame` survives in `handlers/generate.ts`, used by the
+> `/app-frame` route.
+>
+> The rest of this document — the two-step prompt structure, the event
+> protocol, the turn-sequencing rationale — is still accurate. Only the
+> implementation surface moved. See `CLAUDE.md` "Generate Flow Routing"
+> for the current routing note.
+
+---
+
 ## Summary
 
 Vibes OS app generation currently asks Claude to produce a complete React app in a single `Write` tool call. For complex apps (4,000+ lines of JSX/CSS with Canvas, SVG, animations), this reliably exceeds per-turn `max_tokens` limits. Users experience this as the generation hanging or producing a broken file.
