@@ -18,6 +18,8 @@ import { validateAppJsx } from '../lib/validate-app-jsx.ts';
 
 export type BridgeState = 'idle' | 'streaming' | 'interrupted' | 'dead';
 export type EventCallback = (event: any) => void;
+export type TurnMode = 'generate' | 'chat' | null;
+export type GenerationStage = 'reading_reference' | 'foundation' | 'interactions';
 
 export interface PersistentBridge {
   state: BridgeState;
@@ -25,6 +27,20 @@ export interface PersistentBridge {
   interrupt(): void;
   reset(): void;
   kill(): void;
+  /**
+   * Configure the per-turn mode used by the stream parser to decide whether
+   * to emit generate-specific events (generation_stage, preview_reload,
+   * preview_reload_failed). Must be called before each `sendMessage` on a
+   * reused bridge, since a single bridge carries chat and generate turns
+   * across its lifetime.
+   *
+   * - `'generate'` with `initialStage` — emit the full staged-preview
+   *   sequence. `initialStage` is typically 'reading_reference' for
+   *   reference-path generate and 'foundation' otherwise.
+   * - `'chat'` — suppress all generate-mode emissions.
+   * - `null` — explicitly clear turn state (rarely needed).
+   */
+  setTurnMode(mode: TurnMode, initialStage?: GenerationStage): void;
   onEvent: EventCallback | null;
   readonly appDir: string | null;
   readonly eventLog: readonly SequencedEvent[];
@@ -117,6 +133,167 @@ export function nextState(current: BridgeState, action: BridgeAction): BridgeSta
   }
 }
 
+// --- Turn State (generate vs chat mode) ---
+
+/**
+ * Mutable per-turn state the bridge dispatcher uses to decide when to emit
+ * generate-specific staged-preview events. A single bridge instance is
+ * reused across many user turns, so this is reset by `setTurnMode`.
+ */
+export interface BridgeTurnState {
+  mode: TurnMode;
+  /** Count of Write/Edit tool_use events seen this turn. Drives the
+   * generation_stage transition (reading_reference -> foundation, then
+   * foundation -> interactions on the 2nd Write/Edit). */
+  toolUseSeen: number;
+  stage: GenerationStage | null;
+  /**
+   * Map of tool_use_id -> accumulated input JSON buffer. The bridge receives
+   * tool_use via `content_block_start` (which has the tool name but no
+   * completed input) and then streams `input_json_delta` chunks. When the
+   * corresponding `tool_result` arrives we parse the buffered JSON to
+   * extract `file_path`. Also tracks the tool name so we can filter to
+   * Write/Edit on tool_result.
+   */
+  pendingTools: Map<string, { name: string; inputJsonBuf: string }>;
+}
+
+export function createBridgeTurnState(): BridgeTurnState {
+  return {
+    mode: null,
+    toolUseSeen: 0,
+    stage: null,
+    pendingTools: new Map(),
+  };
+}
+
+/**
+ * Helpers the bridge dispatcher needs — injected so tests can provide
+ * deterministic stubs (e.g. a stubbed `validateAppJsx`).
+ */
+export interface BridgeDispatchHelpers {
+  validateAppJsx?: (path: string) => { ok: true } | { ok: false; error: string };
+}
+
+/**
+ * Attempt to extract `file_path` from a buffered input_json_delta stream.
+ * The buffer may be a complete JSON object, a partial object, or empty —
+ * we prefer JSON.parse for safety and fall back to a targeted regex so a
+ * still-streaming buffer can still yield the file_path field.
+ */
+function extractFilePath(inputJsonBuf: string): string {
+  if (!inputJsonBuf) return '';
+  try {
+    const parsed = JSON.parse(inputJsonBuf);
+    if (parsed && typeof parsed.file_path === 'string') return parsed.file_path;
+  } catch {
+    // Fall through to regex.
+  }
+  // Grab "file_path": "..." even from a partial/malformed stream.
+  const m = inputJsonBuf.match(/"file_path"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if (m) {
+    try {
+      return JSON.parse(`"${m[1]}"`);
+    } catch {
+      return m[1];
+    }
+  }
+  return '';
+}
+
+/**
+ * Consume one parsed stream-json event for the persistent bridge. Mutates
+ * `turn` in place and emits staged-preview events via `onEvent`, but only
+ * when `turn.mode === 'generate'`. Chat turns pass through untouched.
+ *
+ * This is the bridge-path mirror of `dispatchStreamEvent` (which powers
+ * `runOneShot`). Extracted as a pure function so it can be unit-tested
+ * without spawning the Claude subprocess.
+ */
+export function dispatchBridgeEvent(
+  rawEvent: any,
+  turn: BridgeTurnState,
+  onEvent: EventCallback,
+  helpers: BridgeDispatchHelpers = {},
+): void {
+  if (turn.mode !== 'generate') return;
+  const validate = helpers.validateAppJsx ?? validateAppJsx;
+
+  // Track tool_use starts — `content_block_start` with content_block.type === 'tool_use'.
+  if (rawEvent.type === 'stream_event' && rawEvent.event) {
+    const inner = rawEvent.event;
+
+    if (
+      inner.type === 'content_block_start' &&
+      inner.content_block?.type === 'tool_use' &&
+      typeof inner.content_block.id === 'string'
+    ) {
+      const toolName: string = inner.content_block.name || '';
+      turn.pendingTools.set(inner.content_block.id, { name: toolName, inputJsonBuf: '' });
+
+      if (toolName === 'Write' || toolName === 'Edit') {
+        turn.toolUseSeen++;
+        if (turn.toolUseSeen === 1 && turn.stage === 'reading_reference') {
+          turn.stage = 'foundation';
+          onEvent({ type: 'generation_stage', stage: 'foundation' });
+        } else if (turn.toolUseSeen === 2) {
+          turn.stage = 'interactions';
+          onEvent({ type: 'generation_stage', stage: 'interactions' });
+        }
+      }
+      return;
+    }
+
+    // Accumulate input_json_delta chunks per tool_use_id. The content_block
+    // lives inside a parent block whose index we don't track explicitly —
+    // stream-json sends one tool_use per streaming section, so we use the
+    // most recent one that's still open. In practice the inner event carries
+    // the `index` matching content_block_start, and we map index back to id
+    // via the insertion order of pendingTools.
+    if (inner.type === 'content_block_delta' && inner.delta?.type === 'input_json_delta') {
+      // Find the most-recent pending tool (the one still streaming input).
+      // Tool use input deltas arrive in-order for the currently-open block,
+      // and at most one content block is streaming input at a time in
+      // practice, so taking the last-inserted pending entry is correct.
+      const entries = Array.from(turn.pendingTools.entries());
+      const last = entries[entries.length - 1];
+      if (last) {
+        last[1].inputJsonBuf += inner.delta.partial_json || '';
+      }
+      return;
+    }
+    return;
+  }
+
+  // tool_result: look up the pending tool, maybe emit preview_reload.
+  if (rawEvent.type === 'tool_result') {
+    const toolUseId = rawEvent.tool_use_id;
+    if (!toolUseId) return;
+    const pending = turn.pendingTools.get(toolUseId);
+    if (!pending) return;
+    turn.pendingTools.delete(toolUseId);
+
+    const isWriteOrEdit = pending.name === 'Write' || pending.name === 'Edit';
+    if (!isWriteOrEdit) return;
+    if (rawEvent.is_error) return;
+
+    const filePath = extractFilePath(pending.inputJsonBuf);
+    if (!filePath) return;
+    if (basename(filePath) !== 'app.jsx') return;
+
+    const v = validate(filePath);
+    if (v.ok) {
+      onEvent({ type: 'preview_reload' });
+    } else {
+      onEvent({
+        type: 'preview_reload_failed',
+        stage: turn.stage === 'interactions' ? 'interactions' : 'foundation',
+        error: v.error,
+      });
+    }
+  }
+}
+
 // --- Persistent Bridge ---
 
 export function createBridge(appDir: string, onEvent: EventCallback, pluginRoot?: string): PersistentBridge {
@@ -124,6 +301,7 @@ export function createBridge(appDir: string, onEvent: EventCallback, pluginRoot?
   let proc: ReturnType<typeof Bun.spawn> | null = null;
   let seq = 0;
   const eventLog = new RingBuffer<SequencedEvent>(RING_BUFFER_MAX);
+  const turn: BridgeTurnState = createBridgeTurnState();
 
   function transition(action: BridgeAction): boolean {
     const next = nextState(state, action);
@@ -192,6 +370,9 @@ export function createBridge(appDir: string, onEvent: EventCallback, pluginRoot?
 
   function readStdout(p: NonNullable<typeof proc>): void {
     const parse = createStreamParser((rawEvent: any) => {
+      // Staged-preview events (only fire during generate turns)
+      dispatchBridgeEvent(rawEvent, turn, emitEvent);
+
       // Translate raw stream-json event into UI-facing messages
       const translated = translateStreamEvent(rawEvent);
       for (const msg of translated) {
@@ -312,6 +493,13 @@ export function createBridge(appDir: string, onEvent: EventCallback, pluginRoot?
     kill(): void {
       transition('kill');
       killProc();
+    },
+
+    setTurnMode(mode: TurnMode, initialStage?: GenerationStage): void {
+      turn.mode = mode;
+      turn.toolUseSeen = 0;
+      turn.stage = initialStage ?? null;
+      turn.pendingTools.clear();
     },
   };
 

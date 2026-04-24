@@ -321,6 +321,8 @@ export function createWsHandler(ctx: ServerContext) {
             });
             appendMessage(appDir, { role: 'user', content: msg.message });
             const b = getOrCreateBridge(ctx, appDir);
+            // Chat turns suppress generate-only staged-preview events.
+            b.setTurnMode('chat');
             b.sendMessage(prompt);
             break;
           }
@@ -357,9 +359,38 @@ export function createWsHandler(ctx: ServerContext) {
             switchApp(ctx, newAppDir);
             appendMessage(newAppDir, { role: 'user', content: msg.prompt });
 
+            // Staged-preview prelude: for reference-path generate, show the
+            // user their uploaded reference while Claude reads it; then emit
+            // the initial generation_stage so the UI shows the correct
+            // staged-preview label from the start.
+            const isReferencePath = result.isReference;
+            const initialStage: 'reading_reference' | 'foundation' = isReferencePath ? 'reading_reference' : 'foundation';
+
+            if (isReferencePath) {
+              const refName = msg.reference?.name as string | undefined;
+              const isTextRef = !!refName && /\.(txt|md|csv|tsv|json|xml|rtf)$/i.test(refName);
+              if (refName && !isTextRef) {
+                const refKind = result.isHtmlRef ? 'html' : 'image';
+                const vibesTmpPath = join(ctx.projectRoot, '.vibes-tmp', refName);
+                if (existsSync(vibesTmpPath)) {
+                  onEvent({
+                    type: 'reference_preview',
+                    src: `/reference-frame?name=${encodeURIComponent(refName)}&kind=${refKind}`,
+                  });
+                }
+              }
+            }
+
+            onEvent({ type: 'generation_stage', stage: initialStage });
+
             // Try brainstorm first — includes generate instructions for after Q&A
             const brainstormPrompt = buildBrainstormPrompt(ctx, msg.prompt, result.prompt);
             const b = getOrCreateBridge(ctx, newAppDir);
+
+            // Generate turns emit the full staged-preview sequence; set mode
+            // BEFORE sendMessage so the stream parser sees it from the first
+            // tool_use.
+            b.setTurnMode('generate', initialStage);
 
             if (brainstormPrompt) {
               b.sendMessage(brainstormPrompt);
