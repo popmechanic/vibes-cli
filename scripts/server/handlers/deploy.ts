@@ -5,7 +5,7 @@
  * The CLI sends files and reads back the wsUrl from the response.
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync, statSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync, copyFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { buildPlatformFiles, addAppAssets, separateBySize, uploadR2Assets } from '../../lib/deploy-files.js';
 import { getAccessToken } from '../../lib/cli-auth.js';
@@ -94,48 +94,9 @@ export async function handleDeploy(ctx: ServerContext, onEvent: EventCallback, t
     return;
   }
 
-  // Patch assembled HTML so the app's background shows through the template frame
-  try {
-    const appCode = readFileSync(appJsxPath, 'utf8');
-    let html = readFileSync(indexHtmlPath, 'utf8');
-
-    const rootMatch = appCode.match(/:root\s*\{([^}]+)\}/);
-    let bgColor = '';
-    if (rootMatch) {
-      const bgMatch = rootMatch[1].match(/--color-background\s*:\s*([^;]+)/);
-      if (bgMatch) bgColor = bgMatch[1].trim();
-    }
-    if (!bgColor) {
-      const bodyBgMatch = appCode.match(/body\s*\{[^}]*background\s*:\s*([^;]+)/);
-      if (bodyBgMatch) bgColor = bodyBgMatch[1].trim();
-    }
-
-    // Sanitize bgColor — reject characters that could break out of CSS value or HTML context
-    if (bgColor && /[;{}<>"']/.test(bgColor)) {
-      console.warn(`[Deploy] Rejected suspicious bgColor value: ${bgColor.slice(0, 50)}`);
-      bgColor = '';
-    }
-    const bg = bgColor || 'inherit';
-
-    const headPatch = `<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <style>
-      #container { padding: 10px !important; }
-      body::before { background-color: ${bg} !important; }
-    </style>`;
-    html = html.replace('</head>', headPatch + '\n</head>');
-
-    const bodyPatch = `<style>
-      div[style*="z-index: 10"][style*="position: fixed"] { background: ${bg} !important; }
-    </style>`;
-    html = html.replace('</body>', bodyPatch + '\n</body>');
-
-    writeFileSync(indexHtmlPath, html);
-    console.log('[Deploy] Patched body::before background' + (bgColor ? `: ${bgColor}` : ''));
-  } catch (e: any) {
-    console.error('[Deploy] Patch failed:', e.message);
-  }
+  // Background color patch + cache-control meta tags are applied inside
+  // assemble.js (lib/assembly-utils.js::patchAppBackground) — by the time
+  // we read the assembled HTML below it's already patched.
 
   onEvent({ type: 'progress', progress: 30, stage: 'Deploying...', elapsed: getElapsed() });
 

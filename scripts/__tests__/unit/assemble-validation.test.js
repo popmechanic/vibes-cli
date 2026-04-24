@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { APP_PLACEHOLDER, injectCode, validateAssembly, checkForbiddenPatterns } from '../../lib/assembly-utils.js';
+import { APP_PLACEHOLDER, injectCode, validateAssembly, checkForbiddenPatterns, patchAppBackground } from '../../lib/assembly-utils.js';
 import {
   SAFE_PLACEHOLDER_PATTERNS,
   validateFactoryTemplate,
@@ -235,5 +235,46 @@ describe('validateFactoryAssembly (post-injection)', () => {
     const errors = validateFactoryAssembly(html, '');
     expect(errors).toContain('App code is empty');
     expect(errors).toContain('No App component found');
+  });
+});
+
+describe('patchAppBackground', () => {
+  const baseHtml = '<html><head><meta charset="utf-8"></head><body><div id="root"></div></body></html>';
+
+  it('extracts --color-background from :root and injects patches', () => {
+    const app = `:root { --color-background: oklch(15% 0 0); --color-text: white; }\nexport default function App() { return null; }`;
+    const out = patchAppBackground(baseHtml, app);
+    expect(out).toContain('oklch(15% 0 0)');
+    expect(out).toContain('body::before { background-color: oklch(15% 0 0) !important;');
+    expect(out).toContain('Cache-Control');
+  });
+
+  it('falls back to body background when :root has none', () => {
+    const app = `body { background: #ff0088; }\nexport default function App() { return null; }`;
+    const out = patchAppBackground(baseHtml, app);
+    expect(out).toContain('body::before { background-color: #ff0088');
+  });
+
+  it('rejects bg values containing CSS/HTML breakers', () => {
+    const app = `:root { --color-background: red; } body { background: red } --color-background: red; } <script>`;
+    // If extraction pulled the value "red }" (unclosed brace etc.), sanitizer rejects it
+    const appWithBad = `:root { --color-background: red{bad; }\nexport default function App() {}`;
+    const out = patchAppBackground(baseHtml, appWithBad);
+    expect(out).toContain('background-color: inherit');
+  });
+
+  it('uses "inherit" when no background is declared', () => {
+    const app = `export default function App() { return null; }`;
+    const out = patchAppBackground(baseHtml, app);
+    expect(out).toContain('background-color: inherit');
+  });
+
+  it('injects both head and body patches', () => {
+    const app = `:root { --color-background: blue; }\nfunction App() {}`;
+    const out = patchAppBackground(baseHtml, app);
+    // head patch
+    expect(out).toMatch(/<style>[\s\S]*body::before[\s\S]*<\/style>\s*\n<\/head>/);
+    // body patch — overlay rule
+    expect(out).toMatch(/div\[style\*="z-index: 10"\][\s\S]*<\/style>\s*\n<\/body>/);
   });
 });

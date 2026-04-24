@@ -92,6 +92,60 @@ export function checkForbiddenPatterns(code) {
 }
 
 /**
+ * Extract the app's background color from its `:root` CSS custom property
+ * or `body` block, and inject two inline `<style>` blocks into the
+ * assembled HTML so the template frame and the floating overlay show the
+ * app's background instead of the template's default.
+ *
+ * Also injects cache-control meta tags so users always get the latest
+ * deploy rather than a CDN-cached copy.
+ *
+ * Previously ran at deploy time in handlers/deploy.ts — moved here so the
+ * same treatment applies to every assembly path (editor deploy, CLI
+ * deploy, terminal reassemble) without the deploy handler needing to
+ * re-read and re-write the HTML.
+ *
+ * @param {string} html - Assembled HTML output
+ * @param {string} appCode - The original app.jsx source (for color extraction)
+ * @returns {string} Patched HTML
+ */
+export function patchAppBackground(html, appCode) {
+  const rootMatch = appCode.match(/:root\s*\{([^}]+)\}/);
+  let bgColor = '';
+  if (rootMatch) {
+    const bgMatch = rootMatch[1].match(/--color-background\s*:\s*([^;]+)/);
+    if (bgMatch) bgColor = bgMatch[1].trim();
+  }
+  if (!bgColor) {
+    const bodyBgMatch = appCode.match(/body\s*\{[^}]*background\s*:\s*([^;]+)/);
+    if (bodyBgMatch) bgColor = bodyBgMatch[1].trim();
+  }
+
+  // Reject characters that could break out of CSS value or HTML context.
+  if (bgColor && /[;{}<>"']/.test(bgColor)) {
+    console.warn(`[assembly] Rejected suspicious bgColor value: ${bgColor.slice(0, 50)}`);
+    bgColor = '';
+  }
+  const bg = bgColor || 'inherit';
+
+  const headPatch = `<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <style>
+      #container { padding: 10px !important; }
+      body::before { background-color: ${bg} !important; }
+    </style>`;
+  html = html.replace('</head>', headPatch + '\n</head>');
+
+  const bodyPatch = `<style>
+      div[style*="z-index: 10"][style*="position: fixed"] { background: ${bg} !important; }
+    </style>`;
+  html = html.replace('</body>', bodyPatch + '\n</body>');
+
+  return html;
+}
+
+/**
  * Strip the OIDC dynamic import block from assembled HTML for eval-mode.
  * Removes the `if (hasOidc && !config.public) { try { ... } catch { ... } }` block
  * inside initApp() to prevent network requests to the OIDC authority.

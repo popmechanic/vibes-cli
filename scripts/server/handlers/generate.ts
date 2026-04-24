@@ -7,7 +7,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { stripForTemplate } from '../../lib/strip-code.js';
-import { APP_PLACEHOLDER, injectCode } from '../../lib/assembly-utils.js';
+import { APP_PLACEHOLDER, injectCode, patchAppBackground } from '../../lib/assembly-utils.js';
 import { populateConnectConfig } from '../../lib/env-utils.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL, AI_PROXY_URL } from '../../lib/auth-constants.js';
 import { TEMPLATES } from '../../lib/paths.js';
@@ -53,6 +53,10 @@ export function assembleAppFrame(ctx, appName?: string) {
   template = template.replaceAll('__OIDC_CLIENT_ID__', OIDC_CLIENT_ID);
   template = template.replaceAll('__DEPLOY_API_URL__', DEPLOY_API_URL);
   template = template.replaceAll('__AI_PROXY_URL__', AI_PROXY_URL);
+
+  // Patch bg color + cache-control so the preview iframe matches
+  // the deployed app. Same helper as assemble.js uses.
+  template = patchAppBackground(template, appCode);
 
   return template;
 }

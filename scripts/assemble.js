@@ -16,7 +16,7 @@ import { resolve } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { createBackup } from './lib/backup.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL, AI_PROXY_URL } from './lib/auth-constants.js';
-import { APP_PLACEHOLDER, AUTH_INJECT_MARKER, injectCode, validateAssembly, loadAndValidateTemplate, checkForbiddenPatterns, stripOidcImportBlock } from './lib/assembly-utils.js';
+import { APP_PLACEHOLDER, AUTH_INJECT_MARKER, injectCode, validateAssembly, loadAndValidateTemplate, checkForbiddenPatterns, stripOidcImportBlock, patchAppBackground } from './lib/assembly-utils.js';
 import { stripForTemplate } from './lib/strip-code.js';
 
 
@@ -118,6 +118,12 @@ async function main() {
 
     console.log('[eval-mode] Applied: shim injected, OIDC stripped, wsUrl=localhost:3334');
   }
+
+  // Patch background color + cache-control meta tags so the assembled
+  // HTML shows the app's bg through the template frame. Used to live in
+  // handlers/deploy.ts; moved here so editor/CLI/terminal assembly all
+  // get the same treatment.
+  output = patchAppBackground(output, appCode);
 
   // Validate output
   const validationErrors = validateAssembly(output, appCode);
