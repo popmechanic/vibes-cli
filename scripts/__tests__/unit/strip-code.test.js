@@ -232,6 +232,20 @@ function App() {}`;
     expect(result).not.toContain('const { useState } = React');
     expect(result).toContain('function App');
   });
+
+  // Regression: a destructure earlier in the file must not glue onto the
+  // React destructure and swallow everything between them.
+  it('does not over-match across an unrelated earlier destructure', () => {
+    const code = `const { foo } = someObj;
+const middle = 1;
+const { useState } = React;
+const after = 2;`;
+    const result = stripReactDestructuring(code);
+    expect(result).toContain('const { foo } = someObj');
+    expect(result).toContain('const middle = 1');
+    expect(result).toContain('const after = 2');
+    expect(result).not.toContain('const { useState } = React');
+  });
 });
 
 describe('stripWindowDestructuring', () => {
@@ -318,6 +332,36 @@ function App() {}`;
     const result = stripWindowDestructuring(code);
     expect(result).not.toContain('const { useApp } = window');
     expect(result).toContain('function App');
+  });
+
+  // Regression: a destructure earlier in the file must not glue onto the
+  // window destructure and swallow everything between them.
+  it('does not over-match across an unrelated earlier destructure', () => {
+    const code = `const { foo } = someObj;
+const middle = 1;
+const { useApp } = window;
+const after = 2;`;
+    const result = stripWindowDestructuring(code);
+    expect(result).toContain('const { foo } = someObj');
+    expect(result).toContain('const middle = 1');
+    expect(result).toContain('const after = 2');
+    expect(result).not.toContain('const { useApp } = window');
+  });
+
+  it('does not over-match across an unrelated earlier destructure (multi-line hook list)', () => {
+    const code = `const { foo } = someObj;
+const middle = 1;
+const {
+  useApp,
+  useRowIds,
+} = window;
+const after = 2;`;
+    const result = stripWindowDestructuring(code);
+    expect(result).toContain('const { foo } = someObj');
+    expect(result).toContain('const middle = 1');
+    expect(result).toContain('const after = 2');
+    expect(result).not.toContain('useApp');
+    expect(result).not.toContain('useRowIds');
   });
 });
 

@@ -57,11 +57,11 @@ export function stripConstants(code, constants) {
  * @returns {string} Code with React destructuring removed
  */
 export function stripReactDestructuring(code) {
-  return code
-    // Multi-line first (greedy): const {\n  useState,\n} = React;
-    .replace(/^const\s+\{[\s\S]*?\}\s*=\s*React\s*;?\s*$/gm, '')
-    // Single-line: const { useState, useEffect } = React;
-    .replace(/^const\s+\{[^}]*\}\s*=\s*React\s*;?\s*$/gm, '');
+  // [^}] (not [\s\S]) so the match can span newlines inside the braces
+  // but cannot leap past an unrelated `}` on a preceding line. Without
+  // that guard, a destructure earlier in the file would glue onto this
+  // one and delete everything between them.
+  return code.replace(/^const\s+\{[^}]*\}\s*=\s*React\s*;?\s*$/gm, '');
 }
 
 /**
@@ -71,12 +71,11 @@ export function stripReactDestructuring(code) {
  * @returns {string} Code with window destructuring removed
  */
 export function stripWindowDestructuring(code) {
+  // See stripReactDestructuring for the [^}] vs [\s\S] rationale.
   return code
-    // Multi-line first (greedy): const {\n  useApp,\n} = window;
-    .replace(/^const\s+\{[\s\S]*?\}\s*=\s*window\s*;?\s*$/gm, '')
-    // Single-line: const { useApp } = window;
+    // const { useApp } = window;  (single- or multi-line identifier list)
     .replace(/^const\s+\{[^}]*\}\s*=\s*window\s*;?\s*$/gm, '')
-    // Conditional: const { useApp } = React.useMemo ? window : {};
+    // Conditional form from older templates: const { useApp } = React.useMemo ? window : {};
     .replace(/^const\s+\{[^}]*\}\s*=\s*React\.useMemo\s*\?\s*window\s*:\s*\{\}\s*;?\s*$/gm, '');
 }
 
