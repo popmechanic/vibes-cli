@@ -16,7 +16,7 @@ import { resolve } from 'path';
 import { TEMPLATES } from './lib/paths.js';
 import { createBackup } from './lib/backup.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL, AI_PROXY_URL } from './lib/auth-constants.js';
-import { APP_PLACEHOLDER, AUTH_INJECT_MARKER, validateAssembly, loadAndValidateTemplate, checkForbiddenPatterns, stripOidcImportBlock } from './lib/assembly-utils.js';
+import { APP_PLACEHOLDER, AUTH_INJECT_MARKER, injectCode, validateAssembly, loadAndValidateTemplate, checkForbiddenPatterns, stripOidcImportBlock } from './lib/assembly-utils.js';
 import { stripForTemplate } from './lib/strip-code.js';
 
 
@@ -60,7 +60,7 @@ async function main() {
   }
 
   // Assemble: insert app code at placeholder
-  let output = template.replace(APP_PLACEHOLDER, cleanedAppCode);
+  let output = injectCode(template, APP_PLACEHOLDER, cleanedAppCode);
 
   // Inject hardcoded OIDC constants (same for every app) — replaceAll for templates
   // with multiple occurrences of the same placeholder.

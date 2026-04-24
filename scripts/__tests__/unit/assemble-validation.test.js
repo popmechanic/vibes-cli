@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { APP_PLACEHOLDER, validateAssembly, checkForbiddenPatterns } from '../../lib/assembly-utils.js';
+import { APP_PLACEHOLDER, injectCode, validateAssembly, checkForbiddenPatterns } from '../../lib/assembly-utils.js';
 import {
   SAFE_PLACEHOLDER_PATTERNS,
   validateFactoryTemplate,
@@ -80,6 +80,56 @@ describe('validateAssembly', () => {
     const errors = validateAssembly(html, '');
     expect(errors.length).toBeGreaterThanOrEqual(2);
     expect(errors).toContain('App code is empty');
+  });
+});
+
+describe('injectCode', () => {
+  // `String.prototype.replace(str, str)` treats $', $&, $`, $1–$9 as special
+  // patterns. A raw-string replacement would expand them — e.g. `$'` becomes the
+  // substring after the match. `injectCode` passes a function callback instead,
+  // which receives the code verbatim. Regression: currency `prefix: '$'`
+  // literals in KMUN-translator/app.jsx produced 10k-line garbled output.
+
+  const template = `HEAD ${PLACEHOLDER} TAIL`;
+
+  it('substitutes plain code at the placeholder', () => {
+    const code = 'const x = 1;';
+    expect(injectCode(template, PLACEHOLDER, code)).toBe(`HEAD ${code} TAIL`);
+  });
+
+  it("does not expand $' (after-match pattern) in code", () => {
+    const code = "const currency = { prefix: '$' };";
+    const result = injectCode(template, PLACEHOLDER, code);
+    expect(result).toBe(`HEAD ${code} TAIL`);
+    expect(result).not.toContain(" TAIL TAIL");
+  });
+
+  it('does not expand $& (whole-match pattern) in code', () => {
+    const code = "const s = 'A $& B';";
+    const result = injectCode(template, PLACEHOLDER, code);
+    expect(result).toBe(`HEAD ${code} TAIL`);
+    expect(result).not.toContain(PLACEHOLDER + ' B');
+  });
+
+  it('does not expand $` (before-match pattern) in code', () => {
+    const code = "const s = 'A $` B';";
+    const result = injectCode(template, PLACEHOLDER, code);
+    expect(result).toBe(`HEAD ${code} TAIL`);
+    expect(result).not.toContain("A HEAD  B");
+  });
+
+  it('does not expand $1–$9 (capture-group patterns) in code', () => {
+    const code = 'const s = "price: $1 to $9";';
+    const result = injectCode(template, PLACEHOLDER, code);
+    expect(result).toBe(`HEAD ${code} TAIL`);
+  });
+
+  it("does not duplicate template tail when code has multiple $' sequences", () => {
+    // Simulates the KMUN bug: 20+ currency prefix literals
+    const code = Array(20).fill("prefix: '$'").join('; ') + ';';
+    const result = injectCode(template, PLACEHOLDER, code);
+    // Output length = HEAD + code + TAIL. No expansion means no extra TAILs.
+    expect((result.match(/TAIL/g) || []).length).toBe(1);
   });
 });
 

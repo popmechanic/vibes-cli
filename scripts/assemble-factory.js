@@ -38,7 +38,7 @@ import { createBackup } from './lib/backup.js';
 import { prompt } from './lib/prompt.js';
 import { populateConnectConfig } from './lib/env-utils.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL, AI_PROXY_URL } from './lib/auth-constants.js';
-import { APP_PLACEHOLDER } from './lib/assembly-utils.js';
+import { APP_PLACEHOLDER, injectCode } from './lib/assembly-utils.js';
 import { parseArgs as parseCliArgs, formatHelp } from './lib/cli-utils.js';
 import { validateFactoryTemplate, validateFactoryAssembly } from './lib/factory-assembly-validation.js';
 
@@ -272,7 +272,7 @@ if (firepoolMatch) {
 
 // Insert app code at placeholder
 if (output.includes(APP_PLACEHOLDER)) {
-  output = output.replace(APP_PLACEHOLDER, appCode);
+  output = injectCode(output, APP_PLACEHOLDER, appCode);
 } else {
   console.error(`Template missing placeholder: ${APP_PLACEHOLDER}`);
   process.exit(1);
@@ -284,7 +284,7 @@ let adminCode = stripImports(readFileSync(adminComponentPath, 'utf8').trim());
 // Insert admin code at placeholder (optional - template may have inline admin)
 const adminPlaceholder = '__ADMIN_CODE__';
 if (output.includes(adminPlaceholder)) {
-  output = output.replace(adminPlaceholder, adminCode);
+  output = injectCode(output, adminPlaceholder, adminCode);
 } else {
   console.log('Note: Template has inline admin dashboard, skipping admin component injection');
 }

@@ -8,6 +8,18 @@ export const APP_PLACEHOLDER = '// __VIBES_APP_CODE__';
 export const AUTH_INJECT_MARKER = '// <!-- AUTH:INJECT -->';
 
 /**
+ * Inject code into a template at a placeholder.
+ *
+ * Uses a function callback so `$` sequences in code aren't interpreted as
+ * String.prototype.replace special patterns ($', $&, $`, $1–$9). Passing the
+ * code as a raw string causes currency literals like `prefix: '$'` to expand
+ * `$'` into the template tail, duplicating output.
+ */
+export function injectCode(template, placeholder, code) {
+  return template.replace(placeholder, () => code);
+}
+
+/**
  * Load a template file and validate it contains the placeholder.
  * @param {string} templatePath - Path to template file
  * @param {Function} readFileFn - Function to read a file (default: fs.readFileSync)

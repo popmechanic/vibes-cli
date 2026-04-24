@@ -10,7 +10,7 @@ import type { EventCallback } from '../claude-bridge.ts';
 import { sanitizeAppJsx } from '../post-process.ts';
 import type { ServerContext } from '../config.ts';
 import { stripForTemplate } from '../../lib/strip-code.js';
-import { APP_PLACEHOLDER } from '../../lib/assembly-utils.js';
+import { APP_PLACEHOLDER, injectCode } from '../../lib/assembly-utils.js';
 import { populateConnectConfig } from '../../lib/env-utils.js';
 import { OIDC_AUTHORITY, OIDC_CLIENT_ID, DEPLOY_API_URL, AI_PROXY_URL } from '../../lib/auth-constants.js';
 import { TEMPLATES } from '../../lib/paths.js';
@@ -115,7 +115,7 @@ export function assembleAppFrame(ctx, appName?: string) {
   if (!template.includes(APP_PLACEHOLDER)) {
     return `<html><body><h1>Template missing placeholder</h1><p>${APP_PLACEHOLDER}</p></body></html>`;
   }
-  template = template.replace(APP_PLACEHOLDER, strippedCode);
+  template = injectCode(template, APP_PLACEHOLDER, strippedCode);
 
   // Preview mode: inject safe defaults for TinyBase config (local-only, no sync, no auth).
   // Full config (wsUrl, oidcClientId) is injected at deploy time by the Deploy API.
